@@ -24,38 +24,40 @@ export async function scrapeDba(query: string): Promise<ScrapedListing[]> {
   const $ = cheerio.load(html)
 
   // dba.dk embeds all listing data in a JSON-LD CollectionPage script
-  let collectionPage: any = null
+  let collectionPage: Record<string, unknown> | null = null
   $('script[type="application/ld+json"]').each((_, el) => {
     try {
-      const parsed = JSON.parse($(el).html() || '')
-      if (parsed['@type'] === 'CollectionPage') {
-        collectionPage = parsed
+      const parsed: unknown = JSON.parse($(el).html() || '')
+      if (parsed && typeof parsed === 'object' && (parsed as Record<string, unknown>)['@type'] === 'CollectionPage') {
+        collectionPage = parsed as Record<string, unknown>
       }
     } catch {
       // skip malformed scripts
     }
   })
 
-  if (!collectionPage?.mainEntity?.itemListElement) {
+  const mainEntity = collectionPage?.['mainEntity'] as Record<string, unknown> | undefined
+  const itemListElement = mainEntity?.['itemListElement'] as unknown[] | undefined
+
+  if (!itemListElement?.length) {
     return []
   }
 
-  const items: any[] = collectionPage.mainEntity.itemListElement
+  return itemListElement
+    .map((entry): ScrapedListing | null => {
+      const product = (entry as Record<string, unknown>)['item'] as Record<string, unknown> | undefined
+      if (!product?.['url'] || !product?.['name']) return null
 
-  return items
-    .map((entry: any): ScrapedListing | null => {
-      const product = entry.item
-      if (!product?.url || !product?.name) return null
-
-      const rawPrice = product.offers?.price
-      const price = rawPrice ? parseInt(rawPrice, 10) : null
+      const offers = product['offers'] as Record<string, unknown> | undefined
+      const rawPrice = offers?.['price']
+      const price = rawPrice ? parseInt(String(rawPrice), 10) : null
 
       return {
-        title: product.name,
-        price: isNaN(price as number) ? null : price,
-        currency: product.offers?.priceCurrency ?? 'DKK',
-        url: product.url,
-        image_url: product.image ?? null,
+        title: String(product['name']),
+        price: price !== null && !isNaN(price) ? price : null,
+        currency: String(offers?.['priceCurrency'] ?? 'DKK'),
+        url: String(product['url']),
+        image_url: product['image'] ? String(product['image']) : null,
         location: null, // not in JSON-LD; can add CSS scraping later
         source: 'dba.dk',
       }

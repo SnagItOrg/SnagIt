@@ -12,8 +12,9 @@ export async function POST(req: NextRequest) {
   let listings
   try {
     listings = await scrapeDba(query.trim())
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 502 })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return NextResponse.json({ error: message }, { status: 502 })
   }
 
   if (listings.length === 0) {

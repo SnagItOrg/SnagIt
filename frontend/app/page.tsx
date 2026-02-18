@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import type { Listing } from '@/lib/supabase'
 
 export default function Home() {
@@ -27,8 +28,8 @@ export default function Home() {
       if (!res.ok) throw new Error(data.error ?? 'Scrape failed')
       setListings(data.listings ?? [])
       setStatus('done')
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
       setStatus('error')
     }
   }
@@ -98,9 +99,11 @@ export default function Home() {
                   {/* Image */}
                   <div className="w-20 h-20 flex-shrink-0 rounded-lg bg-gray-100 overflow-hidden">
                     {listing.image_url ? (
-                      <img
+                      <Image
                         src={listing.image_url}
                         alt={listing.title}
+                        width={80}
+                        height={80}
                         className="w-full h-full object-cover"
                       />
                     ) : (
