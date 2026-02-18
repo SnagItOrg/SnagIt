@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Environment files — never commit real keys
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+
+# Next.js
+frontend/.next/
+frontend/out/
+
+# Build
+dist/
+build/
