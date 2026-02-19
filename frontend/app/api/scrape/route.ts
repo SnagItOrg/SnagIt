@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { scrapeDba } from '@/lib/scrapers/dba'
-import { supabaseAdmin } from '@/lib/supabase-admin'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 export async function POST(req: NextRequest) {
   const { query } = await req.json()
@@ -22,12 +22,13 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date().toISOString()
-  const rows = listings.map((l) => ({ ...l, scraped_at: now }))
+  // watchlist_id: null marks these as manual scrapes (not tied to a watchlist)
+  const rows = listings.map((l) => ({ ...l, scraped_at: now, watchlist_id: null }))
 
-  // Upsert — on url conflict, update title/price/image in case they changed
-  const { data, error } = await supabaseAdmin
+  // Upsert — unique constraint is (url, watchlist_id) NULLS NOT DISTINCT
+  const { data, error } = await getSupabaseAdmin()
     .from('listings')
-    .upsert(rows, { onConflict: 'url' })
+    .upsert(rows, { onConflict: 'url,watchlist_id' })
     .select('*')
 
   if (error) {

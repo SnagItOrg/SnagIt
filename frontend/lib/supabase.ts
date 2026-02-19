@@ -10,7 +10,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Browser / server-component client (anon key — respects RLS)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Types matching the listings table
+// Types matching the database tables
+export type Watchlist = {
+  id: string
+  user_id: string
+  query: string
+  created_at: string
+  active: boolean
+}
+
 export type Listing = {
   id: string
   title: string
