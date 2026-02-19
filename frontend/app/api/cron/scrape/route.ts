@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { scrapeDba } from '@/lib/scrapers/dba'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { sendNewListingsEmail } from '@/lib/email'
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
 
   const { data: watchlists, error: wlError } = await getSupabaseAdmin()
     .from('watchlists')
-    .select('id, query')
+    .select('id, query, user_id')
     .eq('active', true)
 
   if (wlError) {
@@ -44,17 +45,58 @@ export async function GET(req: NextRequest) {
     const now = new Date().toISOString()
     const rows = listings.map((l) => ({ ...l, scraped_at: now, watchlist_id: watchlist.id }))
 
-    const { data, error } = await getSupabaseAdmin()
+    const { data: upserted, error: upsertError } = await getSupabaseAdmin()
       .from('listings')
       .upsert(rows, { onConflict: 'url,watchlist_id' })
       .select('id')
+
+    if (upsertError) {
+      results.push({ watchlist_id: watchlist.id, query: watchlist.query, error: upsertError.message })
+      continue
+    }
+
+    // Find listings that haven't been notified yet (genuinely new since last cron run)
+    const { data: newListings } = await getSupabaseAdmin()
+      .from('listings')
+      .select('title, price, currency, url')
+      .eq('watchlist_id', watchlist.id)
+      .is('notified_at', null)
+
+    let notified = 0
+    if (newListings && newListings.length > 0) {
+      // Get the watchlist owner's email
+      const { data: { user } } = await getSupabaseAdmin()
+        .auth.admin.getUserById(watchlist.user_id)
+
+      if (user?.email) {
+        try {
+          await sendNewListingsEmail({
+            to: user.email,
+            query: watchlist.query,
+            listings: newListings,
+          })
+          notified = newListings.length
+        } catch (emailErr) {
+          // Log but don't fail the whole cron run
+          console.error(`Email failed for watchlist ${watchlist.id}:`, emailErr)
+        }
+      }
+
+      // Mark as notified whether or not the email succeeded,
+      // to avoid re-sending on the next cron tick
+      await getSupabaseAdmin()
+        .from('listings')
+        .update({ notified_at: now })
+        .eq('watchlist_id', watchlist.id)
+        .is('notified_at', null)
+    }
 
     results.push({
       watchlist_id: watchlist.id,
       query: watchlist.query,
       total_scraped: listings.length,
-      upserted: data?.length ?? 0,
-      ...(error && { error: error.message }),
+      upserted: upserted?.length ?? 0,
+      notified,
     })
   }
 
