@@ -5,6 +5,7 @@ const SYNONYMS: Record<string, string> = {
   'space echo': 'roland re-201',
   're201': 're-201',
   'macmini': 'mac mini',
+  'apple mac mini': 'mac mini',
   'imac': 'imac',
   'macbook pro': 'macbook pro',
   'airpods pro': 'airpods pro',
