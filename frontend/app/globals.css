@@ -4,12 +4,10 @@
 
 :root {
   --color-primary: #13ec6d;
-  --color-bg: #f6f8f7;
-  --color-surface: #ffffff;
-  --color-text: #111827;
-  --color-text-muted: #6b7280;
-  --color-dark-bg: #102218;
-  --color-dark-surface: #152c21;
+  --color-bg: #102218;
+  --color-surface: #152c21;
+  --color-text: #ffffff;
+  --color-text-muted: #9ca3af;
 }
 
 @layer base {
@@ -26,10 +24,10 @@
   body {
     background-color: var(--color-bg);
     color: var(--color-text);
+    font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
-    /* Reserve space so content doesn't hide behind fixed bottom nav */
     padding-bottom: env(safe-area-inset-bottom);
   }
 

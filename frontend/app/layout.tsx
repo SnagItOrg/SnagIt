@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
+import { LocaleProvider } from "@/components/LocaleProvider";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
@@ -20,7 +21,9 @@ export default function RootLayout({
   return (
     <html lang="da">
       <body className={inter.className}>
-        {children}
+        <LocaleProvider>
+          {children}
+        </LocaleProvider>
 
         {gaId && (
           <>

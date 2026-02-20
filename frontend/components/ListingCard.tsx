@@ -1,15 +1,20 @@
+'use client'
+
 import Image from 'next/image'
 import type { Listing } from '@/lib/supabase'
+import { useLocale } from '@/components/LocaleProvider'
 
 export function ListingCard({ listing }: { listing: Listing }) {
+  const { t } = useLocale()
+
   return (
     <a
       href={listing.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex gap-3 rounded-2xl bg-surface border border-gray-100 p-3 shadow-sm hover:shadow-md hover:border-primary transition-all active:scale-[0.98]"
+      className="flex gap-3 rounded-2xl bg-surface border border-white/10 p-3 hover:border-primary/40 transition-all active:scale-[0.98]"
     >
-      <div className="w-[72px] h-[72px] flex-shrink-0 rounded-xl bg-gray-100 overflow-hidden">
+      <div className="w-[72px] h-[72px] flex-shrink-0 rounded-xl bg-white/5 overflow-hidden">
         {listing.image_url ? (
           <Image
             src={listing.image_url}
@@ -25,7 +30,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
               height="24"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#d1d5db"
+              stroke="rgba(255,255,255,0.2)"
               strokeWidth="1.5"
             >
               <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -45,7 +50,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
             {listing.price.toLocaleString('da-DK')} {listing.currency}
           </p>
         ) : (
-          <p className="text-sm text-text-muted mt-1">Pris ikke angivet</p>
+          <p className="text-sm text-text-muted mt-1">{t.priceNotListed}</p>
         )}
         {listing.location && (
           <p className="text-xs text-text-muted mt-0.5">{listing.location}</p>

@@ -16,8 +16,6 @@ const config: Config = {
           DEFAULT: "var(--color-text)",
           muted: "var(--color-text-muted)",
         },
-        "dark-bg": "var(--color-dark-bg)",
-        "dark-surface": "var(--color-dark-surface)",
       },
     },
   },
