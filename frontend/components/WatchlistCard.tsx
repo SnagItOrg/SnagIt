@@ -1,7 +1,24 @@
 'use client'
 
+import { useRef, useEffect, useState } from 'react'
 import type { Watchlist } from '@/lib/supabase'
 import { useLocale } from '@/components/LocaleProvider'
+
+// If the stored query is a URL (e.g. a search URL pasted by the user),
+// extract a human-readable label from it.
+// - Search URL: decode the q= parameter
+// - Any other URL: return as-is (listing titles are already clean)
+function getDisplayName(query: string): string {
+  if (!query.startsWith('http')) return query
+  try {
+    const url = new URL(query)
+    const param = url.searchParams.get('q')
+    if (param) return param // URLSearchParams auto-decodes + and %xx
+  } catch {
+    // not a valid URL — fall through
+  }
+  return query
+}
 
 interface Props {
   watchlist: Watchlist
@@ -10,6 +27,20 @@ interface Props {
 
 export function WatchlistCard({ watchlist, onDelete }: Props) {
   const { t } = useLocale()
+  const displayName = getDisplayName(watchlist.query)
+
+  const containerRef = useRef<HTMLDivElement>(null)
+  const titleRef = useRef<HTMLSpanElement>(null)
+  const [marqueeOffset, setMarqueeOffset] = useState(0)
+
+  useEffect(() => {
+    const container = containerRef.current
+    const title = titleRef.current
+    if (container && title) {
+      const overflow = title.scrollWidth - container.clientWidth
+      setMarqueeOffset(overflow > 0 ? overflow : 0)
+    }
+  }, [displayName])
 
   return (
     <div className="relative flex items-center gap-3 rounded-2xl bg-surface border border-white/10 px-4 py-3">
@@ -33,7 +64,21 @@ export function WatchlistCard({ watchlist, onDelete }: Props) {
       />
 
       <div className="flex-1 min-w-0 pr-2">
-        <p className="text-sm font-semibold text-text truncate">{watchlist.query}</p>
+        {/* Title — marquee scroll when text overflows the container */}
+        <div ref={containerRef} className="overflow-hidden">
+          <span
+            ref={titleRef}
+            className={`text-sm font-semibold text-text whitespace-nowrap inline-block${marqueeOffset > 0 ? ' animate-marquee' : ''}`}
+            style={
+              marqueeOffset > 0
+                ? ({ '--marquee-offset': `-${marqueeOffset}px` } as React.CSSProperties)
+                : undefined
+            }
+          >
+            {displayName}
+          </span>
+        </div>
+
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
           <span className="text-xs text-text-muted">
             {new Date(watchlist.created_at).toLocaleDateString('da-DK')}
@@ -43,11 +88,9 @@ export function WatchlistCard({ watchlist, onDelete }: Props) {
               {t.activeLabel}
             </span>
           )}
-          {watchlist.type === 'listing' && (
-            <span className="text-xs font-medium text-sky-400 bg-sky-400/10 rounded-full px-2 py-px">
-              {t.listingLabel}
-            </span>
-          )}
+          <span className="text-xs font-medium text-sky-400 bg-sky-400/10 rounded-full px-2 py-px">
+            {watchlist.type === 'listing' ? t.listingLabel : t.queryLabel}
+          </span>
         </div>
       </div>
 

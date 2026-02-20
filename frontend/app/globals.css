@@ -43,3 +43,15 @@
     box-shadow: 0 0 20px -5px rgba(19, 236, 109, 0.3);
   }
 }
+
+/* Marquee scroll-and-return for overflowing watchlist titles */
+@keyframes marquee-scroll {
+  0%,  12% { transform: translateX(0); }
+  45%, 55% { transform: translateX(var(--marquee-offset, 0px)); }
+  88%, 100% { transform: translateX(0); }
+}
+
+.animate-marquee {
+  animation: marquee-scroll 7s ease-in-out infinite;
+  animation-delay: 0.8s;
+}
