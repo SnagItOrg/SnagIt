@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { isDbaListingUrl, scrapeDbaListing } from '@/lib/scrapers/dba-listing'
 
 export async function GET() {
   const supabase = createSupabaseServerClient()
@@ -29,9 +30,40 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing query' }, { status: 400 })
   }
 
+  let insertData: {
+    user_id: string
+    query: string
+    type: 'query' | 'listing'
+    source_url?: string
+  }
+
+  if (isDbaListingUrl(query)) {
+    // Fetch the listing title to use as the display name
+    let listing
+    try {
+      listing = await scrapeDbaListing(query)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Kunne ikke hente annonce'
+      return NextResponse.json({ error: message }, { status: 502 })
+    }
+
+    insertData = {
+      user_id: user.id,
+      query: listing.title,
+      type: 'listing',
+      source_url: query,
+    }
+  } else {
+    insertData = {
+      user_id: user.id,
+      query: query.trim(),
+      type: 'query',
+    }
+  }
+
   const { data, error } = await supabase
     .from('watchlists')
-    .insert({ user_id: user.id, query: query.trim() })
+    .insert(insertData)
     .select()
     .single()
 

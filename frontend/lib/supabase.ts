@@ -17,6 +17,8 @@ export type Watchlist = {
   query: string
   created_at: string
   active: boolean
+  type: 'query' | 'listing'
+  source_url: string | null
 }
 
 export type Listing = {

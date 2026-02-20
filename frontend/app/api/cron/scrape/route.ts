@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { scrapeDba } from '@/lib/scrapers/dba'
+import { scrapeDbaListing } from '@/lib/scrapers/dba-listing'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { sendNewListingsEmail } from '@/lib/email'
 
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   const { data: watchlists, error: wlError } = await getSupabaseAdmin()
     .from('watchlists')
-    .select('id, query, user_id')
+    .select('id, query, user_id, type, source_url')
     .eq('active', true)
 
   if (wlError) {
@@ -25,6 +26,71 @@ export async function GET(req: NextRequest) {
   const results = []
 
   for (const watchlist of watchlists) {
+    const now = new Date().toISOString()
+
+    // ── Specific listing ──────────────────────────────────────────────────────
+    if (watchlist.type === 'listing') {
+      if (!watchlist.source_url) {
+        results.push({ watchlist_id: watchlist.id, error: 'Missing source_url' })
+        continue
+      }
+
+      let listing
+      try {
+        listing = await scrapeDbaListing(watchlist.source_url)
+      } catch (err) {
+        results.push({
+          watchlist_id: watchlist.id,
+          query: watchlist.query,
+          error: err instanceof Error ? err.message : 'Scrape failed',
+        })
+        continue
+      }
+
+      const row = { ...listing, scraped_at: now, watchlist_id: watchlist.id }
+
+      const { error: upsertError } = await getSupabaseAdmin()
+        .from('listings')
+        .upsert(row, { onConflict: 'url,watchlist_id' })
+
+      if (upsertError) {
+        results.push({ watchlist_id: watchlist.id, query: watchlist.query, error: upsertError.message })
+        continue
+      }
+
+      // Notify if new (notified_at IS NULL)
+      const { data: newListings } = await getSupabaseAdmin()
+        .from('listings')
+        .select('title, price, currency, url')
+        .eq('watchlist_id', watchlist.id)
+        .is('notified_at', null)
+
+      let notified = 0
+      if (newListings && newListings.length > 0) {
+        const { data: { user } } = await getSupabaseAdmin()
+          .auth.admin.getUserById(watchlist.user_id)
+
+        if (user?.email) {
+          try {
+            await sendNewListingsEmail({ to: user.email, query: watchlist.query, listings: newListings })
+            notified = newListings.length
+          } catch (emailErr) {
+            console.error(`Email failed for watchlist ${watchlist.id}:`, emailErr)
+          }
+        }
+
+        await getSupabaseAdmin()
+          .from('listings')
+          .update({ notified_at: now })
+          .eq('watchlist_id', watchlist.id)
+          .is('notified_at', null)
+      }
+
+      results.push({ watchlist_id: watchlist.id, query: watchlist.query, type: 'listing', notified })
+      continue
+    }
+
+    // ── Search query ──────────────────────────────────────────────────────────
     let listings
     try {
       listings = await scrapeDba(watchlist.query)
@@ -42,7 +108,6 @@ export async function GET(req: NextRequest) {
       continue
     }
 
-    const now = new Date().toISOString()
     const rows = listings.map((l) => ({ ...l, scraped_at: now, watchlist_id: watchlist.id }))
 
     const { data: upserted, error: upsertError } = await getSupabaseAdmin()
@@ -55,7 +120,6 @@ export async function GET(req: NextRequest) {
       continue
     }
 
-    // Find listings that haven't been notified yet (genuinely new since last cron run)
     const { data: newListings } = await getSupabaseAdmin()
       .from('listings')
       .select('title, price, currency, url')
@@ -64,26 +128,18 @@ export async function GET(req: NextRequest) {
 
     let notified = 0
     if (newListings && newListings.length > 0) {
-      // Get the watchlist owner's email
       const { data: { user } } = await getSupabaseAdmin()
         .auth.admin.getUserById(watchlist.user_id)
 
       if (user?.email) {
         try {
-          await sendNewListingsEmail({
-            to: user.email,
-            query: watchlist.query,
-            listings: newListings,
-          })
+          await sendNewListingsEmail({ to: user.email, query: watchlist.query, listings: newListings })
           notified = newListings.length
         } catch (emailErr) {
-          // Log but don't fail the whole cron run
           console.error(`Email failed for watchlist ${watchlist.id}:`, emailErr)
         }
       }
 
-      // Mark as notified whether or not the email succeeded,
-      // to avoid re-sending on the next cron tick
       await getSupabaseAdmin()
         .from('listings')
         .update({ notified_at: now })
@@ -94,6 +150,7 @@ export async function GET(req: NextRequest) {
     results.push({
       watchlist_id: watchlist.id,
       query: watchlist.query,
+      type: 'query',
       total_scraped: listings.length,
       upserted: upserted?.length ?? 0,
       notified,

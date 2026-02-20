@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import type { Listing, Watchlist } from '@/lib/supabase'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { isDbaListingUrl } from '@/lib/scrapers/dba-listing'
 
 export default function Home() {
   const router = useRouter()
@@ -169,12 +170,12 @@ export default function Home() {
             Vi tjekker dba.dk hvert 10. minut og sender dig en email, når der er nye annoncer.
           </p>
 
-          <form onSubmit={handleAddWatchlist} className="flex gap-2 mb-4">
+          <form onSubmit={handleAddWatchlist} className="flex gap-2 mb-1">
             <input
               type="text"
               value={watchlistQuery}
               onChange={(e) => setWatchlistQuery(e.target.value)}
-              placeholder="Søgeord at overvåge (f.eks. macbook, nintendo switch)"
+              placeholder="Søg eller indsæt link fra dba.dk"
               className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             <button
@@ -185,6 +186,13 @@ export default function Home() {
               {addingWatchlist ? 'Tilføjer…' : 'Tilføj'}
             </button>
           </form>
+          {watchlistQuery && (
+            <p className="text-xs text-gray-400 mb-3">
+              {isDbaListingUrl(watchlistQuery)
+                ? 'Vi overvåger denne annonce for ændringer'
+                : 'Vi søger efter nye annoncer med dette søgeord'}
+            </p>
+          )}
 
           {watchlistError && (
             <p className="text-xs text-red-600 mb-3">{watchlistError}</p>
@@ -209,6 +217,11 @@ export default function Home() {
                     {w.active && (
                       <span className="ml-2 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
                         aktiv
+                      </span>
+                    )}
+                    {w.type === 'listing' && (
+                      <span className="ml-1 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
+                        annonce
                       </span>
                     )}
                   </div>
