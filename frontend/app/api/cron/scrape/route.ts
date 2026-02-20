@@ -58,6 +58,18 @@ export async function GET(req: NextRequest) {
         continue
       }
 
+      // Record price snapshot
+      await getSupabaseAdmin()
+        .from('price_snapshots')
+        .insert({
+          listing_url: listing.url,
+          watchlist_id: watchlist.id,
+          price: listing.price,
+          currency: listing.currency,
+          title: listing.title,
+          scraped_at: now,
+        })
+
       // Notify if new (notified_at IS NULL)
       const { data: newListings } = await getSupabaseAdmin()
         .from('listings')
@@ -119,6 +131,17 @@ export async function GET(req: NextRequest) {
       results.push({ watchlist_id: watchlist.id, query: watchlist.query, error: upsertError.message })
       continue
     }
+
+    // Record price snapshots for all scraped listings
+    const snapshots = listings.map((l) => ({
+      listing_url: l.url,
+      watchlist_id: watchlist.id,
+      price: l.price,
+      currency: l.currency,
+      title: l.title,
+      scraped_at: now,
+    }))
+    await getSupabaseAdmin().from('price_snapshots').insert(snapshots)
 
     const { data: newListings } = await getSupabaseAdmin()
       .from('listings')

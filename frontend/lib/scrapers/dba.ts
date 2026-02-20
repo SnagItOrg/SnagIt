@@ -5,6 +5,8 @@ import { lookupSynonym } from '../synonyms'
 
 type ScrapedListing = Omit<Listing, 'id' | 'scraped_at'>
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
 // Extract the numeric listing ID from a dba.dk URL for deduplication.
 // New format: https://www.dba.dk/recommerce/forsale/item/1234567
 // Old format: https://www.dba.dk/roland-juno/id-1234567/
@@ -16,9 +18,12 @@ function extractListingId(url: string): string {
   return url
 }
 
-// Core fetch-and-parse for a single (already normalized) query string.
-async function fetchDbaSearch(normalizedQ: string): Promise<ScrapedListing[]> {
-  const url = `https://www.dba.dk/recommerce/forsale/search?q=${encodeURIComponent(normalizedQ)}`
+// Fetch and parse one page of dba.dk search results.
+// Returns an empty array if no results are found (signals caller to stop pagination).
+async function fetchDbaPage(normalizedQ: string, page: number): Promise<ScrapedListing[]> {
+  const params = new URLSearchParams({ q: normalizedQ })
+  if (page > 1) params.set('page', String(page))
+  const url = `https://www.dba.dk/recommerce/forsale/search?${params}`
 
   const res = await fetch(url, {
     headers: {
@@ -79,28 +84,48 @@ async function fetchDbaSearch(normalizedQ: string): Promise<ScrapedListing[]> {
     .filter((l): l is ScrapedListing => l !== null)
 }
 
-export async function scrapeDba(query: string): Promise<ScrapedListing[]> {
+// Fetch all pages of results for a single (already normalized) query string.
+// Stops early if a page returns 0 results. Waits 1 s between page requests.
+async function fetchDbaSearch(normalizedQ: string, maxPages = 1): Promise<ScrapedListing[]> {
+  const all: ScrapedListing[] = []
+
+  for (let page = 1; page <= maxPages; page++) {
+    if (page > 1) await delay(1000)
+
+    const pageResults = await fetchDbaPage(normalizedQ, page)
+    if (pageResults.length === 0) break
+
+    all.push(...pageResults)
+  }
+
+  return all
+}
+
+export async function scrapeDba(query: string, maxPages = 1): Promise<ScrapedListing[]> {
   const normalized = normalizeQuery(query)
 
-  // Build the set of queries to try
-  const queries = new Set<string>([normalized])
+  // Build the ordered list of query variants to try
+  const queries: string[] = [normalized]
 
   // Also try with hyphens removed: "re-201" → "re201"
   const dehyphenated = normalized.replace(/-/g, '')
-  if (dehyphenated !== normalized) queries.add(dehyphenated)
+  if (dehyphenated !== normalized) queries.push(dehyphenated)
 
   // Expand synonyms (normalize the canonical form before adding)
   const synonym = lookupSynonym(normalized)
-  if (synonym) queries.add(normalizeQuery(synonym))
+  if (synonym) queries.push(normalizeQuery(synonym))
 
-  // Fetch all query variants in parallel; ignore individual failures
-  const results = await Promise.allSettled(
-    Array.from(queries).map((q) => fetchDbaSearch(q)),
-  )
-
-  const all: ScrapedListing[] = results.flatMap((r) =>
-    r.status === 'fulfilled' ? r.value : [],
-  )
+  // Fetch query variants sequentially — 2 s between queries for rate limiting
+  const all: ScrapedListing[] = []
+  for (let i = 0; i < queries.length; i++) {
+    if (i > 0) await delay(2000)
+    try {
+      const results = await fetchDbaSearch(queries[i], maxPages)
+      all.push(...results)
+    } catch {
+      // ignore individual query failures, try the next variant
+    }
+  }
 
   // Deduplicate by dba.dk listing ID (same listing may appear in multiple result sets)
   const seen = new Set<string>()
