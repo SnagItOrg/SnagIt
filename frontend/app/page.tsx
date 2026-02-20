@@ -2,37 +2,36 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import type { Listing, Watchlist } from '@/lib/supabase'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { isDbaListingUrl } from '@/lib/scrapers/dba-listing'
+import { ListingCard } from '@/components/ListingCard'
+import { WatchlistCard } from '@/components/WatchlistCard'
+import { BottomNav, type NavTab } from '@/components/BottomNav'
 
 export default function Home() {
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState<NavTab>('hjem')
 
-  // Manuel søgning
+  // Manual search
   const [query, setQuery] = useState('')
   const [listings, setListings] = useState<Listing[]>([])
-  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
-  const [error, setError] = useState<string | null>(null)
+  const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [searchError, setSearchError] = useState<string | null>(null)
 
-  // Overvågninger
+  // Watchlists
   const [watchlists, setWatchlists] = useState<Watchlist[]>([])
   const [watchlistQuery, setWatchlistQuery] = useState('')
   const [watchlistsLoading, setWatchlistsLoading] = useState(true)
   const [addingWatchlist, setAddingWatchlist] = useState(false)
   const [watchlistError, setWatchlistError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadWatchlists()
-  }, [])
+  useEffect(() => { loadWatchlists() }, [])
 
   async function loadWatchlists() {
     setWatchlistsLoading(true)
     const res = await fetch('/api/watchlists')
-    if (res.ok) {
-      setWatchlists(await res.json())
-    }
+    if (res.ok) setWatchlists(await res.json())
     setWatchlistsLoading(false)
   }
 
@@ -46,9 +45,8 @@ export default function Home() {
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     if (!query.trim()) return
-
-    setStatus('loading')
-    setError(null)
+    setSearchStatus('loading')
+    setSearchError(null)
     setListings([])
 
     try {
@@ -60,17 +58,16 @@ export default function Home() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Søgning mislykkedes')
       setListings(data.listings ?? [])
-      setStatus('done')
+      setSearchStatus('done')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ukendt fejl')
-      setStatus('error')
+      setSearchError(err instanceof Error ? err.message : 'Ukendt fejl')
+      setSearchStatus('error')
     }
   }
 
   async function handleAddWatchlist(e: React.FormEvent) {
     e.preventDefault()
     if (!watchlistQuery.trim()) return
-
     setAddingWatchlist(true)
     setWatchlistError(null)
 
@@ -95,188 +92,153 @@ export default function Home() {
     setWatchlists((prev) => prev.filter((w) => w.id !== id))
   }
 
+  const inputIsUrl = isDbaListingUrl(watchlistQuery)
+
   return (
-    <main className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-6">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex items-center justify-between mb-1">
-            <h1 className="text-2xl font-bold text-gray-900">Klup</h1>
-            <button
-              onClick={handleLogout}
-              className="text-xs text-gray-400 hover:text-gray-600"
-            >
-              Log ud
-            </button>
-          </div>
-          <p className="text-sm text-gray-500 mb-4">Kup efter kup – det er Klup</p>
+    <div className="min-h-screen flex flex-col bg-bg">
+      {/* Sticky header */}
+      <header
+        className="sticky top-0 z-40 flex items-center justify-between px-4 py-4 border-b border-white/10"
+        style={{ backgroundColor: 'var(--color-dark-bg)' }}
+      >
+        <span className="text-lg font-bold tracking-tight" style={{ color: 'var(--color-primary)' }}>
+          Klup
+        </span>
+        <button
+          onClick={handleLogout}
+          className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+          style={{ color: 'rgba(255,255,255,0.5)' }}
+        >
+          Log ud
+        </button>
+      </header>
 
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Søg efter alt… (f.eks. iphone, sofa, cykel)"
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <button
-              type="submit"
-              disabled={status === 'loading'}
-              className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {status === 'loading' ? 'Søger…' : 'Søg'}
-            </button>
-          </form>
-        </div>
-      </div>
+      {/* Content — leave room for bottom nav (72px) */}
+      <main className="flex-1 pb-[88px]">
 
-      <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col gap-8">
-        {/* Søgeresultater */}
-        <section>
-          {status === 'loading' && (
-            <div className="text-center text-sm text-gray-500 py-16">Henter annoncer fra dba.dk…</div>
-          )}
-
-          {status === 'error' && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          {status === 'done' && listings.length === 0 && (
-            <div className="text-center text-sm text-gray-500 py-16">
-              Ingen annoncer fundet for &ldquo;{query}&rdquo;
-            </div>
-          )}
-
-          {status === 'done' && listings.length > 0 && (
-            <>
-              <p className="text-xs text-gray-400 mb-4">
-                {listings.length} resultater for &ldquo;{query}&rdquo;
+        {/* ── Hjem / Overvågninger ── */}
+        {(activeTab === 'hjem' || activeTab === 'overvaagninger') && (
+          <section className="max-w-xl mx-auto px-4 pt-5 flex flex-col gap-4">
+            <div>
+              <h2 className="text-base font-semibold text-text mb-0.5">Overvågninger</h2>
+              <p className="text-xs text-text-muted">
+                Vi tjekker dba.dk hvert 10. minut og sender dig en email ved nye annoncer.
               </p>
-              <div className="flex flex-col gap-3">
-                {listings.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} />
+            </div>
+
+            {/* Add form */}
+            <form onSubmit={handleAddWatchlist} className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={watchlistQuery}
+                  onChange={(e) => setWatchlistQuery(e.target.value)}
+                  placeholder="Søg eller indsæt link fra dba.dk"
+                  className="flex-1 rounded-xl border border-gray-200 bg-surface px-4 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
+                />
+                <button
+                  type="submit"
+                  disabled={addingWatchlist}
+                  className="rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-[0.97] glow-primary disabled:opacity-60 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-dark-bg)' }}
+                >
+                  {addingWatchlist ? '…' : 'Tilføj'}
+                </button>
+              </div>
+
+              {watchlistQuery && (
+                <p className="text-xs text-text-muted pl-1">
+                  {inputIsUrl
+                    ? '🔗 Vi overvåger denne annonce for ændringer'
+                    : '🔍 Vi søger efter nye annoncer med dette søgeord'}
+                </p>
+              )}
+
+              {watchlistError && (
+                <p className="text-xs text-red-500 pl-1">{watchlistError}</p>
+              )}
+            </form>
+
+            {/* Watchlist items */}
+            {watchlistsLoading ? (
+              <p className="text-xs text-text-muted text-center py-6">Henter...</p>
+            ) : watchlists.length === 0 ? (
+              <div className="rounded-2xl bg-surface border border-gray-100 px-4 py-8 text-center">
+                <p className="text-sm text-text-muted">Ingen overvågninger endnu.</p>
+                <p className="text-xs text-text-muted mt-1">Tilføj en søgning ovenfor for at komme i gang.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {watchlists.map((w) => (
+                  <WatchlistCard key={w.id} watchlist={w} onDelete={handleDeleteWatchlist} />
                 ))}
               </div>
-            </>
-          )}
-        </section>
+            )}
+          </section>
+        )}
 
-        {/* Overvågninger */}
-        <section>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Overvågninger</h2>
-          <p className="text-xs text-gray-400 mb-4">
-            Vi tjekker dba.dk hvert 10. minut og sender dig en email, når der er nye annoncer.
-          </p>
+        {/* ── Søg ── */}
+        {activeTab === 'soeg' && (
+          <section className="max-w-xl mx-auto px-4 pt-5 flex flex-col gap-4">
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Søg efter alt… (f.eks. iphone, sofa, cykel)"
+                autoFocus
+                className="flex-1 rounded-xl border border-gray-200 bg-surface px-4 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
+              />
+              <button
+                type="submit"
+                disabled={searchStatus === 'loading'}
+                className="rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-[0.97] glow-primary disabled:opacity-60"
+                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-dark-bg)' }}
+              >
+                {searchStatus === 'loading' ? '…' : 'Søg'}
+              </button>
+            </form>
 
-          <form onSubmit={handleAddWatchlist} className="flex gap-2 mb-1">
-            <input
-              type="text"
-              value={watchlistQuery}
-              onChange={(e) => setWatchlistQuery(e.target.value)}
-              placeholder="Søg eller indsæt link fra dba.dk"
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <button
-              type="submit"
-              disabled={addingWatchlist}
-              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {addingWatchlist ? 'Tilføjer…' : 'Tilføj'}
-            </button>
-          </form>
-          {watchlistQuery && (
-            <p className="text-xs text-gray-400 mb-3">
-              {isDbaListingUrl(watchlistQuery)
-                ? 'Vi overvåger denne annonce for ændringer'
-                : 'Vi søger efter nye annoncer med dette søgeord'}
-            </p>
-          )}
+            {searchStatus === 'loading' && (
+              <p className="text-center text-sm text-text-muted py-12">Henter annoncer fra dba.dk…</p>
+            )}
 
-          {watchlistError && (
-            <p className="text-xs text-red-600 mb-3">{watchlistError}</p>
-          )}
+            {searchStatus === 'error' && (
+              <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+                {searchError}
+              </div>
+            )}
 
-          {watchlistsLoading ? (
-            <p className="text-xs text-gray-400">Henter...</p>
-          ) : watchlists.length === 0 ? (
-            <p className="text-xs text-gray-400">Ingen overvågninger endnu.</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {watchlists.map((w) => (
-                <li
-                  key={w.id}
-                  className="flex items-center justify-between rounded-lg bg-white border border-gray-200 px-4 py-3"
-                >
-                  <div>
-                    <span className="text-sm font-medium text-gray-900">{w.query}</span>
-                    <span className="ml-2 text-xs text-gray-400">
-                      {new Date(w.created_at).toLocaleDateString('da-DK')}
-                    </span>
-                    {w.active && (
-                      <span className="ml-2 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
-                        aktiv
-                      </span>
-                    )}
-                    {w.type === 'listing' && (
-                      <span className="ml-1 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
-                        annonce
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => handleDeleteWatchlist(w.id)}
-                    className="text-xs text-gray-400 hover:text-red-500 ml-4"
-                  >
-                    Fjern
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-    </main>
-  )
-}
+            {searchStatus === 'done' && listings.length === 0 && (
+              <p className="text-center text-sm text-text-muted py-12">
+                Ingen annoncer fundet for &ldquo;{query}&rdquo;
+              </p>
+            )}
 
-function ListingCard({ listing }: { listing: Listing }) {
-  return (
-    <a
-      href={listing.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex gap-4 rounded-xl bg-white border border-gray-200 p-3 hover:border-blue-400 hover:shadow-sm transition-all"
-    >
-      <div className="w-20 h-20 flex-shrink-0 rounded-lg bg-gray-100 overflow-hidden">
-        {listing.image_url ? (
-          <Image
-            src={listing.image_url}
-            alt={listing.title}
-            width={80}
-            height={80}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">
-            Intet billede
+            {searchStatus === 'done' && listings.length > 0 && (
+              <>
+                <p className="text-xs text-text-muted">
+                  {listings.length} resultater for &ldquo;{query}&rdquo;
+                </p>
+                <div className="flex flex-col gap-2">
+                  {listings.map((l) => <ListingCard key={l.id} listing={l} />)}
+                </div>
+              </>
+            )}
+          </section>
+        )}
+
+        {/* ── Gemt / Profil (placeholder) ── */}
+        {(activeTab === 'gemt' || activeTab === 'profil') && (
+          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
+            <p className="text-2xl mb-2">🚧</p>
+            <p className="text-sm font-medium text-text">Kommer snart</p>
+            <p className="text-xs text-text-muted mt-1">Denne funktion er ikke klar endnu.</p>
           </div>
         )}
-      </div>
-      <div className="flex flex-col justify-center min-w-0">
-        <p className="text-sm font-medium text-gray-900 truncate">{listing.title}</p>
-        {listing.price != null ? (
-          <p className="text-sm font-semibold text-blue-600 mt-0.5">
-            {listing.price.toLocaleString('da-DK')} {listing.currency}
-          </p>
-        ) : (
-          <p className="text-sm text-gray-400 mt-0.5">Pris ikke angivet</p>
-        )}
-        {listing.location && (
-          <p className="text-xs text-gray-400 mt-1">{listing.location}</p>
-        )}
-      </div>
-    </a>
+      </main>
+
+      <BottomNav active={activeTab} onChange={setActiveTab} />
+    </div>
   )
 }

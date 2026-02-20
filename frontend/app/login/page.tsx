@@ -31,54 +31,70 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Klup</h1>
-        <p className="text-sm text-gray-500 mb-6">Log ind på din konto</p>
+    <main
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
+      style={{ backgroundColor: 'var(--color-dark-bg)' }}
+    >
+      {/* Wordmark */}
+      <div className="mb-8 text-center">
+        <h1 className="text-4xl font-bold tracking-tight" style={{ color: 'var(--color-primary)' }}>
+          Klup
+        </h1>
+        <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          Kup efter kup – det er Klup
+        </p>
+      </div>
 
-        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col gap-4">
+      {/* Card */}
+      <div className="w-full max-w-sm rounded-2xl bg-surface p-6 shadow-xl">
+        <h2 className="text-base font-semibold text-text mb-5">Log ind</h2>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-xs font-medium text-text-muted mb-1.5">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              autoComplete="email"
+              className="w-full rounded-xl border border-gray-200 bg-bg px-3.5 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Adgangskode</label>
+            <label className="block text-xs font-medium text-text-muted mb-1.5">Adgangskode</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              autoComplete="current-password"
+              className="w-full rounded-xl border border-gray-200 bg-bg px-3.5 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
             />
           </div>
 
           {error && (
-            <p className="text-xs text-red-600">{error}</p>
+            <p className="text-xs text-red-500 -mt-1">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mt-1 w-full rounded-xl py-3 text-sm font-semibold transition-all active:scale-[0.98] glow-primary disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-dark-bg)' }}
           >
             {loading ? 'Logger ind…' : 'Log ind'}
           </button>
         </form>
-
-        <p className="text-center text-xs text-gray-500 mt-4">
-          Ingen konto?{' '}
-          <Link href="/signup" className="text-blue-600 hover:underline">
-            Opret konto
-          </Link>
-        </p>
       </div>
+
+      <p className="mt-5 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        Ingen konto?{' '}
+        <Link href="/signup" className="font-medium underline" style={{ color: 'var(--color-primary)' }}>
+          Opret konto
+        </Link>
+      </p>
     </main>
   )
 }
