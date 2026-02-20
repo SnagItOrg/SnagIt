@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Klup
 
-## Getting Started
+> Kup efter kup – det er Klup
 
-First, run the development server:
+Klup overvåger dba.dk for dig. Opret en overvågning med et søgeord, og få en email, når der dukker nye annoncer op.
+
+## Stack
+
+- **Next.js 14** — App Router
+- **Supabase** — database, auth, RLS
+- **Resend** — email notifikationer
+- **Vercel** — hosting + cron jobs (hvert 10. minut)
+
+## Kom i gang
 
 ```bash
+npm install
+cp .env.example .env.local
+# Udfyld env vars i .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Miljøvariabler
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Variabel | Beskrivelse |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase projekt-URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon nøgle |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role nøgle (server-side) |
+| `CRON_SECRET` | Hemmeligt token til cron job |
+| `RESEND_API_KEY` | Resend API nøgle |
+| `RESEND_FROM_EMAIL` | Afsender-email (f.eks. `hej@ditdomæne.dk`) |
+| `NEXT_PUBLIC_APP_URL` | Produktions-URL (f.eks. `https://klup.vercel.app`) |
