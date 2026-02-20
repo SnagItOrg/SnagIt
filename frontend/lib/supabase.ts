@@ -20,6 +20,7 @@ export type Watchlist = {
   type: 'query' | 'listing'
   source_url: string | null
   new_count: number
+  preview_image_url: string | null
 }
 
 export type Listing = {

@@ -1,19 +1,18 @@
 'use client'
 
 import { useRef, useEffect, useState } from 'react'
+import Image from 'next/image'
 import type { Watchlist } from '@/lib/supabase'
 import { useLocale } from '@/components/LocaleProvider'
 
 // If the stored query is a URL (e.g. a search URL pasted by the user),
 // extract a human-readable label from it.
-// - Search URL: decode the q= parameter
-// - Any other URL: return as-is (listing titles are already clean)
 function getDisplayName(query: string): string {
   if (!query.startsWith('http')) return query
   try {
     const url = new URL(query)
     const param = url.searchParams.get('q')
-    if (param) return param // URLSearchParams auto-decodes + and %xx
+    if (param) return param
   } catch {
     // not a valid URL — fall through
   }
@@ -57,11 +56,24 @@ export function WatchlistCard({ watchlist, onDelete }: Props) {
         )}
       </div>
 
-      {/* Status dot */}
-      <span
-        className="w-2 h-2 rounded-full flex-shrink-0"
-        style={{ backgroundColor: watchlist.active ? 'var(--color-primary)' : 'rgba(255,255,255,0.2)' }}
-      />
+      {/* Thumbnail or placeholder */}
+      <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-white/5 flex items-center justify-center">
+        {watchlist.preview_image_url ? (
+          <Image
+            src={watchlist.preview_image_url}
+            alt={displayName}
+            width={48}
+            height={48}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <path d="M21 15l-5-5L5 21" />
+          </svg>
+        )}
+      </div>
 
       <div className="flex-1 min-w-0 pr-2">
         {/* Title — marquee scroll when text overflows the container */}

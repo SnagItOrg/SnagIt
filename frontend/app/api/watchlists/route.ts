@@ -63,8 +63,9 @@ export async function GET() {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data || data.length === 0) return NextResponse.json([])
 
-  // Count unnotified listings per watchlist
   const ids = data.map((w) => w.id)
+
+  // Count unnotified listings per watchlist
   const { data: unnotified } = await supabase
     .from('listings')
     .select('watchlist_id')
@@ -78,7 +79,26 @@ export async function GET() {
     }
   }
 
-  const result = data.map((w) => ({ ...w, new_count: countMap.get(w.id) ?? 0 }))
+  // Most recent image per watchlist (ordered DESC so first hit per id wins)
+  const { data: images } = await supabase
+    .from('listings')
+    .select('watchlist_id, image_url')
+    .in('watchlist_id', ids)
+    .not('image_url', 'is', null)
+    .order('scraped_at', { ascending: false })
+
+  const imageMap = new Map<string, string>()
+  for (const row of images ?? []) {
+    if (row.watchlist_id && row.image_url && !imageMap.has(row.watchlist_id)) {
+      imageMap.set(row.watchlist_id, row.image_url)
+    }
+  }
+
+  const result = data.map((w) => ({
+    ...w,
+    new_count: countMap.get(w.id) ?? 0,
+    preview_image_url: imageMap.get(w.id) ?? null,
+  }))
   return NextResponse.json(result)
 }
 
@@ -135,5 +155,5 @@ export async function POST(req: NextRequest) {
   // Trigger initial scrape in the background — don't block the 201 response
   void runInitialScrape(data.id, insertData.query, insertData.type, insertData.source_url)
 
-  return NextResponse.json({ ...data, new_count: 0 }, { status: 201 })
+  return NextResponse.json({ ...data, new_count: 0, preview_image_url: null }, { status: 201 })
 }
