@@ -49,6 +49,11 @@ export const translations = {
     unknownError: 'Ukendt fejl',
     newListings: 'nye',
     updated: 'Opdateret',
+    noListingsYet: 'Ingen annoncer endnu',
+    page: 'Side',
+    of: 'af',
+    previous: 'Forrige',
+    next: 'Næste',
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -98,6 +103,11 @@ export const translations = {
     unknownError: 'Unknown error',
     newListings: 'new',
     updated: 'Updated',
+    noListingsYet: 'No listings yet',
+    page: 'Page',
+    of: 'of',
+    previous: 'Previous',
+    next: 'Next',
   },
 } as const
 

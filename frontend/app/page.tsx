@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { isDbaListingUrl } from '@/lib/scrapers/dba-listing'
 import { ListingCard } from '@/components/ListingCard'
 import { WatchlistCard } from '@/components/WatchlistCard'
+import { WatchlistListings } from '@/components/WatchlistListings'
 import { BottomNav, type NavTab } from '@/components/BottomNav'
 import { SideNav } from '@/components/SideNav'
 import { useLocale } from '@/components/LocaleProvider'
@@ -29,6 +30,7 @@ export default function Home() {
   const [watchlistsLoading, setWatchlistsLoading] = useState(true)
   const [addingWatchlist, setAddingWatchlist] = useState(false)
   const [watchlistError, setWatchlistError] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => { loadWatchlists() }, [])
 
@@ -176,16 +178,28 @@ export default function Home() {
 
               {/* Watchlist items */}
               {watchlistsLoading ? (
-                <p className="text-xs text-text-muted text-center py-6">{t.loading}</p>
+                <div className="flex flex-col gap-2 md:grid md:grid-cols-2">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="animate-pulse rounded-2xl bg-surface border border-white/10 h-[72px]" />
+                  ))}
+                </div>
               ) : watchlists.length === 0 ? (
                 <div className="rounded-2xl bg-surface border border-white/10 px-4 py-8 text-center">
                   <p className="text-sm text-text-muted">{t.noWatchlists}</p>
                   <p className="text-xs text-text-muted mt-1">{t.noWatchlistsHint}</p>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2 md:grid md:grid-cols-2">
+                <div className="flex flex-col gap-3 md:grid md:grid-cols-2">
                   {watchlists.map((w) => (
-                    <WatchlistCard key={w.id} watchlist={w} onDelete={handleDeleteWatchlist} />
+                    <div key={w.id} className="flex flex-col">
+                      <WatchlistCard
+                        watchlist={w}
+                        onDelete={handleDeleteWatchlist}
+                        onExpand={() => setExpandedId(expandedId === w.id ? null : w.id)}
+                        isExpanded={expandedId === w.id}
+                      />
+                      {expandedId === w.id && <WatchlistListings watchlistId={w.id} />}
+                    </div>
                   ))}
                 </div>
               )}

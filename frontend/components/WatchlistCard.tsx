@@ -22,9 +22,11 @@ function getDisplayName(query: string): string {
 interface Props {
   watchlist: Watchlist
   onDelete: (id: string) => void
+  onExpand?: () => void
+  isExpanded?: boolean
 }
 
-export function WatchlistCard({ watchlist, onDelete }: Props) {
+export function WatchlistCard({ watchlist, onDelete, onExpand, isExpanded }: Props) {
   const { t } = useLocale()
   const displayName = getDisplayName(watchlist.query)
 
@@ -42,7 +44,10 @@ export function WatchlistCard({ watchlist, onDelete }: Props) {
   }, [displayName])
 
   return (
-    <div className="relative flex items-center gap-3 rounded-2xl bg-surface border border-white/10 px-4 py-3">
+    <div
+      className={`relative flex items-center gap-3 rounded-2xl bg-surface border px-4 py-3 transition-colors${onExpand ? ' cursor-pointer' : ''}${isExpanded ? ' border-primary/40' : ' border-white/10 hover:border-white/20'}`}
+      onClick={onExpand}
+    >
       {/* New-listings badge — top right */}
       <div className="absolute top-2.5 right-12">
         {watchlist.new_count > 0 ? (
@@ -56,8 +61,8 @@ export function WatchlistCard({ watchlist, onDelete }: Props) {
         )}
       </div>
 
-      {/* Thumbnail or placeholder */}
-      <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-white/5 flex items-center justify-center">
+      {/* Thumbnail or K placeholder */}
+      <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-surface border border-white/10 flex items-center justify-center">
         {watchlist.preview_image_url ? (
           <Image
             src={watchlist.preview_image_url}
@@ -67,11 +72,7 @@ export function WatchlistCard({ watchlist, onDelete }: Props) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <path d="M21 15l-5-5L5 21" />
-          </svg>
+          <span className="text-lg font-bold text-primary select-none">K</span>
         )}
       </div>
 
@@ -107,7 +108,7 @@ export function WatchlistCard({ watchlist, onDelete }: Props) {
       </div>
 
       <button
-        onClick={() => onDelete(watchlist.id)}
+        onClick={(e) => { e.stopPropagation(); onDelete(watchlist.id) }}
         className="flex items-center justify-center min-w-[40px] min-h-[40px] p-2 rounded-xl text-text-muted hover:text-red-400 hover:bg-red-400/10 transition-colors flex-shrink-0"
         aria-label={t.removeWatch}
       >
