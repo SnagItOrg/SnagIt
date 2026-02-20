@@ -8,7 +8,8 @@ export function isDbaListingUrl(input: string): boolean {
     const url = new URL(input)
     return (
       url.hostname === 'www.dba.dk' &&
-      !url.pathname.startsWith('/soeg')
+      !url.pathname.startsWith('/soeg') &&
+      !url.pathname.startsWith('/recommerce/forsale/search')
     )
   } catch {
     return false

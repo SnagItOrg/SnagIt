@@ -6,15 +6,19 @@ import { lookupSynonym } from '../synonyms'
 type ScrapedListing = Omit<Listing, 'id' | 'scraped_at'>
 
 // Extract the numeric listing ID from a dba.dk URL for deduplication.
-// e.g. https://www.dba.dk/roland-juno/id-1234567/ → "1234567"
+// New format: https://www.dba.dk/recommerce/forsale/item/1234567
+// Old format: https://www.dba.dk/roland-juno/id-1234567/
 function extractListingId(url: string): string {
-  const match = url.match(/\/id-(\d+)/)
-  return match ? match[1] : url
+  const newFormat = url.match(/\/item\/(\d+)/)
+  if (newFormat) return newFormat[1]
+  const oldFormat = url.match(/\/id-(\d+)/)
+  if (oldFormat) return oldFormat[1]
+  return url
 }
 
 // Core fetch-and-parse for a single (already normalized) query string.
 async function fetchDbaSearch(normalizedQ: string): Promise<ScrapedListing[]> {
-  const url = `https://www.dba.dk/soeg/?soeg=${encodeURIComponent(normalizedQ)}`
+  const url = `https://www.dba.dk/recommerce/forsale/search?q=${encodeURIComponent(normalizedQ)}`
 
   const res = await fetch(url, {
     headers: {
