@@ -1,7 +1,28 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['images.dbastatic.dk'],
+    remotePatterns: [
+      // Any subdomain of dba.dk (covers billeder.dba.dk, cdn.dba.dk, etc.)
+      {
+        protocol: 'https',
+        hostname: '**.dba.dk',
+      },
+      // Any subdomain of dbastatic.dk (covers images.dbastatic.dk, etc.)
+      {
+        protocol: 'https',
+        hostname: '**.dbastatic.dk',
+      },
+      // Root dbastatic.dk without subdomain
+      {
+        protocol: 'https',
+        hostname: 'dbastatic.dk',
+      },
+      // autobild.dk CDN (sometimes used for dba listings)
+      {
+        protocol: 'https',
+        hostname: '**.autobild.dk',
+      },
+    ],
   },
 };
 
