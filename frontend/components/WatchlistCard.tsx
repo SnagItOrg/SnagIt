@@ -12,14 +12,27 @@ export function WatchlistCard({ watchlist, onDelete }: Props) {
   const { t } = useLocale()
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-surface border border-white/10 px-4 py-3">
+    <div className="relative flex items-center gap-3 rounded-2xl bg-surface border border-white/10 px-4 py-3">
+      {/* New-listings badge — top right */}
+      <div className="absolute top-2.5 right-12">
+        {watchlist.new_count > 0 ? (
+          <span className="text-xs font-semibold text-bg bg-primary rounded-full px-2 py-0.5">
+            {watchlist.new_count} {t.newListings}
+          </span>
+        ) : (
+          <span className="text-xs font-medium text-text-muted bg-white/5 rounded-full px-2 py-0.5">
+            {t.updated}
+          </span>
+        )}
+      </div>
+
       {/* Status dot */}
       <span
         className="w-2 h-2 rounded-full flex-shrink-0"
         style={{ backgroundColor: watchlist.active ? 'var(--color-primary)' : 'rgba(255,255,255,0.2)' }}
       />
 
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pr-2">
         <p className="text-sm font-semibold text-text truncate">{watchlist.query}</p>
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
           <span className="text-xs text-text-muted">

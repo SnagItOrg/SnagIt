@@ -46,6 +46,8 @@ export const translations = {
     addWatchlistError: 'Kunne ikke tilf\u00f8je overv\u00e5gning',
     searchFailed: 'S\u00f8gning mislykkedes',
     unknownError: 'Ukendt fejl',
+    newListings: 'nye',
+    updated: 'Opdateret',
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -92,6 +94,8 @@ export const translations = {
     addWatchlistError: 'Could not add watchlist',
     searchFailed: 'Search failed',
     unknownError: 'Unknown error',
+    newListings: 'new',
+    updated: 'Updated',
   },
 } as const
 

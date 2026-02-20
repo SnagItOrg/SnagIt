@@ -19,6 +19,7 @@ export type Watchlist = {
   active: boolean
   type: 'query' | 'listing'
   source_url: string | null
+  new_count: number
 }
 
 export type Listing = {

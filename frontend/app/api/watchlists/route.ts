@@ -61,8 +61,25 @@ export async function GET() {
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!data || data.length === 0) return NextResponse.json([])
 
-  return NextResponse.json(data)
+  // Count unnotified listings per watchlist
+  const ids = data.map((w) => w.id)
+  const { data: unnotified } = await supabase
+    .from('listings')
+    .select('watchlist_id')
+    .is('notified_at', null)
+    .in('watchlist_id', ids)
+
+  const countMap = new Map<string, number>()
+  for (const row of unnotified ?? []) {
+    if (row.watchlist_id) {
+      countMap.set(row.watchlist_id, (countMap.get(row.watchlist_id) ?? 0) + 1)
+    }
+  }
+
+  const result = data.map((w) => ({ ...w, new_count: countMap.get(w.id) ?? 0 }))
+  return NextResponse.json(result)
 }
 
 export async function POST(req: NextRequest) {
@@ -118,5 +135,5 @@ export async function POST(req: NextRequest) {
   // Trigger initial scrape in the background — don't block the 201 response
   void runInitialScrape(data.id, insertData.query, insertData.type, insertData.source_url)
 
-  return NextResponse.json(data, { status: 201 })
+  return NextResponse.json({ ...data, new_count: 0 }, { status: 201 })
 }
