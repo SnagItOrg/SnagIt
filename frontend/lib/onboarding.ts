@@ -53,9 +53,9 @@ const STORAGE_BASE =
   `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/onboarding-assets`
 
 export function categoryImageUrl(name: string): string {
-  return `${STORAGE_BASE}/categories/${name}.jpg`
+  return `${STORAGE_BASE}/categories/${name}.webp`
 }
 
 export function brandLogoUrl(name: string): string {
-  return `${STORAGE_BASE}/brands/${name}.png`
+  return `${STORAGE_BASE}/brands/${name}.webp`
 }
