@@ -19,6 +19,7 @@ export type Watchlist = {
   active: boolean
   type: 'query' | 'listing'
   source_url: string | null
+  max_price: number | null
   new_count: number
   preview_image_url: string | null
 }

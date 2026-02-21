@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   const { data: watchlists, error: wlError } = await getSupabaseAdmin()
     .from('watchlists')
-    .select('id, query, user_id, type, source_url')
+    .select('id, query, user_id, type, source_url, max_price')
     .eq('active', true)
 
   if (wlError) {
@@ -120,7 +120,17 @@ export async function GET(req: NextRequest) {
       continue
     }
 
-    const rows = listings.map((l) => ({ ...l, scraped_at: now, watchlist_id: watchlist.id }))
+    // Filter out listings that exceed the watchlist's max_price
+    const filtered = watchlist.max_price
+      ? listings.filter((l) => l.price === null || l.price <= watchlist.max_price!)
+      : listings
+
+    if (filtered.length === 0) {
+      results.push({ watchlist_id: watchlist.id, query: watchlist.query, upserted: 0, filtered_by_price: listings.length })
+      continue
+    }
+
+    const rows = filtered.map((l) => ({ ...l, scraped_at: now, watchlist_id: watchlist.id }))
 
     const { data: upserted, error: upsertError } = await getSupabaseAdmin()
       .from('listings')
@@ -132,8 +142,8 @@ export async function GET(req: NextRequest) {
       continue
     }
 
-    // Record price snapshots for all scraped listings
-    const snapshots = listings.map((l) => ({
+    // Record price snapshots for all price-filtered listings
+    const snapshots = filtered.map((l) => ({
       listing_url: l.url,
       watchlist_id: watchlist.id,
       price: l.price,
@@ -175,6 +185,7 @@ export async function GET(req: NextRequest) {
       query: watchlist.query,
       type: 'query',
       total_scraped: listings.length,
+      filtered_by_price: listings.length - filtered.length,
       upserted: upserted?.length ?? 0,
       notified,
     })
