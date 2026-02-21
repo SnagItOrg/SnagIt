@@ -12,6 +12,7 @@ import { BottomNav, type NavTab } from '@/components/BottomNav'
 import { SideNav } from '@/components/SideNav'
 import { useLocale } from '@/components/LocaleProvider'
 import type { Locale } from '@/lib/i18n'
+import { loadOnboarding, clearOnboarding, fireEvent } from '@/lib/onboarding'
 
 export default function Home() {
   const router = useRouter()
@@ -33,6 +34,46 @@ export default function Home() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => { loadWatchlists() }, [])
+
+  // Sync onboarding data saved anonymously before signup.
+  // Runs once on first authenticated load — covers both the immediate-session
+  // case (email confirmation disabled) and the email-confirmation case.
+  useEffect(() => {
+    const saved = loadOnboarding()
+    if (!saved.query && !saved.categories?.length && !saved.brands?.length) return
+
+    async function sync() {
+      try {
+        await fetch('/api/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            categories: saved.categories ?? [],
+            brands: saved.brands ?? [],
+            onboarding_completed: true,
+          }),
+        })
+        if (saved.query) {
+          const res = await fetch('/api/watchlists', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: saved.query,
+              ...(saved.max_price && saved.max_price > 0 ? { max_price: saved.max_price } : {}),
+            }),
+          })
+          if (res.ok) {
+            const created = await res.json()
+            setWatchlists((prev) => [created, ...prev])
+          }
+        }
+        fireEvent('onboarding_complete', { method: 'email' })
+      } finally {
+        clearOnboarding()
+      }
+    }
+    void sync()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadWatchlists() {
     setWatchlistsLoading(true)
