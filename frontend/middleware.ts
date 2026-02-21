@@ -32,7 +32,17 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  const isOnboarding = pathname.startsWith('/onboarding')
+
+  // Logged-in users have no business in the onboarding flow
+  if (user && isOnboarding) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
+  }
+
   const isPublicPath =
+    isOnboarding ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/signup') ||
     pathname.startsWith('/auth/') ||
