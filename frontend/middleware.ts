@@ -2,6 +2,24 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// Paths that do not require authentication.
+const PUBLIC_PREFIXES = [
+  '/login',
+  '/auth/',         // OAuth + email confirmation callbacks
+  '/onboarding/',   // anonymous-first onboarding flow
+  '/api/cron/',     // cron jobs use their own CRON_SECRET header
+]
+
+function isPublicPath(pathname: string): boolean {
+  // Also allow the bare /onboarding root (rare, but safe)
+  if (pathname === '/onboarding') return true
+  return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+}
+
+function isOnboardingPath(pathname: string): boolean {
+  return pathname === '/onboarding' || pathname.startsWith('/onboarding/')
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -24,34 +42,19 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  // Refresh the session if expired — important: do not add logic between
-  // createServerClient and supabase.auth.getUser()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // IMPORTANT: do not add any logic between createServerClient and getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
 
-  const isOnboarding = pathname.startsWith('/onboarding')
-
-  // Logged-in users have no business in the onboarding flow
-  if (user && isOnboarding) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
+  // Logged-in users are bounced out of the onboarding flow → home
+  if (user && isOnboardingPath(pathname)) {
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
-  const isPublicPath =
-    isOnboarding ||
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/signup') ||
-    pathname.startsWith('/auth/') ||
-    pathname.startsWith('/api/cron/')
-
-  if (!user && !isPublicPath) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+  // Unauthenticated users on protected routes → login
+  if (!user && !isPublicPath(pathname)) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   return supabaseResponse
@@ -59,7 +62,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and static files
+    // Run on all routes except Next.js internals and static assets
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
