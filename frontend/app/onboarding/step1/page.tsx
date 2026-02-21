@@ -61,7 +61,7 @@ export default function Step1() {
 
   function handleContinue() {
     localStorage.setItem('klup-onboarding-categories', JSON.stringify(Array.from(selected)))
-    router.push('/onboarding/step2')
+    router.push('/')
   }
 
   return (
@@ -76,25 +76,13 @@ export default function Step1() {
               </div>
               <h2 className="text-2xl font-black tracking-tight">Klup.dk</h2>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-bold" style={{ color: '#94a3b8' }}>
-                STEP 1 <span style={{ color: '#475569' }}>OF 3</span>
-              </span>
-              <button
-                onClick={() => router.push('/')}
-                className="text-sm font-bold transition-colors hover:text-white"
-                style={{ color: '#64748b' }}
-              >
-                Skip for now
-              </button>
-            </div>
-          </div>
-          {/* Progress bar */}
-          <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#162a1e' }}>
-            <div
-              className="h-full rounded-full"
-              style={{ width: '33.33%', backgroundColor: '#13ec6d', boxShadow: '0 0 10px rgba(19,236,109,0.5)' }}
-            />
+            <button
+              onClick={() => router.push('/')}
+              className="text-sm font-bold transition-colors hover:text-white"
+              style={{ color: '#64748b' }}
+            >
+              Skip for now
+            </button>
           </div>
         </div>
       </header>
@@ -197,7 +185,7 @@ export default function Step1() {
               boxShadow: '0 20px 25px -5px rgba(19,236,109,0.2)',
             }}
           >
-            Continue to Step 2
+            Get Started
             <span className="material-symbols-outlined font-black transition-transform group-hover:translate-x-1">
               arrow_forward
             </span>
