@@ -102,7 +102,7 @@ export default function LoginPage() {
 
       <p className="mt-5 text-xs text-text-muted">
         {t.noAccount}{' '}
-        <Link href="/signup" className="font-medium underline text-primary">
+        <Link href="/onboarding/step1" className="font-medium underline text-primary">
           {t.createAccount}
         </Link>
       </p>
