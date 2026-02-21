@@ -23,6 +23,15 @@ export type Watchlist = {
   preview_image_url: string | null
 }
 
+export type UserPreferences = {
+  id: string
+  user_id: string
+  categories: string[]
+  brands: string[]
+  onboarding_completed: boolean
+  created_at: string
+}
+
 export type Listing = {
   id: string
   title: string
