@@ -154,14 +154,16 @@ export default function Step1() {
                   </p>
                 </div>
                 {/* Selection indicator */}
-                <div
-                  className="absolute top-4 right-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors"
-                  style={{ borderColor: isSelected ? PRI : '#475569' }}
+                <span
+                  className="material-symbols-outlined absolute top-3 right-3 transition-all duration-200"
+                  style={{
+                    fontSize: '22px',
+                    color: isSelected ? PRI : '#475569',
+                    fontVariationSettings: isSelected ? "'FILL' 1" : "'FILL' 0",
+                  }}
                 >
-                  {isSelected && (
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PRI }} />
-                  )}
-                </div>
+                  {isSelected ? 'check_circle' : 'radio_button_unchecked'}
+                </span>
               </button>
             )
           })}
