@@ -1,0 +1,588 @@
+{
+  "version": "1.2.0",
+  "description": "Synonym og knowledge graph seed til Klup søgning. Udvid med nye produkter og relationer over tid. | v1.2 adds aliases for Wegner chairs, TR drum machines, and key camera models.",
+  "synonyms": {
+    "roland jp-4": [
+      "jupiter 4",
+      "jp4",
+      "roland jupiter 4",
+      "jupiter-4"
+    ],
+    "roland jp-6": [
+      "jupiter 6",
+      "jp6",
+      "roland jupiter 6",
+      "jupiter-6"
+    ],
+    "roland jp-8": [
+      "jupiter 8",
+      "jp8",
+      "roland jupiter 8",
+      "jupiter-8"
+    ],
+    "roland juno-60": [
+      "juno 60",
+      "juno60",
+      "roland juno 60"
+    ],
+    "roland juno-106": [
+      "juno 106",
+      "juno106",
+      "roland juno 106"
+    ],
+    "roland sh-101": [
+      "sh101",
+      "roland sh 101"
+    ],
+    "moog minimoog": [
+      "mini moog",
+      "minimoog model d",
+      "moog model d"
+    ],
+    "moog subsequent 37": [
+      "sub 37",
+      "subsequent37",
+      "moog sub 37"
+    ],
+    "sequential prophet-5": [
+      "prophet 5",
+      "prophet5",
+      "p5"
+    ],
+    "sequential prophet-6": [
+      "prophet 6",
+      "prophet6"
+    ],
+    "teenage engineering op-1": [
+      "op1",
+      "op-1",
+      "te op-1"
+    ],
+    "teenage engineering op-z": [
+      "opz",
+      "op-z",
+      "te op-z"
+    ],
+    "fender stratocaster": [
+      "strat",
+      "stratocaster",
+      "fender strat",
+      "fender stratocaster"
+    ],
+    "fender telecaster": [
+      "tele",
+      "telecaster",
+      "fender tele",
+      "fender telecaster"
+    ],
+    "gibson les paul": [
+      "les paul",
+      "lp",
+      "gibson lp",
+      "gibson les paul"
+    ],
+    "gibson es-335": [
+      "es335",
+      "es 335",
+      "gibson 335",
+      "gibson es-335"
+    ],
+    "poul kjærholm pk22": [
+      "pk 22",
+      "pk22",
+      "kjærholm pk22"
+    ],
+    "poul kjærholm pk31": [
+      "pk 31",
+      "pk31",
+      "kjærholm pk31"
+    ],
+    "hans j. wegner ch44": [
+      "ch 44",
+      "ch44",
+      "wegner ch44"
+    ],
+    "hans j. wegner ch24": [
+      "y-stol",
+      "wishbone chair",
+      "ch 24",
+      "wegner y stol",
+      "ch24",
+      "y stolen",
+      "y-stolen",
+      "wishbone",
+      "wegner y-stol",
+      "wegner ch24"
+    ],
+    "arne jacobsen 7'er stol": [
+      "syverstolen",
+      "serie 7",
+      "7er stol",
+      "jacobsen 7"
+    ],
+    "arne jacobsen ægget": [
+      "ægget",
+      "the egg",
+      "jacobsen ægget"
+    ],
+    "leica m6": [
+      "leica m 6",
+      "m6 ttl"
+    ],
+    "hasselblad 500cm": [
+      "hasselblad 500 cm",
+      "500cm"
+    ],
+    "apple mac mini m4": [
+      "mac mini m4",
+      "mac mini 2024",
+      "m4 mac mini"
+    ],
+    "apple macbook pro m3": [
+      "macbook m3",
+      "mbp m3",
+      "macbook pro 14 m3",
+      "macbook pro 16 m3"
+    ],
+    "hans j. wegner ch88": [
+      "ch88",
+      "ch 88",
+      "wegner ch88"
+    ],
+    "hans j. wegner ch26": [
+      "ch26",
+      "ch 26",
+      "wegner ch26"
+    ],
+    "hans j. wegner ch33": [
+      "ch33",
+      "ch 33",
+      "wegner ch33"
+    ],
+    "hans j. wegner ch20": [
+      "ch20",
+      "ch 20",
+      "elbow chair",
+      "wegner elbow chair",
+      "wegner ch20"
+    ],
+    "hans j. wegner ch29": [
+      "ch29",
+      "ch 29",
+      "savbuksstolen",
+      "savbukstolen",
+      "wegner ch29"
+    ],
+    "hans j. wegner ch36": [
+      "ch36",
+      "ch 36",
+      "wegner ch36"
+    ],
+    "hans j. wegner ch37": [
+      "ch37",
+      "ch 37",
+      "wegner ch37"
+    ],
+    "hans j. wegner ch46": [
+      "ch46",
+      "ch 46",
+      "wegner ch46"
+    ],
+    "hans j. wegner ch47": [
+      "ch47",
+      "ch 47",
+      "wegner ch47"
+    ],
+    "hans j. wegner ch56": [
+      "ch56",
+      "ch 56",
+      "wegner ch56"
+    ],
+    "hans j. wegner ch58": [
+      "ch58",
+      "ch 58",
+      "wegner ch58"
+    ],
+    "hans j. wegner ch111": [
+      "ch111",
+      "ch 111",
+      "wegner ch111"
+    ],
+    "hans j. wegner pp501": [
+      "pp501",
+      "pp 501",
+      "the chair",
+      "den runde stol",
+      "wegner the chair",
+      "wegner pp501"
+    ],
+    "hans j. wegner pp503": [
+      "pp503",
+      "pp 503",
+      "the chair polstret",
+      "wegner pp503"
+    ],
+    "hans j. wegner pp505": [
+      "pp505",
+      "pp 505",
+      "kohornstolen",
+      "kohorn stolen",
+      "wegner pp505"
+    ],
+    "hans j. wegner pp250": [
+      "pp250",
+      "pp 250",
+      "jakkens hvile",
+      "wegner pp250"
+    ],
+    "hans j. wegner pp502": [
+      "pp502",
+      "pp 502",
+      "kontordrejestolen",
+      "office swivel chair wegner",
+      "wegner pp502"
+    ],
+    "hans j. wegner pp518": [
+      "pp518",
+      "pp 518",
+      "tyrestolen",
+      "bull chair",
+      "wegner pp518"
+    ],
+    "hans j. wegner pp701": [
+      "pp701",
+      "pp 701",
+      "wegner pp701"
+    ],
+    "hans j. wegner pp201": [
+      "pp201",
+      "pp 201",
+      "wegner pp201"
+    ],
+    "hans j. wegner pp203": [
+      "pp203",
+      "pp 203",
+      "wegner pp203"
+    ],
+    "hans j. wegner pp52": [
+      "pp52",
+      "pp 52",
+      "wegner pp52"
+    ],
+    "hans j. wegner pp62": [
+      "pp62",
+      "pp 62",
+      "wegner pp62"
+    ],
+    "hans j. wegner pp58": [
+      "pp58",
+      "pp 58",
+      "wegner pp58"
+    ],
+    "hans j. wegner pp68": [
+      "pp68",
+      "pp 68",
+      "wegner pp68"
+    ],
+    "hans j. wegner pp58/3": [
+      "pp58/3",
+      "pp 58/3",
+      "pp58 3",
+      "wegner pp58/3"
+    ],
+    "hans j. wegner pp240": [
+      "pp240",
+      "pp 240",
+      "konferencestol wegner",
+      "wegner pp240"
+    ],
+    "hans j. wegner pp56": [
+      "pp56",
+      "pp 56",
+      "kinastolen pp56",
+      "wegner pp56"
+    ],
+    "hans j. wegner pp66": [
+      "pp66",
+      "pp 66",
+      "kinastolen",
+      "china chair",
+      "wegner kinastolen",
+      "wegner pp66"
+    ],
+    "hans j. wegner ch25": [
+      "ch25",
+      "ch 25",
+      "wegner ch25"
+    ],
+    "hans j. wegner ch22": [
+      "ch22",
+      "ch 22",
+      "wegner ch22"
+    ],
+    "hans j. wegner ch28": [
+      "ch28",
+      "ch 28",
+      "wegner ch28"
+    ],
+    "roland tr-808": [
+      "tr808",
+      "tr 808",
+      "808",
+      "roland 808",
+      "roland tr808",
+      "rhythm composer",
+      "tr-808"
+    ],
+    "roland tr-909": [
+      "tr909",
+      "tr 909",
+      "909",
+      "roland 909",
+      "tr-909"
+    ],
+    "roland tr-606": [
+      "tr606",
+      "tr 606",
+      "606",
+      "roland 606",
+      "tr-606"
+    ],
+    "roland tr-707": [
+      "tr707",
+      "tr 707",
+      "707",
+      "roland 707",
+      "tr-707"
+    ],
+    "roland tr-505": [
+      "tr505",
+      "tr 505",
+      "505",
+      "roland 505",
+      "tr-505"
+    ],
+    "roland re-201": [
+      "re201",
+      "re 201",
+      "space echo",
+      "roland space echo",
+      "re-201"
+    ],
+    "roland re-501": [
+      "re501",
+      "re 501",
+      "chorus echo",
+      "re-501"
+    ],
+    "boss re-20": [
+      "re20",
+      "re 20",
+      "space echo pedal",
+      "re-20"
+    ],
+    "fender jazzmaster": [
+      "jazzmaster",
+      "fender jazzmaster",
+      "jm"
+    ],
+    "fender jaguar": [
+      "jaguar guitar",
+      "fender jaguar"
+    ],
+    "fender precision bass": [
+      "p bass",
+      "pbass",
+      "precision bass",
+      "fender p bass"
+    ],
+    "fender jazz bass": [
+      "j bass",
+      "jbass",
+      "jazz bass",
+      "fender jazz bass"
+    ],
+    "gibson sg": [
+      "sg",
+      "gibson sg"
+    ],
+    "gibson j-45": [
+      "j45",
+      "j-45",
+      "gibson j45",
+      "gibson j-45"
+    ],
+    "akai mpc60": [
+      "mpc60",
+      "mpc 60",
+      "akai mpc60"
+    ],
+    "akai mpc3000": [
+      "mpc3000",
+      "mpc 3000",
+      "akai mpc3000"
+    ],
+    "akai mpc2000": [
+      "mpc2000",
+      "mpc 2000",
+      "akai mpc2000"
+    ],
+    "akai mpc2000xl": [
+      "mpc2000xl",
+      "mpc 2000xl",
+      "akai mpc2000xl"
+    ],
+    "akai mpc live ii": [
+      "mpc live 2",
+      "mpc live ii",
+      "akai mpc live ii"
+    ],
+    "akai mpc one": [
+      "mpc one",
+      "akai mpc one"
+    ],
+    "akai mpc x": [
+      "mpc x",
+      "akai mpc x"
+    ],
+    "neve 1073": [
+      "1073",
+      "neve1073",
+      "neve 1073",
+      "1073 preamp",
+      "1073 pre"
+    ],
+    "tube-tech cl 1b": [
+      "cl1b",
+      "cl 1b",
+      "tube tech cl1b",
+      "tubetech cl1b"
+    ],
+    "neumann u87 ai": [
+      "u87",
+      "u 87",
+      "u87ai",
+      "neumann u87",
+      "neumann u87 ai"
+    ],
+    "neumann u47": [
+      "u47",
+      "u 47",
+      "neumann u47"
+    ],
+    "manley reference cardioid": [
+      "manley ref c",
+      "ref c",
+      "manley reference c",
+      "reference cardioid"
+    ],
+    "kush audio clariphonic": [
+      "clariphonic",
+      "kush clariphonic",
+      "kush audio clariphonic"
+    ],
+    "api 500 lunchbox": [
+      "api lunchbox",
+      "500 series lunchbox",
+      "api 500-6b",
+      "api 500-8b"
+    ],
+    "ssl six": [
+      "ssl six",
+      "six mixer",
+      "solid state logic six"
+    ],
+    "sony a7 v": [
+      "a7v",
+      "a7 v",
+      "alpha 7 v",
+      "sony a7v",
+      "ilce-7m5",
+      "ilce7m5"
+    ],
+    "sony a7s iii": [
+      "a7siii",
+      "a7s iii",
+      "a7s3",
+      "alpha 7s iii",
+      "sony a7s iii",
+      "ilce-7sm3",
+      "ilce7sm3"
+    ],
+    "sony a7s ii": [
+      "a7sii",
+      "a7s ii",
+      "alpha 7s ii",
+      "sony a7s ii",
+      "ilce-7sm2",
+      "ilce7sm2"
+    ],
+    "sony a7r v": [
+      "a7rv",
+      "a7r v",
+      "alpha 7r v",
+      "sony a7r v",
+      "ilce-7rm5",
+      "ilce7rm5"
+    ],
+    "sony alpha 6700": [
+      "a6700",
+      "alpha 6700",
+      "sony a6700",
+      "sony alpha 6700",
+      "ilce-6700",
+      "ilce6700"
+    ],
+    "sony fx3": [
+      "fx3",
+      "ilme-fx3"
+    ],
+    "sony fx30": [
+      "fx30",
+      "ilme-fx30"
+    ],
+    "apple mac pro": [
+      "mac pro",
+      "apple mac pro",
+      "macpro"
+    ],
+    "apple mac studio": [
+      "mac studio",
+      "apple mac studio",
+      "macstudio"
+    ],
+    "apple pro display xdr": [
+      "pro display xdr",
+      "apple xdr",
+      "xdr display"
+    ],
+    "nvidia rtx 4090": [
+      "rtx4090",
+      "rtx 4090",
+      "geforce 4090"
+    ],
+    "nvidia rtx 4080 super": [
+      "rtx4080 super",
+      "rtx 4080 super",
+      "4080 super"
+    ],
+    "nvidia rtx 6000 ada": [
+      "rtx 6000 ada",
+      "rtx6000 ada",
+      "nvidia rtx 6000 ada"
+    ],
+    "lenovo thinkstation p620": [
+      "thinkstation p620",
+      "lenovo p620"
+    ],
+    "hp z8 workstation": [
+      "hp z8",
+      "z8 workstation"
+    ],
+    "dell precision 7865": [
+      "precision 7865",
+      "dell 7865",
+      "dell precision 7865"
+    ]
+  }
+}

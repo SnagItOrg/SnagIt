@@ -1,0 +1,2736 @@
+{
+  "version": "1.2.0",
+  "description": "Kategori → Brand → Produkt taksonomi til Klup knowledge graph. Relationer inkluderer substitutter og kloner. | v1.2 adds Wegner chairs list, TR-808 graph seed, camera EAN/SKU seeds, and SKU/EAN fields.",
+  "categories": {
+    "music-gear": {
+      "brands": {
+        "roland": {
+          "products": {
+            "roland-jp-4": {
+              "name": "Roland JP-4 (Jupiter 4)",
+              "type": "synthesizer",
+              "era": "1978-1981",
+              "related": [
+                "roland-jp-6",
+                "roland-jp-8",
+                "roland-juno-60"
+              ],
+              "clones": [
+                "behringer-ju-06"
+              ],
+              "reference_url": "https://www.vintagesynth.com/roland/jupiter-4",
+              "price_range_dkk": [
+                8000,
+                18000
+              ]
+            },
+            "roland-jp-6": {
+              "name": "Roland JP-6 (Jupiter 6)",
+              "type": "synthesizer",
+              "era": "1983-1984",
+              "related": [
+                "roland-jp-4",
+                "roland-jp-8"
+              ],
+              "clones": [],
+              "reference_url": "https://www.vintagesynth.com/roland/jupiter-6",
+              "price_range_dkk": [
+                10000,
+                22000
+              ]
+            },
+            "roland-jp-8": {
+              "name": "Roland JP-8 (Jupiter 8)",
+              "type": "synthesizer",
+              "era": "1981-1985",
+              "related": [
+                "roland-jp-4",
+                "roland-jp-6"
+              ],
+              "clones": [],
+              "reference_url": "https://www.vintagesynth.com/roland/jupiter-8",
+              "price_range_dkk": [
+                35000,
+                70000
+              ]
+            },
+            "roland-juno-60": {
+              "name": "Roland Juno-60",
+              "type": "synthesizer",
+              "era": "1982-1984",
+              "related": [
+                "roland-juno-106",
+                "roland-jp-4"
+              ],
+              "clones": [
+                "behringer-ju-06"
+              ],
+              "price_range_dkk": [
+                6000,
+                12000
+              ]
+            },
+            "roland-juno-106": {
+              "name": "Roland Juno-106",
+              "type": "synthesizer",
+              "era": "1984-1985",
+              "related": [
+                "roland-juno-60"
+              ],
+              "clones": [
+                "behringer-ju-06"
+              ],
+              "price_range_dkk": [
+                5000,
+                10000
+              ]
+            },
+            "roland-sh-101": {
+              "name": "Roland SH-101",
+              "type": "synthesizer",
+              "era": "1982-1986",
+              "related": [
+                "roland-sh-2"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                4000,
+                9000
+              ]
+            },
+            "roland-tr-808": {
+              "name": "Roland TR-808 (Rhythm Composer)",
+              "type": "drum machine",
+              "era": "1981-1984",
+              "reference_url": "https://www.vintagesynth.com/roland/tr-808",
+              "model": "TR-808",
+              "sku": [
+                "TR-808"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-909",
+                "roland-tr-606",
+                "roland-tr-707",
+                "roland-tr-505",
+                "oberheim-dmx",
+                "sequential-drumtraks",
+                "emu-sp-1200"
+              ],
+              "clones": [
+                "novation-drum-station",
+                "novation-d-station",
+                "propellerhead-rebirth-rb-338",
+                "jomox-xbase-09"
+              ]
+            },
+            "roland-tr-909": {
+              "name": "Roland TR-909",
+              "type": "drum machine",
+              "era": "1983-1984",
+              "reference_url": "https://www.vintagesynth.com/roland/tr-909",
+              "model": "TR-909",
+              "sku": [
+                "TR-909"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808",
+                "roland-tr-707",
+                "roland-tr-606"
+              ],
+              "clones": [
+                "roland-tr-09"
+              ]
+            },
+            "roland-tr-606": {
+              "name": "Roland TR-606",
+              "type": "drum machine",
+              "era": "1981-1984",
+              "reference_url": "https://www.vintagesynth.com/roland/tr-606",
+              "model": "TR-606",
+              "sku": [
+                "TR-606"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808",
+                "roland-tr-909"
+              ],
+              "clones": []
+            },
+            "roland-tr-707": {
+              "name": "Roland TR-707",
+              "type": "drum machine",
+              "era": "1984-1986",
+              "reference_url": "https://www.vintagesynth.com/roland/tr-707",
+              "model": "TR-707",
+              "sku": [
+                "TR-707"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808",
+                "roland-tr-909"
+              ],
+              "clones": []
+            },
+            "roland-tr-505": {
+              "name": "Roland TR-505",
+              "type": "drum machine",
+              "era": "1986-1989",
+              "reference_url": "https://www.vintagesynth.com/roland/tr-505",
+              "model": "TR-505",
+              "sku": [
+                "TR-505"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-707",
+                "roland-tr-808"
+              ],
+              "clones": []
+            },
+            "roland-re-201": {
+              "name": "Roland RE-201 (Space Echo)",
+              "type": "tape echo",
+              "era": "1974-1980s",
+              "reference_url": "https://www.vintagesynth.com/roland/re-201",
+              "model": "RE-201",
+              "sku": [
+                "RE-201"
+              ],
+              "ean": [],
+              "related": [
+                "roland-re-501"
+              ],
+              "clones": [
+                "boss-re-20"
+              ]
+            },
+            "roland-re-501": {
+              "name": "Roland RE-501 (Chorus Echo)",
+              "type": "tape echo",
+              "era": "1970s-1980s",
+              "reference_url": "https://www.vintagesynth.com/roland/re-501",
+              "model": "RE-501",
+              "sku": [
+                "RE-501"
+              ],
+              "ean": [],
+              "related": [
+                "roland-re-201"
+              ],
+              "clones": [
+                "boss-re-20"
+              ]
+            },
+            "roland-tr-09": {
+              "name": "Roland TR-09 (Boutique)",
+              "type": "drum machine",
+              "era": "2016-",
+              "reference_url": "https://www.roland.com/",
+              "model": "TR-09",
+              "sku": [
+                "TR-09"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-909",
+                "roland-tr-808"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "moog": {
+          "products": {
+            "moog-minimoog-model-d": {
+              "name": "Moog Minimoog Model D",
+              "type": "synthesizer",
+              "era": "1970-1981",
+              "related": [
+                "moog-subsequent-37",
+                "moog-grandmother"
+              ],
+              "clones": [
+                "behringer-model-d"
+              ],
+              "reference_url": "https://www.vintagesynth.com/moog/minimoog.php",
+              "price_range_dkk": [
+                12000,
+                35000
+              ]
+            },
+            "moog-subsequent-37": {
+              "name": "Moog Subsequent 37",
+              "type": "synthesizer",
+              "related": [
+                "moog-minimoog-model-d"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                8000,
+                14000
+              ]
+            }
+          }
+        },
+        "sequential": {
+          "products": {
+            "sequential-prophet-5": {
+              "name": "Sequential Prophet-5",
+              "type": "synthesizer",
+              "era": "1978-1984",
+              "related": [
+                "sequential-prophet-6",
+                "sequential-prophet-10"
+              ],
+              "clones": [
+                "behringer-pro-vs-mini"
+              ],
+              "price_range_dkk": [
+                20000,
+                50000
+              ]
+            },
+            "sequential-prophet-6": {
+              "name": "Sequential Prophet-6",
+              "type": "synthesizer",
+              "related": [
+                "sequential-prophet-5"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                12000,
+                20000
+              ]
+            },
+            "sequential-drumtraks": {
+              "name": "Sequential Circuits DrumTraks",
+              "type": "drum machine",
+              "era": "1984",
+              "reference_url": "https://www.vintagesynth.com/sequential/drumtraks",
+              "model": "DrumTraks",
+              "sku": [
+                "DrumTraks"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808",
+                "roland-tr-909"
+              ],
+              "clones": []
+            },
+            "sequential-tom": {
+              "name": "Sequential Circuits TOM",
+              "type": "drum machine",
+              "era": "1985",
+              "reference_url": "https://www.vintagesynth.com/sequential/tom",
+              "model": "TOM",
+              "sku": [
+                "TOM"
+              ],
+              "ean": [],
+              "related": [
+                "sequential-drumtraks",
+                "roland-tr-808"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "teenage-engineering": {
+          "products": {
+            "te-op-1": {
+              "name": "Teenage Engineering OP-1",
+              "type": "synthesizer/sampler",
+              "related": [
+                "te-op-1-field",
+                "te-op-z"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                5000,
+                9000
+              ]
+            },
+            "te-op-1-field": {
+              "name": "Teenage Engineering OP-1 Field",
+              "type": "synthesizer/sampler",
+              "related": [
+                "te-op-1"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                8000,
+                13000
+              ]
+            },
+            "te-op-z": {
+              "name": "Teenage Engineering OP-Z",
+              "type": "sequencer/synthesizer",
+              "related": [
+                "te-op-1"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                3500,
+                6000
+              ]
+            }
+          }
+        },
+        "behringer": {
+          "note": "Primært relevant som klon/substitut — påvirker priserne på originaler",
+          "products": {
+            "behringer-ju-06": {
+              "name": "Behringer JU-06 (Juno-klon)",
+              "type": "synthesizer",
+              "clones_of": [
+                "roland-juno-60",
+                "roland-juno-106"
+              ],
+              "price_range_dkk": [
+                1500,
+                3500
+              ]
+            },
+            "behringer-model-d": {
+              "name": "Behringer Model D (Minimoog-klon)",
+              "type": "synthesizer",
+              "clones_of": [
+                "moog-minimoog-model-d"
+              ],
+              "price_range_dkk": [
+                1200,
+                2500
+              ]
+            }
+          }
+        },
+        "fender": {
+          "serial_lookup_url": "https://serialnumberlookup.fender.com/lookup/",
+          "products": {
+            "fender-stratocaster": {
+              "name": "Fender Stratocaster",
+              "type": "guitar",
+              "variants": [
+                "American Vintage",
+                "American Professional",
+                "Player",
+                "Mexican",
+                "Japanese"
+              ],
+              "related": [
+                "fender-telecaster",
+                "gibson-les-paul"
+              ],
+              "price_range_dkk": [
+                3000,
+                25000
+              ],
+              "model": "Stratocaster",
+              "sku": [
+                "Stratocaster"
+              ],
+              "ean": []
+            },
+            "fender-telecaster": {
+              "name": "Fender Telecaster",
+              "type": "guitar",
+              "variants": [
+                "American Vintage",
+                "American Professional",
+                "Player",
+                "Mexican"
+              ],
+              "related": [
+                "fender-stratocaster"
+              ],
+              "price_range_dkk": [
+                3000,
+                22000
+              ],
+              "model": "TELECASTER",
+              "sku": [
+                "TELECASTER"
+              ],
+              "ean": []
+            },
+            "fender-jazzmaster": {
+              "name": "Fender Jazzmaster",
+              "type": "guitar",
+              "variants": [
+                "American Professional",
+                "American Vintage",
+                "Player",
+                "Japanese"
+              ],
+              "related": [
+                "fender-stratocaster",
+                "fender-telecaster",
+                "fender-jaguar"
+              ],
+              "price_range_dkk": [
+                4000,
+                30000
+              ],
+              "model": "Jazzmaster",
+              "sku": [
+                "Jazzmaster"
+              ],
+              "ean": []
+            },
+            "fender-jaguar": {
+              "name": "Fender Jaguar",
+              "type": "guitar",
+              "variants": [
+                "American",
+                "Player",
+                "Japanese"
+              ],
+              "related": [
+                "fender-jazzmaster",
+                "fender-stratocaster"
+              ],
+              "price_range_dkk": [
+                4000,
+                28000
+              ],
+              "model": "Jaguar",
+              "sku": [
+                "Jaguar"
+              ],
+              "ean": []
+            },
+            "fender-precision-bass": {
+              "name": "Fender Precision Bass",
+              "type": "bass",
+              "variants": [
+                "American Professional",
+                "Player",
+                "Mexican",
+                "Japanese"
+              ],
+              "related": [
+                "fender-jazz-bass"
+              ],
+              "price_range_dkk": [
+                3500,
+                25000
+              ],
+              "model": "Precision Bass",
+              "sku": [
+                "Precision Bass",
+                "P Bass"
+              ],
+              "ean": []
+            },
+            "fender-jazz-bass": {
+              "name": "Fender Jazz Bass",
+              "type": "bass",
+              "variants": [
+                "American Professional",
+                "Player",
+                "Mexican",
+                "Japanese"
+              ],
+              "related": [
+                "fender-precision-bass"
+              ],
+              "price_range_dkk": [
+                3500,
+                26000
+              ],
+              "model": "Jazz Bass",
+              "sku": [
+                "Jazz Bass",
+                "J Bass"
+              ],
+              "ean": []
+            }
+          }
+        },
+        "gibson": {
+          "products": {
+            "gibson-les-paul": {
+              "name": "Gibson Les Paul",
+              "type": "guitar",
+              "variants": [
+                "Standard",
+                "Custom",
+                "Studio",
+                "Junior"
+              ],
+              "related": [
+                "gibson-es-335",
+                "fender-stratocaster"
+              ],
+              "clones": [
+                "epiphone-les-paul"
+              ],
+              "price_range_dkk": [
+                6000,
+                40000
+              ],
+              "model": "PAUL",
+              "sku": [
+                "PAUL"
+              ],
+              "ean": []
+            },
+            "gibson-es-335": {
+              "name": "Gibson ES-335",
+              "type": "guitar",
+              "variants": [
+                "Standard",
+                "Custom"
+              ],
+              "related": [
+                "gibson-les-paul"
+              ],
+              "clones": [
+                "epiphone-es-335"
+              ],
+              "price_range_dkk": [
+                8000,
+                35000
+              ],
+              "model": "335",
+              "sku": [
+                "335"
+              ],
+              "ean": []
+            },
+            "gibson-sg": {
+              "name": "Gibson SG",
+              "type": "guitar",
+              "variants": [
+                "Standard",
+                "Special"
+              ],
+              "related": [
+                "gibson-les-paul"
+              ],
+              "clones": [
+                "epiphone-sg"
+              ],
+              "price_range_dkk": [
+                6000,
+                25000
+              ],
+              "model": "SG",
+              "sku": [
+                "SG"
+              ],
+              "ean": []
+            },
+            "gibson-j-45": {
+              "name": "Gibson J-45",
+              "type": "acoustic guitar",
+              "variants": [
+                "Standard",
+                "Vintage"
+              ],
+              "related": [],
+              "clones": [
+                "epiphone-j-45"
+              ],
+              "price_range_dkk": [
+                8000,
+                28000
+              ],
+              "model": "J-45",
+              "sku": [
+                "J-45"
+              ],
+              "ean": []
+            }
+          }
+        },
+        "emu": {
+          "products": {
+            "emu-sp-1200": {
+              "name": "E-mu SP-1200",
+              "type": "sampler / drum machine",
+              "era": "1987",
+              "reference_url": "https://www.vintagesynth.com/e-mu/sp-1200",
+              "model": "SP-1200",
+              "sku": [
+                "SP-1200"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808",
+                "akai-mpc60",
+                "akai-mpc3000"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "elektron": {
+          "products": {
+            "elektron-machinedrum-sps-1": {
+              "name": "Elektron Machinedrum SPS-1",
+              "type": "drum machine",
+              "era": "2001-",
+              "reference_url": "https://www.vintagesynth.com/elektron/machinedrum-sps-1",
+              "model": "SPS-1",
+              "sku": [
+                "Machinedrum SPS-1",
+                "SPS-1"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "jomox": {
+          "products": {
+            "jomox-airbase-99": {
+              "name": "JoMoX AirBase 99",
+              "type": "drum module",
+              "era": "1990s",
+              "reference_url": "https://www.vintagesynth.com/jomox/airbase-99",
+              "model": "AirBase 99",
+              "sku": [
+                "AirBase 99"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808",
+                "roland-tr-909"
+              ],
+              "clones": []
+            },
+            "jomox-xbase-09": {
+              "name": "JoMoX XBase 09",
+              "type": "drum machine",
+              "era": "1998-",
+              "reference_url": "https://www.vintagesynth.com/jomox/xbase-09",
+              "model": "XBase 09",
+              "sku": [
+                "XBase 09"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808",
+                "roland-tr-909"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "novation": {
+          "products": {
+            "novation-drum-station": {
+              "name": "Novation Drum Station",
+              "type": "drum module",
+              "era": "1990s",
+              "reference_url": "https://www.vintagesynth.com/novation/drum-station",
+              "model": "Drum Station",
+              "sku": [
+                "Drum Station"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808",
+                "roland-tr-909"
+              ],
+              "clones": []
+            },
+            "novation-d-station": {
+              "name": "Novation D-Station",
+              "type": "drum module",
+              "era": "1990s",
+              "reference_url": "https://www.vintagesynth.com/novation/d-station",
+              "model": "D-Station",
+              "sku": [
+                "D-Station"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808",
+                "roland-tr-909"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "oberheim": {
+          "products": {
+            "oberheim-dmx": {
+              "name": "Oberheim DMX",
+              "type": "drum machine",
+              "era": "1981-1983",
+              "reference_url": "https://www.vintagesynth.com/oberheim/dmx",
+              "model": "DMX",
+              "sku": [
+                "DMX"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808"
+              ],
+              "clones": []
+            },
+            "oberheim-dx": {
+              "name": "Oberheim DX",
+              "type": "drum machine",
+              "era": "1983-1985",
+              "reference_url": "https://www.vintagesynth.com/oberheim/dx",
+              "model": "DX",
+              "sku": [
+                "DX"
+              ],
+              "ean": [],
+              "related": [
+                "oberheim-dmx",
+                "roland-tr-808"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "propellerhead": {
+          "products": {
+            "propellerhead-rebirth-rb-338": {
+              "name": "Propellerhead ReBirth RB-338",
+              "type": "software / drum synth",
+              "era": "1997-",
+              "reference_url": "https://www.vintagesynth.com/propellerhead/rebirth-rb-338",
+              "model": "RB-338",
+              "sku": [
+                "RB-338"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808",
+                "roland-tr-909"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "epiphone": {
+          "products": {
+            "epiphone-les-paul": {
+              "name": "Epiphone Les Paul",
+              "type": "guitar",
+              "variants": [
+                "Standard",
+                "Custom"
+              ],
+              "related": [
+                "gibson-les-paul"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                2000,
+                9000
+              ],
+              "model": "Les Paul",
+              "sku": [
+                "Les Paul"
+              ],
+              "ean": []
+            },
+            "epiphone-es-335": {
+              "name": "Epiphone ES-335",
+              "type": "guitar",
+              "variants": [
+                "Dot",
+                "Inspired by Gibson"
+              ],
+              "related": [
+                "gibson-es-335"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                2500,
+                9000
+              ],
+              "model": "ES-335",
+              "sku": [
+                "ES-335"
+              ],
+              "ean": []
+            },
+            "epiphone-sg": {
+              "name": "Epiphone SG",
+              "type": "guitar",
+              "variants": [
+                "Standard"
+              ],
+              "related": [
+                "gibson-sg"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                2000,
+                7000
+              ],
+              "model": "SG",
+              "sku": [
+                "SG"
+              ],
+              "ean": []
+            },
+            "epiphone-j-45": {
+              "name": "Epiphone J-45",
+              "type": "acoustic guitar",
+              "variants": [
+                "Inspired by Gibson"
+              ],
+              "related": [
+                "gibson-j-45"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                2500,
+                8000
+              ],
+              "model": "J-45",
+              "sku": [
+                "J-45"
+              ],
+              "ean": []
+            }
+          }
+        },
+        "boss": {
+          "products": {
+            "boss-re-20": {
+              "name": "Boss RE-20 (Space Echo)",
+              "type": "delay pedal",
+              "era": "2007-",
+              "reference_url": "https://www.boss.info/",
+              "model": "RE-20",
+              "sku": [
+                "RE-20"
+              ],
+              "ean": [],
+              "related": [
+                "roland-re-201",
+                "roland-re-501"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "akai": {
+          "products": {
+            "akai-mpc60": {
+              "name": "Akai MPC60",
+              "type": "sampler / drum machine",
+              "era": "1988",
+              "model": "MPC60",
+              "sku": [
+                "MPC60"
+              ],
+              "ean": [],
+              "related": [
+                "emu-sp-1200",
+                "akai-mpc3000"
+              ],
+              "clones": []
+            },
+            "akai-mpc3000": {
+              "name": "Akai MPC3000",
+              "type": "sampler / drum machine",
+              "era": "1994",
+              "model": "MPC3000",
+              "sku": [
+                "MPC3000"
+              ],
+              "ean": [],
+              "related": [
+                "akai-mpc60",
+                "akai-mpc2000xl"
+              ],
+              "clones": []
+            },
+            "akai-mpc2000": {
+              "name": "Akai MPC2000",
+              "type": "sampler / drum machine",
+              "era": "1997",
+              "model": "MPC2000",
+              "sku": [
+                "MPC2000"
+              ],
+              "ean": [],
+              "related": [
+                "akai-mpc2000xl",
+                "akai-mpc3000"
+              ],
+              "clones": []
+            },
+            "akai-mpc2000xl": {
+              "name": "Akai MPC2000XL",
+              "type": "sampler / drum machine",
+              "era": "1999",
+              "model": "MPC2000XL",
+              "sku": [
+                "MPC2000XL"
+              ],
+              "ean": [],
+              "related": [
+                "akai-mpc2000",
+                "akai-mpc3000"
+              ],
+              "clones": []
+            },
+            "akai-mpc-one": {
+              "name": "Akai MPC One",
+              "type": "sampler / groovebox",
+              "era": "2020-",
+              "model": "MPC One",
+              "sku": [
+                "MPC One"
+              ],
+              "ean": [],
+              "related": [
+                "akai-mpc-live-ii",
+                "akai-mpc-x"
+              ],
+              "clones": []
+            },
+            "akai-mpc-live-ii": {
+              "name": "Akai MPC Live II",
+              "type": "sampler / groovebox",
+              "era": "2020-",
+              "model": "MPC Live II",
+              "sku": [
+                "MPC Live II"
+              ],
+              "ean": [],
+              "related": [
+                "akai-mpc-one",
+                "akai-mpc-x"
+              ],
+              "clones": []
+            },
+            "akai-mpc-x": {
+              "name": "Akai MPC X",
+              "type": "sampler / groovebox",
+              "era": "2017-",
+              "model": "MPC X",
+              "sku": [
+                "MPC X"
+              ],
+              "ean": [],
+              "related": [
+                "akai-mpc-live-ii"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "ssl": {
+          "products": {
+            "ssl-six": {
+              "name": "SSL SiX",
+              "type": "mixer",
+              "era": "2019-",
+              "model": "SiX",
+              "sku": [
+                "SiX"
+              ],
+              "ean": [],
+              "related": [
+                "ssl-fusion"
+              ],
+              "clones": []
+            },
+            "ssl-fusion": {
+              "name": "SSL Fusion",
+              "type": "stereo processor",
+              "era": "2018-",
+              "model": "Fusion",
+              "sku": [
+                "Fusion"
+              ],
+              "ean": [],
+              "related": [
+                "ssl-six"
+              ],
+              "clones": []
+            },
+            "ssl-vhd-pre": {
+              "name": "SSL VHD Pre",
+              "type": "mic preamp",
+              "era": "2000s-",
+              "model": "VHD Pre",
+              "sku": [
+                "VHD Pre"
+              ],
+              "ean": [],
+              "related": [
+                "neve-1073",
+                "api-512c"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "api": {
+          "products": {
+            "api-500-6b": {
+              "name": "API 500-6B Lunchbox",
+              "type": "500-series rack",
+              "era": "2000s-",
+              "model": "500-6B",
+              "sku": [
+                "500-6B"
+              ],
+              "ean": [],
+              "related": [
+                "api-500-8b"
+              ],
+              "clones": []
+            },
+            "api-500-8b": {
+              "name": "API 500-8B Lunchbox",
+              "type": "500-series rack",
+              "era": "2000s-",
+              "model": "500-8B",
+              "sku": [
+                "500-8B"
+              ],
+              "ean": [],
+              "related": [
+                "api-500-6b"
+              ],
+              "clones": []
+            },
+            "api-512c": {
+              "name": "API 512c",
+              "type": "mic preamp (500-series)",
+              "era": "classic",
+              "model": "512c",
+              "sku": [
+                "512c"
+              ],
+              "ean": [],
+              "related": [
+                "neve-1073",
+                "ssl-vhd-pre"
+              ],
+              "clones": []
+            },
+            "api-550a": {
+              "name": "API 550A",
+              "type": "EQ (500-series)",
+              "era": "classic",
+              "model": "550A",
+              "sku": [
+                "550A"
+              ],
+              "ean": [],
+              "related": [
+                "api-512c"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "neve": {
+          "products": {
+            "neve-1073": {
+              "name": "Neve 1073",
+              "type": "mic preamp / EQ",
+              "era": "1970s-",
+              "model": "1073",
+              "sku": [
+                "1073"
+              ],
+              "ean": [],
+              "related": [
+                "api-512c",
+                "ssl-vhd-pre"
+              ],
+              "clones": [
+                "warm-audio-wa73",
+                "bae-1073"
+              ]
+            },
+            "neve-1073lb": {
+              "name": "Neve 1073LB",
+              "type": "mic preamp / EQ (500-series)",
+              "era": "modern",
+              "model": "1073LB",
+              "sku": [
+                "1073LB"
+              ],
+              "ean": [],
+              "related": [
+                "neve-1073"
+              ],
+              "clones": [
+                "warm-audio-wa73"
+              ]
+            }
+          }
+        },
+        "tube-tech": {
+          "products": {
+            "tube-tech-cl1b": {
+              "name": "Tube-Tech CL 1B",
+              "type": "compressor",
+              "era": "1990s-",
+              "model": "CL 1B",
+              "sku": [
+                "CL 1B"
+              ],
+              "ean": [],
+              "related": [
+                "ua-1176ln",
+                "ua-la-2a",
+                "manley-elop"
+              ],
+              "clones": []
+            },
+            "tube-tech-cl2a": {
+              "name": "Tube-Tech CL 2A",
+              "type": "compressor",
+              "era": "1990s-",
+              "model": "CL 2A",
+              "sku": [
+                "CL 2A"
+              ],
+              "ean": [],
+              "related": [
+                "ua-la-2a"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "neumann": {
+          "products": {
+            "neumann-u87ai": {
+              "name": "Neumann U 87 Ai",
+              "type": "microphone",
+              "era": "1967-",
+              "model": "U 87 Ai",
+              "sku": [
+                "U87Ai",
+                "U 87 Ai"
+              ],
+              "ean": [],
+              "related": [
+                "neumann-u47",
+                "manley-ref-c"
+              ],
+              "clones": [
+                "warm-audio-wa87"
+              ]
+            },
+            "neumann-u47": {
+              "name": "Neumann U 47",
+              "type": "microphone",
+              "era": "1947-",
+              "model": "U 47",
+              "sku": [
+                "U47"
+              ],
+              "ean": [],
+              "related": [
+                "neumann-u87ai",
+                "manley-ref-c"
+              ],
+              "clones": [
+                "warm-audio-wa47"
+              ]
+            }
+          }
+        },
+        "manley": {
+          "products": {
+            "manley-ref-c": {
+              "name": "Manley Reference Cardioid",
+              "type": "microphone",
+              "era": "1990s-",
+              "model": "Reference Cardioid",
+              "sku": [
+                "Reference Cardioid"
+              ],
+              "ean": [],
+              "related": [
+                "neumann-u87ai",
+                "neumann-u47"
+              ],
+              "clones": []
+            },
+            "manley-ref-gold": {
+              "name": "Manley Reference Gold",
+              "type": "microphone",
+              "era": "1990s-",
+              "model": "Reference Gold",
+              "sku": [
+                "Reference Gold"
+              ],
+              "ean": [],
+              "related": [
+                "manley-ref-c"
+              ],
+              "clones": []
+            },
+            "manley-voxbox": {
+              "name": "Manley VOXBOX",
+              "type": "channel strip",
+              "era": "1990s-",
+              "model": "VOXBOX",
+              "sku": [
+                "VOXBOX"
+              ],
+              "ean": [],
+              "related": [
+                "neve-1073",
+                "tube-tech-cl1b"
+              ],
+              "clones": []
+            },
+            "manley-elop": {
+              "name": "Manley ELOP",
+              "type": "compressor",
+              "era": "1990s-",
+              "model": "ELOP",
+              "sku": [
+                "ELOP"
+              ],
+              "ean": [],
+              "related": [
+                "tube-tech-cl1b"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "kush-audio": {
+          "products": {
+            "kush-clariphonic": {
+              "name": "Kush Audio Clariphonic",
+              "type": "EQ / enhancer",
+              "era": "2010s-",
+              "model": "Clariphonic",
+              "sku": [
+                "Clariphonic"
+              ],
+              "ean": [],
+              "related": [
+                "api-550a"
+              ],
+              "clones": [
+                "kush-clariphonic-mk3-plugin"
+              ]
+            }
+          }
+        },
+        "ua": {
+          "products": {
+            "ua-1176ln": {
+              "name": "Universal Audio 1176LN",
+              "type": "compressor",
+              "era": "1960s-",
+              "model": "1176LN",
+              "sku": [
+                "1176LN",
+                "1176"
+              ],
+              "ean": [],
+              "related": [
+                "ua-la-2a",
+                "tube-tech-cl1b"
+              ],
+              "clones": [
+                "warm-audio-wa76"
+              ]
+            },
+            "ua-la-2a": {
+              "name": "Universal Audio LA-2A",
+              "type": "compressor",
+              "era": "1960s-",
+              "model": "LA-2A",
+              "sku": [
+                "LA-2A",
+                "LA2A"
+              ],
+              "ean": [],
+              "related": [
+                "ua-1176ln",
+                "tube-tech-cl2a"
+              ],
+              "clones": [
+                "warm-audio-wa2a"
+              ]
+            },
+            "ua-6176": {
+              "name": "Universal Audio 6176",
+              "type": "channel strip",
+              "era": "2000s-",
+              "model": "6176",
+              "sku": [
+                "6176"
+              ],
+              "ean": [],
+              "related": [
+                "neve-1073",
+                "ua-1176ln"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "warm-audio": {
+          "products": {
+            "warm-audio-wa73": {
+              "name": "Warm Audio WA73",
+              "type": "mic preamp",
+              "era": "2010s-",
+              "model": "WA73",
+              "sku": [
+                "WA73"
+              ],
+              "ean": [],
+              "related": [
+                "neve-1073"
+              ],
+              "clones": []
+            },
+            "warm-audio-wa76": {
+              "name": "Warm Audio WA76",
+              "type": "compressor",
+              "era": "2010s-",
+              "model": "WA76",
+              "sku": [
+                "WA76"
+              ],
+              "ean": [],
+              "related": [
+                "ua-1176ln"
+              ],
+              "clones": []
+            },
+            "warm-audio-wa2a": {
+              "name": "Warm Audio WA-2A",
+              "type": "compressor",
+              "era": "2010s-",
+              "model": "WA-2A",
+              "sku": [
+                "WA-2A",
+                "WA2A"
+              ],
+              "ean": [],
+              "related": [
+                "ua-la-2a"
+              ],
+              "clones": []
+            },
+            "warm-audio-wa87": {
+              "name": "Warm Audio WA-87",
+              "type": "microphone",
+              "era": "2010s-",
+              "model": "WA-87",
+              "sku": [
+                "WA-87",
+                "WA87"
+              ],
+              "ean": [],
+              "related": [
+                "neumann-u87ai"
+              ],
+              "clones": []
+            },
+            "warm-audio-wa47": {
+              "name": "Warm Audio WA-47",
+              "type": "microphone",
+              "era": "2010s-",
+              "model": "WA-47",
+              "sku": [
+                "WA-47",
+                "WA47"
+              ],
+              "ean": [],
+              "related": [
+                "neumann-u47"
+              ],
+              "clones": []
+            }
+          }
+        },
+        "bae": {
+          "products": {
+            "bae-1073": {
+              "name": "BAE 1073",
+              "type": "mic preamp / EQ",
+              "era": "2000s-",
+              "model": "1073",
+              "sku": [
+                "1073"
+              ],
+              "ean": [],
+              "related": [
+                "neve-1073"
+              ],
+              "clones": []
+            }
+          }
+        }
+      }
+    },
+    "danish-modern": {
+      "brands": {
+        "poul-kjærholm": {
+          "products": {
+            "pk22": {
+              "name": "Poul Kjærholm PK22",
+              "type": "lounge chair",
+              "producer": "E. Kold Christensen / Fritz Hansen",
+              "era": "1956-",
+              "related": [
+                "pk31",
+                "pk20"
+              ],
+              "price_range_dkk": [
+                8000,
+                35000
+              ]
+            },
+            "pk31": {
+              "name": "Poul Kjærholm PK31",
+              "type": "sofa",
+              "related": [
+                "pk22"
+              ],
+              "price_range_dkk": [
+                15000,
+                60000
+              ]
+            },
+            "pk20": {
+              "name": "Poul Kjærholm PK20",
+              "type": "lounge chair",
+              "related": [
+                "pk22"
+              ],
+              "price_range_dkk": [
+                10000,
+                40000
+              ]
+            }
+          }
+        },
+        "hans-j-wegner": {
+          "products": {
+            "ch24": {
+              "name": "Hans J. Wegner CH24 (Y-stolen)",
+              "type": "dining chair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1950-",
+              "related": [
+                "ch44",
+                "ch25"
+              ],
+              "price_range_dkk": [
+                2000,
+                8000
+              ],
+              "model": "CH24",
+              "sku": [
+                "CH24"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole"
+            },
+            "ch44": {
+              "name": "Hans J. Wegner CH44",
+              "type": "lounge chair",
+              "producer": "Carl Hansen & Søn",
+              "related": [
+                "ch24",
+                "ch25"
+              ],
+              "price_range_dkk": [
+                6000,
+                20000
+              ],
+              "model": "CH44",
+              "sku": [
+                "CH44"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole"
+            },
+            "pp501": {
+              "name": "Hans J. Wegner PP501 (The Chair)",
+              "type": "armchair",
+              "producer": "PP Møbler",
+              "related": [
+                "pp503",
+                "pp505",
+                "pp502",
+                "ch24"
+              ],
+              "price_range_dkk": [
+                15000,
+                50000
+              ],
+              "model": "PP501",
+              "sku": [
+                "PP501"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole"
+            },
+            "ch88": {
+              "name": "Hans J. Wegner CH88",
+              "type": "dining chair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1955 (in production later)",
+              "model": "CH88",
+              "sku": [
+                "CH88"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch24",
+                "ch33",
+                "ch20"
+              ]
+            },
+            "ch26": {
+              "name": "Hans J. Wegner CH26",
+              "type": "dining chair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1950 (in production later)",
+              "model": "CH26",
+              "sku": [
+                "CH26"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch22",
+                "ch24"
+              ]
+            },
+            "ch33": {
+              "name": "Hans J. Wegner CH33",
+              "type": "dining chair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1957",
+              "model": "CH33",
+              "sku": [
+                "CH33"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch24",
+                "ch20",
+                "ch29"
+              ]
+            },
+            "ch20": {
+              "name": "Hans J. Wegner CH20 (Elbow Chair)",
+              "type": "dining chair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1956 (introduced 2005)",
+              "model": "CH20",
+              "sku": [
+                "CH20"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch24",
+                "ch33",
+                "ch88"
+              ]
+            },
+            "ch29": {
+              "name": "Hans J. Wegner CH29 (Savbuksstolen)",
+              "type": "dining chair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1952",
+              "model": "CH29",
+              "sku": [
+                "CH29"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch28",
+                "ch33",
+                "ch24"
+              ]
+            },
+            "ch36": {
+              "name": "Hans J. Wegner CH36",
+              "type": "dining chair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1962",
+              "model": "CH36",
+              "sku": [
+                "CH36"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch37",
+                "ch46",
+                "ch47"
+              ]
+            },
+            "ch37": {
+              "name": "Hans J. Wegner CH37",
+              "type": "dining chair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1962",
+              "model": "CH37",
+              "sku": [
+                "CH37"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch36",
+                "ch46",
+                "ch47"
+              ]
+            },
+            "ch46": {
+              "name": "Hans J. Wegner CH46",
+              "type": "armchair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1965",
+              "model": "CH46",
+              "sku": [
+                "CH46"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch47",
+                "ch36",
+                "ch37"
+              ]
+            },
+            "ch47": {
+              "name": "Hans J. Wegner CH47",
+              "type": "dining chair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1965",
+              "model": "CH47",
+              "sku": [
+                "CH47"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch46",
+                "ch36",
+                "ch37"
+              ]
+            },
+            "ch56": {
+              "name": "Hans J. Wegner CH56 (Barstol)",
+              "type": "bar stool",
+              "producer": "Carl Hansen & Søn",
+              "era": "1985",
+              "model": "CH56",
+              "sku": [
+                "CH56"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch58"
+              ]
+            },
+            "ch58": {
+              "name": "Hans J. Wegner CH58 (Barstol)",
+              "type": "bar stool",
+              "producer": "Carl Hansen & Søn",
+              "era": "1985",
+              "model": "CH58",
+              "sku": [
+                "CH58"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch56"
+              ]
+            },
+            "ch111": {
+              "name": "Hans J. Wegner CH111",
+              "type": "office chair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1970",
+              "model": "CH111",
+              "sku": [
+                "CH111"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": []
+            },
+            "pp56": {
+              "name": "Hans J. Wegner PP56 (Kinastolen variant)",
+              "type": "armchair",
+              "producer": "PP Møbler",
+              "era": "1989 (prototype family 1945)",
+              "model": "PP56",
+              "sku": [
+                "PP56"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp66"
+              ]
+            },
+            "pp66": {
+              "name": "Hans J. Wegner PP66 (Kinastolen)",
+              "type": "armchair",
+              "producer": "PP Møbler",
+              "era": "1945",
+              "model": "PP66",
+              "sku": [
+                "PP66"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp56"
+              ]
+            },
+            "pp503": {
+              "name": "Hans J. Wegner PP503 (The Chair, upholstered)",
+              "type": "armchair",
+              "producer": "PP Møbler",
+              "era": "1950",
+              "model": "PP503",
+              "sku": [
+                "PP503"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp501",
+                "pp505",
+                "pp502"
+              ]
+            },
+            "pp505": {
+              "name": "Hans J. Wegner PP505 (Kohornstolen)",
+              "type": "armchair",
+              "producer": "PP Møbler",
+              "era": "1952",
+              "model": "PP505",
+              "sku": [
+                "PP505"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp501",
+                "pp503",
+                "pp518"
+              ]
+            },
+            "pp250": {
+              "name": "Hans J. Wegner PP250 (Jakkens Hvile)",
+              "type": "lounge chair / valet chair",
+              "producer": "PP Møbler",
+              "era": "1953",
+              "model": "PP250",
+              "sku": [
+                "PP250"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": []
+            },
+            "pp502": {
+              "name": "Hans J. Wegner PP502 (Kontordrejestolen)",
+              "type": "office chair",
+              "producer": "PP Møbler",
+              "era": "1955",
+              "model": "PP502",
+              "sku": [
+                "PP502"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp501",
+                "pp503"
+              ]
+            },
+            "pp518": {
+              "name": "Hans J. Wegner PP518 (Tyrestolen)",
+              "type": "lounge chair",
+              "producer": "PP Møbler",
+              "era": "1961",
+              "model": "PP518",
+              "sku": [
+                "PP518"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp505"
+              ]
+            },
+            "pp701": {
+              "name": "Hans J. Wegner PP701",
+              "type": "dining chair",
+              "producer": "PP Møbler",
+              "era": "1965",
+              "model": "PP701",
+              "sku": [
+                "PP701"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp201",
+                "pp203"
+              ]
+            },
+            "pp201": {
+              "name": "Hans J. Wegner PP201",
+              "type": "armchair",
+              "producer": "PP Møbler",
+              "era": "1969",
+              "model": "PP201",
+              "sku": [
+                "PP201"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp203",
+                "pp701"
+              ]
+            },
+            "pp203": {
+              "name": "Hans J. Wegner PP203",
+              "type": "armchair",
+              "producer": "PP Møbler",
+              "era": "1969",
+              "model": "PP203",
+              "sku": [
+                "PP203"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp201",
+                "pp701"
+              ]
+            },
+            "pp52": {
+              "name": "Hans J. Wegner PP52",
+              "type": "armchair",
+              "producer": "PP Møbler",
+              "era": "1975",
+              "model": "PP52",
+              "sku": [
+                "PP52"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp62"
+              ]
+            },
+            "pp62": {
+              "name": "Hans J. Wegner PP62",
+              "type": "armchair",
+              "producer": "PP Møbler",
+              "era": "1975",
+              "model": "PP62",
+              "sku": [
+                "PP62"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp52"
+              ]
+            },
+            "pp58": {
+              "name": "Hans J. Wegner PP58",
+              "type": "dining chair",
+              "producer": "PP Møbler",
+              "era": "1987",
+              "model": "PP58",
+              "sku": [
+                "PP58"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp68",
+                "pp58-3"
+              ]
+            },
+            "pp68": {
+              "name": "Hans J. Wegner PP68",
+              "type": "dining chair",
+              "producer": "PP Møbler",
+              "era": "1987",
+              "model": "PP68",
+              "sku": [
+                "PP68"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp58",
+                "pp58-3"
+              ]
+            },
+            "pp58-3": {
+              "name": "Hans J. Wegner PP58/3",
+              "type": "dining chair",
+              "producer": "PP Møbler",
+              "era": "1988",
+              "model": "PP58/3",
+              "sku": [
+                "PP58/3"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "pp58",
+                "pp68"
+              ]
+            },
+            "pp240": {
+              "name": "Hans J. Wegner PP240 (Konferencestol)",
+              "type": "conference chair",
+              "producer": "PP Møbler",
+              "era": "1990",
+              "model": "PP240",
+              "sku": [
+                "PP240"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": []
+            },
+            "ch25": {
+              "name": "Hans J. Wegner CH25",
+              "type": "lounge chair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1950",
+              "model": "CH25",
+              "sku": [
+                "CH25"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch24",
+                "ch44"
+              ]
+            },
+            "ch22": {
+              "name": "Hans J. Wegner CH22",
+              "type": "lounge chair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1950",
+              "model": "CH22",
+              "sku": [
+                "CH22"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch26"
+              ]
+            },
+            "ch28": {
+              "name": "Hans J. Wegner CH28",
+              "type": "lounge chair",
+              "producer": "Carl Hansen & Søn",
+              "era": "1951",
+              "model": "CH28",
+              "sku": [
+                "CH28"
+              ],
+              "ean": [],
+              "reference_url": "https://www.wegnerdesign.dk/wegner-stole",
+              "related": [
+                "ch29"
+              ]
+            }
+          }
+        },
+        "arne-jacobsen": {
+          "products": {
+            "syverstolen": {
+              "name": "Arne Jacobsen 7'er Stol (Serie 7)",
+              "type": "dining chair",
+              "producer": "Fritz Hansen",
+              "era": "1955-",
+              "related": [
+                "ægget",
+                "svanen"
+              ],
+              "price_range_dkk": [
+                1500,
+                6000
+              ]
+            },
+            "aegget": {
+              "name": "Arne Jacobsen Ægget",
+              "type": "lounge chair",
+              "producer": "Fritz Hansen",
+              "era": "1958-",
+              "related": [
+                "svanen",
+                "syverstolen"
+              ],
+              "price_range_dkk": [
+                20000,
+                60000
+              ]
+            },
+            "svanen": {
+              "name": "Arne Jacobsen Svanen",
+              "type": "lounge chair",
+              "producer": "Fritz Hansen",
+              "related": [
+                "aegget"
+              ],
+              "price_range_dkk": [
+                15000,
+                45000
+              ]
+            }
+          }
+        }
+      }
+    },
+    "photography": {
+      "brands": {
+        "leica": {
+          "products": {
+            "leica-m6": {
+              "name": "Leica M6",
+              "type": "film camera",
+              "related": [
+                "leica-m7",
+                "leica-m-a"
+              ],
+              "price_range_dkk": [
+                15000,
+                35000
+              ]
+            },
+            "leica-m7": {
+              "name": "Leica M7",
+              "type": "film camera",
+              "related": [
+                "leica-m6"
+              ],
+              "price_range_dkk": [
+                18000,
+                40000
+              ]
+            }
+          }
+        },
+        "hasselblad": {
+          "products": {
+            "hasselblad-500cm": {
+              "name": "Hasselblad 500C/M",
+              "type": "medium format camera",
+              "related": [
+                "hasselblad-503cw"
+              ],
+              "price_range_dkk": [
+                8000,
+                20000
+              ]
+            }
+          }
+        },
+        "canon": {
+          "products": {
+            "canon-ae-1": {
+              "name": "Canon AE-1",
+              "type": "film camera",
+              "related": [
+                "canon-ae-1-program",
+                "canon-a-1"
+              ],
+              "price_range_dkk": [
+                800,
+                3000
+              ]
+            },
+            "canon-eos-r5": {
+              "name": "Canon EOS R5",
+              "type": "mirrorless",
+              "related": [
+                "canon-eos-r6"
+              ],
+              "price_range_dkk": [
+                15000,
+                28000
+              ]
+            }
+          }
+        },
+        "sony": {
+          "products": {
+            "sony-a7-iii": {
+              "name": "Sony A7 III",
+              "type": "mirrorless",
+              "related": [
+                "sony-a7-iv",
+                "sony-a7c"
+              ],
+              "price_range_dkk": [
+                8000,
+                16000
+              ],
+              "model": "ILCE-7M3",
+              "sku": [
+                "ILCE-7M3"
+              ],
+              "ean": [],
+              "reference_url": "https://www.sony.dk/interchangeable-lens-cameras/products/ilce-7m3"
+            },
+            "sony-a7-iv": {
+              "name": "Sony A7 IV",
+              "type": "mirrorless",
+              "related": [
+                "sony-a7-iii"
+              ],
+              "price_range_dkk": [
+                12000,
+                22000
+              ],
+              "model": "ILCE-7M4",
+              "sku": [
+                "ILCE-7M4"
+              ],
+              "ean": [],
+              "reference_url": "https://www.sony.dk/interchangeable-lens-cameras/products/ilce-7m4"
+            },
+            "sony-a7-v": {
+              "name": "Sony Alpha 7 V",
+              "type": "mirrorless",
+              "era": "2025-",
+              "model": "ILCE-7M5",
+              "sku": [
+                "ILCE-7M5"
+              ],
+              "ean": [
+                "4548736173811"
+              ],
+              "reference_url": "https://www.sony.dk/electronics/kameraer-med-udskiftelige-objektiver/ilce-7m5",
+              "related": [
+                "sony-a7-iv",
+                "sony-a7r-v",
+                "sony-a7s-iii"
+              ],
+              "price_range_dkk": [
+                18000,
+                32000
+              ]
+            },
+            "sony-a7s-iii": {
+              "name": "Sony Alpha 7S III",
+              "type": "mirrorless",
+              "era": "2020-",
+              "model": "ILCE-7SM3",
+              "sku": [
+                "ILCE-7SM3"
+              ],
+              "ean": [
+                "4548736119154"
+              ],
+              "reference_url": "https://www.sony.dk/interchangeable-lens-cameras/products/ilce-7sm3",
+              "related": [
+                "sony-a7s-ii",
+                "sony-fx3",
+                "sony-a7-v"
+              ],
+              "price_range_dkk": [
+                16000,
+                30000
+              ]
+            },
+            "sony-a7s-ii": {
+              "name": "Sony Alpha 7S II",
+              "type": "mirrorless",
+              "era": "2015-2021",
+              "model": "ILCE-7SM2",
+              "sku": [
+                "ILCE-7SM2"
+              ],
+              "ean": [
+                "4548736018839"
+              ],
+              "reference_url": "https://www.sony.dk/electronics/kameraer-med-udskiftelige-objektiver/ilce-7sm2",
+              "related": [
+                "sony-a7s-iii"
+              ],
+              "price_range_dkk": [
+                4500,
+                9000
+              ]
+            },
+            "sony-a7r-v": {
+              "name": "Sony Alpha 7R V",
+              "type": "mirrorless",
+              "era": "2022-",
+              "model": "ILCE-7RM5",
+              "sku": [
+                "ILCE-7RM5"
+              ],
+              "ean": [
+                "4548736145603"
+              ],
+              "reference_url": "https://www.sony.dk/interchangeable-lens-cameras/products/ilce-7rm5",
+              "related": [
+                "sony-a7-v",
+                "sony-a7r-iv"
+              ],
+              "price_range_dkk": [
+                18000,
+                32000
+              ]
+            },
+            "sony-a6700": {
+              "name": "Sony Alpha 6700",
+              "type": "mirrorless (APS-C)",
+              "era": "2023-",
+              "model": "ILCE-6700",
+              "sku": [
+                "ILCE-6700"
+              ],
+              "ean": [
+                "4548736146624",
+                "4548736146785",
+                "4548736146976"
+              ],
+              "reference_url": "https://www.sony.dk/interchangeable-lens-cameras/products/ilce-6700",
+              "related": [
+                "sony-a6600",
+                "sony-fx30"
+              ],
+              "price_range_dkk": [
+                9000,
+                15000
+              ]
+            },
+            "sony-fx3": {
+              "name": "Sony FX3",
+              "type": "cinema camera",
+              "era": "2021-",
+              "model": "ILME-FX3",
+              "sku": [
+                "ILME-FX3"
+              ],
+              "ean": [],
+              "reference_url": "https://www.sony.dk/interchangeable-lens-cameras/products/ilme-fx3",
+              "related": [
+                "sony-a7s-iii",
+                "sony-fx30"
+              ],
+              "price_range_dkk": [
+                20000,
+                40000
+              ]
+            },
+            "sony-fx30": {
+              "name": "Sony FX30",
+              "type": "cinema camera",
+              "era": "2022-",
+              "model": "ILME-FX30",
+              "sku": [
+                "ILME-FX30"
+              ],
+              "ean": [],
+              "reference_url": "https://www.sony.dk/interchangeable-lens-cameras/products/ilme-fx30",
+              "related": [
+                "sony-a6700",
+                "sony-fx3"
+              ],
+              "price_range_dkk": [
+                12000,
+                25000
+              ]
+            },
+            "sony-a7r-iv": {
+              "name": "Sony Alpha 7R IV",
+              "type": "mirrorless",
+              "era": "2019-",
+              "model": "ILCE-7RM4",
+              "sku": [
+                "ILCE-7RM4"
+              ],
+              "ean": [],
+              "reference_url": "https://www.sony.dk/interchangeable-lens-cameras/products/ilce-7rm4",
+              "related": [
+                "sony-a7r-v"
+              ],
+              "price_range_dkk": [
+                12000,
+                22000
+              ]
+            },
+            "sony-a6600": {
+              "name": "Sony Alpha 6600",
+              "type": "mirrorless (APS-C)",
+              "era": "2019-",
+              "model": "ILCE-6600",
+              "sku": [
+                "ILCE-6600"
+              ],
+              "ean": [],
+              "reference_url": "https://www.sony.dk/interchangeable-lens-cameras/products/ilce-6600",
+              "related": [
+                "sony-a6700"
+              ],
+              "price_range_dkk": [
+                7000,
+                12000
+              ]
+            },
+            "sony-a7c": {
+              "name": "Sony A7C",
+              "type": "mirrorless",
+              "era": "2020-",
+              "model": "ILCE-7C",
+              "sku": [
+                "ILCE-7C"
+              ],
+              "ean": [],
+              "reference_url": "https://www.sony.dk/interchangeable-lens-cameras/products/ilce-7c",
+              "related": [
+                "sony-a7-iii",
+                "sony-a7-iv"
+              ],
+              "price_range_dkk": [
+                9000,
+                18000
+              ]
+            }
+          }
+        }
+      }
+    },
+    "tech": {
+      "brands": {
+        "apple": {
+          "products": {
+            "mac-mini-m4": {
+              "name": "Apple Mac Mini M4",
+              "type": "desktop",
+              "era": "2024-",
+              "related": [
+                "mac-mini-m2",
+                "mac-studio"
+              ],
+              "price_range_dkk": [
+                5000,
+                9000
+              ]
+            },
+            "macbook-pro-m3": {
+              "name": "Apple MacBook Pro M3",
+              "type": "laptop",
+              "variants": [
+                "14\"",
+                "16\""
+              ],
+              "related": [
+                "macbook-air-m3"
+              ],
+              "price_range_dkk": [
+                10000,
+                25000
+              ]
+            },
+            "macbook-pro-m3-pro": {
+              "name": "Apple MacBook Pro M3 Pro",
+              "type": "laptop",
+              "era": "2023-",
+              "related": [
+                "macbook-pro-m3",
+                "macbook-pro-m3-max"
+              ],
+              "price_range_dkk": [
+                14000,
+                30000
+              ],
+              "model": "MacBook Pro M3 Pro",
+              "sku": [
+                "MacBook Pro M3 Pro"
+              ],
+              "ean": [],
+              "reference_url": "https://www.apple.com/macbook-pro/"
+            },
+            "macbook-pro-m3-max": {
+              "name": "Apple MacBook Pro M3 Max",
+              "type": "laptop",
+              "era": "2023-",
+              "related": [
+                "macbook-pro-m3-pro"
+              ],
+              "price_range_dkk": [
+                20000,
+                45000
+              ],
+              "model": "MacBook Pro M3 Max",
+              "sku": [
+                "MacBook Pro M3 Max"
+              ],
+              "ean": [],
+              "reference_url": "https://www.apple.com/macbook-pro/"
+            },
+            "mac-studio": {
+              "name": "Apple Mac Studio",
+              "type": "desktop",
+              "era": "2022-",
+              "related": [
+                "mac-pro",
+                "mac-mini-m4"
+              ],
+              "price_range_dkk": [
+                12000,
+                45000
+              ],
+              "model": "Mac Studio",
+              "sku": [
+                "Mac Studio"
+              ],
+              "ean": [],
+              "reference_url": "https://www.apple.com/mac-studio/"
+            },
+            "mac-pro": {
+              "name": "Apple Mac Pro",
+              "type": "workstation",
+              "era": "2019-",
+              "related": [
+                "mac-studio",
+                "pro-display-xdr"
+              ],
+              "price_range_dkk": [
+                25000,
+                100000
+              ],
+              "model": "Mac Pro",
+              "sku": [
+                "Mac Pro"
+              ],
+              "ean": [],
+              "reference_url": "https://www.apple.com/mac-pro/"
+            },
+            "studio-display": {
+              "name": "Apple Studio Display",
+              "type": "monitor",
+              "era": "2022-",
+              "related": [
+                "pro-display-xdr"
+              ],
+              "price_range_dkk": [
+                8000,
+                16000
+              ],
+              "model": "Studio Display",
+              "sku": [
+                "Studio Display"
+              ],
+              "ean": [],
+              "reference_url": "https://www.apple.com/studio-display/"
+            },
+            "pro-display-xdr": {
+              "name": "Apple Pro Display XDR",
+              "type": "monitor",
+              "era": "2019-",
+              "related": [
+                "mac-pro",
+                "mac-studio"
+              ],
+              "price_range_dkk": [
+                30000,
+                60000
+              ],
+              "model": "Pro Display XDR",
+              "sku": [
+                "Pro Display XDR"
+              ],
+              "ean": [],
+              "reference_url": "https://www.apple.com/pro-display-xdr/"
+            }
+          }
+        },
+        "nvidia": {
+          "products": {
+            "nvidia-rtx-4090": {
+              "name": "NVIDIA GeForce RTX 4090",
+              "type": "gpu",
+              "era": "2022-",
+              "model": "RTX 4090",
+              "sku": [
+                "RTX 4090"
+              ],
+              "ean": [],
+              "related": [
+                "nvidia-rtx-4080-super",
+                "nvidia-rtx-3090",
+                "nvidia-rtx-6000-ada"
+              ],
+              "price_range_dkk": [
+                9000,
+                18000
+              ],
+              "reference_url": "https://www.nvidia.com/"
+            },
+            "nvidia-rtx-4080-super": {
+              "name": "NVIDIA GeForce RTX 4080 SUPER",
+              "type": "gpu",
+              "era": "2024-",
+              "model": "RTX 4080 SUPER",
+              "sku": [
+                "RTX 4080 SUPER"
+              ],
+              "ean": [],
+              "related": [
+                "nvidia-rtx-4090"
+              ],
+              "price_range_dkk": [
+                7000,
+                14000
+              ],
+              "reference_url": "https://www.nvidia.com/"
+            },
+            "nvidia-rtx-3090": {
+              "name": "NVIDIA GeForce RTX 3090",
+              "type": "gpu",
+              "era": "2020-",
+              "model": "RTX 3090",
+              "sku": [
+                "RTX 3090"
+              ],
+              "ean": [],
+              "related": [
+                "nvidia-rtx-4090"
+              ],
+              "price_range_dkk": [
+                4000,
+                9000
+              ],
+              "reference_url": "https://www.nvidia.com/"
+            },
+            "nvidia-rtx-6000-ada": {
+              "name": "NVIDIA RTX 6000 Ada Generation",
+              "type": "workstation gpu",
+              "era": "2022-",
+              "model": "RTX 6000 Ada",
+              "sku": [
+                "RTX 6000 Ada"
+              ],
+              "ean": [],
+              "related": [
+                "nvidia-rtx-4090"
+              ],
+              "price_range_dkk": [
+                25000,
+                70000
+              ],
+              "reference_url": "https://www.nvidia.com/"
+            }
+          }
+        },
+        "lenovo": {
+          "products": {
+            "lenovo-thinkstation-p620": {
+              "name": "Lenovo ThinkStation P620",
+              "type": "workstation",
+              "era": "2020-",
+              "model": "P620",
+              "sku": [
+                "ThinkStation P620"
+              ],
+              "ean": [],
+              "related": [
+                "hp-z8",
+                "dell-precision-7865"
+              ],
+              "price_range_dkk": [
+                15000,
+                80000
+              ],
+              "reference_url": "https://www.lenovo.com/"
+            }
+          }
+        },
+        "hp": {
+          "products": {
+            "hp-z8": {
+              "name": "HP Z8 (Workstation)",
+              "type": "workstation",
+              "era": "2017-",
+              "model": "Z8",
+              "sku": [
+                "Z8"
+              ],
+              "ean": [],
+              "related": [
+                "lenovo-thinkstation-p620",
+                "dell-precision-7865"
+              ],
+              "price_range_dkk": [
+                20000,
+                120000
+              ],
+              "reference_url": "https://www.hp.com/"
+            }
+          }
+        },
+        "dell": {
+          "products": {
+            "dell-precision-7865": {
+              "name": "Dell Precision 7865 Tower",
+              "type": "workstation",
+              "era": "2022-",
+              "model": "7865",
+              "sku": [
+                "Precision 7865"
+              ],
+              "ean": [],
+              "related": [
+                "hp-z8",
+                "lenovo-thinkstation-p620"
+              ],
+              "price_range_dkk": [
+                20000,
+                120000
+              ],
+              "reference_url": "https://www.dell.com/"
+            }
+          }
+        }
+      }
+    }
+  }
+}
