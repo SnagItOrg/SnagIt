@@ -92,7 +92,7 @@ export default function Step1() {
             Choose your hunting grounds.
           </h1>
           <p className="text-lg font-medium" style={{ color: '#94a3b8' }}>
-            Select the categories you're most interested in. We'll start scanning Danish
+            Select the categories you&apos;re most interested in. We&apos;ll start scanning Danish
             marketplaces for the best deals tailored to your taste.
           </p>
         </div>

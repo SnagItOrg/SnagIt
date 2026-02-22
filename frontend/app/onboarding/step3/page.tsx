@@ -86,7 +86,7 @@ export default function Step3() {
               <span style={{ color: PRI }}>Snag-Alert</span>
             </h1>
             <p className="text-lg" style={{ color: '#94a3b8' }}>
-              Tell us what you're hunting for and we'll scan the markets 24/7.
+              Tell us what you&apos;re hunting for and we&apos;ll scan the markets 24/7.
             </p>
           </div>
 
@@ -250,7 +250,7 @@ export default function Step3() {
               className="text-sm font-semibold transition-colors hover:text-white"
               style={{ color: '#64748b' }}
             >
-              I'll do this later
+              I&apos;ll do this later
             </button>
           </div>
         </div>
