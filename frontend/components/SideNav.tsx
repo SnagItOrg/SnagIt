@@ -78,7 +78,13 @@ export function SideNav({ active, onChange }: Props) {
     <aside className="hidden md:flex flex-col w-60 fixed top-0 left-0 h-full border-r border-white/10 bg-surface z-40">
       {/* Logo */}
       <div className="px-6 py-6 border-b border-white/10">
-        <span className="text-xl font-bold tracking-tight text-primary">Klup</span>
+        <div className="flex items-center gap-2.5" style={{ color: 'var(--color-primary)' }}>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+               style={{ backgroundColor: 'rgba(19,236,109,0.1)' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
+          </div>
+          <span className="text-xl font-bold tracking-tight">Klup.dk</span>
+        </div>
       </div>
 
       {/* Nav items */}

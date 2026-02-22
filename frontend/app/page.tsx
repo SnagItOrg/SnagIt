@@ -163,7 +163,13 @@ export default function Home() {
       <div className="flex-1 flex flex-col md:ml-60">
         {/* Mobile header — hidden on md+ */}
         <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-4 border-b border-white/10 bg-bg">
-          <span className="text-lg font-bold tracking-tight text-primary">Klup</span>
+          <div className="flex items-center gap-2" style={{ color: 'var(--color-primary)' }}>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                 style={{ backgroundColor: 'rgba(19,236,109,0.1)' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>radar</span>
+            </div>
+            <span className="text-lg font-bold tracking-tight">Klup.dk</span>
+          </div>
           <div className="flex items-center gap-1">
             {/* Language toggle */}
             {(['da', 'en'] as Locale[]).map((l) => (

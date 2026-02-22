@@ -53,9 +53,15 @@ export default function LoginPage() {
       </div>
 
       {/* Wordmark */}
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-primary">Klup</h1>
-        <p className="mt-1 text-sm text-text-muted">{t.tagline}</p>
+      <div className="mb-8 text-center flex flex-col items-center gap-3">
+        <div className="flex items-center gap-2.5" style={{ color: 'var(--color-primary)' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+               style={{ backgroundColor: 'rgba(19,236,109,0.1)' }}>
+            <span className="material-symbols-outlined text-2xl">radar</span>
+          </div>
+          <h1 className="text-4xl font-bold tracking-tight">Klup.dk</h1>
+        </div>
+        <p className="text-sm text-text-muted">{t.tagline}</p>
       </div>
 
       {/* Card */}
