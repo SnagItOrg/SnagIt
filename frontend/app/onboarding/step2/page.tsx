@@ -182,8 +182,8 @@ export default function Step2() {
                     <img
                       src={brandLogoUrl(brand.id)}
                       alt={brand.label}
-                      className={`h-full w-auto object-contain brightness-0 invert transition-all duration-200 ease-in-out ${
-                        isStarred ? 'opacity-100' : 'opacity-30 group-hover:opacity-70'
+                      className={`h-full w-auto object-contain transition-all duration-200 ease-in-out ${
+                        isStarred ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'
                       }`}
                     />
                   )}
