@@ -19,7 +19,7 @@ interface Brand {
 const BRANDS: Brand[] = [
   { id: 'apple',               label: 'Apple'               },
   { id: 'sony',                label: 'Sony'                },
-  { id: 'teenage-engineering', label: 'Teenage Engineering', textLogo: true },
+  { id: 'teenageengineering',  label: 'Teenage Engineering' },
   { id: 'bang-olufsen',        label: 'Bang & Olufsen'      },
   { id: 'canon',               label: 'Canon'               },
   { id: 'bose',                label: 'Bose'                },
@@ -31,21 +31,11 @@ export default function Step2() {
   const { t } = useLocale()
   const [starred, setStarred] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
-  const [categoryLabel, setCategoryLabel] = useState('')
 
   useEffect(() => {
     const saved = loadOnboarding()
-    // Pre-star brands matching saved selections
     if (saved.brands?.length) {
       setStarred(new Set(saved.brands))
-    }
-    // Build category label for subtitle
-    if (saved.categories?.length) {
-      const labels = saved.categories.map((c) =>
-        BRANDS.find((b) => b.id === c)?.label ??
-        c.charAt(0).toUpperCase() + c.slice(1)
-      )
-      setCategoryLabel(labels.join(' & '))
     }
   }, [])
 
@@ -113,16 +103,7 @@ export default function Step2() {
             Indsnævr jagten.
           </h1>
           <p className="text-lg" style={{ color: '#94a3b8' }}>
-            {categoryLabel ? (
-              <>
-                Vi fandt disse mærker baseret på dit{' '}
-                <span className="font-semibold" style={{ color: PRI }}>{categoryLabel}</span>
-                {' '}valg.{' '}
-              </>
-            ) : (
-              'Vælg de mærker, du holder af. '
-            )}
-            Stjernemarkér dine favoritter for at prioritere dem i dit feed.
+            Vælg de mærker du holder øje med.
           </p>
         </div>
 
