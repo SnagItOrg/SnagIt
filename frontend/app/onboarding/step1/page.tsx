@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveOnboarding, categoryImageUrl, fireEvent } from '@/lib/onboarding'
 import { useLocale } from '@/components/LocaleProvider'
+import { OnboardingHeader } from '@/components/OnboardingHeader'
 
 const CATEGORIES = [
   { id: 'photography', label: 'Fotografi',    sub: 'Objektiver & Kameraer',     icon: 'photo_camera' },
@@ -40,43 +41,7 @@ export default function Step1() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: BG, color: '#f1f5f9' }}>
-      {/* Header */}
-      <header className="w-full py-8 px-6 lg:px-10">
-        <div className="max-w-[1400px] mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            {/* Logo */}
-            <div className="flex items-center gap-3" style={{ color: PRI }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                   style={{ backgroundColor: 'rgba(19,236,109,0.1)' }}>
-                <span className="material-symbols-outlined text-2xl">radar</span>
-              </div>
-              <h2 className="text-2xl font-black tracking-tight">Klup.dk</h2>
-            </div>
-
-            {/* Step + skip */}
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-bold" style={{ color: '#94a3b8' }}>
-                TRIN 1 <span style={{ color: '#475569' }}>AF 4</span>
-              </span>
-              <button
-                onClick={() => router.push('/login')}
-                className="text-sm font-bold transition-colors hover:text-white"
-                style={{ color: '#64748b' }}
-              >
-                Spring over
-              </button>
-            </div>
-          </div>
-
-          {/* Progress bar — 1/4 */}
-          <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: SURF }}>
-            <div
-              className="h-full rounded-full"
-              style={{ width: '25%', backgroundColor: PRI, boxShadow: '0 0 10px rgba(19,236,109,0.5)' }}
-            />
-          </div>
-        </div>
-      </header>
+      <OnboardingHeader currentStep={1} showSkip />
 
       {/* Main */}
       <main className="flex-1 max-w-[1400px] mx-auto px-6 lg:px-10 py-12 w-full flex flex-col items-center">

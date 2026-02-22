@@ -5,34 +5,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
+import { OnboardingHeader } from '@/components/OnboardingHeader'
 
 const BG   = '#102218'
 const SURF = '#1a2e22'
 const BORD = '#326748'
 const PRI  = '#13ec6d'
 
-function StepDots() {
-  return (
-    <div className="flex items-center gap-4">
-      <div className="flex gap-1.5">
-        {([1, 2, 3] as const).map((n) => (
-          <div
-            key={n}
-            className="h-1.5 w-8 rounded-full"
-            style={{ backgroundColor: 'rgba(19,236,109,0.3)' }}
-          />
-        ))}
-        <div
-          className="h-1.5 w-12 rounded-full"
-          style={{ backgroundColor: PRI, boxShadow: '0 0 8px rgba(19,236,109,0.5)' }}
-        />
-      </div>
-      <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#64748b' }}>
-        Trin 4 af 4
-      </span>
-    </div>
-  )
-}
 
 function CheckInbox({ email }: { email: string }) {
   const { t } = useLocale()
@@ -118,21 +97,7 @@ export default function Step4() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: BG, color: '#f1f5f9' }}>
-      {/* Header */}
-      <header className="w-full py-8 px-6 lg:px-10">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3" style={{ color: PRI }}>
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: 'rgba(19,236,109,0.1)' }}
-            >
-              <span className="material-symbols-outlined">radar</span>
-            </div>
-            <h2 className="text-xl font-black tracking-tight">Klup.dk</h2>
-          </div>
-          <StepDots />
-        </div>
-      </header>
+      <OnboardingHeader currentStep={4} />
 
       {/* Main */}
       <main className="flex-1 flex items-center justify-center px-6 py-10 -mt-8">

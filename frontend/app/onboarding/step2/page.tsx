@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { loadOnboarding, saveOnboarding, brandLogoUrl, fireEvent } from '@/lib/onboarding'
 import { useLocale } from '@/components/LocaleProvider'
+import { OnboardingHeader } from '@/components/OnboardingHeader'
 
 const BG   = '#102218'
 const SURF = '#1a2e22'
@@ -61,39 +62,7 @@ export default function Step2() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: BG, color: '#f1f5f9' }}>
-      {/* Sticky header */}
-      <header
-        className="sticky top-0 z-40 border-b px-6 py-4 backdrop-blur-md"
-        style={{ borderColor: BORD, backgroundColor: `${BG}cc` }}
-      >
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-3" style={{ color: PRI }}>
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                 style={{ backgroundColor: 'rgba(19,236,109,0.1)' }}>
-              <span className="material-symbols-outlined">radar</span>
-            </div>
-            <h2 className="text-xl font-black tracking-tight">Klup.dk</h2>
-          </div>
-
-          {/* Step dots + label */}
-          <div className="flex items-center gap-4">
-            <div className="flex gap-1.5">
-              {/* Step 1 — done */}
-              <div className="h-1.5 w-8 rounded-full" style={{ backgroundColor: 'rgba(19,236,109,0.3)' }} />
-              {/* Step 2 — active */}
-              <div className="h-1.5 w-12 rounded-full"
-                   style={{ backgroundColor: PRI, boxShadow: '0 0 8px rgba(19,236,109,0.5)' }} />
-              {/* Steps 3–4 — future */}
-              <div className="h-1.5 w-8 rounded-full" style={{ backgroundColor: '#1e293b' }} />
-              <div className="h-1.5 w-8 rounded-full" style={{ backgroundColor: '#1e293b' }} />
-            </div>
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#64748b' }}>
-              Trin 2 af 4
-            </span>
-          </div>
-        </div>
-      </header>
+      <OnboardingHeader currentStep={2} />
 
       {/* Main */}
       <main className="flex-1 max-w-5xl mx-auto w-full p-6 lg:p-12 pb-36">

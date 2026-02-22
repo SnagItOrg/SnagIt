@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { loadOnboarding, saveOnboarding, fireEvent } from '@/lib/onboarding'
 import { useLocale } from '@/components/LocaleProvider'
+import { OnboardingHeader } from '@/components/OnboardingHeader'
 
 const BG   = '#102218'
 const SURF = '#1a2e22'
@@ -11,35 +12,6 @@ const BORD = '#326748'
 const PRI  = '#13ec6d'
 const MAX_PRICE = 20000
 
-// Step dots — reused shape across steps
-function StepDots({ active }: { active: 1 | 2 | 3 | 4 }) {
-  const dots = [1, 2, 3, 4] as const
-  return (
-    <div className="flex items-center gap-4">
-      <div className="flex gap-1.5">
-        {dots.map((n) => (
-          <div
-            key={n}
-            className="h-1.5 rounded-full"
-            style={{
-              width: n === active ? '48px' : '32px',
-              backgroundColor:
-                n === active
-                  ? PRI
-                  : n < active
-                  ? 'rgba(19,236,109,0.3)'
-                  : '#1e293b',
-              boxShadow: n === active ? '0 0 8px rgba(19,236,109,0.5)' : undefined,
-            }}
-          />
-        ))}
-      </div>
-      <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#64748b' }}>
-        Trin {active} af 4
-      </span>
-    </div>
-  )
-}
 
 export default function Step3() {
   const router = useRouter()
@@ -64,19 +36,7 @@ export default function Step3() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: BG, color: '#f1f5f9' }}>
-      {/* Header */}
-      <header className="w-full py-8 px-6 lg:px-10">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3" style={{ color: PRI }}>
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                 style={{ backgroundColor: 'rgba(19,236,109,0.1)' }}>
-              <span className="material-symbols-outlined">radar</span>
-            </div>
-            <h2 className="text-xl font-black tracking-tight">Klup.dk</h2>
-          </div>
-          <StepDots active={3} />
-        </div>
-      </header>
+      <OnboardingHeader currentStep={3} />
 
       {/* Main */}
       <main className="flex-1 flex items-center justify-center px-6 py-10 -mt-8">
