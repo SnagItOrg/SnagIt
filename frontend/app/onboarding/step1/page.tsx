@@ -127,10 +127,7 @@ export default function Step1() {
                   }`}
                 />
                 {/* Gradient overlay */}
-                <div
-                  className="absolute inset-0"
-                  style={{ background: `linear-gradient(to top, ${BG}, transparent)` }}
-                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
                 {/* Content */}
                 <div className="absolute bottom-6 left-6 right-6">
                   <div
