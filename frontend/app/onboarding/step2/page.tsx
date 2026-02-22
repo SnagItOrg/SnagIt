@@ -167,7 +167,7 @@ export default function Step2() {
                 </span>
 
                 {/* Logo */}
-                <div className="h-16 w-32 flex items-center justify-center mb-4">
+                <div className="w-full h-24 flex items-center justify-center mb-4">
                   {brand.textLogo ? (
                     <span
                       className={`font-mono text-xs tracking-tighter text-center transition-all duration-200 ease-in-out ${
@@ -182,7 +182,7 @@ export default function Step2() {
                     <img
                       src={brandLogoUrl(brand.id)}
                       alt={brand.label}
-                      className={`h-full w-auto object-contain transition-all duration-200 ease-in-out ${
+                      className={`w-full h-full object-contain transition-all duration-200 ease-in-out ${
                         isStarred ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'
                       }`}
                     />
