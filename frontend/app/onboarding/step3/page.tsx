@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { loadOnboarding, saveOnboarding, fireEvent } from '@/lib/onboarding'
+import { useLocale } from '@/components/LocaleProvider'
 
 const BG   = '#102218'
 const SURF = '#1a2e22'
@@ -42,6 +43,7 @@ function StepDots({ active }: { active: 1 | 2 | 3 | 4 }) {
 
 export default function Step3() {
   const router = useRouter()
+  const { t } = useLocale()
   const [query, setQuery] = useState('')
   const [maxPrice, setMaxPrice] = useState(4500)
   const [fuzzy, setFuzzy] = useState(true)
@@ -255,6 +257,14 @@ export default function Step3() {
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="py-10 text-center">
+        <div className="inline-flex items-center gap-2" style={{ color: '#475569' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>security</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest">{t.securityNote}</span>
+        </div>
+      </footer>
 
       {/* Bottom accent */}
       <div

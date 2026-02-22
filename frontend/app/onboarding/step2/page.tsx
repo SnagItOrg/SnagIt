@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { loadOnboarding, saveOnboarding, brandLogoUrl, fireEvent } from '@/lib/onboarding'
+import { useLocale } from '@/components/LocaleProvider'
 
 const BG   = '#102218'
 const SURF = '#1a2e22'
@@ -27,6 +28,7 @@ const BRANDS: Brand[] = [
 
 export default function Step2() {
   const router = useRouter()
+  const { t } = useLocale()
   const [starred, setStarred] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
   const [categoryLabel, setCategoryLabel] = useState('')
@@ -222,6 +224,14 @@ export default function Step2() {
               <span className="material-symbols-outlined" style={{ color: '#64748b' }}>add</span>
             </div>
             <p className="font-bold text-sm" style={{ color: '#64748b' }}>Tilføj endnu et</p>
+          </div>
+        </div>
+
+        {/* Security note — sits above fixed footer */}
+        <div className="pt-6 pb-2 text-center">
+          <div className="inline-flex items-center gap-2" style={{ color: '#475569' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>security</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">{t.securityNote}</span>
           </div>
         </div>
       </main>
