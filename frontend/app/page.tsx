@@ -36,13 +36,22 @@ export default function Home() {
   useEffect(() => { loadWatchlists() }, [])
 
   // Sync onboarding data saved anonymously before signup.
-  // Runs once on first authenticated load — covers both the immediate-session
-  // case (email confirmation disabled) and the email-confirmation case.
+  // Runs once on mount — checks session first, only clears localStorage on success.
   useEffect(() => {
     const saved = loadOnboarding()
+    console.log('[onboarding sync] localStorage:', saved)
     if (!saved.query && !saved.categories?.length && !saved.brands?.length) return
 
     async function sync() {
+      // Confirm session exists before making authenticated API calls.
+      const supabase = createSupabaseBrowserClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      console.log('[onboarding sync] user:', user?.id ?? 'none')
+      if (!user) {
+        console.log('[onboarding sync] no session yet — skipping, data preserved')
+        return
+      }
+
       try {
         await fetch('/api/preferences', {
           method: 'POST',
@@ -65,11 +74,15 @@ export default function Home() {
           if (res.ok) {
             const created = await res.json()
             setWatchlists((prev) => [created, ...prev])
+          } else {
+            console.error('[onboarding sync] watchlist POST failed:', res.status)
           }
         }
+        // Only clear after a successful run so data survives API failures.
         fireEvent('onboarding_complete', { method: 'email' })
-      } finally {
         clearOnboarding()
+      } catch (err) {
+        console.error('[onboarding sync] error:', err)
       }
     }
     void sync()
