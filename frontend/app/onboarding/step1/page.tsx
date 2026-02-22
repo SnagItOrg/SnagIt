@@ -13,7 +13,7 @@ const CATEGORIES = [
   { id: 'tech',        label: 'Teknologi',    sub: 'Mobil & Computer',           icon: 'devices'     },
 ]
 
-const BG   = '#0a140e'
+const BG   = '#102218'
 const SURF = '#162a1e'
 const PRI  = '#13ec6d'
 
