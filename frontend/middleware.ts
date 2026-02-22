@@ -52,7 +52,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // Unauthenticated users on protected routes → login
+  // Unauthenticated users on / → onboarding
+  if (!user && pathname === '/') {
+    return NextResponse.redirect(new URL('/onboarding/step1', request.url))
+  }
+
+  // Unauthenticated users on other protected routes → login
   if (!user && !isPublicPath(pathname)) {
     return NextResponse.redirect(new URL('/login', request.url))
   }

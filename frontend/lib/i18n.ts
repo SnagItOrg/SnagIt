@@ -54,6 +54,7 @@ export const translations = {
     of: 'af',
     previous: 'Forrige',
     next: 'Næste',
+    securityNote: 'Dine søgninger er krypterede og private',
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -108,6 +109,7 @@ export const translations = {
     of: 'of',
     previous: 'Previous',
     next: 'Next',
+    securityNote: 'Your searches are encrypted and private',
   },
 } as const
 

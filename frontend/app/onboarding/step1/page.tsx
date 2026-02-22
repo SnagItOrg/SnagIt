@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveOnboarding, categoryImageUrl, fireEvent } from '@/lib/onboarding'
+import { useLocale } from '@/components/LocaleProvider'
 
 const CATEGORIES = [
   { id: 'photography', label: 'Fotografi',    sub: 'Objektiver & Kameraer',     icon: 'photo_camera' },
@@ -19,6 +20,7 @@ const PRI  = '#13ec6d'
 
 export default function Step1() {
   const router = useRouter()
+  const { t } = useLocale()
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   function toggle(id: string) {
@@ -189,7 +191,7 @@ export default function Step1() {
         <div className="inline-flex items-center gap-2" style={{ color: '#475569' }}>
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>security</span>
           <span className="text-[10px] font-bold uppercase tracking-widest">
-            Encrypted Search Protocol Active
+            {t.securityNote}
           </span>
         </div>
       </footer>
