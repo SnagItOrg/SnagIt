@@ -34,7 +34,7 @@ function StepDots({ active }: { active: 1 | 2 | 3 | 4 }) {
         ))}
       </div>
       <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#64748b' }}>
-        Step {active} of 4
+        Trin {active} af 4
       </span>
     </div>
   )
@@ -82,11 +82,11 @@ export default function Step3() {
           {/* Heading */}
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
-              Set your first{' '}
+              Opsæt din første{' '}
               <span style={{ color: PRI }}>Snag-Alert</span>
             </h1>
             <p className="text-lg" style={{ color: '#94a3b8' }}>
-              Tell us what you&apos;re hunting for and we&apos;ll scan the markets 24/7.
+              Fortæl os, hvad du jager efter, og vi scanner markederne 24/7.
             </p>
           </div>
 
@@ -106,7 +106,7 @@ export default function Step3() {
                   className="text-xs font-bold uppercase tracking-widest"
                   style={{ color: '#64748b' }}
                 >
-                  What are you looking for?
+                  Hvad leder du efter?
                 </label>
                 <div className="relative">
                   <span
@@ -140,7 +140,7 @@ export default function Step3() {
                     className="text-xs font-bold uppercase tracking-widest"
                     style={{ color: '#64748b' }}
                   >
-                    Maximum Price
+                    Maksimalpris
                   </label>
                   <div className="text-3xl font-black">
                     <span style={{ color: PRI }}>
@@ -191,9 +191,9 @@ export default function Step3() {
                     <span className="material-symbols-outlined">auto_awesome</span>
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-white">Fuzzy Matching</p>
+                    <p className="font-bold text-sm text-white">Udvidet søgning</p>
                     <p className="text-xs" style={{ color: '#64748b' }}>
-                      Include similar items and variations
+                      Inkludér lignende varer og variationer
                     </p>
                   </div>
                 </div>
@@ -227,7 +227,7 @@ export default function Step3() {
                   boxShadow: query.trim() ? '0 20px 25px -5px rgba(19,236,109,0.2)' : undefined,
                 }}
               >
-                Continue
+                Fortsæt
                 <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
                   arrow_forward
                 </span>
@@ -243,14 +243,14 @@ export default function Step3() {
               style={{ color: '#64748b' }}
             >
               <span className="material-symbols-outlined">arrow_back</span>
-              Back
+              Tilbage
             </button>
             <button
               onClick={() => router.push('/onboarding/step4')}
               className="text-sm font-semibold transition-colors hover:text-white"
               style={{ color: '#64748b' }}
             >
-              I&apos;ll do this later
+              Jeg gør det senere
             </button>
           </div>
         </div>

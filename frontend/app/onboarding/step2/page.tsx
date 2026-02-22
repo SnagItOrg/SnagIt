@@ -97,7 +97,7 @@ export default function Step2() {
               <div className="h-1.5 w-8 rounded-full" style={{ backgroundColor: '#1e293b' }} />
             </div>
             <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#64748b' }}>
-              Step 2 of 4
+              Trin 2 af 4
             </span>
           </div>
         </div>
@@ -108,19 +108,19 @@ export default function Step2() {
         {/* Title */}
         <div className="mb-12 text-center max-w-2xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
-            Refine your hunt.
+            Indsnævr jagten.
           </h1>
           <p className="text-lg" style={{ color: '#94a3b8' }}>
             {categoryLabel ? (
               <>
-                We found these brands based on your{' '}
-                <span className="font-semibold" style={{ color: PRI }}>{categoryLabel}</span>{' '}
-                selection.{' '}
+                Vi fandt disse mærker baseret på dit{' '}
+                <span className="font-semibold" style={{ color: PRI }}>{categoryLabel}</span>
+                {' '}valg.{' '}
               </>
             ) : (
-              'Pick the brands you care about. '
+              'Vælg de mærker, du holder af. '
             )}
-            Star your favorites to prioritize them in your feed.
+            Stjernemarkér dine favoritter for at prioritere dem i dit feed.
           </p>
         </div>
 
@@ -135,7 +135,7 @@ export default function Step2() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search brands (e.g. Teenage Engineering...)"
+              placeholder="Søg efter mærker (fx Teenage Engineering...)"
               className="w-full rounded-2xl pl-12 pr-4 py-4 text-white outline-none transition-all"
               style={{ backgroundColor: SURF, border: `1px solid ${BORD}` }}
               onFocus={(e) => {
@@ -153,7 +153,7 @@ export default function Step2() {
             style={{ border: `1px solid ${BORD}`, color: '#cbd5e1' }}
           >
             <span className="material-symbols-outlined">filter_list</span>
-            All Categories
+            Alle kategorier
           </button>
         </div>
 
@@ -221,7 +221,7 @@ export default function Step2() {
             >
               <span className="material-symbols-outlined" style={{ color: '#64748b' }}>add</span>
             </div>
-            <p className="font-bold text-sm" style={{ color: '#64748b' }}>Add Another</p>
+            <p className="font-bold text-sm" style={{ color: '#64748b' }}>Tilføj endnu et</p>
           </div>
         </div>
       </main>
@@ -238,12 +238,12 @@ export default function Step2() {
             style={{ color: '#64748b' }}
           >
             <span className="material-symbols-outlined">arrow_back</span>
-            Back
+            Tilbage
           </button>
 
           <div className="flex items-center gap-6">
             <span className="hidden sm:inline text-sm font-medium italic" style={{ color: '#64748b' }}>
-              {starred.size} {starred.size === 1 ? 'brand' : 'brands'} selected
+              {starred.size} {starred.size === 1 ? 'mærke' : 'mærker'} valgt
             </span>
             <button
               onClick={handleContinue}
@@ -254,7 +254,7 @@ export default function Step2() {
                 boxShadow: '0 10px 15px -3px rgba(19,236,109,0.2)',
               }}
             >
-              Continue
+              Fortsæt
               <span className="material-symbols-outlined">arrow_forward</span>
             </button>
           </div>

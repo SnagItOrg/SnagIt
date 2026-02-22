@@ -2,6 +2,11 @@
 const nextConfig = {
   images: {
     remotePatterns: [
+      // Supabase Storage (onboarding assets, etc.)
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
       // Any subdomain of dba.dk (covers billeder.dba.dk, cdn.dba.dk, etc.)
       {
         protocol: 'https',

@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation'
 import { saveOnboarding, categoryImageUrl, fireEvent } from '@/lib/onboarding'
 
 const CATEGORIES = [
-  { id: 'photography', label: 'Photography', sub: 'Lenses & Bodies',     icon: 'photo_camera' },
-  { id: 'music',       label: 'Music Gear',   sub: 'Studio & Instruments', icon: 'piano'        },
-  { id: 'furniture',   label: 'Danish Modern', sub: 'Furniture Design',    icon: 'chair'        },
-  { id: 'fashion',     label: 'Fashion',       sub: 'Vintage & Hype',      icon: 'apparel'      },
-  { id: 'tech',        label: 'Tech',          sub: 'Mobile & PC',         icon: 'devices'      },
+  { id: 'photography', label: 'Fotografi',    sub: 'Objektiver & Kameraer',     icon: 'photo_camera' },
+  { id: 'music',       label: 'Musikudstyr',  sub: 'Studieudstyr & Instrumenter', icon: 'piano'      },
+  { id: 'furniture',   label: 'Dansk Design', sub: 'Møbeldesign',                icon: 'chair'       },
+  { id: 'fashion',     label: 'Mode',         sub: 'Vintage & Streetwear',       icon: 'apparel'     },
+  { id: 'tech',        label: 'Teknologi',    sub: 'Mobil & Computer',           icon: 'devices'     },
 ]
 
 const BG   = '#0a140e'
@@ -55,14 +55,14 @@ export default function Step1() {
             {/* Step + skip */}
             <div className="flex items-center gap-4">
               <span className="text-sm font-bold" style={{ color: '#94a3b8' }}>
-                STEP 1 <span style={{ color: '#475569' }}>OF 4</span>
+                TRIN 1 <span style={{ color: '#475569' }}>AF 4</span>
               </span>
               <button
                 onClick={() => router.push('/login')}
                 className="text-sm font-bold transition-colors hover:text-white"
                 style={{ color: '#64748b' }}
               >
-                Skip for now
+                Spring over
               </button>
             </div>
           </div>
@@ -89,11 +89,11 @@ export default function Step1() {
               backgroundClip: 'text',
             }}
           >
-            Choose your hunting grounds.
+            Vælg dine jagtmarker.
           </h1>
           <p className="text-lg font-medium" style={{ color: '#94a3b8' }}>
-            Select the categories you&apos;re most interested in. We&apos;ll start scanning Danish
-            marketplaces for the best deals tailored to your taste.
+            Vælg de kategorier, du er mest interesseret i. Vi scanner danske
+            markedspladser for de bedste tilbud tilpasset din smag.
           </p>
         </div>
 
@@ -173,13 +173,13 @@ export default function Step1() {
               boxShadow: '0 20px 25px -5px rgba(19,236,109,0.2)',
             }}
           >
-            Continue to Step 2
+            Fortsæt til trin 2
             <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
               arrow_forward
             </span>
           </button>
           <p className="mt-6 text-sm font-medium" style={{ color: '#64748b' }}>
-            You can change these categories or add more later.
+            Du kan ændre kategorier eller tilføje flere senere.
           </p>
         </div>
       </main>
