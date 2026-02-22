@@ -167,10 +167,13 @@ export default function Step2() {
               <button
                 key={brand.id}
                 onClick={() => toggleStar(brand.id)}
-                className="group relative rounded-2xl p-8 flex flex-col items-center justify-center transition-all"
+                className={`group relative rounded-2xl p-8 flex flex-col items-center justify-center transition-all duration-300 ease-in-out ${
+                  isStarred
+                    ? 'border-2 border-[#13ec6d]'
+                    : 'border border-[#326748] hover:border-[#13ec6d]'
+                }`}
                 style={{
                   backgroundColor: SURF,
-                  border: isStarred ? `2px solid ${PRI}` : `1px solid ${BORD}`,
                   boxShadow: isStarred ? '0 0 20px rgba(19,236,109,0.15)' : undefined,
                 }}
               >
@@ -186,8 +189,10 @@ export default function Step2() {
                 <div className="h-16 w-32 flex items-center justify-center mb-4">
                   {brand.textLogo ? (
                     <span
-                      className="font-mono text-xs tracking-tighter text-center transition-opacity"
-                      style={{ color: '#ffffff', opacity: isStarred ? 1 : 0.6 }}
+                      className={`font-mono text-xs tracking-tighter text-center transition-all duration-300 ease-in-out ${
+                        isStarred ? 'opacity-100' : 'opacity-60 group-hover:opacity-90'
+                      }`}
+                      style={{ color: '#ffffff' }}
                     >
                       {brand.label.toUpperCase()}
                     </span>
@@ -196,8 +201,9 @@ export default function Step2() {
                     <img
                       src={brandLogoUrl(brand.id)}
                       alt={brand.label}
-                      className="h-full w-auto object-contain brightness-0 invert transition-opacity"
-                      style={{ opacity: isStarred ? 1 : 0.6 }}
+                      className={`h-full w-auto object-contain brightness-0 invert transition-all duration-300 ease-in-out ${
+                        isStarred ? 'opacity-100' : 'opacity-60 group-hover:opacity-90'
+                      }`}
                     />
                   )}
                 </div>

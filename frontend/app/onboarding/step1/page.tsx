@@ -107,10 +107,13 @@ export default function Step1() {
               <button
                 key={cat.id}
                 onClick={() => toggle(cat.id)}
-                className="group relative rounded-2xl overflow-hidden transition-all duration-300 text-left"
+                className={`group relative rounded-2xl overflow-hidden transition-all duration-300 ease-in-out text-left border ${
+                  isSelected
+                    ? 'border-[#13ec6d]'
+                    : 'border-[#2a4d38] hover:border-[#13ec6d]'
+                }`}
                 style={{
                   aspectRatio: '4/5',
-                  border: `1px solid ${isSelected ? PRI : BORD}`,
                   backgroundColor: SURF,
                   boxShadow: isSelected ? '0 0 25px rgba(19,236,109,0.3)' : undefined,
                 }}
@@ -120,8 +123,9 @@ export default function Step1() {
                 <img
                   src={categoryImageUrl(cat.id)}
                   alt={cat.label}
-                  className="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
-                  style={{ opacity: isSelected ? 0.8 : 0.6 }}
+                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ease-in-out group-hover:scale-110 ${
+                    isSelected ? 'opacity-100' : 'opacity-60 group-hover:opacity-90'
+                  }`}
                 />
                 {/* Gradient overlay */}
                 <div
