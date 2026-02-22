@@ -6,8 +6,8 @@ import { saveOnboarding, categoryImageUrl, fireEvent } from '@/lib/onboarding'
 
 const CATEGORIES = [
   { id: 'photography', label: 'Fotografi',    sub: 'Objektiver & Kameraer',     icon: 'photo_camera' },
-  { id: 'music',       label: 'Musikudstyr',  sub: 'Studieudstyr & Instrumenter', icon: 'piano'      },
-  { id: 'furniture',   label: 'Dansk Design', sub: 'Møbeldesign',                icon: 'chair'       },
+  { id: 'music-gear',      label: 'Musikudstyr',  sub: 'Studieudstyr & Instrumenter', icon: 'piano' },
+  { id: 'danish-modern',  label: 'Dansk Design', sub: 'Møbeldesign',                icon: 'chair' },
   { id: 'fashion',     label: 'Mode',         sub: 'Vintage & Streetwear',       icon: 'apparel'     },
   { id: 'tech',        label: 'Teknologi',    sub: 'Mobil & Computer',           icon: 'devices'     },
 ]
