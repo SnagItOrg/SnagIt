@@ -15,7 +15,6 @@ const CATEGORIES = [
 
 const BG   = '#0a140e'
 const SURF = '#162a1e'
-const BORD = '#2a4d38'
 const PRI  = '#13ec6d'
 
 export default function Step1() {
