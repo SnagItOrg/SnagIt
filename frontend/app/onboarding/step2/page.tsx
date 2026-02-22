@@ -148,61 +148,53 @@ export default function Step2() {
               <button
                 key={brand.id}
                 onClick={() => toggleStar(brand.id)}
-                className={`group relative rounded-2xl p-6 flex flex-col items-center transition-all duration-200 ease-in-out ${
+                className={`group relative rounded-2xl overflow-hidden transition-all duration-200 ease-in-out ${
                   isStarred
                     ? 'border-2 border-[#13ec6d]'
-                    : 'border border-slate-700 hover:border-[#13ec6d]/50 hover:shadow-[0_0_15px_rgba(19,236,109,0.08)]'
+                    : 'border border-slate-700 hover:border-[#13ec6d]/50'
                 }`}
                 style={{
-                  backgroundColor: SURF,
+                  aspectRatio: '1 / 1',
+                  backgroundColor: BG,
                   boxShadow: isStarred ? '0 0 20px rgba(19,236,109,0.15)' : undefined,
                 }}
               >
-                {/* Star */}
+                {/* Background image */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={brandLogoUrl(brand.id)}
+                  alt={brand.label}
+                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-200 ease-in-out ${
+                    isStarred ? 'opacity-100' : 'opacity-50 group-hover:opacity-80'
+                  }`}
+                />
+
+                {/* Gradient overlay */}
+                <div
+                  className="absolute inset-0"
+                  style={{ background: `linear-gradient(to top, ${BG} 0%, transparent 55%)` }}
+                />
+
+                {/* Brand name bottom-left */}
+                <div className="absolute bottom-4 left-4 right-10">
+                  <p className="font-bold text-sm text-white truncate">{brand.label}</p>
+                </div>
+
+                {/* Star top-right */}
                 <span
-                  className={`material-symbols-outlined absolute top-4 right-4 transition-transform${isStarred ? ' filled' : ''}`}
-                  style={{ color: isStarred ? PRI : '#475569', fontSize: '20px' }}
+                  className={`material-symbols-outlined absolute top-3 right-3 z-10 transition-all duration-200${isStarred ? ' filled' : ''}`}
+                  style={{ color: isStarred ? PRI : 'rgba(255,255,255,0.5)', fontSize: '20px' }}
                 >
                   star
                 </span>
-
-                {/* Logo */}
-                <div className="w-full flex-1 flex items-center justify-center py-2">
-                  {brand.textLogo ? (
-                    <span
-                      className={`font-mono text-xs tracking-tighter text-center transition-all duration-200 ease-in-out ${
-                        isStarred ? 'opacity-100' : 'opacity-30 group-hover:opacity-70'
-                      }`}
-                      style={{ color: '#ffffff' }}
-                    >
-                      {brand.label.toUpperCase()}
-                    </span>
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={brandLogoUrl(brand.id)}
-                      alt={brand.label}
-                      className={`w-full h-full object-contain transition-all duration-200 ease-in-out ${
-                        isStarred ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'
-                      }`}
-                    />
-                  )}
-                </div>
-
-                <p
-                  className="font-bold text-center text-sm transition-colors"
-                  style={{ color: isStarred ? PRI : '#94a3b8' }}
-                >
-                  {brand.label}
-                </p>
               </button>
             )
           })}
 
           {/* Add Another — decorative */}
           <div
-            className="rounded-2xl p-8 flex flex-col items-center justify-center"
-            style={{ border: `2px dashed ${BORD}`, backgroundColor: `${SURF}33` }}
+            className="rounded-2xl flex flex-col items-center justify-center"
+            style={{ aspectRatio: '1 / 1', border: `2px dashed ${BORD}`, backgroundColor: `${SURF}33` }}
           >
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
