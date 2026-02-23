@@ -10,7 +10,7 @@ import { useLocale } from '@/components/LocaleProvider'
 
 export default function WatchlistsPage() {
   const router = useRouter()
-  const { t } = useLocale()
+  useLocale()
   const [watchlists, setWatchlists] = useState<Watchlist[]>([])
   const [loading, setLoading] = useState(true)
 
