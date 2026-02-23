@@ -5,15 +5,21 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
+import { OnboardingHeader } from '@/components/OnboardingHeader'
 import type { Locale } from '@/lib/i18n'
+
+const BG   = '#102218'
+const SURF = '#1a2e22'
+const BORD = '#326748'
+const PRI  = '#13ec6d'
 
 export default function LoginPage() {
   const router = useRouter()
   const { locale, setLocale, t } = useLocale()
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [error, setError]       = useState<string | null>(null)
+  const [loading, setLoading]   = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -34,8 +40,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-bg">
-      {/* Language toggle */}
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: BG, color: '#f1f5f9' }}>
+      <OnboardingHeader showProgress={false} />
+
+      {/* Locale toggle */}
       <div className="absolute top-4 right-4 flex gap-1">
         {(['da', 'en'] as Locale[]).map((l) => (
           <button
@@ -43,7 +51,7 @@ export default function LoginPage() {
             onClick={() => setLocale(l)}
             className="text-xs font-medium px-2.5 py-1.5 rounded-md transition-colors"
             style={{
-              color: locale === l ? 'var(--color-primary)' : 'rgba(255,255,255,0.4)',
+              color: locale === l ? PRI : 'rgba(255,255,255,0.4)',
               backgroundColor: locale === l ? 'rgba(19,236,109,0.1)' : 'transparent',
             }}
           >
@@ -52,65 +60,126 @@ export default function LoginPage() {
         ))}
       </div>
 
-      {/* Wordmark */}
-      <div className="mb-8 text-center flex flex-col items-center gap-3">
-        <div className="flex items-center gap-3 text-primary">
-          <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
-          </div>
-          <h1 className="text-2xl font-black tracking-tight">Klup.dk</h1>
-        </div>
-        <p className="text-sm text-text-muted">{t.tagline}</p>
-      </div>
-
-      {/* Card */}
-      <div className="w-full max-w-sm rounded-2xl bg-surface p-6 shadow-xl border border-white/10">
-        <h2 className="text-base font-semibold text-text mb-5">{t.login}</h2>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className="block text-xs font-medium text-text-muted mb-1.5">{t.email}</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              className="w-full rounded-xl border border-white/10 bg-bg px-3.5 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
-            />
+      {/* Main */}
+      <main className="flex-1 flex items-center justify-center px-6 py-10 -mt-8">
+        <div className="w-full max-w-md">
+          {/* Heading */}
+          <div className="text-center mb-10">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-3">
+              Velkommen tilbage.
+            </h1>
+            <p className="text-base" style={{ color: '#94a3b8' }}>
+              {t.tagline}
+            </p>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-text-muted mb-1.5">{t.password}</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              className="w-full rounded-xl border border-white/10 bg-bg px-3.5 py-2.5 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
-            />
-          </div>
-
-          {error && <p className="text-xs text-red-400 -mt-1">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-1 w-full rounded-xl py-3 text-sm font-semibold transition-all active:scale-[0.98] glow-primary disabled:opacity-60 disabled:cursor-not-allowed bg-primary"
-            style={{ color: 'var(--color-bg)' }}
+          {/* Card */}
+          <div
+            className="p-8 rounded-3xl"
+            style={{
+              backgroundColor: SURF,
+              border: `1px solid ${BORD}`,
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)',
+            }}
           >
-            {loading ? t.loginLoading : t.login}
-          </button>
-        </form>
-      </div>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              {/* Email */}
+              <div className="flex flex-col gap-2">
+                <label
+                  className="text-xs font-bold uppercase tracking-widest"
+                  style={{ color: '#64748b' }}
+                >
+                  {t.email}
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  placeholder="din@email.dk"
+                  className="w-full rounded-2xl px-5 py-4 text-base outline-none transition-all placeholder:text-slate-600"
+                  style={{ backgroundColor: BG, border: `2px solid ${BORD}`, color: '#f1f5f9' }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = PRI }}
+                  onBlur={(e)  => { e.currentTarget.style.borderColor = BORD }}
+                />
+              </div>
 
-      <p className="mt-5 text-xs text-text-muted">
-        {t.noAccount}{' '}
-        <Link href="/onboarding/step1" className="font-medium underline text-primary">
-          {t.createAccount}
-        </Link>
-      </p>
-    </main>
+              {/* Password */}
+              <div className="flex flex-col gap-2">
+                <label
+                  className="text-xs font-bold uppercase tracking-widest"
+                  style={{ color: '#64748b' }}
+                >
+                  {t.password}
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  className="w-full rounded-2xl px-5 py-4 text-base outline-none transition-all placeholder:text-slate-600"
+                  style={{ backgroundColor: BG, border: `2px solid ${BORD}`, color: '#f1f5f9' }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = PRI }}
+                  onBlur={(e)  => { e.currentTarget.style.borderColor = BORD }}
+                />
+              </div>
+
+              {error && (
+                <div
+                  className="rounded-xl px-4 py-3 text-sm text-red-400"
+                  style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}
+                >
+                  {error}
+                </div>
+              )}
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-5 rounded-2xl font-black text-xl tracking-tight transition-all flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: PRI,
+                  color: BG,
+                  boxShadow: '0 20px 25px -5px rgba(19,236,109,0.2)',
+                }}
+              >
+                {loading ? t.loginLoading : (
+                  <>
+                    {t.login}
+                    <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
+                      arrow_forward
+                    </span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Terms row */}
+          <p className="mt-5 text-center text-xs" style={{ color: '#475569' }}>
+            {t.noAccount}{' '}
+            <Link
+              href="/onboarding/step1"
+              className="font-bold underline hover:text-white transition-colors"
+              style={{ color: '#94a3b8' }}
+            >
+              {t.createAccount}
+            </Link>
+          </p>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="py-10 text-center">
+        <div className="inline-flex items-center gap-2" style={{ color: '#475569' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>security</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest">{t.securityNote}</span>
+        </div>
+      </footer>
+    </div>
   )
 }

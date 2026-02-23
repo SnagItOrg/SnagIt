@@ -4,11 +4,12 @@ import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/LocaleProvider'
 
 interface Props {
-  currentStep: 1 | 2 | 3 | 4
+  currentStep?: 1 | 2 | 3 | 4
   showSkip?: boolean
+  showProgress?: boolean
 }
 
-export function OnboardingHeader({ currentStep, showSkip = false }: Props) {
+export function OnboardingHeader({ currentStep, showSkip = false, showProgress = true }: Props) {
   const router = useRouter()
   const { t } = useLocale()
 
@@ -36,24 +37,26 @@ export function OnboardingHeader({ currentStep, showSkip = false }: Props) {
         </div>
 
         {/* Progress bar + step label */}
-        <div className="flex items-center gap-4">
-          <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-surface">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${(currentStep / 4) * 100}%`,
-                backgroundColor: '#13ec6d',
-                boxShadow: '0 0 10px rgba(19,236,109,0.4)',
-              }}
-            />
+        {showProgress && currentStep && (
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-surface">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${(currentStep / 4) * 100}%`,
+                  backgroundColor: '#13ec6d',
+                  boxShadow: '0 0 10px rgba(19,236,109,0.4)',
+                }}
+              />
+            </div>
+            <span
+              className="text-xs font-bold uppercase tracking-widest whitespace-nowrap"
+              style={{ color: '#64748b' }}
+            >
+              Trin {currentStep} {t.stepOf} 4
+            </span>
           </div>
-          <span
-            className="text-xs font-bold uppercase tracking-widest whitespace-nowrap"
-            style={{ color: '#64748b' }}
-          >
-            Trin {currentStep} {t.stepOf} 4
-          </span>
-        </div>
+        )}
       </div>
     </header>
   )

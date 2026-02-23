@@ -45,7 +45,7 @@ export default function Step3() {
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
               Opsæt din første{' '}
-              <span style={{ color: PRI }}>Snag-Alert</span>
+              <span style={{ color: PRI }}>Overvågning</span>
             </h1>
             <p className="text-lg" style={{ color: '#94a3b8' }}>
               Fortæl os, hvad du jager efter, og vi scanner markederne 24/7.

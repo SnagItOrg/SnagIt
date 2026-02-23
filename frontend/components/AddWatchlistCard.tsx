@@ -10,7 +10,7 @@ export function AddWatchlistCard() {
   return (
     <button
       onClick={() => router.push('/onboarding/step3')}
-      className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface border border-dashed border-white/20 text-center p-6 transition-colors hover:border-white/40 hover:bg-white/5 active:scale-[0.98]"
+      className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface border-2 border-dashed border-white/20 hover:border-primary/50 active:border-primary text-center p-6 opacity-50 hover:opacity-75 active:opacity-100 transition-all duration-200 cursor-pointer"
       style={{ aspectRatio: '4/3' }}
     >
       <span

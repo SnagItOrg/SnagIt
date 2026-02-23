@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import type { Watchlist } from '@/lib/supabase'
 import { useLocale } from '@/components/LocaleProvider'
 
@@ -22,16 +23,25 @@ interface Props {
 }
 
 export function WatchlistBentoCard({ watchlist, onEdit }: Props) {
+  const router = useRouter()
   const { t } = useLocale()
   const displayName = getDisplayName(watchlist.query)
 
+  function handleCardClick() {
+    router.push(`/search?q=${encodeURIComponent(watchlist.query)}`)
+  }
+
   return (
     <div
-      className="relative rounded-2xl overflow-hidden border border-border bg-surface"
+      onClick={handleCardClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
+      className="group relative rounded-2xl overflow-hidden border border-border/60 hover:border-primary/50 active:border-primary cursor-pointer transition-all duration-200 hover:shadow-[0_0_20px_rgba(19,236,109,0.15)] active:shadow-[0_0_25px_rgba(19,236,109,0.3)] bg-surface"
       style={{ aspectRatio: '4/3' }}
     >
-      {/* Background: image or placeholder */}
-      <div className="absolute inset-0">
+      {/* Background: image or placeholder — opacity tracks hover state */}
+      <div className="absolute inset-0 opacity-70 group-hover:opacity-90 group-active:opacity-100 transition-opacity duration-200">
         {watchlist.preview_image_url ? (
           <Image
             src={watchlist.preview_image_url}
@@ -57,10 +67,8 @@ export function WatchlistBentoCard({ watchlist, onEdit }: Props) {
 
       {/* Content */}
       <div className="absolute inset-x-0 bottom-0 p-3 flex flex-col gap-1.5">
-        {/* Title */}
-        <p className="text-sm font-semibold text-white truncate pr-12">{displayName}</p>
+        <p className="text-sm font-semibold text-white truncate pr-14">{displayName}</p>
 
-        {/* Chips */}
         <div className="flex items-center gap-1.5 flex-wrap">
           {watchlist.new_count > 0 ? (
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary text-bg">
@@ -83,19 +91,10 @@ export function WatchlistBentoCard({ watchlist, onEdit }: Props) {
           </span>
         </div>
 
-        {/* Edit button — bottom right */}
+        {/* Edit button — stops card click propagation */}
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(watchlist.id) }}
-          className="absolute bottom-2.5 right-2.5 text-xs font-medium px-2.5 py-1 rounded-lg transition-colors"
-          style={{ color: 'rgba(255,255,255,0.55)' }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'rgba(255,255,255,0.9)'
-            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
-            e.currentTarget.style.backgroundColor = 'transparent'
-          }}
+          className="absolute bottom-2.5 right-2.5 text-xs font-medium px-2.5 py-1 rounded-lg text-white/55 hover:text-white hover:bg-white/10 transition-colors"
         >
           Rediger
         </button>
