@@ -84,6 +84,7 @@ export const translations = {
     noResults: 'Ingen resultater \u2014 pr\u00f8v et andet s\u00f8geord',
     filterLabel: 'Filtre',
     searchBrands: 'Søg brands',
+    welcomeBack: 'Velkommen tilbage.',
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -168,6 +169,7 @@ export const translations = {
     noResults: 'No results \u2014 try a different search term',
     filterLabel: 'Filters',
     searchBrands: 'Search brands',
+    welcomeBack: 'Welcome back.',
   },
 } as const
 

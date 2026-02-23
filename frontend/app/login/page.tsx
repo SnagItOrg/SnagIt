@@ -66,7 +66,7 @@ export default function LoginPage() {
           {/* Heading */}
           <div className="text-center mb-10">
             <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-3">
-              Velkommen tilbage.
+              {t.welcomeBack}
             </h1>
             <p className="text-base" style={{ color: '#94a3b8' }}>
               {t.tagline}
