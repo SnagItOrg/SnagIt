@@ -2731,6 +2731,235 @@
           }
         }
       }
+    },
+    "cycling": {
+      "label_da": "Cykler",
+      "label_en": "Cycling",
+      "sub_da": "Road, Gravel & MTB",
+      "sub_en": "Road, Gravel & MTB",
+      "icon": "directions_bike",
+      "brands": {
+        "ridley": {
+          "products": {
+            "ridley-kanzo-a": {
+              "name": "Ridley Kanzo A",
+              "type": "gravel",
+              "variants": ["GRX 400", "GRX 600", "GRX 800"],
+              "related": ["ridley-kanzo-fast", "ridley-x-trail"],
+              "price_range_dkk": [15000, 35000]
+            },
+            "ridley-kanzo-fast": {
+              "name": "Ridley Kanzo Fast",
+              "type": "gravel",
+              "related": ["ridley-kanzo-a"],
+              "price_range_dkk": [25000, 55000]
+            },
+            "ridley-helium-slx": {
+              "name": "Ridley Helium SLX",
+              "type": "road",
+              "related": ["ridley-noah-fast"],
+              "price_range_dkk": [20000, 60000]
+            },
+            "ridley-noah-fast": {
+              "name": "Ridley Noah Fast",
+              "type": "road",
+              "related": ["ridley-helium-slx"],
+              "price_range_dkk": [25000, 70000]
+            },
+            "ridley-x-trail": {
+              "name": "Ridley X-Trail",
+              "type": "gravel",
+              "related": ["ridley-kanzo-a"],
+              "price_range_dkk": [12000, 25000]
+            }
+          }
+        },
+        "specialized": {
+          "products": {
+            "specialized-tarmac-sl7": {
+              "name": "Specialized Tarmac SL7",
+              "type": "road",
+              "related": ["specialized-tarmac-sl8", "specialized-roubaix"],
+              "price_range_dkk": [20000, 80000]
+            },
+            "specialized-tarmac-sl8": {
+              "name": "Specialized Tarmac SL8",
+              "type": "road",
+              "related": ["specialized-tarmac-sl7"],
+              "price_range_dkk": [25000, 90000]
+            },
+            "specialized-roubaix": {
+              "name": "Specialized Roubaix",
+              "type": "road endurance",
+              "related": ["specialized-tarmac-sl7"],
+              "price_range_dkk": [15000, 60000]
+            },
+            "specialized-diverge": {
+              "name": "Specialized Diverge",
+              "type": "gravel",
+              "related": ["specialized-crux"],
+              "price_range_dkk": [15000, 55000]
+            },
+            "specialized-crux": {
+              "name": "Specialized Crux",
+              "type": "gravel",
+              "related": ["specialized-diverge"],
+              "price_range_dkk": [20000, 65000]
+            },
+            "specialized-stumpjumper": {
+              "name": "Specialized Stumpjumper",
+              "type": "mtb",
+              "related": ["specialized-epic"],
+              "price_range_dkk": [15000, 55000]
+            },
+            "specialized-epic": {
+              "name": "Specialized Epic",
+              "type": "mtb xc",
+              "related": ["specialized-stumpjumper"],
+              "price_range_dkk": [20000, 80000]
+            }
+          }
+        },
+        "canyon": {
+          "products": {
+            "canyon-ultimate": {
+              "name": "Canyon Ultimate",
+              "type": "road",
+              "related": ["canyon-aeroad"],
+              "price_range_dkk": [12000, 45000]
+            },
+            "canyon-aeroad": {
+              "name": "Canyon Aeroad",
+              "type": "road aero",
+              "related": ["canyon-ultimate"],
+              "price_range_dkk": [15000, 55000]
+            },
+            "canyon-grail": {
+              "name": "Canyon Grail",
+              "type": "gravel",
+              "related": ["canyon-inflite"],
+              "price_range_dkk": [12000, 45000]
+            },
+            "canyon-inflite": {
+              "name": "Canyon Inflite",
+              "type": "cyclocross",
+              "related": ["canyon-grail"],
+              "price_range_dkk": [10000, 40000]
+            },
+            "canyon-neuron": {
+              "name": "Canyon Neuron",
+              "type": "mtb trail",
+              "related": ["canyon-spectral"],
+              "price_range_dkk": [12000, 40000]
+            },
+            "canyon-spectral": {
+              "name": "Canyon Spectral",
+              "type": "mtb enduro",
+              "related": ["canyon-neuron"],
+              "price_range_dkk": [15000, 50000]
+            }
+          }
+        },
+        "trek": {
+          "products": {
+            "trek-domane": {
+              "name": "Trek Domane",
+              "type": "road endurance",
+              "related": ["trek-madone"],
+              "price_range_dkk": [12000, 55000]
+            },
+            "trek-madone": {
+              "name": "Trek Madone",
+              "type": "road aero",
+              "related": ["trek-domane"],
+              "price_range_dkk": [20000, 80000]
+            },
+            "trek-checkpoint": {
+              "name": "Trek Checkpoint",
+              "type": "gravel",
+              "related": ["trek-domane"],
+              "price_range_dkk": [12000, 45000]
+            },
+            "trek-fuel-ex": {
+              "name": "Trek Fuel EX",
+              "type": "mtb trail",
+              "related": ["trek-slash"],
+              "price_range_dkk": [15000, 50000]
+            },
+            "trek-slash": {
+              "name": "Trek Slash",
+              "type": "mtb enduro",
+              "related": ["trek-fuel-ex"],
+              "price_range_dkk": [18000, 60000]
+            }
+          }
+        },
+        "giant": {
+          "products": {
+            "giant-tcr": {
+              "name": "Giant TCR",
+              "type": "road",
+              "related": ["giant-propel"],
+              "price_range_dkk": [10000, 45000]
+            },
+            "giant-propel": {
+              "name": "Giant Propel",
+              "type": "road aero",
+              "related": ["giant-tcr"],
+              "price_range_dkk": [15000, 55000]
+            },
+            "giant-defy": {
+              "name": "Giant Defy",
+              "type": "road endurance",
+              "related": ["giant-tcr"],
+              "price_range_dkk": [10000, 40000]
+            },
+            "giant-revolt": {
+              "name": "Giant Revolt",
+              "type": "gravel",
+              "related": ["giant-defy"],
+              "price_range_dkk": [10000, 35000]
+            }
+          }
+        },
+        "scott": {
+          "products": {
+            "scott-addict": {
+              "name": "Scott Addict",
+              "type": "road",
+              "related": ["scott-foil"],
+              "price_range_dkk": [15000, 60000]
+            },
+            "scott-foil": {
+              "name": "Scott Foil",
+              "type": "road aero",
+              "related": ["scott-addict"],
+              "price_range_dkk": [20000, 70000]
+            },
+            "scott-spark": {
+              "name": "Scott Spark",
+              "type": "mtb xc",
+              "related": ["scott-genius"],
+              "price_range_dkk": [15000, 65000]
+            },
+            "scott-genius": {
+              "name": "Scott Genius",
+              "type": "mtb trail",
+              "related": ["scott-spark"],
+              "price_range_dkk": [15000, 55000]
+            }
+          }
+        },
+        "cervelo": { "products": {} },
+        "bmc": { "products": {} },
+        "colnago": { "products": {} },
+        "pinarello": { "products": {} },
+        "de-rosa": { "products": {} },
+        "wilier": { "products": {} },
+        "orbea": { "products": {} },
+        "cube": { "products": {} },
+        "focus": { "products": {} }
+      }
     }
   }
 }

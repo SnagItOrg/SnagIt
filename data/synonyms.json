@@ -583,6 +583,107 @@
       "precision 7865",
       "dell 7865",
       "dell precision 7865"
+    ],
+    "ridley kanzo a": [
+      "kanzo a",
+      "ridley kanzo",
+      "kanzo adventure"
+    ],
+    "ridley kanzo fast": [
+      "kanzo fast",
+      "ridley kanzo fast"
+    ],
+    "ridley helium slx": [
+      "helium slx",
+      "ridley helium",
+      "helium road"
+    ],
+    "ridley noah fast": [
+      "noah fast",
+      "ridley noah",
+      "noah aero"
+    ],
+    "specialized tarmac sl7": [
+      "tarmac sl7",
+      "tarmac sl 7",
+      "specialized tarmac"
+    ],
+    "specialized tarmac sl8": [
+      "tarmac sl8",
+      "tarmac sl 8",
+      "tarmac 2024"
+    ],
+    "specialized diverge": [
+      "diverge",
+      "specialized diverge gravel",
+      "diverge gravel bike"
+    ],
+    "specialized crux": [
+      "crux",
+      "specialized crux cyclocross",
+      "crux cyclocross"
+    ],
+    "specialized stumpjumper": [
+      "stumpjumper",
+      "stumpy",
+      "specialized stumpy",
+      "stumpjumper mtb"
+    ],
+    "canyon ultimate": [
+      "canyon ultimate cf",
+      "canyon ultimate road",
+      "ultimate cf slx"
+    ],
+    "canyon aeroad": [
+      "aeroad",
+      "canyon aeroad cf",
+      "aeroad aero"
+    ],
+    "canyon grail": [
+      "grail",
+      "canyon grail al",
+      "canyon grail cf",
+      "grail gravel"
+    ],
+    "trek domane": [
+      "domane",
+      "trek domane sl",
+      "domane endurance"
+    ],
+    "trek madone": [
+      "madone",
+      "trek madone slr",
+      "madone aero"
+    ],
+    "trek checkpoint": [
+      "checkpoint",
+      "trek checkpoint alr",
+      "checkpoint gravel"
+    ],
+    "giant tcr": [
+      "tcr",
+      "giant tcr advanced",
+      "tcr road"
+    ],
+    "giant propel": [
+      "propel",
+      "giant propel advanced",
+      "propel aero"
+    ],
+    "giant revolt": [
+      "revolt",
+      "giant revolt advanced",
+      "revolt gravel"
+    ],
+    "scott addict": [
+      "addict",
+      "scott addict rc",
+      "addict road"
+    ],
+    "scott spark": [
+      "spark",
+      "scott spark rc",
+      "spark mtb"
     ]
   }
 }
