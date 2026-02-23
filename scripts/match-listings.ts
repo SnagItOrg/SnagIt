@@ -165,6 +165,12 @@ async function main() {
     return
   }
 
+  // Safety net: drop any rows where title is null (guards against DB filter gaps)
+  const validListings = listings.filter(l => l.title != null)
+  if (validListings.length < listings.length) {
+    console.log(`  ⚠️   Skipped ${listings.length - validListings.length} listings with null title`)
+  }
+
   // 4. Match each listing
   const normUpdates: Array<{ id: string; normalized_text: string }> = []
   const matchRows:   Array<{
@@ -175,7 +181,7 @@ async function main() {
     explain:    Record<string, unknown>
   }> = []
 
-  for (const listing of listings) {
+  for (const listing of validListings) {
     const norm = listing.title.toLowerCase().trim()
     normUpdates.push({ id: listing.id, normalized_text: norm })
 
@@ -241,7 +247,7 @@ async function main() {
     if (error) throw new Error(`Insert listing_product_match batch ${i}: ${error.message}`)
   }
 
-  console.log(`\n✅  Matched ${matchRows.length}/${listings.length} listings`)
+  console.log(`\n✅  Matched ${matchRows.length}/${validListings.length} listings`)
 }
 
 main().catch(err => {
