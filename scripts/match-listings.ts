@@ -2,10 +2,10 @@
  * scripts/match-listings.ts
  *
  * For each listing without an entry in listing_product_match:
- *   1. Normalise: lower(title) → listings.normalized_text
- *   2. Identifier match: check normalized_text for SKU/MODEL values from kg_identifier
+ *   1. Normalise: lower(title) in JS only (not written back to DB)
+ *   2. Identifier match: check normalised text for SKU/MODEL values from kg_identifier
  *      → score 95, method 'SKU' or 'MODEL'
- *   3. Synonym match: check normalized_text against synonym.alias
+ *   3. Synonym match: check normalised text against synonym.alias
  *      → score 80, method 'SYNONYM'
  *   4. Insert best match into listing_product_match
  *
@@ -172,8 +172,7 @@ async function main() {
   }
 
   // 4. Match each listing
-  const normUpdates: Array<{ id: string; normalized_text: string }> = []
-  const matchRows:   Array<{
+  const matchRows: Array<{
     listing_id: string
     product_id: string
     method:     string
@@ -183,7 +182,6 @@ async function main() {
 
   for (const listing of validListings) {
     const norm = listing.title.toLowerCase().trim()
-    normUpdates.push({ id: listing.id, normalized_text: norm })
 
     const candidates: MatchCandidate[] = []
 
@@ -229,17 +227,8 @@ async function main() {
     })
   }
 
-  // 5. Write normalized_text via upsert (ON CONFLICT id DO UPDATE)
+  // 5. Insert match rows
   const BATCH = 100
-  for (let i = 0; i < normUpdates.length; i += BATCH) {
-    const { error } = await supabase
-      .from('listings')
-      .upsert(normUpdates.slice(i, i + BATCH), { onConflict: 'id' })
-    if (error) throw new Error(`Update normalized_text batch ${i}: ${error.message}`)
-  }
-  console.log(`  ✓  normalized_text written for ${normUpdates.length} listings`)
-
-  // 6. Insert match rows
   for (let i = 0; i < matchRows.length; i += BATCH) {
     const { error } = await supabase
       .from('listing_product_match')
