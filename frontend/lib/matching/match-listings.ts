@@ -81,28 +81,22 @@ export async function matchListings(
     { data: productsData,   error: pErr },
     { data: identsData,     error: iErr },
     { data: synonymsData,   error: sErr },
-    { data: alreadyMatched, error: mErr },
     { data: listingsData,   error: lErr },
   ] = await Promise.all([
     supabase.from('kg_product')   .select('id, slug, canonical_name'),
     supabase.from('kg_identifier').select('product_id, type, value').in('type', ['SKU', 'MODEL']),
     supabase.from('synonym')      .select('alias, canonical_query').eq('match_type', 'alias'),
-    supabase.from('listing_product_match').select('listing_id').in('listing_id', listingIds),
     supabase.from('listings').select('id, title').in('id', listingIds).not('title', 'is', null),
   ])
 
   if (pErr) throw new Error(`Fetch kg_product: ${pErr.message}`)
   if (iErr) throw new Error(`Fetch kg_identifier: ${iErr.message}`)
   if (sErr) throw new Error(`Fetch synonym: ${sErr.message}`)
-  if (mErr) throw new Error(`Fetch listing_product_match: ${mErr.message}`)
   if (lErr) throw new Error(`Fetch listings: ${lErr.message}`)
 
-  const products   = (productsData  as Product[])                       ?? []
-  const idents     = (identsData    as Identifier[])                    ?? []
-  const synonyms   = (synonymsData  as Synonym[])                       ?? []
-  const matchedIds = new Set(
-    ((alreadyMatched as Array<{ listing_id: string }>) ?? []).map(r => r.listing_id)
-  )
+  const products = (productsData as Product[])    ?? []
+  const idents   = (identsData   as Identifier[]) ?? []
+  const synonyms = (synonymsData as Synonym[])    ?? []
 
   // Pre-resolve canonical_query → product for each unique canonical
   const canonicalToProduct = new Map<string, Product>()
@@ -113,8 +107,8 @@ export async function matchListings(
     if (product) canonicalToProduct.set(syn.canonical_query, product)
   }
 
-  // Filter to unmatched listings with non-null titles
-  const listings = ((listingsData as Listing[]) ?? []).filter(l => !matchedIds.has(l.id))
+  // Callers are responsible for passing only unmatched IDs
+  const listings = ((listingsData as Listing[]) ?? [])
 
   if (listings.length === 0) return { matched: 0, total: 0 }
 
