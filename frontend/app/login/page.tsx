@@ -97,7 +97,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  placeholder="din@email.dk"
+                  placeholder={t.emailPlaceholder}
                   className="w-full rounded-2xl px-5 py-4 text-base outline-none transition-all placeholder:text-slate-600"
                   style={{ backgroundColor: BG, border: `2px solid ${BORD}`, color: '#f1f5f9' }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = PRI }}

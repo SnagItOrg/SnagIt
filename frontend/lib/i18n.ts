@@ -85,6 +85,7 @@ export const translations = {
     filterLabel: 'Filtre',
     searchBrands: 'Søg brands',
     welcomeBack: 'Velkommen tilbage.',
+    emailPlaceholder: 'din@email.dk',
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -170,6 +171,7 @@ export const translations = {
     filterLabel: 'Filters',
     searchBrands: 'Search brands',
     welcomeBack: 'Welcome back.',
+    emailPlaceholder: 'your@email.com',
   },
 } as const
 
