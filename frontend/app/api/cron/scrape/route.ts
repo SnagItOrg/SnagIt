@@ -3,6 +3,7 @@ import { scrapeDba } from '@/lib/scrapers/dba'
 import { scrapeDbaListing } from '@/lib/scrapers/dba-listing'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { sendNewListingsEmail } from '@/lib/email'
+import { matchListings } from '@/lib/matching/match-listings'
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
@@ -49,13 +50,24 @@ export async function GET(req: NextRequest) {
 
       const row = { ...listing, scraped_at: now, watchlist_id: watchlist.id }
 
-      const { error: upsertError } = await getSupabaseAdmin()
+      const { data: upserted, error: upsertError } = await getSupabaseAdmin()
         .from('listings')
         .upsert(row, { onConflict: 'url,watchlist_id' })
+        .select('id')
 
       if (upsertError) {
         results.push({ watchlist_id: watchlist.id, query: watchlist.query, error: upsertError.message })
         continue
+      }
+
+      // Run matching for the upserted listing
+      if (upserted && upserted.length > 0) {
+        const ids = upserted.map((r: { id: string }) => r.id)
+        try {
+          await matchListings(getSupabaseAdmin(), ids)
+        } catch (err) {
+          console.error(`Match listings failed for watchlist ${watchlist.id}:`, err)
+        }
       }
 
       // Record price snapshot
@@ -140,6 +152,16 @@ export async function GET(req: NextRequest) {
     if (upsertError) {
       results.push({ watchlist_id: watchlist.id, query: watchlist.query, error: upsertError.message })
       continue
+    }
+
+    // Run matching for all newly upserted listings
+    if (upserted && upserted.length > 0) {
+      const ids = upserted.map((r: { id: string }) => r.id)
+      try {
+        await matchListings(getSupabaseAdmin(), ids)
+      } catch (err) {
+        console.error(`Match listings failed for watchlist ${watchlist.id}:`, err)
+      }
     }
 
     // Record price snapshots for all price-filtered listings
