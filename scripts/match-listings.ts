@@ -2,7 +2,7 @@
  * scripts/match-listings.ts
  *
  * For each listing without an entry in listing_product_match:
- *   1. Normalise: lower(title + ' ' + description) → listings.normalized_text
+ *   1. Normalise: lower(title) → listings.normalized_text
  *   2. Identifier match: check normalized_text for SKU/MODEL values from kg_identifier
  *      → score 95, method 'SKU' or 'MODEL'
  *   3. Synonym match: check normalized_text against synonym.alias
@@ -44,9 +44,8 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Listing {
-  id:          string
-  title:       string
-  description: string | null
+  id:    string
+  title: string
 }
 
 interface Identifier {
@@ -130,7 +129,7 @@ async function main() {
     supabase.from('kg_identifier').select('product_id, type, value').in('type', ['SKU', 'MODEL']),
     supabase.from('synonym')      .select('alias, canonical_query').eq('match_type', 'alias'),
     supabase.from('listing_product_match').select('listing_id'),
-    supabase.from('listings')     .select('id, title, description'),
+    supabase.from('listings')     .select('id, title'),
   ])
 
   if (pErr) throw new Error(`Fetch kg_product: ${pErr.message}`)
@@ -177,7 +176,7 @@ async function main() {
   }> = []
 
   for (const listing of listings) {
-    const norm = `${listing.title} ${listing.description ?? ''}`.toLowerCase().trim()
+    const norm = listing.title.toLowerCase().trim()
     normUpdates.push({ id: listing.id, normalized_text: norm })
 
     const candidates: MatchCandidate[] = []
