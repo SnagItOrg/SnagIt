@@ -345,6 +345,7 @@ function SearchPageInner() {
                     listing={listing}
                     onCreateWatchlist={handleCreateWatchlist}
                     creating={creating}
+                    onToast={showToast}
                   />
                 ))}
               </div>
