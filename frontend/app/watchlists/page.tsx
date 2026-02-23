@@ -7,6 +7,7 @@ import { WatchlistBentoCard } from '@/components/WatchlistBentoCard'
 import { AddWatchlistCard } from '@/components/AddWatchlistCard'
 import { WatchlistCreatorPanel } from '@/components/WatchlistCreatorPanel'
 import { SideNav } from '@/components/SideNav'
+import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { loadOnboarding, clearOnboarding, fireEvent } from '@/lib/onboarding'
@@ -109,6 +110,7 @@ export default function WatchlistsPage() {
           </main>
         )}
       </div>
+      <BottomNav />
     </div>
   )
 }

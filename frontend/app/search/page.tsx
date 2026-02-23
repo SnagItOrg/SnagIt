@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import type { Listing } from '@/lib/supabase'
 import { SearchResultCard } from '@/components/SearchResultCard'
 import { SideNav } from '@/components/SideNav'
+import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
@@ -327,6 +328,8 @@ function SearchPageInner() {
           )}
         </main>
       </div>
+
+      <BottomNav />
 
       {/* Toast */}
       {toast && (

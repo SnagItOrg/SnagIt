@@ -1,24 +1,27 @@
 'use client'
 
+import { useRouter, usePathname } from 'next/navigation'
 import { useLocale } from '@/components/LocaleProvider'
 
+// Kept for SideNav compatibility
 export type NavTab = 'hjem' | 'overvaagninger' | 'soeg' | 'gemt' | 'profil'
 
-interface Props {
-  active: NavTab
-  onChange: (tab: NavTab) => void
-}
+export function BottomNav() {
+  const router  = useRouter()
+  const pathname = usePathname()
+  const { t }  = useLocale()
 
-export function BottomNav({ active, onChange }: Props) {
-  const { t } = useLocale()
+  const isHome   = pathname === '/watchlists' || pathname.startsWith('/watchlists/')
+  const isSearch = pathname === '/search'
+  const isProfil = pathname === '/profil'
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-white/10 flex items-end justify-around px-2 pb-[env(safe-area-inset-bottom)]">
+      {/* Home */}
       <NavItem
-        tab="hjem"
         label={t.navHome}
-        active={active}
-        onChange={onChange}
+        active={isHome}
+        onClick={() => router.push('/watchlists')}
         icon={
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" />
@@ -27,23 +30,10 @@ export function BottomNav({ active, onChange }: Props) {
         }
       />
 
-      <NavItem
-        tab="overvaagninger"
-        label={t.navWatch}
-        active={active}
-        onChange={onChange}
-        icon={
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-        }
-      />
-
       {/* Search FAB — elevated centre button */}
       <div className="relative flex flex-col items-center pb-3">
         <button
-          onClick={() => onChange('soeg')}
+          onClick={() => router.push('/search')}
           className="w-14 h-14 -mt-7 rounded-full bg-primary flex items-center justify-center shadow-lg glow-primary transition-transform active:scale-95"
           aria-label={t.navSearch}
         >
@@ -54,17 +44,17 @@ export function BottomNav({ active, onChange }: Props) {
         </button>
         <span
           className="text-[11px] font-medium mt-0.5"
-          style={{ color: active === 'soeg' ? 'var(--color-primary)' : 'rgba(255,255,255,0.45)' }}
+          style={{ color: isSearch ? 'var(--color-primary)' : 'rgba(255,255,255,0.45)' }}
         >
           {t.navSearch}
         </span>
       </div>
 
+      {/* Saved (placeholder) */}
       <NavItem
-        tab="gemt"
         label={t.navSaved}
-        active={active}
-        onChange={onChange}
+        active={false}
+        onClick={() => {}}
         icon={
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
@@ -72,11 +62,11 @@ export function BottomNav({ active, onChange }: Props) {
         }
       />
 
+      {/* Profile (placeholder) */}
       <NavItem
-        tab="profil"
         label={t.navProfile}
-        active={active}
-        onChange={onChange}
+        active={isProfil}
+        onClick={() => router.push('/profil')}
         icon={
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="8" r="4" />
@@ -89,24 +79,21 @@ export function BottomNav({ active, onChange }: Props) {
 }
 
 function NavItem({
-  tab,
   label,
   active,
-  onChange,
+  onClick,
   icon,
 }: {
-  tab: NavTab
   label: string
-  active: NavTab
-  onChange: (tab: NavTab) => void
+  active: boolean
+  onClick: () => void
   icon: React.ReactNode
 }) {
-  const isActive = active === tab
-  const color = isActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.45)'
+  const color = active ? 'var(--color-primary)' : 'rgba(255,255,255,0.45)'
 
   return (
     <button
-      onClick={() => onChange(tab)}
+      onClick={onClick}
       className="flex flex-col items-center justify-center gap-0.5 min-w-[48px] min-h-[48px] py-2 px-2 transition-colors"
       style={{ color }}
       aria-label={label}
