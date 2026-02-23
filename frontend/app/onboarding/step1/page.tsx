@@ -142,7 +142,7 @@ export default function Step1() {
               boxShadow: '0 20px 25px -5px rgba(19,236,109,0.2)',
             }}
           >
-            Fortsæt til trin 2
+            {t.continueToStep2}
             <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
               arrow_forward
             </span>

@@ -65,7 +65,7 @@ export default function Step2() {
       <OnboardingHeader currentStep={2} />
 
       {/* Main */}
-      <main className="flex-1 max-w-5xl mx-auto w-full p-6 lg:p-12 pb-36">
+      <main className="flex-1 max-w-5xl mx-auto w-full p-6 lg:p-12">
         {/* Title */}
         <div className="mb-12 text-center max-w-2xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
@@ -175,47 +175,43 @@ export default function Step2() {
           </div>
         </div>
 
-        {/* Security note — sits above fixed footer */}
-        <div className="pt-6 pb-2 text-center">
-          <div className="inline-flex items-center gap-2" style={{ color: '#475569' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>security</span>
-            <span className="text-[10px] font-bold uppercase tracking-widest">{t.securityNote}</span>
+        {/* CTA */}
+        <div className="w-full max-w-md mx-auto mt-8 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => router.push('/onboarding/step1')}
+              className="flex items-center gap-2 font-bold transition-colors hover:text-white"
+              style={{ color: '#64748b' }}
+            >
+              <span className="material-symbols-outlined">arrow_back</span>
+              Tilbage
+            </button>
+            <span className="text-sm font-medium italic" style={{ color: '#64748b' }}>
+              {starred.size} {starred.size === 1 ? 'mærke' : 'mærker'} valgt
+            </span>
           </div>
+          <button
+            onClick={handleContinue}
+            className="w-full py-4 rounded-xl font-black text-lg transition-all flex items-center justify-center gap-2 group"
+            style={{
+              backgroundColor: PRI,
+              color: BG,
+              boxShadow: '0 20px 25px -5px rgba(19,236,109,0.2)',
+            }}
+          >
+            {t.continueToStep3}
+            <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
+              arrow_forward
+            </span>
+          </button>
         </div>
       </main>
 
-      {/* Sticky footer */}
-      <footer
-        className="fixed bottom-0 left-0 right-0 border-t p-6 backdrop-blur-xl z-40"
-        style={{ borderColor: BORD, backgroundColor: `${BG}e6` }}
-      >
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <button
-            onClick={() => router.push('/onboarding/step1')}
-            className="flex items-center gap-2 font-bold transition-colors hover:text-white"
-            style={{ color: '#64748b' }}
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-            Tilbage
-          </button>
-
-          <div className="flex items-center gap-6">
-            <span className="hidden sm:inline text-sm font-medium italic" style={{ color: '#64748b' }}>
-              {starred.size} {starred.size === 1 ? 'mærke' : 'mærker'} valgt
-            </span>
-            <button
-              onClick={handleContinue}
-              className="flex items-center gap-2 px-10 py-4 rounded-2xl font-black text-lg transition-all"
-              style={{
-                backgroundColor: PRI,
-                color: BG,
-                boxShadow: '0 10px 15px -3px rgba(19,236,109,0.2)',
-              }}
-            >
-              Fortsæt
-              <span className="material-symbols-outlined">arrow_forward</span>
-            </button>
-          </div>
+      {/* Footer */}
+      <footer className="py-10 text-center">
+        <div className="inline-flex items-center gap-2" style={{ color: '#475569' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>security</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest">{t.securityNote}</span>
         </div>
       </footer>
     </div>
