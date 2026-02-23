@@ -1,0 +1,19 @@
+{
+  "name": "snagit-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "import-kg": "tsx scripts/import-knowledge-graph.ts",
+    "export-kg": "tsx scripts/export-knowledge-graph.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.96.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.19.0",
+    "typescript": "^5"
+  }
+}
