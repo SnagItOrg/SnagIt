@@ -11,6 +11,13 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 type SortKey = 'newest' | 'price_asc' | 'price_desc'
 
+type Brand = {
+  id: string
+  slug: string
+  name: string
+  category_id: string
+}
+
 function sortListings(listings: Listing[], sort: SortKey): Listing[] {
   const copy = [...listings]
   if (sort === 'price_asc') {
@@ -45,8 +52,10 @@ function SearchPageInner() {
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState<string | null>(null)
   const [searched,     setSearched]     = useState(false)
-  const [creating,     setCreating]     = useState(false)
-  const [toast,        setToast]        = useState<string | null>(null)
+  const [creating,       setCreating]       = useState(false)
+  const [toast,          setToast]          = useState<string | null>(null)
+  const [brands,         setBrands]         = useState<Brand[]>([])
+  const [selectedBrand,  setSelectedBrand]  = useState<Brand | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function showToast(msg: string) {
@@ -83,10 +92,14 @@ function SearchPageInner() {
     setLoading(false)
   }
 
-  // Fire on mount when ?q= is present in URL
+  // Fire on mount: search if ?q= present, always load brands
   useEffect(() => {
     const q = params.get('q')
     if (q) void runSearch(q)
+    fetch('/api/brands')
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: Brand[]) => setBrands(data))
+      .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -128,9 +141,9 @@ function SearchPageInner() {
 
   // Client-side filter + sort
   const filtered = sortListings(
-    maxPrice !== '' && maxPrice > 0
-      ? listings.filter((l) => l.price == null || l.price <= (maxPrice as number))
-      : listings,
+    listings
+      .filter((l) => maxPrice === '' || maxPrice <= 0 || l.price == null || l.price <= (maxPrice as number))
+      .filter((l) => !selectedBrand || l.title.toLowerCase().includes(selectedBrand.name.toLowerCase())),
     sort,
   )
 
@@ -235,6 +248,30 @@ function SearchPageInner() {
                 </div>
               </div>
             </div>
+
+            {/* Brand chip row */}
+            {brands.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide -mx-4 px-4 md:-mx-8 md:px-8">
+                {brands.map((brand) => {
+                  const isSelected = selectedBrand?.id === brand.id
+                  return (
+                    <button
+                      key={brand.id}
+                      type="button"
+                      onClick={() => setSelectedBrand(isSelected ? null : brand)}
+                      className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
+                      style={{
+                        backgroundColor: isSelected ? 'var(--color-primary)' : 'transparent',
+                        color:           isSelected ? 'var(--color-bg)'      : 'rgba(255,255,255,0.6)',
+                        border:          isSelected ? '1px solid transparent' : '1px solid rgba(255,255,255,0.2)',
+                      }}
+                    >
+                      {brand.name}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </form>
         </div>
 

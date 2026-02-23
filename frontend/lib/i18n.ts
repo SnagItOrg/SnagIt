@@ -83,6 +83,7 @@ export const translations = {
     sortPriceHigh: 'H\u00f8jeste pris',
     noResults: 'Ingen resultater \u2014 pr\u00f8v et andet s\u00f8geord',
     filterLabel: 'Filtre',
+    searchBrands: 'Søg brands',
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -166,6 +167,7 @@ export const translations = {
     sortPriceHigh: 'Highest price',
     noResults: 'No results \u2014 try a different search term',
     filterLabel: 'Filters',
+    searchBrands: 'Search brands',
   },
 } as const
 

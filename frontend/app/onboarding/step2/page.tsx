@@ -109,7 +109,20 @@ export default function Step2() {
           </button>
         </div>
 
-        {/* Brand grid */}
+        {/* Brand grid / empty state */}
+        {search.trim() !== '' && filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-center mb-4">
+            <span className="material-symbols-outlined" style={{ fontSize: '40px', color: '#334155' }}>
+              search_off
+            </span>
+            <p className="font-bold text-base" style={{ color: '#94a3b8' }}>
+              Fandt ikke &ldquo;{search}&rdquo;?
+            </p>
+            <p className="text-sm" style={{ color: '#475569' }}>
+              Prøv et andet søgeord eller tjek stavningen.
+            </p>
+          </div>
+        ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
           {filtered.map((brand) => {
             const isStarred = starred.has(brand.id)
@@ -174,6 +187,7 @@ export default function Step2() {
             <p className="font-bold text-sm" style={{ color: '#64748b' }}>Tilføj endnu et</p>
           </div>
         </div>
+        )}
 
         {/* CTA */}
         <div className="w-full max-w-md mx-auto mt-8 flex flex-col gap-4">
