@@ -43,7 +43,7 @@ export function SideNav({ active, onChange }: Props) {
       ),
     },
     {
-      tab: 'soeg',
+      href: '/search',
       label: t.navSearch,
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

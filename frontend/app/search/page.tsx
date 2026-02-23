@@ -37,8 +37,7 @@ function SearchPageInner() {
   const params = useSearchParams()
   const { t } = useLocale()
 
-  const initialQuery = params.get('q') ?? ''
-  const [inputValue,   setInputValue]   = useState(initialQuery)
+  const [inputValue,   setInputValue]   = useState(() => params.get('q') ?? '')
   const [maxPrice,     setMaxPrice]     = useState<number | ''>('')
   const [sort,         setSort]         = useState<SortKey>('newest')
   const [listings,     setListings]     = useState<Listing[]>([])
@@ -48,12 +47,6 @@ function SearchPageInner() {
   const [creating,     setCreating]     = useState(false)
   const [toast,        setToast]        = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Run search on mount if query exists in URL
-  useEffect(() => {
-    if (initialQuery) void runSearch(initialQuery)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   function showToast(msg: string) {
     setToast(msg)
@@ -88,6 +81,13 @@ function SearchPageInner() {
     }
     setLoading(false)
   }
+
+  // Fire on mount when ?q= is present in URL
+  useEffect(() => {
+    const q = params.get('q')
+    if (q) void runSearch(q)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault()
