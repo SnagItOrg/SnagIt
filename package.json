@@ -5,7 +5,8 @@
   "type": "commonjs",
   "scripts": {
     "import-kg": "tsx scripts/import-knowledge-graph.ts",
-    "export-kg": "tsx scripts/export-knowledge-graph.ts"
+    "export-kg": "tsx scripts/export-knowledge-graph.ts",
+    "match-listings": "tsx scripts/match-listings.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.96.0",
