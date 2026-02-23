@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { Watchlist } from '@/lib/supabase'
 import { WatchlistBentoCard } from '@/components/WatchlistBentoCard'
 import { AddWatchlistCard } from '@/components/AddWatchlistCard'
+import { WatchlistCreatorPanel } from '@/components/WatchlistCreatorPanel'
 import { SideNav } from '@/components/SideNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
@@ -13,8 +14,9 @@ import { loadOnboarding, clearOnboarding, fireEvent } from '@/lib/onboarding'
 export default function WatchlistsPage() {
   const router = useRouter()
   const { t } = useLocale()
-  const [watchlists, setWatchlists] = useState<Watchlist[]>([])
-  const [loading, setLoading] = useState(true)
+  const [watchlists,   setWatchlists]   = useState<Watchlist[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [showCreator,  setShowCreator]  = useState(false)
 
   useEffect(() => {
     void loadWatchlists()
@@ -77,28 +79,35 @@ export default function WatchlistsPage() {
       <SideNav active={'hjem'} onChange={() => router.push('/')} />
 
       <div className="flex-1 flex flex-col md:ml-60">
-        <main className="flex-1 px-4 pt-6 pb-10 md:px-8 md:pt-8">
-          <h1 className="text-2xl font-bold text-text mb-6">{t.watchlists}</h1>
+        {showCreator ? (
+          <WatchlistCreatorPanel
+            onSave={(w) => { setWatchlists((prev) => [w, ...prev]); setShowCreator(false) }}
+            onClose={() => setShowCreator(false)}
+          />
+        ) : (
+          <main className="flex-1 px-4 pt-6 pb-10 md:px-8 md:pt-8">
+            <h1 className="text-2xl font-bold text-text mb-6">{t.watchlists}</h1>
 
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[...Array(3)].map((_, i) => (
-                <div
-                  key={i}
-                  className="animate-pulse rounded-2xl bg-surface border border-white/10"
-                  style={{ aspectRatio: '4/3' }}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {watchlists.map((w) => (
-                <WatchlistBentoCard key={w.id} watchlist={w} onEdit={handleEdit} />
-              ))}
-              <AddWatchlistCard />
-            </div>
-          )}
-        </main>
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse rounded-2xl bg-surface border border-white/10"
+                    style={{ aspectRatio: '4/3' }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {watchlists.map((w) => (
+                  <WatchlistBentoCard key={w.id} watchlist={w} onEdit={handleEdit} />
+                ))}
+                <AddWatchlistCard onOpen={() => setShowCreator(true)} />
+              </div>
+            )}
+          </main>
+        )}
       </div>
     </div>
   )

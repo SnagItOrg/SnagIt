@@ -1,15 +1,17 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/LocaleProvider'
 
-export function AddWatchlistCard() {
-  const router = useRouter()
+interface Props {
+  onOpen: () => void
+}
+
+export function AddWatchlistCard({ onOpen }: Props) {
   const { t } = useLocale()
 
   return (
     <button
-      onClick={() => router.push('/onboarding/step3')}
+      onClick={onOpen}
       className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface border-2 border-dashed border-white/20 hover:border-primary/50 active:border-primary text-center p-6 opacity-50 hover:opacity-75 active:opacity-100 transition-all duration-200 cursor-pointer"
       style={{ aspectRatio: '4/3' }}
     >
