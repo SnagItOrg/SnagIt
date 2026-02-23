@@ -4,6 +4,9 @@
  * Finds all listings without an entry in listing_product_match and runs the
  * matching pipeline against the knowledge graph.
  *
+ * Fetches listings in batches of 200 to avoid URL-length limits on .in() calls.
+ * For each batch, checks which IDs are already matched before processing.
+ *
  * Usage:
  *   npm run match-listings
  *
@@ -40,33 +43,49 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  // Fetch all listing IDs and already-matched IDs to determine the unmatched set
-  const [
-    { data: alreadyMatched, error: mErr },
-    { data: listingsData,   error: lErr },
-  ] = await Promise.all([
-    supabase.from('listing_product_match').select('listing_id'),
-    supabase.from('listings').select('id').not('title', 'is', null),
-  ])
+  const BATCH        = 200
+  let   offset       = 0
+  let   totalMatched = 0
+  let   totalFound   = 0
 
-  if (mErr) throw new Error(`Fetch listing_product_match: ${mErr.message}`)
-  if (lErr) throw new Error(`Fetch listings: ${lErr.message}`)
+  console.log('🔍  Scanning listings in batches of 200…\n')
 
-  const matchedIds = new Set(
-    ((alreadyMatched as Array<{ listing_id: string }>) ?? []).map(r => r.listing_id)
-  )
-  const allIds       = ((listingsData as Array<{ id: string }>) ?? []).map(r => r.id)
-  const unmatchedIds = allIds.filter(id => !matchedIds.has(id))
+  while (true) {
+    // Fetch one page of listings
+    const { data: batch, error: lErr } = await supabase
+      .from('listings')
+      .select('id, title')
+      .not('title', 'is', null)
+      .range(offset, offset + BATCH - 1)
 
-  console.log(`📋  ${unmatchedIds.length} unmatched listings (${matchedIds.size} already matched)`)
+    if (lErr) throw new Error(`Fetch listings: ${lErr.message}`)
+    if (!batch || batch.length === 0) break
 
-  if (unmatchedIds.length === 0) {
-    console.log('\n✅  Nothing to do.')
-    return
+    const batchIds = (batch as Array<{ id: string }>).map(r => r.id)
+
+    // Check which of this batch are already matched (small .in() — safe)
+    const { data: alreadyMatched, error: mErr } = await supabase
+      .from('listing_product_match')
+      .select('listing_id')
+      .in('listing_id', batchIds)
+
+    if (mErr) throw new Error(`Fetch listing_product_match: ${mErr.message}`)
+
+    const matchedSet   = new Set(((alreadyMatched ?? []) as Array<{ listing_id: string }>).map(r => r.listing_id))
+    const unmatchedIds = batchIds.filter(id => !matchedSet.has(id))
+
+    if (unmatchedIds.length > 0) {
+      totalFound += unmatchedIds.length
+      const { matched } = await matchListings(supabase, unmatchedIds)
+      totalMatched += matched
+      process.stdout.write(`  offset ${offset}: ${matched}/${unmatchedIds.length} matched\n`)
+    }
+
+    if (batch.length < BATCH) break
+    offset += BATCH
   }
 
-  const { matched, total } = await matchListings(supabase, unmatchedIds)
-  console.log(`\n✅  Matched ${matched}/${total} listings`)
+  console.log(`\n✅  Done — matched ${totalMatched}/${totalFound} unmatched listings`)
 }
 
 main().catch(err => {
