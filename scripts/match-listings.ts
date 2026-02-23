@@ -129,7 +129,7 @@ async function main() {
     supabase.from('kg_identifier').select('product_id, type, value').in('type', ['SKU', 'MODEL']),
     supabase.from('synonym')      .select('alias, canonical_query').eq('match_type', 'alias'),
     supabase.from('listing_product_match').select('listing_id'),
-    supabase.from('listings')     .select('id, title'),
+    supabase.from('listings')     .select('id, title').not('title', 'is', null),
   ])
 
   if (pErr) throw new Error(`Fetch kg_product: ${pErr.message}`)
