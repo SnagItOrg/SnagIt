@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import type { NavTab } from '@/components/BottomNav'
@@ -13,6 +13,7 @@ interface Props {
 
 export function SideNav({ active, onChange }: Props) {
   const router = useRouter()
+  const pathname = usePathname()
   const { locale, setLocale, t } = useLocale()
 
   async function handleLogout() {
@@ -22,7 +23,8 @@ export function SideNav({ active, onChange }: Props) {
     router.refresh()
   }
 
-  const navItems: { tab: NavTab; label: string; icon: React.ReactNode }[] = [
+  // Items with `href` are route-based (active via pathname); others are tab-based.
+  const navItems: { tab?: NavTab; href?: string; label: string; icon: React.ReactNode }[] = [
     {
       tab: 'hjem',
       label: t.navHome,
@@ -40,6 +42,18 @@ export function SideNav({ active, onChange }: Props) {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
           <circle cx="12" cy="12" r="3" />
+        </svg>
+      ),
+    },
+    {
+      href: '/watchlists',
+      label: t.navWatchlists,
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
       ),
     },
@@ -88,12 +102,17 @@ export function SideNav({ active, onChange }: Props) {
 
       {/* Nav items */}
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
-        {navItems.map(({ tab, label, icon }) => {
-          const isActive = active === tab
+        {navItems.map(({ tab, href, label, icon }) => {
+          const isActive = href
+            ? pathname === href
+            : tab !== undefined && active === tab
+          const handleClick = href
+            ? () => router.push(href)
+            : () => tab !== undefined && onChange(tab)
           return (
             <button
-              key={tab}
-              onClick={() => onChange(tab)}
+              key={href ?? tab}
+              onClick={handleClick}
               className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors w-full text-left"
               style={{
                 color: isActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.6)',
