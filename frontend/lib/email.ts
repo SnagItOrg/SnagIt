@@ -29,7 +29,7 @@ export async function sendNewListingsEmail({
 
   const overflow = listings.length > 5 ? `\n…and ${listings.length - 5} more.` : ''
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://your-app.vercel.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.klup.dk'
 
   const text = [
     `${listings.length} new listing${listings.length === 1 ? '' : 's'} for "${query}" on dba.dk:`,
