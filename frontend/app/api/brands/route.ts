@@ -18,11 +18,11 @@ export async function GET() {
   }
 
   const activeBrandIds = [
-    ...new Set(
+    ...Array.from(new Set(
       (activeProductsResult.data ?? [])
         .map((r) => (r as unknown as { brand_id: string }).brand_id)
         .filter((id): id is string => !!id),
-    ),
+    )),
   ]
 
   return NextResponse.json({
