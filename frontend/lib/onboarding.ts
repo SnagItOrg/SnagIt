@@ -14,6 +14,7 @@ export interface OnboardingData {
   categories: string[]
   brands: string[]
   query: string
+  min_price: number
   max_price: number
 }
 

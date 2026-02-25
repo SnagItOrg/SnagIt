@@ -29,7 +29,7 @@ type PriceStats = { count: number; p25: number | null; p75: number | null }
 
 interface Props {
   listing:           Listing
-  onCreateWatchlist: () => void
+  onCreateWatchlist: (listingTitle?: string) => void
   creating:          boolean
   onToast?:          (msg: string) => void
 }
@@ -204,7 +204,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
         {/* CTAs */}
         <div className="flex gap-2 mt-2">
           <button
-            onClick={onCreateWatchlist}
+            onClick={() => onCreateWatchlist(listing.title)}
             disabled={creating}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}

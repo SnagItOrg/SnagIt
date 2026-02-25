@@ -4,9 +4,10 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 export async function GET() {
   const supabase = getSupabaseAdmin()
 
-  const [brandsResult, categoriesResult] = await Promise.all([
+  const [brandsResult, categoriesResult, activeProductsResult] = await Promise.all([
     supabase.from('kg_brand').select('id, slug, name, category_id').order('name'),
     supabase.from('kg_category').select('id, slug, name_da, name_en').order('name_da'),
+    supabase.from('kg_product').select('brand_id, listing_product_match!inner(listing_id)'),
   ])
 
   if (brandsResult.error) {
@@ -16,8 +17,17 @@ export async function GET() {
     return NextResponse.json({ error: categoriesResult.error.message }, { status: 500 })
   }
 
+  const activeBrandIds = [
+    ...new Set(
+      (activeProductsResult.data ?? [])
+        .map((r) => (r as unknown as { brand_id: string }).brand_id)
+        .filter((id): id is string => !!id),
+    ),
+  ]
+
   return NextResponse.json({
     categories: categoriesResult.data ?? [],
     brands: brandsResult.data ?? [],
+    activeBrandIds,
   })
 }

@@ -65,6 +65,7 @@ export default function WatchlistsPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query: saved.query,
+            ...(saved.min_price && saved.min_price > 0 ? { min_price: saved.min_price } : {}),
             ...(saved.max_price && saved.max_price > 0 ? { max_price: saved.max_price } : {}),
           }),
         })

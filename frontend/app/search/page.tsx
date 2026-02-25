@@ -123,7 +123,7 @@ function SearchPageInner() {
     void runSearch(q)
   }
 
-  async function handleCreateWatchlist() {
+  async function handleCreateWatchlist(listingTitle?: string) {
     const supabase = createSupabaseBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -132,7 +132,17 @@ function SearchPageInner() {
     }
 
     setCreating(true)
-    const q = inputValue.trim() || (params.get('q') ?? '')
+    let q: string
+    if (listingTitle) {
+      // Truncate at last word boundary before 60 chars
+      q = listingTitle.length > 60
+        ? (listingTitle.lastIndexOf(' ', 60) > 0
+            ? listingTitle.slice(0, listingTitle.lastIndexOf(' ', 60))
+            : listingTitle.slice(0, 60))
+        : listingTitle
+    } else {
+      q = inputValue.trim() || (params.get('q') ?? '')
+    }
     const body: Record<string, unknown> = { query: q }
     if (maxPrice !== '' && maxPrice > 0) body.max_price = maxPrice
 

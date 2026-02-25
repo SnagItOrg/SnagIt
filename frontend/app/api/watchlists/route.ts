@@ -109,12 +109,14 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { query, max_price } = body
+  const { query, min_price, max_price } = body
 
   if (!query || typeof query !== 'string') {
     return NextResponse.json({ error: 'Missing query' }, { status: 400 })
   }
 
+  const minPrice: number | undefined =
+    typeof min_price === 'number' && min_price > 0 ? min_price : undefined
   const maxPrice: number | undefined =
     typeof max_price === 'number' && max_price > 0 ? max_price : undefined
 
@@ -123,6 +125,7 @@ export async function POST(req: NextRequest) {
     query: string
     type: 'query' | 'listing'
     source_url?: string
+    min_price?: number
     max_price?: number
   }
 
@@ -141,6 +144,7 @@ export async function POST(req: NextRequest) {
       query: listing.title,
       type: 'listing',
       source_url: query,
+      ...(minPrice !== undefined && { min_price: minPrice }),
       ...(maxPrice !== undefined && { max_price: maxPrice }),
     }
   } else {
@@ -148,6 +152,7 @@ export async function POST(req: NextRequest) {
       user_id: user.id,
       query: query.trim(),
       type: 'query',
+      ...(minPrice !== undefined && { min_price: minPrice }),
       ...(maxPrice !== undefined && { max_price: maxPrice }),
     }
   }

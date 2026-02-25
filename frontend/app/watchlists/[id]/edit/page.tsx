@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { SideNav } from '@/components/SideNav'
 import { useLocale } from '@/components/LocaleProvider'
+import { PriceRangeSlider } from '@/components/PriceRangeSlider'
 
 const BG   = '#102218'
 const SURF = '#1a2e22'
@@ -16,17 +17,19 @@ export default function EditWatchlistPage() {
   const params = useParams<{ id: string }>()
   const { t } = useLocale()
 
-  const [query, setQuery]       = useState('')
+  const [query,    setQuery]    = useState('')
+  const [minPrice, setMinPrice] = useState(0)
   const [maxPrice, setMaxPrice] = useState(4500)
-  const [loading, setLoading]   = useState(true)
-  const [saving, setSaving]     = useState(false)
-  const [error, setError]       = useState<string | null>(null)
+  const [loading,  setLoading]  = useState(true)
+  const [saving,   setSaving]   = useState(false)
+  const [error,    setError]    = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`/api/watchlists/${params.id}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r)))
       .then((data) => {
         setQuery(data.query ?? '')
+        setMinPrice(data.min_price ?? 0)
         setMaxPrice(data.max_price ?? 4500)
         setLoading(false)
       })
@@ -50,7 +53,7 @@ export default function EditWatchlistPage() {
     const res = await fetch(`/api/watchlists/${params.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: query.trim(), max_price: maxPrice }),
+      body: JSON.stringify({ query: query.trim(), min_price: minPrice > 0 ? minPrice : null, max_price: maxPrice }),
     })
 
     if (res.ok) {
@@ -61,8 +64,6 @@ export default function EditWatchlistPage() {
       setSaving(false)
     }
   }
-
-  const pct = (maxPrice / MAX_PRICE) * 100
 
   return (
     <div className="min-h-screen bg-bg md:flex">
@@ -134,10 +135,11 @@ export default function EditWatchlistPage() {
                         className="text-xs font-bold uppercase tracking-widest"
                         style={{ color: '#64748b' }}
                       >
-                        Maksimalpris
+                        Prisgrænse
                       </label>
-                      <div className="text-3xl font-black">
+                      <div className="text-2xl font-black">
                         <span style={{ color: PRI }}>
+                          {minPrice > 0 ? `${minPrice.toLocaleString('da-DK')} – ` : ''}
                           {maxPrice === MAX_PRICE
                             ? `${maxPrice.toLocaleString('da-DK')}+`
                             : maxPrice.toLocaleString('da-DK')}
@@ -146,21 +148,16 @@ export default function EditWatchlistPage() {
                       </div>
                     </div>
                     <div className="px-1">
-                      <input
-                        type="range"
-                        min={0}
-                        max={MAX_PRICE}
-                        step={100}
-                        value={maxPrice}
-                        onChange={(e) => setMaxPrice(Number(e.target.value))}
-                        className="w-full h-3 rounded-full appearance-none cursor-pointer"
-                        style={{
-                          background: `linear-gradient(to right, ${PRI} ${pct}%, ${BG} ${pct}%)`,
-                          border: `1px solid ${BORD}`,
-                        }}
+                      <PriceRangeSlider
+                        minPrice={minPrice}
+                        maxPrice={maxPrice}
+                        maxValue={MAX_PRICE}
+                        bg={BG}
+                        border={BORD}
+                        onChange={(min, max) => { setMinPrice(min); setMaxPrice(max) }}
                       />
                       <div
-                        className="flex justify-between mt-4 text-[10px] font-bold uppercase tracking-tighter select-none"
+                        className="flex justify-between mt-6 text-[10px] font-bold uppercase tracking-tighter select-none"
                         style={{ color: '#475569' }}
                       >
                         <span>0</span>

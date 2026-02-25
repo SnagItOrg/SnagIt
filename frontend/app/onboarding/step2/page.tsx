@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { loadOnboarding, saveOnboarding, brandLogoUrl, fireEvent } from '@/lib/onboarding'
 import { useLocale } from '@/components/LocaleProvider'
@@ -11,40 +11,76 @@ const SURF = '#1a2e22'
 const BORD = '#326748'
 const PRI  = '#13ec6d'
 
-interface Brand {
+interface KgBrand {
   id: string
-  label: string
-  textLogo?: boolean
+  slug: string
+  name: string
+  category_id: string
 }
 
-const BRANDS: Brand[] = [
-  { id: 'apple',               label: 'Apple'               },
-  { id: 'sony',                label: 'Sony'                },
-  { id: 'teenageengineering',  label: 'Teenage Engineering' },
-  { id: 'bang-olufsen',        label: 'Bang & Olufsen'      },
-  { id: 'canon',               label: 'Canon'               },
-  { id: 'bose',                label: 'Bose'                },
-  { id: 'nintendo',            label: 'Nintendo'            },
-]
+interface KgCategory {
+  id: string
+  slug: string
+  name_da: string
+  name_en: string
+}
 
 export default function Step2() {
   const router = useRouter()
   const { t } = useLocale()
-  const [starred, setStarred] = useState<Set<string>>(new Set())
-  const [search, setSearch] = useState('')
+  const [starred,          setStarred]          = useState<Set<string>>(new Set())
+  const [search,           setSearch]           = useState('')
+  const [allBrands,        setAllBrands]        = useState<KgBrand[]>([])
+  const [allCategories,    setAllCategories]    = useState<KgCategory[]>([])
+  const [activeBrandIds,   setActiveBrandIds]   = useState<Set<string>>(new Set())
+  const [savedCategories,  setSavedCategories]  = useState<string[]>([])
+  const [loadingBrands,    setLoadingBrands]    = useState(true)
 
   useEffect(() => {
     const saved = loadOnboarding()
-    if (saved.brands?.length) {
-      setStarred(new Set(saved.brands))
-    }
+    if (saved.brands?.length) setStarred(new Set(saved.brands))
+    setSavedCategories(saved.categories ?? [])
+
+    fetch('/api/brands')
+      .then((r) => r.ok ? r.json() : { categories: [], brands: [], activeBrandIds: [] })
+      .then(({ categories, brands, activeBrandIds: activeIds }: {
+        categories: KgCategory[]
+        brands: KgBrand[]
+        activeBrandIds: string[]
+      }) => {
+        setAllCategories(categories)
+        setAllBrands(brands)
+        setActiveBrandIds(new Set(activeIds))
+      })
+      .catch(() => {})
+      .finally(() => setLoadingBrands(false))
   }, [])
 
-  function toggleStar(id: string) {
+  // Brands filtered by saved step-1 categories, then by search
+  const displayBrands = useMemo(() => {
+    let brands = allBrands
+
+    if (savedCategories.length > 0) {
+      const categoryIds = new Set(
+        allCategories
+          .filter((c) => savedCategories.includes(c.slug))
+          .map((c) => c.id),
+      )
+      brands = brands.filter((b) => categoryIds.has(b.category_id))
+    }
+
+    if (search.trim()) {
+      brands = brands.filter((b) => b.name.toLowerCase().includes(search.toLowerCase()))
+    }
+
+    return brands
+  }, [allBrands, allCategories, savedCategories, search])
+
+  function toggleStar(slug: string) {
     setStarred((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(slug)) next.delete(slug)
+      else next.add(slug)
       return next
     })
   }
@@ -56,9 +92,7 @@ export default function Step2() {
     router.push('/onboarding/step3')
   }
 
-  const filtered = search.trim()
-    ? BRANDS.filter((b) => b.label.toLowerCase().includes(search.toLowerCase()))
-    : BRANDS
+  const isSearchEmpty = search.trim() !== '' && displayBrands.length === 0
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: BG, color: '#f1f5f9' }}>
@@ -76,9 +110,9 @@ export default function Step2() {
           </p>
         </div>
 
-        {/* Search + filter row */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
-          <div className="relative flex-1">
+        {/* Search row */}
+        <div className="mb-8">
+          <div className="relative">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
                   style={{ color: '#64748b' }}>
               search
@@ -87,7 +121,7 @@ export default function Step2() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Søg efter mærker (fx Teenage Engineering...)"
+              placeholder={t.searchBrands}
               className="w-full rounded-2xl pl-12 pr-4 py-4 text-white outline-none transition-all"
               style={{ backgroundColor: SURF, border: `1px solid ${BORD}` }}
               onFocus={(e) => {
@@ -100,17 +134,20 @@ export default function Step2() {
               }}
             />
           </div>
-          <button
-            className="flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-semibold transition-colors"
-            style={{ border: `1px solid ${BORD}`, color: '#cbd5e1' }}
-          >
-            <span className="material-symbols-outlined">filter_list</span>
-            Alle kategorier
-          </button>
         </div>
 
-        {/* Brand grid / empty state */}
-        {search.trim() !== '' && filtered.length === 0 ? (
+        {/* Brand grid / states */}
+        {loadingBrands ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+            {[...Array(8)].map((_, i) => (
+              <div
+                key={i}
+                className="rounded-2xl animate-pulse"
+                style={{ aspectRatio: '1 / 1', backgroundColor: SURF, border: `1px solid ${BORD}` }}
+              />
+            ))}
+          </div>
+        ) : isSearchEmpty ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-center mb-4">
             <span className="material-symbols-outlined" style={{ fontSize: '40px', color: '#334155' }}>
               search_off
@@ -123,70 +160,97 @@ export default function Step2() {
             </p>
           </div>
         ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
-          {filtered.map((brand) => {
-            const isStarred = starred.has(brand.id)
-            return (
-              <button
-                key={brand.id}
-                onClick={() => toggleStar(brand.id)}
-                className={`group relative rounded-2xl overflow-hidden transition-all duration-200 ease-in-out ${
-                  isStarred
-                    ? 'border-2 border-[#13ec6d]'
-                    : 'border border-slate-700 hover:border-[#13ec6d]/50'
-                }`}
-                style={{
-                  aspectRatio: '1 / 1',
-                  backgroundColor: BG,
-                  boxShadow: isStarred ? '0 0 20px rgba(19,236,109,0.15)' : undefined,
-                }}
-              >
-                {/* Background image */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={brandLogoUrl(brand.id)}
-                  alt={brand.label}
-                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-200 ease-in-out ${
-                    isStarred ? 'opacity-100' : 'opacity-50 group-hover:opacity-80'
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+            {displayBrands.map((brand) => {
+              const isStarred  = starred.has(brand.slug)
+              const hasContent = activeBrandIds.has(brand.id)
+
+              return (
+                <button
+                  key={brand.id}
+                  onClick={() => hasContent && toggleStar(brand.slug)}
+                  disabled={!hasContent}
+                  className={`group relative rounded-2xl overflow-hidden transition-all duration-200 ease-in-out ${
+                    !hasContent
+                      ? 'opacity-60 cursor-default'
+                      : isStarred
+                        ? 'border-2 border-[#13ec6d]'
+                        : 'border border-slate-700 hover:border-[#13ec6d]/50'
                   }`}
-                />
-
-                {/* Gradient overlay */}
-                <div
-                  className="absolute inset-0"
-                  style={{ background: `linear-gradient(to top, ${BG} 0%, transparent 55%)` }}
-                />
-
-                {/* Brand name bottom-left */}
-                <div className="absolute bottom-4 left-4 right-10">
-                  <p className="font-bold text-sm text-white truncate">{brand.label}</p>
-                </div>
-
-                {/* Star top-right */}
-                <span
-                  className={`material-symbols-outlined absolute top-3 right-3 z-10 transition-all duration-200${isStarred ? ' filled' : ''}`}
-                  style={{ color: isStarred ? PRI : 'rgba(255,255,255,0.5)', fontSize: '20px' }}
+                  style={{
+                    aspectRatio: '1 / 1',
+                    backgroundColor: BG,
+                    boxShadow: isStarred && hasContent ? '0 0 20px rgba(19,236,109,0.15)' : undefined,
+                  }}
                 >
-                  star
-                </span>
-              </button>
-            )
-          })}
+                  {hasContent ? (
+                    <>
+                      {/* Background image */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={brandLogoUrl(brand.slug)}
+                        alt={brand.name}
+                        className={`absolute inset-0 w-full h-full object-cover transition-all duration-200 ease-in-out ${
+                          isStarred ? 'opacity-100' : 'opacity-50 group-hover:opacity-80'
+                        }`}
+                      />
+                      {/* Gradient overlay */}
+                      <div
+                        className="absolute inset-0"
+                        style={{ background: `linear-gradient(to top, ${BG} 0%, transparent 55%)` }}
+                      />
+                      {/* Star top-right */}
+                      <span
+                        className={`material-symbols-outlined absolute top-3 right-3 z-10 transition-all duration-200${isStarred ? ' filled' : ''}`}
+                        style={{ color: isStarred ? PRI : 'rgba(255,255,255,0.5)', fontSize: '20px' }}
+                      >
+                        star
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      {/* Placeholder icon */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="material-symbols-outlined" style={{ fontSize: '40px', color: '#334155' }}>
+                          inventory_2
+                        </span>
+                      </div>
+                      {/* Coming soon badge */}
+                      <div className="absolute top-3 right-3">
+                        <span
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: `${SURF}cc`, border: `1px solid ${BORD}`, color: '#64748b' }}
+                        >
+                          {t.comingSoon}
+                        </span>
+                      </div>
+                    </>
+                  )}
 
-          {/* Add Another — decorative */}
-          <div
-            className="rounded-2xl flex flex-col items-center justify-center"
-            style={{ aspectRatio: '1 / 1', border: `2px dashed ${BORD}`, backgroundColor: `${SURF}33` }}
-          >
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
-              style={{ backgroundColor: SURF }}
-            >
-              <span className="material-symbols-outlined" style={{ color: '#64748b' }}>add</span>
-            </div>
-            <p className="font-bold text-sm" style={{ color: '#64748b' }}>Tilføj endnu et</p>
+                  {/* Brand name bottom-left */}
+                  <div className="absolute bottom-4 left-4 right-10">
+                    <p className="font-bold text-sm text-white truncate">{brand.name}</p>
+                  </div>
+                </button>
+              )
+            })}
+
+            {/* Add Another — decorative */}
+            {!isSearchEmpty && (
+              <div
+                className="rounded-2xl flex flex-col items-center justify-center"
+                style={{ aspectRatio: '1 / 1', border: `2px dashed ${BORD}`, backgroundColor: `${SURF}33` }}
+              >
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+                  style={{ backgroundColor: SURF }}
+                >
+                  <span className="material-symbols-outlined" style={{ color: '#64748b' }}>add</span>
+                </div>
+                <p className="font-bold text-sm" style={{ color: '#64748b' }}>Tilføj endnu et</p>
+              </div>
+            )}
           </div>
-        </div>
         )}
 
         {/* CTA */}

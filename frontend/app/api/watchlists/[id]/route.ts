@@ -32,10 +32,12 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { query, max_price } = body
+  const { query, min_price, max_price } = body
 
-  const updates: { query?: string; max_price?: number | null } = {}
+  const updates: { query?: string; min_price?: number | null; max_price?: number | null } = {}
   if (typeof query === 'string' && query.trim()) updates.query = query.trim()
+  if (typeof min_price === 'number' && min_price > 0) updates.min_price = min_price
+  else if (min_price === null) updates.min_price = null
   if (typeof max_price === 'number' && max_price > 0) updates.max_price = max_price
   else if (max_price === null) updates.max_price = null
 
