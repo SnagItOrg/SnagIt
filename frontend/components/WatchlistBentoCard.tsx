@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import type { Watchlist } from '@/lib/supabase'
@@ -19,21 +20,35 @@ function getDisplayName(query: string): string {
 
 interface Props {
   watchlist: Watchlist
-  onEdit: (id: string) => void
   onDelete: (id: string) => void
 }
 
-export function WatchlistBentoCard({ watchlist, onEdit, onDelete }: Props) {
+export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
   const router = useRouter()
   const { t } = useLocale()
   const displayName = getDisplayName(watchlist.query)
 
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return
+    function handleOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('click', handleOutside)
+    return () => document.removeEventListener('click', handleOutside)
+  }, [menuOpen])
+
   function handleCardClick() {
+    if (menuOpen) { setMenuOpen(false); return }
     router.push(`/search?q=${encodeURIComponent(watchlist.query)}`)
   }
 
-  function handleDelete(e: React.MouseEvent) {
-    e.stopPropagation()
+  function handleDelete() {
     if (window.confirm('Slet overvågning?')) {
       onDelete(watchlist.id)
     }
@@ -48,7 +63,7 @@ export function WatchlistBentoCard({ watchlist, onEdit, onDelete }: Props) {
       className="group relative rounded-2xl overflow-hidden border border-border/60 hover:border-primary/50 active:border-primary cursor-pointer transition-all duration-200 hover:shadow-[0_0_20px_rgba(19,236,109,0.15)] active:shadow-[0_0_25px_rgba(19,236,109,0.3)] bg-surface"
       style={{ aspectRatio: '4/3' }}
     >
-      {/* Background: image or placeholder — opacity tracks hover state */}
+      {/* Background: image or placeholder */}
       <div className="absolute inset-0 opacity-70 group-hover:opacity-90 group-active:opacity-100 transition-opacity duration-200">
         {watchlist.preview_image_url ? (
           <Image
@@ -73,9 +88,46 @@ export function WatchlistBentoCard({ watchlist, onEdit, onDelete }: Props) {
       {/* Gradient overlay — bottom half */}
       <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none" />
 
+      {/* More menu — top-right */}
+      <div ref={menuRef} className="absolute top-2.5 right-2.5 z-50">
+        <button
+          onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
+          className="bg-black/40 backdrop-blur-sm rounded-full p-1.5 text-white/70 hover:text-white transition-colors"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>more_vert</span>
+        </button>
+
+        {menuOpen && (
+          <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-xl shadow-lg overflow-hidden min-w-[140px]">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setMenuOpen(false)
+                router.push(`/watchlists/${watchlist.id}/edit`)
+              }}
+              className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-white/80 hover:bg-white/10 transition-colors"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
+              Rediger
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setMenuOpen(false)
+                handleDelete()
+              }}
+              className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-red-400 hover:bg-white/10 transition-colors"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
+              Slet
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Content */}
       <div className="absolute inset-x-0 bottom-0 p-3 flex flex-col gap-1.5">
-        <p className="text-sm font-semibold text-white truncate pr-14">{displayName}</p>
+        <p className="text-sm font-semibold text-white truncate pr-2">{displayName}</p>
 
         <div className="flex items-center gap-1.5 flex-wrap">
           {watchlist.new_count > 0 ? (
@@ -98,22 +150,6 @@ export function WatchlistBentoCard({ watchlist, onEdit, onDelete }: Props) {
             dba.dk
           </span>
         </div>
-
-        {/* Delete button — bottom-left */}
-        <button
-          onClick={handleDelete}
-          className="absolute bottom-2.5 left-2.5 p-1 rounded-lg text-white/40 hover:text-red-400 transition-colors"
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
-        </button>
-
-        {/* Edit button — bottom-right */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onEdit(watchlist.id) }}
-          className="absolute bottom-2.5 right-2.5 text-xs font-medium px-2.5 py-1 rounded-lg text-white/55 hover:text-white hover:bg-white/10 transition-colors"
-        >
-          Rediger
-        </button>
       </div>
     </div>
   )

@@ -36,6 +36,12 @@ export default function EditWatchlistPage() {
       })
   }, [params.id])
 
+  async function handleDeleteWatchlist() {
+    if (!window.confirm('Er du sikker?')) return
+    const res = await fetch(`/api/watchlists/${params.id}`, { method: 'DELETE' })
+    if (res.ok) router.push('/watchlists')
+  }
+
   async function handleSave() {
     if (!query.trim()) return
     setSaving(true)
@@ -194,6 +200,14 @@ export default function EditWatchlistPage() {
                         </span>
                       </>
                     )}
+                  </button>
+
+                  {/* Delete */}
+                  <button
+                    onClick={handleDeleteWatchlist}
+                    className="w-full py-3 rounded-xl text-sm font-medium transition-colors border border-red-500/30 text-red-400 hover:border-red-500/60"
+                  >
+                    Slet overvågning
                   </button>
                 </div>
               </div>

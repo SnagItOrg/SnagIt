@@ -79,10 +79,6 @@ export default function WatchlistsPage() {
     }
   }
 
-  function handleEdit(id: string) {
-    router.push(`/watchlists/${id}/edit`)
-  }
-
   async function handleDelete(id: string) {
     const res = await fetch(`/api/watchlists/${id}`, { method: 'DELETE' })
     if (res.ok) {
@@ -135,7 +131,7 @@ export default function WatchlistsPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <AddWatchlistCard onOpen={() => setShowCreator(true)} />
                 {watchlists.map((w) => (
-                  <WatchlistBentoCard key={w.id} watchlist={w} onEdit={handleEdit} onDelete={handleDelete} />
+                  <WatchlistBentoCard key={w.id} watchlist={w} onDelete={handleDelete} />
                 ))}
               </div>
             )}
