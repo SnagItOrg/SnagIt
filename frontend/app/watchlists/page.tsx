@@ -11,6 +11,7 @@ import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { loadOnboarding, clearOnboarding, fireEvent } from '@/lib/onboarding'
+import { Toast } from '@/components/Toast'
 
 export default function WatchlistsPage() {
   const router = useRouter()
@@ -141,14 +142,7 @@ export default function WatchlistsPage() {
 
       <BottomNav />
 
-      {toast && (
-        <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl text-sm font-semibold shadow-xl z-50"
-          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
-        >
-          {toast}
-        </div>
-      )}
+      {toast && <Toast message={toast} />}
     </div>
   )
 }
