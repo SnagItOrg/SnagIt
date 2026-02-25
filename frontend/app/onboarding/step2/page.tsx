@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { loadOnboarding, saveOnboarding, brandLogoUrl, fireEvent } from '@/lib/onboarding'
 import { useLocale } from '@/components/LocaleProvider'
@@ -15,69 +15,35 @@ interface KgBrand {
   id: string
   slug: string
   name: string
-  category_id: string
-}
-
-interface KgCategory {
-  id: string
-  slug: string
-  name_da: string
-  name_en: string
 }
 
 export default function Step2() {
   const router = useRouter()
   const { t } = useLocale()
-  const [starred,          setStarred]          = useState<Set<string>>(new Set())
-  const [search,           setSearch]           = useState('')
-  const [allBrands,        setAllBrands]        = useState<KgBrand[]>([])
-  const [allCategories,    setAllCategories]    = useState<KgCategory[]>([])
-  const [activeBrandIds,   setActiveBrandIds]   = useState<Set<string>>(new Set())
-  const [savedCategories,  setSavedCategories]  = useState<string[]>([])
-  const [loadingBrands,    setLoadingBrands]    = useState(true)
+  const [starred,       setStarred]       = useState<Set<string>>(new Set())
+  const [search,        setSearch]        = useState('')
+  const [allBrands,     setAllBrands]     = useState<KgBrand[]>([])
+  const [loadingBrands, setLoadingBrands] = useState(true)
 
   useEffect(() => {
     const saved = loadOnboarding()
     if (saved.brands?.length) setStarred(new Set(saved.brands))
-    setSavedCategories(saved.categories ?? [])
 
     fetch('/api/brands')
       .then((r) => {
         if (!r.ok) throw new Error(`/api/brands ${r.status}`)
         return r.json()
       })
-      .then(({ categories, brands, activeBrandIds: activeIds }: {
-        categories: KgCategory[]
-        brands: KgBrand[]
-        activeBrandIds: string[]
-      }) => {
-        setAllCategories(categories)
+      .then(({ brands }: { brands: KgBrand[] }) => {
         setAllBrands(brands)
-        setActiveBrandIds(new Set(activeIds))
       })
       .catch((err) => console.error('[step2] /api/brands failed:', err))
       .finally(() => setLoadingBrands(false))
   }, [])
 
-  // Brands filtered by saved step-1 categories, then by search
-  const displayBrands = useMemo(() => {
-    let brands = allBrands
-
-    if (savedCategories.length > 0) {
-      const categoryIds = new Set(
-        allCategories
-          .filter((c) => savedCategories.includes(c.slug))
-          .map((c) => c.id),
-      )
-      brands = brands.filter((b) => categoryIds.has(b.category_id))
-    }
-
-    if (search.trim()) {
-      brands = brands.filter((b) => b.name.toLowerCase().includes(search.toLowerCase()))
-    }
-
-    return brands
-  }, [allBrands, allCategories, savedCategories, search])
+  const displayBrands = search.trim()
+    ? allBrands.filter((b) => b.name.toLowerCase().includes(search.toLowerCase()))
+    : allBrands
 
   function toggleStar(slug: string) {
     setStarred((prev) => {
@@ -165,71 +131,44 @@ export default function Step2() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
             {displayBrands.map((brand) => {
-              const isStarred  = starred.has(brand.slug)
-              const hasContent = activeBrandIds.has(brand.id)
+              const isStarred = starred.has(brand.slug)
 
               return (
                 <button
                   key={brand.id}
-                  onClick={() => hasContent && toggleStar(brand.slug)}
-                  disabled={!hasContent}
+                  onClick={() => toggleStar(brand.slug)}
                   className={`group relative rounded-2xl overflow-hidden transition-all duration-200 ease-in-out ${
-                    !hasContent
-                      ? 'opacity-60 cursor-default'
-                      : isStarred
-                        ? 'border-2 border-[#13ec6d]'
-                        : 'border border-slate-700 hover:border-[#13ec6d]/50'
+                    isStarred
+                      ? 'border-2 border-[#13ec6d]'
+                      : 'border border-slate-700 hover:border-[#13ec6d]/50'
                   }`}
                   style={{
                     aspectRatio: '1 / 1',
                     backgroundColor: BG,
-                    boxShadow: isStarred && hasContent ? '0 0 20px rgba(19,236,109,0.15)' : undefined,
+                    boxShadow: isStarred ? '0 0 20px rgba(19,236,109,0.15)' : undefined,
                   }}
                 >
-                  {hasContent ? (
-                    <>
-                      {/* Background image */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={brandLogoUrl(brand.slug)}
-                        alt={brand.name}
-                        className={`absolute inset-0 w-full h-full object-cover transition-all duration-200 ease-in-out ${
-                          isStarred ? 'opacity-100' : 'opacity-50 group-hover:opacity-80'
-                        }`}
-                      />
-                      {/* Gradient overlay */}
-                      <div
-                        className="absolute inset-0"
-                        style={{ background: `linear-gradient(to top, ${BG} 0%, transparent 55%)` }}
-                      />
-                      {/* Star top-right */}
-                      <span
-                        className={`material-symbols-outlined absolute top-3 right-3 z-10 transition-all duration-200${isStarred ? ' filled' : ''}`}
-                        style={{ color: isStarred ? PRI : 'rgba(255,255,255,0.5)', fontSize: '20px' }}
-                      >
-                        star
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      {/* Placeholder icon */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="material-symbols-outlined" style={{ fontSize: '40px', color: '#334155' }}>
-                          inventory_2
-                        </span>
-                      </div>
-                      {/* Coming soon badge */}
-                      <div className="absolute top-3 right-3">
-                        <span
-                          className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: `${SURF}cc`, border: `1px solid ${BORD}`, color: '#64748b' }}
-                        >
-                          {t.comingSoon}
-                        </span>
-                      </div>
-                    </>
-                  )}
-
+                  {/* Background image */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={brandLogoUrl(brand.slug)}
+                    alt={brand.name}
+                    className={`absolute inset-0 w-full h-full object-cover transition-all duration-200 ease-in-out ${
+                      isStarred ? 'opacity-100' : 'opacity-50 group-hover:opacity-80'
+                    }`}
+                  />
+                  {/* Gradient overlay */}
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: `linear-gradient(to top, ${BG} 0%, transparent 55%)` }}
+                  />
+                  {/* Star top-right */}
+                  <span
+                    className={`material-symbols-outlined absolute top-3 right-3 z-10 transition-all duration-200${isStarred ? ' filled' : ''}`}
+                    style={{ color: isStarred ? PRI : 'rgba(255,255,255,0.5)', fontSize: '20px' }}
+                  >
+                    star
+                  </span>
                   {/* Brand name bottom-left */}
                   <div className="absolute bottom-4 left-4 right-10">
                     <p className="font-bold text-sm text-white truncate">{brand.name}</p>
@@ -237,8 +176,6 @@ export default function Step2() {
                 </button>
               )
             })}
-
-
           </div>
         )}
 
