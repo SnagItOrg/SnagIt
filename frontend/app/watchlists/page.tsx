@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Watchlist } from '@/lib/supabase'
 import { WatchlistBentoCard } from '@/components/WatchlistBentoCard'
@@ -18,6 +18,8 @@ export default function WatchlistsPage() {
   const [watchlists,   setWatchlists]   = useState<Watchlist[]>([])
   const [loading,      setLoading]      = useState(true)
   const [showCreator,  setShowCreator]  = useState(false)
+  const [toast,        setToast]        = useState<string | null>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     void loadWatchlists()
@@ -29,6 +31,12 @@ export default function WatchlistsPage() {
     const res = await fetch('/api/watchlists')
     if (res.ok) setWatchlists(await res.json())
     setLoading(false)
+  }
+
+  function showToast(msg: string) {
+    setToast(msg)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(null), 3000)
   }
 
   // Sync onboarding data saved anonymously before sign-up.
@@ -75,6 +83,14 @@ export default function WatchlistsPage() {
     router.push(`/watchlists/${id}/edit`)
   }
 
+  async function handleDelete(id: string) {
+    const res = await fetch(`/api/watchlists/${id}`, { method: 'DELETE' })
+    if (res.ok) {
+      setWatchlists((prev) => prev.filter((w) => w.id !== id))
+      showToast(t.watchlistDeleted)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-bg md:flex">
       <SideNav active={'hjem'} onChange={() => router.push('/')} />
@@ -99,18 +115,44 @@ export default function WatchlistsPage() {
                   />
                 ))}
               </div>
+            ) : watchlists.length === 0 ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+                  <AddWatchlistCard onOpen={() => setShowCreator(true)} />
+                </div>
+                <div className="flex flex-col items-center gap-3 text-center py-8">
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: '56px', color: 'var(--color-primary)', opacity: 0.4 }}
+                  >
+                    travel_explore
+                  </span>
+                  <p className="text-base font-semibold text-text">{t.emptyStateHeading}</p>
+                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>{t.emptyStateSubtext}</p>
+                </div>
+              </>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {watchlists.map((w) => (
-                  <WatchlistBentoCard key={w.id} watchlist={w} onEdit={handleEdit} />
-                ))}
                 <AddWatchlistCard onOpen={() => setShowCreator(true)} />
+                {watchlists.map((w) => (
+                  <WatchlistBentoCard key={w.id} watchlist={w} onEdit={handleEdit} onDelete={handleDelete} />
+                ))}
               </div>
             )}
           </main>
         )}
       </div>
+
       <BottomNav />
+
+      {toast && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl text-sm font-semibold shadow-xl z-50"
+          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+        >
+          {toast}
+        </div>
+      )}
     </div>
   )
 }

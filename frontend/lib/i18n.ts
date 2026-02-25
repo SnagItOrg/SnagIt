@@ -87,6 +87,9 @@ export const translations = {
     welcomeBack: 'Velkommen tilbage.',
     emailPlaceholder: 'din@email.dk',
     priceSaved: 'Tak — din pris er gemt',
+    watchlistDeleted: 'Overvågning slettet',
+    emptyStateHeading: 'Velkommen til Kluppen.',
+    emptyStateSubtext: 'Start din første overvågning og lad os gøre arbejdet.',
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -174,6 +177,9 @@ export const translations = {
     welcomeBack: 'Welcome back.',
     emailPlaceholder: 'your@email.com',
     priceSaved: 'Thanks — your price has been saved',
+    watchlistDeleted: 'Watchlist deleted',
+    emptyStateHeading: 'Welcome to Klup.',
+    emptyStateSubtext: 'Start your first watchlist and let us do the work.',
   },
 } as const
 
