@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import type { NavTab } from '@/components/BottomNav'
@@ -91,18 +92,26 @@ export function SideNav({ active, onChange }: Props) {
           const isActive = href
             ? pathname === href
             : tab !== undefined && active === tab
-          const handleClick = href
-            ? () => router.push(href)
-            : () => tab !== undefined && onChange(tab)
+          const itemStyle = {
+            color: isActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.6)',
+            backgroundColor: isActive ? 'rgba(19,236,109,0.08)' : 'transparent',
+          }
+          const itemClass = "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors w-full text-left"
+
+          if (href) {
+            return (
+              <Link key={href} href={href} className={itemClass} style={itemStyle}>
+                {icon}
+                <span>{label}</span>
+              </Link>
+            )
+          }
           return (
             <button
-              key={href ?? tab}
-              onClick={handleClick}
-              className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors w-full text-left"
-              style={{
-                color: isActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.6)',
-                backgroundColor: isActive ? 'rgba(19,236,109,0.08)' : 'transparent',
-              }}
+              key={tab}
+              onClick={() => tab !== undefined && onChange(tab)}
+              className={itemClass}
+              style={itemStyle}
             >
               {icon}
               <span>{label}</span>

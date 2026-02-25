@@ -1,15 +1,15 @@
 'use client'
 
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { useLocale } from '@/components/LocaleProvider'
 
 // Kept for SideNav compatibility
 export type NavTab = 'hjem' | 'overvaagninger' | 'soeg' | 'gemt' | 'profil'
 
 export function BottomNav() {
-  const router  = useRouter()
   const pathname = usePathname()
-  const { t }  = useLocale()
+  const { t }   = useLocale()
 
   const isHome   = pathname === '/watchlists' || pathname.startsWith('/watchlists/')
   const isSearch = pathname === '/search'
@@ -21,7 +21,7 @@ export function BottomNav() {
       <NavItem
         label={t.navHome}
         active={isHome}
-        onClick={() => router.push('/watchlists')}
+        href="/watchlists"
         icon={
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" />
@@ -32,8 +32,8 @@ export function BottomNav() {
 
       {/* Search FAB — elevated centre button */}
       <div className="relative flex flex-col items-center pb-3">
-        <button
-          onClick={() => router.push('/search')}
+        <Link
+          href="/search"
           className="w-14 h-14 -mt-7 rounded-full bg-primary flex items-center justify-center shadow-lg glow-primary transition-transform active:scale-95"
           aria-label={t.navSearch}
         >
@@ -41,7 +41,7 @@ export function BottomNav() {
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
-        </button>
+        </Link>
         <span
           className="text-[11px] font-medium mt-0.5"
           style={{ color: isSearch ? 'var(--color-primary)' : 'rgba(255,255,255,0.45)' }}
@@ -50,11 +50,10 @@ export function BottomNav() {
         </span>
       </div>
 
-      {/* Saved (placeholder) */}
+      {/* Saved (placeholder — no route yet) */}
       <NavItem
         label={t.navSaved}
         active={false}
-        onClick={() => {}}
         icon={
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
@@ -62,11 +61,11 @@ export function BottomNav() {
         }
       />
 
-      {/* Profile (placeholder) */}
+      {/* Profile */}
       <NavItem
         label={t.navProfile}
         active={isProfil}
-        onClick={() => router.push('/profil')}
+        href="/profil"
         icon={
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="8" r="4" />
@@ -81,25 +80,30 @@ export function BottomNav() {
 function NavItem({
   label,
   active,
-  onClick,
   icon,
+  href,
 }: {
   label: string
   active: boolean
-  onClick: () => void
   icon: React.ReactNode
+  href?: string
 }) {
-  const color = active ? 'var(--color-primary)' : 'rgba(255,255,255,0.45)'
+  const color     = active ? 'var(--color-primary)' : 'rgba(255,255,255,0.45)'
+  const className = "flex flex-col items-center justify-center gap-0.5 min-w-[48px] min-h-[48px] py-2 px-2 transition-colors"
+
+  if (href) {
+    return (
+      <Link href={href} className={className} style={{ color }} aria-label={label}>
+        {icon}
+        <span className="text-[11px] font-medium leading-none">{label}</span>
+      </Link>
+    )
+  }
 
   return (
-    <button
-      onClick={onClick}
-      className="flex flex-col items-center justify-center gap-0.5 min-w-[48px] min-h-[48px] py-2 px-2 transition-colors"
-      style={{ color }}
-      aria-label={label}
-    >
+    <div className={className} style={{ color }} aria-label={label}>
       {icon}
       <span className="text-[11px] font-medium leading-none">{label}</span>
-    </button>
+    </div>
   )
 }
