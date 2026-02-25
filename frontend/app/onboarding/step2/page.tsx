@@ -42,7 +42,10 @@ export default function Step2() {
     setSavedCategories(saved.categories ?? [])
 
     fetch('/api/brands')
-      .then((r) => r.ok ? r.json() : { categories: [], brands: [], activeBrandIds: [] })
+      .then((r) => {
+        if (!r.ok) throw new Error(`/api/brands ${r.status}`)
+        return r.json()
+      })
       .then(({ categories, brands, activeBrandIds: activeIds }: {
         categories: KgCategory[]
         brands: KgBrand[]
@@ -52,7 +55,7 @@ export default function Step2() {
         setAllBrands(brands)
         setActiveBrandIds(new Set(activeIds))
       })
-      .catch(() => {})
+      .catch((err) => console.error('[step2] /api/brands failed:', err))
       .finally(() => setLoadingBrands(false))
   }, [])
 
@@ -235,21 +238,7 @@ export default function Step2() {
               )
             })}
 
-            {/* Add Another — decorative */}
-            {!isSearchEmpty && (
-              <div
-                className="rounded-2xl flex flex-col items-center justify-center"
-                style={{ aspectRatio: '1 / 1', border: `2px dashed ${BORD}`, backgroundColor: `${SURF}33` }}
-              >
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
-                  style={{ backgroundColor: SURF }}
-                >
-                  <span className="material-symbols-outlined" style={{ color: '#64748b' }}>add</span>
-                </div>
-                <p className="font-bold text-sm" style={{ color: '#64748b' }}>Tilføj endnu et</p>
-              </div>
-            )}
+
           </div>
         )}
 

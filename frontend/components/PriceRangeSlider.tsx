@@ -36,7 +36,8 @@ export function PriceRangeSlider({
   }
 
   // When min thumb is pushed to the far right, promote it above max thumb
-  const minZ = minPrice >= maxPrice - step ? 5 : 3
+  const minZ = minPrice >= maxPrice - step ? 5 : 4
+  const maxZ = minPrice >= maxPrice - step ? 4 : 5
 
   return (
     <div style={{ position: 'relative', height: '12px', marginTop: '8px' }}>
@@ -65,7 +66,7 @@ export function PriceRangeSlider({
         />
       </div>
 
-      {/* Invisible min input */}
+      {/* Min input — track is non-interactive, only thumb captures events */}
       <input
         type="range"
         min={0}
@@ -73,19 +74,11 @@ export function PriceRangeSlider({
         step={step}
         value={minPrice}
         onChange={handleMin}
-        style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          opacity: 0,
-          cursor: 'pointer',
-          zIndex: minZ,
-          margin: 0,
-          padding: 0,
-        }}
+        className="absolute w-full h-full appearance-none bg-transparent pointer-events-none m-0 p-0 [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:cursor-pointer"
+        style={{ zIndex: minZ }}
       />
 
-      {/* Invisible max input */}
+      {/* Max input — track is non-interactive, only thumb captures events */}
       <input
         type="range"
         min={0}
@@ -93,16 +86,8 @@ export function PriceRangeSlider({
         step={step}
         value={maxPrice}
         onChange={handleMax}
-        style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          opacity: 0,
-          cursor: 'pointer',
-          zIndex: 4,
-          margin: 0,
-          padding: 0,
-        }}
+        className="absolute w-full h-full appearance-none bg-transparent pointer-events-none m-0 p-0 [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:cursor-pointer"
+        style={{ zIndex: maxZ }}
       />
 
       {/* Visual min thumb */}
