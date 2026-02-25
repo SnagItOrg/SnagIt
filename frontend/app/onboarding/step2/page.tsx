@@ -34,7 +34,11 @@ export default function Step2() {
         if (!r.ok) throw new Error(`/api/brands ${r.status}`)
         return r.json()
       })
-      .then(({ brands }: { brands: KgBrand[] }) => {
+      .then((data: unknown) => {
+        const brands: KgBrand[] = Array.isArray(data)
+          ? (data as KgBrand[])
+          : ((data as { brands?: KgBrand[] }).brands ?? [])
+        console.log('Brands loaded:', brands.length)
         setAllBrands(brands)
       })
       .catch((err) => console.error('[step2] /api/brands failed:', err))
