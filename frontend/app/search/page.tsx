@@ -11,6 +11,13 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 type SortKey = 'newest' | 'price_asc' | 'price_desc'
 
+type Category = {
+  id: string
+  slug: string
+  name_da: string
+  name_en: string
+}
+
 type Brand = {
   id: string
   slug: string
@@ -54,8 +61,10 @@ function SearchPageInner() {
   const [searched,     setSearched]     = useState(false)
   const [creating,       setCreating]       = useState(false)
   const [toast,          setToast]          = useState<string | null>(null)
-  const [brands,         setBrands]         = useState<Brand[]>([])
-  const [selectedBrand,  setSelectedBrand]  = useState<Brand | null>(null)
+  const [categories,       setCategories]       = useState<Category[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
+  const [brands,           setBrands]           = useState<Brand[]>([])
+  const [selectedBrand,    setSelectedBrand]    = useState<Brand | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function showToast(msg: string) {
@@ -97,8 +106,11 @@ function SearchPageInner() {
     const q = params.get('q')
     if (q) void runSearch(q)
     fetch('/api/brands')
-      .then((r) => r.ok ? r.json() : [])
-      .then((data: Brand[]) => setBrands(data))
+      .then((r) => r.ok ? r.json() : { categories: [], brands: [] })
+      .then((data: { categories: Category[]; brands: Brand[] }) => {
+        setCategories(data.categories ?? [])
+        setBrands(data.brands ?? [])
+      })
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -138,6 +150,16 @@ function SearchPageInner() {
     }
     setCreating(false)
   }
+
+  function handleSelectCategory(cat: Category | null) {
+    setSelectedCategory(cat)
+    setSelectedBrand(null)
+  }
+
+  // Brands visible in chip row (filtered by selected category)
+  const visibleBrands = selectedCategory
+    ? brands.filter((b) => b.category_id === selectedCategory.id)
+    : brands
 
   // Client-side filter + sort
   const filtered = sortListings(
@@ -249,29 +271,68 @@ function SearchPageInner() {
               </div>
             </div>
 
-            {/* Brand chip row */}
-            {brands.length > 0 && (
+            {/* Category chip row */}
+            {categories.length > 0 && (
               <div className="relative w-full overflow-hidden after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-8 after:bg-gradient-to-l after:from-bg after:to-transparent after:pointer-events-none">
-              <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide flex-nowrap">
-                {brands.map((brand) => {
-                  const isSelected = selectedBrand?.id === brand.id
-                  return (
-                    <button
-                      key={brand.id}
-                      type="button"
-                      onClick={() => setSelectedBrand(isSelected ? null : brand)}
-                      className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
-                      style={{
-                        backgroundColor: isSelected ? 'var(--color-primary)' : 'transparent',
-                        color:           isSelected ? 'var(--color-bg)'      : 'rgba(255,255,255,0.6)',
-                        border:          isSelected ? '1px solid transparent' : '1px solid rgba(255,255,255,0.2)',
-                      }}
-                    >
-                      {brand.name}
-                    </button>
-                  )
-                })}
+                <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide flex-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectCategory(null)}
+                    className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
+                    style={{
+                      backgroundColor: !selectedCategory ? 'var(--color-primary)' : 'transparent',
+                      color:           !selectedCategory ? 'var(--color-bg)'      : 'rgba(255,255,255,0.6)',
+                      border:          !selectedCategory ? '1px solid transparent' : '1px solid rgba(255,255,255,0.2)',
+                    }}
+                  >
+                    Alle
+                  </button>
+                  {categories.map((cat) => {
+                    const isSelected = selectedCategory?.id === cat.id
+                    const label = (t.categoryNames as Record<string, string>)[cat.slug] ?? cat.name_da
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => handleSelectCategory(isSelected ? null : cat)}
+                        className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
+                        style={{
+                          backgroundColor: isSelected ? 'var(--color-primary)' : 'transparent',
+                          color:           isSelected ? 'var(--color-bg)'      : 'rgba(255,255,255,0.6)',
+                          border:          isSelected ? '1px solid transparent' : '1px solid rgba(255,255,255,0.2)',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
+            )}
+
+            {/* Brand chip row — filtered by selected category */}
+            {visibleBrands.length > 0 && (
+              <div className="relative w-full overflow-hidden after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-8 after:bg-gradient-to-l after:from-bg after:to-transparent after:pointer-events-none">
+                <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide flex-nowrap">
+                  {visibleBrands.map((brand) => {
+                    const isSelected = selectedBrand?.id === brand.id
+                    return (
+                      <button
+                        key={brand.id}
+                        type="button"
+                        onClick={() => setSelectedBrand(isSelected ? null : brand)}
+                        className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
+                        style={{
+                          backgroundColor: isSelected ? 'var(--color-primary)' : 'transparent',
+                          color:           isSelected ? 'var(--color-bg)'      : 'rgba(255,255,255,0.6)',
+                          border:          isSelected ? '1px solid transparent' : '1px solid rgba(255,255,255,0.2)',
+                        }}
+                      >
+                        {brand.name}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             )}
           </form>

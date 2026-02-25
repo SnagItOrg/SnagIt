@@ -90,6 +90,13 @@ export const translations = {
     watchlistDeleted: 'Overvågning slettet',
     emptyStateHeading: 'Velkommen til Kluppen.',
     emptyStateSubtext: 'Start din første overvågning og lad os gøre arbejdet.',
+    categoryNames: {
+      'music-gear':    'Musik',
+      'danish-modern': 'Dansk Design',
+      photography:     'Foto',
+      tech:            'Tech',
+      cycling:         'Cykler',
+    },
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -180,6 +187,13 @@ export const translations = {
     watchlistDeleted: 'Watchlist deleted',
     emptyStateHeading: 'Welcome to Klup.',
     emptyStateSubtext: 'Start your first watchlist and let us do the work.',
+    categoryNames: {
+      'music-gear':    'Music',
+      'danish-modern': 'Danish Design',
+      photography:     'Photography',
+      tech:            'Tech',
+      cycling:         'Cycling',
+    },
   },
 } as const
 
