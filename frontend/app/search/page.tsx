@@ -155,7 +155,7 @@ function SearchPageInner() {
 
       <div className="flex-1 flex flex-col md:ml-60">
         {/* Sticky search bar */}
-        <div className="sticky top-0 z-30 bg-bg border-b border-white/10 px-4 py-3 md:px-8 overflow-x-hidden">
+        <div className="sticky top-0 z-30 bg-bg border-b border-white/10 px-4 py-3 md:px-8">
           <form onSubmit={handleSubmit} className="flex flex-col gap-2">
             {/* Search input row */}
             <div className="flex gap-2">
@@ -251,7 +251,8 @@ function SearchPageInner() {
 
             {/* Brand chip row */}
             {brands.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
+              <div className="relative max-w-full overflow-hidden after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-8 after:bg-gradient-to-l after:from-bg after:to-transparent after:pointer-events-none">
+              <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide flex-nowrap">
                 {brands.map((brand) => {
                   const isSelected = selectedBrand?.id === brand.id
                   return (
@@ -270,6 +271,7 @@ function SearchPageInner() {
                     </button>
                   )
                 })}
+              </div>
               </div>
             )}
           </form>
