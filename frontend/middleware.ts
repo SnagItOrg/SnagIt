@@ -7,6 +7,7 @@ const PUBLIC_PREFIXES = [
   '/login',
   '/auth/',         // OAuth + email confirmation callbacks
   '/onboarding/',   // anonymous-first onboarding flow
+  '/api/brands',    // public lookup used by onboarding step 2
   '/api/cron/',     // cron jobs use their own CRON_SECRET header
 ]
 
