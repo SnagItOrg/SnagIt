@@ -74,7 +74,7 @@ export function PriceRangeSlider({
         step={step}
         value={minPrice}
         onChange={handleMin}
-        className="absolute w-full h-full appearance-none bg-transparent pointer-events-none m-0 p-0 [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:cursor-pointer"
+        className="absolute w-full h-full appearance-none bg-transparent pointer-events-none m-0 p-0 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:bg-transparent [&::-webkit-slider-thumb]:border-none [&::-webkit-slider-thumb]:shadow-none [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:bg-transparent [&::-moz-range-thumb]:border-none"
         style={{ zIndex: minZ }}
       />
 
@@ -86,7 +86,7 @@ export function PriceRangeSlider({
         step={step}
         value={maxPrice}
         onChange={handleMax}
-        className="absolute w-full h-full appearance-none bg-transparent pointer-events-none m-0 p-0 [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:cursor-pointer"
+        className="absolute w-full h-full appearance-none bg-transparent pointer-events-none m-0 p-0 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:bg-transparent [&::-webkit-slider-thumb]:border-none [&::-webkit-slider-thumb]:shadow-none [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:bg-transparent [&::-moz-range-thumb]:border-none"
         style={{ zIndex: maxZ }}
       />
 
