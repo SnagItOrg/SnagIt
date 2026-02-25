@@ -13,9 +13,6 @@ export async function GET() {
   if (brandsResult.error) {
     return NextResponse.json({ error: brandsResult.error.message }, { status: 500 })
   }
-  if (categoriesResult.error) {
-    return NextResponse.json({ error: categoriesResult.error.message }, { status: 500 })
-  }
 
   const activeBrandIds = [
     ...Array.from(new Set(
