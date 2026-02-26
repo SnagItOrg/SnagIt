@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
@@ -55,13 +54,11 @@ function CheckInbox({ email }: { email: string }) {
 }
 
 export default function Step4() {
-  const router = useRouter()
   const { t } = useLocale()
-  const [email, setEmail]       = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError]       = useState<string | null>(null)
-  const [loading, setLoading]   = useState(false)
-  const [done, setDone]         = useState(false)
+  const [email,   setEmail]   = useState('')
+  const [error,   setError]   = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [done,    setDone]    = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -69,26 +66,20 @@ export default function Step4() {
     setLoading(true)
 
     const supabase = createSupabaseBrowserClient()
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    const { error: otpError } = await supabase.auth.signInWithOtp({
       email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
+        shouldCreateUser: true,
+      },
     })
 
-    if (signUpError) {
-      setError(signUpError.message)
+    if (otpError) {
+      setError(otpError.message)
       setLoading(false)
       return
     }
 
-    if (data.session) {
-      // Email confirmation disabled — session is immediate.
-      // Home page useEffect picks up localStorage and syncs.
-      router.push('/')
-      return
-    }
-
-    // Email confirmation required — show inbox prompt.
     setDone(true)
     setLoading(false)
   }
@@ -200,29 +191,6 @@ export default function Step4() {
                 />
               </div>
 
-              {/* Password */}
-              <div className="flex flex-col gap-2">
-                <label
-                  className="text-xs font-bold uppercase tracking-widest"
-                  style={{ color: '#64748b' }}
-                >
-                  {t.password}
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  autoComplete="new-password"
-                  placeholder="Mindst 6 tegn"
-                  className="w-full rounded-2xl px-5 py-4 text-base outline-none transition-all placeholder:text-slate-600"
-                  style={{ backgroundColor: BG, border: `2px solid ${BORD}`, color: '#f1f5f9' }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = PRI }}
-                  onBlur={(e)  => { e.currentTarget.style.borderColor = BORD }}
-                />
-              </div>
-
               {error && (
                 <div
                   className="rounded-xl px-4 py-3 text-sm text-red-400"
@@ -245,7 +213,7 @@ export default function Step4() {
               >
                 {loading ? '…' : (
                   <>
-                    {t.finishAndHunt}
+                    {t.sendLoginLink}
                     <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
                       arrow_forward
                     </span>
@@ -265,14 +233,14 @@ export default function Step4() {
 
           {/* Footer actions */}
           <div className="mt-8 flex items-center justify-between">
-            <button
-              onClick={() => router.push('/onboarding/step3')}
+            <Link
+              href="/onboarding/step3"
               className="flex items-center gap-2 font-bold transition-colors hover:text-white"
               style={{ color: '#64748b' }}
             >
               <span className="material-symbols-outlined">arrow_back</span>
               Tilbage
-            </button>
+            </Link>
             <p className="text-sm" style={{ color: '#64748b' }}>
               {t.alreadyHaveAccount}{' '}
               <Link

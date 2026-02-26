@@ -48,9 +48,9 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Logged-in users are bounced out of the onboarding flow → home
+  // Logged-in users are bounced out of the onboarding flow → watchlists
   if (user && isOnboardingPath(pathname)) {
-    return NextResponse.redirect(new URL('/', request.url))
+    return NextResponse.redirect(new URL('/watchlists', request.url))
   }
 
   // Unauthenticated users on / → onboarding
