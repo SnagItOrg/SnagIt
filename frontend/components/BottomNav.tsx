@@ -13,7 +13,7 @@ export function BottomNav() {
 
   const isHome   = pathname === '/watchlists' || pathname.startsWith('/watchlists/')
   const isSearch = pathname === '/search'
-  const isProfil = pathname === '/profil'
+  const isProfil = pathname === '/profile'
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-white/10 flex items-end justify-around px-2 pb-[env(safe-area-inset-bottom)]">
@@ -65,7 +65,7 @@ export function BottomNav() {
       <NavItem
         label={t.navProfile}
         active={isProfil}
-        href="/profil"
+        href="/profile"
         icon={
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="8" r="4" />
