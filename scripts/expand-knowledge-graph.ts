@@ -4,6 +4,12 @@
  * Analyses Reverb listings already in the database and suggests
  * new brands / models to add to the knowledge graph.
  *
+ * Strategy:
+ *   - Fetches all Reverb listing titles from listings table
+ *   - Matches each title against existing kg_brand names
+ *   - Matched titles → potential new MODEL suggestions
+ *   - Unmatched titles → potential new BRAND suggestions (first token)
+ *
  * Usage:
  *   npm run expand-kg
  *
@@ -42,22 +48,15 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 })
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface ListingRow {
-  make:       string | null
-  model:      string | null
-  categories: string[] | null
-}
-
 interface BrandSuggestion {
   make:  string
   count: number
 }
 
 interface ModelSuggestion {
-  brand:    string
-  model:    string
-  count:    number
-  category: string
+  brand: string
+  model: string
+  count: number
 }
 
 interface KgSuggestions {
@@ -67,19 +66,61 @@ interface KgSuggestions {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function normaliseKey(s: string): string {
-  return s.trim().toLowerCase()
+
+/**
+ * Find the first kg_brand name contained in the listing title (case-insensitive).
+ * Sorted longest-first so "Warm Audio" matches before "Warm".
+ */
+function matchBrand(title: string, sortedBrands: string[]): string | null {
+  const lower = title.toLowerCase()
+  for (const brand of sortedBrands) {
+    if (lower.includes(brand.toLowerCase())) return brand
+  }
+  return null
+}
+
+/**
+ * Strip the matched brand name from the title and return the remainder as a
+ * model hint. Removes leading dashes, pipes, numbers in parentheses, etc.
+ */
+function extractModel(title: string, brand: string): string {
+  const re = new RegExp(brand.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'gi')
+  return title
+    .replace(re, '')
+    .replace(/^[\s\-–|:,]+/, '')   // strip leading punctuation
+    .replace(/\s{2,}/g, ' ')        // collapse multiple spaces
+    .trim()
+    .slice(0, 80)                   // cap length
+}
+
+/**
+ * Extract the most likely brand token from an unmatched title (first 1–2 words,
+ * stopping before purely-numeric tokens or common noise words).
+ */
+const NOISE = new Set(['used', 'new', 'vintage', 'rare', 'the', 'a', 'an'])
+
+function extractBrandGuess(title: string): string {
+  const words = title.trim().split(/\s+/)
+  const out: string[] = []
+  for (const w of words) {
+    const clean = w.replace(/[^a-zA-Z0-9\-&.]/g, '')
+    if (!clean || /^\d+$/.test(clean) || NOISE.has(clean.toLowerCase())) break
+    out.push(clean)
+    // Stop at two tokens — keeps guesses concise
+    if (out.length === 2) break
+  }
+  return out.join(' ')
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
 
-  // ── Step 1: Fetch all Reverb listings (make / model / categories) ──────────
-  console.log('Fetching Reverb listings from database…')
+  // ── Step 1: Fetch all Reverb listing titles ────────────────────────────────
+  console.log('Fetching Reverb listing titles from database…')
 
   const { data: listings, error: listingsErr } = await supabase
     .from('listings')
-    .select('make, model, categories')
+    .select('title')
     .eq('source', 'reverb')
 
   if (listingsErr) throw new Error(`Fetch listings: ${listingsErr.message}`)
@@ -90,33 +131,6 @@ async function main() {
 
   console.log(`Found ${listings.length} Reverb listings.\n`)
 
-  // Group by make + model + categories (mirrors the SQL GROUP BY)
-  type GroupKey = string
-  const groupMap = new Map<GroupKey, {
-    make:       string
-    model:      string | null
-    categories: string[] | null
-    count:      number
-  }>()
-
-  for (const row of listings as ListingRow[]) {
-    const make = row.make?.trim() ?? ''
-    if (!make) continue
-
-    const model      = row.model?.trim() || null
-    const categories = row.categories ?? null
-    const key: GroupKey = `${make}|||${model ?? ''}|||${JSON.stringify(categories)}`
-
-    const existing = groupMap.get(key)
-    if (existing) {
-      existing.count++
-    } else {
-      groupMap.set(key, { make, model, categories, count: 1 })
-    }
-  }
-
-  const grouped = Array.from(groupMap.values()).sort((a, b) => b.count - a.count)
-
   // ── Step 2: Fetch existing kg_brand names ──────────────────────────────────
   console.log('Fetching existing kg_brand names…')
 
@@ -126,59 +140,60 @@ async function main() {
 
   if (brandsErr) throw new Error(`Fetch brands: ${brandsErr.message}`)
 
-  const existingBrands = new Set(
-    (brands ?? []).map((b: { name: string }) => normaliseKey(b.name))
-  )
+  const brandNames: string[] = (brands ?? [])
+    .map((b: { name: string }) => b.name.trim())
+    .filter(Boolean)
 
-  console.log(`Found ${existingBrands.size} existing brands in knowledge graph.\n`)
+  // Sort longest-first so multi-word brand names match before shorter prefixes
+  const sortedBrands = [...brandNames].sort((a, b) => b.length - a.length)
 
-  // ── Step 3: Build suggestion lists ────────────────────────────────────────
+  console.log(`Found ${brandNames.length} existing brands in knowledge graph.\n`)
 
-  // Aggregate listing counts per make
-  const makeCountMap = new Map<string, number>()
-  for (const row of grouped) {
-    makeCountMap.set(row.make, (makeCountMap.get(row.make) ?? 0) + row.count)
-  }
+  // ── Step 3: Classify each listing ─────────────────────────────────────────
+  const brandGuessCount = new Map<string, number>()      // NEW BRANDS
+  const modelKey = new Map<string, ModelSuggestion>()   // NEW MODELS  (brand|||model)
 
-  // NEW BRANDS — makes not found in kg_brand
-  const newBrands: BrandSuggestion[] = Array.from(makeCountMap.entries())
-    .filter(([make]) => !existingBrands.has(normaliseKey(make)))
-    .map(([make, count]) => ({ make, count }))
-    .sort((a, b) => b.count - a.count)
+  for (const row of listings as Array<{ title: string }>) {
+    const title = (row.title ?? '').trim()
+    if (!title) continue
 
-  // NEW MODELS — model values whose brand IS already in kg_brand
-  // Deduplicate by brand+model, sum counts, take first category.
-  const modelMap = new Map<string, ModelSuggestion>()
-  for (const row of grouped) {
-    if (!row.model) continue
-    if (!existingBrands.has(normaliseKey(row.make))) continue
+    const matched = matchBrand(title, sortedBrands)
 
-    const key = `${normaliseKey(row.make)}|||${normaliseKey(row.model)}`
-    const existing = modelMap.get(key)
-    if (existing) {
-      existing.count += row.count
+    if (matched) {
+      // Known brand — extract model hint
+      const model = extractModel(title, matched)
+      if (!model) continue
+      const key = `${matched.toLowerCase()}|||${model.toLowerCase()}`
+      const existing = modelKey.get(key)
+      if (existing) {
+        existing.count++
+      } else {
+        modelKey.set(key, { brand: matched, model, count: 1 })
+      }
     } else {
-      modelMap.set(key, {
-        brand:    row.make,
-        model:    row.model,
-        count:    row.count,
-        category: (row.categories ?? []).join(', ') || 'unknown',
-      })
+      // Unknown brand — first tokens as brand guess
+      const guess = extractBrandGuess(title)
+      if (!guess) continue
+      brandGuessCount.set(guess, (brandGuessCount.get(guess) ?? 0) + 1)
     }
   }
 
-  const newModels: ModelSuggestion[] = Array.from(modelMap.values())
+  const newBrands: BrandSuggestion[] = Array.from(brandGuessCount.entries())
+    .map(([make, count]) => ({ make, count }))
+    .sort((a, b) => b.count - a.count)
+
+  const newModels: ModelSuggestion[] = Array.from(modelKey.values())
     .sort((a, b) => b.count - a.count)
 
   // ── Console output ─────────────────────────────────────────────────────────
-  const HR  = '═'.repeat(70)
-  const hr  = '─'.repeat(70)
+  const HR = '═'.repeat(72)
+  const hr = '─'.repeat(72)
 
   console.log(HR)
-  console.log('NEW BRANDS (make values not in kg_brand):')
+  console.log('NEW BRANDS (title tokens not matched to any kg_brand):')
   console.log(hr)
   if (newBrands.length === 0) {
-    console.log('  (none)')
+    console.log('  (none — all titles matched an existing brand)')
   } else {
     for (const b of newBrands) {
       console.log(`  ${b.make.padEnd(45)} | ${b.count} listings`)
@@ -187,16 +202,16 @@ async function main() {
 
   console.log()
   console.log(HR)
-  console.log('NEW MODELS (model values for existing brands):')
+  console.log('NEW MODELS (model suggestions for existing brands):')
   console.log(hr)
   if (newModels.length === 0) {
     console.log('  (none)')
   } else {
     for (const m of newModels) {
-      const brand    = m.brand.padEnd(20)
-      const model    = m.model.padEnd(30)
-      const count    = String(m.count).padStart(4)
-      console.log(`  ${brand} | ${model} | ${count} | ${m.category}`)
+      const brand = m.brand.padEnd(22)
+      const model = m.model.padEnd(40)
+      const count = String(m.count).padStart(4)
+      console.log(`  ${brand} | ${model} | ${count}`)
     }
   }
   console.log()
@@ -211,7 +226,7 @@ async function main() {
   const outPath = path.resolve(__dirname, 'kg-suggestions.json')
   fs.writeFileSync(outPath, JSON.stringify(output, null, 2))
   console.log(`✅  Saved to ${outPath}`)
-  console.log(`    ${newBrands.length} new brand(s), ${newModels.length} new model(s)`)
+  console.log(`    ${newBrands.length} potential new brand(s), ${newModels.length} model suggestion(s)`)
 }
 
 main().catch((err: unknown) => {

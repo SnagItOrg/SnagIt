@@ -1,0 +1,4559 @@
+{
+  "generated_at": "2026-02-28T21:05:47.904Z",
+  "new_brands": [
+    {
+      "make": "BAE",
+      "count": 5
+    },
+    {
+      "make": "g7 Special",
+      "count": 4
+    },
+    {
+      "make": "BAE 10DC",
+      "count": 3
+    },
+    {
+      "make": "Amp Cover",
+      "count": 3
+    },
+    {
+      "make": "Reason Bambino",
+      "count": 2
+    },
+    {
+      "make": "Red Special",
+      "count": 2
+    },
+    {
+      "make": "Reason",
+      "count": 2
+    },
+    {
+      "make": "BAE B15",
+      "count": 2
+    },
+    {
+      "make": "ReasonStudios Reason",
+      "count": 2
+    },
+    {
+      "make": "Urei 1176LN",
+      "count": 2
+    },
+    {
+      "make": "BAE 1073D",
+      "count": 1
+    },
+    {
+      "make": "BAE 1073MPF",
+      "count": 1
+    },
+    {
+      "make": "BAE 1066D",
+      "count": 1
+    },
+    {
+      "make": "Kush Omega",
+      "count": 1
+    },
+    {
+      "make": "RT-10t -",
+      "count": 1
+    },
+    {
+      "make": "Hoobastank",
+      "count": 1
+    },
+    {
+      "make": "BAE 312A",
+      "count": 1
+    },
+    {
+      "make": "Jensen special",
+      "count": 1
+    },
+    {
+      "make": "Hopf Style",
+      "count": 1
+    },
+    {
+      "make": "Emu EIII",
+      "count": 1
+    },
+    {
+      "make": "PRS 40th",
+      "count": 1
+    },
+    {
+      "make": "Waterproof Fitness",
+      "count": 1
+    },
+    {
+      "make": "Hoobastank -The",
+      "count": 1
+    },
+    {
+      "make": "Fairbanks Special",
+      "count": 1
+    },
+    {
+      "make": "Maybach Lester",
+      "count": 1
+    },
+    {
+      "make": "312B",
+      "count": 1
+    },
+    {
+      "make": "Sanchez Albuquerque",
+      "count": 1
+    },
+    {
+      "make": "RED SPECIAL",
+      "count": 1
+    },
+    {
+      "make": "Michael Kelly",
+      "count": 1
+    },
+    {
+      "make": "Kitty Hawk",
+      "count": 1
+    },
+    {
+      "make": "KRUT Special",
+      "count": 1
+    },
+    {
+      "make": "BAE 1073MP",
+      "count": 1
+    },
+    {
+      "make": "Istanbul Agop",
+      "count": 1
+    },
+    {
+      "make": "Black Vinyl",
+      "count": 1
+    },
+    {
+      "make": "Tuki Padded",
+      "count": 1
+    },
+    {
+      "make": "Little Acid",
+      "count": 1
+    },
+    {
+      "make": "Saturday Night",
+      "count": 1
+    },
+    {
+      "make": "Emu Systems",
+      "count": 1
+    }
+  ],
+  "new_models": [
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic UC1 DAW Controller 2021 - Present - Black",
+      "count": 6
+    },
+    {
+      "brand": "Jomox",
+      "model": "Alpha Base Analog Drum Synthesizer 2017 - Present - White / Natural",
+      "count": 6
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic B-Dyn 500-Series Dynamics Module 2023 - Black",
+      "count": 5
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic UF1 DAW Controller 2023 - Black",
+      "count": 5
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "LCA 2B Dual Channel Tube VCA Compressor / Limiter 2010s - Blue",
+      "count": 5
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Electra 500 Series EQ Module 2010s - Black",
+      "count": 4
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic UF8 DAW Controller 2021 - Present - Black",
+      "count": 4
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Street EX 2-Channel 50-Watt 2x8\" / 2x2\" Guitar Combo 2014 - Present - Black",
+      "count": 3
+    },
+    {
+      "brand": "Canyon",
+      "model": "Electro-Harmonix 2017 - Present - White",
+      "count": 3
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Pickguard 3 Ply 11 Hole HSS Humbucker Single Singl",
+      "count": 3
+    },
+    {
+      "brand": "De Rosa",
+      "model": "USA 36\" Acoustic Classical Guitar Complete Package",
+      "count": 3
+    },
+    {
+      "brand": "Roland",
+      "model": "CUBE Street MINI Multi-Instrument Battery Amplifier",
+      "count": 2
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Clariphonic Dual-Channel Parallel Equalizer 2010s - Brown / Black",
+      "count": 2
+    },
+    {
+      "brand": "Boss",
+      "model": "Cube Street II 2-Channel 10-Watt 2x6.5\" Battery-Powered Guitar Combo 2021 - Pres",
+      "count": 2
+    },
+    {
+      "brand": "Fender",
+      "model": "American Professional II Jazz Bass Fretless, Rosewood Fingerboard, Dark Night (R",
+      "count": 2
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Electra Dual-Channel Electrified Transient Equalizer 2010s - Brown / Black",
+      "count": 2
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic VHD+ Pre 500-Series Microphone Preamp 2021 - Present - Black",
+      "count": 2
+    },
+    {
+      "brand": "Fender",
+      "model": "Big Apple Stratocaster with Rosewood Fretboard 1997 - 2000 - Black",
+      "count": 2
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Clariphonic 500 Series Parallel Equalizer Module 2010s - Black",
+      "count": 2
+    },
+    {
+      "brand": "Scott",
+      "model": "Fishman LePage Signature Fluence Humbucker Set 2023 - Present - Black",
+      "count": 2
+    },
+    {
+      "brand": "HP",
+      "model": "Land Devices -2",
+      "count": 2
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Street 2-Channel 2x2.5-Watt 2x6.5\" Guitar Combo 2007 - 2021 - Black",
+      "count": 2
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Tweaker Single-Channel Discrete VCA Compressor 2010s - Brown / Black",
+      "count": 2
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "ME-1B Mid Range Tube Equalizer 2010s - Blue",
+      "count": 2
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "CL 1B Mono Opto Compressor 2010s - Blue",
+      "count": 2
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Urei 1176LN Rev. F Limiting Amplifier",
+      "count": 2
+    },
+    {
+      "brand": "Bmc",
+      "model": "Guitar Neck 3AAA FLAME MAPLE Jazzmaster® Strat® Stratocaster® 21 Fret Roasted MO",
+      "count": 2
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Lite 2-Channel 10-Watt 2x3\" Guitar Combo 2014 - Present - Black",
+      "count": 2
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic 12 12-Channel USB Audio Interface 2023 - Black",
+      "count": 2
+    },
+    {
+      "brand": "Giant",
+      "model": "Drolo Hogweed V3 2018 - 2023 - White",
+      "count": 2
+    },
+    {
+      "brand": "Focus",
+      "model": "Excellent 1985 Kramer 3000, Made in Japan Black, Pro Setup it's Friggin Kool !",
+      "count": 2
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Urei 1176LN Rev. F Limiting Amplifier 1970s - Black Panel",
+      "count": 2
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "MEC-1A Recording Channel 2010s - Blue",
+      "count": 2
+    },
+    {
+      "brand": "Moog",
+      "model": "Subsequent 37 Analog Synthesizer",
+      "count": 2
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-WL Warm Lifter Inline Active Microphone Preamp",
+      "count": 2
+    },
+    {
+      "brand": "Akai",
+      "model": "Professional APC40 MKII Pad Ableton Live Controller",
+      "count": 2
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Pickguard 3 Ply 11 Hole HSH Humbucker Single Humbu",
+      "count": 2
+    },
+    {
+      "brand": "Neve",
+      "model": "RUPERT DESIGNS RNDI-M Active Transformer Direct Interface",
+      "count": 2
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "EP–133 128MB K.O. II : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic 2+ USB Audio Interface 2020 - Present - Black",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics Big Fuzz V1 Triangle 1970's Muff Style Circuit Guitar Effect P",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Mini Voyager Anniversary Edition",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "HARRISON PP1 W/ FLYING FADERS - Indivual Channels Late 70s- early 80s",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "MPC Live II Retro with PRO PACK and MANY PLUGINS",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Alpha Base top condition",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Omega 500 Series Mic Preamp Module 2010s - Black / Brown",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems E5000 Ultra Rackmount 64-Voice Sampler Workstation 1999 - Black",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic 12",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Tweezer 500 Series Contouring Compressor",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "Walkman Stereo Cassette-Corder \"WM-D6\" w/ ECM-939T Electret Condenser Stereo Mic",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "OB-8 Solid Walnut Replacement Wood Sides",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "MPC X Standalone Sampler / Sequencer 2017 - Present - Black",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "CL 1B Mono Opto Compressor NEW in the box. CL1B CL-1B Tube Tech. USA.22665",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "LCA 2B Stereo Tube VCA Compressor/Limiter (Used)",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "WF-1000XM5 True Wireless Noise Cancelling Earbuds, Bluetooth - Black",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "CL 1B Mono Opto Compressor 2023 - Blue",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "CL 1B Mono Opto Compressor NEW in the box. CL1B CL-1B Tube Tech. USA.22771",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "T-Resonator II 2019 - Black",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "SS-2121 Speakers Set Of Two",
+      "count": 1
+    },
+    {
+      "brand": "Nvidia",
+      "model": "MSI - GeForce GTX 760 - Graphics Card - Online As Is",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Street EX September 2014",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "J-45 Standard - Cherry Red - 2nd Hand",
+      "count": 1
+    },
+    {
+      "brand": "Elektron",
+      "model": "Analog Four MK1 - 2nd Hand",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "Audio 5500 Stereo EQ",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "Audio 512C 500-Series Mic Preamp",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "WMD Switch Matrix 2010s - Black",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "American Professional II Jazz Bass, Maple Fingerboard, 3-Color Sunburst (H10) (8",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "Professional MPC X Performance and Production Sampler Nearly New",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "312 Microphone Preamplifier",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "WMD Switch Matrix 2010s - Silver",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Custom Shop 2024 Custom Shop Wildwood 10 1962 Jazz Bass - NOS",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "KC-100 4-Channel 60-Watt 1x12\" Keyboard Amplifier CG01WMK",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Street Cube Battery-Powered Stereo Amplifier - 2nd Hand",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "1073 1084 eq preamp module",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems E6400 Ultra w/Proteus Sounds",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "8424 24-Channel Analogue Console – Mortised Faders",
+      "count": 1
+    },
+    {
+      "brand": "HP",
+      "model": "Peavey Special EXP Signature Series 2005 - 2008 - Cherry Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Suhr Classic S Henderson Signature Series Fiesta Orange Guitar w/ Soft Case",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "MPC LIVE II : VERY LIGHTLY USED",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "ARTE John Kinnard 503 Selmer type 2025 -",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "SMC-2B 2A Stereo Multiband Compressor 2010s - Blue",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "DigiTech Ian Black-13",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics - Massif",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic UC1 Controller",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "2600 + box, power supply, patch cables, manual, patch notebook, and STICKER WOW!",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic UC1 DAW Controller incl 2 Plugins",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Micro Cube GX 2013 - Black",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Tweaker Single-Channel Discrete VCA Compressor",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "MDS-JE320 HOME RECORDING MINI DISC DECK MZ-E40 Bundle",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "FLKey Min MIDI Keyboard Controller",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Certified Pre-Owned American Professional II Jazz Bass V, Maple Fingerboard, Mys",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Alpha Base MkII",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Muse Synthesizer - 2nd Hand",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Street Mini Portable Guitar Amp Combo",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "X Touch Extender Controller Midi Usb Daw",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo Twin X DUO Gen 2 Thunderbolt Audio Interface - Essentials+ Edition",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo Twin X QUAD Gen 2 Thunderbolt Audio Interface - Essentials+ Edition",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Volt 176 1-in/2-out USB 2.0 Audio Interface",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Modbase 09 Mk II - Silver",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "J-45 Studio Acoustic-Electric Guitar w/ Gig Bag - Natural",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "J-45 Studio Acoustic-Electric Guitar w/ Gig Bag - Vintage Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "J-200 Studio Acoustic-Electric Guitar w/ Gig Bag - Vintage Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "J-200 Studio EC Acoustic-Electric Guitar w/ Gig Bag - Antique Natural",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "J-200 Studio EC Acoustic-Electric Guitar w/ Gig Bag - Vintage Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Hummingbird Studio Acoustic-Electric Guitar w/ Gig Bag - Antique Natural",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Hummingbird Studio EC - Heritage Cherry Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Dove Studio Acoustic-Electric Guitar w/ Gig Bag - Antique Natural",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "AMERICAN FOLK SCENE: Dimensions of the Folksong Revival (1960s - PB)",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "3122V 2-Channel Microphone Preamp Line Mic Pre",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "Melbourn 1974",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "USA Les Paul Special Tribute – HH. Worn White (2020) Full original bundle USA Le",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "Launchkey Mini 37 [MK4] - White - Brand New",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic UF8 DAW Controller + Decksaver Protective Cover",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "80's Kramer 2000 w/ 1000 Neck MIJ - Pink",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "American Performer Jazz Bass, Maple Fingerboard, Satin Surf Green (SR) (16267)",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "American Professional II Jazz Bass, Rosewood Fingerboard, Miami Blue (D5) (46961",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics Osiris",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems E4X Turbo Rackmount 128-Voice Sampler Workstation 1996 - Black",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "Ultra-G GI100 DI-Box - 2nd Hand",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "Compressor CL9 - 2nd Hand",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "Vintage Phaser VP1 - 2nd Hand",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "24-70mm 2.8 USM",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic UC1 DAW Controller 2021 Black",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte Leadbelly 12 strings set 2006",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Alpha Base Analog Drum Synthesizer 2017 - Near MINT - White",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics The Mountain - Black",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "OP-1 (used)",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic UC1 DAW Controller",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Alpha Base Mk II MkII Analog Drum Synthesizer Sequencer IN-STOCK!",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems Emulator III XP Rackmount 32-Voice Sampler Workstation 1993 - Black",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Electra Stereo Equalizer",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "CM-15 - Black + Mini Tripod accessory",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "Powershot G15",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "Micromon MA400 Monitor Headphone Amplifier",
+      "count": 1
+    },
+    {
+      "brand": "Specialized",
+      "model": "Canopus Canopus 20 Strand Vintage Snare Wire for 14 inch without Plating for Zel",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Blues King Studio Dark Burst Acoustic-Electric Guitar",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "J?45 Studio EC Natural Acoustic?Electric Guitar",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "J-45 Studio Acoustic-Electric Guitar Antique Natural",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "J-200 Studio Acoustic Electric–Antique Natural",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Hummingbird Studio Antique Natural Acoustic?Electric Guitar",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Hummingbird Studio Acoustic Electric – Heritage Cherry Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Hummingbird Studio EC Acoustic?Electric Guitar – Heritage Cherry Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "MPC One Plus Standalone Sampler and Sequencer Restock Deal",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "1960 Hummingbird Reissue Heritage Cherry Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "1957 SJ-200 Reissue Vintage Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "MPC XL Standalone MPC For Sampling And Sequencing",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "MPK Mini Plus - 2nd Hand",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "CL 1B Single-Channel Optical Tube Compressor – Studio Icon",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte Brass bracket for archtop guitar-Nickel plated 2026 - Nickel plated brass",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "Logic Pro 9 / Studio Software - Excellent w/ Original Box & Manuals",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Mobile Cube Amp - 2nd Hand (160597)",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "2x Electra 500 Series EQ Module 2010s - Black",
+      "count": 1
+    },
+    {
+      "brand": "Propellerhead",
+      "model": "Reason 12 full vst plugin",
+      "count": 1
+    },
+    {
+      "brand": "Lenovo",
+      "model": "ThinkBook 14s Yoga ITL Integrated Pen Stift Stylus Pen 2020 - Black",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "CUBE Street Guitar/Keyboard/PA 2 channel portable battery powered amp",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "STR-D390 2 Channel AM FM Stereo Receiver Bundle W/Remote W/Box Tested Phono STR-",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "CUBE Street Mini Multi-instrument Combo Amplifier",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "NEW Cube Street Mini 2-Channel 10-Watt 1x5\" Guitar Combo - Black, In Stock and S",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics -Osiris- #050 Authorized dealer",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Alpha Base MK2 2024 - white",
+      "count": 1
+    },
+    {
+      "brand": "Elektron",
+      "model": "Syntakt E25 Remix Edition",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "Meinl 22\" Byzance Dark Big Ride",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic 2 USB Audio Interface – Pristine, Clean, Classic Sound",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Aquarian X Coated",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Urei 1176 Rev. B Limiting Amplifier 1960s - Silverface with Blue Stripe",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "Bam king single clarinet case",
+      "count": 1
+    },
+    {
+      "brand": "De Rosa",
+      "model": "GAB47-BK 5-String Acoustic/Electric Bass Guitar - Black Gloss \"Sold As Is\" Has S",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "CUBE-ST-MI Cube Street Mini, Multi-Instrument Battery Amplifier",
+      "count": 1
+    },
+    {
+      "brand": "HP",
+      "model": "Tama 600 D",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte GP-2011 Set of 3 Ergonomic Resin guitar pick 2026 - Polished Resin",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte GP-2069 Standard ergonomic Buffalo Horn pick",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "Cube Street II 2-Channel 10-Watt 2x6.5\" Battery-Powered Guitar Combo 2025- Black",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "Cube Street II - Ocassion",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Urei 1176LN Rev. F Limiting Amplifier Stereo Pair 1970s - Black Panel",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA12 MKII Microphone Preamp - Black",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Aquarian -X Coated Drumhead 14\"",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "2000 American BIG APPLE Stratocaster w/Seymour Duncan '59 Humbuckers 1959 Double",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Turbo Phatt ROM (rom only)",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "JC-120 Jazz Chorus 120-Watt 2x12 Stereo Guitar Amplifier Combo",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Proteus 2000 Composer Rom Card",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Street EX + transport bag",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Messiah 2026 - Lava Burst Matte",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Erica Synths Switch (V1) [USED]",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "American Professional II Precision Bass Maple Fingerboard - Black - B-Stock - US",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Street EX 2-Channel 50-Watt 2x8\" / 2x2\" Guitar Combo 2014 - Present - Local",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "7800 Sidecar System w/ L100 PSU + 4x 8200 Line Mixers (32-Channel)|PERFECT| TOUR",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "CL 1B Brand New Unopened Box",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "MP 1A Dual Mic Pre / DI !",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics -Big Fuzz Civil War- #035 Authorized dealer",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "EF 16-35mm f/4 Lens",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Texas Special Telecaster pickup set 2020s - Chrome and black pickups",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "[New Life Support Sale] [Exhibition Replacement Special Price] TEO-5 *Cash on de",
+      "count": 1
+    },
+    {
+      "brand": "Elektron",
+      "model": "Octatrack MkII with Decksaver (Gray)",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "ECM-100N Hi-Res Pencil Microphone (Omni) - Black",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "M-S34 Vintage PS/2 Ball Mouse 2-Button Mouse - Grey [USED]",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "BEQ700 Bass EQ - 2nd Hand (159823)",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Starcaster Bass - Black - 2nd Hand (159653)",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "Dave Smith Instruments OB-6 49-Key 6-Voice Polyphonic Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Used Kramer VT-211S",
+      "count": 1
+    },
+    {
+      "brand": "Manley",
+      "model": "VoxBox (Demo)",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "VFE Mid Boost",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "1960 Hummingbird - Murphy Lab, Light Aged",
+      "count": 1
+    },
+    {
+      "brand": "HP",
+      "model": "Presonus 60 Presonus 60 Headphone Amp/mixer",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "B-Control Rotary USB Midi Controller BCR2000 With DSI tetra Overlay",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "Synthesizers \"OberMug\" Coffee Mug 330ml 2026 - Weiss",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Mother-32 Synthesizer - Semi-Modular Analog - Excellent",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Street Amplifier - Battery-Powered Portability - Excellent w/ Power Supply ",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "PCM-D50 Linear PCM Recorder 2007 - brushed metallic silver / gunmetal gray",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "Mac mini A1347 Mac Mini/1.5GHZ/4GB/SSD 500Gb/Magic Keyboard",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "*NEW* OB-X8 61-Key 8-Voice Keyboard Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Manley",
+      "model": "Labs Stingray Integrated Late 90's - Early 2000's - Black/Purple",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Audity Upgraded with EXTREME Rom (Exclusive & Excellent)",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Urei 1176LN Rev. H Limiting Amplifier 1970s - 1980s - Silverface",
+      "count": 1
+    },
+    {
+      "brand": "HP",
+      "model": "Land Devices -2 2021 - Camo",
+      "count": 1
+    },
+    {
+      "brand": "Canyon",
+      "model": "EHX Electro-Harmonix Delay and Looper Pedal",
+      "count": 1
+    },
+    {
+      "brand": "Neumann",
+      "model": "U 87 Ai Large Diaphragm Multipattern Condenser Microphone - Nickel",
+      "count": 1
+    },
+    {
+      "brand": "Propellerhead",
+      "model": "Abbey Road Keyboards 2007",
+      "count": 1
+    },
+    {
+      "brand": "Propellerhead",
+      "model": "Reason Drum Kits Refill Collection 2.0 2007",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic UC1 DAW Controller 2021 - Present Black",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "1960 Hummingbird Reissue (#354)",
+      "count": 1
+    },
+    {
+      "brand": "Neumann",
+      "model": "KH-870 Professional Sub Woofer DSP",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "E6400 Ultra ZuluScsi/USB...Upgrades",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "Force with 1TB SSD Hard Drive",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic Connex Multipattern Boundary Microphone 2023 - Silver",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Stratocaster Big Apple 1998 - Gold Mist",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "Select SR24 Dual Equalizer - Discrete EQ - Excellent Condition",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Alpha Base MK II (Full Warranty)",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic 2 USB Audio Interface – Brand New (Unboxed)",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "8 Channels of SSL VHD+ Mic Pres, 2 Channels of SSL Comp, rack-ready in a Rupert ",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Street",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic 2 USB",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-76 D2 Dual FET Compressor – 1176 Style | Mint | Original Box",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Dixon Flying -Silver",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics Big Fuzz X12394",
+      "count": 1
+    },
+    {
+      "brand": "Lenovo",
+      "model": "19V 3.42A DC Power Supply Adapter 19 Volt Laptop Charger AC 100-240V 50-60hz, Co",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte DA-3631 Tuning heads fOR UKULELE- 2026 - Golden finish",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte DA-3630 Tuning heads for Slotted peg head guitars- 2026 - Antic Brass",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte DA-3625 Tuning heads for Classical guitars- 2026 - Antic Brass",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte DA-3607 Tuning heads for Slotted peghead guitars- 2026 - Antic Brass",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte DA-3622 Tuning heads for Slotted peghead guitars- 2026 - Antic Brass",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte DA-3616 Tuning heads for Classical guitar-Gold - Golden finish",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Big Apple Stratocaster with Maple Fretboard 1997 - 2000 - Shoreline Gold",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Voyager RME Analoger Synthesizer Rack + Holz + Wie Neu + OVP + Garantie",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "Southern Jumbo Original Vintage Sunburst Acoustic-Electric Guitar",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte GP-3030 Galalith Forrest Turtle guitar pick - Polished Galalith (Casein)",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "ARTE GP-3025 Catalin resin Howlite guitar pick",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte GP-3038 Catalin resin Sand & Turquoise guitar pick - Polished Catalin resin",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "ARTE GP-3027 Catalin resin Desert Camo guitar pick",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte Catalin Resin GP-3031 Fuscia Bloom guitar pick",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "ARTE Classical guitar tuning heads DA 3629 - Antic Brass",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "ARTE Classical guitar tuning heads DA 3619 - Antic Brass",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte MN-63 STD Clear Quartz guitar stone pick - Polished stone",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "ARTE MN-72 Mini Brecciated Jasper stone pick",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte MN-77STD Rhyolite stone guitar pick - Polished stone",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "ARTE Tuning heads for slotted peghead guitars-Gold",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-2A Stereo Pair",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "ARTE 12 string guitar tuning heads DA 3600 - Relic Brass",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "ARTE 12 string guitar tuning heads DA 3610 - Relic Brass",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "MicroMON MA400 Monitor Headphone Amplifier (NO POWER SUPPLY) CG01VZN",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "M50 mark II 2023 - Black",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "AC-90 Acoustic Chorus - 2x8\" 90 Watt Solid State Acoustic Guitar Amp - w/Bag - x",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "8108 Channel Strip Pair w/ Power Supply",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "MP 1A 2-Channel Microphone Preamplifier CG01TKR",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Aquarian -X Coated Power Dot Drumhead 10\"",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "EF 50mm F1.8 STM Lens - Excellent Condition",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "TV 4K MXH02J/A Unopened Streaming Device",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte Tailpiece Brass bracket for archtop guitar 2026 - 24K gold plated",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "CR-N400WHITECR-N400WHITE",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "CR-N350BLACKCR-N350BLACK",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "CR-N350WHITECR-N350WHITE",
+      "count": 1
+    },
+    {
+      "brand": "Lenovo",
+      "model": "12XVS00501ThinkSmart Tiny Kit, Intel Cor",
+      "count": 1
+    },
+    {
+      "brand": "Manley",
+      "model": "Labs Reference COMBO PAIR Microphone AND Preamp!!!",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics Osiris 2023 - Present - Black / Purple",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Blu DeTiger Jazz Bass, Rosewood Fingerboard, Sky Burst Sparkle",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Messenger Monophonic Analog Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte MN-71 Brecciated Jasper stone pick 2026 - Polished stone",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Dave Smith Instruments Prophet X Hybrid Synthesizer Keyboard",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "AC-33 30-Watt Battery Powered Portable Acoustic Guitar Amp - Black",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte DR brass tailpiece with Cocobolo insert 2025 - Polished brass",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte DR Brass tailpiece with Rosewood insert 2025 - Polished brass",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "1942 Banner J-45 Reissue Vintage Sunburst Acoustic-Electric Guitar",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "J-200 Studio, Natural, with Gig Bag",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "Tera Grand MFi Headphone Jack Adapter – Certified Lightning to 3.5mm Audio Conve",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics -The Mountain- #391 Authorized dealer",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "DigiTech Ian Black-13 2010s - Chrome electric guitar pedal",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "DigiTech Ian Black-13 2010s - Chrome",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Street EX with protective cover",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "527 500 Series Compressor, Matched Pair consecutive serial numbers",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte brass tailpiece with Galalith Tortoise insert polished Brass 2025 - Polishe",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte Selmer Maccaferri DR tailpiece Polished Brass 2025 - Polished brass",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "1952 J-185 '23",
+      "count": 1
+    },
+    {
+      "brand": "Manley",
+      "model": "Labs VOXBOX Tube Channel Strip 2000s - Silver",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Kramer VT-211S HSS Strat Style Electric Guitar",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Suhr Henderson Signature Classic S 2017 - Present - Seafoam Green",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "L.P. remote drum pedal",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems E4X Emulator 128MB Built-in 2GB SD card",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "c1980s H.S. Anderson '' HS-A1 (Japan, Green, HSC)",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "HP 237 Early 2000’s - Black",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Moonwind 2010s",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Drolo Hogweed V3",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "XA70XA70, Lens Hood, Battery Pack",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "XA65X65, Lens Hood, Battery Pack B",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "XA75XA75, Lens Hood, Battery Pack",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "XA60XA60, Lens Hood, Battery Pack",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "PO-33 K.O!",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "PO-35 Speak",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "PO-24 Office",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "PO-32 Tonic",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "PO-20 Arcade",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "PO-28 Robot",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "PO-16 Factory",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "EP-1320 Medieval",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "Case PO CA-X red",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "BAM ITALIA 3027SC CUSTODIA NEW KING PER CLARINETTO - BLACK CARBON",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "PO-32 Pocket Operator Tonic",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "Vixia HF G40 Full HD Pro Camcorder W/ Microphone, With All Accessories | Big Bun",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Xbase 888 Analog Drums 2000’s - Grey",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "ob 3 drawbar organ expander",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "CUBE XL 15 2010-2012 - BLACK",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "UC200 Ultra Chorus",
+      "count": 1
+    },
+    {
+      "brand": "Manley",
+      "model": "VOX BOX All-Tube Recording Channel-Just serviced!",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "J-200 Studio Acoustic Electric Guitar - Vintage Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "2006 Petros creek FS Custom, Walnut/Cedar",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Clariphonic PAIR 500 Series Parallel Equalizer Module 2010s - Black",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "ultra patch model PX1000 2000’s - Silver",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "composer model MDX2000 2000’s - Silver",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Omega 500 Series Mic Preamp Module",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics Osiris pedal MINT",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Big Apple Stratocaster 1997 - Teal Green Metallic",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Certified Pre-Owned American Professional II Jazz Bass, Rosewood Fingerboard, Me",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Suhr Henderson Signature Classic S - Fiesta Orange",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Guitar Body Strat® Stratocaster® Standard SSS Route SONIC BLUE",
+      "count": 1
+    },
+    {
+      "brand": "Manley",
+      "model": "Labs Enhanced Mono Pultec EQP-1A 2017 Black #2 TGHM",
+      "count": 1
+    },
+    {
+      "brand": "Manley",
+      "model": "Labs Enhanced Mono Pultec EQP-1A 2017 Black TGHM",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "Keeley Rotten OpAmp Fuzz 2010s - White/Black",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Music Messenger Monophonic Analog Keyboard Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Boss GA-FC GA Foot Controller - Floor Control for and Boss amps Restock Deal",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-87jr Large-Diaphragm Condenser Microphone (Black)",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "Percussion 16 inch drum HEAD foam Ring 2000’s - New in package",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "Percussion 14 inch drum head FOAM ring - New in package",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "Hondo Sound 70’s - Black",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "UBK Tweaker",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "UBK Clariphonic",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "Subwoofer Speak SA WG 700 Wireless 2023 - NEW",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "Studio Condensor Microphone B-2 Pro 2002 - silver",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "ARTE MN-56 Mini Red Tiger Iron stone guitar pick 2025 - Polished stone",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "LITTLE PHATTY SYNTH",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "THE ROGUE - VINTAGE SYNTH BASS!!",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems Emulator II 61-Key 8-Voice Sampler Workstation 1984 - 1988 - Black",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "E5000 Ultra Rackmount Sampler",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "500-6B Lunchbox 6-Slot Powered 500 Series Frame 2011 - Present - Black",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Certified Pre-Owned American Vintage II 1966 Jazz Bass Left-Hand, Rosewood Finge",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Tweezer (mini-Tweaker) 2024",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "1942 Banner J-45 Reissue (#256)",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "Meinl 24\" Byzance Dark Big Ride 2004 - Present - Raw",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Clariphonic Channel Parallel Equalizer 2010s - Brown / Black",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "SJ-200 Western Classic Acoustic Vintage Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Aquarian -X Coated Drumhead 16\"",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "E6400 64-Voice Sampler with 64MB RAM/ SD2SCSI HDD/ USB Floppy Emulator",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Aquarian -X Clear Drumhead 12\"",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "MMC 1A Microphone Amplifier and Multiband Compressor 2010s - Blue",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "E-Synth 6903 Polyphonic Digital Synthesiser Sampler Sequencer",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics Osiris -x10751",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic UF1 DAW Controller - Black",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic UC1 DAW Controller - Black",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems Emulator I",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "Hummingbird Custom Koa (#136)",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Dobro Hound Dog Deluxe Roundneck Resonator Guitar",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "WMD Switch Matrix",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "Matrix 6R",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "DSX Digital Polyphonic Sequencer",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "ECM-77B lavalier microphone for UWP UTX Transmitters 3.5 mm Jack, minor repair L",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Computer Monitor - E197FP. Sale Benefits Music Education Nonprofit!",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Street 2007-2014 - Black",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "EP-133 K.O. II Sampler/Sequencer",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "LDC 87 Type Cardioid Condenser Mic, Black",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Aquarian -X Coated Drumhead 12\"",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Aquarian -X Clear Drumhead 13\"",
+      "count": 1
+    },
+    {
+      "brand": "Neumann",
+      "model": "KH 80 DSP Studio Monitor (Single)",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA12 MKII Mic Preamp w/DI (Black)",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-MPX Single-Channel Tube Mic Preamp",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-84-C-N-ST Vintage Condenser Microphone (Pair Black)",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Blues Cube Stage 60-Watt 1x12\" Guitar Combo Amplifier",
+      "count": 1
+    },
+    {
+      "brand": "Neumann",
+      "model": "TLM 102 Condenser Microphone Studio Set (Black)",
+      "count": 1
+    },
+    {
+      "brand": "Neumann",
+      "model": "TLM 102 Condenser Microphone Studio Set (Nickel)",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA273 2-Channel British Mic Pre",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Trigon 6 3-VCO Enhanced Ladder Filter Analog Poly Synth",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Dave Smith Instruments Prophet X Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo X6 Gen 2 Audio Interface With Studio+ Bundle",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo x16D Ultimate+ Rackmount Thunderbolt 3 Audio Interface with Dante",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Urei 1176LN Rev F 1970s – Rare 100% Original",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte Dark Eyes 2003 - Natural",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems E4X Turbo Rackmount 128-Voice Sampler Workstation 1996 (Serviced / Warra",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "Meinl 20\" Byzance Big Ride - USED",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "vovox sonorus direct line Male and female",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Aquarian -X Coated Drumhead 13\"",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Aquarian -X Clear Drumhead 14\"",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "L-12P 1948",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "DSP1124P 24-Bit Dual Engine Digital Feedback Suppressor/Parametric EQ (MINT)",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "Dcx2496 Ultra-High-Precision Digital 24-Bit/96 kHz Loudspeaker (MINT)",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Moonwind mk 2 II analog filter sequencer",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "E4X Turbo",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "5500 Dual 4-Band Equalizer - 2025 - Black (with 5 Year Warranty)",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "500 8-Slot Lunchbox Loaded - 2 channels 512V RND 551",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "V66 mono desk channel 1991 - Blue",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "E4XT Ultra Sampler !",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Vintera II '60s Jazz Bass, Lake Placid Blue with Rosewood Fingerboard, Support S",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics Little Acid Fuzz",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Dove Studio Acoustic Electric - Violin Burst - Mint",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Aquarian -X Coated Power Dot Drumhead 16\"",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems E64 90’s - Black",
+      "count": 1
+    },
+    {
+      "brand": "Manley",
+      "model": "Labs Variable MU Stereo Tube Compressor Limiter Mastering Version",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "SJ-200 Studio Walnut Satin Walnut Burst w/Case",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "LPD8 Laptop Pad Controller",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "Ultra-Curve Pro DSP8024 Digital 24-Bit Dual DSP Mainframe Equalizer 1998-2003",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "DSR-20P DVCAM 1998-2004",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "Stereo Receiver STR-AV320 vintage audio video control center 90s - Black",
+      "count": 1
+    },
+    {
+      "brand": "Canyon",
+      "model": "Electro-Harmonix - White",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "Meinl Cymbals Byzance 24\" Big Dark Ride — Made in Turkey — Hand Hammered B20 Bro",
+      "count": 1
+    },
+    {
+      "brand": "Specialized",
+      "model": "Mint sE Electronics - Portable Acoustic Control Enviornment Filter (RF-Space)",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "Mint WA12 MKII Classic 312-Style Analog Microphone Preamp Black",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "Mint WA-251 Tube Condenser Mic",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "527 compressor for sys 500 for sale",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "MUSIC Mother-32",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Aquarian -X Coated Power Dot Drumhead 13\"",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "CUBE-40GX 3-Channel 40-watt 1x10\" COSM Combo Amp with FX",
+      "count": 1
+    },
+    {
+      "brand": "Canyon",
+      "model": "Electro-Harmonix Delay / Looper",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Tweaker Single-Channel Discrete VCA Compressor - Brown / Black",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Decksaver Alpha Base Cover - Cover for Keyboards",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems E64 Rackmount 64-Voice Sampler Workstation 1996 - Black (Serviced / Warr",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "SSCSE Dolby Atmos Enabled Speakers, Black (Pair), 4 Inch (Pack of 2)",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "Rupert Designs RNDI-8 Eight-Channel DI Direct Box",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Decksaver Alphabase Cover",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "PE 1C Program Equalizer - Vintage 1990's",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "American Professional Classic Jazz Bass, Rosewood Fingerboard, Faded Firemist Go",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Used J-45 EC Studio Factory 2nd - Vintage Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "HP 665 SB",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "Rupert Designs RNDI-M Active Transformer Direct Interface 2-Pack Bundle",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "HH LK-150 Tube Stereo Power Amplifier (1961) * Fully Serviced * Manual and Schem",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Decksaver Alphabase MKI/Alphabase MKII/Xbase999/Xbase888 Dust Cover",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems Emulator III Rackmount 16-Voice Sampler Workstation - Black",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "CD 300 1980s",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "USA American 75th Anniversary Jazz Bass",
+      "count": 1
+    },
+    {
+      "brand": "Manley",
+      "model": "Labs Massive Passive Stereo Tube Equalizer 2000s - Purple",
+      "count": 1
+    },
+    {
+      "brand": "Manley",
+      "model": "Labs SLAM! Stereo Limiter & Mic Pre 2010s - Purple",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Mexico Standard Jazz Bass Black 1997 Pre-Owned",
+      "count": 1
+    },
+    {
+      "brand": "Neumann",
+      "model": "U 87 AI 3 Pattern Large Diaphragm Studio Condenser M",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "CUBE Street EX 50-watt 2 x 8-inch Guitar Amplifier, Help Indie Music Shops, Buy ",
+      "count": 1
+    },
+    {
+      "brand": "Elektron",
+      "model": "stand - Double, Walnut",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "AirBase99 1999",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-84 Microphone Stereo Pair-Nickel *USA Small Business*",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA 84 Microphone-Black *USA Small Business*",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic UF1 DAW Controller - (B-STOCK) TOURACK",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "69 Telecaster® Tele® Pickguard 3 Ply - White [L53]",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Xbase 999",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems E-SYNTH ULTRA MODEL 6841",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "EQ-200 Graphic Equalizer Guitar Effect Pedal",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "Bass Station II Analog Synthesizer Swifty Edition",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Prophet-10 Desktop Module Restock Deal",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Take 5 Compact Poly Synthesizer Desktop Module",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "TEO-5 Desktop Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "ECM-MS908C microphone 2000 - silver",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "525 500 Series Compressor / Limiter Module 2000 - Present - Black",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Custom Shop 1959 Precision Bass Journeyman Relic Lake Placid Blue",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "LX-MU500 2019 - NATURALE",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Tweaker Sidechain Shaping Compressor #0762 (Used)",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "L4C 1956 - Blonde - OHSC",
+      "count": 1
+    },
+    {
+      "brand": "Elektron",
+      "model": "Analog Rytm MKII",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "Launchpad Pro [MK3]",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "KC-400 Keyboard Amp",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "Launch Control XL 3 (60mm Fader, USB, MIDI Controller) with Ableton Live 12 Lite",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "Launchkey 49 Mk4 White (49-Key USB/MIDI Controller) [Free PLAY Software Download",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "Launchkey Mini 37 Mk4 White (37-Key Mini USB MIDI Controller) [Free PLAY Softwar",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "(Solid State Logic) 18 (26-in, 28-out USB Audio Interface) () (DTM) ( 18)",
+      "count": 1
+    },
+    {
+      "brand": "Neumann",
+      "model": "M 49 V Set (Japan Domestic Model, 3-Year Warranty) (Made-to-Order) (Condenser Mi",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "Launchkey 88 MK3 (88-Key USB MIDI Controller/Keyboard) [NKS Compatible] [Free Ko",
+      "count": 1
+    },
+    {
+      "brand": "Neumann",
+      "model": "KM185 mt Stereo Set (Supercardioid) (Black) (Official Japanese Product, 3-Year W",
+      "count": 1
+    },
+    {
+      "brand": "Neumann",
+      "model": "KM185 Stereo Set (Supercardioid) (Nickel) (Official Japanese Product, 3-Year War",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "(Solid State Logic) UC1 ( native plug-in controller) (Official Japanese Product)",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "529 (Stereo Compressor for 500 Series Modules) ( 500 Series) [Official Japanese ",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "(Solid State Logic) 500 Series VHD Preamp (API500 Series) (Official Japanese Pro",
+      "count": 1
+    },
+    {
+      "brand": "Neumann",
+      "model": "TLM102 BK Studio Set (with shock mount) (3-year domestic warranty) (Black) (TLM1",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "PROPHET 10 KEYBOARD : OPEN BOX : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "TM300 TUBE AMP MODELER PEDAL : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "HDS DPX-1 vintage sampler back panel expansion Emuser EMXP",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "Cube Street II 2-Channel 10-Watt 2x6.5\" Battery-Powered Guitar Combo (2025) - Bl",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "HLT 2A Stereo Hi and Lo Shelving Equalizer 2010s - Blue",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "J-45 Standard - Translucent Teal",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Airbase 99 Battery Replacement Airbase99 analog drum machine",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "SS-CS5 is a 3-way, 3-driver bookshelf speaker (this is for 1 speaker only) 2000 ",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "VFE 2010s",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "S3000XL EB16 IB-208P",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "MPK Mini Plus 37-Key MIDI Controller (w/Analog Cases PULSE Case) - NEW",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "Pair of Marinair Transformers Marinair Transformers from an 8816 Summing Mixer",
+      "count": 1
+    },
+    {
+      "brand": "Lenovo",
+      "model": "Ideacentre B5-series Desktop Computer - High Performance, Compact Design - Very ",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo x8 Heritage Edition Thunderbolt 3 Audio Interface 2020 - Present - Gray",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "JC-120 Jazz Chorus Combo Amp - AS IS NEEDS REPAIR",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "AMS 8801 Channel Strip 2010s - Blue",
+      "count": 1
+    },
+    {
+      "brand": "BAE Audio",
+      "model": "312B Module",
+      "count": 1
+    },
+    {
+      "brand": "BAE Audio",
+      "model": "312A Module for 500 series",
+      "count": 1
+    },
+    {
+      "brand": "BAE Audio",
+      "model": "1073D Module for 500 series",
+      "count": 1
+    },
+    {
+      "brand": "BAE Audio",
+      "model": "1073 MPL",
+      "count": 1
+    },
+    {
+      "brand": "BAE Audio",
+      "model": "1073 19\" 1RU rack w/power supply",
+      "count": 1
+    },
+    {
+      "brand": "BAE Audio",
+      "model": "1073MP dual channel w/power supply",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Jackson Ian KVXT - Black",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Emulator III Memory Expansion Upgrade 8mb EIII E3 1987 Emu 3",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "ECHBR0HSGH 1960 Hummingbird Reissue Acoustic/Electric Guitar with Hardshell Case",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Moonwind MK2",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "ModFM Eurorack",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Mod FM Desktop",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Alpha Base MK2",
+      "count": 1
+    },
+    {
+      "brand": "Canyon",
+      "model": "Electro-Harmonix Delay & Looper Effects Pedal - Authorized Dealer",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "PM-1 V-Drum Personal Keyboard Monitor Speaker Amplifier PM1",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "PO-35 Speak Pocket Operator Vocal Synth & Sequencer",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "PO-16 Factory Pocket Operator Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "C-800G Vacuum Tube Condenser Microphone w/ Power Supply",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo x16D Ultimate+ 18 x 20 Audio Interface with Dante I/O and UAD DSP",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo Twin X DUO Gen 2 Thunderbolt Audio Interface with Studio+ Bundle",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo x8p Gen 2 Thunderbolt Audio Interface with Essentials+ Bundle",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo Twin X QUAD Gen 2 Thunderbolt Audio Interface with Studio+ Bundle",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo Twin X QUAD Gen 2 Thunderbolt Audio Interface with Essentials+ Bundle",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo x6 Gen 2 Thunderbolt Audio Interface with Essentials+ Bundle",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo x16 Gen 2 Thunderbolt Audio Interface with Ultimate+ Bundle",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-87jr SE Large-Diaphragm Cardioid Condenser Microphone",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-47jr SE Black Large-Diaphragm Cardioid Condenser Microphone",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "Mint SJ-200 Studio Walnut Gloss Top Walnut Burst w/case",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "Mint Everly Brothers J-180 Ebony w/case",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "Acoustic Custom Shop 1936 Advanced Jumbo Vintage Sunburst 4.30 lbs",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "PROFESSIONAL FIRE PAD CONTROLLER FOR FL STUDIO : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "VP1 AUTHENTIC VINTAGE-STYLE PHASE SHIFTER : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "Panel Tact Switches Full Set Of 19 for Matrix 6 6R Parts Repair Vintage Synth Pu",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "Custom Historic Pre-War SJ-200 Rosewood Murphy Lab Light Aged (#021)",
+      "count": 1
+    },
+    {
+      "brand": "Manley",
+      "model": "Labs ELOP Dual Channel Electro-Optical Leveling Amplifier / Compressor",
+      "count": 1
+    },
+    {
+      "brand": "Elektron",
+      "model": "Analog Keys 2010s - Black",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "AX73 w/ Stereoping Controller and Tauntek OS Firmware CPU",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Guitar Neck Tele® Telecaster® 22 Fret Roasted Flame Maple With Rosewood Fingerbo",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Guitar Neck Strat® Stratocaster® 22 Fret Roasted Flame Maple With Rosewood Finge",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Guitar Body F Hole Semi Hollow Tele® Telecaster® Unfinished Spalted Top With Bin",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Guitar Body Tele® Telecaster® Unfinished Spalted Top With Binding Standard Route",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Guitar Body Strat® Stratocaster® Standard SSS Route Shielded Cavities - Capri Or",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Guitar Body Strat® Stratocaster® Standard SSS Route Shielded Cavities - Metallic",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard J Bass® Jazz Bass® Pickguard 3 Ply 10 Hole Black [L48]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard J Bass® Jazz Bass® Pickguard 3 Ply 10 Hole Cream [L46]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard J Bass® Jazz Bass® Pickguard 3 Ply 10 Hole Mint Green [L45]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard J Bass® Jazz Bass® Pickguard 3 Ply 10 Hole Brown Tortoise [L44]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard P Bass® Precision Bass® Pickguard 3 Ply 13 Hole Black Pearl [L50]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard P Bass® Precision Bass® Pickguard 3 Ply 13 Hole Cream [L41]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Back Plate 3 Ply 6 Hole - Cream [L38]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Back Plate 3 Ply 6 Hole -Oyster Pearl [L36]",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Jackson Ian KVXT Black Anthrax Flying V 2025",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Back Plate 3 Ply 6 Hole -Parchment [L34]",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "1942 Banner J-45 Reissue (#155)",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Back Plate 3 Ply 6 Hole Brown Tortoise [L33]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Back Plate 3 Ply 6 Hole Red Tortoise [L32]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Pickguard 3 Ply 11 Hole HH Humbucker Humbucker Cre",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Pickguard 3 Ply 11 Hole HH Humbucker Humbucker Whi",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Pickguard 3 Ply 11 Hole SSS Single Single Single P",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Pickguard 3 Ply 11 Hole SSS Single Single Single B",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Pickguard 3 Ply 11 Hole SSS Single Single Single W",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Pickguard 3 Ply 11 Hole SSS Single Single Single C",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Pickguard 3 Ply 11 Hole SSS Single Single Single M",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Stratocaster® Strat® Pickguard 3 Ply 11 Hole SSS Single Single Single R",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Telecaster® Tele® Pickguard 3 Ply 8 Hole - Cream [L13]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Telecaster® Tele® Pickguard 3 Ply 8 Hole - Brown Tortoise [L11]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Telecaster® Tele® Pickguard 3 Ply 8 Hole - Red Tortoise [L10]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Telecaster® Tele® Pickguard 3 Ply 8 Hole - Mint Green [L9]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Telecaster® Tele® Pickguard 3 Ply 8 Hole - Black [L7]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Standard Telecaster® Tele® Pickguard 3 Ply 8 Hole - White [L6]",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Telecaster® Tele® Pickguard 3 Ply 8 Hole With Humbucker Neck Pickup Opening - Pa",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "1960 Hummingbird Reissue Acoustic-Electric Guitar- Heritage Cherry Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "STR-DE335 is a 5.1 channel receiver 90s - Black",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "HDS DPX-1 vintage sampler complete USB to PC Mac adapter like Emuser EMXP",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "MZ-R501 Minidisc 1989",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "Custom Historic 1957 SJ-200 Murphy Lab Light Aged - VS (#015)",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Jackson X Series Signature Ian King V KVXT Electric Guitar - Gloss Black",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "rose sticker rose sticker 2025",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "TEO-5 Analog Synth Desktop Module",
+      "count": 1
+    },
+    {
+      "brand": "Canyon",
+      "model": "Electro-Harmonix (Brand New) *Free Shipping*",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems E6400 Emulator Rackmount 64-Voice Sampler Workstation 1996 + Lots of Ext",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "VOCODER VC340 : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "297 DUAL PORTAMENTO/CV UTILITIES : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "150 RING MOD/NOISE/S&H/LFO : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Used CUBE LITE Solid State Guitar Combo",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "EF 1:2/35mm",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Oberheim TEO-5 Desktop Module - 5-Voice VCO/VCF-based Polysynth [Three Wave Musi",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "L-7C 1954 - Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "OB-X8 Keyboard - Refurbished",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Pro 3 - Refurbished",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Prophet-6 Keyboard - Refurbished",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Take 5 Synthesizer - Refurbished",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Prophet Rev2 16-voice Keyboard - Refurbished",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Limited Edition Laura Lee Jazz Bass Vintage White",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "CE-3 Chorus Pedal (1987 – Made in Japan) 1987",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "OD-2 Turbo OverDrive – Vintage 1986 – Made in Japan with the box 1986",
+      "count": 1
+    },
+    {
+      "brand": "Propellerhead",
+      "model": "Reason 3.0.1 2005",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Pawn Shop Bass VI Candy Apple Red 2013",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "L7C Black 1950",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte Stringphonic Basic 503 2023 #1025 (Gypsy Jazz, Manouche, Django, Selmer sty",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "STR-D711 is an AM/FM stereo receiver with Dolby Pro Logic and 5.1 channel 90s - ",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "1958 Precision Bass, old blue refin",
+      "count": 1
+    },
+    {
+      "brand": "HP",
+      "model": "2140 N/A - Grey",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Gypsy guitar Arte USA Favino Hommage 2006 by John Kinnard",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "K.Yairi CTM Engelmann Spruce / Indian Rosewood [Ikebe Original Order Model]",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Suhr Henderson SS Classic 2017 - Seafoam Green (COD 1939UG)",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "JC-40 - Jazz Chorus Guitar Amplifier",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "AC-33 Acoustic Chorus Guitar Amplifier 30w",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems Emulator II Floppy Disk Drives",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "PB100 Preamp Preamp/Booster Pedal Pre-Owned",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "FLKEY 37 : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "TAKE 5 DESKTOP MODULE : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Manley",
+      "model": "Labs Reference Cardioid Large Diaphragm Tube Condenser Microphone 2010s - Black",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "RUPERT DESIGNS RNDI Active Transformer Direct Interface",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "CUBE Street II Battery-Powered Stereo Guitar Amplifier Black Tolex",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Trigon-6 3-VCO Enhanced Ladder Filter Analog Poly Synth",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Prophet-5 - Legendary 5-voice Analog Poly Synth",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Prophet-6 - 6-Voice Polyphonic Analog Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "MUSIC Labyrinth",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "MUSIC Theremini",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "OB-X8 Analog Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Oberheim - OB-6 by - 6-Voice Polyphonic Analog Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "GT-1000 Guitar Effects Processor",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "MD200 Modulation",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "MD-500 Modulation",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "GEB7 Bass Equalizer",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "PS6 - Harmonist",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "RV-200 - Reverb",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "SDE-3 Dual Digital Delay",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "BF-3 Flanger",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "OB-XA Walnut Replacement Wood Sides (BLACK)",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA73-EQ British Mic Pre *USA Small Business*",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Player Jazz Bass with Maple Fretboard 2018 - 2024 - Tidepool",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "OB-XA Solid Walnut Replacement Wood Sides",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "OB-SX Solid Walnut Replacement Wood Sides",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "Launchkey 37 [MK4] - Brand New",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Used JC 22",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "Canadian Made Les Paul Special Single Cut Case NEW Les Paul Special",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "550B 500 Series 4-Band Equalizer Module 1990 - Present - Black",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "Microphone À Condensateur À Petite Membrane - Nickel",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Minitaur Analog Bass Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Take 5 Polyphonic Desktop Synthesizer Module",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Street EX PA Pack 2016 - 2017 - Black",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "SMC-2B Stereo Multiband Compressor 2010s - Blue",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "Select T25 Tube Compressor 2021 - Present - Blue",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "1967 L-4C Sunburst RARE L4 Archtop Hollowbody Carved Top ES-175 American Vintage",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "headphones modification Xba-300ap+ mdr-xb300 2011 - 2015",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "IR-2 AMP & CABINET PEDAL",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "TEO-5 : B-STOCK : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "ST-JX2L FM Stereo AM/FM Tuner 1982 - Silver",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Grandmother Semi-Modular Analog Synthesizer and Step Sequencer",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo x16 Gen 2 Rackmount Audio Interface-Essentials *USA Small Business*",
+      "count": 1
+    },
+    {
+      "brand": "Neumann",
+      "model": "N 149 A US - Black Power Supply M149 and M147",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Kramer VT-211S 2010s - Ruby Red",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "A1 & AE1 Bundle 1970’s - Black. Black & Silver",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "J-45 Aged Vintage Sunburst Gloss (050)",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "LPK25 Laptop Midi Keyboard",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "MPC Mini MK2 Midi Controller",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "APC Key 25",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "Launchkey Mini 25 MKIV Keyboard Controller",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "Media 40 USB Powered Studio Monitors",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "Launchkey Mini 37 MKIV Keyboard Controller",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "Launchpad X Grid Controller for Ableton Live",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "TEO 5 Compact Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "OB-X8 KEYBOARD SYNTHESIZER",
+      "count": 1
+    },
+    {
+      "brand": "HP",
+      "model": "Land Devices -2 April Fools Limited Edition",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Inspired by Gibson Masterbilt Hummingbird - Aged Cherry Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Volt 476P USB Audio Interface",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "STR-DH550 5.2-channel home theater receiver 2000 - Black",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "J-45 Studio Rosewood Acoustic Guitar; Satin Natural",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "LaunchKey 25 Keyboard Controller MK4",
+      "count": 1
+    },
+    {
+      "brand": "Novation",
+      "model": "LaunchKey 37 Keyboard Controller MK4",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "MUSIC Muse",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "MUSIC Spectravox",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "EP-133 K.O. II",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "PO-12 Rhythm",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "PO-14 Sub",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "200 series w 8 213 pre’s 2018 - Black",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Vintera 60s Jazz Bass Daphne Blue - 0149633304",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Suhr Henderson Signature Series Classic S Fiesta Orange",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Grandmother Semi-Modular Analog Synthesizer and Step Sequencer with 32 Full-Size",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Kramer VT-211S 2010s - Pewter Grey",
+      "count": 1
+    },
+    {
+      "brand": "Canyon",
+      "model": "Electro-Harmonix Delay and Looper Pedal",
+      "count": 1
+    },
+    {
+      "brand": "SSL",
+      "model": "Solid State Logic 12 12-In and 8-Out USB Audio Interface with Studio-Quality Aud",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "E.W.S. 2 Bass Mid Control 2 2010s - Green",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "L-50 (30-40s) F-Hole Sunburst - Fair",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Muse 8-voice Polyphonic Analogue Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "LCA 2B Stereo Tube Compressor / Limiter",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo x6 Gen 2 Thunderbolt Audio Interface - Studio+",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Lite 2-Channel 10-Watt 2x3\" Guitar Combo Practice Amp 2014 - Present - Blac",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems EIII-XP 1992 - Noir",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "L-7C SUNBURST de 1961",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "SJ-200 Standard Rosewood - Rosewood Burst",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Cube Lite 2-Channel 10-Watt 2x3\" Guitar Combo Red w/ Power Supply",
+      "count": 1
+    },
+    {
+      "brand": "Neumann",
+      "model": "U 87 Rhodium Edition Set – 50th Anniversary Limited Edition (Serial No. 176/500)",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Hummingbird All Solid Wood Fishman Sonitone Aged Cherry Sunburst Gloss (677)",
+      "count": 1
+    },
+    {
+      "brand": "Boss",
+      "model": "BF-1 Flanger (s/n 947600, Vintage, Reticon SAD1024 Chip)",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Drolo Hogweed V4 2024 - Present - White",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "Bam New king Tenor Sax Case - 3022S-3022SC - Black Carbon",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Alpha Base",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "E5000 Ultra UPGRADED - with SSD and over 150 CD-s on it",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Kramer VT-211S 2010s - Teal",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "Percussion Drum Hardware Kit - New",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "Parts - Lote",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Mini Voyager Old School - Voyager OS",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "MDX1200 Autocom Audio Interactive Dynamics Processor",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Slim Phatty",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "ULTRALINK PRO MX882 Ultra-Flexible 8 Channel Splitter Mixer",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "Meinl 20\" Byzance Dark Big Dark Ride - 1945g (video demo)",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "Percussion Drum head foam ring - #UPDHF- 16",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "STR-AV770 FM Stereo/FM-AM Receiver 90s - Black metal",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "18 Way Connector Male Amphenol 18 pin 1073 133-018-21",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "MPK MINI MK III Clavier maître 25 touches",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "CR-N500 (BLACK)Indoor PTZ, 4K UHD, 1\" Sensor,",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "Canadian Made Case for Les Paul Les Paul - Faux tooled leather trim tolex",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Messenger Mono Analog Synth keyboard",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Standard Precision Bass - Black Laurel Fingerboard",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems Emulator III - SUPERB !!!",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "B518 Cards - Pair - Good Condition",
+      "count": 1
+    },
+    {
+      "brand": "Lenovo",
+      "model": "12X2S00010ThinkSmart SP Core Gen 2 Logi",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Caparison inger Bass Prototype",
+      "count": 1
+    },
+    {
+      "brand": "Canyon",
+      "model": "EHX Delay and Looper Pedal",
+      "count": 1
+    },
+    {
+      "brand": "De Rosa",
+      "model": "USA 38\" Acoustic Guitar Complete Package",
+      "count": 1
+    },
+    {
+      "brand": "HP",
+      "model": "Peavey -2 Poplar Burl RM 2023 - Present - Transparent Black",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Limited Edition Player Plus x Blu DeTiger Jazz Bass w/ Gig Bag - Sky Burst Spark",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "uonron audio Rack Ear Kit for Current Model 500-6B / 500-8B Lunchbox",
+      "count": 1
+    },
+    {
+      "brand": "Lenovo",
+      "model": "12BW0004USThinkSmart SP One+IP Cntrl t W",
+      "count": 1
+    },
+    {
+      "brand": "Apple",
+      "model": "Meinl Stick & Brush SB124 Big Swing 5B Maple Drum Sticks",
+      "count": 1
+    },
+    {
+      "brand": "Leica",
+      "model": "Thypoch Simera-C T1.5 Cine 5-Lens Kit for M Mount",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Pilgrim 2025 - Tobacco Burst Satin",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "C-100 x2 ECM -100U x 2 ECM-100N x 2 2015 ish - Black",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Subsequent 37",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "STR-DE1075 A/V receiver with Dolby® Digital, DTS, and 6.1 decoding 90s - Black m",
+      "count": 1
+    },
+    {
+      "brand": "Canyon",
+      "model": "Electro-Harmonix Delay And Looper Effects Pedal",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Vintage RS250 AM/FM Stereo Synthesized Receiver 1989 - Black metal",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "Calzone OB-Xa Custom Road Case",
+      "count": 1
+    },
+    {
+      "brand": "Kush Audio",
+      "model": "Omega - Mic Pre 500-Series Module",
+      "count": 1
+    },
+    {
+      "brand": "Manley",
+      "model": "Labs SLAM! Mastering Version 2010s - Purple",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics Massif 2010s - Black",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "A-SWD5WB2 (W)-CRUniversal Wall Mount Bracket (",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "Bam New king Single Bb Clarinet Case - 3027S-3027SA - Brushed Aluminum",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "Bam New king Single Bb Clarinet Case - 3027S-3027SC - Black Carbon",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "Bam New king Alto Sax Case - 3021S-3021S - Silver Carbon",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "Bam New king Alto Sax Case - 3021S-3021S - Brushed Aluminum",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "Bam New king Alto Sax Case - 3021S-3021S - Black Carbon",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "Bam B STOCK New king Bb & A Double Clarinet Case - 3028S-B STOCK - Brush Aluminu",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "Bam France New king Double Trumpet Case - 3024S-3024SC - Black Carbon",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "Bam France New king Bb & A Double Clarinet Case-3028SA - Brush Aluminum",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Catalinbread Soft Reverb Pedal",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "RC-IP1000Full-featured Remote Camera Co",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "RC-IP100Remote Camera Controller, 7\" D",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "CR-N700 (BLACK)Indoor PTZ, 4K UHD, 1\" Sensor,",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "CR-N100 (WHITE)Indoor PTZ, 4K UHD, 1/2.3\" Sen",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "CR-N500 (WHITE)Indoor PTZ, 4K UHD, 1\" Sensor,",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "CR-N300 (WHITE)Indoor PTZ, 4K UHD, 1 / 2.3\" S",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "A-SWD5WB2 (B)-CRUniversal Wall Mount Bracket (",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "A-RMB7 (W)Universal Wall Mount Bracket (",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "CR-N300 (BLACK)Indoor PTZ, 4K UHD, 1 / 2.3\" S",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "A-RMB7 (B)Universal Wall Mount Bracket (",
+      "count": 1
+    },
+    {
+      "brand": "Canon",
+      "model": "CR-N100 (BLACK)Indoor PTZ, 4K UHD, 1/2.3\" Sen",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Rare Tinted Custom Shop Jaco Pastorius Tribute Jazz Bass Relic 1999 - 2019 - 3-C",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "Blues Cube Artist 2-Channel 80-Watt 1x12\" Guitar Combo 2015 - Present - Tweed",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "CS 1934 Jumbo Vintage Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "AVU-270 Audio Video Control Center 1991 - Black metal",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "SJ-200 Studio, Satin Natural",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "ProMark TXDC17W Johnson Hickory Drumstick, Wood Tip",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "Bam France New king Single Trumpet Case - 3023S-Black Carbon - 3023SC",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Suhr Henderson Signature Classic S 2024Seafoam Green",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Standard Jazz Bass - Olympic White",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics Big Fuzz Black Russian Fuzz Pedal",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "OCTAVE DIVIDER : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Lenovo",
+      "model": "30H00013US ThinkStation P3 - tiny",
+      "count": 1
+    },
+    {
+      "brand": "Trek",
+      "model": "Copilot FX pulse width modulator fuzz with clean blend pwm pedal",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Suhr Henderson Signature Classic Electric Guitar Fiesta Orange 83249",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems Emulator III XPS Rackmount 32-Voice Sampler Workstation 1993 - Black",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems E6400 Emulator 64-Voice Sampler output expanded",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Standard Precision Bass - Black",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "Standard Precision Bass - Olympic White",
+      "count": 1
+    },
+    {
+      "brand": "HP",
+      "model": "ART -1 Personal Monitor Headphone Amplifier",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-19B 60’s Vintage Style Dynamic Microphone Black",
+      "count": 1
+    },
+    {
+      "brand": "Universal Audio",
+      "model": "Apollo x8 Thunderbolt 3 Audio Interface 2018 - Present - Black",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "American Vintage II 1954 Precision Bass - Two Color Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Songmaker Dr-212 12 String Natural",
+      "count": 1
+    },
+    {
+      "brand": "Canyon",
+      "model": "Electro-Harmonix Delay & Looper Pedal",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "SR Series Case: Matriarch",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems Emulator III sampler original brochure",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Arte Dark Eyes 2002 - Natural",
+      "count": 1
+    },
+    {
+      "brand": "Fender",
+      "model": "American Professional II Jazz Bass Rosewood Fingerboard Olympic White (295)",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Systems 1820 Creative 1820 Master-Level Recording System EM8840 Music system - D",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "Xpander - NO Matrix 12 ✅PERFECT✅️US Version ✅ Rare Synthesizer ✅ORIGINAL STATE ✅",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Airbase99 (serviced / warranty)",
+      "count": 1
+    },
+    {
+      "brand": "Bmc",
+      "model": "Empress 2025 - Tobacco Burst Natural",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "DUAL-PHASE : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Frost Electronics Massif",
+      "count": 1
+    },
+    {
+      "brand": "HP",
+      "model": "Peavey \"Wolfgang\" -2 Poplar Burl RM Electric Guitar - Transparent Blue",
+      "count": 1
+    },
+    {
+      "brand": "HP",
+      "model": "Peavey Signature Series",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "OB-X8 61-Key 8-Voice Synthesizer 2022 - Present - Black with Wood Sides",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "2008 Walker Special Cocobolo Top",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Alphabase",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "SHEP STYLE 1081 COPY 1970'S 1980'S - RAF",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "B-25/12 1963",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "CL 1A Vintage Compressor !",
+      "count": 1
+    },
+    {
+      "brand": "E-mu",
+      "model": "Original Floppy Disk Drive for Emulator II Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Elektron",
+      "model": "PROTECTIVE LID PL-2S : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Caparison inger Prominence EF 2019 - Present - Transparent Spectrum Red",
+      "count": 1
+    },
+    {
+      "brand": "Giant",
+      "model": "Paiste Beat 24\" Crash Ride",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "110 VCO/VCF/VCA : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "PROTON : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Propellerhead",
+      "model": "Balance 2010's - Good Condition",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "J-45 EC (All Solid Wood; Fishman Presys-II); Aged Vintage Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Suhr Henderson Signature model HSH 2002 - Shell Pink",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "MS-5 : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "MUSE : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Oberheim",
+      "model": "OB-X8 Desktop Module Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-67 Tube Condenser Microphone",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-47F Large Diaphragm FET Condenser Microphone",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA273EQ Two Channel 1073 Style Preamp w/EQ",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Prophet-5 Desktop Module",
+      "count": 1
+    },
+    {
+      "brand": "Sequential",
+      "model": "Take 5 Compact Polyphonic Analog Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Neumann",
+      "model": "KMS 105 Condenser Microphone (Matte Black)",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Music Mother 32 Desktop Module Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "SJ-200 Studio Walnut Gloss Top Walnut Burst w/case",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "J-45 Studio Walnut Gloss Top Walnut Burst w/case",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "Canadian Made Les Paul Double Cut Special Les Paul Double Cut Special",
+      "count": 1
+    },
+    {
+      "brand": "Roland",
+      "model": "CUBE Street EX 2x8\" 50-watt AC and Battery Powered Portable Guitar Combo Amplifi",
+      "count": 1
+    },
+    {
+      "brand": "API",
+      "model": "525 Mono Compressor - 500-Series Module",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA87 Large-Diaphragm Classic Condenser Microphone - Black Edition",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Labyrinth Semi-modular Parallel Generative Analog Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Subharmonicon Semi-Modular Polyrhythmic Analog Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "MUSIC Subsequent 25",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "SJ-200 Studio Rosewood - Natural",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-1B",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-2MPX",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-CX12",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-8000",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-87 R2 BLACK",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-84 Black",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-84 Nickel",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-44",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-19B",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-47T",
+      "count": 1
+    },
+    {
+      "brand": "Warm Audio",
+      "model": "WA-19N",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "RUPERT DESIGNS 5035 Shelford Channel",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "RUPERT DESIGNS 5025 Dual Shelford Mic Pre",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "RUPERT DESIGNS RNHP Precision Headphone Amplifier",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "RUPERT DESIGNS 5017 Mobile Pre/DI/Compressor con Variphase",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "RUPERT DESIGNS RNDI-8 Canali Active Transformer Direct Interface",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "RUPERT DESIGNS 511 Mic Pre con Swept HPF, Variable Silk",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "RUPERT DESIGNS 517 Mic Pre/DI/Compressore con Variphase",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "RUPERT DESIGNS 535 Diode Bridge Compressor",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "RUPERT DESIGNS 551 Inductor EQ",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "RUPERT DESIGNS R6 Six Space 500 Series Rack",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "RUPERT DESIGNS 5211 2-Channel Mic Pre",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "Professional FIRE",
+      "count": 1
+    },
+    {
+      "brand": "Behringer",
+      "model": "Truth B2030A",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Walker Guitars Katana Solid Rosewood (813)",
+      "count": 1
+    },
+    {
+      "brand": "Scott",
+      "model": "Walker Guitars Katana Flamed Mahogany, Pernambuco Neck (764)",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "18 Way Connector Female Amphenol 18 pin 1073 143-018-01",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "U3219Q 2021 - black and silver",
+      "count": 1
+    },
+    {
+      "brand": "Teenage Engineering",
+      "model": "TRIPOD MINI : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Lenovo",
+      "model": "‎Newest Flagship Chromebook 2024 -",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "J-45 Standard Left Handed Vintage Sunburst",
+      "count": 1
+    },
+    {
+      "brand": "Tube-Tech",
+      "model": "CL 1B Compressor - New in Box - Warranty",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "Muse 8-Voice Polyphonic Analog Synthesizer",
+      "count": 1
+    },
+    {
+      "brand": "Focus",
+      "model": "Kramer VT-211S, Purple",
+      "count": 1
+    },
+    {
+      "brand": "Gibson",
+      "model": "Southern Jumbo Original (#028)",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "CD3000 CD3000i MIDI interface",
+      "count": 1
+    },
+    {
+      "brand": "Akai",
+      "model": "CD3000 CD 3000i SCSI Board + disk controller board",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "AJ220S Acoustic Guitar",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "J-180 LS - Ebony",
+      "count": 1
+    },
+    {
+      "brand": "Lenovo",
+      "model": "IdeaPad 3i Chromebook 15.6\" FHD Intel Celeron Laptop - 4GB Memory with 64GB eMMC",
+      "count": 1
+    },
+    {
+      "brand": "Elektron",
+      "model": "DIGITONE II : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Jomox",
+      "model": "Mod FM 8-Voice FM Synthesiser Module",
+      "count": 1
+    },
+    {
+      "brand": "Dell",
+      "model": "Caparison inger Prominence MF 2019 - Present - Transparent Spectrum Red",
+      "count": 1
+    },
+    {
+      "brand": "Epiphone",
+      "model": "Songmaker DR-100 Acoustic Ebony",
+      "count": 1
+    },
+    {
+      "brand": "Canyon",
+      "model": "Electro-Harmonix",
+      "count": 1
+    },
+    {
+      "brand": "Sony",
+      "model": "ECM-DS70P Electret Condenser Microphone",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "COLLECTOR VINTAGE 5442 / 5432 SERIES 54 CONSOLE MIXER - 8 x 34128 CHANNEL STRIP ",
+      "count": 1
+    },
+    {
+      "brand": "Elektron",
+      "model": "USB-2 CABLE USB-A TO MICRO USB-B : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    },
+    {
+      "brand": "Neve",
+      "model": "9098 Console Manual 9098 analog era - white binder",
+      "count": 1
+    },
+    {
+      "brand": "HP",
+      "model": "2021 Peavey -2 - Deep Ocean",
+      "count": 1
+    },
+    {
+      "brand": "Moog",
+      "model": "MAVIS : BRAND NEW : [DETROIT MODULAR]",
+      "count": 1
+    }
+  ]
+}
