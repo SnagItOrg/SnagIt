@@ -104,6 +104,11 @@ export const translations = {
     signIn: 'Log ind',
     noPasswordNeeded: 'Vi sender dig et link — intet password nødvendigt.',
     checkEmailToSave: 'Klik linket i mailen for at gemme din overvågning.',
+    watchlistTeaserHeading: 'Se dine kup her',
+    watchlistTeaserSubtext: 'Opret en gratis overvågning og få besked når prisen er rigtig.',
+    watchlistTeaserCta: 'Kom i gang — det er gratis',
+    savedTeaserHeading: 'Gem annoncer og følg priserne',
+    savedTeaserCta: 'Opret gratis konto',
     categoryNames: {
       'music-gear':    'Musik',
       'danish-modern': 'Dansk Design',
@@ -215,6 +220,11 @@ export const translations = {
     signIn: 'Log in',
     noPasswordNeeded: 'We\'ll send you a link — no password needed.',
     checkEmailToSave: 'Click the link in the email to save your watchlist.',
+    watchlistTeaserHeading: 'See your deals here',
+    watchlistTeaserSubtext: 'Create a free watchlist and get notified when the price is right.',
+    watchlistTeaserCta: 'Get started — it\'s free',
+    savedTeaserHeading: 'Save listings and track prices',
+    savedTeaserCta: 'Create free account',
     categoryNames: {
       'music-gear':    'Music',
       'danish-modern': 'Danish Design',

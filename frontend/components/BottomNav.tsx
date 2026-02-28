@@ -1,21 +1,69 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useLocale } from '@/components/LocaleProvider'
+import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 // Kept for SideNav compatibility
 export type NavTab = 'hjem' | 'overvaagninger' | 'soeg' | 'gemt' | 'profil'
 
 export function BottomNav() {
   const pathname = usePathname()
-  const { t }   = useLocale()
+  const router   = useRouter()
+  const { t }    = useLocale()
+  const [authed, setAuthed] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient()
+    supabase.auth.getUser().then(({ data }) => {
+      setAuthed(!!data.user)
+    })
+  }, [])
 
   const isHome   = pathname === '/watchlists' || pathname.startsWith('/watchlists/')
   const isSearch = pathname === '/search'
   const isSaved  = pathname === '/saved'
   const isProfil = pathname === '/profile'
 
+  // Render nothing while auth state is resolving (avoids wrong-state flash)
+  if (authed === null) return null
+
+  // Simplified nav for unauthenticated users
+  if (!authed) {
+    return (
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-white/10 flex items-center justify-around px-6 pb-[env(safe-area-inset-bottom)]" style={{ minHeight: '64px' }}>
+        {/* Search FAB */}
+        <div className="flex flex-col items-center pb-1">
+          <Link
+            href="/search"
+            className="w-14 h-14 -mt-7 rounded-full bg-primary flex items-center justify-center shadow-lg glow-primary transition-transform active:scale-95"
+            aria-label={t.navSearch}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: 'var(--color-bg)' }}>
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+          </Link>
+          <span className="text-[11px] font-medium mt-0.5" style={{ color: 'var(--color-primary)' }}>
+            {t.navSearch}
+          </span>
+        </div>
+
+        {/* Log ind */}
+        <button
+          onClick={() => router.push('/login')}
+          className="text-sm font-bold transition-opacity hover:opacity-80"
+          style={{ color: 'var(--color-primary)' }}
+        >
+          {t.signIn}
+        </button>
+      </nav>
+    )
+  }
+
+  // Full nav for authenticated users
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-white/10 flex items-end justify-around px-2 pb-[env(safe-area-inset-bottom)]">
       {/* Home */}

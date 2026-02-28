@@ -16,6 +16,7 @@ import { Toast } from '@/components/Toast'
 export default function WatchlistsPage() {
   const router = useRouter()
   const { t } = useLocale()
+  const [authed,       setAuthed]       = useState<boolean | null>(null)
   const [watchlists,   setWatchlists]   = useState<Watchlist[]>([])
   const [loading,      setLoading]      = useState(true)
   const [showCreator,  setShowCreator]  = useState(false)
@@ -23,8 +24,17 @@ export default function WatchlistsPage() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    void loadWatchlists()
-    void syncOnboarding()
+    const supabase = createSupabaseBrowserClient()
+    supabase.auth.getUser().then(({ data }) => {
+      const loggedIn = !!data.user
+      setAuthed(loggedIn)
+      if (loggedIn) {
+        void loadWatchlists()
+        void syncOnboarding()
+      } else {
+        setLoading(false)
+      }
+    })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadWatchlists() {
@@ -104,6 +114,7 @@ export default function WatchlistsPage() {
             <h1 className="text-2xl font-bold text-text mb-6">{t.watchlists}</h1>
 
             {loading ? (
+              /* Skeleton — shown while auth resolves and while watchlists load */
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[...Array(3)].map((_, i) => (
                   <div
@@ -112,6 +123,34 @@ export default function WatchlistsPage() {
                     style={{ aspectRatio: '4/3' }}
                   />
                 ))}
+              </div>
+            ) : authed === false ? (
+              /* Teaser for unauthenticated visitors */
+              <div className="max-w-xs md:max-w-sm">
+                <div className="relative">
+                  {/* Blurred fake watchlist card */}
+                  <div className="pointer-events-none select-none" style={{ filter: 'blur(4px)' }}>
+                    <FakeWatchlistCard />
+                  </div>
+
+                  {/* Overlay */}
+                  <div
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl text-center px-6"
+                    style={{ backgroundColor: 'rgba(16,34,24,0.82)', backdropFilter: 'blur(2px)' }}
+                  >
+                    <h2 className="text-xl font-black text-white">{t.watchlistTeaserHeading}</h2>
+                    <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                      {t.watchlistTeaserSubtext}
+                    </p>
+                    <button
+                      onClick={() => router.push('/login')}
+                      className="w-full rounded-2xl py-4 px-8 font-black text-sm transition-opacity hover:opacity-90"
+                      style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+                    >
+                      {t.watchlistTeaserCta}
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : watchlists.length === 0 ? (
               <>
@@ -144,6 +183,50 @@ export default function WatchlistsPage() {
       <BottomNav />
 
       {toast && <Toast message={toast} />}
+    </div>
+  )
+}
+
+function FakeWatchlistCard() {
+  return (
+    <div
+      className="relative flex flex-col rounded-2xl border border-border/60 bg-surface"
+      style={{ aspectRatio: '4/3' }}
+    >
+      {/* Image area */}
+      <div className="relative flex-1 overflow-hidden rounded-t-2xl" style={{ backgroundColor: 'var(--color-surface)' }}>
+        <div className="w-full h-full flex items-center justify-center">
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: '56px', color: 'var(--color-text-muted)' }}
+          >
+            piano
+          </span>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="flex-shrink-0 px-3 pb-3 pt-2 border-t border-border/40">
+        <p className="text-sm font-bold text-white truncate mb-1.5">Roland Jupiter-8</p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span
+            className="text-xs font-black px-2 py-0.5 rounded-full"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+          >
+            +2 NYE
+          </span>
+          <span className="text-xs" style={{ color: 'var(--color-primary)', opacity: 0.8 }}>
+            Max 18.000 kr
+          </span>
+          <span className="text-xs text-white/40">dba.dk</span>
+          <span
+            className="text-xs px-1.5 py-0.5 rounded-full"
+            style={{ backgroundColor: 'rgba(34,197,94,0.15)', color: '#4ade80' }}
+          >
+            🟢 Godt kup
+          </span>
+        </div>
+      </div>
     </div>
   )
 }
