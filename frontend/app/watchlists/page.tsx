@@ -152,7 +152,7 @@ export default function WatchlistsPage() {
               </div>
             ) : authed === false ? (
               /* Teaser for unauthenticated visitors */
-              <div className="max-w-xs md:max-w-sm flex flex-col gap-4">
+              <div className="w-full max-w-sm mx-auto flex flex-col gap-4">
                 {/* Blurred card — visible above CTA */}
                 <div className="pointer-events-none select-none opacity-60" style={{ filter: 'blur(3px)' }}>
                   <FakeWatchlistCard />

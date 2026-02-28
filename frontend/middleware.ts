@@ -19,6 +19,7 @@ function isPublicPath(pathname: string): boolean {
   if (pathname === '/') return true
   if (pathname === '/watchlists') return true  // shows teaser for unauthenticated
   if (pathname === '/saved') return true        // shows teaser for unauthenticated
+  if (pathname === '/profile') return true      // shows teaser for unauthenticated
   if (pathname === '/onboarding') return true
   return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))
 }

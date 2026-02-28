@@ -110,6 +110,8 @@ export const translations = {
     savedTeaserHeading: 'Gem annoncer og følg priserne',
     savedTeaserCta: 'Opret gratis konto',
     getStarted: 'Kom i gang',
+    profileTeaserHeading: 'Din profil venter',
+    profileTeaserSubtext: 'Opret en gratis konto og hold styr på dine kup.',
     categoryNames: {
       'music-gear':    'Musik',
       'danish-modern': 'Dansk Design',
@@ -227,6 +229,8 @@ export const translations = {
     savedTeaserHeading: 'Save listings and track prices',
     savedTeaserCta: 'Create free account',
     getStarted: 'Get started',
+    profileTeaserHeading: 'Your profile awaits',
+    profileTeaserSubtext: 'Create a free account and keep track of your deals.',
     categoryNames: {
       'music-gear':    'Music',
       'danish-modern': 'Danish Design',
