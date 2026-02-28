@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const type       = searchParams.get('type') as EmailOtpType | null
   const code       = searchParams.get('code')
 
-  const successUrl = new URL('/watchlists', request.url)
+  const successUrl = new URL('/watchlists?create_pending=1', request.url)
   const errorUrl   = new URL('/login?error=auth', request.url)
 
   // Helper to build a supabase client that writes session cookies onto `response`

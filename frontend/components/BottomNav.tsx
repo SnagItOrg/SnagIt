@@ -65,7 +65,7 @@ export function BottomNav() {
 
   // Full nav for authenticated users
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-white/10 flex items-end justify-around px-2 pb-[env(safe-area-inset-bottom)]">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-white/10 flex items-end justify-around px-2 pb-[env(safe-area-inset-bottom)] min-h-[56px]">
       {/* Home */}
       <NavItem
         label={t.navHome}

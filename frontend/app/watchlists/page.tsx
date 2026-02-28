@@ -31,6 +31,7 @@ export default function WatchlistsPage() {
       if (loggedIn) {
         void loadWatchlists()
         void syncOnboarding()
+        void createPendingWatchlist()
       } else {
         setLoading(false)
       }
@@ -91,6 +92,31 @@ export default function WatchlistsPage() {
     }
   }
 
+  async function createPendingWatchlist() {
+    const raw = localStorage.getItem('pending_watchlist')
+    if (!raw) return
+    try {
+      const { query, max_price } = JSON.parse(raw) as { query: string; max_price: number | null }
+      if (!query) return
+      const body: Record<string, unknown> = { query }
+      if (max_price != null && max_price > 0) body.max_price = max_price
+      const res = await fetch('/api/watchlists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (res.ok) {
+        const created = await res.json()
+        setWatchlists((prev) => [created, ...prev])
+        showToast(t.watchlistCreated)
+      }
+    } catch {
+      // ignore — pending intent will be cleaned up regardless
+    } finally {
+      localStorage.removeItem('pending_watchlist')
+    }
+  }
+
   async function handleDelete(id: string) {
     const res = await fetch(`/api/watchlists/${id}`, { method: 'DELETE' })
     if (res.ok) {
@@ -126,30 +152,28 @@ export default function WatchlistsPage() {
               </div>
             ) : authed === false ? (
               /* Teaser for unauthenticated visitors */
-              <div className="max-w-xs md:max-w-sm">
-                <div className="relative">
-                  {/* Blurred fake watchlist card */}
-                  <div className="pointer-events-none select-none" style={{ filter: 'blur(4px)' }}>
-                    <FakeWatchlistCard />
-                  </div>
+              <div className="max-w-xs md:max-w-sm flex flex-col gap-4">
+                {/* Blurred card — visible above CTA */}
+                <div className="pointer-events-none select-none opacity-60" style={{ filter: 'blur(3px)' }}>
+                  <FakeWatchlistCard />
+                </div>
 
-                  {/* Overlay */}
-                  <div
-                    className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl text-center px-6"
-                    style={{ backgroundColor: 'rgba(16,34,24,0.82)', backdropFilter: 'blur(2px)' }}
+                {/* CTA section below — not an overlay */}
+                <div
+                  className="rounded-2xl p-6 flex flex-col gap-3 text-center"
+                  style={{ backgroundColor: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.1)' }}
+                >
+                  <h2 className="text-xl font-black text-white">{t.watchlistTeaserHeading}</h2>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    {t.watchlistTeaserSubtext}
+                  </p>
+                  <button
+                    onClick={() => router.push('/login')}
+                    className="w-full rounded-2xl py-4 px-8 font-black text-sm transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
                   >
-                    <h2 className="text-xl font-black text-white">{t.watchlistTeaserHeading}</h2>
-                    <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                      {t.watchlistTeaserSubtext}
-                    </p>
-                    <button
-                      onClick={() => router.push('/login')}
-                      className="w-full rounded-2xl py-4 px-8 font-black text-sm transition-opacity hover:opacity-90"
-                      style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
-                    >
-                      {t.watchlistTeaserCta}
-                    </button>
-                  </div>
+                    {t.watchlistTeaserCta}
+                  </button>
                 </div>
               </div>
             ) : watchlists.length === 0 ? (

@@ -105,12 +105,19 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
     const email = captureEmail.trim()
     if (!email) return
     setCaptureLoading(true)
+
+    // Persist watchlist intent so it survives the auth redirect
+    localStorage.setItem('pending_watchlist', JSON.stringify({
+      query: listing.title,
+      max_price: null,
+    }))
+
     const supabase = createSupabaseBrowserClient()
     await supabase.auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: window.location.origin + '/watchlists',
+        emailRedirectTo: window.location.origin + '/auth/confirm',
       },
     })
     setCaptureLoading(false)

@@ -26,27 +26,25 @@ export default function SavedPage() {
       <main className="flex-1 md:pl-60 flex flex-col items-center justify-center px-6 pb-24 md:pb-6">
         {authed === false ? (
           /* Teaser for unauthenticated visitors */
-          <div className="w-full max-w-sm">
-            <div className="relative">
-              {/* Blurred fake saved listing card */}
-              <div className="pointer-events-none select-none" style={{ filter: 'blur(4px)' }}>
-                <FakeSavedCard />
-              </div>
+          <div className="w-full max-w-sm flex flex-col gap-4">
+            {/* Blurred card — visible above CTA */}
+            <div className="pointer-events-none select-none opacity-60" style={{ filter: 'blur(3px)' }}>
+              <FakeSavedCard />
+            </div>
 
-              {/* Overlay */}
-              <div
-                className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl text-center px-6"
-                style={{ backgroundColor: 'rgba(16,34,24,0.82)', backdropFilter: 'blur(2px)' }}
+            {/* CTA section below — not an overlay */}
+            <div
+              className="rounded-2xl p-6 flex flex-col gap-3 text-center"
+              style={{ backgroundColor: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.1)' }}
+            >
+              <h2 className="text-xl font-black text-white">{t.savedTeaserHeading}</h2>
+              <button
+                onClick={() => router.push('/login')}
+                className="w-full rounded-2xl py-4 px-8 font-black text-sm transition-opacity hover:opacity-90"
+                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
               >
-                <h2 className="text-xl font-black text-white">{t.savedTeaserHeading}</h2>
-                <button
-                  onClick={() => router.push('/login')}
-                  className="w-full rounded-2xl py-4 px-8 font-black text-sm transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
-                >
-                  {t.savedTeaserCta}
-                </button>
-              </div>
+                {t.savedTeaserCta}
+              </button>
             </div>
           </div>
         ) : (
