@@ -35,14 +35,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Also fetch matching Reverb listings already in the DB
+  // Also fetch matching Reverb listings already in the DB.
+  // Use OR per word so "Juno 106" matches both "Juno-106" and "Juno 106" titles.
   const words = query.trim().split(/\s+/).filter((w) => w.length > 1)
   const { data: reverbData } = words.length > 0
     ? await getSupabaseAdmin()
         .from('listings')
         .select('*')
         .eq('source', 'reverb')
-        .ilike('title', `%${words.join('%')}%`)
+        .or(words.map((w) => `title.ilike.%${w}%`).join(','))
         .limit(50)
     : { data: [] }
 
