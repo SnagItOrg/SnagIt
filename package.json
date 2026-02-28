@@ -6,7 +6,8 @@
   "scripts": {
     "import-kg": "tsx scripts/import-knowledge-graph.ts",
     "export-kg": "tsx scripts/export-knowledge-graph.ts",
-    "match-listings": "tsx scripts/match-listings.ts"
+    "match-listings": "tsx scripts/match-listings.ts",
+    "scrape-reverb": "tsx scripts/scrape-reverb.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.96.0",
