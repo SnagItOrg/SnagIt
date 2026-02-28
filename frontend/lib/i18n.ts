@@ -96,6 +96,9 @@ export const translations = {
     watchlistDeleted: 'Overvågning slettet',
     emptyStateHeading: 'Velkommen til Kluppen.',
     emptyStateSubtext: 'Start din første overvågning og lad os gøre arbejdet.',
+    noSavedListings: 'Ingen gemte annoncer endnu',
+    noSavedListingsSubtext: 'Gem annoncer fra søgningen — så samler vi dem her.',
+    goToSearch: 'Gå til søgning',
     categoryNames: {
       'music-gear':    'Musik',
       'danish-modern': 'Dansk Design',
@@ -199,6 +202,9 @@ export const translations = {
     watchlistDeleted: 'Watchlist deleted',
     emptyStateHeading: 'Welcome to Klup.',
     emptyStateSubtext: 'Start your first watchlist and let us do the work.',
+    noSavedListings: 'No saved listings yet',
+    noSavedListingsSubtext: 'Save listings from search — we\'ll collect them here.',
+    goToSearch: 'Go to search',
     categoryNames: {
       'music-gear':    'Music',
       'danish-modern': 'Danish Design',

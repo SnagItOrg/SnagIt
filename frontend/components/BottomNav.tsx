@@ -13,6 +13,7 @@ export function BottomNav() {
 
   const isHome   = pathname === '/watchlists' || pathname.startsWith('/watchlists/')
   const isSearch = pathname === '/search'
+  const isSaved  = pathname === '/saved'
   const isProfil = pathname === '/profile'
 
   return (
@@ -50,10 +51,11 @@ export function BottomNav() {
         </span>
       </div>
 
-      {/* Saved (placeholder — no route yet) */}
+      {/* Saved */}
       <NavItem
         label={t.navSaved}
-        active={false}
+        active={isSaved}
+        href="/saved"
         icon={
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
