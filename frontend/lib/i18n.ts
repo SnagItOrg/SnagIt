@@ -99,6 +99,11 @@ export const translations = {
     noSavedListings: 'Ingen gemte annoncer endnu',
     noSavedListingsSubtext: 'Gem annoncer fra søgningen — så samler vi dem her.',
     goToSearch: 'Gå til søgning',
+    headline: 'Find dit næste kup.',
+    subheadline: 'Vi holder øje med priserne — du slapper af.',
+    signIn: 'Log ind',
+    noPasswordNeeded: 'Vi sender dig et link — intet password nødvendigt.',
+    checkEmailToSave: 'Klik linket i mailen for at gemme din overvågning.',
     categoryNames: {
       'music-gear':    'Musik',
       'danish-modern': 'Dansk Design',
@@ -205,6 +210,11 @@ export const translations = {
     noSavedListings: 'No saved listings yet',
     noSavedListingsSubtext: 'Save listings from search — we\'ll collect them here.',
     goToSearch: 'Go to search',
+    headline: 'Find your next deal.',
+    subheadline: 'We watch the prices — you relax.',
+    signIn: 'Log in',
+    noPasswordNeeded: 'We\'ll send you a link — no password needed.',
+    checkEmailToSave: 'Click the link in the email to save your watchlist.',
     categoryNames: {
       'music-gear':    'Music',
       'danish-modern': 'Danish Design',

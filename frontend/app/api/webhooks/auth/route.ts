@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
   await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
-    to: 'notifications@klup.dk',
+    to: 'owner@panter.media',
     subject: 'Ny bruger på Klup 🎉',
     text: `Ny bruger tilmeldt: ${email}\nTidspunkt: ${timestamp}`,
   })

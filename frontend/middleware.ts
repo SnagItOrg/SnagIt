@@ -5,14 +5,17 @@ import type { NextRequest } from 'next/server'
 // Paths that do not require authentication.
 const PUBLIC_PREFIXES = [
   '/login',
+  '/search',        // public SERP
   '/auth/',         // OAuth + email confirmation callbacks
   '/onboarding/',   // anonymous-first onboarding flow
-  '/api/brands',    // public lookup used by onboarding step 2
+  '/api/brands',    // public lookup used by onboarding
+  '/api/scrape',    // needed by public SERP
+  '/api/price-observations', // price stats shown on public SERP cards
   '/api/cron/',     // cron jobs use their own CRON_SECRET header
 ]
 
 function isPublicPath(pathname: string): boolean {
-  // Also allow the bare /onboarding root (rare, but safe)
+  if (pathname === '/') return true
   if (pathname === '/onboarding') return true
   return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))
 }
@@ -48,19 +51,19 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  // Logged-in users on / → watchlists
+  if (user && pathname === '/') {
+    return NextResponse.redirect(new URL('/watchlists', request.url))
+  }
+
   // Logged-in users are bounced out of the onboarding flow → watchlists
   if (user && isOnboardingPath(pathname)) {
     return NextResponse.redirect(new URL('/watchlists', request.url))
   }
 
-  // Unauthenticated users on / → onboarding
-  if (!user && pathname === '/') {
-    return NextResponse.redirect(new URL('/onboarding/step1', request.url))
-  }
-
-  // Unauthenticated users on other protected routes → login
+  // Unauthenticated users on protected routes → /
   if (!user && !isPublicPath(pathname)) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   return supabaseResponse

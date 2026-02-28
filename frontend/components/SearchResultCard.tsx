@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import type { Listing } from '@/lib/supabase'
 import { useLocale } from '@/components/LocaleProvider'
@@ -35,14 +34,17 @@ interface Props {
 }
 
 export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast }: Props) {
-  const router        = useRouter()
   const { locale, t } = useLocale()
 
-  const [stats,       setStats]      = useState<PriceStats | null>(null)
-  const [editing,     setEditing]    = useState(false)
-  const [fromPrice,   setFromPrice]  = useState('')
-  const [toPrice,     setToPrice]    = useState('')
-  const [saving,      setSaving]     = useState(false)
+  const [stats,          setStats]         = useState<PriceStats | null>(null)
+  const [editing,        setEditing]       = useState(false)
+  const [fromPrice,      setFromPrice]     = useState('')
+  const [toPrice,        setToPrice]       = useState('')
+  const [saving,         setSaving]        = useState(false)
+  const [showCapture,    setShowCapture]   = useState(false)
+  const [captureEmail,   setCaptureEmail]  = useState('')
+  const [captureLoading, setCaptureLoading] = useState(false)
+  const [captureSent,    setCaptureSent]   = useState(false)
 
   useEffect(() => {
     fetch(`/api/price-observations?listing_id=${listing.id}`)
@@ -64,7 +66,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
 
     const supabase = createSupabaseBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login'); return }
+    if (!user) { setShowCapture(true); return }
 
     setSaving(true)
     const res = await fetch('/api/price-observations', {
@@ -80,7 +82,6 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
     setSaving(false)
 
     if (res.ok) {
-      // Optimistic update
       setStats({ count: (stats?.count ?? 0) + 1, p25: fra, p75: !isNaN(til) && til > fra ? til : fra })
       setEditing(false)
       setFromPrice('')
@@ -89,12 +90,39 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
     }
   }
 
+  async function handleWatchlistClick() {
+    const supabase = createSupabaseBrowserClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      onCreateWatchlist(listing.title)
+    } else {
+      setShowCapture(true)
+    }
+  }
+
+  async function handleCaptureSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const email = captureEmail.trim()
+    if (!email) return
+    setCaptureLoading(true)
+    const supabase = createSupabaseBrowserClient()
+    await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: window.location.origin + '/watchlists',
+      },
+    })
+    setCaptureLoading(false)
+    setCaptureSent(true)
+  }
+
   function handleClickPrice() {
     setEditing(true)
   }
 
-  const hasStats   = stats !== null && stats.count > 0
-  const showRange  = hasStats && stats!.p25 != null && stats!.p75 != null
+  const hasStats  = stats !== null && stats.count > 0
+  const showRange = hasStats && stats!.p25 != null && stats!.p75 != null
 
   return (
     <div className="flex gap-3 p-3 rounded-2xl bg-surface border border-white/10 hover:border-white/20 transition-colors">
@@ -201,28 +229,81 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
           )}
         </div>
 
-        {/* CTAs */}
-        <div className="flex gap-2 mt-2">
-          <button
-            onClick={() => onCreateWatchlist(listing.title)}
-            disabled={creating}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add_alert</span>
-            {t.createWatchlist}
-          </button>
-          <a
-            href={listing.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-white/10 hover:border-white/25 transition-colors"
-            style={{ color: 'rgba(255,255,255,0.7)' }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
-            {t.viewListing}
-          </a>
-        </div>
+        {/* CTAs / inline login capture */}
+        {showCapture ? (
+          captureSent ? (
+            /* Success state */
+            <div className="flex flex-col gap-1 mt-2 py-1">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: '16px', color: 'var(--color-primary)' }}
+                >
+                  mark_email_read
+                </span>
+                <span className="text-sm font-semibold" style={{ color: 'var(--color-primary)' }}>
+                  {t.checkInbox}
+                </span>
+              </div>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                {t.checkEmailToSave}
+              </p>
+            </div>
+          ) : (
+            /* Email capture form */
+            <form onSubmit={handleCaptureSubmit} className="flex flex-col gap-1.5 mt-2">
+              <input
+                type="email"
+                value={captureEmail}
+                onChange={(e) => setCaptureEmail(e.target.value)}
+                placeholder={t.email}
+                required
+                autoFocus
+                className="w-full rounded-xl px-3 py-2 text-sm outline-none transition-all"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: 'var(--color-text)',
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(19,236,109,0.5)' }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}
+              />
+              <button
+                type="submit"
+                disabled={captureLoading || !captureEmail.trim()}
+                className="w-full rounded-xl py-2 text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+              >
+                {captureLoading ? '...' : t.sendLoginLink}
+              </button>
+              <p className="text-[11px] text-center" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                {t.noPasswordNeeded}
+              </p>
+            </form>
+          )
+        ) : (
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={handleWatchlistClick}
+              disabled={creating}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add_alert</span>
+              {t.createWatchlist}
+            </button>
+            <a
+              href={listing.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-white/10 hover:border-white/25 transition-colors"
+              style={{ color: 'rgba(255,255,255,0.7)' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
+              {t.viewListing}
+            </a>
+          </div>
+        )}
       </div>
     </div>
   )
