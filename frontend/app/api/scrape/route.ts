@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
         .from('listings')
         .select('*')
         .eq('source', 'reverb')
-        .or(words.map((w) => `title.ilike.%${w}%`).join(','))
+        .or(words.map((w) => `title.ilike.*${w}*`).join(','))
         .limit(50)
     : { data: [] }
 
