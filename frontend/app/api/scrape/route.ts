@@ -35,10 +35,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // Also fetch matching Reverb listings already in the DB
+  const words = query.trim().split(/\s+/).filter((w) => w.length > 1)
+  const { data: reverbData } = words.length > 0
+    ? await getSupabaseAdmin()
+        .from('listings')
+        .select('*')
+        .eq('source', 'reverb')
+        .ilike('title', `%${words.join('%')}%`)
+        .limit(50)
+    : { data: [] }
+
+  // Merge DBA + Reverb, deduplicate by url
+  const seen = new Set<string>()
+  const merged = [...(data ?? []), ...(reverbData ?? [])].filter((l) => {
+    if (seen.has(l.url)) return false
+    seen.add(l.url)
+    return true
+  })
+
   return NextResponse.json({
     inserted: data?.length ?? 0,
     total_scraped: listings.length,
     query,
-    listings: data ?? [],
+    listings: merged,
   })
 }

@@ -43,4 +43,5 @@ export type Listing = {
   location: string | null
   scraped_at: string
   source: string
+  platform?: string | null
 }
