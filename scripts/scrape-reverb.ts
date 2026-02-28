@@ -39,10 +39,9 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Brand {
-  id:       string
-  name:     string
-  slug:     string
-  synonyms: string[] | null
+  id:   string
+  name: string
+  slug: string
 }
 
 interface ReverbListing {
@@ -125,7 +124,7 @@ function normalise(listing: ReverbListing, brand: Brand): NormalizedListing {
 async function main() {
   const { data: brands, error: brandErr } = await supabase
     .from('kg_brand')
-    .select('id, name, slug, synonyms')
+    .select('id, name, slug')
 
   if (brandErr) throw new Error(`Fetch brands: ${brandErr.message}`)
   if (!brands || brands.length === 0) {
