@@ -13,6 +13,7 @@ const PUBLIC_PREFIXES = [
   '/api/scrape',    // needed by public SERP
   '/api/price-observations', // price stats shown on public SERP cards
   '/api/cron/',     // cron jobs use their own CRON_SECRET header
+  '/api/webhooks/', // Supabase webhooks — no user session available
 ]
 
 function isPublicPath(pathname: string): boolean {

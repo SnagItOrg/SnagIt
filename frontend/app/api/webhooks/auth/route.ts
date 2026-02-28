@@ -1,41 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { NextRequest, NextResponse } from 'next/server'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-export async function POST(req: NextRequest) {
-  // Verify webhook secret (set Authorization: Bearer <WEBHOOK_SECRET> in Supabase webhook headers)
-  const authHeader = req.headers.get('authorization')
-  const secret = process.env.WEBHOOK_SECRET
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
 
-  if (!secret || authHeader !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+    // Log the incoming payload for debugging
+    console.log('Auth webhook received:', JSON.stringify(body))
 
-  const body = await req.json()
+    const email = body?.record?.email ?? body?.email ?? 'ukendt'
 
-  // Only handle INSERT events on auth.users
-  if (body.type !== 'INSERT' || body.table !== 'users' || body.schema !== 'auth') {
+    await resend.emails.send({
+      from: 'notifications@klup.dk',
+      to: 'owner@panter.media',
+      subject: 'Ny bruger på Klup 🎉',
+      html: `
+        <h2>Ny bruger tilmeldt</h2>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Tidspunkt:</strong> ${new Date().toISOString()}</p>
+      `,
+    })
+
     return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error('Webhook error:', error)
+    return NextResponse.json({ error: 'failed' }, { status: 500 })
   }
-
-  const email = body.record?.email as string | undefined
-  const createdAt = body.record?.created_at as string | undefined
-
-  if (!email) {
-    return NextResponse.json({ error: 'Missing email' }, { status: 400 })
-  }
-
-  const timestamp = createdAt
-    ? new Date(createdAt).toLocaleString('da-DK', { timeZone: 'Europe/Copenhagen' })
-    : new Date().toLocaleString('da-DK', { timeZone: 'Europe/Copenhagen' })
-
-  await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL!,
-    to: 'owner@panter.media',
-    subject: 'Ny bruger på Klup 🎉',
-    text: `Ny bruger tilmeldt: ${email}\nTidspunkt: ${timestamp}`,
-  })
-
-  return NextResponse.json({ ok: true })
 }
