@@ -5,6 +5,7 @@ import type { NextRequest } from 'next/server'
 // Paths that do not require authentication.
 const PUBLIC_PREFIXES = [
   '/login',
+  '/signup',
   '/search',        // public SERP
   '/auth/',         // OAuth + email confirmation callbacks
   '/onboarding/',   // anonymous-first onboarding flow

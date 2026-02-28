@@ -51,13 +51,13 @@ export function BottomNav() {
           </span>
         </div>
 
-        {/* Log ind */}
+        {/* Kom i gang */}
         <button
-          onClick={() => router.push('/login')}
+          onClick={() => router.push('/signup')}
           className="text-sm font-bold transition-opacity hover:opacity-80"
           style={{ color: 'var(--color-primary)' }}
         >
-          {t.signIn}
+          {t.getStarted}
         </button>
       </nav>
     )

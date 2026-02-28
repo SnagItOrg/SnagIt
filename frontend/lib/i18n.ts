@@ -109,6 +109,7 @@ export const translations = {
     watchlistTeaserCta: 'Kom i gang — det er gratis',
     savedTeaserHeading: 'Gem annoncer og følg priserne',
     savedTeaserCta: 'Opret gratis konto',
+    getStarted: 'Kom i gang',
     categoryNames: {
       'music-gear':    'Musik',
       'danish-modern': 'Dansk Design',
@@ -225,6 +226,7 @@ export const translations = {
     watchlistTeaserCta: 'Get started — it\'s free',
     savedTeaserHeading: 'Save listings and track prices',
     savedTeaserCta: 'Create free account',
+    getStarted: 'Get started',
     categoryNames: {
       'music-gear':    'Music',
       'danish-modern': 'Danish Design',
