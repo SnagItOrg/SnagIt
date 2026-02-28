@@ -167,7 +167,7 @@ export default function LoginPage() {
               <p className="mt-5 text-center text-xs" style={{ color: '#475569' }}>
                 {t.noAccount}{' '}
                 <Link
-                  href="/onboarding/step1"
+                  href="/"
                   className="font-bold underline hover:text-white transition-colors"
                   style={{ color: '#94a3b8' }}
                 >
