@@ -225,7 +225,10 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
 
         {/* Meta: platform + time */}
         <div className="flex items-center gap-1.5 text-[11px] mt-auto" style={{ color: '#64748b' }}>
-          <span className="px-1.5 py-0.5 rounded bg-white/5">dba.dk</span>
+          {listing.source === 'reverb'
+            ? <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300">Reverb</span>
+            : <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white/10 text-white/60">DBA</span>
+          }
           <span>·</span>
           <span>{timeSince(listing.scraped_at, locale)}</span>
           {listing.location && (
