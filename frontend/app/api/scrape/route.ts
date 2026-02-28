@@ -35,17 +35,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Also fetch matching Reverb listings already in the DB.
-  // Use OR per word so "Juno 106" matches both "Juno-106" and "Juno 106" titles.
+  // Fetch Reverb listings from DB: anchor on first word, then filter
+  // client-side so ALL words must appear (avoids OR false positives).
   const words = query.trim().split(/\s+/).filter((w) => w.length > 1)
-  const { data: reverbData } = words.length > 0
+  const { data: reverbRaw } = words.length > 0
     ? await getSupabaseAdmin()
         .from('listings')
         .select('*')
         .eq('source', 'reverb')
-        .or(words.map((w) => `title.ilike.*${w}*`).join(','))
-        .limit(50)
+        .ilike('title', `%${words[0]}%`)
+        .limit(100)
     : { data: [] }
+  const reverbData = (reverbRaw ?? []).filter((l) =>
+    words.every((w) => l.title.toLowerCase().includes(w.toLowerCase()))
+  ).slice(0, 20)
 
   // Merge DBA + Reverb, deduplicate by url
   const seen = new Set<string>()
