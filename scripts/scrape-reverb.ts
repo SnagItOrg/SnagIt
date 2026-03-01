@@ -50,7 +50,7 @@ interface ReverbListing {
   id:            string | number
   title:         string
   price:         { amount: string }
-  photos?:       Array<{ links?: { full?: { href?: string } } }>
+  photos?:       Array<{ _links?: { full?: { href?: string } } }>
   shipping?:     { local?: boolean }
   published_at?: string
   state?:        { slug?: string }
@@ -113,7 +113,7 @@ function normalise(listing: ReverbListing, brand_id: string): NormalizedListing 
     title:       listing.title,
     price:       dkk,
     currency:    'DKK',
-    image_url:   listing.photos?.[0]?.links?.full?.href ?? null,
+    image_url:   listing.photos?.[0]?._links?.full?.href ?? null,
     location:    listing.shipping?.local ? 'Local' : 'International',
     scraped_at:  listing.published_at ?? new Date().toISOString(),
     is_active:   listing.state?.slug === 'live',
