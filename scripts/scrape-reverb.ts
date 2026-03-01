@@ -1,8 +1,9 @@
 /**
  * scripts/scrape-reverb.ts
  *
- * Fetches listings from the Reverb API for every brand in kg_brand,
- * normalises them to the listings table schema, and upserts to Supabase.
+ * Fetches listings from the Reverb API for every product in kg_product,
+ * searching by "${brand.name} ${product.model_name}" for precise results.
+ * Normalises to the listings table schema and upserts to Supabase.
  *
  * Usage:
  *   npm run scrape-reverb
@@ -38,22 +39,23 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 })
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface Brand {
-  id:   string
-  name: string
-  slug: string
+interface Product {
+  id:         string
+  model_name: string
+  brand_id:   string
+  brand:      { id: string; name: string; slug: string }
 }
 
 interface ReverbListing {
-  id:           string | number
-  title:        string
-  price:        { amount: string }
-  photos?:      Array<{ links?: { full?: { href?: string } } }>
-  shipping?:    { local?: boolean }
+  id:            string | number
+  title:         string
+  price:         { amount: string }
+  photos?:       Array<{ links?: { full?: { href?: string } } }>
+  shipping?:     { local?: boolean }
   published_at?: string
-  state?:       { slug?: string }
-  condition?:   { display_name?: string }
-  _links?:      { web?: { href?: string } }
+  state?:        { slug?: string }
+  condition?:    { display_name?: string }
+  _links?:       { web?: { href?: string } }
 }
 
 interface ReverbResponse {
@@ -61,26 +63,26 @@ interface ReverbResponse {
 }
 
 interface NormalizedListing {
-  external_id:  string
-  source:       string
-  platform:     string
-  url:          string
-  title:        string
-  price:        number | null
-  currency:     string
-  image_url:    string | null
-  location:     string
-  scraped_at:   string
-  is_active:    boolean
-  condition:    string | null
-  brand_id:     string
+  external_id: string
+  source:      string
+  platform:    string
+  url:         string
+  title:       string
+  price:       number | null
+  currency:    string
+  image_url:   string | null
+  location:    string
+  scraped_at:  string
+  is_active:   boolean
+  condition:   string | null
+  brand_id:    string
 }
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 // ── Reverb fetch ──────────────────────────────────────────────────────────────
-async function fetchReverbListings(brandName: string): Promise<ReverbListing[]> {
-  const url = `https://api.reverb.com/api/listings?query=${encodeURIComponent(brandName)}&per_page=50`
+async function fetchReverbListings(query: string): Promise<ReverbListing[]> {
+  const url = `https://api.reverb.com/api/listings?query=${encodeURIComponent(query)}&per_page=50`
 
   const res = await fetch(url, {
     headers: {
@@ -98,7 +100,7 @@ async function fetchReverbListings(brandName: string): Promise<ReverbListing[]> 
 }
 
 // ── Normalise ─────────────────────────────────────────────────────────────────
-function normalise(listing: ReverbListing, brand: Brand): NormalizedListing {
+function normalise(listing: ReverbListing, brand_id: string): NormalizedListing {
   const rawAmount = listing.price?.amount ?? '0'
   const usd       = parseFloat(rawAmount)
   const dkk       = isNaN(usd) ? null : Math.round(usd * 7.5)
@@ -116,56 +118,59 @@ function normalise(listing: ReverbListing, brand: Brand): NormalizedListing {
     scraped_at:  listing.published_at ?? new Date().toISOString(),
     is_active:   listing.state?.slug === 'live',
     condition:   listing.condition?.display_name ?? null,
-    brand_id:    brand.id,
+    brand_id,
   }
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  const { data: brands, error: brandErr } = await supabase
-    .from('kg_brand')
-    .select('id, name, slug')
+  const { data: products, error: productErr } = await supabase
+    .from('kg_product')
+    .select('id, model_name, brand_id, brand:kg_brand!inner(id, name, slug)')
+    .not('model_name', 'is', null)
 
-  if (brandErr) throw new Error(`Fetch brands: ${brandErr.message}`)
-  if (!brands || brands.length === 0) {
-    console.log('No brands found — nothing to scrape.')
+  if (productErr) throw new Error(`Fetch products: ${productErr.message}`)
+  if (!products || products.length === 0) {
+    console.log('No products found — nothing to scrape.')
     return
   }
 
-  console.log(`[reverb] Scraping ${brands.length} brands…\n`)
+  console.log(`[reverb] Scraping ${products.length} products…\n`)
 
   let total = 0
 
-  for (let i = 0; i < brands.length; i++) {
-    const brand = brands[i] as Brand
+  for (let i = 0; i < products.length; i++) {
+    const product = products[i] as unknown as Product
+    const query   = `${product.brand.name} ${product.model_name}`
+
     if (i > 0) await delay(500)
 
     let listings: ReverbListing[]
     try {
-      listings = await fetchReverbListings(brand.name)
+      listings = await fetchReverbListings(query)
     } catch (err) {
-      console.error(`[reverb] ${brand.name}: fetch failed — ${(err as Error).message}`)
+      console.error(`[reverb] ${query}: fetch failed — ${(err as Error).message}`)
       continue
     }
 
     if (listings.length === 0) {
-      console.log(`[reverb] ${brand.name}: 0 listings`)
+      console.log(`[reverb] ${query}: 0 listings`)
       continue
     }
 
-    const normalized = listings.map((l) => normalise(l, brand))
+    const normalized = listings.map((l) => normalise(l, product.brand_id))
 
     const { error: upsertErr } = await supabase
       .from('listings')
       .upsert(normalized, { onConflict: 'external_id', ignoreDuplicates: false })
 
     if (upsertErr) {
-      console.error(`[reverb] ${brand.name}: upsert failed — ${upsertErr.message}`)
+      console.error(`[reverb] ${query}: upsert failed — ${upsertErr.message}`)
       continue
     }
 
     total += normalized.length
-    console.log(`[reverb] ${brand.name}: ${listings.length} listings fetched`)
+    console.log(`[reverb] ${query}: ${listings.length} listings fetched`)
   }
 
   console.log(`\n[reverb] Done. Total upserted: ${total}`)
