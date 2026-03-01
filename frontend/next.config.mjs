@@ -27,6 +27,11 @@ const nextConfig = {
         protocol: 'https',
         hostname: '**.autobild.dk',
       },
+      // Reverb listing images
+      {
+        protocol: 'https',
+        hostname: 'rvb-img.reverb.com',
+      },
     ],
   },
 };
