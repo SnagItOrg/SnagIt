@@ -81,7 +81,9 @@ const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 
 // ── Reverb fetch ──────────────────────────────────────────────────────────────
 async function fetchReverbListings(query: string): Promise<ReverbListing[]> {
-  const url = `https://api.reverb.com/api/listings?query=${encodeURIComponent(query)}&per_page=50`
+  // encodeURIComponent encodes '*' as '%2A'; restore it so Reverb treats it as a wildcard.
+  const encodedQuery = encodeURIComponent(query).replace(/%2A/gi, '*')
+  const url = `https://api.reverb.com/api/listings?query=${encodedQuery}&per_page=50`
 
   const res = await fetch(url, {
     headers: {

@@ -15,8 +15,8 @@ export function normalizeQuery(input: string): string {
     // German umlauts — fold to ASCII equivalents
     .replace(/ö/g, 'oe')
     .replace(/ä/g, 'ae')
-    // Remove everything except letters, digits, Danish chars (æøå), hyphen, space
-    .replace(/[^a-z0-9æøå\- ]/g, '')
+    // Remove everything except letters, digits, Danish chars (æøå), hyphen, space, wildcard
+    .replace(/[^a-z0-9æøå\-* ]/g, '')
     // Collapse whitespace
     .replace(/\s+/g, ' ')
     .trim()
