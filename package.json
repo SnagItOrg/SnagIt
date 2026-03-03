@@ -8,7 +8,9 @@
     "export-kg": "tsx scripts/export-knowledge-graph.ts",
     "match-listings": "tsx scripts/match-listings.ts",
     "scrape-reverb": "tsx scripts/scrape-reverb.ts",
-    "expand-kg": "tsx scripts/expand-knowledge-graph.ts"
+    "expand-kg": "tsx scripts/expand-knowledge-graph.ts",
+    "scrape-vse": "tsx scripts/scrape-vintagesynth.ts",
+    "expand-synonyms": "tsx scripts/expand-synonyms-vse.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.96.0",
