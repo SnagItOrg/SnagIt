@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Synonym og knowledge graph seed til Klup søgning. Udvid med nye produkter og relationer over tid. | v1.2 adds aliases for Wegner chairs, TR drum machines, and key camera models.",
   "synonyms": {
     "roland jp-4": [
@@ -684,6 +684,4394 @@
       "spark",
       "scott spark rc",
       "spark mtb"
+    ],
+    "roland jp 4": [
+      "jp 4 (jupiter 4)",
+      "jp-4 (jupiter 4)",
+      "jp4(jupiter4)",
+      "roland jp 4 (jupiter 4)"
+    ],
+    "roland jp 6": [
+      "jp 6 (jupiter 6)",
+      "jp-6 (jupiter 6)",
+      "jp6(jupiter6)",
+      "roland jp 6 (jupiter 6)"
+    ],
+    "roland jp 8": [
+      "jp 8 (jupiter 8)",
+      "jp-8 (jupiter 8)",
+      "jp8(jupiter8)",
+      "roland jp 8 (jupiter 8)"
+    ],
+    "roland juno 60": [
+      "juno 60",
+      "juno-60",
+      "juno60",
+      "rolandjuno60"
+    ],
+    "roland juno 106": [
+      "juno 106",
+      "juno-106",
+      "juno106",
+      "rolandjuno106"
+    ],
+    "roland sh 101": [
+      "rolandsh101",
+      "sh 101",
+      "sh-101",
+      "sh101"
+    ],
+    "roland tr 808": [
+      "roland tr 808 (rhythm composer)",
+      "tr 808 (rhythm composer)",
+      "tr-808 (rhythm composer)",
+      "tr808(rhythmcomposer)"
+    ],
+    "roland tr 909": [
+      "rolandtr909",
+      "tr 909",
+      "tr-909",
+      "tr909"
+    ],
+    "roland tr 606": [
+      "rolandtr606",
+      "tr 606",
+      "tr-606",
+      "tr606"
+    ],
+    "roland tr 707": [
+      "rolandtr707",
+      "tr 707",
+      "tr-707",
+      "tr707"
+    ],
+    "roland tr 505": [
+      "rolandtr505",
+      "tr 505",
+      "tr-505",
+      "tr505"
+    ],
+    "roland re 201": [
+      "re 201 (space echo)",
+      "re-201 (space echo)",
+      "re201(spaceecho)",
+      "roland re 201 (space echo)"
+    ],
+    "roland re 501": [
+      "re 501 (chorus echo)",
+      "re-501 (chorus echo)",
+      "re501(chorusecho)",
+      "roland re 501 (chorus echo)"
+    ],
+    "roland tr 09": [
+      "roland tr 09 (boutique)",
+      "tr 09 (boutique)",
+      "tr-09 (boutique)",
+      "tr09(boutique)"
+    ],
+    "roland alpha juno 1": [
+      "alpha juno 1",
+      "alpha juno-1",
+      "alphajuno1"
+    ],
+    "roland cmu 800": [
+      "cmu 800",
+      "cmu-800",
+      "cmu800",
+      "rolandcmu800"
+    ],
+    "roland cmu 810": [
+      "cmu 810",
+      "cmu-810",
+      "cmu810",
+      "rolandcmu810"
+    ],
+    "roland cr 68": [
+      "cr 68",
+      "cr-68",
+      "cr68",
+      "rolandcr68"
+    ],
+    "roland cr 78": [
+      "cr 78",
+      "cr-78",
+      "cr78",
+      "rolandcr78"
+    ],
+    "roland cr 8000": [
+      "cr 8000",
+      "cr-8000",
+      "cr8000",
+      "rolandcr8000"
+    ],
+    "roland d 110": [
+      "d 110",
+      "d-110",
+      "d110",
+      "rolandd110"
+    ],
+    "roland d 20": [
+      "d 20",
+      "d-20",
+      "d20",
+      "rolandd20"
+    ],
+    "roland d 50": [
+      "d 50",
+      "d-50",
+      "d50",
+      "rolandd50"
+    ],
+    "roland d 70": [
+      "d 70",
+      "d-70",
+      "d70",
+      "rolandd70"
+    ],
+    "roland d2": [
+      "d2",
+      "rolandd2"
+    ],
+    "roland dj 70": [
+      "dj 70",
+      "dj-70",
+      "dj70",
+      "rolanddj70"
+    ],
+    "roland eg 101": [
+      "eg 101",
+      "eg-101",
+      "eg101",
+      "rolandeg101"
+    ],
+    "roland em101": [
+      "em 101",
+      "em-101",
+      "em101",
+      "roland em 101",
+      "rolandem101"
+    ],
+    "roland fantom s": [
+      "fantom s",
+      "fantom-s",
+      "fantoms",
+      "rolandfantoms"
+    ],
+    "roland fantom x": [
+      "fantom x",
+      "fantom-x",
+      "fantomx",
+      "rolandfantomx"
+    ],
+    "roland gaia sh 01": [
+      "roland gaiash01",
+      "sh 01",
+      "sh-01",
+      "sh01"
+    ],
+    "roland gr 300": [
+      "gr 300",
+      "gr-300",
+      "gr300",
+      "rolandgr300"
+    ],
+    "roland gr 500": [
+      "gr 500",
+      "gr-500",
+      "gr500",
+      "rolandgr500"
+    ],
+    "roland gr 700": [
+      "gr 700",
+      "gr-700",
+      "gr700",
+      "rolandgr700"
+    ],
+    "roland hs 60": [
+      "hs 60",
+      "hs-60",
+      "hs60",
+      "rolandhs60"
+    ],
+    "roland jd 800": [
+      "jd 800",
+      "jd-800",
+      "jd800",
+      "rolandjd800"
+    ],
+    "roland jd 990": [
+      "jd 990",
+      "jd-990",
+      "jd990",
+      "rolandjd990"
+    ],
+    "roland jd xa": [
+      "jd xa",
+      "jd-xa",
+      "jdxa",
+      "rolandjdxa"
+    ],
+    "roland jp 8000": [
+      "jp 8000",
+      "jp-8000",
+      "jp8000",
+      "rolandjp8000"
+    ],
+    "roland jp 8080": [
+      "jp 8080",
+      "jp-8080",
+      "jp8080",
+      "rolandjp8080"
+    ],
+    "roland juno106": [
+      "juno 106",
+      "juno-106",
+      "juno106",
+      "roland juno 106",
+      "rolandjuno106"
+    ],
+    "roland juno 6": [
+      "juno 6",
+      "juno-6",
+      "juno6",
+      "rolandjuno6"
+    ],
+    "roland juno d": [
+      "juno d",
+      "juno-d",
+      "junod",
+      "rolandjunod"
+    ],
+    "roland juno di": [
+      "juno di",
+      "juno-di",
+      "junodi",
+      "rolandjunodi"
+    ],
+    "roland juno ds 61": [
+      "juno ds61",
+      "juno-ds61",
+      "junods61",
+      "roland juno ds61",
+      "rolandjunods61"
+    ],
+    "roland juno g": [
+      "juno g",
+      "juno-g",
+      "junog",
+      "rolandjunog"
+    ],
+    "roland juno stage": [
+      "juno stage",
+      "juno-stage",
+      "junostage"
+    ],
+    "roland jupiter 4": [
+      "jupiter 4",
+      "jupiter-4",
+      "jupiter4",
+      "rolandjupiter4"
+    ],
+    "roland jupiter 6": [
+      "jupiter 6",
+      "jupiter-6",
+      "jupiter6",
+      "rolandjupiter6"
+    ],
+    "roland jupiter 8": [
+      "jupiter 8",
+      "jupiter-8",
+      "jupiter8",
+      "rolandjupiter8"
+    ],
+    "roland jupiter 80": [
+      "jupiter 80",
+      "jupiter-80",
+      "jupiter80"
+    ],
+    "roland jupiter xm": [
+      "jupiter xm",
+      "jupiter-xm",
+      "jupiterxm"
+    ],
+    "roland jv 1000": [
+      "jv 1000",
+      "jv-1000",
+      "jv1000",
+      "rolandjv1000"
+    ],
+    "roland jv 1010": [
+      "jv 1010",
+      "jv-1010",
+      "jv1010",
+      "rolandjv1010"
+    ],
+    "roland jv 1080": [
+      "jv 1080",
+      "jv-1080",
+      "jv1080",
+      "rolandjv1080"
+    ],
+    "roland jv 2080": [
+      "jv 2080",
+      "jv-2080",
+      "jv2080",
+      "rolandjv2080"
+    ],
+    "roland jv 30": [
+      "jv 30",
+      "jv-30",
+      "jv30",
+      "rolandjv30"
+    ],
+    "roland jv 80": [
+      "jv 80",
+      "jv-80",
+      "jv80",
+      "rolandjv80"
+    ],
+    "roland jv 880": [
+      "jv 880",
+      "jv-880",
+      "jv880",
+      "rolandjv880"
+    ],
+    "roland jv 90": [
+      "jv 90",
+      "jv-90",
+      "jv90",
+      "rolandjv90"
+    ],
+    "roland jw 50": [
+      "jw 50",
+      "jw-50",
+      "jw50",
+      "rolandjw50"
+    ],
+    "roland jx 1": [
+      "jx 1",
+      "jx-1",
+      "jx1",
+      "rolandjx1"
+    ],
+    "roland jx 10": [
+      "jx 10",
+      "jx-10",
+      "jx10",
+      "rolandjx10"
+    ],
+    "roland jx 305": [
+      "jx 305",
+      "jx-305",
+      "jx305",
+      "rolandjx305"
+    ],
+    "roland jx 3p": [
+      "jx 3p",
+      "jx-3p",
+      "jx3p",
+      "rolandjx3p"
+    ],
+    "roland jx 8p": [
+      "jx 8p",
+      "jx-8p",
+      "jx8p",
+      "rolandjx8p"
+    ],
+    "roland mc 09": [
+      "mc 09",
+      "mc-09",
+      "mc09",
+      "rolandmc09"
+    ],
+    "roland mc 202": [
+      "mc 202",
+      "mc-202",
+      "mc202",
+      "rolandmc202"
+    ],
+    "roland mc 303": [
+      "mc 303",
+      "mc-303",
+      "mc303",
+      "rolandmc303"
+    ],
+    "roland mc 307": [
+      "mc 307",
+      "mc-307",
+      "mc307",
+      "rolandmc307"
+    ],
+    "roland mc 505": [
+      "mc 505",
+      "mc-505",
+      "mc505",
+      "rolandmc505"
+    ],
+    "roland mc 808": [
+      "mc 808",
+      "mc-808",
+      "mc808",
+      "rolandmc808"
+    ],
+    "roland mc 909": [
+      "mc 909",
+      "mc-909",
+      "mc909",
+      "rolandmc909"
+    ],
+    "roland mks 10": [
+      "mks 10",
+      "mks-10",
+      "mks10",
+      "rolandmks10"
+    ],
+    "roland mks 30": [
+      "mks 30",
+      "mks-30",
+      "mks30",
+      "rolandmks30"
+    ],
+    "roland mks 50": [
+      "mks 50",
+      "mks-50",
+      "mks50",
+      "rolandmks50"
+    ],
+    "roland mks 7": [
+      "mks 7",
+      "mks-7",
+      "mks7",
+      "rolandmks7"
+    ],
+    "roland mks 70": [
+      "mks 70",
+      "mks-70",
+      "mks70",
+      "rolandmks70"
+    ],
+    "roland mks 80": [
+      "mks 80",
+      "mks-80",
+      "mks80",
+      "rolandmks80"
+    ],
+    "roland mt 32": [
+      "mt 32",
+      "mt-32",
+      "mt32",
+      "rolandmt32"
+    ],
+    "roland promars mrs 2": [
+      "mrs 2",
+      "mrs-2",
+      "mrs2",
+      "roland promarsmrs2"
+    ],
+    "roland r 70": [
+      "r 70",
+      "r-70",
+      "r70",
+      "rolandr70"
+    ],
+    "roland r 8": [
+      "r 8",
+      "r-8",
+      "rolandr8"
+    ],
+    "roland re 201 space echo": [
+      "re 201 space echo",
+      "re-201 space echo",
+      "re201spaceecho"
+    ],
+    "roland rs 09": [
+      "rolandrs09",
+      "rs 09",
+      "rs-09",
+      "rs09"
+    ],
+    "roland rs 101": [
+      "rolandrs101",
+      "rs 101",
+      "rs-101",
+      "rs101"
+    ],
+    "roland rs 202 strings": [
+      "rs 202 strings",
+      "rs-202 strings",
+      "rs202strings"
+    ],
+    "roland rs 50": [
+      "rolandrs50",
+      "rs 50",
+      "rs-50",
+      "rs50"
+    ],
+    "roland rs 505 paraphonic": [
+      "rs 505 paraphonic",
+      "rs-505 paraphonic",
+      "rs505paraphonic"
+    ],
+    "roland s 10": [
+      "rolands10",
+      "s 10",
+      "s-10",
+      "s10"
+    ],
+    "roland s 220": [
+      "rolands220",
+      "s 220",
+      "s-220",
+      "s220"
+    ],
+    "roland s 330": [
+      "rolands330",
+      "s 330",
+      "s-330",
+      "s330"
+    ],
+    "roland s 50": [
+      "rolands50",
+      "s 50",
+      "s-50",
+      "s50"
+    ],
+    "roland s 770": [
+      "rolands770",
+      "s 770",
+      "s-770",
+      "s770"
+    ],
+    "roland saturn 09": [
+      "09",
+      "roland saturn09"
+    ],
+    "roland SC 88": [
+      "roland sc 88",
+      "rolandsc88",
+      "sc 88",
+      "sc-88",
+      "sc88"
+    ],
+    "roland sh 09": [
+      "rolandsh09",
+      "sh 09",
+      "sh-09",
+      "sh09"
+    ],
+    "roland sh 1": [
+      "rolandsh1",
+      "sh 1",
+      "sh-1",
+      "sh1"
+    ],
+    "roland sh 1000": [
+      "rolandsh1000",
+      "sh 1000",
+      "sh-1000",
+      "sh1000"
+    ],
+    "roland sh 2": [
+      "rolandsh2",
+      "sh 2",
+      "sh-2",
+      "sh2"
+    ],
+    "roland sh 2000": [
+      "rolandsh2000",
+      "sh 2000",
+      "sh-2000",
+      "sh2000"
+    ],
+    "roland sh 201": [
+      "rolandsh201",
+      "sh 201",
+      "sh-201",
+      "sh201"
+    ],
+    "roland sh 32": [
+      "rolandsh32",
+      "sh 32",
+      "sh-32",
+      "sh32"
+    ],
+    "roland sh 3a": [
+      "rolandsh3a",
+      "sh 3a",
+      "sh-3a",
+      "sh3a"
+    ],
+    "roland sh 5": [
+      "rolandsh5",
+      "sh 5",
+      "sh-5",
+      "sh5"
+    ],
+    "roland sh 7": [
+      "rolandsh7",
+      "sh 7",
+      "sh-7",
+      "sh7"
+    ],
+    "roland soniccell": [
+      "soniccell"
+    ],
+    "roland SP 404": [
+      "roland sp 404",
+      "rolandsp404",
+      "sp 404",
+      "sp-404",
+      "sp404"
+    ],
+    "roland sp 808": [
+      "rolandsp808",
+      "sp 808",
+      "sp-808",
+      "sp808"
+    ],
+    "roland svc 350 vocoder": [
+      "svc 350 vocoder",
+      "svc-350 vocoder",
+      "svc350vocoder"
+    ],
+    "roland system 100": [
+      "100",
+      "roland system100"
+    ],
+    "roland system 100m": [
+      "100m",
+      "roland system100m"
+    ],
+    "roland system 700": [
+      "700",
+      "roland system700"
+    ],
+    "roland tb 303": [
+      "rolandtb303",
+      "tb 303",
+      "tb-303",
+      "tb303"
+    ],
+    "roland tr 626": [
+      "rolandtr626",
+      "tr 626",
+      "tr-626",
+      "tr626"
+    ],
+    "roland tr 66": [
+      "rolandtr66",
+      "tr 66",
+      "tr-66",
+      "tr66"
+    ],
+    "roland tr 727": [
+      "rolandtr727",
+      "tr 727",
+      "tr-727",
+      "tr727"
+    ],
+    "roland u 110": [
+      "rolandu110",
+      "u 110",
+      "u-110",
+      "u110"
+    ],
+    "roland u 20": [
+      "rolandu20",
+      "u 20",
+      "u-20",
+      "u20"
+    ],
+    "roland v synth": [
+      "rolandvsynth",
+      "v synth",
+      "v-synth",
+      "vsynth"
+    ],
+    "roland vp 550": [
+      "rolandvp550",
+      "vp 550",
+      "vp-550",
+      "vp550"
+    ],
+    "roland vp 770": [
+      "rolandvp770",
+      "vp 770",
+      "vp-770",
+      "vp770"
+    ],
+    "roland vp 9000": [
+      "rolandvp9000",
+      "vp 9000",
+      "vp-9000",
+      "vp9000"
+    ],
+    "roland w 30": [
+      "rolandw30",
+      "w 30",
+      "w-30",
+      "w30"
+    ],
+    "roland xp 10": [
+      "rolandxp10",
+      "xp 10",
+      "xp-10",
+      "xp10"
+    ],
+    "roland xp 30": [
+      "rolandxp30",
+      "xp 30",
+      "xp-30",
+      "xp30"
+    ],
+    "roland xp 50": [
+      "rolandxp50",
+      "xp 50",
+      "xp-50",
+      "xp50"
+    ],
+    "roland xp 60": [
+      "rolandxp60",
+      "xp 60",
+      "xp-60",
+      "xp60"
+    ],
+    "roland xp 80": [
+      "rolandxp80",
+      "xp 80",
+      "xp-80",
+      "xp80"
+    ],
+    "roland xv 3080": [
+      "rolandxv3080",
+      "xv 3080",
+      "xv-3080",
+      "xv3080"
+    ],
+    "roland xv 5050": [
+      "rolandxv5050",
+      "xv 5050",
+      "xv-5050",
+      "xv5050"
+    ],
+    "roland xv 5080": [
+      "rolandxv5080",
+      "xv 5080",
+      "xv-5080",
+      "xv5080"
+    ],
+    "moog cp 251 control processor": [
+      "cp 251 control processor",
+      "cp-251 control processor",
+      "cp251controlprocessor"
+    ],
+    "moog etherwave theremin": [
+      "etherwave theremin",
+      "etherwavetheremin"
+    ],
+    "moog liberation": [
+      "liberation"
+    ],
+    "moog little phatty": [
+      "little phatty",
+      "littlephatty"
+    ],
+    "moog memorymoog": [
+      "memorymoog"
+    ],
+    "moog mf 101 lowpass filter": [
+      "mf 101 lowpass filter",
+      "mf-101 lowpass filter",
+      "mf101lowpassfilter"
+    ],
+    "moog mf 102 ring modulator": [
+      "mf 102 ring modulator",
+      "mf-102 ring modulator",
+      "mf102ringmodulator"
+    ],
+    "moog mf 103 12 stage phaser": [
+      "mf 103 12 stage phaser",
+      "mf-103 12-stage phaser",
+      "mf10312stagephaser"
+    ],
+    "moog mf 104 analog delay": [
+      "mf 104 analog delay",
+      "mf-104 analog delay",
+      "mf104analogdelay"
+    ],
+    "moog mf 105m midi murf": [
+      "mf 105m midi murf",
+      "mf-105m midi murf",
+      "mf105mmidimurf"
+    ],
+    "moog micromoog": [
+      "micromoog"
+    ],
+    "moog minimoog voyager": [
+      "minimoog voyager",
+      "minimoogvoyager"
+    ],
+    "moog minitmoog": [
+      "minitmoog"
+    ],
+    "moog multimoog": [
+      "multimoog"
+    ],
+    "moog opus 3": [
+      "moogopus3",
+      "opus 3",
+      "opus-3",
+      "opus3"
+    ],
+    "moog polymoog 203a": [
+      "203a",
+      "moog polymoog203a"
+    ],
+    "moog prodigy": [
+      "moogprodigy",
+      "prodigy"
+    ],
+    "moog rogue": [
+      "moogrogue",
+      "rogue"
+    ],
+    "moog satellite": [
+      "satellite"
+    ],
+    "moog sirin": [
+      "moogsirin",
+      "sirin"
+    ],
+    "moog slim phatty": [
+      "slim phatty",
+      "slimphatty"
+    ],
+    "moog sonic six": [
+      "moogsonicsix",
+      "sonic six",
+      "sonicsix"
+    ],
+    "moog source": [
+      "moogsource",
+      "source"
+    ],
+    "moog sub_phatty": [
+      "moog sub phatty",
+      "sub phatty",
+      "subphatty"
+    ],
+    "moog synthesizer 1c2c3c": [
+      "1c/2c/3c",
+      "moog synthesizer 1c/2c/3c",
+      "moog synthesizer1c/2c/3c"
+    ],
+    "moog taurus ii": [
+      "ii",
+      "moog taurusii"
+    ],
+    "moog vocoder": [
+      "moogvocoder",
+      "vocoder"
+    ],
+    "sequential prophet 5": [
+      "prophet 5",
+      "prophet-5",
+      "prophet5",
+      "sequentialprophet5"
+    ],
+    "sequential prophet 6": [
+      "prophet 6",
+      "prophet-6",
+      "prophet6",
+      "sequentialprophet6"
+    ],
+    "sequential drumtraks": [
+      "circuits drumtraks",
+      "circuitsdrumtraks",
+      "sequential circuits drumtraks"
+    ],
+    "sequential tom": [
+      "sequential circuits tom",
+      "sequential circuitstom",
+      "tom"
+    ],
+    "te op 1": [
+      "op 1",
+      "op-1",
+      "op1",
+      "teenage engineering op 1",
+      "teenage engineeringop1"
+    ],
+    "te op 1 field": [
+      "op 1 field",
+      "op-1 field",
+      "op1field",
+      "teenage engineering op 1 field",
+      "teenage engineeringop1field"
+    ],
+    "te op z": [
+      "op z",
+      "op-z",
+      "opz",
+      "teenage engineering op z",
+      "teenage engineeringopz"
+    ],
+    "behringer ju 06": [
+      "behringer ju 06 (juno klon)",
+      "ju 06 (juno klon)",
+      "ju-06 (juno-klon)",
+      "ju06(junoklon)"
+    ],
+    "behringer model d": [
+      "behringer model d (minimoog klon)",
+      "d (minimoog klon)",
+      "d (minimoog-klon)",
+      "d(minimoogklon)"
+    ],
+    "gibson es 335": [
+      "es 335",
+      "es-335",
+      "es335",
+      "gibsones335"
+    ],
+    "gibson j 45": [
+      "gibsonj45",
+      "j 45",
+      "j-45",
+      "j45"
+    ],
+    "emu sp 1200": [
+      "e-mu sp 1200",
+      "e-musp1200",
+      "sp 1200",
+      "sp-1200",
+      "sp1200"
+    ],
+    "emu emulator4": [
+      "e-mu emulator iv",
+      "e-mu emulatoriv",
+      "iv"
+    ],
+    "elektron machinedrum sps 1": [
+      "elektron machinedrumsps1",
+      "sps 1",
+      "sps-1",
+      "sps1"
+    ],
+    "elektron analog rytm": [
+      "analog rytm",
+      "analogrytm"
+    ],
+    "elektron analogrytmMKII": [
+      "elektron analog rytm mkii",
+      "elektron analog rytmmkii",
+      "mkii"
+    ],
+    "elektron monomachine sfx 6": [
+      "elektron monomachinesfx6",
+      "sfx 6",
+      "sfx-6",
+      "sfx6"
+    ],
+    "elektron sidstation": [
+      "sidstation"
+    ],
+    "jomox airbase 99": [
+      "99",
+      "jomox airbase99"
+    ],
+    "jomox xbase 09": [
+      "jomoxxbase09",
+      "xbase 09",
+      "xbase09"
+    ],
+    "jomox m_brane_11": [
+      "jomox m.brane 11",
+      "m.brane 11",
+      "m.brane11"
+    ],
+    "jomox mbase 01": [
+      "jomoxmbase01",
+      "mbase 01",
+      "mbase01"
+    ],
+    "jomox mbase 11": [
+      "jomoxmbase11",
+      "mbase 11",
+      "mbase11"
+    ],
+    "jomox resonatorneuronium": [
+      "jomox resonator neuronium",
+      "resonator neuronium",
+      "resonatorneuronium"
+    ],
+    "jomox sunsyn": [
+      "jomoxsunsyn",
+      "sunsyn"
+    ],
+    "jomox Xbase999": [
+      "999",
+      "jomox xbase 999",
+      "jomox xbase999"
+    ],
+    "novation drum station": [
+      "drum station",
+      "drumstation"
+    ],
+    "novation d station": [
+      "d station",
+      "d-station",
+      "dstation",
+      "novationdstation"
+    ],
+    "novation station": [
+      "a station",
+      "a-station",
+      "astation",
+      "novation a station",
+      "novationastation"
+    ],
+    "novation bass station": [
+      "bass station",
+      "bassstation"
+    ],
+    "novation bass_station2": [
+      "ii",
+      "novation bass station ii",
+      "novation bass stationii"
+    ],
+    "novation bass station rack": [
+      "bass station rack",
+      "bassstationrack"
+    ],
+    "novation Circuit": [
+      "circuit",
+      "novation circuit",
+      "novationcircuit"
+    ],
+    "novation circuit_mono_station": [
+      "circuit mono station",
+      "circuitmonostation",
+      "novation circuit mono station"
+    ],
+    "novation drum station v2": [
+      "drum station v2",
+      "drumstationv2"
+    ],
+    "novation k station": [
+      "k station",
+      "k-station",
+      "kstation",
+      "novationkstation"
+    ],
+    "novation ks4": [
+      "ks4",
+      "novationks4"
+    ],
+    "novation nova": [
+      "nova",
+      "novationnova"
+    ],
+    "novation peak": [
+      "novationpeak",
+      "peak"
+    ],
+    "novation super bass station": [
+      "super bass station",
+      "superbassstation"
+    ],
+    "novation supernova": [
+      "supernova"
+    ],
+    "novation ultranova": [
+      "ultranova"
+    ],
+    "novation x station": [
+      "novationxstation",
+      "x station",
+      "x-station",
+      "xstation"
+    ],
+    "novation xiosynth": [
+      "novationxiosynth",
+      "xiosynth"
+    ],
+    "oberheim dmx": [
+      "dmx",
+      "oberheimdmx"
+    ],
+    "oberheim dx": [
+      "dx",
+      "oberheimdx"
+    ],
+    "oberheim dpx1": [
+      "dpx1",
+      "oberheimdpx1"
+    ],
+    "oberheim dsx": [
+      "dsx",
+      "oberheimdsx"
+    ],
+    "oberheim echoplex digital pro": [
+      "echoplex digital pro",
+      "echoplexdigitalpro"
+    ],
+    "oberheim eight voice": [
+      "eight voice",
+      "eightvoice"
+    ],
+    "oberheim four voice": [
+      "four voice",
+      "fourvoice"
+    ],
+    "oberheim matrix 1000": [
+      "1000",
+      "oberheim matrix1000"
+    ],
+    "oberheim matrix 12": [
+      "12",
+      "oberheim matrix12"
+    ],
+    "oberheim matrix 6r": [
+      "6r",
+      "oberheim matrix6r"
+    ],
+    "oberheim mini sequencer": [
+      "mini sequencer",
+      "minisequencer"
+    ],
+    "oberheim ob 1": [
+      "ob 1",
+      "ob-1",
+      "ob1",
+      "oberheimob1"
+    ],
+    "oberheim ob 12": [
+      "ob 12",
+      "ob-12",
+      "ob12",
+      "oberheimob12"
+    ],
+    "oberheim ob 8": [
+      "ob 8",
+      "ob-8",
+      "ob8",
+      "oberheimob8"
+    ],
+    "oberheim ob mx": [
+      "ob mx",
+      "ob-mx",
+      "oberheimobmx",
+      "obmx"
+    ],
+    "oberheim ob sx": [
+      "ob sx",
+      "ob-sx",
+      "oberheimobsx",
+      "obsx"
+    ],
+    "oberheim ob x": [
+      "ob x",
+      "ob-x",
+      "oberheimobx",
+      "obx"
+    ],
+    "oberheim ob xa": [
+      "ob xa",
+      "ob-xa",
+      "oberheimobxa",
+      "obxa"
+    ],
+    "oberheim ob xk": [
+      "ob xk",
+      "ob-xk",
+      "oberheimobxk",
+      "obxk"
+    ],
+    "oberheim prommer": [
+      "oberheimprommer",
+      "prommer"
+    ],
+    "oberheim sem": [
+      "oberheimsem",
+      "sem"
+    ],
+    "oberheim strummer": [
+      "oberheimstrummer",
+      "strummer"
+    ],
+    "oberheim two voice": [
+      "oberheimtwovoice",
+      "two voice",
+      "twovoice"
+    ],
+    "oberheim two_voice_pro": [
+      "oberheim two voice pro",
+      "two voice pro",
+      "twovoicepro"
+    ],
+    "oberheim xpander": [
+      "oberheimxpander",
+      "xpander"
+    ],
+    "propellerhead rebirth rb 338": [
+      "propellerhead rebirthrb338",
+      "rb 338",
+      "rb-338",
+      "rb338"
+    ],
+    "epiphone les paul": [
+      "epiphonelespaul",
+      "les paul",
+      "lespaul"
+    ],
+    "epiphone es 335": [
+      "epiphonees335",
+      "es 335",
+      "es-335",
+      "es335"
+    ],
+    "epiphone sg": [
+      "epiphonesg",
+      "sg"
+    ],
+    "epiphone j 45": [
+      "epiphonej45",
+      "j 45",
+      "j-45",
+      "j45"
+    ],
+    "boss re 20": [
+      "boss re 20 (space echo)",
+      "re 20 (space echo)",
+      "re-20 (space echo)",
+      "re20(spaceecho)"
+    ],
+    "boss dr 110 dr rhythm": [
+      "boss dr 110 dr. rhythm",
+      "dr 110 dr. rhythm",
+      "dr-110 dr. rhythm",
+      "dr110dr.rhythm"
+    ],
+    "boss dr 202 dr groove": [
+      "boss dr 202 dr. groove",
+      "dr 202 dr. groove",
+      "dr-202 dr. groove",
+      "dr202dr.groove"
+    ],
+    "boss dr 220 dr rhythm": [
+      "boss dr 220 dr. rhythm",
+      "dr 220 dr. rhythm",
+      "dr-220 dr. rhythm",
+      "dr220dr.rhythm"
+    ],
+    "boss dr 55 dr rhythm": [
+      "boss dr 55 dr. rhythm",
+      "dr 55 dr. rhythm",
+      "dr-55 dr. rhythm",
+      "dr55dr.rhythm"
+    ],
+    "boss hc 2 hand clapper": [
+      "hc 2 hand clapper",
+      "hc-2 hand clapper",
+      "hc2handclapper"
+    ],
+    "boss pc 2 percussion synthesizer": [
+      "pc 2 percussion synthesizer",
+      "pc-2 percussion synthesizer",
+      "pc2percussionsynthesizer"
+    ],
+    "boss sp 202 dr sample": [
+      "boss sp 202 dr. sample",
+      "sp 202 dr. sample",
+      "sp-202 dr. sample",
+      "sp202dr.sample"
+    ],
+    "boss sp 303 dr sample": [
+      "boss sp 303 dr. sample",
+      "sp 303 dr. sample",
+      "sp-303 dr. sample",
+      "sp303dr.sample"
+    ],
+    "boss sp 505": [
+      "bosssp505",
+      "sp 505",
+      "sp-505",
+      "sp505"
+    ],
+    "boss syb 3 bass synthesizer": [
+      "syb 3 bass synthesizer",
+      "syb-3 bass synthesizer",
+      "syb3basssynthesizer"
+    ],
+    "boss syb 5 bass synthesizer": [
+      "syb 5 bass synthesizer",
+      "syb-5 bass synthesizer",
+      "syb5basssynthesizer"
+    ],
+    "boss vt 1 voice transformer": [
+      "vt 1 voice transformer",
+      "vt-1 voice transformer",
+      "vt1voicetransformer"
+    ],
+    "akai ax60": [
+      "akaiax60",
+      "ax60"
+    ],
+    "akai ax73": [
+      "akaiax73",
+      "ax73"
+    ],
+    "akai ax80": [
+      "akaiax80",
+      "ax80"
+    ],
+    "akai mfc42": [
+      "akaimfc42",
+      "mfc42"
+    ],
+    "akai MINIAK": [
+      "akai miniak",
+      "akaiminiak",
+      "miniak"
+    ],
+    "akai mpc1000": [
+      "akaimpc1000",
+      "mpc1000"
+    ],
+    "akai rhythm_wolf": [
+      "akai rhythm wolf",
+      "rhythm wolf",
+      "rhythmwolf"
+    ],
+    "akai s01": [
+      "akais01",
+      "s01"
+    ],
+    "akai s1000": [
+      "akais1000",
+      "s1000"
+    ],
+    "akai s20": [
+      "akais20",
+      "s20"
+    ],
+    "akai s2000": [
+      "akais2000",
+      "s2000"
+    ],
+    "akai s3000": [
+      "akais3000",
+      "s3000"
+    ],
+    "akai s5000": [
+      "akais5000",
+      "s5000"
+    ],
+    "akai s612": [
+      "akais612",
+      "s612"
+    ],
+    "akai s700": [
+      "akais700",
+      "s700"
+    ],
+    "akai s900": [
+      "akais900",
+      "s900"
+    ],
+    "akai timbre_wolf": [
+      "akai timbre wolf",
+      "timbre wolf",
+      "timbrewolf"
+    ],
+    "akai tomcat": [
+      "akai tom cat",
+      "akaitomcat",
+      "tom cat",
+      "tomcat"
+    ],
+    "akai vx600": [
+      "akaivx600",
+      "vx600"
+    ],
+    "akai vx90": [
+      "akaivx90",
+      "vx90"
+    ],
+    "akai x3700": [
+      "akaix3700",
+      "x3700"
+    ],
+    "akai x7000": [
+      "akaix7000",
+      "x7000"
+    ],
+    "akai XR10": [
+      "akai xr10",
+      "akaixr10",
+      "xr10"
+    ],
+    "akai XR20": [
+      "akai xr20",
+      "akaixr20",
+      "xr20"
+    ],
+    "ssl fusion": [
+      "fusion",
+      "sslfusion"
+    ],
+    "ssl vhd pre": [
+      "sslvhdpre",
+      "vhd pre",
+      "vhdpre"
+    ],
+    "api 500 6b": [
+      "500 6b lunchbox",
+      "500-6b lunchbox",
+      "5006blunchbox",
+      "api 500 6b lunchbox"
+    ],
+    "api 500 8b": [
+      "500 8b lunchbox",
+      "500-8b lunchbox",
+      "5008blunchbox",
+      "api 500 8b lunchbox"
+    ],
+    "api 512c": [
+      "512c",
+      "api512c"
+    ],
+    "api 550a": [
+      "550a",
+      "api550a"
+    ],
+    "neve 1073lb": [
+      "1073lb",
+      "neve1073lb"
+    ],
+    "tube tech cl1b": [
+      "cl 1b",
+      "cl1b",
+      "tube-tech cl 1b",
+      "tube-techcl1b"
+    ],
+    "tube tech cl2a": [
+      "cl 2a",
+      "cl2a",
+      "tube-tech cl 2a",
+      "tube-techcl2a"
+    ],
+    "neumann u87ai": [
+      "neumann u 87 ai",
+      "neumannu87ai",
+      "u 87 ai",
+      "u87ai"
+    ],
+    "manley ref c": [
+      "manley reference cardioid",
+      "reference cardioid",
+      "referencecardioid"
+    ],
+    "manley ref gold": [
+      "manley reference gold",
+      "reference gold",
+      "referencegold"
+    ],
+    "manley voxbox": [
+      "manleyvoxbox",
+      "voxbox"
+    ],
+    "manley elop": [
+      "elop",
+      "manleyelop"
+    ],
+    "kush clariphonic": [
+      "audio clariphonic",
+      "audioclariphonic",
+      "kush audio clariphonic"
+    ],
+    "ua 1176ln": [
+      "1176ln",
+      "universal audio 1176ln",
+      "universal audio1176ln"
+    ],
+    "ua la 2a": [
+      "la 2a",
+      "la-2a",
+      "la2a",
+      "universal audio la 2a",
+      "universal audiola2a"
+    ],
+    "ua 6176": [
+      "6176",
+      "universal audio 6176",
+      "universal audio6176"
+    ],
+    "warm audio wa73": [
+      "wa73",
+      "warm audiowa73"
+    ],
+    "warm audio wa76": [
+      "wa76",
+      "warm audiowa76"
+    ],
+    "warm audio wa2a": [
+      "wa 2a",
+      "wa-2a",
+      "wa2a",
+      "warm audio wa 2a",
+      "warm audiowa2a"
+    ],
+    "warm audio wa87": [
+      "wa 87",
+      "wa-87",
+      "wa87",
+      "warm audio wa 87",
+      "warm audiowa87"
+    ],
+    "warm audio wa47": [
+      "wa 47",
+      "wa-47",
+      "wa47",
+      "warm audio wa 47",
+      "warm audiowa47"
+    ],
+    "bae 1073": [
+      "1073",
+      "bae1073"
+    ],
+    "creamware noah_tactive_instrument_modeller": [
+      "creamware noah tactive instrument modeller",
+      "noah tactive instrument modeller",
+      "noahtactiveinstrumentmodeller"
+    ],
+    "creamware minimaxasb": [
+      "asb",
+      "creamware minimax asb"
+    ],
+    "creamware pulsar": [
+      "creamwarepulsar",
+      "pulsar"
+    ],
+    "korg 01w": [
+      "01/w",
+      "korg 01/w",
+      "korg01/w"
+    ],
+    "korg 707": [
+      "707",
+      "korg707"
+    ],
+    "korg 770": [
+      "770",
+      "korg770"
+    ],
+    "korg 900ps preset synthesizer": [
+      "900ps preset synthesizer",
+      "900pspresetsynthesizer"
+    ],
+    "korg ddd 1": [
+      "ddd 1",
+      "ddd-1",
+      "ddd1",
+      "korgddd1"
+    ],
+    "korg ddd 5": [
+      "ddd 5",
+      "ddd-5",
+      "ddd5",
+      "korgddd5"
+    ],
+    "korg ddm 110": [
+      "ddm 110",
+      "ddm-110",
+      "ddm110",
+      "korgddm110"
+    ],
+    "korg delta": [
+      "delta",
+      "korgdelta"
+    ],
+    "korg ds 8": [
+      "ds 8",
+      "ds-8",
+      "ds8",
+      "korgds8"
+    ],
+    "korg dss 1": [
+      "dss 1",
+      "dss-1",
+      "dss1",
+      "korgdss1"
+    ],
+    "korg dvp 1": [
+      "dvp 1",
+      "dvp-1",
+      "dvp1",
+      "korgdvp1"
+    ],
+    "korg dw 6000": [
+      "dw 6000",
+      "dw-6000",
+      "dw6000",
+      "korgdw6000"
+    ],
+    "korg dw 8000": [
+      "dw 8000",
+      "dw-8000",
+      "dw8000",
+      "korgdw8000"
+    ],
+    "korg electribe ea 1": [
+      "a (ea 1)",
+      "a (ea-1)",
+      "a(ea1)",
+      "korg electribe a (ea 1)",
+      "korg electribea(ea1)"
+    ],
+    "korg electribe m em 1": [
+      "korg electribe m (em 1)",
+      "korg electribem(em1)",
+      "m (em 1)",
+      "m (em-1)",
+      "m(em1)"
+    ],
+    "korg electribe mx emx 1": [
+      "korg electribe mx (emx 1)",
+      "korg electribemx(emx1)",
+      "mx (emx 1)",
+      "mx (emx-1)",
+      "mx(emx1)"
+    ],
+    "korg electribe r er 1": [
+      "korg electribe r (er 1)",
+      "korg electriber(er1)",
+      "r (er 1)",
+      "r (er-1)",
+      "r(er1)"
+    ],
+    "korg electribe s es 1": [
+      "korg electribe s (es 1)",
+      "korg electribes(es1)",
+      "s (es 1)",
+      "s (es-1)",
+      "s(es1)"
+    ],
+    "korg electribe sx esx 1": [
+      "korg electribe sx (esx 1)",
+      "korg electribesx(esx1)",
+      "sx (esx 1)",
+      "sx (esx-1)",
+      "sx(esx1)"
+    ],
+    "korg kaoss pad kp1": [
+      "kaoss pad (kp1)",
+      "kaosspad(kp1)",
+      "korg kaoss pad (kp1)"
+    ],
+    "korg karma": [
+      "karma",
+      "korgkarma"
+    ],
+    "korg kingkorg": [
+      "kingkorg",
+      "korgkingkorg"
+    ],
+    "korg kpr 77": [
+      "korgkpr77",
+      "kpr 77",
+      "kpr-77",
+      "kpr77"
+    ],
+    "korg lambda es50": [
+      "es50",
+      "korg lambdaes50"
+    ],
+    "korg legacy collection": [
+      "legacy collection",
+      "legacycollection"
+    ],
+    "korg m1": [
+      "korgm1",
+      "m1"
+    ],
+    "korg m3": [
+      "korgm3",
+      "m3"
+    ],
+    "korg m50": [
+      "korgm50",
+      "m50"
+    ],
+    "korg m500 micro preset": [
+      "m500 micro preset",
+      "m500 micro-preset",
+      "m500micropreset"
+    ],
+    "korg maxi korg 800dv": [
+      "800dv",
+      "korg maxi-korg 800dv",
+      "korg maxi-korg800dv"
+    ],
+    "korg micro x": [
+      "korgmicrox",
+      "micro x",
+      "micro-x",
+      "microx"
+    ],
+    "korg microkontrol": [
+      "microkontrol"
+    ],
+    "korg microkorg": [
+      "microkorg"
+    ],
+    "korg microkorgxl": [
+      "korg microkorg xl",
+      "xl"
+    ],
+    "korg microstation": [
+      "microstation"
+    ],
+    "korg minikorg 700": [
+      "minikorg 700",
+      "minikorg-700",
+      "minikorg700"
+    ],
+    "korg minilogue": [
+      "minilogue"
+    ],
+    "korg minipops120": [
+      "120",
+      "korg minipops 120"
+    ],
+    "korg minipops 35 mp 35": [
+      "35 (mp 35)",
+      "35 (mp-35)",
+      "35(mp35)",
+      "korg minipops 35 (mp 35)",
+      "korg minipops35(mp35)"
+    ],
+    "korg monopoly": [
+      "korg mono/poly",
+      "mono/poly"
+    ],
+    "korg monologue": [
+      "monologue"
+    ],
+    "korg monotribe": [
+      "monotribe"
+    ],
+    "korg monotron": [
+      "korgmonotron",
+      "monotron"
+    ],
+    "korg ms 10": [
+      "korgms10",
+      "ms 10",
+      "ms-10",
+      "ms10"
+    ],
+    "korg ms 20": [
+      "korgms20",
+      "ms 20",
+      "ms-20",
+      "ms20"
+    ],
+    "korg ms 20 mini": [
+      "korgms20mini",
+      "ms 20 mini",
+      "ms-20 mini",
+      "ms20mini"
+    ],
+    "korg ms 50": [
+      "korgms50",
+      "ms 50",
+      "ms-50",
+      "ms50"
+    ],
+    "korg ms2000": [
+      "korgms2000",
+      "ms2000"
+    ],
+    "korg n364": [
+      "korgn364",
+      "n364"
+    ],
+    "korg poly 61": [
+      "korgpoly61",
+      "poly 61",
+      "poly-61",
+      "poly61"
+    ],
+    "korg poly 800": [
+      "korgpoly800",
+      "poly 800",
+      "poly-800",
+      "poly800"
+    ],
+    "korg polysix": [
+      "korgpolysix",
+      "polysix"
+    ],
+    "korg prophecy": [
+      "korgprophecy",
+      "prophecy"
+    ],
+    "korg ps 3100": [
+      "korgps3100",
+      "ps 3100",
+      "ps-3100",
+      "ps3100"
+    ],
+    "korg ps 3200": [
+      "korgps3200",
+      "ps 3200",
+      "ps-3200",
+      "ps3200"
+    ],
+    "korg ps 3300": [
+      "korgps3300",
+      "ps 3300",
+      "ps-3300",
+      "ps3300"
+    ],
+    "korg r3": [
+      "korgr3",
+      "r3"
+    ],
+    "korg radias": [
+      "korgradias",
+      "radias"
+    ],
+    "korg rhythm 55 kr 55": [
+      "55 (kr 55)",
+      "55 (kr-55)",
+      "55(kr55)",
+      "korg rhythm 55 (kr 55)",
+      "korg rhythm55(kr55)"
+    ],
+    "korg RK 100S": [
+      "korg rk 100s",
+      "korgrk100s",
+      "rk 100s",
+      "rk-100s",
+      "rk100s"
+    ],
+    "korg S3": [
+      "korg s3",
+      "korgs3",
+      "s3"
+    ],
+    "korg sb 100 synthe bass": [
+      "sb 100 synthe bass",
+      "sb-100 synthe-bass",
+      "sb100synthebass"
+    ],
+    "korg sigma": [
+      "korgsigma",
+      "sigma"
+    ],
+    "korg sm 20": [
+      "korgsm20",
+      "sm 20",
+      "sm-20",
+      "sm20"
+    ],
+    "korg sq 10 analog sequencer": [
+      "sq 10 analog sequencer",
+      "sq-10 analog sequencer",
+      "sq10analogsequencer"
+    ],
+    "korg symphony 03": [
+      "symphony 03",
+      "symphony-03",
+      "symphony03"
+    ],
+    "korg t3": [
+      "korgt3",
+      "t3"
+    ],
+    "korg tr88": [
+      "korg tr 88",
+      "korgtr88",
+      "tr 88",
+      "tr-88",
+      "tr88"
+    ],
+    "korg trident": [
+      "korgtrident",
+      "trident"
+    ],
+    "korg trinity": [
+      "korgtrinity",
+      "trinity"
+    ],
+    "korg triton": [
+      "korgtriton",
+      "triton"
+    ],
+    "korg vc 10 vocoder": [
+      "vc 10 vocoder",
+      "vc-10 vocoder",
+      "vc10vocoder"
+    ],
+    "korg volca bass": [
+      "volca bass",
+      "volcabass"
+    ],
+    "korg volca beats": [
+      "volca beats",
+      "volcabeats"
+    ],
+    "korg volca keys": [
+      "volca keys",
+      "volcakeys"
+    ],
+    "korg volca_nubass": [
+      "korg volca nubass",
+      "volca nubass",
+      "volcanubass"
+    ],
+    "korg wavestation": [
+      "wavestation"
+    ],
+    "korg wavestation ad": [
+      "a/d",
+      "korg wavestation a/d",
+      "korg wavestationa/d"
+    ],
+    "korg wavestation sr": [
+      "korg wavestationsr",
+      "sr"
+    ],
+    "korg x 911": [
+      "korgx911",
+      "x 911",
+      "x-911",
+      "x911"
+    ],
+    "korg x3": [
+      "korgx3",
+      "x3"
+    ],
+    "korg x50": [
+      "korgx50",
+      "x50"
+    ],
+    "korg x5d": [
+      "korgx5d",
+      "x5d"
+    ],
+    "korg z1": [
+      "korgz1",
+      "z1"
+    ],
+    "korg rhythm 330": [
+      "330",
+      "roland rhythm 330",
+      "roland rhythm330"
+    ],
+    "buchla 100 series": [
+      "100 series",
+      "100series"
+    ],
+    "buchla 200 series": [
+      "200 series",
+      "200series"
+    ],
+    "buchla 200e series": [
+      "200e series",
+      "200eseries"
+    ],
+    "buchla 400 series": [
+      "400 series",
+      "400series"
+    ],
+    "buchla 700 series": [
+      "700 series",
+      "700series"
+    ],
+    "buchla touche": [
+      "buchla touch&eacute;",
+      "touch&eacute;"
+    ],
+    "ppg 1002": [
+      "1002",
+      "ppg1002"
+    ],
+    "ppg kx5": [
+      "kx5",
+      "ppgkx5"
+    ],
+    "ppg realizer": [
+      "ppgrealizer",
+      "realizer"
+    ],
+    "hammond 102200": [
+      "102200",
+      "hammond102200"
+    ],
+    "hammond auto vari 64 drum machine": [
+      "64 drum machine",
+      "64drummachine",
+      "hammond auto-vari 64 drum machine"
+    ],
+    "arp 2500": [
+      "2500",
+      "arp2500"
+    ],
+    "arp 2600": [
+      "2600",
+      "arp2600"
+    ],
+    "arp avatar": [
+      "arpavatar",
+      "avatar"
+    ],
+    "arp axxe": [
+      "arpaxxe",
+      "axxe"
+    ],
+    "arp little brother": [
+      "little brother",
+      "littlebrother"
+    ],
+    "arp pro soloist": [
+      "pro soloist",
+      "pro-soloist",
+      "prosoloist"
+    ],
+    "arp prodgx": [
+      "arp pro/dgx",
+      "arppro/dgx",
+      "pro/dgx"
+    ],
+    "arp quadra": [
+      "arpquadra",
+      "quadra"
+    ],
+    "arp quartet": [
+      "arpquartet",
+      "quartet"
+    ],
+    "arp sequencer": [
+      "sequencer"
+    ],
+    "arp solina string ensemble": [
+      "solina string ensemble",
+      "solinastringensemble"
+    ],
+    "arp solina string synthesizer": [
+      "solina string synthesizer",
+      "solinastringsynthesizer"
+    ],
+    "arp solus": [
+      "arpsolus",
+      "solus"
+    ],
+    "aries 300 music system": [
+      "300 music system",
+      "300musicsystem"
+    ],
+    "future retro 777": [
+      "777",
+      "future retro777"
+    ],
+    "future retro mobius": [
+      "retro mobius",
+      "retromobius"
+    ],
+    "future retro revolution": [
+      "retro revolution",
+      "retrorevolution"
+    ],
+    "future retro xs": [
+      "future retroxs",
+      "xs"
+    ],
+    "doepfer 100": [
+      "a 100",
+      "a-100",
+      "a100",
+      "doepfer a 100",
+      "doepfera100"
+    ],
+    "doepfer dark energy": [
+      "dark energy",
+      "darkenergy"
+    ],
+    "doepfer DarkEnergyIII": [
+      "doepfer dark energy iii",
+      "doepfer dark energyiii",
+      "iii"
+    ],
+    "doepfer drehbank": [
+      "doepferdrehbank",
+      "drehbank"
+    ],
+    "doepfer ms 404": [
+      "doepferms404",
+      "ms 404",
+      "ms-404",
+      "ms404"
+    ],
+    "yamaha a3000": [
+      "a3000",
+      "yamahaa3000"
+    ],
+    "yamaha an1x": [
+      "an1x",
+      "yamahaan1x"
+    ],
+    "yamaha an200": [
+      "an200",
+      "yamahaan200"
+    ],
+    "yamaha cs 10": [
+      "cs 10",
+      "cs-10",
+      "cs10",
+      "yamahacs10"
+    ],
+    "yamaha cs 15": [
+      "cs 15",
+      "cs-15",
+      "cs15",
+      "yamahacs15"
+    ],
+    "yamaha cs 15d": [
+      "cs 15d",
+      "cs-15d",
+      "cs15d",
+      "yamahacs15d"
+    ],
+    "yamaha cs 20m": [
+      "cs 20m",
+      "cs-20m",
+      "cs20m",
+      "yamahacs20m"
+    ],
+    "yamaha cs 30": [
+      "cs 30",
+      "cs-30",
+      "cs30",
+      "yamahacs30"
+    ],
+    "yamaha cs 40m": [
+      "cs 40m",
+      "cs-40m",
+      "cs40m",
+      "yamahacs40m"
+    ],
+    "yamaha cs 5": [
+      "cs 5",
+      "cs-5",
+      "cs5",
+      "yamahacs5"
+    ],
+    "yamaha cs 50": [
+      "cs 50",
+      "cs-50",
+      "cs50",
+      "yamahacs50"
+    ],
+    "yamaha cs 60": [
+      "cs 60",
+      "cs-60",
+      "cs60",
+      "yamahacs60"
+    ],
+    "yamaha cs 70m": [
+      "cs 70m",
+      "cs-70m",
+      "cs70m",
+      "yamahacs70m"
+    ],
+    "yamaha cs 80": [
+      "cs 80",
+      "cs-80",
+      "cs80",
+      "yamahacs80"
+    ],
+    "yamaha cs01": [
+      "cs01",
+      "yamahacs01"
+    ],
+    "yamaha cs1x": [
+      "cs1x",
+      "yamahacs1x"
+    ],
+    "yamaha cs2x": [
+      "cs2x",
+      "yamahacs2x"
+    ],
+    "yamaha cs6x": [
+      "cs6x",
+      "yamahacs6x"
+    ],
+    "yamaha djx iib": [
+      "djx iib",
+      "djx-iib",
+      "djxiib",
+      "yamahadjxiib"
+    ],
+    "yamaha dx1": [
+      "dx1",
+      "yamahadx1"
+    ],
+    "yamaha dx100": [
+      "dx100",
+      "yamahadx100"
+    ],
+    "yamaha dx11": [
+      "dx11",
+      "yamahadx11"
+    ],
+    "yamaha dx200": [
+      "dx200",
+      "yamahadx200"
+    ],
+    "yamaha dx21": [
+      "dx21",
+      "yamahadx21"
+    ],
+    "yamaha dx27": [
+      "dx27",
+      "yamahadx27"
+    ],
+    "yamaha dx5": [
+      "dx5",
+      "yamahadx5"
+    ],
+    "yamaha dx7": [
+      "dx7",
+      "yamahadx7"
+    ],
+    "yamaha dx7iid dx7iifd": [
+      "dx7iid / dx7iifd",
+      "dx7iid/dx7iifd",
+      "yamaha dx7iid / dx7iifd"
+    ],
+    "yamaha dx9": [
+      "dx9",
+      "yamahadx9"
+    ],
+    "yamaha ed10": [
+      "ed10",
+      "yamahaed10"
+    ],
+    "yamaha ex5": [
+      "ex5",
+      "yamahaex5"
+    ],
+    "yamaha ex7": [
+      "ex7",
+      "yamahaex7"
+    ],
+    "yamaha fb 01": [
+      "fb 01",
+      "fb-01",
+      "fb01",
+      "yamahafb01"
+    ],
+    "yamaha fs1r": [
+      "fs1r",
+      "yamahafs1r"
+    ],
+    "yamaha GS 1": [
+      "gs 1",
+      "gs-1",
+      "gs1",
+      "yamaha gs 1",
+      "yamahags1"
+    ],
+    "yamaha gx 1": [
+      "gx 1",
+      "gx-1",
+      "gx1",
+      "yamahagx1"
+    ],
+    "yamaha motif": [
+      "motif",
+      "yamahamotif"
+    ],
+    "yamaha MX49_61_88": [
+      "mx49/61/88",
+      "yamaha mx49/61/88"
+    ],
+    "yamaha portasound pss 470": [
+      "pss 470",
+      "pss-470",
+      "pss470",
+      "yamaha portasoundpss470"
+    ],
+    "yamaha portasound PSS 480": [
+      "pss 480",
+      "pss-480",
+      "pss480",
+      "yamaha portasound pss 480",
+      "yamaha portasoundpss480"
+    ],
+    "yamaha qs300": [
+      "qs300",
+      "yamahaqs300"
+    ],
+    "yamaha qy700 sequencer": [
+      "qy700 sequencer",
+      "qy700sequencer"
+    ],
+    "yamaha rm1x": [
+      "rm1x",
+      "yamaharm1x"
+    ],
+    "yamaha rs7000": [
+      "rs7000",
+      "yamahars7000"
+    ],
+    "yamaha rx5": [
+      "rx5",
+      "yamaharx5"
+    ],
+    "yamaha rx8": [
+      "rx8",
+      "yamaharx8"
+    ],
+    "yamaha ry30": [
+      "ry30",
+      "yamahary30"
+    ],
+    "yamaha s30": [
+      "s30",
+      "yamahas30"
+    ],
+    "yamaha sk20": [
+      "sk20",
+      "yamahask20"
+    ],
+    "yamaha ss30": [
+      "ss30",
+      "yamahass30"
+    ],
+    "yamaha su10": [
+      "su10",
+      "yamahasu10"
+    ],
+    "yamaha su200": [
+      "su200",
+      "yamahasu200"
+    ],
+    "yamaha su700": [
+      "su700",
+      "yamahasu700"
+    ],
+    "yamaha sy 1": [
+      "sy 1",
+      "sy-1",
+      "sy1",
+      "yamahasy1"
+    ],
+    "yamaha SY 55": [
+      "sy 55",
+      "sy-55",
+      "sy55",
+      "yamaha sy 55",
+      "yamahasy55"
+    ],
+    "yamaha sy20": [
+      "sy20",
+      "yamahasy20"
+    ],
+    "yamaha sy22": [
+      "sy22",
+      "yamahasy22"
+    ],
+    "yamaha sy35": [
+      "sy35",
+      "yamahasy35"
+    ],
+    "yamaha sy77": [
+      "sy77",
+      "yamahasy77"
+    ],
+    "yamaha sy85": [
+      "sy85",
+      "yamahasy85"
+    ],
+    "yamaha sy99": [
+      "sy99",
+      "yamahasy99"
+    ],
+    "yamaha tg33": [
+      "tg33",
+      "yamahatg33"
+    ],
+    "yamaha tg500": [
+      "tg500",
+      "yamahatg500"
+    ],
+    "yamaha TG55 Tone Generator": [
+      "tg55 tone generator",
+      "tg55tonegenerator",
+      "yamaha tg55 tone generator"
+    ],
+    "yamaha tq5": [
+      "tq5",
+      "yamahatq5"
+    ],
+    "yamaha tx16w": [
+      "tx16w",
+      "yamahatx16w"
+    ],
+    "yamaha tx7": [
+      "tx7",
+      "yamahatx7"
+    ],
+    "yamaha tx802": [
+      "tx802",
+      "yamahatx802"
+    ],
+    "yamaha tx816": [
+      "tx816",
+      "yamahatx816"
+    ],
+    "yamaha tx81z": [
+      "tx81z",
+      "yamahatx81z"
+    ],
+    "yamaha v50": [
+      "v50",
+      "yamahav50"
+    ],
+    "yamaha VL 70m": [
+      "vl 70m",
+      "vl-70m",
+      "vl70m",
+      "yamaha vl 70m",
+      "yamahavl70m"
+    ],
+    "yamaha VSS 200": [
+      "vss 200",
+      "vss-200",
+      "vss200",
+      "yamaha vss 200",
+      "yamahavss200"
+    ],
+    "yamaha w7": [
+      "w7",
+      "yamahaw7"
+    ],
+    "yamaha ys200": [
+      "yamahays200",
+      "ys200"
+    ],
+    "native instruments absynth": [
+      "instruments absynth",
+      "instrumentsabsynth"
+    ],
+    "native instruments b4": [
+      "b4",
+      "native instrumentsb4"
+    ],
+    "native instruments battery": [
+      "instruments battery",
+      "instrumentsbattery"
+    ],
+    "native instruments dynamo": [
+      "instruments dynamo",
+      "instrumentsdynamo"
+    ],
+    "native instruments elektrik piano": [
+      "instruments elektrik piano",
+      "instrumentselektrikpiano"
+    ],
+    "native instruments fm7": [
+      "fm7",
+      "native instrumentsfm7"
+    ],
+    "native instruments fm8": [
+      "fm8",
+      "native instrumentsfm8"
+    ],
+    "native instruments intakt": [
+      "instruments intakt",
+      "instrumentsintakt"
+    ],
+    "native instruments kompakt": [
+      "instruments kompakt",
+      "instrumentskompakt"
+    ],
+    "native instruments kontakt": [
+      "instruments kontakt",
+      "instrumentskontakt"
+    ],
+    "native instruments massive": [
+      "instruments massive",
+      "instrumentsmassive"
+    ],
+    "native instruments pro 52": [
+      "instruments pro 52",
+      "instruments pro-52",
+      "instrumentspro52"
+    ],
+    "native instruments pro 53": [
+      "instruments pro 53",
+      "instruments pro-53",
+      "instrumentspro53"
+    ],
+    "native instruments pro five": [
+      "instruments pro five",
+      "instruments pro-five",
+      "instrumentsprofive"
+    ],
+    "native instruments reaktor": [
+      "instruments reaktor",
+      "instrumentsreaktor"
+    ],
+    "native instruments vokator": [
+      "instruments vokator",
+      "instrumentsvokator"
+    ],
+    "radikal technologies accelerator": [
+      "technologies accelerator",
+      "technologiesaccelerator"
+    ],
+    "radikal technologies spectralis": [
+      "technologies spectralis",
+      "technologiesspectralis"
+    ],
+    "radikaltechnologies deltacepa": [
+      "cep a",
+      "cepa",
+      "radikal technologies delta cep a",
+      "radikal technologies deltacepa"
+    ],
+    "vermona action filter af 1": [
+      "action filter (af 1)",
+      "action filter (af-1)",
+      "actionfilter(af1)",
+      "vermona action filter (af 1)"
+    ],
+    "vermona drm 1 mkii": [
+      "drm 1 mkii",
+      "drm-1 mkii",
+      "drm1mkii",
+      "vermonadrm1mkii"
+    ],
+    "vermona dual analog filter daf 1": [
+      "dual analog filter (daf 1)",
+      "dual analog filter (daf-1)",
+      "dualanalogfilter(daf1)",
+      "vermona dual analog filter (daf 1)"
+    ],
+    "vermona mars  monophonic analog rack synthesizer": [
+      "m.a.r.s. monophonic analog rack synthesizer",
+      "m.a.r.s.monophonicanalogracksynthesizer",
+      "vermona m.a.r.s. monophonic analog rack synthesizer"
+    ],
+    "vermona mephisto": [
+      "mephisto",
+      "vermonamephisto"
+    ],
+    "vermona perfourmer": [
+      "perfourmer"
+    ],
+    "vermona synthesizer": [
+      "synthesizer"
+    ],
+    "con brio ads 200": [
+      "ads 200",
+      "ads200",
+      "con brioads200"
+    ],
+    "mam adx1": [
+      "adx1",
+      "mamadx1"
+    ],
+    "mam freebass 383": [
+      "383",
+      "mam freebass383"
+    ],
+    "mam mb 33": [
+      "mammb33",
+      "mb 33",
+      "mb33"
+    ],
+    "mam vf 11": [
+      "mamvf11",
+      "vf 11",
+      "vf-11",
+      "vf11"
+    ],
+    "mam warp 9": [
+      "mamwarp9",
+      "warp 9",
+      "warp9"
+    ],
+    "alesis airsynth": [
+      "airsynth",
+      "alesisairsynth"
+    ],
+    "alesis andromeda a6": [
+      "a6",
+      "alesis andromedaa6"
+    ],
+    "alesis d4": [
+      "alesisd4",
+      "d4"
+    ],
+    "alesis fusion": [
+      "alesisfusion",
+      "fusion"
+    ],
+    "alesis hr 16": [
+      "alesishr16",
+      "hr 16",
+      "hr-16",
+      "hr16"
+    ],
+    "alesis ion": [
+      "alesision",
+      "ion"
+    ],
+    "alesis micron": [
+      "alesismicron",
+      "micron"
+    ],
+    "alesis mmt 8": [
+      "alesismmt8",
+      "mmt 8",
+      "mmt-8",
+      "mmt8"
+    ],
+    "alesis nanobass": [
+      "alesisnanobass",
+      "nanobass"
+    ],
+    "alesis nanopiano": [
+      "nanopiano"
+    ],
+    "alesis nanosynth": [
+      "nanosynth"
+    ],
+    "alesis qs6": [
+      "alesisqs6",
+      "qs6"
+    ],
+    "alesis qs61": [
+      "alesis qs6.1",
+      "alesisqs6.1",
+      "qs6.1"
+    ],
+    "alesis qs7": [
+      "alesisqs7",
+      "qs7"
+    ],
+    "alesis qs71": [
+      "alesis qs7.1",
+      "alesisqs7.1",
+      "qs7.1"
+    ],
+    "alesis qs8": [
+      "alesisqs8",
+      "qs8"
+    ],
+    "alesis qs81": [
+      "alesis qs8.1",
+      "alesisqs8.1",
+      "qs8.1"
+    ],
+    "alesis qsr": [
+      "alesisqsr",
+      "qsr"
+    ],
+    "alesis quadrasynth": [
+      "quadrasynth"
+    ],
+    "alesis s4": [
+      "alesiss4",
+      "s4"
+    ],
+    "alesis sr 16": [
+      "alesissr16",
+      "sr 16",
+      "sr-16",
+      "sr16"
+    ],
+    "syntauri alphasyntauri": [
+      "alphasyntauri"
+    ],
+    "Mutable_Instruments Ambika": [
+      "instruments ambika",
+      "instrumentsambika",
+      "mutable instruments ambika"
+    ],
+    "Elektron octatrack": [
+      "elektron elektron octatrack",
+      "elektron octatrack",
+      "elektronoctatrack"
+    ],
+    "arturia arp 2600v": [
+      "arp 2600v",
+      "arp2600v",
+      "arturiaarp2600v"
+    ],
+    "arturia cs 80v": [
+      "arturiacs80v",
+      "cs 80v",
+      "cs-80v",
+      "cs80v"
+    ],
+    "arturia jupiter 8v": [
+      "jupiter 8v",
+      "jupiter-8v",
+      "jupiter8v"
+    ],
+    "arturia microbrute": [
+      "microbrute"
+    ],
+    "arturia minibrute": [
+      "minibrute"
+    ],
+    "arturia prophet v": [
+      "arturiaprophetv",
+      "prophet v",
+      "prophet-v",
+      "prophetv"
+    ],
+    "ensoniq asr 10": [
+      "asr 10",
+      "asr-10",
+      "asr10",
+      "ensoniqasr10"
+    ],
+    "ensoniq asr x": [
+      "asr x",
+      "asr-x",
+      "asrx",
+      "ensoniqasrx"
+    ],
+    "ensoniq asr x pro": [
+      "asr x pro",
+      "asr-x pro",
+      "asrxpro",
+      "ensoniqasrxpro"
+    ],
+    "ensoniq eps": [
+      "ensoniqeps",
+      "eps"
+    ],
+    "ensoniq eps 16": [
+      "ensoniq eps 16+",
+      "ensoniqeps16+",
+      "eps 16+",
+      "eps-16+",
+      "eps16+"
+    ],
+    "ensoniq esq 1": [
+      "ensoniqesq1",
+      "esq 1",
+      "esq-1",
+      "esq1"
+    ],
+    "ensoniq fizmo": [
+      "ensoniqfizmo",
+      "fizmo"
+    ],
+    "ensoniq halo": [
+      "ensoniqhalo",
+      "halo"
+    ],
+    "ensoniq kt 88": [
+      "ensoniqkt88",
+      "kt 88",
+      "kt-88",
+      "kt88"
+    ],
+    "ensoniq mirage": [
+      "ensoniqmirage",
+      "mirage"
+    ],
+    "ensoniq MR 61": [
+      "ensoniq mr 61",
+      "ensoniqmr61",
+      "mr 61",
+      "mr-61",
+      "mr61"
+    ],
+    "ensoniq sd 1": [
+      "ensoniqsd1",
+      "sd 1",
+      "sd-1",
+      "sd1"
+    ],
+    "ensoniq sq 80": [
+      "ensoniqsq80",
+      "sq 80",
+      "sq-80",
+      "sq80"
+    ],
+    "ensoniq sq R": [
+      "ensoniq sq r",
+      "ensoniqsqr",
+      "sq r",
+      "sq-r",
+      "sqr"
+    ],
+    "ensoniq ts 10 ts 12": [
+      "ensoniq ts 10 / ts 12",
+      "ts 10 / ts 12",
+      "ts-10 / ts-12",
+      "ts10/ts12"
+    ],
+    "ensoniq vfx": [
+      "ensoniqvfx",
+      "vfx"
+    ],
+    "ensoniq zr 76": [
+      "ensoniqzr76",
+      "zr 76",
+      "zr-76",
+      "zr76"
+    ],
+    "studio electronics atc 1": [
+      "atc 1",
+      "atc-1",
+      "atc1",
+      "studio electronicsatc1"
+    ],
+    "studio electronics midimoog": [
+      "electronics midimoog",
+      "electronicsmidimoog"
+    ],
+    "studio electronics omega8": [
+      "electronics omega8",
+      "electronicsomega8"
+    ],
+    "studio electronics se 1": [
+      "se 1",
+      "se-1",
+      "se1",
+      "studio electronicsse1"
+    ],
+    "studio_electronics atcx": [
+      "atcx",
+      "studio electronics atcx",
+      "studio electronicsatcx"
+    ],
+    "studio_electronics boomstar_mk2": [
+      "mk2",
+      "studio electronics boomstar mk2",
+      "studio electronics boomstarmk2"
+    ],
+    "studio_electronics tonestar_8106": [
+      "8106",
+      "studio electronics tonestar 8106",
+      "studio electronics tonestar8106"
+    ],
+    "soulsby atmegatron": [
+      "atmegatron"
+    ],
+    "e mu audity": [
+      "audity",
+      "e-mu audity",
+      "e-muaudity"
+    ],
+    "e mu audity 2000": [
+      "2000",
+      "e-mu audity 2000",
+      "e-mu audity2000"
+    ],
+    "e mu b 3": [
+      "b 3",
+      "b-3",
+      "e-mu b 3",
+      "e-mub3"
+    ],
+    "e mu carnaval": [
+      "carnaval",
+      "e-mu carnaval",
+      "e-mucarnaval"
+    ],
+    "e mu drumulator": [
+      "drumulator",
+      "e-mu drumulator"
+    ],
+    "e mu e drum": [
+      "e drum",
+      "e-drum",
+      "e-mu e drum",
+      "e-muedrum",
+      "edrum"
+    ],
+    "e mu emax": [
+      "e-mu emax",
+      "e-muemax",
+      "emax"
+    ],
+    "e mu emulator": [
+      "e-mu emulator",
+      "e-muemulator",
+      "emulator"
+    ],
+    "e mu emulator ii": [
+      "e-mu emulator ii",
+      "e-mu emulatorii",
+      "ii"
+    ],
+    "e mu emulator iii": [
+      "e-mu emulator iii",
+      "e-mu emulatoriii",
+      "iii"
+    ],
+    "e mu esi 2000": [
+      "e-mu esi 2000",
+      "e-muesi2000",
+      "esi 2000",
+      "esi-2000",
+      "esi2000"
+    ],
+    "e mu esi 32": [
+      "e-mu esi 32",
+      "e-muesi32",
+      "esi 32",
+      "esi-32",
+      "esi32"
+    ],
+    "e mu esi 4000": [
+      "e-mu esi 4000",
+      "e-muesi4000",
+      "esi 4000",
+      "esi-4000",
+      "esi4000"
+    ],
+    "e mu mk 6 mophatt keys": [
+      "e-mu mk 6 mo'phatt keys",
+      "mk 6 mo'phatt keys",
+      "mk-6 mo'phatt keys",
+      "mk6mo'phattkeys"
+    ],
+    "e mu mophatt": [
+      "e-mu mo'phatt",
+      "e-mumo'phatt",
+      "mo'phatt"
+    ],
+    "e mu modular systems": [
+      "e-mu modular systems",
+      "modular systems",
+      "modularsystems"
+    ],
+    "e mu morpheus": [
+      "e-mu morpheus",
+      "e-mumorpheus",
+      "morpheus"
+    ],
+    "e mu mp 7 command station": [
+      "e-mu mp 7 command station",
+      "mp 7 command station",
+      "mp-7 command station",
+      "mp7commandstation"
+    ],
+    "e mu orbit 9090": [
+      "9090",
+      "e-mu orbit 9090",
+      "e-mu orbit9090"
+    ],
+    "e mu orbit 3": [
+      "e-mu orbit 3",
+      "e-muorbit3",
+      "orbit 3",
+      "orbit-3",
+      "orbit3"
+    ],
+    "e mu pk 6 proteus keys": [
+      "e-mu pk 6 proteus keys",
+      "pk 6 proteus keys",
+      "pk-6 proteus keys",
+      "pk6proteuskeys"
+    ],
+    "e mu planet earth": [
+      "e-mu planet earth",
+      "planet earth",
+      "planetearth"
+    ],
+    "e mu planet phatt": [
+      "e-mu planet phatt",
+      "planet phatt",
+      "planetphatt"
+    ],
+    "e mu procussion": [
+      "e-mu procussion",
+      "procussion"
+    ],
+    "e mu proteus": [
+      "e-mu proteus",
+      "e-muproteus",
+      "proteus"
+    ],
+    "e mu proteus 1000": [
+      "1000",
+      "e-mu proteus 1000",
+      "e-mu proteus1000"
+    ],
+    "e mu proteus 2000": [
+      "2000",
+      "e-mu proteus 2000",
+      "e-mu proteus2000"
+    ],
+    "e mu proteus 2500": [
+      "2500",
+      "e-mu proteus 2500",
+      "e-mu proteus2500"
+    ],
+    "e mu sp 12": [
+      "e-mu sp 12",
+      "e-musp12",
+      "sp 12",
+      "sp-12",
+      "sp12"
+    ],
+    "e mu sp 1200": [
+      "e-mu sp 1200",
+      "e-musp1200",
+      "sp 1200",
+      "sp-1200",
+      "sp1200"
+    ],
+    "e mu vintage keys": [
+      "e-mu vintage keys",
+      "vintage keys",
+      "vintagekeys"
+    ],
+    "e mu vintage pro": [
+      "e-mu vintage pro",
+      "vintage pro",
+      "vintagepro"
+    ],
+    "e mu virtuoso 2000": [
+      "2000",
+      "e-mu virtuoso 2000",
+      "e-mu virtuoso2000"
+    ],
+    "e mu xk 6 xtreme keys": [
+      "e-mu xk 6 xtreme keys",
+      "xk 6 xtreme keys",
+      "xk-6 xtreme keys",
+      "xk6xtremekeys"
+    ],
+    "e mu xl 7 command station": [
+      "e-mu xl 7 command station",
+      "xl 7 command station",
+      "xl-7 command station",
+      "xl7commandstation"
+    ],
+    "e mu xtreme lead 1": [
+      "e-mu xtreme lead 1",
+      "xtreme lead 1",
+      "xtreme lead-1",
+      "xtremelead1"
+    ],
+    "grinternational bandmaster powerhouse": [
+      "gr international bandmaster powerhouse",
+      "international bandmaster powerhouse",
+      "internationalbandmasterpowerhouse"
+    ],
+    "wersi bass synthesizer": [
+      "bass synthesizer",
+      "basssynthesizer"
+    ],
+    "chimera synthesis bc16": [
+      "synthesis bc16",
+      "synthesisbc16"
+    ],
+    "crumar bit 01": [
+      "01",
+      "crumar bit01"
+    ],
+    "crumar bit 99": [
+      "99",
+      "crumar bit99"
+    ],
+    "crumar bit one": [
+      "bit one",
+      "bitone",
+      "crumarbitone"
+    ],
+    "crumar ds 2": [
+      "crumards2",
+      "ds 2",
+      "ds-2",
+      "ds2"
+    ],
+    "crumar multiman s": [
+      "multiman s",
+      "multiman-s",
+      "multimans"
+    ],
+    "crumar performer": [
+      "performer"
+    ],
+    "crumar spirit": [
+      "crumarspirit",
+      "spirit"
+    ],
+    "crumar stratus": [
+      "crumarstratus",
+      "stratus"
+    ],
+    "crumar trilogy_orchestral_synthesizer": [
+      "crumar trilogy orchestral synthesizer",
+      "trilogy orchestral synthesizer",
+      "trilogyorchestralsynthesizer"
+    ],
+    "wave idea bitstream pro": [
+      "idea bitstream pro",
+      "ideabitstreampro"
+    ],
+    "waldorf blofeld": [
+      "blofeld",
+      "waldorfblofeld"
+    ],
+    "waldorf d pole": [
+      "d pole",
+      "d-pole",
+      "dpole",
+      "waldorfdpole"
+    ],
+    "waldorf KB37": [
+      "kb37",
+      "waldorf kb37",
+      "waldorfkb37"
+    ],
+    "waldorf kyra": [
+      "kyra",
+      "waldorfkyra"
+    ],
+    "waldorf microwave": [
+      "microwave"
+    ],
+    "waldorf microwave ii": [
+      "ii",
+      "waldorf microwaveii"
+    ],
+    "waldorf microwave xt": [
+      "waldorf microwavext",
+      "xt"
+    ],
+    "waldorf microwave xtk": [
+      "waldorf microwavextk",
+      "xtk"
+    ],
+    "waldorf miniworks 4 pole": [
+      "4 pole",
+      "4-pole",
+      "4pole",
+      "waldorf miniworks4pole"
+    ],
+    "waldorf nw1_wavetable_module": [
+      "nw1 wavetable module",
+      "nw1wavetablemodule",
+      "waldorf nw1 wavetable module"
+    ],
+    "waldorf ppg wave 2v": [
+      "ppg wave 2.v",
+      "ppgwave2.v",
+      "waldorf ppg wave 2.v"
+    ],
+    "waldorf pulse": [
+      "pulse",
+      "waldorfpulse"
+    ],
+    "waldorf pulse2": [
+      "waldorf pulse 2"
+    ],
+    "waldorf quantum": [
+      "quantum",
+      "waldorfquantum"
+    ],
+    "waldorf streichfett": [
+      "streichfett"
+    ],
+    "waldorf stvc": [
+      "stvc",
+      "waldorfstvc"
+    ],
+    "waldorf wave": [
+      "waldorfwave",
+      "wave"
+    ],
+    "waldorf x pole": [
+      "waldorfxpole",
+      "x pole",
+      "x-pole",
+      "xpole"
+    ],
+    "OctavePlateau Catstick": [
+      "catstick",
+      "octave plateau catstick",
+      "octave plateaucatstick"
+    ],
+    "rhodes chroma": [
+      "chroma",
+      "rhodeschroma"
+    ],
+    "rhodes chroma polaris": [
+      "chroma polaris",
+      "chromapolaris"
+    ],
+    "fairlight cmi series i iii": [
+      "cmi (series i - iii)",
+      "cmi (series i iii)",
+      "cmi(seriesiiii)",
+      "fairlight cmi (series i iii)"
+    ],
+    "realistic concertmate mg 1": [
+      "mg 1",
+      "mg-1",
+      "mg1",
+      "realistic concertmatemg1"
+    ],
+    "siel cruise": [
+      "cruise",
+      "sielcruise"
+    ],
+    "siel dk600": [
+      "dk600",
+      "sieldk600"
+    ],
+    "siel dk70": [
+      "dk70",
+      "sieldk70"
+    ],
+    "siel dk700": [
+      "dk700",
+      "sieldk700"
+    ],
+    "siel dk80": [
+      "dk80",
+      "sieldk80"
+    ],
+    "siel mono": [
+      "mono",
+      "sielmono"
+    ],
+    "siel orchestra": [
+      "orchestra"
+    ],
+    "casio ct 101": [
+      "casioct101",
+      "ct 101",
+      "ct-101",
+      "ct101"
+    ],
+    "casio ct 401": [
+      "casioct401",
+      "ct 401",
+      "ct-401",
+      "ct401"
+    ],
+    "casio cz 1": [
+      "casiocz1",
+      "cz 1",
+      "cz-1",
+      "cz1"
+    ],
+    "casio cz 1000": [
+      "casiocz1000",
+      "cz 1000",
+      "cz-1000",
+      "cz1000"
+    ],
+    "casio cz 101": [
+      "casiocz101",
+      "cz 101",
+      "cz-101",
+      "cz101"
+    ],
+    "casio cz 230s": [
+      "casiocz230s",
+      "cz 230s",
+      "cz-230s",
+      "cz230s"
+    ],
+    "casio cz 3000": [
+      "casiocz3000",
+      "cz 3000",
+      "cz-3000",
+      "cz3000"
+    ],
+    "casio cz 5000": [
+      "casiocz5000",
+      "cz 5000",
+      "cz-5000",
+      "cz5000"
+    ],
+    "casio fz 1": [
+      "casiofz1",
+      "fz 1",
+      "fz-1",
+      "fz1"
+    ],
+    "casio FZ20M": [
+      "casio fz20m",
+      "casiofz20m",
+      "fz20m"
+    ],
+    "casio ht 3000": [
+      "casioht3000",
+      "ht 3000",
+      "ht-3000",
+      "ht3000"
+    ],
+    "casio hz 600": [
+      "casiohz600",
+      "hz 600",
+      "hz-600",
+      "hz600"
+    ],
+    "casio mt 40": [
+      "casiomt40",
+      "mt 40",
+      "mt-40",
+      "mt40"
+    ],
+    "casio rz 1": [
+      "casiorz1",
+      "rz 1",
+      "rz-1",
+      "rz1"
+    ],
+    "casio sk 1": [
+      "casiosk1",
+      "sk 1",
+      "sk-1",
+      "sk1"
+    ],
+    "casio vl tone vl 1": [
+      "vl tone vl 1",
+      "vl-tone vl-1",
+      "vltonevl1"
+    ],
+    "casio vz 1": [
+      "casiovz1",
+      "vz 1",
+      "vz-1",
+      "vz1"
+    ],
+    "casio VZ 8M": [
+      "casio vz 8m",
+      "casiovz8m",
+      "vz 8m",
+      "vz-8m",
+      "vz8m"
+    ],
+    "casio XW G1": [
+      "casio xw g1",
+      "casioxwg1",
+      "xw g1",
+      "xw-g1",
+      "xwg1"
+    ],
+    "casio XW P1": [
+      "casio xw p1 performance synthesizer",
+      "xw p1 performance synthesizer",
+      "xw-p1 performance synthesizer",
+      "xwp1performancesynthesizer"
+    ],
+    "technosaurus cyclodon": [
+      "cyclodon",
+      "technosauruscyclodon"
+    ],
+    "technosaurus microcon": [
+      "microcon",
+      "technosaurusmicrocon"
+    ],
+    "technosaurus selector": [
+      "selector",
+      "technosaurusselector"
+    ],
+    "cyclone analogic cyclone analogic bass bott tt 303 v2": [
+      "bass bott tt 303 v2",
+      "bass bott tt-303 v2",
+      "bassbotttt303v2"
+    ],
+    "spectral audio neptune": [
+      "audio neptune",
+      "audioneptune"
+    ],
+    "spectral audio protone": [
+      "audio protone",
+      "audioprotone"
+    ],
+    "spectral audio syntrack": [
+      "audio syntrack",
+      "audiosyntrack"
+    ],
+    "red sound systems darkstar": [
+      "sound systems darkstar",
+      "soundsystemsdarkstar"
+    ],
+    "red sound systems elevata": [
+      "sound systems elevata",
+      "soundsystemselevata"
+    ],
+    "davoli davolisint": [
+      "davolisint"
+    ],
+    "control synthesis deep bass nine": [
+      "synthesis deep bass nine",
+      "synthesisdeepbassnine"
+    ],
+    "peavey DPM SP Sample Playback Synthesizer": [
+      "dpm sp sample playback synthesizer",
+      "dpmspsampleplaybacksynthesizer",
+      "peavey dpm sp sample playback synthesizer"
+    ],
+    "movement mcs drum computer mk1": [
+      "mcs drum computer mk1",
+      "mcsdrumcomputermk1"
+    ],
+    "elka drumstar 80": [
+      "drumstar 80",
+      "drumstar-80",
+      "drumstar80"
+    ],
+    "elka ek 22": [
+      "ek 22",
+      "ek-22",
+      "ek22",
+      "elkaek22"
+    ],
+    "elka em44": [
+      "elka em 44",
+      "elkaem44",
+      "em 44",
+      "em-44",
+      "em44"
+    ],
+    "elka soloist 505": [
+      "505",
+      "elka soloist505"
+    ],
+    "elka synthex": [
+      "elkasynthex",
+      "synthex"
+    ],
+    "sequential circuits drumtraks": [
+      "circuits drumtraks",
+      "circuitsdrumtraks"
+    ],
+    "sequential circuits fugue": [
+      "circuits fugue",
+      "circuitsfugue"
+    ],
+    "sequential circuits max": [
+      "circuits max",
+      "circuitsmax"
+    ],
+    "sequential circuits multitrak": [
+      "circuits multitrak",
+      "circuitsmultitrak"
+    ],
+    "sequential circuits prelude": [
+      "circuits prelude",
+      "circuitsprelude"
+    ],
+    "sequential circuits pro one": [
+      "circuits pro one",
+      "circuitsproone"
+    ],
+    "sequential circuits prophet 10": [
+      "10",
+      "sequential circuits prophet10"
+    ],
+    "sequential circuits prophet 2000": [
+      "2000",
+      "sequential circuits prophet2000"
+    ],
+    "sequential circuits prophet 3000": [
+      "3000",
+      "sequential circuits prophet3000"
+    ],
+    "sequential circuits prophet 600": [
+      "600",
+      "sequential circuits prophet600"
+    ],
+    "sequential circuits prophet remote": [
+      "circuits prophet remote",
+      "circuitsprophetremote"
+    ],
+    "sequential circuits prophet t8": [
+      "sequential circuits prophett8",
+      "t8"
+    ],
+    "sequential circuits prophet vs": [
+      "sequential circuits prophetvs",
+      "vs"
+    ],
+    "sequential circuits six trak": [
+      "circuits six trak",
+      "circuits six-trak",
+      "circuitssixtrak"
+    ],
+    "sequential circuits split 8": [
+      "circuits split 8",
+      "circuits split-8",
+      "circuitssplit8"
+    ],
+    "sequential circuits studio 440": [
+      "440",
+      "sequential circuits studio440"
+    ],
+    "sequential circuits tom": [
+      "sequential circuitstom",
+      "tom"
+    ],
+    "dubreq dtylophone_s2": [
+      "dubreq dubreq stylophone s2",
+      "dubreq dubreq stylophones2",
+      "s2"
+    ],
+    "eko ekosynth p15": [
+      "ekosynth p15",
+      "ekosynthp15"
+    ],
+    "eml electrocomp 100": [
+      "100",
+      "eml electrocomp100"
+    ],
+    "eml electrocomp 101": [
+      "101",
+      "eml electrocomp101"
+    ],
+    "eml electrocomp 200": [
+      "200",
+      "eml electrocomp200"
+    ],
+    "eml electrocomp 400401": [
+      "400/401",
+      "eml electrocomp 400/401",
+      "eml electrocomp400/401"
+    ],
+    "eml electrocomp 500": [
+      "500",
+      "eml electrocomp500"
+    ],
+    "eml poly box": [
+      "emlpolybox",
+      "poly box",
+      "poly-box",
+      "polybox"
+    ],
+    "eml synkey": [
+      "emlsynkey",
+      "synkey"
+    ],
+    "therevox et43": [
+      "et 4.3",
+      "et-4.3",
+      "et4.3",
+      "therevox et 4.3",
+      "therevoxet4.3"
+    ],
+    "dave smith instruments evolver": [
+      "smith instruments evolver",
+      "smithinstrumentsevolver"
+    ],
+    "dave smith instruments mono evolver": [
+      "smith instruments mono evolver",
+      "smithinstrumentsmonoevolver"
+    ],
+    "dave smith instruments mopho": [
+      "smith instruments mopho",
+      "smithinstrumentsmopho"
+    ],
+    "dave smith instruments poly evolver": [
+      "smith instruments poly evolver",
+      "smithinstrumentspolyevolver"
+    ],
+    "dave smith instruments poly evolver rack": [
+      "smith instruments poly evolver rack",
+      "smithinstrumentspolyevolverrack"
+    ],
+    "dave smith instruments prophet 08": [
+      "dave smith instruments prophet '08",
+      "smith instruments prophet '08",
+      "smithinstrumentsprophet'08"
+    ],
+    "dave smith instruments tempest": [
+      "smith instruments tempest",
+      "smithinstrumentstempest"
+    ],
+    "dave smith instruments tetra": [
+      "smith instruments tetra",
+      "smithinstrumentstetra"
+    ],
+    "davesmithinstruments OB 6": [
+      "dave smith instruments ob 6",
+      "dave smith instrumentsob6",
+      "ob 6",
+      "ob-6",
+      "ob6"
+    ],
+    "davesmithinstruments pro2": [
+      "dave smith instruments pro 2"
+    ],
+    "paia fatman": [
+      "fatman",
+      "paiafatman"
+    ],
+    "paia stringz n thingz": [
+      "paia stringz &rsquo;n&rsquo; thingz",
+      "stringz &rsquo;n&rsquo; thingz",
+      "stringz&rsquo;n&rsquo;thingz"
+    ],
+    "synton fenix": [
+      "fenix",
+      "syntonfenix"
+    ],
+    "synton syntovox_222_Vocoder": [
+      "222 vocoder",
+      "222vocoder",
+      "synton syntovox 222 vocoder"
+    ],
+    "synton syrinx": [
+      "syntonsyrinx",
+      "syrinx"
+    ],
+    "electrix pro filter factory": [
+      "pro filter factory",
+      "profilterfactory"
+    ],
+    "electrix pro repeater": [
+      "pro repeater",
+      "prorepeater"
+    ],
+    "electrix pro warp factory": [
+      "pro warp factory",
+      "prowarpfactory"
+    ],
+    "sherman electronics filterbank": [
+      "electronics filterbank",
+      "electronicsfilterbank"
+    ],
+    "sherman electronics quad modular filter": [
+      "electronics quad modular filter",
+      "electronicsquadmodularfilter"
+    ],
+    "multivox firstman_sq 01": [
+      "multivox firstman sq 01",
+      "multivox firstmansq01",
+      "sq 01",
+      "sq-01",
+      "sq01"
+    ],
+    "image line fl studio": [
+      "fl studio",
+      "flstudio",
+      "image lineflstudio"
+    ],
+    "image line simsynth": [
+      "line simsynth",
+      "linesimsynth"
+    ],
+    "electronic dream plant edp gnat": [
+      "dream plant (edp) gnat",
+      "dreamplant(edp)gnat",
+      "electronic dream plant (edp) gnat"
+    ],
+    "electronic dream plant edp spider": [
+      "dream plant (edp) spider",
+      "dreamplant(edp)spider",
+      "electronic dream plant (edp) spider"
+    ],
+    "electronic dream plant edp wasp": [
+      "dream plant (edp) wasp",
+      "dreamplant(edp)wasp",
+      "electronic dream plant (edp) wasp"
+    ],
+    "steinberg halion": [
+      "halion",
+      "steinberghalion"
+    ],
+    "steinberg lm 4": [
+      "lm 4",
+      "lm-4",
+      "lm4",
+      "steinberglm4"
+    ],
+    "steinberg grand": [
+      "steinberg the grand",
+      "steinbergthegrand",
+      "the grand",
+      "thegrand"
+    ],
+    "twisted_electrons therapkid": [
+      "electrons therapkid",
+      "electronstherapkid",
+      "twisted electrons therapkid"
+    ],
+    "twisted_electrons therapsid_mkII": [
+      "mkii",
+      "twisted electrons therapsid mkii",
+      "twisted electrons therapsidmkii"
+    ],
+    "hypersynth xenophone": [
+      "hypersynth hypersynth xenophone",
+      "hypersynthxenophone"
+    ],
+    "gforce software imposcar": [
+      "software imposcar",
+      "softwareimposcar"
+    ],
+    "gforce software m tron": [
+      "gforce softwaremtron",
+      "m tron",
+      "m-tron",
+      "mtron"
+    ],
+    "gforce software oddity": [
+      "software oddity",
+      "softwareoddity"
+    ],
+    "kurzweil k1000": [
+      "k1000",
+      "kurzweilk1000"
+    ],
+    "kurzweil k150": [
+      "k150",
+      "kurzweilk150"
+    ],
+    "kurzweil k2000": [
+      "k2000",
+      "kurzweilk2000"
+    ],
+    "kurzweil k250": [
+      "k250",
+      "kurzweilk250"
+    ],
+    "kurzweil k2500": [
+      "k2500",
+      "kurzweilk2500"
+    ],
+    "kurzweil k2600": [
+      "k2600",
+      "kurzweilk2600"
+    ],
+    "kurzweil pc2r": [
+      "kurzweilpc2r",
+      "pc2r"
+    ],
+    "Kurzweil PC88MX": [
+      "kurzweil pc88mx",
+      "kurzweilpc88mx",
+      "pc88mx"
+    ],
+    "kawai k11": [
+      "k11",
+      "kawaik11"
+    ],
+    "kawai k1iir": [
+      "k1iir",
+      "kawaik1iir"
+    ],
+    "kawai k1m": [
+      "k1m",
+      "kawaik1m"
+    ],
+    "kawai k3": [
+      "k3",
+      "kawaik3"
+    ],
+    "kawai k4r": [
+      "k4r",
+      "kawaik4r"
+    ],
+    "kawai k5000": [
+      "k5000",
+      "kawaik5000"
+    ],
+    "kawai k5m": [
+      "k5m",
+      "kawaik5m"
+    ],
+    "kawai KC20": [
+      "kawai kc20",
+      "kawaikc20",
+      "kc20"
+    ],
+    "kawai R 100": [
+      "kawai r 100",
+      "kawair100",
+      "r 100",
+      "r-100",
+      "r100"
+    ],
+    "kawai sx 210": [
+      "kawaisx210",
+      "sx 210",
+      "sx-210",
+      "sx210"
+    ],
+    "kawai sx 240": [
+      "kawaisx240",
+      "sx 240",
+      "sx-240",
+      "sx240"
+    ],
+    "kawai xd 5": [
+      "kawaixd5",
+      "xd 5",
+      "xd-5",
+      "xd5"
+    ],
+    "solton k160": [
+      "k160",
+      "soltonk160"
+    ],
+    "encore electronics knobby": [
+      "electronics knobby",
+      "electronicsknobby"
+    ],
+    "encore electronics slidemate": [
+      "electronics slidemate",
+      "electronicsslidemate"
+    ],
+    "rsf kobol expander": [
+      "kobol expander",
+      "kobolexpander"
+    ],
+    "rsf modular model 11": [
+      "11",
+      "rsf modular model11"
+    ],
+    "pittsburgh_modular_synthesizers lifeforms_systems_301": [
+      "301",
+      "pittsburgh modular synthesizers lifeforms systems 301",
+      "pittsburgh modular synthesizers lifeforms systems301"
+    ],
+    "linn electronics linn 9000": [
+      "9000",
+      "linn electronics linn9000"
+    ],
+    "linn electronics linndrum": [
+      "electronics linndrum",
+      "electronicslinndrum"
+    ],
+    "linn electronics lm 1 drum computer": [
+      "lm 1 drum computer",
+      "lm-1 drum computer",
+      "lm1drumcomputer"
+    ],
+    "Gotharmans littledformer2": [
+      "gotharman's little deformer 2"
+    ],
+    "applied acoustics lounge lizard": [
+      "acoustics lounge lizard",
+      "acousticsloungelizard"
+    ],
+    "applied acoustics tassman": [
+      "acoustics tassman",
+      "acousticstassman"
+    ],
+    "SOMA_Laboratory Lyra 8": [
+      "laboratory lyra 8",
+      "laboratory lyra-8",
+      "laboratorylyra8",
+      "soma laboratory lyra 8"
+    ],
+    "soma_laboratory pulsar 23": [
+      "laboratory pulsar 23",
+      "laboratory pulsar-23",
+      "laboratorypulsar23",
+      "soma laboratory pulsar 23"
+    ],
+    "macbeth studio systems m3x": [
+      "m3x",
+      "macbeth studio systemsm3x"
+    ],
+    "macbeth studio systems m5": [
+      "m5",
+      "macbeth studio systemsm5"
+    ],
+    "will systems mab 303": [
+      "mab 303",
+      "mab-303",
+      "mab303",
+      "will systemsmab303"
+    ],
+    "malekko heavy_industry_corporation_manther": [
+      "heavy industry corporation malekko heavy industry corporation manther",
+      "heavyindustrycorporationmalekkoheavyindustrycorporationmanther",
+      "malekko heavy industry corporation malekko heavy industry corporation manther"
+    ],
+    "cheetah MD 16": [
+      "cheetah md 16",
+      "cheetahmd16",
+      "md 16",
+      "md-16",
+      "md16"
+    ],
+    "cheetah ms 6": [
+      "cheetahms6",
+      "ms 6",
+      "ms-6",
+      "ms6"
+    ],
+    "cheetah ms800": [
+      "cheetahms800",
+      "ms800"
+    ],
+    "soundmaster memory rhythm sr 88": [
+      "soundmaster memory rhythmsr88",
+      "sr 88",
+      "sr-88",
+      "sr88"
+    ],
+    "soundmaster stix st 305": [
+      "soundmaster stixst305",
+      "st 305",
+      "st-305",
+      "st305"
+    ],
+    "manikin electronic memotron m2k": [
+      "m2k",
+      "manikin-electronic memotron m2k",
+      "manikin-electronic memotronm2k"
+    ],
+    "tcworks mercury 1": [
+      "mercury 1",
+      "mercury-1",
+      "mercury1",
+      "tc|works mercury 1",
+      "tc|worksmercury1"
+    ],
+    "mfb mfb synth lite 2": [
+      "mfb synth lite 2",
+      "mfbsynthlite2"
+    ],
+    "360%20Systems MIDI_Bass": [
+      "360 systems midi bass",
+      "360 systemsmidibass",
+      "midi bass",
+      "midibass"
+    ],
+    "mutronics midi mutator": [
+      "midi mutator",
+      "midimutator"
+    ],
+    "electro harmonix mini synthesizer": [
+      "harmonix mini synthesizer",
+      "harmonix mini-synthesizer",
+      "harmonixminisynthesizer"
+    ],
+    "steiner parker minicon": [
+      "minicon",
+      "steiner-parker minicon",
+      "steiner-parkerminicon"
+    ],
+    "steiner parker synthacon": [
+      "steiner-parker synthacon",
+      "synthacon"
+    ],
+    "steiner parker synthasystem": [
+      "steiner-parker synthasystem",
+      "synthasystem"
+    ],
+    "modal electronics modal 001": [
+      "001",
+      "modal electronics modal001"
+    ],
+    "serge modular": [
+      "modular",
+      "sergemodular"
+    ],
+    "sonicsmith Modular_A1": [
+      "a1",
+      "sonicsmith modular a1",
+      "sonicsmith modulara1"
+    ],
+    "wiard modular systems": [
+      "modular systems",
+      "modularsystems"
+    ],
+    "bomb factory studios moogerfoogers": [
+      "factory studios moogerfoogers",
+      "factorystudiosmoogerfoogers"
+    ],
+    "marion systems msr 2": [
+      "marion systemsmsr2",
+      "msr 2",
+      "msr-2",
+      "msr2"
+    ],
+    "triadex muse": [
+      "muse",
+      "triadexmuse"
+    ],
+    "horst mwt 01 midi wave theremin": [
+      "mwt 01 midi wave theremin",
+      "mwt-01 midi wave theremin",
+      "mwt01midiwavetheremin"
+    ],
+    "hartmann neuron": [
+      "hartmannneuron",
+      "neuron"
+    ],
+    "clavia nord lead 2 rack": [
+      "2 rack",
+      "2rack",
+      "clavia nord lead2rack"
+    ],
+    "clavia nord micro modular": [
+      "nord micro modular",
+      "nordmicromodular"
+    ],
+    "clavia nord modular": [
+      "nord modular",
+      "nordmodular"
+    ],
+    "clavia nord rack": [
+      "clavianordrack",
+      "nord rack",
+      "nordrack"
+    ],
+    "clavia nord_stage_2": [
+      "clavia nord stage 2"
+    ],
+    "clavia nord_wave": [
+      "clavia nord wave",
+      "clavianordwave",
+      "nord wave",
+      "nordwave"
+    ],
+    "nozoid nozoid mmo 3": [
+      "mmo 3",
+      "mmo-3",
+      "mmo3",
+      "nozoid nozoidmmo3"
+    ],
+    "prosoniq orange vocoder": [
+      "orange vocoder",
+      "orangevocoder"
+    ],
+    "wurlitzer orbit iii": [
+      "iii",
+      "wurlitzer orbitiii"
+    ],
+    "oxford synthesiser company oscar": [
+      "oscar",
+      "oxford synthesiser companyoscar"
+    ],
+    "gleeman pentaphonic": [
+      "pentaphonic"
+    ],
+    "keyfax phat boy": [
+      "keyfaxphatboy",
+      "phat boy",
+      "phat-boy",
+      "phatboy"
+    ],
+    "philips pmc 100": [
+      "philipspmc100",
+      "pmc 100",
+      "pmc100"
+    ],
+    "Teenage_Engineering PO 14_Sub": [
+      "po 14 sub",
+      "po-14 sub",
+      "po14sub",
+      "teenage engineering po 14 sub",
+      "teenage engineeringpo14sub"
+    ],
+    "formanta polivoks": [
+      "formantapolivoks",
+      "polivoks"
+    ],
+    "farfisa polychrome": [
+      "polychrome"
+    ],
+    "farfisa soundmaker": [
+      "soundmaker"
+    ],
+    "quasimidi polymorph": [
+      "polymorph"
+    ],
+    "quasimidi quasar": [
+      "quasar",
+      "quasimidiquasar"
+    ],
+    "quasimidi rave o lution 309": [
+      "309",
+      "quasimidi rave-o-lution 309",
+      "quasimidi rave-o-lution309"
+    ],
+    "quasimidi raven": [
+      "quasimidiraven",
+      "raven"
+    ],
+    "quasimidi sirius": [
+      "quasimidisirius",
+      "sirius"
+    ],
+    "quasimidi technox": [
+      "quasimiditechnox",
+      "technox"
+    ],
+    "ems poly synthi": [
+      "electronic music studios (ems) polysynthi",
+      "music studios (ems) polysynthi",
+      "musicstudios(ems)polysynthi"
+    ],
+    "electronic music studios ems synthi": [
+      "electronic music studios (ems) synthi a"
+    ],
+    "electronic music studios ems synthi sequencer 256": [
+      "256",
+      "electronic music studios (ems) synthi sequencer 256",
+      "electronic music studios (ems) synthi sequencer256"
+    ],
+    "electronic music studios ems vcs3": [
+      "electronic music studios (ems) vcs3",
+      "electronic music studios (ems)vcs3",
+      "vcs3"
+    ],
+    "electronic music studios ems vocoder 2000": [
+      "2000",
+      "electronic music studios (ems) vocoder 2000",
+      "electronic music studios (ems) vocoder2000"
+    ],
+    "synthesizers com portable systems": [
+      "com portable systems",
+      "comportablesystems",
+      "synthesizers. com portable systems"
+    ],
+    "synthesizers com rack mount systems": [
+      "com rack mount systems",
+      "comrackmountsystems",
+      "synthesizers. com rack mount systems"
+    ],
+    "synthesizers com studio systems": [
+      "com studio systems",
+      "comstudiosystems",
+      "synthesizers. com studio systems"
+    ],
+    "wine country sequential pro one": [
+      "country sequential pro one",
+      "countrysequentialproone"
+    ],
+    "suzuki qchord_QC 1": [
+      "qchord qc 1",
+      "qchord qc-1",
+      "qchordqc1",
+      "suzuki qchord qc 1"
+    ],
+    "seer systems reality": [
+      "systems reality",
+      "systemsreality"
+    ],
+    "propellerhead software reason": [
+      "software reason",
+      "softwarereason"
+    ],
+    "propellerhead software rebirth rb 338": [
+      "propellerhead software rebirthrb338",
+      "rb 338",
+      "rb-338",
+      "rb338"
+    ],
+    "frostwave resonator": [
+      "resonator"
+    ],
+    "bitheadz retro 1": [
+      "as 1",
+      "as-1",
+      "as1",
+      "bitheadz retro as 1",
+      "bitheadz retroas1"
+    ],
+    "bitheadz unity ds 1": [
+      "bitheadz unityds1",
+      "ds 1",
+      "ds-1",
+      "ds1"
+    ],
+    "chamberlin rhythmate": [
+      "rhythmate"
+    ],
+    "analogue systems rs integrator": [
+      "rs integrator",
+      "rs-integrator",
+      "rsintegrator"
+    ],
+    "teisco s100p": [
+      "s100p",
+      "teiscos100p"
+    ],
+    "teisco sx 240": [
+      "sx 240",
+      "sx-240",
+      "sx240",
+      "teiscosx240"
+    ],
+    "teisco sx 400": [
+      "sx 400",
+      "sx-400",
+      "sx400",
+      "teiscosx400"
+    ],
+    "teisco synthesizer 110f": [
+      "110f",
+      "teisco synthesizer110f"
+    ],
+    "teisco synthesizer 110f 0": [
+      "110f",
+      "teisco synthesizer 110f",
+      "teisco synthesizer110f"
+    ],
+    "generalmusic gem s2": [
+      "generalmusic (gem) s2",
+      "generalmusic (gem)s2",
+      "s2"
+    ],
+    "midibox sammichsid": [
+      "sammichsid"
+    ],
+    "logan hohner string melody ii": [
+      "ii",
+      "logan / hohner string melody ii",
+      "logan / hohner string melodyii"
+    ],
+    "logan hohner string melody ii 0": [
+      "ii",
+      "logan / hohner string melody ii",
+      "logan / hohner string melodyii"
+    ],
+    "jen electronics sx 1000 synthetone": [
+      "sx 1000 synthetone",
+      "sx-1000 synthetone",
+      "sx1000synthetone"
+    ],
+    "jen electronics sx 2000 synthetone": [
+      "sx 2000 synthetone",
+      "sx-2000 synthetone",
+      "sx2000synthetone"
+    ],
+    "technics SX WSA1": [
+      "sx wsa1",
+      "sx-wsa1",
+      "sxwsa1",
+      "technics sx wsa1",
+      "technicssxwsa1"
+    ],
+    "technics SY 1010": [
+      "sy 1010",
+      "sy-1010",
+      "sy1010",
+      "technics sy 1010",
+      "technicssy1010"
+    ],
+    "lennar digital sylenth1": [
+      "digital sylenth1",
+      "digitalsylenth1"
+    ],
+    "new england digital synclavier": [
+      "england digital synclavier",
+      "englanddigitalsynclavier"
+    ],
+    "digital keyboards synergy": [
+      "keyboards synergy",
+      "keyboardssynergy"
+    ],
+    "welson syntex": [
+      "syntex",
+      "welsonsyntex"
+    ],
+    "fbt electronica synther 2000": [
+      "electronica synther 2000",
+      "electronica synther-2000",
+      "electronicasynther2000"
+    ],
+    "teisco kawai synthesizer 100f": [
+      "100f",
+      "teisco / kawai synthesizer 100f",
+      "teisco / kawai synthesizer100f"
+    ],
+    "teisco kawai synthesizer 100f 0": [
+      "100f",
+      "teisco / kawai synthesizer 100f",
+      "teisco / kawai synthesizer100f"
+    ],
+    "syntecno teebee": [
+      "syntecnoteebee",
+      "teebee"
+    ],
+    "plankton_electronics the_bumblebee": [
+      "electronics the bumblebee",
+      "electronicsthebumblebee",
+      "plankton electronics the bumblebee"
+    ],
+    "octave cat": [
+      "octave the cat",
+      "octavethecat",
+      "the cat",
+      "thecat"
+    ],
+    "octave kitten": [
+      "octave the kitten",
+      "the kitten",
+      "thekitten"
+    ],
+    "way out ware timewarp 2600": [
+      "2600",
+      "way out ware timewarp2600"
+    ],
+    "powertran transcendent 2000": [
+      "2000",
+      "powertran transcendent2000"
+    ],
+    "powertran transendent dpx": [
+      "dpx",
+      "powertran transendentdpx"
+    ],
+    "metasonix ts 21 hellfire": [
+      "ts 21 hellfire",
+      "ts-21 hellfire",
+      "ts21hellfire"
+    ],
+    "metasonix ts 22 pentode filterbank": [
+      "ts 22 pentode filterbank",
+      "ts-22 pentode filterbank",
+      "ts22pentodefilterbank"
+    ],
+    "vaz synths vaz modular": [
+      "vaz modular",
+      "vazmodular"
+    ],
+    "access virus": [
+      "access virus a"
+    ],
+    "access virus tdm": [
+      "access virustdm",
+      "tdm"
+    ],
+    "access virus ti": [
+      "access virusti",
+      "ti"
+    ],
+    "access virus ti polar": [
+      "access virustipolar",
+      "ti polar",
+      "tipolar"
+    ],
+    "access virus ti snow": [
+      "access virustisnow",
+      "ti snow",
+      "tisnow"
+    ],
+    "ladyada x0xb0x": [
+      "ladyadax0xb0x",
+      "x0xb0x"
     ]
   }
 }
