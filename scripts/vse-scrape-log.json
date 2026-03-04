@@ -1,0 +1,4438 @@
+{
+  "ran_at": "2026-03-03T10:48:08.301Z",
+  "added": 869,
+  "skipped": 17,
+  "errors": 0,
+  "entries": [
+    {
+      "productKey": "creamware-noah_tactive_instrument_modeller",
+      "name": "Creamware  Noah Tactive Instrument Modeller",
+      "status": "added"
+    },
+    {
+      "productKey": "creamware-minimaxasb",
+      "name": "Creamware Minimax ASB",
+      "status": "added"
+    },
+    {
+      "productKey": "creamware-pulsar",
+      "name": "Creamware Pulsar",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-01w",
+      "name": "Korg 01/W",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-707",
+      "name": "Korg 707",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-770",
+      "name": "Korg 770",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-900ps-preset-synthesizer",
+      "name": "Korg 900PS Preset Synthesizer",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-ddd-1",
+      "name": "Korg DDD-1",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-ddd-5",
+      "name": "Korg DDD-5",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-ddm-110",
+      "name": "Korg DDM-110",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-delta",
+      "name": "Korg Delta",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-ds-8",
+      "name": "Korg DS-8",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-dss-1",
+      "name": "Korg DSS-1",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-dvp-1",
+      "name": "Korg DVP-1",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-dw-6000",
+      "name": "Korg DW-6000",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-dw-8000",
+      "name": "Korg DW-8000",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-electribe-ea-1",
+      "name": "Korg ElecTribe A (EA-1)",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-electribe-m-em-1",
+      "name": "Korg ElecTribe M (EM-1)",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-electribe-mx-emx-1",
+      "name": "Korg ElecTribe MX (EMX-1)",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-electribe-r-er-1",
+      "name": "Korg ElecTribe R (ER-1)",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-electribe-s-es-1",
+      "name": "Korg ElecTribe S (ES-1)",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-electribe-sx-esx-1",
+      "name": "Korg ElecTribe SX (ESX-1)",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-kaoss-pad-kp1",
+      "name": "Korg KAOSS Pad (KP1)",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-karma",
+      "name": "Korg KARMA",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-kingkorg",
+      "name": "Korg KingKORG",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-kpr-77",
+      "name": "Korg KPR-77",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-lambda-es50",
+      "name": "Korg Lambda ES50",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-legacy-collection",
+      "name": "Korg Legacy Collection",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-m1",
+      "name": "Korg M1",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-m3",
+      "name": "Korg M3",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-m50",
+      "name": "Korg M50",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-m500-micro-preset",
+      "name": "Korg M500 Micro-Preset",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-maxi-korg-800dv",
+      "name": "Korg Maxi-Korg 800DV",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-micro-x",
+      "name": "Korg Micro-X",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-microkontrol",
+      "name": "Korg microKONTROL",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-microkorg",
+      "name": "Korg microKorg",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-microkorgxl",
+      "name": "Korg MicroKorg XL",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-microstation",
+      "name": "Korg MicroStation",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-minikorg-700",
+      "name": "Korg MiniKorg-700",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-minilogue",
+      "name": "Korg Minilogue",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-minipops120",
+      "name": "Korg Minipops 120",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-minipops-35-mp-35",
+      "name": "Korg MiniPops 35 (MP-35)",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-monopoly",
+      "name": "Korg Mono/Poly",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-monologue",
+      "name": "Korg Monologue",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-monotribe",
+      "name": "Korg Monotribe",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-monotron",
+      "name": "Korg Monotron",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-ms-10",
+      "name": "Korg MS-10",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-ms-20",
+      "name": "Korg MS-20",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-ms-20-mini",
+      "name": "Korg MS-20 mini",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-ms-50",
+      "name": "Korg MS-50",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-ms2000",
+      "name": "Korg MS2000",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-n364",
+      "name": "Korg N364",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-poly-61",
+      "name": "Korg Poly-61",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-poly-800",
+      "name": "Korg Poly-800",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-polyphonic-ensemble-p",
+      "name": "Korg Polyphonic Ensemble P",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-polyphonic-ensemble-s",
+      "name": "Korg Polyphonic Ensemble S",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-polysix",
+      "name": "Korg PolySix",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-prophecy",
+      "name": "Korg Prophecy",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-ps-3100",
+      "name": "Korg PS-3100",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-ps-3200",
+      "name": "Korg PS-3200",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-ps-3300",
+      "name": "Korg PS-3300",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-r3",
+      "name": "Korg R3",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-radias",
+      "name": "Korg Radias",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-rhythm-55-kr-55",
+      "name": "Korg Rhythm 55 (KR-55)",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-RK-100S",
+      "name": "Korg RK-100S",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-S3",
+      "name": "Korg S3",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-sb-100-synthe-bass",
+      "name": "Korg SB-100 Synthe-Bass",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-sigma",
+      "name": "Korg Sigma",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-sm-20",
+      "name": "Korg SM-20",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-sq-10-analog-sequencer",
+      "name": "Korg SQ-10 Analog Sequencer",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-symphony-03",
+      "name": "Korg Symphony-03",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-t3",
+      "name": "Korg T3",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-tr88",
+      "name": "Korg TR-88",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-trident",
+      "name": "Korg Trident",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-trinity",
+      "name": "Korg Trinity",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-triton",
+      "name": "Korg Triton",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-vc-10-vocoder",
+      "name": "Korg VC-10 Vocoder",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-volca-bass",
+      "name": "Korg Volca Bass",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-volca-beats",
+      "name": "Korg Volca Beats",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-volca-keys",
+      "name": "Korg Volca Keys",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-volca_nubass",
+      "name": "Korg Volca Nubass",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-wavestation",
+      "name": "Korg Wavestation",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-wavestation-ad",
+      "name": "Korg Wavestation A/D",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-wavestation-sr",
+      "name": "Korg Wavestation SR",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-x-911",
+      "name": "Korg X-911",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-x3",
+      "name": "Korg X3",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-x50",
+      "name": "Korg X50",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-x5d",
+      "name": "Korg X5D",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-z1",
+      "name": "Korg Z1",
+      "status": "added"
+    },
+    {
+      "productKey": "korg-rhythm-330",
+      "name": "Roland Rhythm 330",
+      "status": "added"
+    },
+    {
+      "productKey": "buchla-100-series",
+      "name": "Buchla 100 Series",
+      "status": "added"
+    },
+    {
+      "productKey": "buchla-200-series",
+      "name": "Buchla 200 Series",
+      "status": "added"
+    },
+    {
+      "productKey": "buchla-200e-series",
+      "name": "Buchla 200e Series",
+      "status": "added"
+    },
+    {
+      "productKey": "buchla-400-series",
+      "name": "Buchla 400 Series",
+      "status": "added"
+    },
+    {
+      "productKey": "buchla-700-series",
+      "name": "Buchla 700 Series",
+      "status": "added"
+    },
+    {
+      "productKey": "buchla-touche",
+      "name": "Buchla Touch&eacute;",
+      "status": "added"
+    },
+    {
+      "productKey": "ppg-1002",
+      "name": "PPG 1002",
+      "status": "added"
+    },
+    {
+      "productKey": "ppg-kx5",
+      "name": "PPG KX5",
+      "status": "added"
+    },
+    {
+      "productKey": "ppg-realizer",
+      "name": "PPG Realizer",
+      "status": "added"
+    },
+    {
+      "productKey": "ppg-wave-2",
+      "name": "PPG Wave 2",
+      "status": "added"
+    },
+    {
+      "productKey": "hammond-102200",
+      "name": "Hammond 102200",
+      "status": "added"
+    },
+    {
+      "productKey": "hammond-auto-vari-64-drum-machine",
+      "name": "Hammond Auto-Vari 64 Drum Machine",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-2500",
+      "name": "ARP 2500",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-2600",
+      "name": "ARP 2600",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-avatar",
+      "name": "ARP Avatar",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-axxe",
+      "name": "ARP Axxe",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-explorer-i",
+      "name": "ARP Explorer I",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-little-brother",
+      "name": "ARP Little Brother",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-odyssey-1",
+      "name": "ARP Odyssey 1",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-omni-mk-1",
+      "name": "ARP Omni Mk 1",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-pro-soloist",
+      "name": "ARP Pro-Soloist",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-prodgx",
+      "name": "ARP Pro/DGX",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-quadra",
+      "name": "ARP Quadra",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-quartet",
+      "name": "ARP Quartet",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-sequencer",
+      "name": "ARP Sequencer",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-solina-string-ensemble",
+      "name": "ARP Solina String Ensemble",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-solina-string-synthesizer",
+      "name": "ARP Solina String Synthesizer",
+      "status": "added"
+    },
+    {
+      "productKey": "arp-solus",
+      "name": "ARP Solus",
+      "status": "added"
+    },
+    {
+      "productKey": "aries-300-music-system",
+      "name": "Aries 300 Music System",
+      "status": "added"
+    },
+    {
+      "productKey": "future-retro-777",
+      "name": "Future Retro 777",
+      "status": "added"
+    },
+    {
+      "productKey": "future-retro-mobius",
+      "name": "Future Retro Mobius",
+      "status": "added"
+    },
+    {
+      "productKey": "future-retro-revolution",
+      "name": "Future Retro Revolution",
+      "status": "added"
+    },
+    {
+      "productKey": "future-retro-xs",
+      "name": "Future Retro XS",
+      "status": "added"
+    },
+    {
+      "productKey": "doepfer-100",
+      "name": "Doepfer A-100",
+      "status": "added"
+    },
+    {
+      "productKey": "doepfer-dark-energy",
+      "name": "Doepfer Dark Energy",
+      "status": "added"
+    },
+    {
+      "productKey": "doepfer-DarkEnergyIII",
+      "name": "Doepfer Dark Energy III",
+      "status": "added"
+    },
+    {
+      "productKey": "doepfer-drehbank",
+      "name": "Doepfer Drehbank",
+      "status": "added"
+    },
+    {
+      "productKey": "doepfer-ms-404",
+      "name": "Doepfer MS-404",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-station",
+      "name": "Novation A-Station",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-bass-station",
+      "name": "Novation Bass Station",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-bass_station2",
+      "name": "Novation Bass Station II",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-bass-station-rack",
+      "name": "Novation Bass Station Rack",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-Circuit",
+      "name": "Novation Circuit",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-circuit_mono_station",
+      "name": "Novation Circuit Mono Station",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-d-station",
+      "name": "D-Station",
+      "status": "skipped"
+    },
+    {
+      "productKey": "novation-drum-station",
+      "name": "Drum Station",
+      "status": "skipped"
+    },
+    {
+      "productKey": "novation-drum-station-v2",
+      "name": "Novation Drum Station v2",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-k-station",
+      "name": "Novation K-Station",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-ks4",
+      "name": "Novation KS4",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-nova",
+      "name": "Novation Nova",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-peak",
+      "name": "Novation Peak",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-super-bass-station",
+      "name": "Novation Super Bass Station",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-supernova",
+      "name": "Novation SuperNova",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-ultranova",
+      "name": "Novation Ultranova",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-x-station",
+      "name": "Novation X-station",
+      "status": "added"
+    },
+    {
+      "productKey": "novation-xiosynth",
+      "name": "Novation XioSynth",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-a3000",
+      "name": "Yamaha A3000",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-an1x",
+      "name": "Yamaha AN1x",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-an200",
+      "name": "Yamaha AN200",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs-10",
+      "name": "Yamaha CS-10",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs-15",
+      "name": "Yamaha CS-15",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs-15d",
+      "name": "Yamaha CS-15D",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs-20m",
+      "name": "Yamaha CS-20m",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs-30",
+      "name": "Yamaha CS-30",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs-40m",
+      "name": "Yamaha CS-40m",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs-5",
+      "name": "Yamaha CS-5",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs-50",
+      "name": "Yamaha CS-50",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs-60",
+      "name": "Yamaha CS-60",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs-70m",
+      "name": "Yamaha CS-70m",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs-80",
+      "name": "Yamaha CS-80",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs01",
+      "name": "Yamaha CS01",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs1x",
+      "name": "Yamaha CS1x",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs2x",
+      "name": "Yamaha CS2x",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-cs6x",
+      "name": "Yamaha CS6x",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-djx-iib",
+      "name": "Yamaha DJX-IIb",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-dx1",
+      "name": "Yamaha DX1",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-dx100",
+      "name": "Yamaha DX100",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-dx11",
+      "name": "Yamaha DX11",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-dx200",
+      "name": "Yamaha DX200",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-dx21",
+      "name": "Yamaha DX21",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-dx27",
+      "name": "Yamaha DX27",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-dx5",
+      "name": "Yamaha DX5",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-dx7",
+      "name": "Yamaha DX7",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-dx7iid-dx7iifd",
+      "name": "Yamaha DX7IID / DX7IIFD",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-dx9",
+      "name": "Yamaha DX9",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-ed10",
+      "name": "Yamaha ED10",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-ex5",
+      "name": "Yamaha EX5",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-ex7",
+      "name": "Yamaha EX7",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-fb-01",
+      "name": "Yamaha FB-01",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-fs1r",
+      "name": "Yamaha FS1R",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-GS-1",
+      "name": "Yamaha GS-1",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-gx-1",
+      "name": "Yamaha GX-1",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-motif",
+      "name": "Yamaha Motif",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-MX49_61_88",
+      "name": "Yamaha MX49/61/88",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-portasound-pss-470",
+      "name": "Yamaha PortaSound PSS-470",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-portasound-PSS-480",
+      "name": "Yamaha Portasound PSS-480",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-qs300",
+      "name": "Yamaha QS300",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-qy700-sequencer",
+      "name": "Yamaha QY700 Sequencer",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-rm1x",
+      "name": "Yamaha RM1x",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-rs7000",
+      "name": "Yamaha RS7000",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-rx5",
+      "name": "Yamaha RX5",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-rx8",
+      "name": "Yamaha RX8",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-ry30",
+      "name": "Yamaha RY30",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-s30",
+      "name": "Yamaha S30",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-sk20",
+      "name": "Yamaha SK20",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-ss30",
+      "name": "Yamaha SS30",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-su10",
+      "name": "Yamaha SU10",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-su200",
+      "name": "Yamaha SU200",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-su700",
+      "name": "Yamaha SU700",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-sy-1",
+      "name": "Yamaha SY-1",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-SY-55",
+      "name": "Yamaha SY-55",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-sy20",
+      "name": "Yamaha SY20",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-sy22",
+      "name": "Yamaha SY22",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-sy35",
+      "name": "Yamaha SY35",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-sy77",
+      "name": "Yamaha SY77",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-sy85",
+      "name": "Yamaha SY85",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-sy99",
+      "name": "Yamaha SY99",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-tg33",
+      "name": "Yamaha TG33",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-tg500",
+      "name": "Yamaha TG500",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-TG55-Tone-Generator",
+      "name": "Yamaha TG55 Tone Generator",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-tq5",
+      "name": "Yamaha TQ5",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-tx16w",
+      "name": "Yamaha TX16W",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-tx7",
+      "name": "Yamaha TX7",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-tx802",
+      "name": "Yamaha TX802",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-tx816",
+      "name": "Yamaha TX816",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-tx81z",
+      "name": "Yamaha TX81Z",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-v50",
+      "name": "Yamaha V50",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-VL-70m",
+      "name": "Yamaha VL-70m",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-VSS-200",
+      "name": "Yamaha VSS-200",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-w7",
+      "name": "Yamaha W7",
+      "status": "added"
+    },
+    {
+      "productKey": "yamaha-ys200",
+      "name": "Yamaha YS200",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-absynth",
+      "name": "Native Instruments Absynth",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-b4",
+      "name": "Native Instruments B4",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-battery",
+      "name": "Native Instruments Battery",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-battery-2",
+      "name": "Native Instruments Battery 2",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-dynamo",
+      "name": "Native Instruments Dynamo",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-elektrik-piano",
+      "name": "Native Instruments Elektrik Piano",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-fm7",
+      "name": "Native Instruments FM7",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-fm8",
+      "name": "Native Instruments FM8",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-intakt",
+      "name": "Native Instruments Intakt",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-kompakt",
+      "name": "Native Instruments Kompakt",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-kontakt",
+      "name": "Native Instruments Kontakt",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-massive",
+      "name": "Native Instruments Massive",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-pro-52",
+      "name": "Native Instruments Pro-52",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-pro-53",
+      "name": "Native Instruments Pro-53",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-pro-five",
+      "name": "Native Instruments Pro-Five",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-reaktor",
+      "name": "Native Instruments Reaktor",
+      "status": "added"
+    },
+    {
+      "productKey": "native-instruments-vokator",
+      "name": "Native Instruments Vokator",
+      "status": "added"
+    },
+    {
+      "productKey": "radikal-technologies-accelerator",
+      "name": "Radikal Technologies Accelerator",
+      "status": "added"
+    },
+    {
+      "productKey": "radikal-technologies-spectralis",
+      "name": "Radikal Technologies Spectralis",
+      "status": "added"
+    },
+    {
+      "productKey": "radikaltechnologies-deltacepa",
+      "name": "Radikal Technologies Delta CEP A",
+      "status": "added"
+    },
+    {
+      "productKey": "vermona-action-filter-af-1",
+      "name": "Vermona Action Filter (AF-1)",
+      "status": "added"
+    },
+    {
+      "productKey": "vermona-drm-1-mkii",
+      "name": "Vermona DRM-1 mkII",
+      "status": "added"
+    },
+    {
+      "productKey": "vermona-dual-analog-filter-daf-1",
+      "name": "Vermona Dual Analog Filter (DAF-1)",
+      "status": "added"
+    },
+    {
+      "productKey": "vermona-mars--monophonic-analog-rack-synthesizer",
+      "name": "Vermona M.A.R.S. Monophonic Analog Rack Synthesizer",
+      "status": "added"
+    },
+    {
+      "productKey": "vermona-mephisto",
+      "name": "Vermona Mephisto",
+      "status": "added"
+    },
+    {
+      "productKey": "vermona-perfourmer",
+      "name": "Vermona Perfourmer",
+      "status": "added"
+    },
+    {
+      "productKey": "vermona-synthesizer",
+      "name": "Vermona Synthesizer",
+      "status": "added"
+    },
+    {
+      "productKey": "con-brio-ads-200",
+      "name": "Con Brio ADS 200",
+      "status": "added"
+    },
+    {
+      "productKey": "mam-adx1",
+      "name": "MAM ADX1",
+      "status": "added"
+    },
+    {
+      "productKey": "mam-freebass-383",
+      "name": "MAM FreeBass 383",
+      "status": "added"
+    },
+    {
+      "productKey": "mam-mb-33",
+      "name": "MAM MB 33",
+      "status": "added"
+    },
+    {
+      "productKey": "mam-vf-11",
+      "name": "MAM VF-11",
+      "status": "added"
+    },
+    {
+      "productKey": "mam-warp-9",
+      "name": "MAM WARP 9",
+      "status": "added"
+    },
+    {
+      "productKey": "jomox-airbase-99",
+      "name": "AirBase 99",
+      "status": "skipped"
+    },
+    {
+      "productKey": "jomox-m_brane_11",
+      "name": "JoMoX M.Brane 11",
+      "status": "added"
+    },
+    {
+      "productKey": "jomox-mbase-01",
+      "name": "JoMoX MBase 01",
+      "status": "added"
+    },
+    {
+      "productKey": "jomox-mbase-11",
+      "name": "JoMoX MBase 11",
+      "status": "added"
+    },
+    {
+      "productKey": "jomox-resonatorneuronium",
+      "name": "JoMoX Resonator Neuronium",
+      "status": "added"
+    },
+    {
+      "productKey": "jomox-sunsyn",
+      "name": "JoMoX SunSyn",
+      "status": "added"
+    },
+    {
+      "productKey": "jomox-xbase-09",
+      "name": "XBase 09",
+      "status": "skipped"
+    },
+    {
+      "productKey": "jomox-Xbase999",
+      "name": "JoMoX Xbase 999",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-airsynth",
+      "name": "Alesis airSynth",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-andromeda-a6",
+      "name": "Alesis Andromeda A6",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-d4",
+      "name": "Alesis D4",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-fusion",
+      "name": "Alesis Fusion",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-hr-16",
+      "name": "Alesis HR-16",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-ion",
+      "name": "Alesis Ion",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-micron",
+      "name": "Alesis Micron",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-mmt-8",
+      "name": "Alesis MMT-8",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-nanobass",
+      "name": "Alesis NanoBass",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-nanopiano",
+      "name": "Alesis NanoPiano",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-nanosynth",
+      "name": "Alesis NanoSynth",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-qs6",
+      "name": "Alesis QS6",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-qs61",
+      "name": "Alesis QS6.1",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-qs7",
+      "name": "Alesis QS7",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-qs71",
+      "name": "Alesis QS7.1",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-qs8",
+      "name": "Alesis QS8",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-qs81",
+      "name": "Alesis QS8.1",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-qsr",
+      "name": "Alesis QSR",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-quadrasynth",
+      "name": "Alesis QuadraSynth",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-s4",
+      "name": "Alesis S4",
+      "status": "added"
+    },
+    {
+      "productKey": "alesis-sr-16",
+      "name": "Alesis SR-16",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-alpha-juno-2",
+      "name": "Roland Alpha Juno 2",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-alpha-juno-1",
+      "name": "Roland Alpha Juno-1",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-cmu-800",
+      "name": "Roland CMU-800",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-cmu-810",
+      "name": "Roland CMU-810",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-cr-68",
+      "name": "Roland CR-68",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-cr-78",
+      "name": "Roland CR-78",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-cr-8000",
+      "name": "Roland CR-8000",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-d-110",
+      "name": "Roland D-110",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-d-20",
+      "name": "Roland D-20",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-d-50",
+      "name": "Roland D-50",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-d-70",
+      "name": "Roland D-70",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-d2",
+      "name": "Roland D2",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-dj-70",
+      "name": "Roland DJ-70",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-eg-101",
+      "name": "Roland EG-101",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-em101",
+      "name": "Roland EM-101",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-fantom-s",
+      "name": "Roland Fantom-S",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-fantom-x",
+      "name": "Roland Fantom-X",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-gaia-sh-01",
+      "name": "Roland Gaia SH-01",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-gr-300",
+      "name": "Roland GR-300",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-gr-500",
+      "name": "Roland GR-500",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-gr-700",
+      "name": "Roland GR-700",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-hs-60",
+      "name": "Roland HS-60",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jd-800",
+      "name": "Roland JD-800",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jd-990",
+      "name": "Roland JD-990",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jd-xa",
+      "name": "Roland JD-XA",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jp-8000",
+      "name": "Roland JP-8000",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jp-8080",
+      "name": "Roland JP-8080",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-juno106",
+      "name": "Roland Juno-106",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-juno-6",
+      "name": "Roland Juno-6",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-juno-60",
+      "name": "Juno-60",
+      "status": "skipped"
+    },
+    {
+      "productKey": "roland-juno-d",
+      "name": "Roland Juno-D",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-juno-di",
+      "name": "Roland Juno-Di",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-juno-ds-61",
+      "name": "Roland Juno-DS61",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-juno-g",
+      "name": "Roland Juno-G",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-juno-stage",
+      "name": "Roland Juno-Stage",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jupiter-4",
+      "name": "Roland Jupiter-4",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jupiter-6",
+      "name": "Roland Jupiter-6",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jupiter-8",
+      "name": "Roland Jupiter-8",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jupiter-80",
+      "name": "Roland Jupiter-80",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jupiter-xm",
+      "name": "Roland Jupiter-XM",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jv-1000",
+      "name": "Roland JV-1000",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jv-1010",
+      "name": "Roland JV-1010",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jv-1080",
+      "name": "Roland JV-1080",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jv-2080",
+      "name": "Roland JV-2080",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jv-30",
+      "name": "Roland JV-30",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jv-80",
+      "name": "Roland JV-80",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jv-880",
+      "name": "Roland JV-880",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jv-90",
+      "name": "Roland JV-90",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jw-50",
+      "name": "Roland JW-50",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jx-1",
+      "name": "Roland JX-1",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jx-10",
+      "name": "Roland JX-10",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jx-305",
+      "name": "Roland JX-305",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jx-3p",
+      "name": "Roland JX-3P",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-jx-8p",
+      "name": "Roland JX-8P",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mc-09",
+      "name": "Roland MC-09",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mc-202",
+      "name": "Roland MC-202",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mc-303",
+      "name": "Roland MC-303",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mc-307",
+      "name": "Roland MC-307",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mc-505",
+      "name": "Roland MC-505",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mc-808",
+      "name": "Roland MC-808",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mc-909",
+      "name": "Roland MC-909",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mks-10",
+      "name": "Roland MKS-10",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mks-30",
+      "name": "Roland MKS-30",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mks-50",
+      "name": "Roland MKS-50",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mks-7",
+      "name": "Roland MKS-7",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mks-70",
+      "name": "Roland MKS-70",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mks-80",
+      "name": "Roland MKS-80",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-mt-32",
+      "name": "Roland MT-32",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-pgs.php",
+      "name": "Roland Programmers",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-promars-mrs-2",
+      "name": "Roland ProMars MRS-2",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-r-70",
+      "name": "Roland R-70",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-r-8",
+      "name": "Roland R-8",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-re-201-space-echo",
+      "name": "Roland RE-201 Space Echo",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-rs-09",
+      "name": "Roland RS-09",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-rs-101",
+      "name": "Roland RS-101",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-rs-202-strings",
+      "name": "Roland RS-202 Strings",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-rs-50",
+      "name": "Roland RS-50",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-rs-505-paraphonic",
+      "name": "Roland RS-505 Paraphonic",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-s-10",
+      "name": "Roland S-10",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-s-220",
+      "name": "Roland S-220",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-s-330",
+      "name": "Roland S-330",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-s-50",
+      "name": "Roland S-50",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-s-770",
+      "name": "Roland S-770",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-saturn-09",
+      "name": "Roland Saturn 09",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-SC-88",
+      "name": "Roland SC-88",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-sh-09",
+      "name": "Roland SH-09",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-sh-1",
+      "name": "Roland SH-1",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-sh-1000",
+      "name": "Roland SH-1000",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-sh-101",
+      "name": "SH-101",
+      "status": "skipped"
+    },
+    {
+      "productKey": "roland-sh-2",
+      "name": "Roland SH-2",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-sh-2000",
+      "name": "Roland SH-2000",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-sh-201",
+      "name": "Roland SH-201",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-sh-32",
+      "name": "Roland SH-32",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-sh-3a",
+      "name": "Roland SH-3a",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-sh-5",
+      "name": "Roland SH-5",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-sh-7",
+      "name": "Roland SH-7",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-soniccell",
+      "name": "Roland SonicCell",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-SP-404",
+      "name": "Roland SP-404",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-sp-808",
+      "name": "Roland SP-808",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-svc-350-vocoder",
+      "name": "Roland SVC-350 Vocoder",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-system-100",
+      "name": "Roland System 100",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-system-100m",
+      "name": "Roland System 100m",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-system-700",
+      "name": "Roland System 700",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-tb-303",
+      "name": "Roland TB-303",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-tr-505",
+      "name": "TR-505",
+      "status": "skipped"
+    },
+    {
+      "productKey": "roland-tr-606",
+      "name": "TR-606",
+      "status": "skipped"
+    },
+    {
+      "productKey": "roland-tr-626",
+      "name": "Roland TR-626",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-tr-66",
+      "name": "Roland TR-66",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-tr-707",
+      "name": "TR-707",
+      "status": "skipped"
+    },
+    {
+      "productKey": "roland-tr-727",
+      "name": "Roland TR-727",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-tr-808",
+      "name": "TR-808",
+      "status": "skipped"
+    },
+    {
+      "productKey": "roland-tr-909",
+      "name": "TR-909",
+      "status": "skipped"
+    },
+    {
+      "productKey": "roland-u-110",
+      "name": "Roland U-110",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-u-20",
+      "name": "Roland U-20",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-v-synth",
+      "name": "Roland V-Synth",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-vp-550",
+      "name": "Roland VP-550",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-vp-770",
+      "name": "Roland VP-770",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-vp-9000",
+      "name": "Roland VP-9000",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-w-30",
+      "name": "Roland W-30",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-xp-10",
+      "name": "Roland XP-10",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-xp-30",
+      "name": "Roland XP-30",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-xp-50",
+      "name": "Roland XP-50",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-xp-60",
+      "name": "Roland XP-60",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-xp-80",
+      "name": "Roland XP-80",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-xv-3080",
+      "name": "Roland XV-3080",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-xv-5050",
+      "name": "Roland XV-5050",
+      "status": "added"
+    },
+    {
+      "productKey": "roland-xv-5080",
+      "name": "Roland XV-5080",
+      "status": "added"
+    },
+    {
+      "productKey": "syntauri-alphasyntauri",
+      "name": "Syntauri alphaSyntauri",
+      "status": "added"
+    },
+    {
+      "productKey": "Mutable_Instruments-Ambika",
+      "name": "Mutable Instruments Ambika",
+      "status": "added"
+    },
+    {
+      "productKey": "elektron-analog-rytm",
+      "name": "Elektron Analog Rytm",
+      "status": "added"
+    },
+    {
+      "productKey": "elektron-analogrytmMKII",
+      "name": "Elektron Analog Rytm MKII",
+      "status": "added"
+    },
+    {
+      "productKey": "elektron-machinedrum-sps-1",
+      "name": "Machinedrum SPS-1",
+      "status": "skipped"
+    },
+    {
+      "productKey": "elektron-monomachine-sfx-6",
+      "name": "Elektron Monomachine SFX-6",
+      "status": "added"
+    },
+    {
+      "productKey": "elektron-sidstation",
+      "name": "Elektron SidStation",
+      "status": "added"
+    },
+    {
+      "productKey": "Elektron-octatrack",
+      "name": "Elektron Elektron Octatrack",
+      "status": "added"
+    },
+    {
+      "productKey": "arturia-arp-2600v",
+      "name": "Arturia ARP 2600V",
+      "status": "added"
+    },
+    {
+      "productKey": "arturia-cs-80v",
+      "name": "Arturia CS-80V",
+      "status": "added"
+    },
+    {
+      "productKey": "arturia-jupiter-8v",
+      "name": "Arturia Jupiter-8V",
+      "status": "added"
+    },
+    {
+      "productKey": "arturia-microbrute",
+      "name": "Arturia MicroBrute",
+      "status": "added"
+    },
+    {
+      "productKey": "arturia-minibrute",
+      "name": "Arturia MiniBrute",
+      "status": "added"
+    },
+    {
+      "productKey": "arturia-minimoog-v",
+      "name": "Arturia Minimoog V",
+      "status": "added"
+    },
+    {
+      "productKey": "arturia-moog-modular-v",
+      "name": "Arturia Moog Modular V",
+      "status": "added"
+    },
+    {
+      "productKey": "arturia-prophet-v",
+      "name": "Arturia Prophet-V",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-asr-10",
+      "name": "Ensoniq ASR-10",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-asr-x",
+      "name": "Ensoniq ASR-X",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-asr-x-pro",
+      "name": "Ensoniq ASR-X Pro",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-eps",
+      "name": "Ensoniq EPS",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-eps-16",
+      "name": "Ensoniq EPS-16+",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-esq-1",
+      "name": "Ensoniq ESQ-1",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-fizmo",
+      "name": "Ensoniq Fizmo",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-halo",
+      "name": "Ensoniq Halo",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-kt-88",
+      "name": "Ensoniq KT-88",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-mirage",
+      "name": "Ensoniq Mirage",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-MR-61",
+      "name": "Ensoniq MR-61",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-sd-1",
+      "name": "Ensoniq SD-1",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-sq-80",
+      "name": "Ensoniq SQ-80",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-sq-R",
+      "name": "Ensoniq Sq-R",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-ts-10-ts-12",
+      "name": "Ensoniq TS-10 / TS-12",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-vfx",
+      "name": "Ensoniq VFX",
+      "status": "added"
+    },
+    {
+      "productKey": "ensoniq-zr-76",
+      "name": "Ensoniq ZR-76",
+      "status": "added"
+    },
+    {
+      "productKey": "studio-electronics-atc-1",
+      "name": "Studio Electronics ATC-1",
+      "status": "added"
+    },
+    {
+      "productKey": "studio-electronics-midimoog",
+      "name": "Studio Electronics Midimoog",
+      "status": "added"
+    },
+    {
+      "productKey": "studio-electronics-omega8",
+      "name": "Studio Electronics Omega8",
+      "status": "added"
+    },
+    {
+      "productKey": "studio-electronics-se-1",
+      "name": "Studio Electronics SE-1",
+      "status": "added"
+    },
+    {
+      "productKey": "studio_electronics-atcx",
+      "name": "Studio Electronics ATCX",
+      "status": "added"
+    },
+    {
+      "productKey": "studio_electronics-boomstar_mk2",
+      "name": "Studio Electronics Boomstar MK2",
+      "status": "added"
+    },
+    {
+      "productKey": "studio_electronics-tonestar_8106",
+      "name": "Studio Electronics Tonestar 8106",
+      "status": "added"
+    },
+    {
+      "productKey": "soulsby-atmegatron",
+      "name": "Soulsby Atmegatron",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-audity",
+      "name": "E-mu Audity",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-audity-2000",
+      "name": "E-mu Audity 2000",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-b-3",
+      "name": "E-mu B-3",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-carnaval",
+      "name": "E-mu Carnaval",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-drumulator",
+      "name": "E-mu Drumulator",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-e-drum",
+      "name": "E-mu E-Drum",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-emax",
+      "name": "E-mu Emax",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-emulator",
+      "name": "E-mu Emulator",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-emulator-ii",
+      "name": "E-mu Emulator II",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-emulator-iii",
+      "name": "E-mu Emulator III",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-esi-2000",
+      "name": "E-mu ESI-2000",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-esi-32",
+      "name": "E-mu ESI-32",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-esi-4000",
+      "name": "E-mu ESI-4000",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-mk-6-mophatt-keys",
+      "name": "E-mu MK-6 Mo'Phatt Keys",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-mophatt",
+      "name": "E-mu Mo'Phatt",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-modular-systems",
+      "name": "E-mu Modular Systems",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-morpheus",
+      "name": "E-mu Morpheus",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-mp-7-command-station",
+      "name": "E-mu MP-7 Command Station",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-orbit-9090",
+      "name": "E-mu Orbit 9090",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-orbit-3",
+      "name": "E-mu Orbit-3",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-pk-6-proteus-keys",
+      "name": "E-mu PK-6 Proteus Keys",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-planet-earth",
+      "name": "E-mu Planet Earth",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-planet-phatt",
+      "name": "E-mu Planet Phatt",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-procussion",
+      "name": "E-mu Procussion",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-proteus",
+      "name": "E-mu Proteus",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-proteus-1000",
+      "name": "E-mu Proteus 1000",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-proteus-2000",
+      "name": "E-mu Proteus 2000",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-proteus-2500",
+      "name": "E-mu Proteus 2500",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-sp-12",
+      "name": "E-mu SP-12",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-sp-1200",
+      "name": "E-mu SP-1200",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-vintage-keys",
+      "name": "E-mu Vintage Keys",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-vintage-pro",
+      "name": "E-mu Vintage Pro",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-virtuoso-2000",
+      "name": "E-mu Virtuoso 2000",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-xk-6-xtreme-keys",
+      "name": "E-mu XK-6 Xtreme Keys",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-xl-7-command-station",
+      "name": "E-mu XL-7 Command Station",
+      "status": "added"
+    },
+    {
+      "productKey": "e-mu-xtreme-lead-1",
+      "name": "E-mu Xtreme Lead-1",
+      "status": "added"
+    },
+    {
+      "productKey": "emu-emulator4",
+      "name": "E-mu Emulator IV",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-ax60",
+      "name": "Akai AX60",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-ax73",
+      "name": "Akai AX73",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-ax80",
+      "name": "Akai AX80",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-mfc42",
+      "name": "Akai MFC42",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-MINIAK",
+      "name": "Akai MINIAK",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-mpc1000",
+      "name": "Akai MPC1000",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-mpc2000",
+      "name": "MPC2000",
+      "status": "skipped"
+    },
+    {
+      "productKey": "akai-mpc3000",
+      "name": "MPC3000",
+      "status": "skipped"
+    },
+    {
+      "productKey": "akai-mpc60",
+      "name": "MPC60",
+      "status": "skipped"
+    },
+    {
+      "productKey": "akai-rhythm_wolf",
+      "name": "Akai Rhythm Wolf",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-s01",
+      "name": "Akai S01",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-s1000",
+      "name": "Akai S1000",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-s20",
+      "name": "Akai S20",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-s2000",
+      "name": "Akai S2000",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-s3000",
+      "name": "Akai S3000",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-s5000",
+      "name": "Akai S5000",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-s612",
+      "name": "Akai S612",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-s700",
+      "name": "Akai S700",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-s900",
+      "name": "Akai S900",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-timbre_wolf",
+      "name": "Akai Timbre Wolf",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-tomcat",
+      "name": "Akai Tom Cat",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-vx600",
+      "name": "Akai VX600",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-vx90",
+      "name": "Akai VX90",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-x3700",
+      "name": "Akai X3700",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-x7000",
+      "name": "Akai X7000",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-XR10",
+      "name": "Akai XR10",
+      "status": "added"
+    },
+    {
+      "productKey": "akai-XR20",
+      "name": "Akai XR20",
+      "status": "added"
+    },
+    {
+      "productKey": "grinternational-bandmaster-powerhouse",
+      "name": "GR International Bandmaster Powerhouse",
+      "status": "added"
+    },
+    {
+      "productKey": "wersi-bass-synthesizer",
+      "name": "Wersi Bass Synthesizer",
+      "status": "added"
+    },
+    {
+      "productKey": "chimera-synthesis-bc16",
+      "name": "Chimera Synthesis bC16",
+      "status": "added"
+    },
+    {
+      "productKey": "crumar-bit-01",
+      "name": "Crumar Bit 01",
+      "status": "added"
+    },
+    {
+      "productKey": "crumar-bit-99",
+      "name": "Crumar Bit 99",
+      "status": "added"
+    },
+    {
+      "productKey": "crumar-bit-one",
+      "name": "Crumar Bit One",
+      "status": "added"
+    },
+    {
+      "productKey": "crumar-ds-2",
+      "name": "Crumar DS-2",
+      "status": "added"
+    },
+    {
+      "productKey": "crumar-multiman-s",
+      "name": "Crumar Multiman-S",
+      "status": "added"
+    },
+    {
+      "productKey": "crumar-performer",
+      "name": "Crumar Performer",
+      "status": "added"
+    },
+    {
+      "productKey": "crumar-spirit",
+      "name": "Crumar Spirit",
+      "status": "added"
+    },
+    {
+      "productKey": "crumar-stratus",
+      "name": "Crumar Stratus",
+      "status": "added"
+    },
+    {
+      "productKey": "crumar-trilogy_orchestral_synthesizer",
+      "name": "Crumar Trilogy Orchestral Synthesizer",
+      "status": "added"
+    },
+    {
+      "productKey": "wave-idea-bitstream-pro",
+      "name": "Wave Idea Bitstream Pro",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-blofeld",
+      "name": "Waldorf Blofeld",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-d-pole",
+      "name": "Waldorf D-Pole",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-KB37",
+      "name": "Waldorf KB37",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-kyra",
+      "name": "Waldorf Kyra",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-micro-q",
+      "name": "Waldorf Micro Q",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-microwave",
+      "name": "Waldorf Microwave",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-microwave-ii",
+      "name": "Waldorf Microwave II",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-microwave-xt",
+      "name": "Waldorf Microwave XT",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-microwave-xtk",
+      "name": "Waldorf Microwave XTk",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-miniworks-4-pole",
+      "name": "Waldorf MiniWorks 4-Pole",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-nw1_wavetable_module",
+      "name": "Waldorf NW1 Wavetable Module",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-ppg-wave-2v",
+      "name": "Waldorf PPG Wave 2.V",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-pulse",
+      "name": "Waldorf Pulse",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-pulse2",
+      "name": "Waldorf Pulse 2",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-q",
+      "name": "Waldorf Q",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-quantum",
+      "name": "Waldorf Quantum",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-streichfett",
+      "name": "Waldorf Streichfett",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-stvc",
+      "name": "Waldorf STVC",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-wave",
+      "name": "Waldorf Wave",
+      "status": "added"
+    },
+    {
+      "productKey": "waldorf-x-pole",
+      "name": "Waldorf X-Pole",
+      "status": "added"
+    },
+    {
+      "productKey": "OctavePlateau-Catstick",
+      "name": "Octave Plateau CATSTICK",
+      "status": "added"
+    },
+    {
+      "productKey": "octave-plateau-voyetra-8",
+      "name": "Octave Plateau Voyetra 8",
+      "status": "added"
+    },
+    {
+      "productKey": "rhodes-chroma",
+      "name": "Rhodes Chroma",
+      "status": "added"
+    },
+    {
+      "productKey": "rhodes-chroma-polaris",
+      "name": "Rhodes Chroma Polaris",
+      "status": "added"
+    },
+    {
+      "productKey": "fairlight-cmi-series-i-iii",
+      "name": "Fairlight CMI (Series I - III)",
+      "status": "added"
+    },
+    {
+      "productKey": "realistic-concertmate-mg-1",
+      "name": "Realistic Concertmate MG-1",
+      "status": "added"
+    },
+    {
+      "productKey": "misc-kenton_crfk.php",
+      "name": "Kenton Electronics Control Freak",
+      "status": "added"
+    },
+    {
+      "productKey": "misc-kenton_cflive.php",
+      "name": "Kenton Electronics Control Freak Live",
+      "status": "added"
+    },
+    {
+      "productKey": "misc-kenton_cfsemid.php",
+      "name": "Kenton Electronics Control Freak Studio Edition",
+      "status": "added"
+    },
+    {
+      "productKey": "misc-kenton_profour.php",
+      "name": "Kenton Electronics Kenton Electronics Pro-4",
+      "status": "added"
+    },
+    {
+      "productKey": "misc-kenton_pro2000.php",
+      "name": "Kenton Electronics Pro-2000",
+      "status": "added"
+    },
+    {
+      "productKey": "misc-kenton_dcb.php",
+      "name": "Kenton Electronics Pro-DCB",
+      "status": "added"
+    },
+    {
+      "productKey": "misc-kenton_kadi.php",
+      "name": "Kenton Electronics Pro-Kadi",
+      "status": "added"
+    },
+    {
+      "productKey": "misc-kenton_solo.php",
+      "name": "Kenton Electronics Pro-Solo",
+      "status": "added"
+    },
+    {
+      "productKey": "misc-kenton_spindoctor.php",
+      "name": "Kenton Electronics Spin Doctor",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-cp-251-control-processor",
+      "name": "Moog CP-251 Control Processor",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-etherwave-theremin",
+      "name": "Moog Etherwave Theremin",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-liberation",
+      "name": "Moog Liberation",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-little-phatty",
+      "name": "Moog Little Phatty",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-memorymoog",
+      "name": "Moog Memorymoog",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-mf-101-lowpass-filter",
+      "name": "Moog MF-101 Lowpass Filter",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-mf-102-ring-modulator",
+      "name": "Moog MF-102 Ring Modulator",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-mf-103-12-stage-phaser",
+      "name": "Moog MF-103 12-Stage Phaser",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-mf-104-analog-delay",
+      "name": "Moog MF-104 Analog Delay",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-mf-105m-midi-murf",
+      "name": "Moog MF-105M MIDI MuRF",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-micromoog",
+      "name": "Moog Micromoog",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-minimoog",
+      "name": "Moog Minimoog",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-minimoog-voyager",
+      "name": "Moog Minimoog Voyager",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-minitmoog",
+      "name": "Moog Minitmoog",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-multimoog",
+      "name": "Moog Multimoog",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-opus-3",
+      "name": "Moog Opus-3",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-polymoog-203a",
+      "name": "Moog Polymoog 203a",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-prodigy",
+      "name": "Moog Prodigy",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-rogue",
+      "name": "Moog Rogue",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-satellite",
+      "name": "Moog Satellite",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-sirin",
+      "name": "Moog Sirin",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-slim-phatty",
+      "name": "Moog Slim Phatty",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-sonic-six",
+      "name": "Moog Sonic Six",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-source",
+      "name": "Moog Source",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-sub_phatty",
+      "name": "Moog Sub Phatty",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-synthesizer-1c2c3c",
+      "name": "Moog Synthesizer 1c/2c/3c",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-taurus-i",
+      "name": "Moog Taurus I",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-taurus-ii",
+      "name": "Moog Taurus II",
+      "status": "added"
+    },
+    {
+      "productKey": "moog-vocoder",
+      "name": "Moog Vocoder",
+      "status": "added"
+    },
+    {
+      "productKey": "siel-cruise",
+      "name": "Siel Cruise",
+      "status": "added"
+    },
+    {
+      "productKey": "siel-dk600",
+      "name": "Siel DK600",
+      "status": "added"
+    },
+    {
+      "productKey": "siel-dk70",
+      "name": "Siel DK70",
+      "status": "added"
+    },
+    {
+      "productKey": "siel-dk700",
+      "name": "Siel DK700",
+      "status": "added"
+    },
+    {
+      "productKey": "siel-dk80",
+      "name": "Siel DK80",
+      "status": "added"
+    },
+    {
+      "productKey": "siel-mono",
+      "name": "Siel Mono",
+      "status": "added"
+    },
+    {
+      "productKey": "siel-opera-6",
+      "name": "Siel Opera 6",
+      "status": "added"
+    },
+    {
+      "productKey": "siel-orchestra",
+      "name": "Siel Orchestra",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-ct-101",
+      "name": "Casio CT-101",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-ct-401",
+      "name": "Casio CT-401",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-cz-1",
+      "name": "Casio CZ-1",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-cz-1000",
+      "name": "Casio CZ-1000",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-cz-101",
+      "name": "Casio CZ-101",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-cz-230s",
+      "name": "Casio CZ-230S",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-cz-3000",
+      "name": "Casio CZ-3000",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-cz-5000",
+      "name": "Casio CZ-5000",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-fz-1",
+      "name": "Casio FZ-1",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-FZ20M",
+      "name": "Casio FZ20M",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-ht-3000",
+      "name": "Casio HT-3000",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-hz-600",
+      "name": "Casio HZ-600",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-mt-40",
+      "name": "Casio MT-40",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-rz-1",
+      "name": "Casio RZ-1",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-sk-1",
+      "name": "Casio SK-1",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-vl-tone-vl-1",
+      "name": "Casio VL-Tone VL-1",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-vz-1",
+      "name": "Casio VZ-1",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-VZ-8M",
+      "name": "Casio VZ-8M",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-XW-G1",
+      "name": "Casio XW-G1",
+      "status": "added"
+    },
+    {
+      "productKey": "casio-XW-P1",
+      "name": "Casio XW-P1 performance synthesizer",
+      "status": "added"
+    },
+    {
+      "productKey": "technosaurus-cyclodon",
+      "name": "Technosaurus Cyclodon",
+      "status": "added"
+    },
+    {
+      "productKey": "technosaurus-microcon",
+      "name": "Technosaurus Microcon",
+      "status": "added"
+    },
+    {
+      "productKey": "technosaurus-selector",
+      "name": "Technosaurus Selector",
+      "status": "added"
+    },
+    {
+      "productKey": "cyclone-analogic-cyclone-analogic-bass-bott-tt-303-v2",
+      "name": "Cyclone Analogic Cyclone Analogic BASS BOTT TT-303 V2",
+      "status": "added"
+    },
+    {
+      "productKey": "spectral-audio-cyclus-3",
+      "name": "Spectral Audio Cyclus 3",
+      "status": "added"
+    },
+    {
+      "productKey": "spectral-audio-neptune",
+      "name": "Spectral Audio Neptune",
+      "status": "added"
+    },
+    {
+      "productKey": "spectral-audio-protone",
+      "name": "Spectral Audio ProTone",
+      "status": "added"
+    },
+    {
+      "productKey": "spectral-audio-syntrack",
+      "name": "Spectral Audio Syntrack",
+      "status": "added"
+    },
+    {
+      "productKey": "red-sound-systems-darkstar",
+      "name": "Red Sound Systems DarkStar",
+      "status": "added"
+    },
+    {
+      "productKey": "red-sound-systems-elevata",
+      "name": "Red Sound Systems Elevata",
+      "status": "added"
+    },
+    {
+      "productKey": "davoli-davolisint",
+      "name": "Davoli Davolisint",
+      "status": "added"
+    },
+    {
+      "productKey": "control-synthesis-deep-bass-nine",
+      "name": "Control Synthesis Deep Bass Nine",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-dmx",
+      "name": "DMX",
+      "status": "skipped"
+    },
+    {
+      "productKey": "oberheim-dpx1",
+      "name": "Oberheim DPX1",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-dsx",
+      "name": "Oberheim DSX",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-dx",
+      "name": "DX",
+      "status": "skipped"
+    },
+    {
+      "productKey": "oberheim-echoplex-digital-pro",
+      "name": "Oberheim Echoplex Digital Pro",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-eight-voice",
+      "name": "Oberheim Eight Voice",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-four-voice",
+      "name": "Oberheim Four Voice",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-matrix-1000",
+      "name": "Oberheim Matrix 1000",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-matrix-12",
+      "name": "Oberheim Matrix 12",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-matrix-6r",
+      "name": "Oberheim Matrix 6R",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-mini-sequencer",
+      "name": "Oberheim Mini Sequencer",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-ob-1",
+      "name": "Oberheim OB-1",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-ob-12",
+      "name": "Oberheim OB-12",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-ob-8",
+      "name": "Oberheim OB-8",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-ob-mx",
+      "name": "Oberheim OB-Mx",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-ob-sx",
+      "name": "Oberheim OB-SX",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-ob-x",
+      "name": "Oberheim OB-X",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-ob-xa",
+      "name": "Oberheim OB-Xa",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-ob-xk",
+      "name": "Oberheim OB-Xk",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-prommer",
+      "name": "Oberheim Prommer",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-sem",
+      "name": "Oberheim SEM",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-strummer",
+      "name": "Oberheim Strummer",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-two-voice",
+      "name": "Oberheim Two Voice",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-two_voice_pro",
+      "name": "Oberheim Two Voice Pro",
+      "status": "added"
+    },
+    {
+      "productKey": "oberheim-xpander",
+      "name": "Oberheim Xpander",
+      "status": "added"
+    },
+    {
+      "productKey": "peavey-DPM-SP-Sample-Playback-Synthesizer",
+      "name": "Peavey DPM SP Sample Playback Synthesizer",
+      "status": "added"
+    },
+    {
+      "productKey": "boss-dr-110-dr-rhythm",
+      "name": "BOSS DR-110 Dr. Rhythm",
+      "status": "added"
+    },
+    {
+      "productKey": "boss-dr-202-dr-groove",
+      "name": "BOSS DR-202 Dr. Groove",
+      "status": "added"
+    },
+    {
+      "productKey": "boss-dr-220-dr-rhythm",
+      "name": "BOSS DR-220 Dr. Rhythm",
+      "status": "added"
+    },
+    {
+      "productKey": "boss-dr-55-dr-rhythm",
+      "name": "BOSS DR-55 Dr. Rhythm",
+      "status": "added"
+    },
+    {
+      "productKey": "boss-hc-2-hand-clapper",
+      "name": "BOSS HC-2 Hand Clapper",
+      "status": "added"
+    },
+    {
+      "productKey": "boss-pc-2-percussion-synthesizer",
+      "name": "BOSS PC-2 Percussion Synthesizer",
+      "status": "added"
+    },
+    {
+      "productKey": "boss-sp-202-dr-sample",
+      "name": "BOSS SP-202 Dr. Sample",
+      "status": "added"
+    },
+    {
+      "productKey": "boss-sp-303-dr-sample",
+      "name": "BOSS SP-303 Dr. Sample",
+      "status": "added"
+    },
+    {
+      "productKey": "boss-sp-505",
+      "name": "BOSS SP-505",
+      "status": "added"
+    },
+    {
+      "productKey": "boss-syb-3-bass-synthesizer",
+      "name": "BOSS SYB-3 Bass Synthesizer",
+      "status": "added"
+    },
+    {
+      "productKey": "boss-syb-5-bass-synthesizer",
+      "name": "BOSS SYB-5 Bass Synthesizer",
+      "status": "added"
+    },
+    {
+      "productKey": "boss-vt-1-voice-transformer",
+      "name": "BOSS VT-1 Voice Transformer",
+      "status": "added"
+    },
+    {
+      "productKey": "movement-mcs-drum-computer-mk1",
+      "name": "Movement MCS Drum Computer MK1",
+      "status": "added"
+    },
+    {
+      "productKey": "elka-drumstar-80",
+      "name": "Elka Drumstar-80",
+      "status": "added"
+    },
+    {
+      "productKey": "elka-ek-22",
+      "name": "Elka EK-22",
+      "status": "added"
+    },
+    {
+      "productKey": "elka-em44",
+      "name": "Elka EM-44",
+      "status": "added"
+    },
+    {
+      "productKey": "elka-soloist-505",
+      "name": "Elka Soloist 505",
+      "status": "added"
+    },
+    {
+      "productKey": "elka-synthex",
+      "name": "Elka Synthex",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-drumtraks",
+      "name": "Sequential Circuits DrumTraks",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-fugue",
+      "name": "Sequential Circuits Fugue",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-max",
+      "name": "Sequential Circuits Max",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-multitrak",
+      "name": "Sequential Circuits MultiTrak",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-prelude",
+      "name": "Sequential Circuits Prelude",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-pro-one",
+      "name": "Sequential Circuits Pro One",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-prophet-10",
+      "name": "Sequential Circuits Prophet 10",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-prophet-2000",
+      "name": "Sequential Circuits Prophet 2000",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-prophet-3000",
+      "name": "Sequential Circuits Prophet 3000",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-prophet-5",
+      "name": "Sequential Circuits Prophet 5",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-prophet-600",
+      "name": "Sequential Circuits Prophet 600",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-prophet-remote",
+      "name": "Sequential Circuits Prophet Remote",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-prophet-t8",
+      "name": "Sequential Circuits Prophet T8",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-prophet-vs",
+      "name": "Sequential Circuits Prophet VS",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-six-trak",
+      "name": "Sequential Circuits Six-Trak",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-split-8",
+      "name": "Sequential Circuits Split-8",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-studio-440",
+      "name": "Sequential Circuits Studio 440",
+      "status": "added"
+    },
+    {
+      "productKey": "sequential-circuits-tom",
+      "name": "Sequential Circuits TOM",
+      "status": "added"
+    },
+    {
+      "productKey": "dubreq-dtylophone_s2",
+      "name": "Dubreq Dubreq Stylophone S2",
+      "status": "added"
+    },
+    {
+      "productKey": "eko-ekosynth-p15",
+      "name": "EKO EKOsynth P15",
+      "status": "added"
+    },
+    {
+      "productKey": "eml-electrocomp-100",
+      "name": "EML ElectroComp 100",
+      "status": "added"
+    },
+    {
+      "productKey": "eml-electrocomp-101",
+      "name": "EML ElectroComp 101",
+      "status": "added"
+    },
+    {
+      "productKey": "eml-electrocomp-200",
+      "name": "EML ElectroComp 200",
+      "status": "added"
+    },
+    {
+      "productKey": "eml-electrocomp-400401",
+      "name": "EML ElectroComp 400/401",
+      "status": "added"
+    },
+    {
+      "productKey": "eml-electrocomp-500",
+      "name": "EML ElectroComp 500",
+      "status": "added"
+    },
+    {
+      "productKey": "eml-poly-box",
+      "name": "EML Poly-Box",
+      "status": "added"
+    },
+    {
+      "productKey": "eml-synkey",
+      "name": "EML SynKey",
+      "status": "added"
+    },
+    {
+      "productKey": "therevox-et43",
+      "name": "Therevox ET-4.3",
+      "status": "added"
+    },
+    {
+      "productKey": "dave-smith-instruments-evolver",
+      "name": "Dave Smith Instruments Evolver",
+      "status": "added"
+    },
+    {
+      "productKey": "dave-smith-instruments-mono-evolver",
+      "name": "Dave Smith Instruments Mono Evolver",
+      "status": "added"
+    },
+    {
+      "productKey": "dave-smith-instruments-mopho",
+      "name": "Dave Smith Instruments Mopho",
+      "status": "added"
+    },
+    {
+      "productKey": "dave-smith-instruments-poly-evolver",
+      "name": "Dave Smith Instruments Poly Evolver",
+      "status": "added"
+    },
+    {
+      "productKey": "dave-smith-instruments-poly-evolver-rack",
+      "name": "Dave Smith Instruments Poly Evolver Rack",
+      "status": "added"
+    },
+    {
+      "productKey": "dave-smith-instruments-prophet-08",
+      "name": "Dave Smith Instruments Prophet '08",
+      "status": "added"
+    },
+    {
+      "productKey": "dave-smith-instruments-tempest",
+      "name": "Dave Smith Instruments Tempest",
+      "status": "added"
+    },
+    {
+      "productKey": "dave-smith-instruments-tetra",
+      "name": "Dave Smith Instruments Tetra",
+      "status": "added"
+    },
+    {
+      "productKey": "davesmithinstruments-OB-6",
+      "name": "Dave Smith Instruments OB-6",
+      "status": "added"
+    },
+    {
+      "productKey": "davesmithinstruments-pro2",
+      "name": "Dave Smith Instruments Pro 2",
+      "status": "added"
+    },
+    {
+      "productKey": "paia-fatman",
+      "name": "PAiA Fatman",
+      "status": "added"
+    },
+    {
+      "productKey": "paia-proteus-1",
+      "name": "PAiA Proteus 1",
+      "status": "added"
+    },
+    {
+      "productKey": "paia-stringz-n-thingz",
+      "name": "PAiA Stringz &rsquo;n&rsquo; Thingz",
+      "status": "added"
+    },
+    {
+      "productKey": "synton-fenix",
+      "name": "Synton Fenix",
+      "status": "added"
+    },
+    {
+      "productKey": "synton-syntovox_222_Vocoder",
+      "name": "Synton Syntovox 222 Vocoder",
+      "status": "added"
+    },
+    {
+      "productKey": "synton-syrinx",
+      "name": "Synton Syrinx",
+      "status": "added"
+    },
+    {
+      "productKey": "electrix-pro-filter-factory",
+      "name": "Electrix Pro Filter Factory",
+      "status": "added"
+    },
+    {
+      "productKey": "electrix-pro-repeater",
+      "name": "Electrix Pro Repeater",
+      "status": "added"
+    },
+    {
+      "productKey": "electrix-pro-warp-factory",
+      "name": "Electrix Pro Warp Factory",
+      "status": "added"
+    },
+    {
+      "productKey": "sherman-electronics-filterbank",
+      "name": "Sherman Electronics FilterBank",
+      "status": "added"
+    },
+    {
+      "productKey": "sherman-electronics-filterbank-2",
+      "name": "Sherman Electronics FilterBank 2",
+      "status": "added"
+    },
+    {
+      "productKey": "sherman-electronics-quad-modular-filter",
+      "name": "Sherman Electronics Quad Modular Filter",
+      "status": "added"
+    },
+    {
+      "productKey": "multivox-firstman_sq-01",
+      "name": "Multivox Firstman SQ-01",
+      "status": "added"
+    },
+    {
+      "productKey": "image-line-fl-studio",
+      "name": "Image Line FL Studio",
+      "status": "added"
+    },
+    {
+      "productKey": "image-line-simsynth",
+      "name": "Image Line SimSynth",
+      "status": "added"
+    },
+    {
+      "productKey": "electronic-dream-plant-edp-gnat",
+      "name": "Electronic Dream Plant (EDP) Gnat",
+      "status": "added"
+    },
+    {
+      "productKey": "electronic-dream-plant-edp-spider",
+      "name": "Electronic Dream Plant (EDP) Spider",
+      "status": "added"
+    },
+    {
+      "productKey": "electronic-dream-plant-edp-wasp",
+      "name": "Electronic Dream Plant (EDP) Wasp",
+      "status": "added"
+    },
+    {
+      "productKey": "steinberg-halion",
+      "name": "Steinberg HALion",
+      "status": "added"
+    },
+    {
+      "productKey": "steinberg-lm-4",
+      "name": "Steinberg LM-4",
+      "status": "added"
+    },
+    {
+      "productKey": "steinberg-model-e",
+      "name": "Steinberg Model E",
+      "status": "added"
+    },
+    {
+      "productKey": "steinberg-grand",
+      "name": "Steinberg The Grand",
+      "status": "added"
+    },
+    {
+      "productKey": "twisted_electrons-therapkid",
+      "name": "Twisted Electrons TherapKid",
+      "status": "added"
+    },
+    {
+      "productKey": "twisted_electrons-therapsid_mkII",
+      "name": "Twisted Electrons TherapSid MKII",
+      "status": "added"
+    },
+    {
+      "productKey": "hypersynth-xenophone",
+      "name": "Hypersynth Hypersynth Xenophone",
+      "status": "added"
+    },
+    {
+      "productKey": "gforce-software-imposcar",
+      "name": "GForce Software impOSCar",
+      "status": "added"
+    },
+    {
+      "productKey": "gforce-software-m-tron",
+      "name": "GForce Software M-Tron",
+      "status": "added"
+    },
+    {
+      "productKey": "gforce-software-oddity",
+      "name": "GForce Software Oddity",
+      "status": "added"
+    },
+    {
+      "productKey": "kurzweil-k1000",
+      "name": "Kurzweil K1000",
+      "status": "added"
+    },
+    {
+      "productKey": "kurzweil-k150",
+      "name": "Kurzweil K150",
+      "status": "added"
+    },
+    {
+      "productKey": "kurzweil-k2000",
+      "name": "Kurzweil K2000",
+      "status": "added"
+    },
+    {
+      "productKey": "kurzweil-k250",
+      "name": "Kurzweil K250",
+      "status": "added"
+    },
+    {
+      "productKey": "kurzweil-k2500",
+      "name": "Kurzweil K2500",
+      "status": "added"
+    },
+    {
+      "productKey": "kurzweil-k2600",
+      "name": "Kurzweil K2600",
+      "status": "added"
+    },
+    {
+      "productKey": "kurzweil-pc2r",
+      "name": "Kurzweil PC2R",
+      "status": "added"
+    },
+    {
+      "productKey": "Kurzweil-PC88MX",
+      "name": "Kurzweil PC88MX",
+      "status": "added"
+    },
+    {
+      "productKey": "kawai-k11",
+      "name": "Kawai K11",
+      "status": "added"
+    },
+    {
+      "productKey": "kawai-k1iir",
+      "name": "Kawai K1iir",
+      "status": "added"
+    },
+    {
+      "productKey": "kawai-k1m",
+      "name": "Kawai K1m",
+      "status": "added"
+    },
+    {
+      "productKey": "kawai-k3",
+      "name": "Kawai K3",
+      "status": "added"
+    },
+    {
+      "productKey": "kawai-k4r",
+      "name": "Kawai K4r",
+      "status": "added"
+    },
+    {
+      "productKey": "kawai-k5000",
+      "name": "Kawai K5000",
+      "status": "added"
+    },
+    {
+      "productKey": "kawai-k5m",
+      "name": "Kawai K5m",
+      "status": "added"
+    },
+    {
+      "productKey": "kawai-KC20",
+      "name": "Kawai KC20",
+      "status": "added"
+    },
+    {
+      "productKey": "kawai-R-100",
+      "name": "Kawai R-100",
+      "status": "added"
+    },
+    {
+      "productKey": "kawai-sx-210",
+      "name": "Kawai SX-210",
+      "status": "added"
+    },
+    {
+      "productKey": "kawai-sx-240",
+      "name": "Kawai SX-240",
+      "status": "added"
+    },
+    {
+      "productKey": "kawai-xd-5",
+      "name": "Kawai XD-5",
+      "status": "added"
+    },
+    {
+      "productKey": "solton-k160",
+      "name": "Solton K160",
+      "status": "added"
+    },
+    {
+      "productKey": "encore-electronics-knobby",
+      "name": "Encore Electronics Knobby",
+      "status": "added"
+    },
+    {
+      "productKey": "encore-electronics-slidemate",
+      "name": "Encore Electronics SlideMate",
+      "status": "added"
+    },
+    {
+      "productKey": "rsf-kobol-expander",
+      "name": "RSF Kobol Expander",
+      "status": "added"
+    },
+    {
+      "productKey": "rsf-modular-model-11",
+      "name": "RSF Modular Model 11",
+      "status": "added"
+    },
+    {
+      "productKey": "pittsburgh_modular_synthesizers-lifeforms_systems_301",
+      "name": "Pittsburgh Modular Synthesizers Lifeforms Systems 301",
+      "status": "added"
+    },
+    {
+      "productKey": "linn-electronics-linn-9000",
+      "name": "Linn Electronics Linn 9000",
+      "status": "added"
+    },
+    {
+      "productKey": "linn-electronics-linndrum",
+      "name": "Linn Electronics LinnDrum",
+      "status": "added"
+    },
+    {
+      "productKey": "linn-electronics-lm-1-drum-computer",
+      "name": "Linn Electronics LM-1 Drum Computer",
+      "status": "added"
+    },
+    {
+      "productKey": "Gotharmans-littledformer2",
+      "name": "Gotharman's Little deFormer 2",
+      "status": "added"
+    },
+    {
+      "productKey": "applied-acoustics-lounge-lizard",
+      "name": "Applied Acoustics Lounge Lizard",
+      "status": "added"
+    },
+    {
+      "productKey": "applied-acoustics-tassman",
+      "name": "Applied Acoustics Tassman",
+      "status": "added"
+    },
+    {
+      "productKey": "applied-acoustics-tassman-4",
+      "name": "Applied Acoustics Tassman 4",
+      "status": "added"
+    },
+    {
+      "productKey": "SOMA_Laboratory-Lyra-8",
+      "name": "SOMA Laboratory Lyra-8",
+      "status": "added"
+    },
+    {
+      "productKey": "soma_laboratory-pulsar-23",
+      "name": "SOMA Laboratory Pulsar-23",
+      "status": "added"
+    },
+    {
+      "productKey": "macbeth-studio-systems-m3x",
+      "name": "MacBeth Studio Systems M3X",
+      "status": "added"
+    },
+    {
+      "productKey": "macbeth-studio-systems-m5",
+      "name": "MacBeth Studio Systems M5",
+      "status": "added"
+    },
+    {
+      "productKey": "will-systems-mab-303",
+      "name": "Will Systems MAB-303",
+      "status": "added"
+    },
+    {
+      "productKey": "malekko-heavy_industry_corporation_manther",
+      "name": "Malekko Heavy Industry Corporation Malekko Heavy Industry Corporation Manther",
+      "status": "added"
+    },
+    {
+      "productKey": "cheetah-MD-16",
+      "name": "Cheetah MD-16",
+      "status": "added"
+    },
+    {
+      "productKey": "cheetah-ms-6",
+      "name": "Cheetah MS-6",
+      "status": "added"
+    },
+    {
+      "productKey": "cheetah-ms800",
+      "name": "Cheetah MS800",
+      "status": "added"
+    },
+    {
+      "productKey": "soundmaster-memory-rhythm-sr-88",
+      "name": "SoundMaster Memory Rhythm SR-88",
+      "status": "added"
+    },
+    {
+      "productKey": "soundmaster-stix-st-305",
+      "name": "SoundMaster Stix ST-305",
+      "status": "added"
+    },
+    {
+      "productKey": "manikin-electronic-memotron-m2k",
+      "name": "Manikin-Electronic Memotron M2K",
+      "status": "added"
+    },
+    {
+      "productKey": "tcworks-mercury-1",
+      "name": "TC|Works Mercury-1",
+      "status": "added"
+    },
+    {
+      "productKey": "mfb-mfb-synth-lite-2",
+      "name": "MFB MFB Synth Lite 2",
+      "status": "added"
+    },
+    {
+      "productKey": "360%20Systems-MIDI_Bass",
+      "name": "360 Systems MIDI Bass",
+      "status": "added"
+    },
+    {
+      "productKey": "mutronics-midi-mutator",
+      "name": "Mutronics MIDI Mutator",
+      "status": "added"
+    },
+    {
+      "productKey": "electro-harmonix-mini-synthesizer",
+      "name": "Electro Harmonix Mini-Synthesizer",
+      "status": "added"
+    },
+    {
+      "productKey": "steiner-parker-minicon",
+      "name": "Steiner-Parker Minicon",
+      "status": "added"
+    },
+    {
+      "productKey": "steiner-parker-synthacon",
+      "name": "Steiner-Parker Synthacon",
+      "status": "added"
+    },
+    {
+      "productKey": "steiner-parker-synthasystem",
+      "name": "Steiner-Parker SynthaSystem",
+      "status": "added"
+    },
+    {
+      "productKey": "modal-electronics-modal-001",
+      "name": "Modal Electronics Modal 001",
+      "status": "added"
+    },
+    {
+      "productKey": "serge-modular",
+      "name": "Serge Modular",
+      "status": "added"
+    },
+    {
+      "productKey": "sonicsmith-Modular_A1",
+      "name": "Sonicsmith Modular A1",
+      "status": "added"
+    },
+    {
+      "productKey": "wiard-modular-systems",
+      "name": "Wiard Modular Systems",
+      "status": "added"
+    },
+    {
+      "productKey": "bomb-factory-studios-moogerfoogers",
+      "name": "Bomb Factory Studios Moogerfoogers",
+      "status": "added"
+    },
+    {
+      "productKey": "marion-systems-msr-2",
+      "name": "Marion Systems MSR-2",
+      "status": "added"
+    },
+    {
+      "productKey": "triadex-muse",
+      "name": "Triadex Muse",
+      "status": "added"
+    },
+    {
+      "productKey": "horst-mwt-01-midi-wave-theremin",
+      "name": "Horst MWT-01 Midi Wave Theremin",
+      "status": "added"
+    },
+    {
+      "productKey": "hartmann-neuron",
+      "name": "Hartmann Neuron",
+      "status": "added"
+    },
+    {
+      "productKey": "clavia-nord-lead-2-rack",
+      "name": "Clavia Nord Lead 2 Rack",
+      "status": "added"
+    },
+    {
+      "productKey": "clavia-nord-lead-3",
+      "name": "Clavia Nord Lead 3",
+      "status": "added"
+    },
+    {
+      "productKey": "clavia-nord-micro-modular",
+      "name": "Clavia Nord Micro Modular",
+      "status": "added"
+    },
+    {
+      "productKey": "clavia-nord-modular",
+      "name": "Clavia Nord Modular",
+      "status": "added"
+    },
+    {
+      "productKey": "clavia-nord-rack",
+      "name": "Clavia Nord Rack",
+      "status": "added"
+    },
+    {
+      "productKey": "clavia-nord_stage_2",
+      "name": "Clavia Nord Stage 2",
+      "status": "added"
+    },
+    {
+      "productKey": "clavia-nord_wave",
+      "name": "Clavia Nord Wave",
+      "status": "added"
+    },
+    {
+      "productKey": "nozoid-nozoid-mmo-3",
+      "name": "Nozoid Nozoid MMO-3",
+      "status": "added"
+    },
+    {
+      "productKey": "prosoniq-orange-vocoder",
+      "name": "Prosoniq Orange Vocoder",
+      "status": "added"
+    },
+    {
+      "productKey": "wurlitzer-orbit-iii",
+      "name": "Wurlitzer Orbit III",
+      "status": "added"
+    },
+    {
+      "productKey": "oxford-synthesiser-company-oscar",
+      "name": "Oxford Synthesiser Company OSCar",
+      "status": "added"
+    },
+    {
+      "productKey": "gleeman-pentaphonic",
+      "name": "Gleeman Pentaphonic",
+      "status": "added"
+    },
+    {
+      "productKey": "keyfax-phat-boy",
+      "name": "KeyFax Phat-Boy",
+      "status": "added"
+    },
+    {
+      "productKey": "philips-pmc-100",
+      "name": "Philips PMC 100",
+      "status": "added"
+    },
+    {
+      "productKey": "Teenage_Engineering-PO-14_Sub",
+      "name": "Teenage Engineering PO-14 Sub",
+      "status": "added"
+    },
+    {
+      "productKey": "formanta-polivoks",
+      "name": "Formanta Polivoks",
+      "status": "added"
+    },
+    {
+      "productKey": "farfisa-polychrome",
+      "name": "Farfisa Polychrome",
+      "status": "added"
+    },
+    {
+      "productKey": "farfisa-soundmaker",
+      "name": "Farfisa Soundmaker",
+      "status": "added"
+    },
+    {
+      "productKey": "quasimidi-polymorph",
+      "name": "Quasimidi PolyMorph",
+      "status": "added"
+    },
+    {
+      "productKey": "quasimidi-quasar",
+      "name": "Quasimidi Quasar",
+      "status": "added"
+    },
+    {
+      "productKey": "quasimidi-rave-o-lution-309",
+      "name": "Quasimidi Rave-O-Lution 309",
+      "status": "added"
+    },
+    {
+      "productKey": "quasimidi-raven",
+      "name": "Quasimidi Raven",
+      "status": "added"
+    },
+    {
+      "productKey": "quasimidi-sirius",
+      "name": "Quasimidi Sirius",
+      "status": "added"
+    },
+    {
+      "productKey": "quasimidi-technox",
+      "name": "Quasimidi Technox",
+      "status": "added"
+    },
+    {
+      "productKey": "ems-poly-synthi",
+      "name": "Electronic Music Studios (EMS) Polysynthi",
+      "status": "added"
+    },
+    {
+      "productKey": "electronic-music-studios-ems-synthi",
+      "name": "Electronic Music Studios (EMS) Synthi A",
+      "status": "added"
+    },
+    {
+      "productKey": "electronic-music-studios-ems-synthi-sequencer-256",
+      "name": "Electronic Music Studios (EMS) Synthi Sequencer 256",
+      "status": "added"
+    },
+    {
+      "productKey": "electronic-music-studios-ems-vcs3",
+      "name": "Electronic Music Studios (EMS) VCS3",
+      "status": "added"
+    },
+    {
+      "productKey": "electronic-music-studios-ems-vocoder-2000",
+      "name": "Electronic Music Studios (EMS) Vocoder 2000",
+      "status": "added"
+    },
+    {
+      "productKey": "synthesizers-com-portable-systems",
+      "name": "Synthesizers. com Portable Systems",
+      "status": "added"
+    },
+    {
+      "productKey": "synthesizers-com-rack-mount-systems",
+      "name": "Synthesizers. com Rack Mount Systems",
+      "status": "added"
+    },
+    {
+      "productKey": "synthesizers-com-studio-systems",
+      "name": "Synthesizers. com Studio Systems",
+      "status": "added"
+    },
+    {
+      "productKey": "wine-country-sequential-pro-one",
+      "name": "Wine Country Sequential Pro One",
+      "status": "added"
+    },
+    {
+      "productKey": "suzuki-qchord_QC-1",
+      "name": "Suzuki QChord QC-1",
+      "status": "added"
+    },
+    {
+      "productKey": "seer-systems-reality",
+      "name": "Seer Systems Reality",
+      "status": "added"
+    },
+    {
+      "productKey": "propellerhead-software-reason",
+      "name": "Propellerhead Software Reason",
+      "status": "added"
+    },
+    {
+      "productKey": "propellerhead-software-rebirth-rb-338",
+      "name": "Propellerhead Software ReBirth RB-338",
+      "status": "added"
+    },
+    {
+      "productKey": "frostwave-resonator",
+      "name": "Frostwave Resonator",
+      "status": "added"
+    },
+    {
+      "productKey": "bitheadz-retro-1",
+      "name": "BitHeadz Retro AS-1",
+      "status": "added"
+    },
+    {
+      "productKey": "bitheadz-unity-ds-1",
+      "name": "BitHeadz Unity DS-1",
+      "status": "added"
+    },
+    {
+      "productKey": "chamberlin-rhythmate",
+      "name": "Chamberlin Rhythmate",
+      "status": "added"
+    },
+    {
+      "productKey": "analogue-systems-rs-integrator",
+      "name": "Analogue Systems RS-Integrator",
+      "status": "added"
+    },
+    {
+      "productKey": "teisco-s100p",
+      "name": "Teisco S100P",
+      "status": "added"
+    },
+    {
+      "productKey": "teisco-sx-240",
+      "name": "Teisco SX-240",
+      "status": "added"
+    },
+    {
+      "productKey": "teisco-sx-400",
+      "name": "Teisco SX-400",
+      "status": "added"
+    },
+    {
+      "productKey": "teisco-synthesizer-110f",
+      "name": "Teisco Synthesizer 110F",
+      "status": "added"
+    },
+    {
+      "productKey": "teisco-synthesizer-110f-0",
+      "name": "Teisco Synthesizer 110F",
+      "status": "added"
+    },
+    {
+      "productKey": "generalmusic-gem-s2",
+      "name": "Generalmusic (GEM) S2",
+      "status": "added"
+    },
+    {
+      "productKey": "midibox-sammichsid",
+      "name": "MidiBox SammichSID",
+      "status": "added"
+    },
+    {
+      "productKey": "ik-multimedia-sampletank-2",
+      "name": "IK Multimedia SampleTank 2",
+      "status": "added"
+    },
+    {
+      "productKey": "ik-multimedia-sonik-synth-2",
+      "name": "IK Multimedia Sonik Synth 2",
+      "status": "added"
+    },
+    {
+      "productKey": "logan-hohner-string-melody-ii",
+      "name": "Logan / Hohner String Melody II",
+      "status": "added"
+    },
+    {
+      "productKey": "logan-hohner-string-melody-ii-0",
+      "name": "Logan / Hohner String Melody II",
+      "status": "added"
+    },
+    {
+      "productKey": "jen-electronics-sx-1000-synthetone",
+      "name": "Jen Electronics SX-1000 Synthetone",
+      "status": "added"
+    },
+    {
+      "productKey": "jen-electronics-sx-2000-synthetone",
+      "name": "Jen Electronics SX-2000 Synthetone",
+      "status": "added"
+    },
+    {
+      "productKey": "technics-SX-WSA1",
+      "name": "Technics SX-WSA1",
+      "status": "added"
+    },
+    {
+      "productKey": "technics-SY-1010",
+      "name": "Technics SY-1010",
+      "status": "added"
+    },
+    {
+      "productKey": "lennar-digital-sylenth1",
+      "name": "Lennar Digital Sylenth1",
+      "status": "added"
+    },
+    {
+      "productKey": "new-england-digital-synclavier",
+      "name": "New England Digital Synclavier",
+      "status": "added"
+    },
+    {
+      "productKey": "digital-keyboards-synergy",
+      "name": "Digital Keyboards Synergy",
+      "status": "added"
+    },
+    {
+      "productKey": "welson-syntex",
+      "name": "Welson Syntex",
+      "status": "added"
+    },
+    {
+      "productKey": "fbt-electronica-synther-2000",
+      "name": "FBT Electronica Synther-2000",
+      "status": "added"
+    },
+    {
+      "productKey": "teisco-kawai-synthesizer-100f",
+      "name": "Teisco / Kawai Synthesizer 100F",
+      "status": "added"
+    },
+    {
+      "productKey": "teisco-kawai-synthesizer-100f-0",
+      "name": "Teisco / Kawai Synthesizer 100F",
+      "status": "added"
+    },
+    {
+      "productKey": "syntecno-teebee",
+      "name": "Syntecno TeeBee",
+      "status": "added"
+    },
+    {
+      "productKey": "plankton_electronics-the_bumblebee",
+      "name": "Plankton Electronics The Bumblebee",
+      "status": "added"
+    },
+    {
+      "productKey": "octave-cat",
+      "name": "Octave The Cat",
+      "status": "added"
+    },
+    {
+      "productKey": "octave-kitten",
+      "name": "Octave The Kitten",
+      "status": "added"
+    },
+    {
+      "productKey": "way-out-ware-timewarp-2600",
+      "name": "Way Out Ware TimewARP 2600",
+      "status": "added"
+    },
+    {
+      "productKey": "powertran-transcendent-2000",
+      "name": "Powertran Transcendent 2000",
+      "status": "added"
+    },
+    {
+      "productKey": "powertran-transendent-dpx",
+      "name": "Powertran Transendent DPX",
+      "status": "added"
+    },
+    {
+      "productKey": "metasonix-ts-21-hellfire",
+      "name": "Metasonix TS-21 HellFire",
+      "status": "added"
+    },
+    {
+      "productKey": "metasonix-ts-22-pentode-filterbank",
+      "name": "Metasonix TS-22 Pentode FilterBank",
+      "status": "added"
+    },
+    {
+      "productKey": "vaz-synths-vaz-modular",
+      "name": "VAZ Synths VAZ Modular",
+      "status": "added"
+    },
+    {
+      "productKey": "access-virus",
+      "name": "Access Virus A",
+      "status": "added"
+    },
+    {
+      "productKey": "access-virus-b",
+      "name": "Access Virus B",
+      "status": "added"
+    },
+    {
+      "productKey": "access-virus-c",
+      "name": "Access Virus C",
+      "status": "added"
+    },
+    {
+      "productKey": "access-virus-tdm",
+      "name": "Access Virus TDM",
+      "status": "added"
+    },
+    {
+      "productKey": "access-virus-ti",
+      "name": "Access Virus TI",
+      "status": "added"
+    },
+    {
+      "productKey": "access-virus-ti-polar",
+      "name": "Access Virus TI Polar",
+      "status": "added"
+    },
+    {
+      "productKey": "access-virus-ti-snow",
+      "name": "Access Virus TI Snow",
+      "status": "added"
+    },
+    {
+      "productKey": "ladyada-x0xb0x",
+      "name": "Ladyada x0xb0x",
+      "status": "added"
+    }
+  ]
+}
