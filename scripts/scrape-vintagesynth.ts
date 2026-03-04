@@ -32,8 +32,9 @@ const brandArg = args.find(a => a.startsWith('--brand='))?.split('=')[1]?.toLowe
 const limitArg = args.find(a => a.startsWith('--limit='))?.split('=')[1]
 const LIMIT    = limitArg ? parseInt(limitArg, 10) : Infinity
 
-// Delay between instrument page fetches (ms) — be polite
-const FETCH_DELAY = 250
+// Delay between instrument page fetches — 2s base + up to 1s jitter
+const FETCH_DELAY_BASE   = 2000
+const FETCH_DELAY_JITTER = 1000
 
 const BASE_URL    = 'https://www.vintagesynth.com'
 // Any brand taxonomy page works — all instrument URLs are embedded in every page's JS
