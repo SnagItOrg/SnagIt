@@ -1452,6 +1452,13 @@
                 3500,
                 6000
               ]
+            },
+            "Teenage_Engineering-PO-14_Sub": {
+              "name": "Teenage Engineering PO-14 Sub",
+              "type": "synthesizer",
+              "related": [],
+              "clones": [],
+              "reference_url": "https://www.vintagesynth.com/Teenage_Engineering/PO-14_Sub"
             }
           }
         },
@@ -1753,35 +1760,6 @@
             }
           }
         },
-        "emu": {
-          "products": {
-            "emu-sp-1200": {
-              "name": "E-mu SP-1200",
-              "type": "sampler / drum machine",
-              "era": "1987",
-              "reference_url": "https://www.vintagesynth.com/e-mu/sp-1200",
-              "model": "SP-1200",
-              "sku": [
-                "SP-1200"
-              ],
-              "ean": [],
-              "related": [
-                "roland-tr-808",
-                "akai-mpc60",
-                "akai-mpc3000"
-              ],
-              "clones": []
-            },
-            "emu-emulator4": {
-              "name": "E-mu Emulator IV",
-              "type": "sampler",
-              "era": "1994",
-              "related": [],
-              "clones": [],
-              "reference_url": "https://www.vintagesynth.com/emu/emulator4"
-            }
-          }
-        },
         "elektron": {
           "products": {
             "elektron-machinedrum-sps-1": {
@@ -1828,6 +1806,13 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/elektron/sidstation"
+            },
+            "Elektron-octatrack": {
+              "name": "Elektron Elektron Octatrack",
+              "type": "synthesizer",
+              "related": [],
+              "clones": [],
+              "reference_url": "https://www.vintagesynth.com/Elektron/octatrack"
             }
           }
         },
@@ -4898,11 +4883,7 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/radikal-technologies/spectralis"
-            }
-          }
-        },
-        "radikaltechnologies": {
-          "products": {
+            },
             "radikaltechnologies-deltacepa": {
               "name": "Radikal Technologies Delta CEP A",
               "type": "synthesizer",
@@ -5199,17 +5180,6 @@
             }
           }
         },
-        "Elektron": {
-          "products": {
-            "Elektron-octatrack": {
-              "name": "Elektron Elektron Octatrack",
-              "type": "synthesizer",
-              "related": [],
-              "clones": [],
-              "reference_url": "https://www.vintagesynth.com/Elektron/octatrack"
-            }
-          }
-        },
         "arturia": {
           "products": {
             "arturia-arp-2600v": {
@@ -5427,11 +5397,7 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/studio-electronics/se-1"
-            }
-          }
-        },
-        "studio_electronics": {
-          "products": {
+            },
             "studio_electronics-atcx": {
               "name": "Studio Electronics ATCX",
               "type": "synthesizer",
@@ -5747,6 +5713,31 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/e-mu/xtreme-lead-1"
+            },
+            "emu-sp-1200": {
+              "name": "E-mu SP-1200",
+              "type": "sampler / drum machine",
+              "era": "1987",
+              "reference_url": "https://www.vintagesynth.com/e-mu/sp-1200",
+              "model": "SP-1200",
+              "sku": [
+                "SP-1200"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808",
+                "akai-mpc60",
+                "akai-mpc3000"
+              ],
+              "clones": []
+            },
+            "emu-emulator4": {
+              "name": "E-mu Emulator IV",
+              "type": "sampler",
+              "era": "1994",
+              "related": [],
+              "clones": [],
+              "reference_url": "https://www.vintagesynth.com/emu/emulator4"
             }
           }
         },
@@ -6015,18 +6006,6 @@
             }
           }
         },
-        "OctavePlateau": {
-          "products": {
-            "OctavePlateau-Catstick": {
-              "name": "Octave Plateau CATSTICK",
-              "type": "effects processor",
-              "era": "1981",
-              "related": [],
-              "clones": [],
-              "reference_url": "https://www.vintagesynth.com/OctavePlateau/Catstick"
-            }
-          }
-        },
         "octave-plateau": {
           "products": {
             "octave-plateau-voyetra-8": {
@@ -6035,6 +6014,14 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/octave-plateau/voyetra-8"
+            },
+            "OctavePlateau-Catstick": {
+              "name": "Octave Plateau CATSTICK",
+              "type": "effects processor",
+              "era": "1981",
+              "related": [],
+              "clones": [],
+              "reference_url": "https://www.vintagesynth.com/OctavePlateau/Catstick"
             }
           }
         },
@@ -6741,11 +6728,7 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/dave-smith-instruments/tetra"
-            }
-          }
-        },
-        "davesmithinstruments": {
-          "products": {
+            },
             "davesmithinstruments-OB-6": {
               "name": "Dave Smith Instruments OB-6",
               "type": "synthesizer",
@@ -7065,11 +7048,7 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/kurzweil/pc2r"
-            }
-          }
-        },
-        "Kurzweil": {
-          "products": {
+            },
             "Kurzweil-PC88MX": {
               "name": "Kurzweil PC88MX",
               "type": "synthesizer",
@@ -7295,17 +7274,6 @@
             }
           }
         },
-        "SOMA_Laboratory": {
-          "products": {
-            "SOMA_Laboratory-Lyra-8": {
-              "name": "SOMA Laboratory Lyra-8",
-              "type": "effects processor",
-              "related": [],
-              "clones": [],
-              "reference_url": "https://www.vintagesynth.com/SOMA_Laboratory/Lyra-8"
-            }
-          }
-        },
         "soma_laboratory": {
           "products": {
             "soma_laboratory-pulsar-23": {
@@ -7314,6 +7282,13 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/soma_laboratory/pulsar-23"
+            },
+            "SOMA_Laboratory-Lyra-8": {
+              "name": "SOMA Laboratory Lyra-8",
+              "type": "effects processor",
+              "related": [],
+              "clones": [],
+              "reference_url": "https://www.vintagesynth.com/SOMA_Laboratory/Lyra-8"
             }
           }
         },
@@ -7728,17 +7703,6 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/philips/pmc-100"
-            }
-          }
-        },
-        "Teenage_Engineering": {
-          "products": {
-            "Teenage_Engineering-PO-14_Sub": {
-              "name": "Teenage Engineering PO-14 Sub",
-              "type": "synthesizer",
-              "related": [],
-              "clones": [],
-              "reference_url": "https://www.vintagesynth.com/Teenage_Engineering/PO-14_Sub"
             }
           }
         },
