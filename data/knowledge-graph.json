@@ -1088,6 +1088,24 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/roland/xv-5080"
+            },
+            "roland-jv-1080-64-voice-synthesizer-module": {
+              "name": "Roland JV-1080 64-Voice Synthesizer Module",
+              "type": "guitar",
+              "year": 1994,
+              "reference_url": "https://reverb.com/search?query=Roland%20JV-1080%2064-Voice%20Synthesizer%20Module"
+            },
+            "roland-kc-500-4-channel-150-watt-1x15": {
+              "name": "Roland KC-500 4-Channel 150-Watt 1x15\"",
+              "type": "guitar",
+              "year": 1995,
+              "reference_url": "https://reverb.com/search?query=Roland%20KC-500%204-Channel%20150-Watt%201x15%22"
+            },
+            "roland-pda140f-v-drum-14x14-floor-tom-drum-pad-controller": {
+              "name": "Roland PDA140F V-Drum 14x14\" Floor Tom Drum Pad Controller",
+              "type": "guitar",
+              "year": 2020,
+              "reference_url": "https://reverb.com/search?query=Roland%20PDA140F%20V-Drum%2014x14%22%20Floor%20Tom%20Drum%20Pad%20Controller"
             }
           }
         },
@@ -1605,6 +1623,30 @@
                 "J Bass"
               ],
               "ean": []
+            },
+            "fender-american-ultra-ii-telecaster": {
+              "name": "Fender American Ultra II Telecaster",
+              "type": "guitar",
+              "year": 2025,
+              "reference_url": "https://reverb.com/search?query=Fender%20American%20Ultra%20II%20Telecaster"
+            },
+            "fender-rumble-40-v3-40-watt-1x10-bass-combo": {
+              "name": "Fender Rumble 40 V3 40-Watt 1x10\" Bass Combo",
+              "type": "guitar",
+              "year": 2015,
+              "reference_url": "https://reverb.com/search?query=Fender%20Rumble%2040%20V3%2040-Watt%201x10%22%20Bass%20Combo"
+            },
+            "fender-california-standard-monterey-e": {
+              "name": "Fender California Standard Monterey E",
+              "type": "guitar",
+              "year": 2025,
+              "reference_url": "https://reverb.com/search?query=Fender%20California%20Standard%20Monterey%20E"
+            },
+            "fender-jim-root-v4-jazzmaster": {
+              "name": "Fender Jim Root V4 Jazzmaster",
+              "type": "amplifier",
+              "year": 2022,
+              "reference_url": "https://reverb.com/search?query=Fender%20Jim%20Root%20V4%20Jazzmaster"
             }
           }
         },
@@ -1702,6 +1744,12 @@
                 "J-45"
               ],
               "ean": []
+            },
+            "gibson-sg-standard-large-guard-with-maestro-vibrola": {
+              "name": "Gibson SG Standard \"Large Guard\" with Maestro Vibrola",
+              "type": "guitar",
+              "year": 1967,
+              "reference_url": "https://reverb.com/search?query=Gibson%20SG%20Standard%20%22Large%20Guard%22%20with%20Maestro%20Vibrola"
             }
           }
         },
@@ -2317,6 +2365,11 @@
                 "J-45"
               ],
               "ean": []
+            },
+            "epiphone-les-paul-classic-electric-guitar": {
+              "name": "Epiphone Les Paul Classic electric Guitar",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Epiphone%20Les%20Paul%20Classic%20electric%20Guitar"
             }
           }
         },
@@ -2424,6 +2477,12 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/boss/vt-1-voice-transformer"
+            },
+            "boss-mt-2-metal-zone-silver-label": {
+              "name": "Boss MT-2 Metal Zone (Silver Label)",
+              "type": "guitar",
+              "year": 1991,
+              "reference_url": "https://reverb.com/search?query=Boss%20MT-2%20Metal%20Zone%20(Silver%20Label)"
             }
           }
         },
@@ -3139,6 +3198,12 @@
                 "neumann-u47"
               ],
               "clones": []
+            },
+            "warm-audio-warm-bender": {
+              "name": "Warm Audio Warm Bender",
+              "type": "guitar",
+              "year": 2024,
+              "reference_url": "https://reverb.com/search?query=Warm%20Audio%20Warm%20Bender"
             }
           }
         },
@@ -3824,6 +3889,24 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/korg/rhythm-330"
+            },
+            "korg-electribe-m-em-1-music-production-station": {
+              "name": "Korg Electribe-M EM-1 Music Production Station",
+              "type": "guitar",
+              "year": 2000,
+              "reference_url": "https://reverb.com/search?query=Korg%20Electribe-M%20EM-1%20Music%20Production%20Station"
+            },
+            "korg-triton-61-key-62-voice-polyphonic-workstation": {
+              "name": "Korg Triton 61-Key 62-Voice Polyphonic Workstation",
+              "type": "guitar",
+              "year": 1999,
+              "reference_url": "https://reverb.com/search?query=Korg%20Triton%2061-Key%2062-Voice%20Polyphonic%20Workstation"
+            },
+            "korg-electribe-s-es-1-rhythm-production-sampler": {
+              "name": "Korg Electribe-S ES-1 Rhythm Production Sampler",
+              "type": "guitar",
+              "year": 2000,
+              "reference_url": "https://reverb.com/search?query=Korg%20Electribe-S%20ES-1%20Rhythm%20Production%20Sampler"
             }
           }
         },
@@ -4666,6 +4749,11 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/yamaha/ys200"
+            },
+            "yamaha-stage-custom-10x10-1-2": {
+              "name": "Yamaha Stage Custom 10x10 1/2",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Yamaha%20Stage%20Custom%2010x10%201%2F2"
             }
           }
         },
@@ -8287,6 +8375,405 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/ladyada/x0xb0x"
+            }
+          }
+        },
+        "jl-cooper": {
+          "name": "JL Cooper",
+          "products": {
+            "jl-cooper-axos-panner": {
+              "name": "JL Cooper Axos-Panner",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=JL%20Cooper%20Axos-Panner"
+            }
+          }
+        },
+        "ibanez": {
+          "name": "Ibanez",
+          "products": {
+            "ibanez-performance-pf5-n": {
+              "name": "Ibanez Performance PF5 N",
+              "type": "guitar",
+              "year": null,
+              "reference_url": "https://reverb.com/search?query=Ibanez%20Performance%20PF5%20N"
+            },
+            "ibanez-tmb30bk": {
+              "name": "Ibanez TMB30BK",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Ibanez%20TMB30BK"
+            },
+            "ibanez-gsrm25bk": {
+              "name": "Ibanez GSRM25BK",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Ibanez%20GSRM25BK"
+            },
+            "ibanez-q54-sfm-quest-standard": {
+              "name": "Ibanez Q54-SFM Quest Standard",
+              "type": "amplifier",
+              "year": 2021,
+              "reference_url": "https://reverb.com/search?query=Ibanez%20Q54-SFM%20Quest%20Standard"
+            }
+          }
+        },
+        "floyd-rose": {
+          "name": "Floyd Rose",
+          "products": {
+            "floyd-rose-1984": {
+              "name": "Floyd Rose 1984",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Floyd%20Rose%201984"
+            }
+          }
+        },
+        "shure": {
+          "name": "Shure",
+          "products": {
+            "shure-blx288-sm58": {
+              "name": "Shure BLX288/SM58",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Shure%20BLX288%2FSM58"
+            },
+            "shure-srh840": {
+              "name": "Shure SRH840",
+              "type": "amplifier",
+              "year": 2020,
+              "reference_url": "https://reverb.com/search?query=Shure%20SRH840"
+            }
+          }
+        },
+        "driftwood": {
+          "name": "Driftwood",
+          "products": {
+            "driftwood-mini-nightmare": {
+              "name": "Driftwood Mini Nightmare",
+              "type": "guitar",
+              "year": 2020,
+              "reference_url": "https://reverb.com/search?query=Driftwood%20Mini%20Nightmare"
+            }
+          }
+        },
+        "pearl": {
+          "name": "Pearl",
+          "products": {
+            "pearl-s830": {
+              "name": "Pearl S830",
+              "type": "guitar",
+              "year": 1990,
+              "reference_url": "https://reverb.com/search?query=Pearl%20S830"
+            },
+            "pearl-s930": {
+              "name": "Pearl S930",
+              "type": "guitar",
+              "year": 2000,
+              "reference_url": "https://reverb.com/search?query=Pearl%20S930"
+            }
+          }
+        },
+        "kramer": {
+          "name": "Kramer",
+          "products": {
+            "kramer-striker-s-424-cr-vs": {
+              "name": "Kramer Striker S-424 CR/VS",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Kramer%20Striker%20S-424%20CR%2FVS"
+            }
+          }
+        },
+        "wuhan": {
+          "name": "Wuhan",
+          "products": {
+            "wuhan-14-china-cymbal": {
+              "name": "Wuhan 14\" China Cymbal",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Wuhan%2014%22%20China%20Cymbal"
+            }
+          }
+        },
+        "marshall": {
+          "name": "Marshall",
+          "products": {
+            "marshall-jcm-800-lead-series-model-4104-50-watt-master-volume-2x12-combo": {
+              "name": "Marshall JCM 800 Lead Series Model 4104 50-Watt Master Volume 2x12 Combo",
+              "type": "guitar",
+              "year": 1980,
+              "reference_url": "https://reverb.com/search?query=Marshall%20JCM%20800%20Lead%20Series%20Model%204104%2050-Watt%20Master%20Volume%202x12%20Combo"
+            }
+          }
+        },
+        "apple": {
+          "name": "Apple",
+          "products": {
+            "apple-apple-powermac-2002-g4-including-22-monitor": {
+              "name": "Apple Apple PowerMac 2002 G4 including 22\" Monitor",
+              "type": "guitar",
+              "year": 2002,
+              "reference_url": "https://reverb.com/search?query=Apple%20Apple%20PowerMac%202002%20G4%20including%2022%22%20Monitor"
+            }
+          }
+        },
+        "lp-latin-percussion": {
+          "name": "LP-Latin Percussion",
+          "products": {
+            "lp-latin-percussion-black-beauty-cowbell-cowbell": {
+              "name": "LP-Latin Percussion Black Beauty Cowbell Cowbell",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=LP-Latin%20Percussion%20Black%20Beauty%20Cowbell%20Cowbell"
+            }
+          }
+        },
+        "earthquaker-devices-death-by-audio": {
+          "name": "EarthQuaker Devices / Death By Audio",
+          "products": {
+            "earthquaker-devices-death-by-audio-time-shadows-ii-subharmonic-multi-delay-resonator": {
+              "name": "EarthQuaker Devices / Death By Audio Time Shadows II Subharmonic Multi-Delay Resonator",
+              "type": "guitar",
+              "year": 2024,
+              "reference_url": "https://reverb.com/search?query=EarthQuaker%20Devices%20%2F%20Death%20By%20Audio%20Time%20Shadows%20II%20Subharmonic%20Multi-Delay%20Resonator"
+            }
+          }
+        },
+        "jam-pedals": {
+          "name": "JAM Pedals",
+          "products": {
+            "jam-pedals-the-chill": {
+              "name": "JAM Pedals The Chill",
+              "type": "guitar",
+              "year": 2010,
+              "reference_url": "https://reverb.com/search?query=JAM%20Pedals%20The%20Chill"
+            }
+          }
+        },
+        "west-coast-pedal-board": {
+          "name": "West Coast Pedal Board",
+          "products": {
+            "west-coast-pedal-board-what-fastener": {
+              "name": "West Coast Pedal Board What Fastener",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=West%20Coast%20Pedal%20Board%20What%20Fastener"
+            }
+          }
+        },
+        "martin": {
+          "name": "Martin",
+          "products": {
+            "martin-d-28": {
+              "name": "Martin D-28",
+              "type": "guitar",
+              "year": 1960,
+              "reference_url": "https://reverb.com/search?query=Martin%20D-28"
+            },
+            "martin-d-42-modern-deluxe": {
+              "name": "Martin D-42 Modern Deluxe",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Martin%20D-42%20Modern%20Deluxe"
+            }
+          }
+        },
+        "zildjian": {
+          "name": "Zildjian",
+          "products": {
+            "zildjian-zbt-8-splash-cymbal": {
+              "name": "Zildjian ZBT 8\" Splash Cymbal",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Zildjian%20ZBT%208%22%20Splash%20Cymbal"
+            }
+          }
+        },
+        "canton": {
+          "name": "Canton",
+          "products": {
+            "canton-gle-402": {
+              "name": "Canton GLE 402",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Canton%20GLE%20402"
+            }
+          }
+        },
+        "sabian": {
+          "name": "Sabian",
+          "products": {
+            "sabian-14-hhx-legacy-hi-hat-cymbals-pair": {
+              "name": "Sabian 14” HHX Legacy Hi-Hat Cymbals (Pair)",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Sabian%2014%E2%80%9D%20HHX%20Legacy%20Hi-Hat%20Cymbals%20(Pair)"
+            }
+          }
+        },
+        "wmd": {
+          "name": "WMD",
+          "products": {
+            "wmd-clutch": {
+              "name": "WMD Clutch",
+              "type": "guitar",
+              "year": 2025,
+              "reference_url": "https://reverb.com/search?query=WMD%20Clutch"
+            }
+          }
+        },
+        "peterson": {
+          "name": "Peterson",
+          "products": {
+            "peterson-strobostomp-hd-pedal-strobe-tuner": {
+              "name": "Peterson StroboStomp HD Pedal Strobe Tuner",
+              "type": "guitar",
+              "year": 2026,
+              "reference_url": "https://reverb.com/search?query=Peterson%20StroboStomp%20HD%20Pedal%20Strobe%20Tuner"
+            }
+          }
+        },
+        "synthrotek": {
+          "name": "Synthrotek",
+          "products": {
+            "synthrotek-m-div": {
+              "name": "Synthrotek M/DIV",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Synthrotek%20M%2FDIV"
+            }
+          }
+        },
+        "gemeinhardt": {
+          "name": "Gemeinhardt",
+          "products": {
+            "gemeinhardt-52sp": {
+              "name": "Gemeinhardt 52SP",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Gemeinhardt%2052SP"
+            }
+          }
+        },
+        "ads": {
+          "name": "ADS",
+          "products": {
+            "ads-l300c": {
+              "name": "ADS L300C",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=ADS%20L300C"
+            }
+          }
+        },
+        "slingerland": {
+          "name": "Slingerland",
+          "products": {
+            "slingerland-iss31228": {
+              "name": "Slingerland ISS31228",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Slingerland%20ISS31228"
+            }
+          }
+        },
+        "seymour-duncan": {
+          "name": "Seymour Duncan",
+          "products": {
+            "seymour-duncan-tb-4-jb-bridge-trembucker": {
+              "name": "Seymour Duncan TB-4 JB Bridge Trembucker",
+              "type": "guitar",
+              "year": 2010,
+              "reference_url": "https://reverb.com/search?query=Seymour%20Duncan%20TB-4%20JB%20Bridge%20Trembucker"
+            }
+          }
+        },
+        "new-cort": {
+          "name": "New Cort",
+          "products": {
+            "new-cort-g250se": {
+              "name": "New Cort G250se",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=New%20Cort%20G250se"
+            }
+          }
+        },
+        "ernie-ball": {
+          "name": "Ernie Ball",
+          "products": {
+            "ernie-ball-2230-12-slinky-nickel-12-string-electric-guitar-strings-8-40": {
+              "name": "Ernie Ball 2230 12-Slinky Nickel 12-String Electric Guitar Strings (8-40)",
+              "type": "guitar",
+              "year": 2010,
+              "reference_url": "https://reverb.com/search?query=Ernie%20Ball%202230%2012-Slinky%20Nickel%2012-String%20Electric%20Guitar%20Strings%20(8-40)"
+            }
+          }
+        },
+        "sound-skulptor": {
+          "name": "Sound Skulptor",
+          "products": {
+            "sound-skulptor-sk501-single-500-series-host": {
+              "name": "Sound Skulptor SK501 Single 500 Series Host",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Sound%20Skulptor%20SK501%20Single%20500%20Series%20Host"
+            }
+          }
+        },
+        "jbl": {
+          "name": "JBL",
+          "products": {
+            "jbl-m-291-horn-driver-network": {
+              "name": "JBL M 291 HORN DRIVER NETWORK",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=JBL%20M%20291%20HORN%20DRIVER%20NETWORK"
+            }
+          }
+        },
+        "sony": {
+          "name": "Sony",
+          "products": {
+            "sony-cdp-c900": {
+              "name": "Sony CDP-C900",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Sony%20CDP-C900"
+            }
+          }
+        },
+        "mogami": {
+          "name": "Mogami",
+          "products": {
+            "mogami-gold-db25-to-xlr-female-10-db25-xlrf-10": {
+              "name": "Mogami Gold DB25 to XLR Female - 10'  DB25-XLRF-10",
+              "type": "guitar",
+              "year": 2010,
+              "reference_url": "https://reverb.com/search?query=Mogami%20Gold%20DB25%20to%20XLR%20Female%20-%2010'%20%20DB25-XLRF-10"
+            }
+          }
+        },
+        "dunlop": {
+          "name": "Dunlop",
+          "products": {
+            "dunlop-ep103-echoplex-delay": {
+              "name": "Dunlop EP103 Echoplex Delay",
+              "type": "guitar",
+              "year": 2016,
+              "reference_url": "https://reverb.com/search?query=Dunlop%20EP103%20Echoplex%20Delay"
+            }
+          }
+        },
+        "aston": {
+          "name": "Aston",
+          "products": {
+            "aston-swiftshield-shock-mount": {
+              "name": "Aston SwiftShield Shock Mount",
+              "type": "guitar",
+              "reference_url": "https://reverb.com/search?query=Aston%20SwiftShield%20Shock%20Mount"
+            }
+          }
+        },
+        "schecter": {
+          "name": "Schecter",
+          "products": {
+            "schecter-schecter-sls-elite-fr-s": {
+              "name": "Schecter Schecter SLS Elite FR-S",
+              "type": "guitar",
+              "year": 2022,
+              "reference_url": "https://reverb.com/search?query=Schecter%20Schecter%20SLS%20Elite%20FR-S"
+            }
+          }
+        },
+        "traynor": {
+          "name": "Traynor",
+          "products": {
+            "traynor-yba1a": {
+              "name": "Traynor Yba1a",
+              "type": "amplifier",
+              "year": 1970,
+              "reference_url": "https://reverb.com/search?query=Traynor%20Yba1a"
             }
           }
         }
