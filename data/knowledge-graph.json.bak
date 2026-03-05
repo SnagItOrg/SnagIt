@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.3.0",
   "description": "Kategori → Brand → Produkt taksonomi til Klup knowledge graph. Relationer inkluderer substitutter og kloner. | v1.2 adds Wegner chairs list, TR-808 graph seed, camera EAN/SKU seeds, and SKU/EAN fields.",
   "categories": {
     "music-gear": {
@@ -1106,246 +1106,6 @@
               "type": "guitar",
               "year": 2020,
               "reference_url": "https://reverb.com/search?query=Roland%20PDA140F%20V-Drum%2014x14%22%20Floor%20Tom%20Drum%20Pad%20Controller"
-            },
-            "roland-roland-cube-street-ex-battery-powered-guitar-combo": {
-              "name": "ROLAND CUBE STREET EX Battery Powered Guitar Combo",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/29237880-roland-cube-street-ex-battery-powered-guitar-combo"
-            },
-            "roland-roland-jc40-jazz-chorus-electric-guitar-combo": {
-              "name": "ROLAND JC40 Jazz Chorus Electric Guitar Combo",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/29887245-roland-jc40-jazz-chorus-electric-guitar-combo"
-            },
-            "roland-roland-roland-micro-cube-gx-2013-black": {
-              "name": "Roland Roland Micro Cube GX 2013 - Black",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94600816-roland-roland-micro-cube-gx-2013-black"
-            },
-            "roland-roland-cube-stex-battery-powered-street-amp": {
-              "name": "Roland CUBE-STEX Battery Powered Street Amp",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/81528083-roland-cube-stex-battery-powered-street-amp"
-            },
-            "roland-roland-personal-monitor-pm-200": {
-              "name": "Roland Personal Monitor PM-200",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/68345797-roland-personal-monitor-pm-200"
-            },
-            "roland-roland-jc120-jazz-chorus-guitar-combo-amp": {
-              "name": "Roland JC120 Jazz Chorus Guitar Combo Amp",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/12952566-roland-jc120-jazz-chorus-guitar-combo-amp"
-            },
-            "roland-roland-cube-10gx-10-watt-1x8-guitar-combo-amplifier": {
-              "name": "Roland CUBE-10GX 10-Watt 1x8\" Guitar Combo Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/84399243-roland-cube-10gx-10-watt-1x8-guitar-combo-amplifier"
-            },
-            "roland-roland-kc-600-4-channel-stereo-mixing-keyboard-amplifier": {
-              "name": "Roland KC-600 4 Channel Stereo Mixing Keyboard Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/81344836-roland-kc-600-4-channel-stereo-mixing-keyboard-amplifier"
-            },
-            "roland-roland-jc-120-jazz-chorus": {
-              "name": "Roland JC-120 Jazz Chorus",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/55976636-roland-jc-120-jazz-chorus"
-            },
-            "roland-roland-ac-33-30-watt-battery-powered-portable-acoustic-guitar-amp-black": {
-              "name": "Roland AC-33 30-Watt Battery Powered Portable Acoustic Guitar Amp - Black",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/93947391-roland-ac-33-30-watt-battery-powered-portable-acoustic-guitar-amp-black"
-            },
-            "roland-roland-kc-200-mixing-keyboard-amplifier-cable-kit": {
-              "name": "Roland KC-200 Mixing Keyboard Amplifier CABLE KIT",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/14283966-roland-kc-200-mixing-keyboard-amplifier-cable-kit"
-            },
-            "roland-roland-ac-90-acoustic-chorus-2x8-90-watt-solid-state-acoustic-guitar-amp-w-bag-x0465-used": {
-              "name": "Roland - AC-90 Acoustic Chorus - 2x8\" 90 Watt Solid State Acoustic Guitar Amp - w/Bag - x0465 - USED",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94025426-roland-ac-90-acoustic-chorus-2x8-90-watt-solid-state-acoustic-guitar-amp-w-bag-x0465-used"
-            },
-            "roland-roland-kc-400-keyboard-amp": {
-              "name": "Roland KC-400 Keyboard Amp",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/92564047-roland-kc-400-keyboard-amp"
-            },
-            "roland-roland-cube-40gx-3-channel-40-watt-1x10-cosm-combo-amp-with-fx": {
-              "name": "Roland CUBE-40GX 3-Channel 40-watt 1x10\" COSM Combo Amp with FX",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/92982440-roland-cube-40gx-3-channel-40-watt-1x10-cosm-combo-amp-with-fx"
-            },
-            "roland-roland-blues-cube-artist212-85-watt-2x12-guitar-combo-amplifier": {
-              "name": "Roland Blues Cube Artist212 85-Watt 2x12\" Guitar Combo Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/85982680-roland-blues-cube-artist212-85-watt-2x12-guitar-combo-amplifier"
-            },
-            "roland-roland-jc-120-jazz-chorus-combo-amp-as-is-needs-repair": {
-              "name": "Roland JC-120 Jazz Chorus Combo Amp - AS IS NEEDS REPAIR",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/91370746-roland-jc-120-jazz-chorus-combo-amp-as-is-needs-repair"
-            },
-            "roland-roland-kc-400-150w-1-x-12-stereo-mixing-keyboard-amplifier": {
-              "name": "Roland KC-400 150W 1 x 12\" Stereo Mixing Keyboard Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/72806667-roland-kc-400-150w-1-x-12-stereo-mixing-keyboard-amplifier"
-            },
-            "roland-roland-jc-120-jazz-chorus-120-watt-2x12-stereo-guitar-amplifier-combo": {
-              "name": "Roland JC-120 Jazz Chorus 120-Watt 2x12 Stereo Guitar Amplifier Combo",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94312280-roland-jc-120-jazz-chorus-120-watt-2x12-stereo-guitar-amplifier-combo"
-            },
-            "roland-roland-cube-street-mini-multi-instrument-battery-amplifier": {
-              "name": "Roland CUBE Street MINI Multi-Instrument Battery Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94724246-roland-cube-street-mini-multi-instrument-battery-amplifier"
-            },
-            "roland-roland-ac-33-acoustic-chorus-guitar-amplifier-30w": {
-              "name": "Roland - AC-33 Acoustic Chorus Guitar Amplifier 30w",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/91629498-roland-ac-33-acoustic-chorus-guitar-amplifier-30w"
-            },
-            "roland-roland-cube-street-ex": {
-              "name": "Roland Cube Street EX",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/74927625-roland-cube-street-ex"
-            },
-            "roland-roland-personal-monitor-pm-100": {
-              "name": "Roland Personal Monitor PM-100",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/68345855-roland-personal-monitor-pm-100"
-            },
-            "roland-roland-cube-street-ex-battery-powered-50w-stereo-amplifier": {
-              "name": "Roland CUBE Street EX Battery-Powered 50W Stereo Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/85982939-roland-cube-street-ex-battery-powered-50w-stereo-amplifier"
-            },
-            "roland-roland-blues-cube-stage-60-watt-1x12-guitar-combo-amplifier": {
-              "name": "Roland Blues Cube Stage 60-Watt 1x12\" Guitar Combo Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/93305941-roland-blues-cube-stage-60-watt-1x12-guitar-combo-amplifier"
-            },
-            "roland-roland-pm-1-v-drum-personal-keyboard-monitor-speaker-amplifier-pm1": {
-              "name": "Roland PM-1 V-Drum Personal Keyboard Monitor Speaker Amplifier PM1",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/92288426-roland-pm-1-v-drum-personal-keyboard-monitor-speaker-amplifier-pm1"
-            },
-            "roland-roland-pm-200-180-watt-personal-drum-monitor": {
-              "name": "Roland PM-200 180-Watt Personal Drum Monitor",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/85982906-roland-pm-200-180-watt-personal-drum-monitor"
-            },
-            "roland-roland-pm-100-80-watt-personal-drum-monitor": {
-              "name": "Roland PM-100 80-Watt Personal Drum Monitor",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/85983252-roland-pm-100-80-watt-personal-drum-monitor"
-            },
-            "roland-roland-jc-22-jazz-chorus-30-watt-2-x-6-5-guitar-combo-amplifier": {
-              "name": "Roland JC-22 Jazz Chorus 30-Watt 2 x 6.5\" Guitar Combo Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/85982086-roland-jc-22-jazz-chorus-30-watt-2-x-6-5-guitar-combo-amplifier"
-            },
-            "roland-roland-kc-400-150-watt-keyboard-amp": {
-              "name": "Roland KC-400 150 Watt Keyboard Amp",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/14682927-roland-kc-400-150-watt-keyboard-amp"
-            },
-            "roland-roland-v-drums-pm-200-180-watt-personal-monitor": {
-              "name": "Roland V-Drums PM-200 180 Watt Personal Monitor",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/81344832-roland-v-drums-pm-200-180-watt-personal-monitor"
-            },
-            "roland-roland-ac33-battery-operated-portable-acoustic-amplifier": {
-              "name": "Roland AC33 Battery Operated Portable Acoustic Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/82854954-roland-ac33-battery-operated-portable-acoustic-amplifier"
-            },
-            "roland-roland-blues-cube-artist-2-channel-80-watt-1x12-guitar-combo-2015-present-tweed": {
-              "name": "Roland Blues Cube Artist 2-Channel 80-Watt 1x12\" Guitar Combo 2015 - Present - Tweed",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/88458284-roland-blues-cube-artist-2-channel-80-watt-1x12-guitar-combo-2015-present-tweed"
-            },
-            "roland-roland-kc-200-100-watt-keyboard-amp": {
-              "name": "Roland KC-200 100 watt Keyboard Amp",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/15546495-roland-kc-200-100-watt-keyboard-amp"
-            },
-            "roland-roland-mobile-cube-amp-2nd-hand-160597": {
-              "name": "Roland Mobile Cube Amp - 2nd Hand (160597)",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94471249-roland-mobile-cube-amp-2nd-hand-160597"
-            },
-            "roland-roland-mobile-cube-battery-powered-stereo-amp": {
-              "name": "Roland Mobile Cube Battery Powered Stereo Amp",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/85983466-roland-mobile-cube-battery-powered-stereo-amp"
-            },
-            "roland-roland-jc-40-jazz-chorus-guitar-amplifier": {
-              "name": "Roland - JC-40 - Jazz Chorus Guitar Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/91632290-roland-jc-40-jazz-chorus-guitar-amplifier"
-            },
-            "roland-roland-cube-street-ex-2x8-50-watt-ac-and-battery-powered-portable-guitar-combo-amplifier": {
-              "name": "Roland CUBE Street EX 2x8\" 50-watt AC and Battery Powered Portable Guitar Combo Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/86882124-roland-cube-street-ex-2x8-50-watt-ac-and-battery-powered-portable-guitar-combo-amplifier"
-            },
-            "roland-roland-street-cube-battery-powered-stereo-amplifier-2nd-hand": {
-              "name": "Roland Street Cube Battery-Powered Stereo Amplifier - 2nd Hand",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94630272-roland-street-cube-battery-powered-stereo-amplifier-2nd-hand"
-            },
-            "roland-roland-jc-40-jazz-chorus": {
-              "name": "Roland JC-40 Jazz Chorus",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/76433614-roland-jc-40-jazz-chorus"
-            },
-            "roland-roland-jc-40-jazz-chorus-guitar-combo-amplifier": {
-              "name": "Roland JC-40 Jazz Chorus Guitar Combo Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/85982824-roland-jc-40-jazz-chorus-guitar-combo-amplifier"
-            },
-            "roland-roland-kc-200-100-watt-4-channel-mixing-keyboard-amplifier": {
-              "name": "Roland KC-200 100-Watt 4-Channel Mixing Keyboard Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/75583913-roland-kc-200-100-watt-4-channel-mixing-keyboard-amplifier"
-            },
-            "roland-roland-kc-200-4-channel-100w-12-keyboard-amplifier-kc200-amp-armens": {
-              "name": "Roland KC-200 4-Channel 100w 12\" Keyboard Amplifier KC200 amp //ARMENS//",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/49950623-roland-kc-200-4-channel-100w-12-keyboard-amplifier-kc200-amp-armens"
-            },
-            "roland-used-roland-jc-22": {
-              "name": "Used Roland JC 22",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/91474883-used-roland-jc-22"
-            },
-            "roland-mobile-ac-acoustic-chorus-guitar-amplifier": {
-              "name": "MOBILE AC Acoustic Chorus Guitar Amplifier",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/85983603-mobile-ac-acoustic-chorus-guitar-amplifier"
-            },
-            "roland-rt-10t-tom-trigger-excellent": {
-              "name": "RT-10t - Tom Trigger - Excellent",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94540023-rt-10t-tom-trigger-excellent"
-            },
-            "roland-roland-mdh-stg-mdh25-pad-holder": {
-              "name": "ROLAND MDH-STG (MDH25)  Pad Holder",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/35937770-roland-mdh-stg-mdh25-pad-halterungeinstellbare"
-            },
-            "roland-roland-pds20-pad-stand-hpd-spd-bk7": {
-              "name": "ROLAND PDS20 Pad Stand HPD SPD BK7",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/41068320-roland-pds20-pad-stand-hpd-spd-bk7"
-            },
-            "roland-roland-pdx-8-v-drum-mesh-head-drum-pad": {
-              "name": "ROLAND PDX-8 V-Drum Mesh Head Drum Pad",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/29888906-roland-pdx-8-v-drum-mesh-head-drum-pad"
             }
           }
         },
@@ -1587,241 +1347,6 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/moog/vocoder"
-            },
-            "moog-moog-music-moog-muse": {
-              "name": "MOOG MUSIC Moog Muse",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/91099127-moog-music-moog-muse"
-            },
-            "moog-moog-mother-32-synth-semi-modulare": {
-              "name": "MOOG MOTHER 32 SYNTH SEMI-MODULARE",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/6476422-moog-mother-32-synth-semi-modulare"
-            },
-            "moog-moog-music-mother-32": {
-              "name": "MOOG MUSIC Mother-32",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/93046011-moog-music-mother-32"
-            },
-            "moog-moog-mother-32-synthesizer-semi-modular-analog-excellent": {
-              "name": "Moog Mother-32 Synthesizer - Semi-Modular Analog - Excellent",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94206168-moog-mother-32-synthesizer-semi-modular-analog-excellent"
-            },
-            "moog-moog-music-mother-32-desktop-module-synthesizer": {
-              "name": "Moog Music Mother 32 Desktop Module Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/86969948-moog-music-mother-32-desktop-module-synthesizer"
-            },
-            "moog-moog-minimoog-voyager-old-school-synthesizer--ovp--fast-neuwertig--15jahre-garantie": {
-              "name": "Moog Minimoog Voyager Old School Synthesizer + OVP + Fast Neuwertig + 1,5Jahre Garantie",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/51621668-moog-minimoog-voyager-old-school-synthesizer-ovp-fast-neuwertig-1-5jahre-garantie"
-            },
-            "moog-moog-sirin-analog-synthesizer--holz--ovp--neuwertig--1-5-jahre-garantie": {
-              "name": "Moog Sirin Analog Synthesizer + Holz + OVP + Neuwertig + 1.5 Jahre Garantie",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/85158358-moog-sirin-analog-synthesizer-holz-ovp-neuwertig-1-5-jahre-garantie"
-            },
-            "moog-moog-moog-music-60hp-2-tier-rack-dust-cover": {
-              "name": "Moog Moog Music 60HP 2-Tier Rack Dust Cover",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94493062-moog-moog-music-60hp-2-tier-rack-dust-cover"
-            },
-            "moog-moog-mavis-analog-synthesizer": {
-              "name": "Moog - Mavis Analog Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/84836182-moog-mavis-analog-synthesizer"
-            },
-            "moog-moog-minimoog-model-d-2023-usa--brand-new--detroit-modular": {
-              "name": "MOOG MINIMOOG MODEL D 2023 [USA] : BRAND NEW :  [DETROIT MODULAR]",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/85618847-moog-minimoog-model-d-2023-usa-brand-new-detroit-modular"
-            },
-            "moog-moog-grandmother-32-key-semi-modular-analog-synthesizer-multi-colored-mint": {
-              "name": "Moog Grandmother 32-Key Semi-Modular Analog Synthesizer Multi-Colored Mint",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94503955-moog-grandmother-32-key-semi-modular-analog-synthesizer-multi-colored-mint"
-            },
-            "moog-moog-dfam-drummer-from-another-mother-dfam--brand-new--detroit-modular": {
-              "name": "MOOG DFAM DRUMMER FROM ANOTHER MOTHER DFAM : BRAND NEW :  [DETROIT MODULAR]",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/85618841-moog-dfam-drummer-from-another-mother-dfam-brand-new-detroit-modular"
-            },
-            "moog-moog-one-8-voice-61-key-polyphonic-analog-synthesizer-2018-present-black-ash": {
-              "name": "Moog One 8-Voice 61-Key Polyphonic Analog Synthesizer 2018 - Present - Black/Ash",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/88011737-moog-one-8-voice-61-key-polyphonic-analog-synthesizer-2018-present-black-ash"
-            },
-            "moog-moog-subsequent-37-analogue-paraphonic-synthesizer": {
-              "name": "Moog Subsequent 37 Analogue Paraphonic Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/90788639-moog-subsequent-37-analogue-paraphonic-synthesizer"
-            },
-            "moog-moog-spectravox-semi-modular-analog-spectral-processor": {
-              "name": "Moog - Spectravox Semi-Modular Analog Spectral Processor",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94607701-moog-spectravox-semi-modular-analog-spectral-processor"
-            },
-            "moog-moog-one-8-voice-polyphonic-analog-synthesizer-8v-used": {
-              "name": "Moog One 8 Voice Polyphonic Analog Synthesizer 8V Used",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94504007-moog-one-8-voice-polyphonic-analog-synthesizer-8v-used"
-            },
-            "moog-moog-music-dfam": {
-              "name": "MOOG MUSIC DFAM",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/86827663-moog-music-dfam"
-            },
-            "moog-moog-music-subharmonicon": {
-              "name": "MOOG MUSIC Subharmonicon",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/86827661-moog-music-subharmonicon"
-            },
-            "moog-moog-dfam-analogue-percussion-synthesizer": {
-              "name": "Moog DFAM Analogue Percussion Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/40613721-moog-dfam-analogue-percussion-synthesizer"
-            },
-            "moog-moog-gig-bag-for-subsequent-37-or-little-phatty": {
-              "name": "Moog Gig Bag for Subsequent 37 or Little Phatty",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/93224245-moog-gig-bag-for-subsequent-37-or-little-phatty"
-            },
-            "moog-moog-music-minimoog-model-d-analog-synthesizer": {
-              "name": "Moog Music Minimoog Model D Analog Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94490290-moog-music-minimoog-model-d-analog-synthesizer"
-            },
-            "moog-moog-music-dfam-drummer-from-another-mother": {
-              "name": "Moog Music DFAM (Drummer From Another Mother)",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/86969944-moog-music-dfam-drummer-from-another-mother"
-            },
-            "moog-moog-grandmother-semi-modular-analog-synthesizer": {
-              "name": "Moog Grandmother Semi-Modular Analog Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94706795-moog-grandmother-semi-modular-analog-synthesizer"
-            },
-            "moog-moog-messenger-mono-analog-synth-keyboard": {
-              "name": "Moog Messenger Mono Analog Synth keyboard",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/89801305-moog-messenger-mono-analog-synth-keyboard"
-            },
-            "moog-moog-muse-8-voice-polyphonic-analog-synthesizer": {
-              "name": "Moog - Muse 8-Voice Polyphonic Analog Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/86620470-moog-muse-8-voice-polyphonic-analog-synthesizer"
-            },
-            "moog-moog-subharmonicon-semi-modular-polyrhythmic-analogue-synthesizer": {
-              "name": "Moog Subharmonicon - Semi-modular Polyrhythmic Analogue Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/40613905-moog-subharmonicon-semi-modular-polyrhythmic-analogue-synthesizer"
-            },
-            "moog-moog-music-theremini-w-wavetable-oscillator-midi--usb": {
-              "name": "Moog Music Theremini w/ Wavetable Oscillator, MIDI & USB",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/58390875-moog-music-theremini-w-wavetable-oscillator-midi-usb"
-            },
-            "moog-moog-muse-8-voice-polyphonic-analogue-synthesizer": {
-              "name": "Moog Muse 8-voice Polyphonic Analogue Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/90809417-moog-muse-8-voice-polyphonic-analogue-synthesizer"
-            },
-            "moog-moog-music-subsequent-25-sintetizzatore-analogico-duofonico-25-tasti": {
-              "name": "MOOG MUSIC SUBSEQUENT 25 Sintetizzatore Analogico Duofonico 25 Tasti",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/31345923-moog-music-subsequent-25-sintetizzatore-analogico-duofonico-25-tasti"
-            },
-            "moog-moog-multimoog-1981": {
-              "name": "Moog Multimoog 1981",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/93367137-moog-multimoog-1981"
-            },
-            "moog-moog-muse-synth-2nd-hand": {
-              "name": "Moog Muse Synth - 2nd Hand",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94583496-moog-muse-synth-2nd-hand"
-            },
-            "moog-moog-theremini-theremin-with-assistive-pitch-correction": {
-              "name": "Moog Theremini Theremin with Assistive Pitch Correction",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/86837875-moog-theremini-theremin-with-assistive-pitch-correction"
-            },
-            "moog-moog-music-subsequent-37": {
-              "name": "MOOG MUSIC Subsequent 37",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/86827659-moog-music-subsequent-37"
-            },
-            "moog-moog-matriarch-dust-cover": {
-              "name": "Moog Matriarch Dust Cover",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/74258930-moog-matriarch-dust-cover"
-            },
-            "moog-moog-messenger": {
-              "name": "Moog Messenger",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94761939-moog-messenger"
-            },
-            "moog-moog-muse-ata-road-case--brand-new--detroit-modular": {
-              "name": "MOOG MUSE ATA ROAD CASE : BRAND NEW :  [DETROIT MODULAR]",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/91164291-moog-muse-ata-road-case-brand-new-detroit-modular"
-            },
-            "moog-moog-subsequent-25-2-note-paraphonic-analog-keyboard-synthesizer-new-sub25": {
-              "name": "Moog Subsequent 25 2-note Paraphonic Analog Keyboard Synthesizer New Sub25",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94503776-moog-subsequent-25-2-note-paraphonic-analog-keyboard-synthesizer-new-sub25"
-            },
-            "moog-moog-labyrinth-parallel-generative-audio-production-analog-synthesizer": {
-              "name": "Moog Labyrinth Parallel Generative Audio Production Analog Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/93768317-moog-labyrinth-parallel-generative-audio-production-analog-synthesizer"
-            },
-            "moog-moog-mavis-semi-modular-analog-synthesizer-kit-and-eurorack-module": {
-              "name": "Moog Mavis Semi-Modular Analog Synthesizer Kit and Eurorack Module",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/81548310-moog-mavis-semi-modular-analog-synthesizer-kit-and-eurorack-module"
-            },
-            "moog-moog-minitaur-analog-bass-synthesizer": {
-              "name": "Moog - Minitaur Analog Bass Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/91428622-moog-minitaur-analog-bass-synthesizer"
-            },
-            "moog-moog-sr-series-case-matriarch": {
-              "name": "Moog SR Series Case: Matriarch",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/87912676-moog-sr-series-case-matriarch"
-            },
-            "moog-moog-music-messenger-monophonic-analog-keyboard-synthesizer": {
-              "name": "Moog Music Messenger Monophonic Analog Keyboard Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/93608635-moog-music-messenger-monophonic-analog-keyboard-synthesizer"
-            },
-            "moog-moog-music-labyrinth": {
-              "name": "MOOG MUSIC Labyrinth",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/91519886-moog-music-labyrinth"
-            },
-            "moog-moog-labyrinth-semi-modular-parallel-generative-analog-synthesizer": {
-              "name": "Moog Labyrinth Semi-modular Parallel Generative Analog Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/86838085-moog-labyrinth-semi-modular-parallel-generative-analog-synthesizer"
-            },
-            "moog-moog-minimoog-voyager-old-school-voyager-os": {
-              "name": "Moog Minimoog Voyager Old School - Voyager OS",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/90174870-moog-minimoog-voyager-old-school-voyager-os"
-            },
-            "moog-moog-music-spectravox": {
-              "name": "MOOG MUSIC Spectravox",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/91099125-moog-music-spectravox"
-            },
-            "moog-moog-dfam-semi-modular-eurorack-analog-percussion-synthesizer": {
-              "name": "Moog DFAM Semi-Modular Eurorack Analog Percussion Synthesizer",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/81565398-moog-dfam-semi-modular-eurorack-analog-percussion-synthesizer"
             }
           }
         },
@@ -1886,31 +1411,6 @@
                 "roland-tr-808"
               ],
               "clones": []
-            },
-            "sequential-wmd-sequential-switch-matrix": {
-              "name": "WMD Sequential Switch Matrix",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/93368437-wmd-sequential-switch-matrix"
-            },
-            "sequential-erica-synths-sequential-switch-v1-used": {
-              "name": "Erica Synths Sequential Switch (V1) [USED]",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94260521-erica-synths-sequential-switch-v1-used"
-            },
-            "sequential-wmd-sequential-switch-matrix-2010s-silver": {
-              "name": "WMD Sequential Switch Matrix 2010s - Silver",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/94642499-wmd-sequential-switch-matrix-2010s-silver"
-            },
-            "sequential-reverb-sequential-circuits-drumtraks-sample-pack": {
-              "name": "Reverb Sequential Circuits DrumTraks Sample Pack",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/15813980-reverb-sequential-circuits-drumtraks-sample-pack"
-            },
-            "sequential-sequential-tom-oberheim-ob-6-keyboard--brand-new--detroit-modular": {
-              "name": "SEQUENTIAL - TOM OBERHEIM OB-6 KEYBOARD : BRAND NEW :  [DETROIT MODULAR]",
-              "type": "instrument",
-              "reference_url": "https://reverb.com/item/85618663-sequential-tom-oberheim-ob-6-keyboard-brand-new-detroit-modular"
             }
           }
         },
@@ -1952,13 +1452,6 @@
                 3500,
                 6000
               ]
-            },
-            "Teenage_Engineering-PO-14_Sub": {
-              "name": "Teenage Engineering PO-14 Sub",
-              "type": "synthesizer",
-              "related": [],
-              "clones": [],
-              "reference_url": "https://www.vintagesynth.com/Teenage_Engineering/PO-14_Sub"
             }
           }
         },
@@ -2260,6 +1753,35 @@
             }
           }
         },
+        "emu": {
+          "products": {
+            "emu-sp-1200": {
+              "name": "E-mu SP-1200",
+              "type": "sampler / drum machine",
+              "era": "1987",
+              "reference_url": "https://www.vintagesynth.com/e-mu/sp-1200",
+              "model": "SP-1200",
+              "sku": [
+                "SP-1200"
+              ],
+              "ean": [],
+              "related": [
+                "roland-tr-808",
+                "akai-mpc60",
+                "akai-mpc3000"
+              ],
+              "clones": []
+            },
+            "emu-emulator4": {
+              "name": "E-mu Emulator IV",
+              "type": "sampler",
+              "era": "1994",
+              "related": [],
+              "clones": [],
+              "reference_url": "https://www.vintagesynth.com/emu/emulator4"
+            }
+          }
+        },
         "elektron": {
           "products": {
             "elektron-machinedrum-sps-1": {
@@ -2306,13 +1828,6 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/elektron/sidstation"
-            },
-            "Elektron-octatrack": {
-              "name": "Elektron Elektron Octatrack",
-              "type": "synthesizer",
-              "related": [],
-              "clones": [],
-              "reference_url": "https://www.vintagesynth.com/Elektron/octatrack"
             }
           }
         },
@@ -5383,7 +4898,11 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/radikal-technologies/spectralis"
-            },
+            }
+          }
+        },
+        "radikaltechnologies": {
+          "products": {
             "radikaltechnologies-deltacepa": {
               "name": "Radikal Technologies Delta CEP A",
               "type": "synthesizer",
@@ -5680,6 +5199,17 @@
             }
           }
         },
+        "Elektron": {
+          "products": {
+            "Elektron-octatrack": {
+              "name": "Elektron Elektron Octatrack",
+              "type": "synthesizer",
+              "related": [],
+              "clones": [],
+              "reference_url": "https://www.vintagesynth.com/Elektron/octatrack"
+            }
+          }
+        },
         "arturia": {
           "products": {
             "arturia-arp-2600v": {
@@ -5897,7 +5427,11 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/studio-electronics/se-1"
-            },
+            }
+          }
+        },
+        "studio_electronics": {
+          "products": {
             "studio_electronics-atcx": {
               "name": "Studio Electronics ATCX",
               "type": "synthesizer",
@@ -6213,31 +5747,6 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/e-mu/xtreme-lead-1"
-            },
-            "emu-sp-1200": {
-              "name": "E-mu SP-1200",
-              "type": "sampler / drum machine",
-              "era": "1987",
-              "reference_url": "https://www.vintagesynth.com/e-mu/sp-1200",
-              "model": "SP-1200",
-              "sku": [
-                "SP-1200"
-              ],
-              "ean": [],
-              "related": [
-                "roland-tr-808",
-                "akai-mpc60",
-                "akai-mpc3000"
-              ],
-              "clones": []
-            },
-            "emu-emulator4": {
-              "name": "E-mu Emulator IV",
-              "type": "sampler",
-              "era": "1994",
-              "related": [],
-              "clones": [],
-              "reference_url": "https://www.vintagesynth.com/emu/emulator4"
             }
           }
         },
@@ -6506,6 +6015,18 @@
             }
           }
         },
+        "OctavePlateau": {
+          "products": {
+            "OctavePlateau-Catstick": {
+              "name": "Octave Plateau CATSTICK",
+              "type": "effects processor",
+              "era": "1981",
+              "related": [],
+              "clones": [],
+              "reference_url": "https://www.vintagesynth.com/OctavePlateau/Catstick"
+            }
+          }
+        },
         "octave-plateau": {
           "products": {
             "octave-plateau-voyetra-8": {
@@ -6514,14 +6035,6 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/octave-plateau/voyetra-8"
-            },
-            "OctavePlateau-Catstick": {
-              "name": "Octave Plateau CATSTICK",
-              "type": "effects processor",
-              "era": "1981",
-              "related": [],
-              "clones": [],
-              "reference_url": "https://www.vintagesynth.com/OctavePlateau/Catstick"
             }
           }
         },
@@ -7228,7 +6741,11 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/dave-smith-instruments/tetra"
-            },
+            }
+          }
+        },
+        "davesmithinstruments": {
+          "products": {
             "davesmithinstruments-OB-6": {
               "name": "Dave Smith Instruments OB-6",
               "type": "synthesizer",
@@ -7548,7 +7065,11 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/kurzweil/pc2r"
-            },
+            }
+          }
+        },
+        "Kurzweil": {
+          "products": {
             "Kurzweil-PC88MX": {
               "name": "Kurzweil PC88MX",
               "type": "synthesizer",
@@ -7774,6 +7295,17 @@
             }
           }
         },
+        "SOMA_Laboratory": {
+          "products": {
+            "SOMA_Laboratory-Lyra-8": {
+              "name": "SOMA Laboratory Lyra-8",
+              "type": "effects processor",
+              "related": [],
+              "clones": [],
+              "reference_url": "https://www.vintagesynth.com/SOMA_Laboratory/Lyra-8"
+            }
+          }
+        },
         "soma_laboratory": {
           "products": {
             "soma_laboratory-pulsar-23": {
@@ -7782,13 +7314,6 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/soma_laboratory/pulsar-23"
-            },
-            "SOMA_Laboratory-Lyra-8": {
-              "name": "SOMA Laboratory Lyra-8",
-              "type": "effects processor",
-              "related": [],
-              "clones": [],
-              "reference_url": "https://www.vintagesynth.com/SOMA_Laboratory/Lyra-8"
             }
           }
         },
@@ -8203,6 +7728,17 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/philips/pmc-100"
+            }
+          }
+        },
+        "Teenage_Engineering": {
+          "products": {
+            "Teenage_Engineering-PO-14_Sub": {
+              "name": "Teenage Engineering PO-14 Sub",
+              "type": "synthesizer",
+              "related": [],
+              "clones": [],
+              "reference_url": "https://www.vintagesynth.com/Teenage_Engineering/PO-14_Sub"
             }
           }
         },
