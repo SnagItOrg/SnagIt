@@ -21920,6 +21920,14 @@
                   "region": "dk",
                   "years": "1950s-present"
                 }
+              ],
+              "synonyms": [
+                "syveren",
+                "7'eren",
+                "model 3107",
+                "series seven",
+                "serie 7",
+                "jacobsen series 7"
               ]
             },
             "fritz-hansen-fritz-hansen-egg-chair": {
@@ -21939,6 +21947,13 @@
                   "region": "dk",
                   "years": "1950s-present"
                 }
+              ],
+              "synonyms": [
+                "ægget",
+                "egg chair",
+                "model 3316",
+                "jacob sen egg",
+                "fauteuil oeuf"
               ]
             },
             "fritz-hansen-fritz-hansen-swan-chair": {
@@ -22148,6 +22163,14 @@
                   "region": "dk",
                   "years": "1950s-present"
                 }
+              ],
+              "synonyms": [
+                "ch24",
+                "wishbone",
+                "ch 24",
+                "hans wegner wishbone",
+                "y-chair",
+                "y chair"
               ]
             },
             "carl-hansen-sn-carl-hansen--sn-shell-chair": {
@@ -22278,6 +22301,12 @@
                   "region": "dk",
                   "years": "1920s-present"
                 }
+              ],
+              "synonyms": [
+                "ph 5",
+                "poul henningsen ph5",
+                "ph5 lamp",
+                "ph-5"
               ]
             },
             "louis-poulsen-louis-poulsen-ph-artichoke": {
@@ -22406,11 +22435,10 @@
               ],
               "synonyms": [
                 "panton",
-                "panton chair",
-                "verner panton",
-                "vitra panton",
+                "verner panton chair",
                 "plastic chair",
-                "one-piece chair"
+                "one-piece",
+                "panton stole"
               ]
             },
             "vitra-vitra-flowerpot": {
@@ -22507,8 +22535,7 @@
                 "lounge chair 670",
                 "eames lounge",
                 "herman miller lounge",
-                "vitra lounge chair",
-                "eames lounger"
+                "vitra lounge"
               ]
             },
             "herman-miller-herman-miller-eames-ottoman": {
