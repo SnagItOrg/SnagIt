@@ -10,7 +10,8 @@
     "scrape-reverb": "tsx scripts/scrape-reverb.ts",
     "expand-kg": "tsx scripts/expand-knowledge-graph.ts",
     "scrape-vse": "tsx scripts/scrape-vintagesynth.ts",
-    "expand-synonyms": "tsx scripts/expand-synonyms-vse.ts"
+    "expand-synonyms": "tsx scripts/expand-synonyms-vse.ts",
+    "seed-design-watchlists": "tsx scripts/seed-design-watchlists.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.96.0",
