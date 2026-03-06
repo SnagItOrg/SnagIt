@@ -21898,6 +21898,994 @@
           "products": {}
         }
       }
+    },
+    "design-objects": {
+      "brands": {
+        "fritz-hansen": {
+          "products": {
+            "fritz-hansen-fritz-hansen-series-7": {
+              "name": "Fritz Hansen Series 7",
+              "model": "Series 7",
+              "model_number": "3107",
+              "designer": "Arne Jacobsen",
+              "year": 1955,
+              "type": "furniture",
+              "reference_url": "https://www.fritzhansen.com/en/series-7",
+              "era": "1955",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "fritz-hansen-fritz-hansen-egg-chair": {
+              "name": "Fritz Hansen Egg Chair",
+              "model": "Egg Chair",
+              "model_number": "3316",
+              "designer": "Arne Jacobsen",
+              "year": 1958,
+              "type": "furniture",
+              "reference_url": "https://www.fritzhansen.com/en/egg-chair",
+              "era": "1958",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "fritz-hansen-fritz-hansen-swan-chair": {
+              "name": "Fritz Hansen Swan Chair",
+              "model": "Swan Chair",
+              "model_number": "3320",
+              "designer": "Arne Jacobsen",
+              "year": 1958,
+              "type": "furniture",
+              "reference_url": "https://www.fritzhansen.com/en/swan-chair",
+              "era": "1958",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "fritz-hansen-fritz-hansen-ant-chair": {
+              "name": "Fritz Hansen Ant Chair",
+              "model": "Ant Chair",
+              "model_number": "3100",
+              "designer": "Arne Jacobsen",
+              "year": 1952,
+              "type": "furniture",
+              "reference_url": "https://www.fritzhansen.com/en/ant-chair",
+              "era": "1952",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "fritz-hansen-fritz-hansen-oxford-chair": {
+              "name": "Fritz Hansen Oxford Chair",
+              "model": "Oxford Chair",
+              "designer": "Arne Jacobsen",
+              "year": 1963,
+              "type": "furniture",
+              "reference_url": "https://www.fritzhansen.com/en/oxford-chair",
+              "era": "1963",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "fritz-hansen-fritz-hansen-drop-chair": {
+              "name": "Fritz Hansen Drop Chair",
+              "model": "Drop Chair",
+              "designer": "Arne Jacobsen",
+              "year": 1958,
+              "type": "furniture",
+              "reference_url": "https://www.fritzhansen.com/en/drop-chair",
+              "era": "1958",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "fritz-hansen-fritz-hansen-pk22": {
+              "name": "Fritz Hansen PK22",
+              "model": "PK22",
+              "model_number": "PK22",
+              "designer": "Poul Kjærholm",
+              "year": 1956,
+              "type": "furniture",
+              "reference_url": "https://www.fritzhansen.com/en/pk22",
+              "era": "1956",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "fritz-hansen-fritz-hansen-pk31": {
+              "name": "Fritz Hansen PK31",
+              "model": "PK31",
+              "model_number": "PK31",
+              "designer": "Poul Kjærholm",
+              "year": 1958,
+              "type": "furniture",
+              "reference_url": "https://www.fritzhansen.com/en/pk31",
+              "era": "1958",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "fritz-hansen-fritz-hansen-pk80": {
+              "name": "Fritz Hansen PK80",
+              "model": "PK80",
+              "model_number": "PK80",
+              "designer": "Poul Kjærholm",
+              "year": 1957,
+              "type": "furniture",
+              "reference_url": "https://www.fritzhansen.com/en/pk80",
+              "era": "1957",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "fritz-hansen-fritz-hansen-grand-prix": {
+              "name": "Fritz Hansen Grand Prix",
+              "model": "Grand Prix",
+              "model_number": "3130",
+              "designer": "Arne Jacobsen",
+              "year": 1957,
+              "type": "furniture",
+              "reference_url": "https://www.fritzhansen.com/en/grand-prix",
+              "era": "1957",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "fritz-hansen-fritz-hansen-sof": {
+              "name": "Fritz Hansen Sofá",
+              "model": "Sofá",
+              "designer": "Arne Jacobsen",
+              "year": 1962,
+              "type": "furniture",
+              "reference_url": "https://www.fritzhansen.com/en/sofa",
+              "era": "1962",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "fritz-hansen-fritz-hansen-coffee-table": {
+              "name": "Fritz Hansen Coffee Table",
+              "model": "Coffee Table",
+              "designer": "Arne Jacobsen",
+              "year": 1963,
+              "type": "furniture",
+              "reference_url": "https://www.fritzhansen.com/",
+              "era": "1963",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            }
+          }
+        },
+        "carl-hansen-søn": {
+          "products": {
+            "carl-hansen-sn-carl-hansen--sn-wishbone-chair": {
+              "name": "Carl Hansen & Søn Wishbone Chair",
+              "model": "Wishbone Chair",
+              "model_number": "CH24",
+              "designer": "Hans Wegner",
+              "year": 1950,
+              "type": "furniture",
+              "reference_url": "https://www.carlhansen.com/en/products/seating/ch24-wishbone-chair",
+              "era": "1950",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Carl Hansen & Søn",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "carl-hansen-sn-carl-hansen--sn-shell-chair": {
+              "name": "Carl Hansen & Søn Shell Chair",
+              "model": "Shell Chair",
+              "model_number": "CH07",
+              "designer": "Hans Wegner",
+              "year": 1963,
+              "type": "furniture",
+              "reference_url": "https://www.carlhansen.com/en/products/seating/ch07-shell-chair",
+              "era": "1963",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Carl Hansen & Søn",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "carl-hansen-sn-carl-hansen--sn-round-chair": {
+              "name": "Carl Hansen & Søn Round Chair",
+              "model": "Round Chair",
+              "model_number": "JH501",
+              "designer": "Hans Wegner",
+              "year": 1949,
+              "type": "furniture",
+              "reference_url": "https://www.carlhansen.com/en/products/seating/jh501-round-chair",
+              "era": "1949",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Carl Hansen & Søn",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "carl-hansen-sn-carl-hansen--sn-peacock-chair": {
+              "name": "Carl Hansen & Søn Peacock Chair",
+              "model": "Peacock Chair",
+              "designer": "Hans Wegner",
+              "year": 1947,
+              "type": "furniture",
+              "reference_url": "https://www.carlhansen.com/en/products/seating/peacock-chair",
+              "era": "1947",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Carl Hansen & Søn",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "carl-hansen-sn-carl-hansen--sn-flag-halyard-chair": {
+              "name": "Carl Hansen & Søn Flag Halyard Chair",
+              "model": "Flag Halyard Chair",
+              "designer": "Hans Wegner",
+              "year": 1950,
+              "type": "furniture",
+              "reference_url": "https://www.carlhansen.com/en/products/seating/flag-halyard-chair",
+              "era": "1950",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Carl Hansen & Søn",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            },
+            "carl-hansen-sn-carl-hansen--sn-table": {
+              "name": "Carl Hansen & Søn Table",
+              "model": "Dining Table",
+              "designer": "Hans Wegner",
+              "year": 1958,
+              "type": "furniture",
+              "reference_url": "https://www.carlhansen.com/",
+              "era": "1958",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Carl Hansen & Søn",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
+            }
+          }
+        },
+        "pp-møbler": {
+          "products": {
+            "pp-mbler-pp-mbler-wishbone-chair": {
+              "name": "PP Møbler Wishbone Chair",
+              "model": "Wishbone Chair",
+              "model_number": "CH24",
+              "designer": "Hans Wegner",
+              "year": 1950,
+              "type": "furniture",
+              "reference_url": "https://www.pp.dk/",
+              "era": "1950",
+              "related": [],
+              "clones": []
+            }
+          }
+        },
+        "louis-poulsen": {
+          "products": {
+            "louis-poulsen-louis-poulsen-ph5": {
+              "name": "Louis Poulsen PH5",
+              "model": "PH5",
+              "designer": "Poul Henningsen",
+              "year": 1958,
+              "type": "furniture",
+              "reference_url": "https://www.louispoulsen.com/en-us/products/ph5",
+              "era": "1958",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Louis Poulsen",
+                  "region": "dk",
+                  "years": "1920s-present"
+                }
+              ]
+            },
+            "louis-poulsen-louis-poulsen-ph-artichoke": {
+              "name": "Louis Poulsen PH Artichoke",
+              "model": "PH Artichoke",
+              "designer": "Poul Henningsen",
+              "year": 1958,
+              "type": "furniture",
+              "reference_url": "https://www.louispoulsen.com/en-us/products/ph-artichoke",
+              "era": "1958",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Louis Poulsen",
+                  "region": "dk",
+                  "years": "1920s-present"
+                }
+              ]
+            },
+            "louis-poulsen-louis-poulsen-ph-4-3": {
+              "name": "Louis Poulsen PH 4/3",
+              "model": "PH 4/3",
+              "designer": "Poul Henningsen",
+              "year": 1926,
+              "type": "furniture",
+              "reference_url": "https://www.louispoulsen.com/en-us/products/ph-4-3",
+              "era": "1926",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Louis Poulsen",
+                  "region": "dk",
+                  "years": "1920s-present"
+                }
+              ]
+            },
+            "louis-poulsen-louis-poulsen-ph-2-1": {
+              "name": "Louis Poulsen PH 2/1",
+              "model": "PH 2/1",
+              "designer": "Poul Henningsen",
+              "year": 1930,
+              "type": "furniture",
+              "reference_url": "https://www.louispoulsen.com/en-us/products/ph-2-1",
+              "era": "1930",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Louis Poulsen",
+                  "region": "dk",
+                  "years": "1920s-present"
+                }
+              ]
+            },
+            "louis-poulsen-louis-poulsen-ph-cocoon": {
+              "name": "Louis Poulsen PH Cocoon",
+              "model": "PH Cocoon",
+              "designer": "Poul Henningsen",
+              "year": 1963,
+              "type": "furniture",
+              "reference_url": "https://www.louispoulsen.com/",
+              "era": "1963",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Louis Poulsen",
+                  "region": "dk",
+                  "years": "1920s-present"
+                }
+              ]
+            }
+          }
+        },
+        "le-klint": {
+          "products": {
+            "le-klint-le-klint-model-172": {
+              "name": "Le Klint Model 172",
+              "model": "Model 172",
+              "designer": "Kaare Klint",
+              "year": 1943,
+              "type": "furniture",
+              "reference_url": "https://www.leklint.com/",
+              "era": "1943",
+              "related": [],
+              "clones": []
+            },
+            "le-klint-le-klint-model-101": {
+              "name": "Le Klint Model 101",
+              "model": "Model 101",
+              "designer": "Kaare Klint",
+              "year": 1938,
+              "type": "furniture",
+              "reference_url": "https://www.leklint.com/",
+              "era": "1938",
+              "related": [],
+              "clones": []
+            }
+          }
+        },
+        "vitra": {
+          "products": {
+            "vitra-vitra-panton-chair": {
+              "name": "Vitra Panton Chair",
+              "model": "Panton Chair",
+              "designer": "Verner Panton",
+              "year": 1960,
+              "type": "furniture",
+              "reference_url": "https://www.vitra.com/en-us/product/panton-chair",
+              "era": "1960",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1968-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "us",
+                  "years": "1968-present"
+                }
+              ],
+              "synonyms": [
+                "panton",
+                "panton chair",
+                "verner panton",
+                "vitra panton",
+                "plastic chair",
+                "one-piece chair"
+              ]
+            },
+            "vitra-vitra-flowerpot": {
+              "name": "Vitra Flowerpot",
+              "model": "Flowerpot",
+              "model_number": "VP9",
+              "designer": "Verner Panton",
+              "year": 1969,
+              "type": "furniture",
+              "reference_url": "https://www.vitra.com/en-us/product/flowerpot",
+              "era": "1969",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1969-present"
+                }
+              ],
+              "synonyms": [
+                "flowerpot",
+                "vp9",
+                "verner panton lamp",
+                "flowerpot lamp",
+                "pendant"
+              ]
+            },
+            "vitra-vitra-nelson-bench": {
+              "name": "Vitra Nelson Bench",
+              "model": "Nelson Bench",
+              "designer": "George Nelson",
+              "year": 1946,
+              "type": "furniture",
+              "reference_url": "https://www.vitra.com/",
+              "era": "1946",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1960-present"
+                }
+              ]
+            },
+            "vitra-vitra-citizen": {
+              "name": "Vitra Citizen",
+              "model": "Citizen Chair",
+              "designer": "Konstantin Grcic",
+              "year": 2014,
+              "type": "furniture",
+              "reference_url": "https://www.vitra.com/",
+              "era": "2014",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "2014-present"
+                }
+              ]
+            }
+          }
+        },
+        "herman-miller": {
+          "products": {
+            "herman-miller-herman-miller-eames-lounge-chair": {
+              "name": "Herman Miller Eames Lounge Chair",
+              "model": "Lounge Chair",
+              "model_number": "670",
+              "designer": "Charles and Ray Eames",
+              "year": 1956,
+              "type": "furniture",
+              "reference_url": "https://www.hermanmiller.com/products/seating/lounge-seating/eames-lounge-chair-and-ottoman/",
+              "era": "1956",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1956-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1957-present"
+                }
+              ],
+              "synonyms": [
+                "eames 670",
+                "lounge chair 670",
+                "eames lounge",
+                "herman miller lounge",
+                "vitra lounge chair",
+                "eames lounger"
+              ]
+            },
+            "herman-miller-herman-miller-eames-ottoman": {
+              "name": "Herman Miller Eames Ottoman",
+              "model": "Ottoman",
+              "model_number": "671",
+              "designer": "Charles and Ray Eames",
+              "year": 1956,
+              "type": "furniture",
+              "reference_url": "https://www.hermanmiller.com/products/seating/lounge-seating/eames-lounge-chair-and-ottoman/",
+              "era": "1956",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1956-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1957-present"
+                }
+              ],
+              "synonyms": [
+                "eames 671",
+                "ottoman 671",
+                "eames ottoman",
+                "herman miller ottoman",
+                "vitra ottoman"
+              ]
+            },
+            "herman-miller-herman-miller-eames-plastic-armchair-dsw": {
+              "name": "Herman Miller Eames Plastic Armchair DSW",
+              "model": "DSW",
+              "designer": "Charles and Ray Eames",
+              "year": 1950,
+              "type": "furniture",
+              "reference_url": "https://www.hermanmiller.com/products/seating/side-chairs/eames-plastic-chair/",
+              "era": "1950",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1950-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1957-present"
+                }
+              ],
+              "synonyms": [
+                "eames dsw",
+                "plastic armchair dsw",
+                "eames plastic",
+                "dining side wire",
+                "herman miller dsw",
+                "vitra dsw"
+              ]
+            },
+            "herman-miller-herman-miller-eames-plastic-armchair-daw": {
+              "name": "Herman Miller Eames Plastic Armchair DAW",
+              "model": "DAW",
+              "designer": "Charles and Ray Eames",
+              "year": 1950,
+              "type": "furniture",
+              "reference_url": "https://www.hermanmiller.com/products/seating/side-chairs/eames-plastic-armchair/",
+              "era": "1950",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1950-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1957-present"
+                }
+              ],
+              "synonyms": [
+                "eames daw",
+                "plastic armchair daw",
+                "eames dining",
+                "herman miller daw",
+                "vitra daw"
+              ]
+            },
+            "herman-miller-herman-miller-eames-plastic-side-chair-dsr": {
+              "name": "Herman Miller Eames Plastic Side Chair DSR",
+              "model": "DSR",
+              "designer": "Charles and Ray Eames",
+              "year": 1950,
+              "type": "furniture",
+              "reference_url": "https://www.hermanmiller.com/products/seating/side-chairs/eames-plastic-side-chair/",
+              "era": "1950",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1950-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1957-present"
+                }
+              ],
+              "synonyms": [
+                "eames dsr",
+                "plastic side chair dsr",
+                "herman miller dsr",
+                "vitra dsr",
+                "eames side"
+              ]
+            },
+            "herman-miller-herman-miller-hang-it-all": {
+              "name": "Herman Miller Hang It All",
+              "model": "Hang It All",
+              "designer": "Charles and Ray Eames",
+              "year": 1953,
+              "type": "furniture",
+              "reference_url": "https://www.hermanmiller.com/products/storage/wall-organization/hang-it-all/",
+              "era": "1953",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1953-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1960-present"
+                }
+              ],
+              "synonyms": [
+                "eames hang it all",
+                "coat rack",
+                "hang it all",
+                "herman miller",
+                "vitra hang"
+              ]
+            },
+            "herman-miller-herman-miller-aluminum-group-chair": {
+              "name": "Herman Miller Aluminum Group Chair",
+              "model": "Aluminum Group",
+              "designer": "Charles and Ray Eames",
+              "year": 1958,
+              "type": "furniture",
+              "reference_url": "https://www.hermanmiller.com/",
+              "era": "1958",
+              "related": [],
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1958-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1960-present"
+                }
+              ],
+              "synonyms": [
+                "eames aluminum",
+                "aluminum group",
+                "herman miller aluminum",
+                "vitra aluminum"
+              ]
+            }
+          }
+        },
+        "knoll": {
+          "products": {
+            "knoll-knoll-saarinen-tulip-chair": {
+              "name": "Knoll Saarinen Tulip Chair",
+              "model": "Tulip Chair",
+              "designer": "Eero Saarinen",
+              "year": 1956,
+              "type": "furniture",
+              "reference_url": "https://www.knoll.com/products/tulip-chair",
+              "era": "1956",
+              "related": [],
+              "clones": []
+            },
+            "knoll-knoll-saarinen-tulip-table": {
+              "name": "Knoll Saarinen Tulip Table",
+              "model": "Tulip Table",
+              "designer": "Eero Saarinen",
+              "year": 1956,
+              "type": "furniture",
+              "reference_url": "https://www.knoll.com/products/tulip-table",
+              "era": "1956",
+              "related": [],
+              "clones": []
+            },
+            "knoll-knoll-florence-knoll-sofa": {
+              "name": "Knoll Florence Knoll Sofa",
+              "model": "Florence Knoll Sofa",
+              "designer": "Florence Knoll",
+              "year": 1954,
+              "type": "furniture",
+              "reference_url": "https://www.knoll.com/products/florence-knoll-sofa",
+              "era": "1954",
+              "related": [],
+              "clones": []
+            },
+            "knoll-knoll-barcelona-chair": {
+              "name": "Knoll Barcelona Chair",
+              "model": "Barcelona Chair",
+              "designer": "Ludwig Mies van der Rohe",
+              "year": 1929,
+              "type": "furniture",
+              "reference_url": "https://www.knoll.com/",
+              "era": "1929",
+              "related": [],
+              "clones": []
+            },
+            "knoll-knoll-brno-chair": {
+              "name": "Knoll Brno Chair",
+              "model": "Brno Chair",
+              "designer": "Ludwig Mies van der Rohe",
+              "year": 1929,
+              "type": "furniture",
+              "reference_url": "https://www.knoll.com/",
+              "era": "1929",
+              "related": [],
+              "clones": []
+            }
+          }
+        },
+        "tradition": {
+          "products": {
+            "tradition-tradition-lilia-lounge-chair": {
+              "name": "&Tradition Lilia Lounge Chair",
+              "model": "Lilia Lounge Chair",
+              "designer": "Norm Architects",
+              "year": 2017,
+              "type": "furniture",
+              "reference_url": "https://www.andtradition.com/",
+              "era": "2017",
+              "related": [],
+              "clones": []
+            }
+          }
+        },
+        "muuto": {
+          "products": {
+            "muuto-muuto-restore-chair": {
+              "name": "Muuto Restore Chair",
+              "model": "Restore Chair",
+              "designer": "Thomas Bentzen",
+              "year": 2016,
+              "type": "furniture",
+              "reference_url": "https://www.muuto.com/products/restore-chair",
+              "era": "2016",
+              "related": [],
+              "clones": []
+            },
+            "muuto-muuto-fiber-chair": {
+              "name": "Muuto Fiber Chair",
+              "model": "Fiber Chair",
+              "designer": "Iskos-Berlin",
+              "year": 2014,
+              "type": "furniture",
+              "reference_url": "https://www.muuto.com/",
+              "era": "2014",
+              "related": [],
+              "clones": []
+            }
+          }
+        },
+        "hay": {
+          "products": {
+            "hay-hay-about-a-chair": {
+              "name": "HAY About a Chair",
+              "model": "About a Chair",
+              "model_number": "AAC",
+              "designer": "Hee Welling",
+              "year": 2010,
+              "type": "furniture",
+              "reference_url": "https://www.hay.dk/products/about-a-chair",
+              "era": "2010",
+              "related": [],
+              "clones": []
+            }
+          }
+        },
+        "fredericia": {
+          "products": {
+            "fredericia-fredericia-spine-lounge-chair": {
+              "name": "Fredericia Spine Lounge Chair",
+              "model": "Spine Lounge Chair",
+              "designer": "Space Copenhagen",
+              "year": 2015,
+              "type": "furniture",
+              "reference_url": "https://www.fredericia.com/",
+              "era": "2015",
+              "related": [],
+              "clones": []
+            }
+          }
+        },
+        "ferm-living": {
+          "products": {
+            "ferm-living-ferm-living-plant-box": {
+              "name": "Ferm Living Plant Box",
+              "model": "Plant Box",
+              "designer": "Norm Architects",
+              "year": 2015,
+              "type": "furniture",
+              "reference_url": "https://www.fermliving.com/",
+              "era": "2015",
+              "related": [],
+              "clones": []
+            }
+          }
+        },
+        "gubi": {
+          "products": {
+            "gubi-gubi-bat-chair": {
+              "name": "Gubi Bat Chair",
+              "model": "Bat Chair",
+              "designer": "Norman Cherner",
+              "year": 1958,
+              "type": "furniture",
+              "reference_url": "https://gubi.com/products/bat-chair",
+              "era": "1958",
+              "related": [],
+              "clones": []
+            }
+          }
+        },
+        "menu": {
+          "products": {
+            "menu-menu-norm-table-lamp": {
+              "name": "Menu Norm Table Lamp",
+              "model": "Norm Table Lamp",
+              "designer": "Theresa Arns",
+              "year": 2018,
+              "type": "furniture",
+              "reference_url": "https://www.menueniumproducts.com/",
+              "era": "2018",
+              "related": [],
+              "clones": []
+            }
+          }
+        },
+        "normann-copenhagen": {
+          "products": {
+            "normann-copenhagen-normann-copenhagen-circus-chair": {
+              "name": "Normann Copenhagen Circus Chair",
+              "model": "Circus Chair",
+              "designer": "Markus Novak",
+              "year": 2018,
+              "type": "furniture",
+              "reference_url": "https://www.normann-copenhagen.com/",
+              "era": "2018",
+              "related": [],
+              "clones": []
+            }
+          }
+        }
+      }
     }
   }
 }
