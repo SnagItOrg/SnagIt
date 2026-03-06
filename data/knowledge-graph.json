@@ -21913,7 +21913,14 @@
               "reference_url": "https://www.fritzhansen.com/en/series-7",
               "era": "1955",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "fritz-hansen-fritz-hansen-egg-chair": {
               "name": "Fritz Hansen Egg Chair",
@@ -21925,7 +21932,14 @@
               "reference_url": "https://www.fritzhansen.com/en/egg-chair",
               "era": "1958",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "fritz-hansen-fritz-hansen-swan-chair": {
               "name": "Fritz Hansen Swan Chair",
@@ -21937,7 +21951,14 @@
               "reference_url": "https://www.fritzhansen.com/en/swan-chair",
               "era": "1958",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "fritz-hansen-fritz-hansen-ant-chair": {
               "name": "Fritz Hansen Ant Chair",
@@ -21949,7 +21970,14 @@
               "reference_url": "https://www.fritzhansen.com/en/ant-chair",
               "era": "1952",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "fritz-hansen-fritz-hansen-oxford-chair": {
               "name": "Fritz Hansen Oxford Chair",
@@ -21960,7 +21988,14 @@
               "reference_url": "https://www.fritzhansen.com/en/oxford-chair",
               "era": "1963",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "fritz-hansen-fritz-hansen-drop-chair": {
               "name": "Fritz Hansen Drop Chair",
@@ -21971,7 +22006,14 @@
               "reference_url": "https://www.fritzhansen.com/en/drop-chair",
               "era": "1958",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "fritz-hansen-fritz-hansen-pk22": {
               "name": "Fritz Hansen PK22",
@@ -21983,7 +22025,14 @@
               "reference_url": "https://www.fritzhansen.com/en/pk22",
               "era": "1956",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "fritz-hansen-fritz-hansen-pk31": {
               "name": "Fritz Hansen PK31",
@@ -21995,7 +22044,14 @@
               "reference_url": "https://www.fritzhansen.com/en/pk31",
               "era": "1958",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "fritz-hansen-fritz-hansen-pk80": {
               "name": "Fritz Hansen PK80",
@@ -22007,7 +22063,14 @@
               "reference_url": "https://www.fritzhansen.com/en/pk80",
               "era": "1957",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "fritz-hansen-fritz-hansen-grand-prix": {
               "name": "Fritz Hansen Grand Prix",
@@ -22019,7 +22082,14 @@
               "reference_url": "https://www.fritzhansen.com/en/grand-prix",
               "era": "1957",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "fritz-hansen-fritz-hansen-sof": {
               "name": "Fritz Hansen Sofá",
@@ -22030,7 +22100,14 @@
               "reference_url": "https://www.fritzhansen.com/en/sofa",
               "era": "1962",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "fritz-hansen-fritz-hansen-coffee-table": {
               "name": "Fritz Hansen Coffee Table",
@@ -22041,7 +22118,14 @@
               "reference_url": "https://www.fritzhansen.com/",
               "era": "1963",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Fritz Hansen",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             }
           }
         },
@@ -22057,7 +22141,14 @@
               "reference_url": "https://www.carlhansen.com/en/products/seating/ch24-wishbone-chair",
               "era": "1950",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Carl Hansen & Søn",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "carl-hansen-sn-carl-hansen--sn-shell-chair": {
               "name": "Carl Hansen & Søn Shell Chair",
@@ -22069,7 +22160,14 @@
               "reference_url": "https://www.carlhansen.com/en/products/seating/ch07-shell-chair",
               "era": "1963",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Carl Hansen & Søn",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "carl-hansen-sn-carl-hansen--sn-round-chair": {
               "name": "Carl Hansen & Søn Round Chair",
@@ -22081,7 +22179,14 @@
               "reference_url": "https://www.carlhansen.com/en/products/seating/jh501-round-chair",
               "era": "1949",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Carl Hansen & Søn",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "carl-hansen-sn-carl-hansen--sn-peacock-chair": {
               "name": "Carl Hansen & Søn Peacock Chair",
@@ -22092,7 +22197,14 @@
               "reference_url": "https://www.carlhansen.com/en/products/seating/peacock-chair",
               "era": "1947",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Carl Hansen & Søn",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "carl-hansen-sn-carl-hansen--sn-flag-halyard-chair": {
               "name": "Carl Hansen & Søn Flag Halyard Chair",
@@ -22103,7 +22215,14 @@
               "reference_url": "https://www.carlhansen.com/en/products/seating/flag-halyard-chair",
               "era": "1950",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Carl Hansen & Søn",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             },
             "carl-hansen-sn-carl-hansen--sn-table": {
               "name": "Carl Hansen & Søn Table",
@@ -22114,7 +22233,14 @@
               "reference_url": "https://www.carlhansen.com/",
               "era": "1958",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Carl Hansen & Søn",
+                  "region": "dk",
+                  "years": "1950s-present"
+                }
+              ]
             }
           }
         },
@@ -22145,7 +22271,14 @@
               "reference_url": "https://www.louispoulsen.com/en-us/products/ph5",
               "era": "1958",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Louis Poulsen",
+                  "region": "dk",
+                  "years": "1920s-present"
+                }
+              ]
             },
             "louis-poulsen-louis-poulsen-ph-artichoke": {
               "name": "Louis Poulsen PH Artichoke",
@@ -22156,7 +22289,14 @@
               "reference_url": "https://www.louispoulsen.com/en-us/products/ph-artichoke",
               "era": "1958",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Louis Poulsen",
+                  "region": "dk",
+                  "years": "1920s-present"
+                }
+              ]
             },
             "louis-poulsen-louis-poulsen-ph-4-3": {
               "name": "Louis Poulsen PH 4/3",
@@ -22167,7 +22307,14 @@
               "reference_url": "https://www.louispoulsen.com/en-us/products/ph-4-3",
               "era": "1926",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Louis Poulsen",
+                  "region": "dk",
+                  "years": "1920s-present"
+                }
+              ]
             },
             "louis-poulsen-louis-poulsen-ph-2-1": {
               "name": "Louis Poulsen PH 2/1",
@@ -22178,7 +22325,14 @@
               "reference_url": "https://www.louispoulsen.com/en-us/products/ph-2-1",
               "era": "1930",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Louis Poulsen",
+                  "region": "dk",
+                  "years": "1920s-present"
+                }
+              ]
             },
             "louis-poulsen-louis-poulsen-ph-cocoon": {
               "name": "Louis Poulsen PH Cocoon",
@@ -22189,7 +22343,14 @@
               "reference_url": "https://www.louispoulsen.com/",
               "era": "1963",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Louis Poulsen",
+                  "region": "dk",
+                  "years": "1920s-present"
+                }
+              ]
             }
           }
         },
@@ -22230,7 +22391,27 @@
               "reference_url": "https://www.vitra.com/en-us/product/panton-chair",
               "era": "1960",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1968-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "us",
+                  "years": "1968-present"
+                }
+              ],
+              "synonyms": [
+                "panton",
+                "panton chair",
+                "verner panton",
+                "vitra panton",
+                "plastic chair",
+                "one-piece chair"
+              ]
             },
             "vitra-vitra-flowerpot": {
               "name": "Vitra Flowerpot",
@@ -22242,7 +22423,21 @@
               "reference_url": "https://www.vitra.com/en-us/product/flowerpot",
               "era": "1969",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1969-present"
+                }
+              ],
+              "synonyms": [
+                "flowerpot",
+                "vp9",
+                "verner panton lamp",
+                "flowerpot lamp",
+                "pendant"
+              ]
             },
             "vitra-vitra-nelson-bench": {
               "name": "Vitra Nelson Bench",
@@ -22253,7 +22448,14 @@
               "reference_url": "https://www.vitra.com/",
               "era": "1946",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1960-present"
+                }
+              ]
             },
             "vitra-vitra-citizen": {
               "name": "Vitra Citizen",
@@ -22264,7 +22466,14 @@
               "reference_url": "https://www.vitra.com/",
               "era": "2014",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "2014-present"
+                }
+              ]
             }
           }
         },
@@ -22280,7 +22489,27 @@
               "reference_url": "https://www.hermanmiller.com/products/seating/lounge-seating/eames-lounge-chair-and-ottoman/",
               "era": "1956",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1956-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1957-present"
+                }
+              ],
+              "synonyms": [
+                "eames 670",
+                "lounge chair 670",
+                "eames lounge",
+                "herman miller lounge",
+                "vitra lounge chair",
+                "eames lounger"
+              ]
             },
             "herman-miller-herman-miller-eames-ottoman": {
               "name": "Herman Miller Eames Ottoman",
@@ -22292,7 +22521,26 @@
               "reference_url": "https://www.hermanmiller.com/products/seating/lounge-seating/eames-lounge-chair-and-ottoman/",
               "era": "1956",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1956-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1957-present"
+                }
+              ],
+              "synonyms": [
+                "eames 671",
+                "ottoman 671",
+                "eames ottoman",
+                "herman miller ottoman",
+                "vitra ottoman"
+              ]
             },
             "herman-miller-herman-miller-eames-plastic-armchair-dsw": {
               "name": "Herman Miller Eames Plastic Armchair DSW",
@@ -22303,7 +22551,27 @@
               "reference_url": "https://www.hermanmiller.com/products/seating/side-chairs/eames-plastic-chair/",
               "era": "1950",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1950-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1957-present"
+                }
+              ],
+              "synonyms": [
+                "eames dsw",
+                "plastic armchair dsw",
+                "eames plastic",
+                "dining side wire",
+                "herman miller dsw",
+                "vitra dsw"
+              ]
             },
             "herman-miller-herman-miller-eames-plastic-armchair-daw": {
               "name": "Herman Miller Eames Plastic Armchair DAW",
@@ -22314,7 +22582,26 @@
               "reference_url": "https://www.hermanmiller.com/products/seating/side-chairs/eames-plastic-armchair/",
               "era": "1950",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1950-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1957-present"
+                }
+              ],
+              "synonyms": [
+                "eames daw",
+                "plastic armchair daw",
+                "eames dining",
+                "herman miller daw",
+                "vitra daw"
+              ]
             },
             "herman-miller-herman-miller-eames-plastic-side-chair-dsr": {
               "name": "Herman Miller Eames Plastic Side Chair DSR",
@@ -22325,7 +22612,26 @@
               "reference_url": "https://www.hermanmiller.com/products/seating/side-chairs/eames-plastic-side-chair/",
               "era": "1950",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1950-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1957-present"
+                }
+              ],
+              "synonyms": [
+                "eames dsr",
+                "plastic side chair dsr",
+                "herman miller dsr",
+                "vitra dsr",
+                "eames side"
+              ]
             },
             "herman-miller-herman-miller-hang-it-all": {
               "name": "Herman Miller Hang It All",
@@ -22336,7 +22642,26 @@
               "reference_url": "https://www.hermanmiller.com/products/storage/wall-organization/hang-it-all/",
               "era": "1953",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1953-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1960-present"
+                }
+              ],
+              "synonyms": [
+                "eames hang it all",
+                "coat rack",
+                "hang it all",
+                "herman miller",
+                "vitra hang"
+              ]
             },
             "herman-miller-herman-miller-aluminum-group-chair": {
               "name": "Herman Miller Aluminum Group Chair",
@@ -22347,7 +22672,25 @@
               "reference_url": "https://www.hermanmiller.com/",
               "era": "1958",
               "related": [],
-              "clones": []
+              "clones": [],
+              "manufacturers": [
+                {
+                  "name": "Herman Miller",
+                  "region": "us",
+                  "years": "1958-present"
+                },
+                {
+                  "name": "Vitra",
+                  "region": "eu",
+                  "years": "1960-present"
+                }
+              ],
+              "synonyms": [
+                "eames aluminum",
+                "aluminum group",
+                "herman miller aluminum",
+                "vitra aluminum"
+              ]
             }
           }
         },
