@@ -70,7 +70,6 @@ interface WatchlistEntry {
   query: string
   type: 'query' | 'listing'
   user_id: null
-  description?: string
 }
 
 // ── High-priority products ─────────────────────────────────────────────────────
@@ -147,7 +146,6 @@ async function main() {
           query: name,
           type: 'query',
           user_id: null,
-          description: `Design product: ${name} (${brandSlug})`,
         })
         ready++
       } else {
@@ -164,7 +162,6 @@ async function main() {
               query: synonym,
               type: 'query',
               user_id: null,
-              description: `Design synonym: "${synonym}" → ${name}`,
             })
             ready++
           } else {
@@ -187,7 +184,7 @@ async function main() {
   if (DRY_RUN) {
     console.log('Sample entries (first 5):')
     toInsert.slice(0, 5).forEach(entry => {
-      console.log(`  • "${entry.query}" (${entry.description})`)
+      console.log(`  • "${entry.query}"`)
     })
     console.log()
     console.log('(DRY_RUN — no data written)')
