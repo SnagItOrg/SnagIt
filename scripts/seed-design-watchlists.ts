@@ -21,15 +21,28 @@
 
 import * as fs from 'fs'
 import * as path from 'path'
-import dotenv from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
 
 // ── Env loading ───────────────────────────────────────────────────────────────
-for (const p of [
+// Load from .env.local if available
+const envPaths = [
   path.resolve(__dirname, '../.env.local'),
   path.resolve(__dirname, '../frontend/.env.local'),
-]) {
-  if (fs.existsSync(p)) { dotenv.config({ path: p }); break }
+]
+for (const envPath of envPaths) {
+  if (fs.existsSync(envPath)) {
+    const content = fs.readFileSync(envPath, 'utf-8')
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim()
+      if (trimmed && !trimmed.startsWith('#')) {
+        const [key, ...valueParts] = trimmed.split('=')
+        if (key) {
+          process.env[key] = valueParts.join('=')
+        }
+      }
+    }
+    break
+  }
 }
 
 // ── CLI flags ─────────────────────────────────────────────────────────────────
