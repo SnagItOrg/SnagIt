@@ -1,0 +1,30 @@
+{
+  "run_at": "2026-03-05T20:45:54.539Z",
+  "limit": 100,
+  "brands_processed": [
+    {
+      "brand": "roland",
+      "listings_found": 50,
+      "added": 48,
+      "duplicates": 2
+    },
+    {
+      "brand": "moog",
+      "listings_found": 50,
+      "added": 47,
+      "duplicates": 3
+    },
+    {
+      "brand": "sequential",
+      "listings_found": 50,
+      "added": 5,
+      "duplicates": 0
+    }
+  ],
+  "summary": {
+    "total_processed": 100,
+    "total_added": 100,
+    "total_duplicates": 5,
+    "total_errors": 0
+  }
+}

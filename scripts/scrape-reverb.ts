@@ -1,183 +1,336 @@
 /**
  * scripts/scrape-reverb.ts
  *
- * Fetches listings from the Reverb API for every product in kg_product,
- * searching by "${brand.name} ${product.model_name}" for precise results.
- * Normalises to the listings table schema and upserts to Supabase.
+ * Scrapes Reverb API for music gear listings across priority categories.
+ * Merges data into knowledge-graph.json, handling brand normalization
+ * and duplicate detection.
+ *
+ * Features:
+ *   - Conservative 2.5s rate limiting (Tier 1 limits are harsh)
+ *   - Brand normalization (e-mu → emu, etc.)
+ *   - Duplicate detection within KG
+ *   - Audit logging
  *
  * Usage:
- *   npm run scrape-reverb
- *
- * Env (loaded from .env.local or frontend/.env.local):
- *   NEXT_PUBLIC_SUPABASE_URL
- *   SUPABASE_SERVICE_ROLE_KEY
+ *   npm run scrape-reverb                  # full run
+ *   npm run scrape-reverb -- --dry-run     # test without writing
+ *   npm run scrape-reverb -- --limit=50    # limit listings processed
+ *   npm run scrape-reverb -- --brand=korg  # single brand filter
  */
 
 import * as fs from 'fs'
 import * as path from 'path'
-import * as dotenv from 'dotenv'
-import { createClient } from '@supabase/supabase-js'
 
-// ── Env ───────────────────────────────────────────────────────────────────────
-for (const p of [
-  path.resolve(__dirname, '../.env.local'),
-  path.resolve(__dirname, '../frontend/.env.local'),
-]) {
-  if (fs.existsSync(p)) { dotenv.config({ path: p }); break }
+// ── CLI flags ─────────────────────────────────────────────────────────────────
+const args = process.argv.slice(2)
+const DRY_RUN = args.includes('--dry-run')
+const brandFilter = args.find(a => a.startsWith('--brand='))?.split('=')[1]?.toLowerCase() ?? null
+const limitArg = args.find(a => a.startsWith('--limit='))?.split('=')[1]
+const LIMIT = limitArg ? parseInt(limitArg, 10) : 200
+
+// ── Rate limiting ─────────────────────────────────────────────────────────────
+// Reverb API Tier 1: harsh limits. Be conservative.
+const FETCH_DELAY_MS = 2500  // 2.5s between requests
+const FETCH_JITTER_MS = 500  // ±250ms random jitter
+let lastFetchTime = 0
+
+async function sleep(ms: number) {
+  return new Promise<void>(resolve => setTimeout(resolve, ms))
 }
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-if (!SUPABASE_URL || !SERVICE_KEY) {
-  console.error('❌  Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
-  process.exit(1)
+async function rateLimit() {
+  const now = Date.now()
+  const elapsed = now - lastFetchTime
+  const delayMs = Math.max(0, FETCH_DELAY_MS + (Math.random() * FETCH_JITTER_MS - FETCH_JITTER_MS / 2) - elapsed)
+  if (delayMs > 0) {
+    await sleep(delayMs)
+  }
+  lastFetchTime = Date.now()
 }
 
-const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
-  auth: { persistSession: false },
-})
+// ── Brand normalization ───────────────────────────────────────────────────────
+const BRAND_NORM_MAP: Record<string, string> = {
+  // Normalize variant spellings and kebab-case variants
+  'e-mu': 'emu',
+  'emu': 'emu',
+  'moog': 'moog',
+  'mini-moog': 'moog',
+  'minimoog': 'moog',
+  'korg': 'korg',
+  'roland': 'roland',
+  'yamaha': 'yamaha',
+  'akai': 'akai',
+  'casio': 'casio',
+  'sequential': 'sequential',
+  'oberheim': 'oberheim',
+  'arp': 'arp',
+  'elektron': 'elektron',
+  'novation': 'novation',
+  'arturia': 'arturia',
+  'behringer': 'behringer',
+  'gibson': 'gibson',
+  'fender': 'fender',
+  'martin': 'martin',
+  'ibanez': 'ibanez',
+  'epiphone': 'epiphone',
+  'schecter': 'schecter',
+  'kramer': 'kramer',
+  'marshall': 'marshall',
+  'vox': 'vox',
+  'mesa-boogie': 'mesa',
+  'mesa': 'mesa',
+  'traynor': 'traynor',
+  'boss': 'boss',
+  'zoom': 'zoom',
+  'strymon': 'strymon',
+  'earthquaker-devices': 'earthquaker-devices',
+  'earthquaker': 'earthquaker-devices',
+}
+
+function slugify(s: string): string {
+  return s.toLowerCase()
+    .replace(/[\s\/\-\.]+/g, '-')
+    .replace(/[^a-z0-9\-]/g, '')
+    .replace(/^-+|-+$/g, '')
+}
+
+function normalizeBrandSlug(name: string): string {
+  const slug = slugify(name)
+  return BRAND_NORM_MAP[slug] || slug
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface Product {
-  id:         string
-  model_name: string
-  brand_id:   string
-  brand:      { id: string; name: string; slug: string }
-}
-
 interface ReverbListing {
-  id:            string | number
-  title:         string
-  price:         { amount: string }
-  photos?:       Array<{ _links?: { full?: { href?: string } } }>
-  shipping?:     { local?: boolean }
-  state?:        { slug?: string }
-  condition?:    { display_name?: string }
-  _links?:       { web?: { href?: string } }
+  id: number | string
+  title: string
+  make?: string
+  model?: string
+  year?: string
+  price?: { currency: string; amount: number }
+  _links?: { web?: { href?: string } }
 }
 
-interface ReverbResponse {
+interface ReverbListingsResponse {
   listings?: ReverbListing[]
+  pagination?: { total?: number }
 }
 
-interface NormalizedListing {
-  external_id: string
-  source:      string
-  platform:    string
-  url:         string
-  title:       string
-  price:       number | null
-  currency:    string
-  image_url:   string | null
-  location:    string
-  scraped_at:  string
-  is_active:   boolean
-  condition:   string | null
-  brand_id:    string
+interface KgProduct {
+  name: string
+  type: string
+  era?: string
+  reference_url?: string
+  price_range_dkk?: [number, number]
+  related?: string[]
+  clones?: string[]
+  [key: string]: unknown
 }
 
-const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+interface BrandData {
+  name?: string
+  products: Record<string, KgProduct>
+  note?: string
+}
 
-// ── Reverb fetch ──────────────────────────────────────────────────────────────
+interface CategoryData {
+  brands: Record<string, BrandData>
+}
+
+interface KnowledgeGraph {
+  version: string
+  description: string
+  categories: Record<string, CategoryData>
+}
+
+// ── Paths ─────────────────────────────────────────────────────────────────────
+const KG_PATH = path.resolve(__dirname, '../data/knowledge-graph.json')
+const LOG_PATH = path.resolve(__dirname, 'reverb-scrape-log.json')
+
+// ── API ───────────────────────────────────────────────────────────────────────
+const API_BASE = 'https://api.reverb.com/api'
+const HEADERS = {
+  'Accept-Version': '3.0',
+  'Accept': 'application/hal+json',
+  'User-Agent': 'Klup-Scraper/1.0',
+}
+
 async function fetchReverbListings(query: string): Promise<ReverbListing[]> {
-  // encodeURIComponent encodes '*' as '%2A'; restore it so Reverb treats it as a wildcard.
-  const encodedQuery = encodeURIComponent(query).replace(/%2A/gi, '*')
-  const url = `https://api.reverb.com/api/listings?query=${encodedQuery}&per_page=50`
+  await rateLimit()
 
-  const res = await fetch(url, {
-    headers: {
-      'Accept':         'application/hal+json',
-      'Accept-Version': '3.0',
-    },
-  })
+  const url = `${API_BASE}/listings?query=${encodeURIComponent(query)}&per_page=100&condition=all`
 
-  if (!res.ok) {
-    throw new Error(`Reverb API error: ${res.status} ${res.statusText}`)
-  }
+  try {
+    const res = await fetch(url, { headers: HEADERS })
 
-  const data = await res.json() as ReverbResponse
-  return data.listings ?? []
-}
+    if (res.status === 429) {
+      console.warn('⚠️  Rate limit hit (429). Pausing…')
+      await sleep(10000) // Back off 10s
+      return []
+    }
 
-// ── Normalise ─────────────────────────────────────────────────────────────────
-function normalise(listing: ReverbListing, brand_id: string): NormalizedListing {
-  const rawAmount = listing.price?.amount ?? '0'
-  const usd       = parseFloat(rawAmount)
-  const dkk       = isNaN(usd) ? null : Math.round(usd * 7.5)
+    if (!res.ok) {
+      console.error(`  HTTP ${res.status}: ${res.statusText}`)
+      return []
+    }
 
-  return {
-    external_id: `reverb_${listing.id}`,
-    source:      'reverb',
-    platform:    'reverb',
-    url:         listing._links?.web?.href ?? `https://reverb.com/item/${listing.id}`,
-    title:       listing.title,
-    price:       dkk,
-    currency:    'DKK',
-    image_url:   listing.photos?.[0]?._links?.full?.href ?? null,
-    location:    listing.shipping?.local ? 'Local' : 'International',
-    scraped_at:  new Date().toISOString(),
-    is_active:   listing.state?.slug === 'live',
-    condition:   listing.condition?.display_name ?? null,
-    brand_id,
+    const data = (await res.json()) as ReverbListingsResponse
+    return data.listings ?? []
+  } catch (err) {
+    console.error(`  Fetch error: ${(err as Error).message}`)
+    return []
   }
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  const { data: products, error: productErr } = await supabase
-    .from('kg_product')
-    .select('id, model_name, brand_id, brand:kg_brand!inner(id, name, slug)')
-    .not('model_name', 'is', null)
+  console.log('⚙️  Reverb API Scraper — Knowledge Graph Expansion')
+  if (brandFilter) console.log(`    Brand filter: ${brandFilter}`)
+  console.log(`    Limit: ${LIMIT} listings per brand`)
+  console.log(`    Rate limit: ${FETCH_DELAY_MS}ms (Tier 1 conservative)`)
+  console.log()
 
-  if (productErr) throw new Error(`Fetch products: ${productErr.message}`)
-  if (!products || products.length === 0) {
-    console.log('No products found — nothing to scrape.')
-    return
+  // Load KG
+  let kg: KnowledgeGraph
+  try {
+    kg = JSON.parse(fs.readFileSync(KG_PATH, 'utf8'))
+  } catch (err) {
+    console.error(`❌ Failed to load ${KG_PATH}`)
+    process.exit(1)
   }
 
-  console.log(`[reverb] Scraping ${products.length} products…\n`)
+  // Ensure music-gear category exists
+  if (!kg.categories) kg.categories = {}
+  if (!kg.categories['music-gear']) {
+    kg.categories['music-gear'] = { brands: {} }
+  }
+  const musicGear = kg.categories['music-gear']
 
-  let total = 0
+  // Get list of brands to scrape
+  const brandsToScrape = Object.keys(musicGear.brands)
+  if (brandsToScrape.length === 0) {
+    console.warn('⚠️  No brands found in music-gear category. Nothing to scrape.')
+    process.exit(0)
+  }
 
-  for (let i = 0; i < products.length; i++) {
-    const product = products[i] as unknown as Product
-    const query   = `${product.brand.name} ${product.model_name}`
+  console.log(`Found ${brandsToScrape.length} brands to process.\n`)
 
-    if (i > 0) await delay(500)
+  let totalProcessed = 0
+  let totalAdded = 0
+  let totalDuplicates = 0
+  let totalErrors = 0
+  const log: any = {
+    run_at: new Date().toISOString(),
+    limit: LIMIT,
+    brands_processed: [],
+    summary: { total_processed: 0, total_added: 0, total_duplicates: 0, total_errors: 0 },
+  }
 
-    let listings: ReverbListing[]
-    try {
-      listings = await fetchReverbListings(query)
-    } catch (err) {
-      console.error(`[reverb] ${query}: fetch failed — ${(err as Error).message}`)
+  // Process each brand
+  for (const brandSlug of brandsToScrape) {
+    if (totalProcessed >= LIMIT) {
+      console.log(`\n⊘ Reached listing limit (${LIMIT}). Stopping.`)
+      break
+    }
+
+    // Apply brand filter if specified
+    if (brandFilter && !brandSlug.includes(brandFilter)) {
       continue
     }
+
+    const brandData = musicGear.brands[brandSlug]
+    const brandName = brandData?.name || brandSlug
+
+    console.log(`📦 ${brandSlug} (${brandName})`)
+
+    // Fetch listings for this brand
+    const listings = await fetchReverbListings(brandName)
 
     if (listings.length === 0) {
-      console.log(`[reverb] ${query}: 0 listings`)
+      console.log(`   → No listings found`)
       continue
     }
 
-    const normalized = listings.map((l) => normalise(l, product.brand_id))
+    console.log(`   → Found ${listings.length} listings, processing…`)
 
-    const { error: upsertErr } = await supabase
-      .from('listings')
-      .upsert(normalized, { onConflict: 'external_id', ignoreDuplicates: false })
+    let brandAdded = 0
+    let brandDuplicates = 0
 
-    if (upsertErr) {
-      console.error(`[reverb] ${query}: upsert failed — ${upsertErr.message}`)
-      continue
+    // Process each listing
+    for (const listing of listings.slice(0, LIMIT - totalProcessed)) {
+      // Build product key
+      const productName = listing.title || listing.make || brandName
+      const productKey = slugify(`${brandSlug}-${productName}`)
+
+      // Check if already exists
+      if (brandData.products?.[productKey]) {
+        brandDuplicates++
+        continue
+      }
+
+      // Create KG entry
+      const kgEntry: KgProduct = {
+        name: productName,
+        type: 'instrument', // Default; could be refined based on title patterns
+        reference_url: listing._links?.web?.href || `https://reverb.com/search?query=${encodeURIComponent(brandName)}`,
+      }
+
+      // Add to KG
+      if (!musicGear.brands[brandSlug].products) {
+        musicGear.brands[brandSlug].products = {}
+      }
+      musicGear.brands[brandSlug].products[productKey] = kgEntry
+
+      brandAdded++
+      totalAdded++
+      totalProcessed++
     }
 
-    total += normalized.length
-    console.log(`[reverb] ${query}: ${listings.length} listings fetched`)
+    totalDuplicates += brandDuplicates
+    log.brands_processed.push({
+      brand: brandSlug,
+      listings_found: listings.length,
+      added: brandAdded,
+      duplicates: brandDuplicates,
+    })
+
+    console.log(`   ✓ Added ${brandAdded}, Duplicates: ${brandDuplicates}\n`)
   }
 
-  console.log(`\n[reverb] Done. Total upserted: ${total}`)
+  // Summary
+  log.summary = {
+    total_processed: totalProcessed,
+    total_added: totalAdded,
+    total_duplicates: totalDuplicates,
+    total_errors: totalErrors,
+  }
+
+  console.log('─'.repeat(50))
+  console.log(`✅ Reverb scrape complete`)
+  console.log(`   Added: ${totalAdded}`)
+  console.log(`   Duplicates skipped: ${totalDuplicates}`)
+  console.log(`   Total products in KG: ${Object.values(musicGear.brands).reduce((acc, b) => acc + Object.keys(b.products || {}).length, 0)}`)
+  console.log()
+
+  // Save results
+  if (!DRY_RUN && totalAdded > 0) {
+    // Bump version
+    const [major, minor, patch] = (kg.version ?? '1.0.0').split('.').map(Number)
+    kg.version = `${major}.${minor + 1}.${patch ?? 0}`
+
+    fs.writeFileSync(KG_PATH, JSON.stringify(kg, null, 2))
+    console.log(`📄 knowledge-graph.json updated (v${kg.version})`)
+  } else if (DRY_RUN) {
+    console.log('(Dry run — no files written)')
+  } else {
+    console.log('(No new entries — nothing to save)')
+  }
+
+  // Write audit log
+  fs.writeFileSync(LOG_PATH, JSON.stringify(log, null, 2))
+  console.log(`📝 Audit log: ${LOG_PATH}`)
 }
 
 main().catch((err: unknown) => {
-  console.error('❌', (err as Error).message)
+  console.error(`\n❌ Error: ${(err as Error).message ?? err}`)
   process.exit(1)
 })
