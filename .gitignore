@@ -16,3 +16,5 @@ frontend/out/
 # Build
 dist/
 build/
+data/*.bak
+scripts/*-log.json
