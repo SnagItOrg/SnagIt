@@ -18,3 +18,5 @@ dist/
 build/
 data/*.bak
 scripts/*-log.json
+data/*.bak
+scripts/*-log.json
