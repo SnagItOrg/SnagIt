@@ -86,9 +86,11 @@ async function fetchFacebookListings(query: string): Promise<ApifyListing[]> {
   await rateLimit()
 
   const marketplaceUrl = `https://www.facebook.com/marketplace/copenhagen/search/?query=${encodeURIComponent(query)}`
-  const apifyUrl = `https://api.apify.com/v2/acts/${APIFY_ACTOR_ID}/run-sync-get-dataset-items?token=${APIFY_API_KEY}`
+  const apifyUrl = `https://api.apify.com/v2/acts/${APIFY_ACTOR_ID}/run-sync-get-dataset-items?timeout=120&token=${APIFY_API_KEY}`
 
   try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 120000)
     const res = await fetch(apifyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -96,7 +98,9 @@ async function fetchFacebookListings(query: string): Promise<ApifyListing[]> {
         startUrls: [{ url: marketplaceUrl }],
         maxItems: MAX_ITEMS,
       }),
+      signal: controller.signal,
     })
+    clearTimeout(timeout)
 
     if (!res.ok) {
       const text = await res.text().catch(() => '')
