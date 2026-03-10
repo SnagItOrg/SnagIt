@@ -9,13 +9,39 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "var(--color-primary)",
-        bg: "var(--color-bg)",
-        surface: "var(--color-surface)",
-        text: {
-          DEFAULT: "var(--color-text)",
-          muted: "var(--color-text-muted)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        card: {
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
+          border: "var(--card-border)",
         },
+        primary: {
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
+        },
+        secondary: {
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
+        },
+        muted: {
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
+        },
+        accent: {
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
+        },
+        destructive: {
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
+        },
+        border: "var(--border)",
+        input: "var(--input-background)",
+        ring: "var(--ring)",
+        // Legacy aliases — kept for existing Tailwind class usage
+        bg: "var(--background)",
+        surface: "var(--card)",
       },
     },
   },

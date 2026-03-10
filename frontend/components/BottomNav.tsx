@@ -41,12 +41,12 @@ export function BottomNav() {
             className="w-14 h-14 -mt-7 rounded-full bg-primary flex items-center justify-center shadow-lg glow-primary transition-transform active:scale-95"
             aria-label={t.navSearch}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: 'var(--color-bg)' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: 'var(--background)' }}>
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
             </svg>
           </Link>
-          <span className="text-[11px] font-medium mt-0.5" style={{ color: 'var(--color-primary)' }}>
+          <span className="text-[11px] font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
             {t.navSearch}
           </span>
         </div>
@@ -55,7 +55,7 @@ export function BottomNav() {
         <button
           onClick={() => router.push('/signup')}
           className="text-sm font-bold transition-opacity hover:opacity-80"
-          style={{ color: 'var(--color-primary)' }}
+          style={{ color: 'var(--foreground)' }}
         >
           {t.getStarted}
         </button>
@@ -86,14 +86,14 @@ export function BottomNav() {
           className="w-14 h-14 -mt-7 rounded-full bg-primary flex items-center justify-center shadow-lg glow-primary transition-transform active:scale-95"
           aria-label={t.navSearch}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: 'var(--color-bg)' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: 'var(--background)' }}>
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
         </Link>
         <span
           className="text-[11px] font-medium mt-0.5"
-          style={{ color: isSearch ? 'var(--color-primary)' : 'rgba(255,255,255,0.45)' }}
+          style={{ color: isSearch ? 'var(--foreground)' : 'var(--muted-foreground)' }}
         >
           {t.navSearch}
         </span>
@@ -138,7 +138,7 @@ function NavItem({
   icon: React.ReactNode
   href?: string
 }) {
-  const color     = active ? 'var(--color-primary)' : 'rgba(255,255,255,0.45)'
+  const color     = active ? 'var(--foreground)' : 'var(--muted-foreground)'
   const className = "flex flex-col items-center justify-center gap-0.5 min-w-[48px] min-h-[48px] py-2 px-2 transition-colors"
 
   if (href) {

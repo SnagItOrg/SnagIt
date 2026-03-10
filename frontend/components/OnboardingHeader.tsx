@@ -44,8 +44,7 @@ export function OnboardingHeader({ currentStep, showSkip = false, showProgress =
                 className="h-full rounded-full"
                 style={{
                   width: `${(currentStep / 4) * 100}%`,
-                  backgroundColor: '#13ec6d',
-                  boxShadow: '0 0 10px rgba(19,236,109,0.4)',
+                  backgroundColor: 'var(--primary)',
                 }}
               />
             </div>

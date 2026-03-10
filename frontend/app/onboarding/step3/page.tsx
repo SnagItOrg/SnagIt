@@ -7,12 +7,7 @@ import { useLocale } from '@/components/LocaleProvider'
 import { OnboardingHeader } from '@/components/OnboardingHeader'
 import { PriceRangeSlider } from '@/components/PriceRangeSlider'
 
-const BG   = '#102218'
-const SURF = '#1a2e22'
-const BORD = '#326748'
-const PRI  = '#13ec6d'
 const MAX_PRICE = 20000
-
 
 export default function Step3() {
   const router = useRouter()
@@ -36,7 +31,7 @@ export default function Step3() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: BG, color: '#f1f5f9' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
       <OnboardingHeader currentStep={3} />
 
       {/* Main */}
@@ -46,9 +41,9 @@ export default function Step3() {
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
               Opsæt din første{' '}
-              <span style={{ color: PRI }}>Overvågning</span>
+              <span style={{ color: 'var(--foreground)' }}>Overvågning</span>
             </h1>
-            <p className="text-lg" style={{ color: '#94a3b8' }}>
+            <p className="text-lg" style={{ color: 'var(--muted-foreground)' }}>
               Fortæl os, hvad du jager efter, og vi scanner markederne 24/7.
             </p>
           </div>
@@ -57,8 +52,8 @@ export default function Step3() {
           <div
             className="p-8 md:p-12 rounded-3xl"
             style={{
-              backgroundColor: SURF,
-              border: `1px solid ${BORD}`,
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
               boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)',
             }}
           >
@@ -67,14 +62,14 @@ export default function Step3() {
               <div className="space-y-4">
                 <label
                   className="text-xs font-bold uppercase tracking-widest"
-                  style={{ color: '#64748b' }}
+                  style={{ color: 'var(--muted-foreground)' }}
                 >
                   Hvad leder du efter?
                 </label>
                 <div className="relative">
                   <span
                     className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none"
-                    style={{ color: PRI, fontSize: '24px' }}
+                    style={{ color: 'var(--muted-foreground)', fontSize: '24px' }}
                   >
                     search
                   </span>
@@ -84,14 +79,14 @@ export default function Step3() {
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="e.g. Mac Mini M4, Vintage Eames, cykel..."
                     autoFocus
-                    className="w-full rounded-2xl pl-14 pr-6 py-5 text-xl font-medium outline-none transition-all placeholder:text-slate-600"
+                    className="w-full rounded-2xl pl-14 pr-6 py-5 text-xl font-medium outline-none transition-all"
                     style={{
-                      backgroundColor: BG,
-                      border: `2px solid ${BORD}`,
-                      color: '#f1f5f9',
+                      backgroundColor: 'var(--input-background)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--foreground)',
                     }}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = PRI }}
-                    onBlur={(e)  => { e.currentTarget.style.borderColor = BORD }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
+                    onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
                   />
                 </div>
               </div>
@@ -101,18 +96,18 @@ export default function Step3() {
                 <div className="flex justify-between items-end">
                   <label
                     className="text-xs font-bold uppercase tracking-widest"
-                    style={{ color: '#64748b' }}
+                    style={{ color: 'var(--muted-foreground)' }}
                   >
                     Prisgrænse
                   </label>
                   <div className="text-2xl font-black">
-                    <span style={{ color: PRI }}>
+                    <span style={{ color: 'var(--foreground)' }}>
                       {minPrice > 0 ? `${minPrice.toLocaleString('da-DK')} – ` : ''}
                       {maxPrice === MAX_PRICE
                         ? `${maxPrice.toLocaleString('da-DK')}+`
                         : maxPrice.toLocaleString('da-DK')}
                     </span>
-                    <span className="text-sm font-bold ml-1" style={{ color: '#64748b' }}>DKK</span>
+                    <span className="text-sm font-bold ml-1" style={{ color: 'var(--muted-foreground)' }}>DKK</span>
                   </div>
                 </div>
                 <div className="px-1">
@@ -120,13 +115,11 @@ export default function Step3() {
                     minPrice={minPrice}
                     maxPrice={maxPrice}
                     maxValue={MAX_PRICE}
-                    bg={BG}
-                    border={BORD}
                     onChange={(min, max) => { setMinPrice(min); setMaxPrice(max) }}
                   />
                   <div
                     className="flex justify-between mt-6 text-[10px] font-bold uppercase tracking-tighter select-none"
-                    style={{ color: '#475569' }}
+                    style={{ color: 'var(--muted-foreground)' }}
                   >
                     <span>0</span>
                     <span>5.000</span>
@@ -140,18 +133,18 @@ export default function Step3() {
               {/* Fuzzy matching toggle */}
               <div
                 className="flex items-center justify-between p-4 rounded-2xl"
-                style={{ backgroundColor: `${BG}80`, border: `1px solid ${BORD}66` }}
+                style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)' }}
               >
                 <div className="flex items-center gap-4">
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: 'rgba(19,236,109,0.1)', color: PRI }}
+                    style={{ backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)' }}
                   >
                     <span className="material-symbols-outlined">auto_awesome</span>
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-white">Udvidet søgning</p>
-                    <p className="text-xs" style={{ color: '#64748b' }}>
+                    <p className="font-bold text-sm" style={{ color: 'var(--foreground)' }}>Udvidet søgning</p>
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
                       Inkludér lignende varer og variationer
                     </p>
                   </div>
@@ -165,11 +158,14 @@ export default function Step3() {
                   />
                   <div
                     className="relative w-12 h-6 rounded-full transition-colors"
-                    style={{ backgroundColor: fuzzy ? PRI : '#334155' }}
+                    style={{ backgroundColor: fuzzy ? 'var(--primary)' : 'var(--muted)' }}
                   >
                     <div
-                      className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
-                      style={{ transform: fuzzy ? 'translateX(24px)' : 'translateX(2px)' }}
+                      className="absolute top-0.5 h-5 w-5 rounded-full shadow transition-transform"
+                      style={{
+                        backgroundColor: fuzzy ? 'var(--primary-foreground)' : 'var(--foreground)',
+                        transform: fuzzy ? 'translateX(24px)' : 'translateX(2px)',
+                      }}
                     />
                   </div>
                 </label>
@@ -181,9 +177,8 @@ export default function Step3() {
                 disabled={!query.trim()}
                 className="w-full py-6 rounded-2xl font-black text-xl tracking-tight transition-all flex items-center justify-center gap-3 group disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
-                  backgroundColor: PRI,
-                  color: BG,
-                  boxShadow: query.trim() ? '0 20px 25px -5px rgba(19,236,109,0.2)' : undefined,
+                  backgroundColor: 'var(--primary)',
+                  color: 'var(--primary-foreground)',
                 }}
               >
                 {t.continueToStep4}
@@ -198,16 +193,16 @@ export default function Step3() {
           <div className="mt-8 flex items-center justify-between">
             <button
               onClick={() => router.push('/onboarding/step2')}
-              className="flex items-center gap-2 font-bold transition-colors hover:text-white"
-              style={{ color: '#64748b' }}
+              className="flex items-center gap-2 font-bold transition-colors"
+              style={{ color: 'var(--muted-foreground)' }}
             >
               <span className="material-symbols-outlined">arrow_back</span>
               Tilbage
             </button>
             <button
               onClick={() => router.push('/onboarding/step4')}
-              className="text-sm font-semibold transition-colors hover:text-white"
-              style={{ color: '#64748b' }}
+              className="text-sm font-semibold transition-colors"
+              style={{ color: 'var(--muted-foreground)' }}
             >
               Jeg gør det senere
             </button>
@@ -217,17 +212,11 @@ export default function Step3() {
 
       {/* Footer */}
       <footer className="py-10 text-center">
-        <div className="inline-flex items-center gap-2" style={{ color: '#475569' }}>
+        <div className="inline-flex items-center gap-2" style={{ color: 'var(--muted-foreground)' }}>
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>security</span>
           <span className="text-[10px] font-bold uppercase tracking-widest">{t.securityNote}</span>
         </div>
       </footer>
-
-      {/* Bottom accent */}
-      <div
-        className="fixed bottom-0 left-0 w-full h-px"
-        style={{ background: `linear-gradient(to right, transparent, ${PRI}33, transparent)` }}
-      />
     </div>
   )
 }

@@ -37,7 +37,7 @@ export default function ProfilePage() {
           <div className="w-full max-w-sm flex flex-col items-center gap-4 text-center">
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '72px', color: 'rgba(19,236,109,0.4)' }}
+              style={{ fontSize: '72px', color: 'var(--muted-foreground)' }}
             >
               person
             </span>
@@ -50,7 +50,7 @@ export default function ProfilePage() {
             <button
               onClick={() => router.push('/signup')}
               className="w-full rounded-2xl py-4 px-8 font-black text-sm transition-opacity hover:opacity-90"
-              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
               {t.savedTeaserCta}
             </button>
@@ -60,7 +60,7 @@ export default function ProfilePage() {
             {/* Icon */}
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '72px', color: 'rgba(19,236,109,0.4)' }}
+              style={{ fontSize: '72px', color: 'var(--muted-foreground)' }}
             >
               person
             </span>

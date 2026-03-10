@@ -1,6 +1,5 @@
 'use client'
 
-const PRI  = '#13ec6d'
 const STEP = 100
 
 interface Props {
@@ -18,8 +17,8 @@ export function PriceRangeSlider({
   maxPrice,
   maxValue = 20000,
   step = STEP,
-  bg = '#102218',
-  border = '#326748',
+  bg = 'var(--background)',
+  border = 'var(--border)',
   onChange,
 }: Props) {
   const minPct = (minPrice / maxValue) * 100
@@ -60,7 +59,7 @@ export function PriceRangeSlider({
             bottom: 0,
             left: `${minPct}%`,
             right: `${100 - maxPct}%`,
-            backgroundColor: PRI,
+            backgroundColor: 'var(--primary)',
             borderRadius: '9999px',
           }}
         />

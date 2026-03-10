@@ -23,7 +23,7 @@ export default function RootLayout({
   const gaId = process.env.NEXT_PUBLIC_GA_ID ?? 'G-TCHJJVVWK8';
 
   return (
-    <html lang="da">
+    <html lang="da" className="dark">
       <head>
         <link
           rel="stylesheet"

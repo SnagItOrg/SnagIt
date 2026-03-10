@@ -3,12 +3,6 @@
 import { useState } from 'react'
 import type { Watchlist } from '@/lib/supabase'
 
-const BG   = '#102218'
-const SURF = '#1a2e22'
-const BORD = '#326748'
-const PRI  = '#13ec6d'
-const MAX_PRICE = 20000
-
 interface Props {
   onSave:  (watchlist: Watchlist) => void
   onClose: () => void
@@ -20,6 +14,7 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState<string | null>(null)
 
+  const MAX_PRICE = 20000
   const pct = (maxPrice / MAX_PRICE) * 100
 
   async function handleSave() {
@@ -46,17 +41,17 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
   }
 
   return (
-    <div className="flex-1 flex flex-col" style={{ backgroundColor: BG, color: '#f1f5f9' }}>
+    <div className="flex-1 flex flex-col" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
       {/* Panel header */}
       <div
         className="flex items-center justify-between px-8 py-5 border-b"
-        style={{ borderColor: BORD }}
+        style={{ borderColor: 'var(--border)' }}
       >
         <h2 className="text-xl font-black tracking-tight">Ny overvågning</h2>
         <button
           onClick={onClose}
-          className="flex items-center justify-center w-9 h-9 rounded-xl transition-colors hover:bg-white/10"
-          style={{ color: '#64748b' }}
+          className="flex items-center justify-center w-9 h-9 rounded-xl transition-colors hover:bg-secondary"
+          style={{ color: 'var(--muted-foreground)' }}
           aria-label="Luk"
         >
           <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
@@ -69,8 +64,8 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
           <div
             className="p-8 rounded-3xl"
             style={{
-              backgroundColor: SURF,
-              border:          `1px solid ${BORD}`,
+              backgroundColor: 'var(--card)',
+              border:          '1px solid var(--border)',
               boxShadow:       '0 25px 50px -12px rgba(0,0,0,0.4)',
             }}
           >
@@ -79,14 +74,14 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
               <div className="space-y-3">
                 <label
                   className="text-xs font-bold uppercase tracking-widest"
-                  style={{ color: '#64748b' }}
+                  style={{ color: 'var(--muted-foreground)' }}
                 >
                   Hvad leder du efter?
                 </label>
                 <div className="relative">
                   <span
                     className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none"
-                    style={{ color: PRI, fontSize: '22px' }}
+                    style={{ color: 'var(--muted-foreground)', fontSize: '22px' }}
                   >
                     search
                   </span>
@@ -97,14 +92,14 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
                     onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                     placeholder="fx Mac Mini, Eames stol, vintagesynth..."
                     autoFocus
-                    className="w-full rounded-2xl pl-14 pr-5 py-4 text-lg font-medium outline-none transition-all placeholder:text-slate-600"
+                    className="w-full rounded-2xl pl-14 pr-5 py-4 text-lg font-medium outline-none transition-all placeholder:text-muted-foreground"
                     style={{
-                      backgroundColor: BG,
-                      border:          `2px solid ${BORD}`,
-                      color:           '#f1f5f9',
+                      backgroundColor: 'var(--input-background)',
+                      border:          '1px solid var(--border)',
+                      color:           'var(--foreground)',
                     }}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = PRI }}
-                    onBlur={(e)  => { e.currentTarget.style.borderColor = BORD }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
+                    onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
                   />
                 </div>
               </div>
@@ -114,17 +109,17 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
                 <div className="flex justify-between items-end">
                   <label
                     className="text-xs font-bold uppercase tracking-widest"
-                    style={{ color: '#64748b' }}
+                    style={{ color: 'var(--muted-foreground)' }}
                   >
                     Maksimalpris
                   </label>
                   <div className="text-2xl font-black">
-                    <span style={{ color: PRI }}>
+                    <span style={{ color: 'var(--foreground)' }}>
                       {maxPrice === MAX_PRICE
                         ? `${maxPrice.toLocaleString('da-DK')}+`
                         : maxPrice.toLocaleString('da-DK')}
                     </span>
-                    <span className="text-xs font-bold ml-1" style={{ color: '#64748b' }}>DKK</span>
+                    <span className="text-xs font-bold ml-1" style={{ color: 'var(--muted-foreground)' }}>DKK</span>
                   </div>
                 </div>
                 <input
@@ -136,13 +131,13 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
                   className="w-full h-2.5 rounded-full appearance-none cursor-pointer"
                   style={{
-                    background: `linear-gradient(to right, ${PRI} ${pct}%, ${BG} ${pct}%)`,
-                    border:     `1px solid ${BORD}`,
+                    background: `linear-gradient(to right, var(--primary) ${pct}%, var(--muted) ${pct}%)`,
+                    border:     '1px solid var(--border)',
                   }}
                 />
                 <div
                   className="flex justify-between text-[10px] font-bold uppercase tracking-tighter select-none"
-                  style={{ color: '#475569' }}
+                  style={{ color: 'var(--muted-foreground)' }}
                 >
                   <span>0</span>
                   <span>5.000</span>
@@ -167,9 +162,8 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
                 disabled={saving || !query.trim()}
                 className="w-full py-4 rounded-2xl font-black text-lg tracking-tight transition-all flex items-center justify-center gap-2 group disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
-                  backgroundColor: PRI,
-                  color:           BG,
-                  boxShadow:       query.trim() ? '0 20px 25px -5px rgba(19,236,109,0.2)' : undefined,
+                  backgroundColor: 'var(--primary)',
+                  color:           'var(--primary-foreground)',
                 }}
               >
                 {saving ? '…' : (
