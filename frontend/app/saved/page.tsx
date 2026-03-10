@@ -35,13 +35,13 @@ export default function SavedPage() {
             {/* CTA section below — not an overlay */}
             <div
               className="rounded-2xl p-6 flex flex-col gap-3 text-center"
-              style={{ backgroundColor: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.1)' }}
+              style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
             >
               <h2 className="text-xl font-black text-white">{t.savedTeaserHeading}</h2>
               <button
                 onClick={() => router.push('/login')}
                 className="w-full rounded-2xl py-4 px-8 font-black text-sm transition-opacity hover:opacity-90"
-                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+                style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
               >
                 {t.savedTeaserCta}
               </button>
@@ -52,7 +52,7 @@ export default function SavedPage() {
           <div className="w-full max-w-sm flex flex-col items-center gap-6 text-center">
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '72px', color: 'rgba(19,236,109,0.4)' }}
+              style={{ fontSize: '72px', color: 'var(--muted-foreground)' }}
             >
               bookmark
             </span>
@@ -87,7 +87,7 @@ function FakeSavedCard() {
       <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-white/5 flex items-center justify-center">
         <span
           className="material-symbols-outlined"
-          style={{ fontSize: '28px', color: 'var(--color-text-muted)' }}
+          style={{ fontSize: '28px', color: 'var(--muted-foreground)' }}
         >
           piano
         </span>
@@ -96,7 +96,7 @@ function FakeSavedCard() {
       {/* Content */}
       <div className="flex-1 flex flex-col gap-1">
         <p className="text-sm font-semibold text-text">Roland Juno-106</p>
-        <p className="text-base font-black" style={{ color: 'var(--color-primary)' }}>4.500 kr</p>
+        <p className="text-base font-black" style={{ color: 'var(--foreground)' }}>4.500 kr</p>
         <p className="text-[11px]" style={{ color: '#475569' }}>
           Typisk 4.200–5.800 kr
         </p>
@@ -111,7 +111,7 @@ function FakeSavedCard() {
         <div className="flex gap-2 mt-1">
           <div
             className="px-3 py-1.5 rounded-xl text-xs font-semibold"
-            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+            style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
           >
             Gem annonce
           </div>

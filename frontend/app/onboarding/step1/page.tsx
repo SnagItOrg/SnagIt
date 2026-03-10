@@ -14,10 +14,6 @@ const CATEGORIES = [
   { id: 'tech',        label: 'Teknologi',    sub: 'Mobil & Computer',           icon: 'devices'     },
 ]
 
-const BG   = '#102218'
-const SURF = '#162a1e'
-const PRI  = '#13ec6d'
-
 export default function Step1() {
   const router = useRouter()
   const { t } = useLocale()
@@ -40,7 +36,7 @@ export default function Step1() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: BG, color: '#f1f5f9' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
       <OnboardingHeader currentStep={1} showSkip />
 
       {/* Main */}
@@ -49,7 +45,7 @@ export default function Step1() {
           <h1
             className="text-5xl lg:text-6xl font-black tracking-tight mb-6"
             style={{
-              background: 'linear-gradient(to bottom, #ffffff, #64748b)',
+              background: 'linear-gradient(to bottom, var(--foreground), var(--muted-foreground))',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -57,7 +53,7 @@ export default function Step1() {
           >
             Vælg dine jagtmarker.
           </h1>
-          <p className="text-lg font-medium" style={{ color: '#94a3b8' }}>
+          <p className="text-lg font-medium" style={{ color: 'var(--muted-foreground)' }}>
             Vælg de kategorier, du er mest interesseret i. Vi scanner danske
             markedspladser for de bedste tilbud tilpasset din smag.
           </p>
@@ -73,13 +69,12 @@ export default function Step1() {
                 onClick={() => toggle(cat.id)}
                 className={`group relative rounded-2xl overflow-hidden transition-all duration-200 ease-in-out text-left border ${
                   isSelected
-                    ? 'border-[#13ec6d]'
-                    : 'border-white/10 hover:border-[#13ec6d]/50'
+                    ? 'border-border'
+                    : 'border-white/10 hover:border-border/50'
                 }`}
                 style={{
                   aspectRatio: '4/5',
-                  backgroundColor: SURF,
-                  boxShadow: isSelected ? '0 0 25px rgba(19,236,109,0.3)' : undefined,
+                  backgroundColor: 'var(--card)',
                 }}
               >
                 {/* Background image from Supabase Storage */}
@@ -98,13 +93,13 @@ export default function Step1() {
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 transition-colors"
                     style={{
-                      backgroundColor: isSelected ? PRI : 'rgba(19,236,109,0.2)',
+                      backgroundColor: isSelected ? 'var(--secondary)' : 'rgba(255,255,255,0.15)',
                       backdropFilter: 'blur(12px)',
                     }}
                   >
                     <span
                       className="material-symbols-outlined"
-                      style={{ color: isSelected ? BG : PRI }}
+                      style={{ color: isSelected ? 'var(--secondary-foreground)' : 'var(--foreground)' }}
                     >
                       {cat.icon}
                     </span>
@@ -120,7 +115,7 @@ export default function Step1() {
                   className="material-symbols-outlined absolute top-3 right-3 transition-all duration-200"
                   style={{
                     fontSize: '22px',
-                    color: isSelected ? PRI : '#475569',
+                    color: isSelected ? 'var(--foreground)' : 'var(--muted-foreground)',
                     fontVariationSettings: isSelected ? "'FILL' 1" : "'FILL' 0",
                   }}
                 >
@@ -137,9 +132,8 @@ export default function Step1() {
             onClick={handleContinue}
             className="w-full py-4 rounded-xl font-black text-lg transition-all flex items-center justify-center gap-2 group"
             style={{
-              backgroundColor: PRI,
-              color: BG,
-              boxShadow: '0 20px 25px -5px rgba(19,236,109,0.2)',
+              backgroundColor: 'var(--primary)',
+              color: 'var(--primary-foreground)',
             }}
           >
             {t.continueToStep2}
@@ -147,7 +141,7 @@ export default function Step1() {
               arrow_forward
             </span>
           </button>
-          <p className="mt-6 text-sm font-medium" style={{ color: '#64748b' }}>
+          <p className="mt-6 text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>
             Du kan ændre kategorier eller tilføje flere senere.
           </p>
         </div>
@@ -155,7 +149,7 @@ export default function Step1() {
 
       {/* Footer */}
       <footer className="py-10 text-center">
-        <div className="inline-flex items-center gap-2" style={{ color: '#475569' }}>
+        <div className="inline-flex items-center gap-2" style={{ color: 'var(--muted-foreground)' }}>
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>security</span>
           <span className="text-[10px] font-bold uppercase tracking-widest">
             {t.securityNote}

@@ -93,8 +93,8 @@ export function SideNav({ active, onChange }: Props) {
             ? pathname === href
             : tab !== undefined && active === tab
           const itemStyle = {
-            color: isActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.6)',
-            backgroundColor: isActive ? 'rgba(19,236,109,0.08)' : 'transparent',
+            color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
+            backgroundColor: isActive ? 'var(--secondary)' : 'transparent',
           }
           const itemClass = "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors w-full text-left"
 
@@ -130,8 +130,8 @@ export function SideNav({ active, onChange }: Props) {
               onClick={() => setLocale(l)}
               className="text-xs font-medium px-2.5 py-1.5 rounded-md transition-colors"
               style={{
-                color: locale === l ? 'var(--color-primary)' : 'rgba(255,255,255,0.4)',
-                backgroundColor: locale === l ? 'rgba(19,236,109,0.1)' : 'transparent',
+                color: locale === l ? 'var(--foreground)' : 'var(--muted-foreground)',
+                backgroundColor: locale === l ? 'var(--secondary)' : 'transparent',
               }}
             >
               {l.toUpperCase()}

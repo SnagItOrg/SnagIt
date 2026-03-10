@@ -194,7 +194,7 @@ function SearchPageInner() {
               <div className="relative flex-1">
                 <span
                   className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ fontSize: '18px', color: 'var(--color-primary)' }}
+                  style={{ fontSize: '18px', color: 'var(--muted-foreground)' }}
                 >
                   search
                 </span>
@@ -205,18 +205,18 @@ function SearchPageInner() {
                   placeholder={t.searchInputPlaceholder}
                   className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none transition-all placeholder:opacity-40"
                   style={{
-                    backgroundColor: 'var(--color-surface)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    color: 'var(--color-text)',
+                    backgroundColor: 'var(--input-background)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--foreground)',
                   }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--color-primary)' }}
-                  onBlur={(e)  => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
+                  onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
                 />
               </div>
               <button
                 type="submit"
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 active:opacity-100 flex-shrink-0"
-                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+                style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
               >
                 {t.search}
               </button>
@@ -238,9 +238,9 @@ function SearchPageInner() {
                     placeholder="—"
                     className="w-24 rounded-lg px-2 py-1 text-xs outline-none text-right"
                     style={{
-                      backgroundColor: 'var(--color-surface)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: 'var(--color-text)',
+                      backgroundColor: 'var(--input-background)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--foreground)',
                     }}
                   />
                   <span
@@ -269,9 +269,9 @@ function SearchPageInner() {
                       onClick={() => setSort(key)}
                       className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
                       style={{
-                        backgroundColor: sort === key ? 'rgba(19,236,109,0.15)' : 'var(--color-surface)',
-                        color: sort === key ? 'var(--color-primary)' : 'rgba(255,255,255,0.5)',
-                        border: sort === key ? '1px solid rgba(19,236,109,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                        backgroundColor: sort === key ? 'var(--secondary)' : 'transparent',
+                        color: sort === key ? 'var(--foreground)' : 'var(--muted-foreground)',
+                        border: sort === key ? '1px solid var(--border)' : '1px solid var(--border)',
                       }}
                     >
                       {label}
@@ -290,9 +290,9 @@ function SearchPageInner() {
                     onClick={() => handleSelectCategory(null)}
                     className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
                     style={{
-                      backgroundColor: !selectedCategory ? 'var(--color-primary)' : 'transparent',
-                      color:           !selectedCategory ? 'var(--color-bg)'      : 'rgba(255,255,255,0.6)',
-                      border:          !selectedCategory ? '1px solid transparent' : '1px solid rgba(255,255,255,0.2)',
+                      backgroundColor: !selectedCategory ? 'var(--secondary)' : 'transparent',
+                      color:           !selectedCategory ? 'var(--foreground)' : 'var(--muted-foreground)',
+                      border:          '1px solid var(--border)',
                     }}
                   >
                     Alle
@@ -307,9 +307,9 @@ function SearchPageInner() {
                         onClick={() => handleSelectCategory(isSelected ? null : cat)}
                         className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
                         style={{
-                          backgroundColor: isSelected ? 'var(--color-primary)' : 'transparent',
-                          color:           isSelected ? 'var(--color-bg)'      : 'rgba(255,255,255,0.6)',
-                          border:          isSelected ? '1px solid transparent' : '1px solid rgba(255,255,255,0.2)',
+                          backgroundColor: isSelected ? 'var(--secondary)' : 'transparent',
+                          color:           isSelected ? 'var(--foreground)' : 'var(--muted-foreground)',
+                          border:          '1px solid var(--border)',
                         }}
                       >
                         {label}
@@ -333,9 +333,9 @@ function SearchPageInner() {
                         onClick={() => setSelectedBrand(isSelected ? null : brand)}
                         className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
                         style={{
-                          backgroundColor: isSelected ? 'var(--color-primary)' : 'transparent',
-                          color:           isSelected ? 'var(--color-bg)'      : 'rgba(255,255,255,0.6)',
-                          border:          isSelected ? '1px solid transparent' : '1px solid rgba(255,255,255,0.2)',
+                          backgroundColor: isSelected ? 'var(--secondary)' : 'transparent',
+                          color:           isSelected ? 'var(--foreground)' : 'var(--muted-foreground)',
+                          border:          '1px solid var(--border)',
                         }}
                       >
                         {brand.name}
@@ -395,7 +395,7 @@ function SearchPageInner() {
               <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
                   {filtered.length} {t.resultsFor}{' '}
-                  <span className="font-semibold" style={{ color: 'var(--color-text)' }}>
+                  <span className="font-semibold" style={{ color: 'var(--foreground)' }}>
                     &ldquo;{currentQuery}&rdquo;
                   </span>
                 </p>
@@ -403,7 +403,7 @@ function SearchPageInner() {
                   onClick={() => handleCreateWatchlist()}
                   disabled={creating}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+                  style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add_alert</span>
                   {t.createWatchlist}
@@ -446,7 +446,7 @@ function SearchPageInner() {
       {toast && (
         <div
           className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl text-sm font-semibold shadow-xl z-50 transition-all"
-          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
         >
           {toast}
         </div>

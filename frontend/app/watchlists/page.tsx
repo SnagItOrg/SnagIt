@@ -161,7 +161,7 @@ export default function WatchlistsPage() {
                 {/* CTA section below — not an overlay */}
                 <div
                   className="rounded-2xl p-6 flex flex-col gap-3 text-center"
-                  style={{ backgroundColor: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  style={{ backgroundColor: 'var(--card)', border: '1px solid rgba(255,255,255,0.1)' }}
                 >
                   <h2 className="text-xl font-black text-white">{t.watchlistTeaserHeading}</h2>
                   <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
@@ -170,7 +170,7 @@ export default function WatchlistsPage() {
                   <button
                     onClick={() => router.push('/login')}
                     className="w-full rounded-2xl py-4 px-8 font-black text-sm transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+                    style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
                   >
                     {t.watchlistTeaserCta}
                   </button>
@@ -184,7 +184,7 @@ export default function WatchlistsPage() {
                 <div className="flex flex-col items-center gap-3 text-center py-8">
                   <span
                     className="material-symbols-outlined"
-                    style={{ fontSize: '56px', color: 'var(--color-primary)', opacity: 0.4 }}
+                    style={{ fontSize: '56px', color: 'var(--muted-foreground)', opacity: 0.6 }}
                   >
                     travel_explore
                   </span>
@@ -218,11 +218,11 @@ function FakeWatchlistCard() {
       style={{ aspectRatio: '4/3' }}
     >
       {/* Image area */}
-      <div className="relative flex-1 overflow-hidden rounded-t-2xl" style={{ backgroundColor: 'var(--color-surface)' }}>
+      <div className="relative flex-1 overflow-hidden rounded-t-2xl" style={{ backgroundColor: 'var(--card)' }}>
         <div className="w-full h-full flex items-center justify-center">
           <span
             className="material-symbols-outlined"
-            style={{ fontSize: '56px', color: 'var(--color-text-muted)' }}
+            style={{ fontSize: '56px', color: 'var(--muted-foreground)' }}
           >
             piano
           </span>
@@ -235,11 +235,11 @@ function FakeWatchlistCard() {
         <div className="flex items-center gap-1.5 flex-wrap">
           <span
             className="text-xs font-black px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+            style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
           >
             +2 NYE
           </span>
-          <span className="text-xs" style={{ color: 'var(--color-primary)', opacity: 0.8 }}>
+          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
             Max 18.000 kr
           </span>
           <span className="text-xs text-white/40">dba.dk</span>

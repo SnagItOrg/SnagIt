@@ -81,7 +81,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
       className={`relative flex flex-col rounded-2xl border bg-surface cursor-pointer transition-all duration-200 ${
         confirming
           ? 'border-red-500/40'
-          : 'border-border/60 hover:border-primary/50 hover:shadow-[0_0_20px_rgba(19,236,109,0.1)] active:border-primary active:shadow-[0_0_25px_rgba(19,236,109,0.2)]'
+          : 'border-border/60 hover:border-border active:border-border'
       }`}
       style={{ aspectRatio: '4/3' }}
     >
@@ -99,7 +99,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
           <div className="w-full h-full flex items-center justify-center">
             <span
               className="material-symbols-outlined"
-              style={{ fontSize: '48px', color: 'var(--color-text-muted)' }}
+              style={{ fontSize: '48px', color: 'var(--muted-foreground)' }}
             >
               search
             </span>
@@ -140,12 +140,12 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
             <p className="text-sm font-bold text-white truncate mb-1.5">{displayName}</p>
             <div className="flex items-center gap-1.5 flex-wrap">
               {watchlist.new_count > 0 && (
-                <span className="text-xs font-black px-2 py-0.5 rounded-full bg-primary text-bg">
+                <span className="text-xs font-black px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground border border-border">
                   {watchlist.new_count} {t.newMatches}
                 </span>
               )}
               {watchlist.max_price != null && (
-                <span className="text-xs" style={{ color: 'var(--color-primary)', opacity: 0.8 }}>
+                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
                   Max {watchlist.max_price.toLocaleString('da-DK')} kr
                 </span>
               )}

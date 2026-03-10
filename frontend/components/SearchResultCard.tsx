@@ -144,7 +144,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
             className="w-full h-full object-cover"
           />
         ) : (
-          <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--color-text-muted)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--muted-foreground)' }}>
             image
           </span>
         )}
@@ -156,7 +156,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
         <p className="text-sm font-semibold text-text truncate">{listing.title}</p>
 
         {/* Price */}
-        <p className="text-base font-black" style={{ color: 'var(--color-primary)' }}>
+        <p className="text-base font-black" style={{ color: 'var(--foreground)' }}>
           {priceFormatted}
         </p>
 
@@ -171,9 +171,9 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
               placeholder="Fra"
               className="w-16 rounded px-1.5 py-0.5 text-[11px] outline-none"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.07)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                color: 'var(--color-text)',
+                backgroundColor: 'var(--input-background)',
+                border: '1px solid var(--border)',
+                color: 'var(--foreground)',
               }}
               autoFocus
             />
@@ -186,9 +186,9 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
               placeholder="Til"
               className="w-16 rounded px-1.5 py-0.5 text-[11px] outline-none"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.07)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                color: 'var(--color-text)',
+                backgroundColor: 'var(--input-background)',
+                border: '1px solid var(--border)',
+                color: 'var(--foreground)',
               }}
             />
             <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>kr</span>
@@ -196,7 +196,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
               onClick={handleSave}
               disabled={saving || !fromPrice}
               className="text-[11px] px-1.5 py-0.5 rounded transition-opacity disabled:opacity-40"
-              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+              style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
               title="Gem"
             >
               ✓
@@ -247,11 +247,11 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
               <div className="flex items-center gap-1.5">
                 <span
                   className="material-symbols-outlined"
-                  style={{ fontSize: '16px', color: 'var(--color-primary)' }}
+                  style={{ fontSize: '16px', color: 'var(--foreground)' }}
                 >
                   mark_email_read
                 </span>
-                <span className="text-sm font-semibold" style={{ color: 'var(--color-primary)' }}>
+                <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
                   {t.checkInbox}
                 </span>
               </div>
@@ -271,18 +271,18 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
                 autoFocus
                 className="w-full rounded-xl px-3 py-2 text-sm outline-none transition-all"
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.07)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  color: 'var(--color-text)',
+                  backgroundColor: 'var(--input-background)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--foreground)',
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(19,236,109,0.5)' }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
               />
               <button
                 type="submit"
                 disabled={captureLoading || !captureEmail.trim()}
                 className="w-full rounded-xl py-2 text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+                style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
               >
                 {captureLoading ? '...' : t.sendLoginLink}
               </button>
@@ -297,7 +297,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
               onClick={handleWatchlistClick}
               disabled={creating}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-bg)' }}
+              style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add_alert</span>
               {t.createWatchlist}

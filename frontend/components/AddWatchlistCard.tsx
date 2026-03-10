@@ -17,7 +17,7 @@ export function AddWatchlistCard({ onOpen }: Props) {
     >
       <span
         className="material-symbols-outlined"
-        style={{ fontSize: '40px', color: 'var(--color-text-muted)' }}
+        style={{ fontSize: '40px', color: 'var(--muted-foreground)' }}
       >
         add_circle
       </span>

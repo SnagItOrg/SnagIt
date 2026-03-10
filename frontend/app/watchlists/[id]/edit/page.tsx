@@ -6,10 +6,6 @@ import { SideNav } from '@/components/SideNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { PriceRangeSlider } from '@/components/PriceRangeSlider'
 
-const BG   = '#102218'
-const SURF = '#1a2e22'
-const BORD = '#326748'
-const PRI  = '#13ec6d'
 const MAX_PRICE = 20000
 
 export default function EditWatchlistPage() {
@@ -74,11 +70,11 @@ export default function EditWatchlistPage() {
           <div className="w-full max-w-2xl">
             {/* Heading */}
             <div className="text-center mb-12">
-              <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4" style={{ color: '#f1f5f9' }}>
+              <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4" style={{ color: 'var(--foreground)' }}>
                 Rediger{' '}
-                <span style={{ color: PRI }}>Overvågning</span>
+                <span>Overvågning</span>
               </h1>
-              <p className="text-lg" style={{ color: '#94a3b8' }}>
+              <p className="text-lg" style={{ color: 'var(--muted-foreground)' }}>
                 Opdater hvad du jager efter, og juster din maksimalpris.
               </p>
             </div>
@@ -89,8 +85,8 @@ export default function EditWatchlistPage() {
               <div
                 className="p-8 md:p-12 rounded-3xl"
                 style={{
-                  backgroundColor: SURF,
-                  border: `1px solid ${BORD}`,
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid var(--border)',
                   boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)',
                 }}
               >
@@ -99,14 +95,14 @@ export default function EditWatchlistPage() {
                   <div className="space-y-4">
                     <label
                       className="text-xs font-bold uppercase tracking-widest"
-                      style={{ color: '#64748b' }}
+                      style={{ color: 'var(--muted-foreground)' }}
                     >
                       Hvad leder du efter?
                     </label>
                     <div className="relative">
                       <span
                         className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none"
-                        style={{ color: PRI, fontSize: '24px' }}
+                        style={{ color: 'var(--muted-foreground)', fontSize: '24px' }}
                       >
                         search
                       </span>
@@ -116,14 +112,14 @@ export default function EditWatchlistPage() {
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="e.g. Mac Mini M4, Vintage Eames, cykel..."
                         autoFocus
-                        className="w-full rounded-2xl pl-14 pr-6 py-5 text-xl font-medium outline-none transition-all placeholder:text-slate-600"
+                        className="w-full rounded-2xl pl-14 pr-6 py-5 text-xl font-medium outline-none transition-all"
                         style={{
-                          backgroundColor: BG,
-                          border: `2px solid ${BORD}`,
-                          color: '#f1f5f9',
+                          backgroundColor: 'var(--input-background)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--foreground)',
                         }}
-                        onFocus={(e) => { e.currentTarget.style.borderColor = PRI }}
-                        onBlur={(e)  => { e.currentTarget.style.borderColor = BORD }}
+                        onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
+                        onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
                       />
                     </div>
                   </div>
@@ -133,18 +129,18 @@ export default function EditWatchlistPage() {
                     <div className="flex justify-between items-end">
                       <label
                         className="text-xs font-bold uppercase tracking-widest"
-                        style={{ color: '#64748b' }}
+                        style={{ color: 'var(--muted-foreground)' }}
                       >
                         Prisgrænse
                       </label>
                       <div className="text-2xl font-black">
-                        <span style={{ color: PRI }}>
+                        <span style={{ color: 'var(--foreground)' }}>
                           {minPrice > 0 ? `${minPrice.toLocaleString('da-DK')} – ` : ''}
                           {maxPrice === MAX_PRICE
                             ? `${maxPrice.toLocaleString('da-DK')}+`
                             : maxPrice.toLocaleString('da-DK')}
                         </span>
-                        <span className="text-sm font-bold ml-1" style={{ color: '#64748b' }}>DKK</span>
+                        <span className="text-sm font-bold ml-1" style={{ color: 'var(--muted-foreground)' }}>DKK</span>
                       </div>
                     </div>
                     <div className="px-1">
@@ -152,13 +148,11 @@ export default function EditWatchlistPage() {
                         minPrice={minPrice}
                         maxPrice={maxPrice}
                         maxValue={MAX_PRICE}
-                        bg={BG}
-                        border={BORD}
                         onChange={(min, max) => { setMinPrice(min); setMaxPrice(max) }}
                       />
                       <div
                         className="flex justify-between mt-6 text-[10px] font-bold uppercase tracking-tighter select-none"
-                        style={{ color: '#475569' }}
+                        style={{ color: 'var(--muted-foreground)' }}
                       >
                         <span>0</span>
                         <span>5.000</span>
@@ -184,9 +178,8 @@ export default function EditWatchlistPage() {
                     disabled={saving || !query.trim()}
                     className="w-full py-6 rounded-2xl font-black text-xl tracking-tight transition-all flex items-center justify-center gap-3 group disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{
-                      backgroundColor: PRI,
-                      color: BG,
-                      boxShadow: query.trim() ? '0 20px 25px -5px rgba(19,236,109,0.2)' : undefined,
+                      backgroundColor: 'var(--primary)',
+                      color: 'var(--primary-foreground)',
                     }}
                   >
                     {saving ? '…' : (
@@ -214,8 +207,8 @@ export default function EditWatchlistPage() {
             <div className="mt-8 flex items-center justify-between">
               <button
                 onClick={() => router.push('/watchlists')}
-                className="flex items-center gap-2 font-bold transition-colors hover:text-white"
-                style={{ color: '#64748b' }}
+                className="flex items-center gap-2 font-bold transition-colors"
+                style={{ color: 'var(--muted-foreground)' }}
               >
                 <span className="material-symbols-outlined">arrow_back</span>
                 Tilbage
@@ -225,7 +218,7 @@ export default function EditWatchlistPage() {
         </main>
 
         <footer className="py-10 text-center">
-          <div className="inline-flex items-center gap-2" style={{ color: '#475569' }}>
+          <div className="inline-flex items-center gap-2" style={{ color: 'var(--muted-foreground)' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>security</span>
             <span className="text-[10px] font-bold uppercase tracking-widest">{t.securityNote}</span>
           </div>

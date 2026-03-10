@@ -29,14 +29,14 @@ export default function LandingPage() {
   return (
     <div
       className="min-h-screen flex flex-col"
-      style={{ backgroundColor: '#102218', color: '#f1f5f9' }}
+      style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
     >
       {/* Logo */}
       <header className="px-6 py-5 flex items-center">
-        <div className="flex items-center gap-3" style={{ color: '#13ec6d' }}>
+        <div className="flex items-center gap-3" style={{ color: 'var(--foreground)' }}>
           <div
             className="size-8 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: 'rgba(19,236,109,0.1)' }}
+            style={{ backgroundColor: 'var(--secondary)' }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
           </div>
@@ -70,11 +70,11 @@ export default function LandingPage() {
                 placeholder={t.searchInputPlaceholder}
                 className="w-full rounded-2xl pl-14 pr-6 py-4 text-lg text-white outline-none transition-all"
                 style={{
-                  backgroundColor: 'var(--color-surface)',
+                  backgroundColor: 'var(--input-background)',
                   border: '1px solid rgba(255,255,255,0.1)',
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(19,236,109,0.5)' }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
                 autoFocus
               />
             </div>
@@ -82,7 +82,7 @@ export default function LandingPage() {
             <button
               type="submit"
               className="w-full mt-3 rounded-2xl px-8 py-4 text-lg font-black transition-opacity hover:opacity-90 active:opacity-100"
-              style={{ backgroundColor: '#13ec6d', color: '#102218' }}
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
               {t.search}
             </button>
