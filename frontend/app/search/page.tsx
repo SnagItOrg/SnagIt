@@ -59,12 +59,13 @@ function SearchPageInner() {
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState<string | null>(null)
   const [searched,     setSearched]     = useState(false)
-  const [creating,       setCreating]       = useState(false)
-  const [toast,          setToast]          = useState<string | null>(null)
+  const [creating,         setCreating]         = useState(false)
+  const [toast,            setToast]            = useState<string | null>(null)
   const [categories,       setCategories]       = useState<Category[]>([])
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [brands,           setBrands]           = useState<Brand[]>([])
   const [selectedBrand,    setSelectedBrand]    = useState<Brand | null>(null)
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function showToast(msg: string) {
@@ -93,6 +94,7 @@ function SearchPageInner() {
       } else {
         const data = await res.json()
         setListings(data.listings ?? [])
+        setSelectedPlatform(null)
       }
     } catch {
       setError(t.unknownError)
@@ -171,11 +173,25 @@ function SearchPageInner() {
     ? brands.filter((b) => b.category_id === selectedCategory.id)
     : brands
 
+  // Platforms present in current results
+  function normalisePlatform(l: Listing): string {
+    const p = l.platform ?? l.source ?? ''
+    if (p === 'reverb') return 'reverb'
+    if (p === 'facebook' || p === 'fb') return 'facebook'
+    return 'dba'
+  }
+  const platformsInResults: string[] = listings.length > 0
+    ? Array.from(new Set(listings.map(normalisePlatform)))
+    : []
+
+  const platformLabel: Record<string, string> = { reverb: 'Reverb', dba: 'DBA', facebook: 'Facebook' }
+
   // Client-side filter + sort
   const filtered = sortListings(
     listings
       .filter((l) => maxPrice === '' || maxPrice <= 0 || l.price == null || l.price <= (maxPrice as number))
-      .filter((l) => !selectedBrand || l.title.toLowerCase().includes(selectedBrand.name.toLowerCase())),
+      .filter((l) => !selectedBrand || l.title.toLowerCase().includes(selectedBrand.name.toLowerCase()))
+      .filter((l) => !selectedPlatform || normalisePlatform(l) === selectedPlatform),
     sort,
   )
 
@@ -345,6 +361,30 @@ function SearchPageInner() {
                 </div>
               </div>
             )}
+
+            {/* Platform chip row — only when results are present and multiple platforms exist */}
+            {platformsInResults.length > 1 && (
+              <div className="flex gap-2 flex-wrap">
+                {platformsInResults.map((p) => {
+                  const isSelected = selectedPlatform === p
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setSelectedPlatform(isSelected ? null : p)}
+                      className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
+                      style={{
+                        backgroundColor: isSelected ? 'var(--secondary)' : 'transparent',
+                        color:           isSelected ? 'var(--foreground)' : 'var(--muted-foreground)',
+                        border:          '1px solid var(--border)',
+                      }}
+                    >
+                      {platformLabel[p] ?? p}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </form>
         </div>
 
@@ -410,8 +450,8 @@ function SearchPageInner() {
                 </button>
               </div>
 
-              {/* Result list */}
-              <div className="flex flex-col gap-3">
+              {/* Mobile: list */}
+              <div className="flex flex-col gap-3 md:hidden">
                 {filtered.map((listing) => (
                   <SearchResultCard
                     key={listing.id}
@@ -419,6 +459,21 @@ function SearchPageInner() {
                     onCreateWatchlist={handleCreateWatchlist}
                     creating={creating}
                     onToast={showToast}
+                    variant="list"
+                  />
+                ))}
+              </div>
+
+              {/* Desktop: 4-col grid */}
+              <div className="hidden md:grid md:grid-cols-4 md:gap-4">
+                {filtered.map((listing) => (
+                  <SearchResultCard
+                    key={listing.id}
+                    listing={listing}
+                    onCreateWatchlist={handleCreateWatchlist}
+                    creating={creating}
+                    onToast={showToast}
+                    variant="grid"
                   />
                 ))}
               </div>

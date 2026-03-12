@@ -31,9 +31,25 @@ interface Props {
   onCreateWatchlist: (listingTitle?: string) => void
   creating:          boolean
   onToast?:          (msg: string) => void
+  variant?:          'list' | 'grid'
 }
 
-export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast }: Props) {
+function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boolean }) {
+  const platform = listing.platform ?? listing.source
+  const cls = absolute
+    ? 'absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full'
+    : 'text-xs font-medium px-2 py-0.5 rounded-full'
+
+  if (platform === 'reverb') {
+    return <span className={`${cls} bg-orange-500 text-white`}>Reverb</span>
+  }
+  if (platform === 'facebook' || platform === 'fb') {
+    return <span className={`${cls} bg-blue-500 text-white`}>Facebook</span>
+  }
+  return <span className={`${cls} bg-secondary text-muted-foreground border border-border`}>DBA</span>
+}
+
+export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast, variant = 'list' }: Props) {
   const { locale, t } = useLocale()
 
   const [stats,          setStats]         = useState<PriceStats | null>(null)
@@ -106,7 +122,6 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
     if (!email) return
     setCaptureLoading(true)
 
-    // Persist watchlist intent so it survives the auth redirect
     localStorage.setItem('pending_watchlist', JSON.stringify({
       query: listing.title,
       max_price: null,
@@ -131,6 +146,93 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
   const hasStats  = stats !== null && stats.count > 0
   const showRange = hasStats && stats!.p25 != null && stats!.p75 != null
 
+  const priceOriginal = (listing as Listing & { price_original?: number | null }).price_original
+  const hasDiscount   = priceOriginal != null && listing.price != null && priceOriginal > listing.price
+  const discountPct   = hasDiscount
+    ? Math.round((1 - listing.price! / priceOriginal!) * 100)
+    : 0
+
+  // ─── Grid variant ──────────────────────────────────────────────────────────
+  if (variant === 'grid') {
+    return (
+      <div className="flex flex-col rounded-2xl bg-card border border-card-border overflow-hidden">
+        {/* Image area */}
+        <div className="relative w-full aspect-[4/3] bg-muted">
+          {listing.image_url ? (
+            <Image
+              src={listing.image_url}
+              alt={listing.title}
+              fill
+              sizes="(min-width: 768px) 25vw, 100vw"
+              className="object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--muted-foreground)' }}>
+                image
+              </span>
+            </div>
+          )}
+
+          {/* Platform badge */}
+          <PlatformBadge listing={listing} absolute />
+
+          {/* Discount badge */}
+          {hasDiscount && (
+            <span
+              className="absolute bottom-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }}
+            >
+              ↓ -{discountPct}%
+            </span>
+          )}
+
+          {/* Save / heart button */}
+          <button
+            onClick={() => onCreateWatchlist(listing.title)}
+            disabled={creating}
+            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center transition-opacity hover:opacity-90 disabled:opacity-50"
+            aria-label="Gem overvågning"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#111' }}>
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Card body */}
+        <div className="p-3 flex flex-col gap-1">
+          <p className="text-sm font-semibold truncate text-foreground">{listing.title}</p>
+
+          <p className="text-base font-black text-foreground">{priceFormatted}</p>
+
+          {/* Typical price */}
+          <button
+            onClick={handleClickPrice}
+            className="text-left text-[11px] w-fit transition-opacity hover:opacity-80 text-muted-foreground"
+          >
+            {showRange
+              ? `Typisk ${stats!.p25!.toLocaleString('da-DK')}–${stats!.p75!.toLocaleString('da-DK')} kr`
+              : <>Typisk pris · <span className="italic">{t.comingSoon.toLowerCase()}</span></>
+            }
+          </button>
+
+          {/* Location · time */}
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-auto pt-1">
+            {listing.location && (
+              <>
+                <span className="truncate">{listing.location}</span>
+                <span>·</span>
+              </>
+            )}
+            <span className="flex-shrink-0">{timeSince(listing.scraped_at, locale)}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── List variant (default) ─────────────────────────────────────────────────
   return (
     <div className="flex gap-3 p-3 rounded-2xl bg-card border border-border hover:border-border/80 transition-colors">
       {/* Thumbnail */}
@@ -225,10 +327,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
 
         {/* Meta: platform + time */}
         <div className="flex items-center gap-1.5 text-[11px] mt-auto text-muted-foreground">
-          {(listing.platform ?? listing.source) === 'reverb'
-            ? <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300">Reverb</span>
-            : <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">DBA</span>
-          }
+          <PlatformBadge listing={listing} />
           <span>·</span>
           <span>{timeSince(listing.scraped_at, locale)}</span>
           {listing.location && (
@@ -242,7 +341,6 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
         {/* CTAs / inline login capture */}
         {showCapture ? (
           captureSent ? (
-            /* Success state */
             <div className="flex flex-col gap-1 mt-2 py-1">
               <div className="flex items-center gap-1.5">
                 <span
@@ -260,7 +358,6 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
               </p>
             </div>
           ) : (
-            /* Email capture form */
             <form onSubmit={handleCaptureSubmit} className="flex flex-col gap-1.5 mt-2">
               <input
                 type="email"
