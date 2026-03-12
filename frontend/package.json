@@ -12,7 +12,9 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.96.0",
     "cheerio": "^1.2.0",
+    "lucide-react": "^0.577.0",
     "next": "14.2.35",
+    "next-themes": "^0.4.6",
     "react": "^18",
     "react-dom": "^18",
     "resend": "^6.9.2"

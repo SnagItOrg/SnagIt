@@ -39,9 +39,12 @@ const config: Config = {
         border: "var(--border)",
         input: "var(--input-background)",
         ring: "var(--ring)",
-        // Legacy aliases — kept for existing Tailwind class usage
+        // Legacy aliases
         bg: "var(--background)",
-        surface: "var(--card)",
+        text: {
+          DEFAULT: "var(--foreground)",
+          muted: "var(--muted-foreground)",
+        },
       },
     },
   },

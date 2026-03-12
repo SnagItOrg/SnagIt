@@ -35,7 +35,7 @@ export function WatchlistListings({ watchlistId }: Props) {
     return (
       <div className="flex flex-col gap-2 mt-2">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="animate-pulse rounded-2xl bg-surface border border-white/10 h-24" />
+          <div key={i} className="animate-pulse rounded-2xl bg-card border border-border h-24" />
         ))}
       </div>
     )
@@ -43,7 +43,7 @@ export function WatchlistListings({ watchlistId }: Props) {
 
   if (!data || data.listings.length === 0) {
     return (
-      <p className="text-xs text-text-muted text-center py-4">{t.noListingsYet}</p>
+      <p className="text-xs text-muted-foreground text-center py-4">{t.noListingsYet}</p>
     )
   }
 
@@ -56,17 +56,17 @@ export function WatchlistListings({ watchlistId }: Props) {
           <button
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white/5 text-text-muted hover:text-text hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {t.previous}
           </button>
-          <span className="text-xs text-text-muted">
+          <span className="text-xs text-muted-foreground">
             {t.page} {data.page} {t.of} {data.totalPages}
           </span>
           <button
             disabled={page === data.totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white/5 text-text-muted hover:text-text hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {t.next}
           </button>

@@ -20,7 +20,7 @@ export default function SavedPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-bg text-white flex">
+    <div className="min-h-screen bg-bg text-foreground flex">
       <SideNav active="gemt" onChange={() => {}} />
 
       <main className="flex-1 md:pl-60 flex flex-col items-center justify-center px-6 pb-24 md:pb-6">
@@ -37,7 +37,7 @@ export default function SavedPage() {
               className="rounded-2xl p-6 flex flex-col gap-3 text-center"
               style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
             >
-              <h2 className="text-xl font-black text-white">{t.savedTeaserHeading}</h2>
+              <h2 className="text-xl font-black text-foreground">{t.savedTeaserHeading}</h2>
               <button
                 onClick={() => router.push('/login')}
                 className="w-full rounded-2xl py-4 px-8 font-black text-sm transition-opacity hover:opacity-90"
@@ -57,11 +57,11 @@ export default function SavedPage() {
               bookmark
             </span>
 
-            <h1 className="text-xl font-bold" style={{ color: '#f1f5f9' }}>
+            <h1 className="text-xl font-bold text-foreground">
               {t.noSavedListings}
             </h1>
 
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <p className="text-sm text-muted-foreground">
               {t.noSavedListingsSubtext}
             </p>
 
@@ -82,9 +82,9 @@ export default function SavedPage() {
 
 function FakeSavedCard() {
   return (
-    <div className="flex gap-3 p-3 rounded-2xl bg-surface border border-white/10">
+    <div className="flex gap-3 p-3 rounded-2xl bg-card border border-border">
       {/* Thumbnail */}
-      <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-white/5 flex items-center justify-center">
+      <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-muted flex items-center justify-center">
         <span
           className="material-symbols-outlined"
           style={{ fontSize: '28px', color: 'var(--muted-foreground)' }}
@@ -95,13 +95,13 @@ function FakeSavedCard() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col gap-1">
-        <p className="text-sm font-semibold text-text">Roland Juno-106</p>
+        <p className="text-sm font-semibold text-foreground">Roland Juno-106</p>
         <p className="text-base font-black" style={{ color: 'var(--foreground)' }}>4.500 kr</p>
-        <p className="text-[11px]" style={{ color: '#475569' }}>
+        <p className="text-[11px] text-muted-foreground">
           Typisk 4.200–5.800 kr
         </p>
-        <div className="flex items-center gap-1.5 text-[11px]" style={{ color: '#64748b' }}>
-          <span className="px-1.5 py-0.5 rounded bg-white/5">dba.dk</span>
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span className="px-1.5 py-0.5 rounded bg-muted">dba.dk</span>
           <span>·</span>
           <span>3t siden</span>
           <span>·</span>

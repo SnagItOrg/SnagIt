@@ -12,9 +12,9 @@ export function ListingCard({ listing }: { listing: Listing }) {
       href={listing.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex gap-3 rounded-2xl bg-surface border border-white/10 p-3 hover:border-primary/40 transition-all active:scale-[0.98]"
+      className="flex gap-3 rounded-2xl bg-card border border-border p-3 hover:border-primary/40 transition-all active:scale-[0.98]"
     >
-      <div className="w-[72px] h-[72px] flex-shrink-0 rounded-xl bg-white/5 overflow-hidden">
+      <div className="w-[72px] h-[72px] flex-shrink-0 rounded-xl bg-muted overflow-hidden">
         {listing.image_url ? (
           <Image
             src={listing.image_url}
@@ -30,7 +30,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
               height="24"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="rgba(255,255,255,0.2)"
+              stroke="var(--border)"
               strokeWidth="1.5"
             >
               <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -42,7 +42,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
       </div>
 
       <div className="flex flex-col justify-center min-w-0 flex-1">
-        <p className="text-sm font-medium text-text leading-snug line-clamp-2">
+        <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
           {listing.title}
         </p>
         {listing.price != null ? (
@@ -50,10 +50,10 @@ export function ListingCard({ listing }: { listing: Listing }) {
             {listing.price.toLocaleString('da-DK')} {listing.currency}
           </p>
         ) : (
-          <p className="text-sm text-text-muted mt-1">{t.priceNotListed}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t.priceNotListed}</p>
         )}
         {listing.location && (
-          <p className="text-xs text-text-muted mt-0.5">{listing.location}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{listing.location}</p>
         )}
       </div>
     </a>

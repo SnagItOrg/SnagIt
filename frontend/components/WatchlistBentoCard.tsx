@@ -78,7 +78,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
-      className={`relative flex flex-col rounded-2xl border bg-surface cursor-pointer transition-all duration-200 ${
+      className={`relative flex flex-col rounded-2xl border bg-card cursor-pointer transition-all duration-200 ${
         confirming
           ? 'border-red-500/40'
           : 'border-border/60 hover:border-border active:border-border'
@@ -86,7 +86,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
       style={{ aspectRatio: '4/3' }}
     >
       {/* Image — top 65% */}
-      <div className="relative flex-1 overflow-hidden rounded-t-2xl bg-surface/50">
+      <div className="relative flex-1 overflow-hidden rounded-t-2xl bg-card/50">
         {watchlist.preview_image_url ? (
           <Image
             src={watchlist.preview_image_url}
@@ -116,7 +116,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
       <div className="flex-shrink-0 px-3 pb-3 pt-2 border-t border-border/40">
         {confirming ? (
           <div onClick={(e) => e.stopPropagation()}>
-            <p className="text-xs text-white/60 mb-2">Slet overvågning?</p>
+            <p className="text-xs text-muted-foreground mb-2">Slet overvågning?</p>
             <div className="flex gap-2">
               <button
                 onClick={(e) => {
@@ -129,7 +129,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setConfirming(false) }}
-                className="flex-1 py-1.5 rounded-lg text-white/60 text-sm hover:text-white hover:bg-white/10 transition-colors"
+                className="flex-1 py-1.5 rounded-lg text-muted-foreground text-sm hover:text-foreground hover:bg-secondary transition-colors"
               >
                 Annuller
               </button>
@@ -137,7 +137,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
           </div>
         ) : (
           <>
-            <p className="text-sm font-bold text-white truncate mb-1.5">{displayName}</p>
+            <p className="text-sm font-bold text-foreground truncate mb-1.5">{displayName}</p>
             <div className="flex items-center gap-1.5 flex-wrap">
               {watchlist.new_count > 0 && (
                 <span className="text-xs font-black px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground border border-border">
@@ -149,7 +149,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
                   Max {watchlist.max_price.toLocaleString('da-DK')} kr
                 </span>
               )}
-              <span className="text-xs text-white/40">dba.dk</span>
+              <span className="text-xs text-muted-foreground">dba.dk</span>
             </div>
           </>
         )}
@@ -160,20 +160,20 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
         <div ref={menuRef} className="absolute top-2 right-2 z-50">
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
-            className="bg-black/40 backdrop-blur-sm rounded-full p-1.5 text-white/70 hover:text-white transition-colors"
+            className="bg-card/70 backdrop-blur-sm rounded-full p-1.5 text-muted-foreground hover:text-foreground transition-colors"
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>more_vert</span>
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-xl shadow-lg overflow-hidden min-w-[140px]">
+            <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-xl shadow-lg overflow-hidden min-w-[140px]">
               <button
                 onClick={(e) => {
                   e.stopPropagation()
                   setMenuOpen(false)
                   router.push(`/watchlists/${watchlist.id}/edit`)
                 }}
-                className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-white/80 hover:bg-white/10 transition-colors"
+                className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
                 Rediger
@@ -184,7 +184,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
                   setMenuOpen(false)
                   setConfirming(true)
                 }}
-                className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-red-400 hover:bg-white/10 transition-colors"
+                className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-red-400 hover:bg-secondary transition-colors"
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
                 Slet

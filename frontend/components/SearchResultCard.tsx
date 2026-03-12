@@ -132,9 +132,9 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
   const showRange = hasStats && stats!.p25 != null && stats!.p75 != null
 
   return (
-    <div className="flex gap-3 p-3 rounded-2xl bg-surface border border-white/10 hover:border-white/20 transition-colors">
+    <div className="flex gap-3 p-3 rounded-2xl bg-card border border-border hover:border-border/80 transition-colors">
       {/* Thumbnail */}
-      <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-white/5 flex items-center justify-center">
+      <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
         {listing.image_url ? (
           <Image
             src={listing.image_url}
@@ -153,7 +153,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
       {/* Content */}
       <div className="flex-1 min-w-0 flex flex-col gap-1">
         {/* Title */}
-        <p className="text-sm font-semibold text-text truncate">{listing.title}</p>
+        <p className="text-sm font-semibold text-foreground truncate">{listing.title}</p>
 
         {/* Price */}
         <p className="text-base font-black" style={{ color: 'var(--foreground)' }}>
@@ -191,7 +191,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
                 color: 'var(--foreground)',
               }}
             />
-            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>kr</span>
+            <span className="text-[11px]" style={{ color: 'var(--muted-foreground)' }}>kr</span>
             <button
               onClick={handleSave}
               disabled={saving || !fromPrice}
@@ -204,7 +204,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
             <button
               onClick={() => { setEditing(false); setFromPrice(''); setToPrice('') }}
               className="text-[11px] px-1.5 py-0.5 rounded"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
+              style={{ color: 'var(--muted-foreground)' }}
               title="Annuller"
             >
               ✗
@@ -214,7 +214,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
           <button
             onClick={handleClickPrice}
             className="text-left text-[11px] w-fit transition-opacity hover:opacity-80"
-            style={{ color: showRange ? 'rgba(255,255,255,0.7)' : '#475569' }}
+            style={{ color: 'var(--muted-foreground)' }}
           >
             {showRange
               ? `Typisk ${stats!.p25!.toLocaleString('da-DK')}–${stats!.p75!.toLocaleString('da-DK')} kr`
@@ -224,10 +224,10 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
         )}
 
         {/* Meta: platform + time */}
-        <div className="flex items-center gap-1.5 text-[11px] mt-auto" style={{ color: '#64748b' }}>
+        <div className="flex items-center gap-1.5 text-[11px] mt-auto text-muted-foreground">
           {(listing.platform ?? listing.source) === 'reverb'
             ? <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300">Reverb</span>
-            : <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white/10 text-white/60">DBA</span>
+            : <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">DBA</span>
           }
           <span>·</span>
           <span>{timeSince(listing.scraped_at, locale)}</span>
@@ -255,7 +255,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
                   {t.checkInbox}
                 </span>
               </div>
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="text-xs text-muted-foreground">
                 {t.checkEmailToSave}
               </p>
             </div>
@@ -286,7 +286,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
               >
                 {captureLoading ? '...' : t.sendLoginLink}
               </button>
-              <p className="text-[11px] text-center" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <p className="text-[11px] text-center text-muted-foreground">
                 {t.noPasswordNeeded}
               </p>
             </form>
@@ -306,8 +306,8 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
               href={listing.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-white/10 hover:border-white/25 transition-colors"
-              style={{ color: 'rgba(255,255,255,0.7)' }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-border hover:border-border/80 transition-colors"
+              style={{ color: 'var(--foreground)' }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
               {t.viewListing}

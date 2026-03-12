@@ -187,7 +187,7 @@ function SearchPageInner() {
 
       <div className="flex-1 min-w-0 flex flex-col md:ml-60">
         {/* Sticky search bar */}
-        <div className="sticky top-0 z-30 w-full bg-bg border-b border-white/10 px-4 py-3 md:px-8">
+        <div className="sticky top-0 z-30 w-full bg-bg border-b border-border px-4 py-3 md:px-8">
           <form onSubmit={handleSubmit} className="flex flex-col gap-2">
             {/* Search input row */}
             <div className="flex gap-2">
@@ -226,7 +226,7 @@ function SearchPageInner() {
             <div className="flex items-center gap-3 flex-wrap">
               {/* Max price */}
               <div className="flex items-center gap-1.5">
-                <label className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <label className="text-xs font-medium text-muted-foreground">
                   {t.maxPrice}
                 </label>
                 <div className="relative">
@@ -245,7 +245,7 @@ function SearchPageInner() {
                   />
                   <span
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none"
-                    style={{ color: 'rgba(255,255,255,0.4)' }}
+                    style={{ color: 'var(--muted-foreground)' }}
                   >
                     kr
                   </span>
@@ -254,7 +254,7 @@ function SearchPageInner() {
 
               {/* Sort */}
               <div className="flex items-center gap-1.5">
-                <label className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <label className="text-xs font-medium text-muted-foreground">
                   {t.filterLabel}
                 </label>
                 <div className="flex gap-1">
@@ -352,19 +352,19 @@ function SearchPageInner() {
         <main className="flex-1 px-4 pt-5 pb-10 md:px-8">
           {loading ? (
             <>
-              <div className="h-4 w-40 rounded bg-white/5 animate-pulse mb-4" />
+              <div className="h-4 w-40 rounded bg-muted animate-pulse mb-4" />
               <div className="flex flex-col gap-3">
                 {[...Array(3)].map((_, i) => (
                   <div
                     key={i}
-                    className="flex gap-3 p-3 rounded-2xl bg-surface border border-white/10 animate-pulse"
+                    className="flex gap-3 p-3 rounded-2xl bg-card border border-border animate-pulse"
                     style={{ height: '104px' }}
                   >
-                    <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-white/5" />
+                    <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-muted" />
                     <div className="flex-1 flex flex-col gap-2 py-1">
-                      <div className="h-3 w-3/4 rounded bg-white/5" />
-                      <div className="h-4 w-1/3 rounded bg-white/5" />
-                      <div className="h-3 w-1/2 rounded bg-white/5" />
+                      <div className="h-3 w-3/4 rounded bg-muted" />
+                      <div className="h-4 w-1/3 rounded bg-muted" />
+                      <div className="h-3 w-1/2 rounded bg-muted" />
                     </div>
                   </div>
                 ))}
@@ -381,11 +381,11 @@ function SearchPageInner() {
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: '48px', color: 'rgba(255,255,255,0.15)' }}
+                style={{ fontSize: '48px', color: 'var(--muted-foreground)', opacity: 0.4 }}
               >
                 search_off
               </span>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="text-sm text-muted-foreground">
                 {t.noResults}
               </p>
             </div>
@@ -393,7 +393,7 @@ function SearchPageInner() {
             <>
               {/* Result count + watchlist CTA */}
               <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <p className="text-sm text-muted-foreground">
                   {filtered.length} {t.resultsFor}{' '}
                   <span className="font-semibold" style={{ color: 'var(--foreground)' }}>
                     &ldquo;{currentQuery}&rdquo;
@@ -428,11 +428,11 @@ function SearchPageInner() {
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
               <span
                 className="material-symbols-outlined"
-                style={{ fontSize: '48px', color: 'rgba(255,255,255,0.15)' }}
+                style={{ fontSize: '48px', color: 'var(--muted-foreground)', opacity: 0.4 }}
               >
                 manage_search
               </span>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="text-sm text-muted-foreground">
                 {t.searchInputPlaceholder}
               </p>
             </div>

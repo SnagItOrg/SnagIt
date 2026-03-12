@@ -143,7 +143,7 @@ export default function Step2() {
                   className={`group relative rounded-2xl overflow-hidden transition-all duration-200 ease-in-out ${
                     isStarred
                       ? 'border-2 border-border'
-                      : 'border border-white/10 hover:border-border/50'
+                      : 'border border-border hover:border-border/80'
                   }`}
                   style={{
                     aspectRatio: '1 / 1',
@@ -173,7 +173,7 @@ export default function Step2() {
                   </span>
                   {/* Brand name bottom-left */}
                   <div className="absolute bottom-4 left-4 right-10">
-                    <p className="font-bold text-sm text-white truncate">{brand.name}</p>
+                    <p className="font-bold text-sm text-foreground truncate">{brand.name}</p>
                   </div>
                 </button>
               )

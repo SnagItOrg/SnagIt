@@ -137,7 +137,7 @@ export default function WatchlistsPage() {
           />
         ) : (
           <main className="flex-1 px-4 pt-6 pb-10 md:px-8 md:pt-8">
-            <h1 className="text-2xl font-bold text-text mb-6">{t.watchlists}</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-6">{t.watchlists}</h1>
 
             {loading ? (
               /* Skeleton — shown while auth resolves and while watchlists load */
@@ -145,7 +145,7 @@ export default function WatchlistsPage() {
                 {[...Array(3)].map((_, i) => (
                   <div
                     key={i}
-                    className="animate-pulse rounded-2xl bg-surface border border-white/10"
+                    className="animate-pulse rounded-2xl bg-card border border-border"
                     style={{ aspectRatio: '4/3' }}
                   />
                 ))}
@@ -161,10 +161,10 @@ export default function WatchlistsPage() {
                 {/* CTA section below — not an overlay */}
                 <div
                   className="rounded-2xl p-6 flex flex-col gap-3 text-center"
-                  style={{ backgroundColor: 'var(--card)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
                 >
-                  <h2 className="text-xl font-black text-white">{t.watchlistTeaserHeading}</h2>
-                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  <h2 className="text-xl font-black text-foreground">{t.watchlistTeaserHeading}</h2>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
                     {t.watchlistTeaserSubtext}
                   </p>
                   <button
@@ -188,8 +188,8 @@ export default function WatchlistsPage() {
                   >
                     travel_explore
                   </span>
-                  <p className="text-base font-semibold text-text">{t.emptyStateHeading}</p>
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>{t.emptyStateSubtext}</p>
+                  <p className="text-base font-semibold text-foreground">{t.emptyStateHeading}</p>
+                  <p className="text-sm text-muted-foreground">{t.emptyStateSubtext}</p>
                 </div>
               </>
             ) : (
@@ -214,7 +214,7 @@ export default function WatchlistsPage() {
 function FakeWatchlistCard() {
   return (
     <div
-      className="relative flex flex-col rounded-2xl border border-border/60 bg-surface"
+      className="relative flex flex-col rounded-2xl border border-border/60 bg-card"
       style={{ aspectRatio: '4/3' }}
     >
       {/* Image area */}
@@ -231,7 +231,7 @@ function FakeWatchlistCard() {
 
       {/* Footer */}
       <div className="flex-shrink-0 px-3 pb-3 pt-2 border-t border-border/40">
-        <p className="text-sm font-bold text-white truncate mb-1.5">Roland Jupiter-8</p>
+        <p className="text-sm font-bold text-foreground truncate mb-1.5">Roland Jupiter-8</p>
         <div className="flex items-center gap-1.5 flex-wrap">
           <span
             className="text-xs font-black px-2 py-0.5 rounded-full"
@@ -242,7 +242,7 @@ function FakeWatchlistCard() {
           <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
             Max 18.000 kr
           </span>
-          <span className="text-xs text-white/40">dba.dk</span>
+          <span className="text-xs text-muted-foreground">dba.dk</span>
           <span
             className="text-xs px-1.5 py-0.5 rounded-full"
             style={{ backgroundColor: 'rgba(34,197,94,0.15)', color: '#4ade80' }}

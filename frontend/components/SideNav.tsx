@@ -1,7 +1,10 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { useTheme } from 'next-themes'
+import { Sun, Moon } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import type { NavTab } from '@/components/BottomNav'
@@ -10,6 +13,28 @@ import type { Locale } from '@/lib/i18n'
 interface Props {
   active: NavTab
   onChange: (tab: NavTab) => void
+}
+
+function ThemeToggle() {
+  const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  if (!mounted) return null
+
+  return (
+    <button
+      onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+      className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full text-left transition-colors hover:bg-secondary"
+      style={{ color: 'var(--muted-foreground)' }}
+      aria-label="Toggle theme"
+    >
+      {resolvedTheme === 'dark'
+        ? <Sun size={20} strokeWidth={1.8} />
+        : <Moon size={20} strokeWidth={1.8} />
+      }
+      <span>{resolvedTheme === 'dark' ? 'Lystema' : 'Mørkt tema'}</span>
+    </button>
+  )
 }
 
 export function SideNav({ active, onChange }: Props) {
@@ -75,9 +100,9 @@ export function SideNav({ active, onChange }: Props) {
   ]
 
   return (
-    <aside className="hidden md:flex flex-col w-60 fixed top-0 left-0 h-full border-r border-white/10 bg-surface z-40">
+    <aside className="hidden md:flex flex-col w-60 fixed top-0 left-0 h-full border-r border-border bg-card z-40">
       {/* Logo */}
-      <div className="px-6 py-6 border-b border-white/10">
+      <div className="px-6 py-6 border-b border-border">
         <div className="flex items-center gap-3 text-primary">
           <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
@@ -120,8 +145,11 @@ export function SideNav({ active, onChange }: Props) {
         })}
       </nav>
 
-      {/* Bottom: locale toggle + logout */}
-      <div className="px-3 pb-6 pt-2 border-t border-white/10 flex flex-col gap-1">
+      {/* Bottom: theme toggle + locale toggle + logout */}
+      <div className="px-3 pb-6 pt-2 border-t border-border flex flex-col gap-1">
+        {/* Theme toggle */}
+        <ThemeToggle />
+
         {/* Locale toggle */}
         <div className="flex gap-1 px-3 py-2">
           {(['da', 'en'] as Locale[]).map((l) => (
@@ -142,8 +170,8 @@ export function SideNav({ active, onChange }: Props) {
         {/* Logout */}
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full text-left transition-colors hover:bg-white/5"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
+          className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full text-left transition-colors hover:bg-secondary"
+          style={{ color: 'var(--muted-foreground)' }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

@@ -47,11 +47,11 @@ export default function LandingPage() {
       {/* Center content */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 pb-16">
         <div className="w-full max-w-2xl flex flex-col items-center text-center">
-          <h1 className="font-black text-5xl md:text-7xl text-white tracking-tight">
+          <h1 className="font-black text-5xl md:text-7xl text-foreground tracking-tight">
             {t.headline}
           </h1>
 
-          <p className="text-lg mt-3" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          <p className="text-lg mt-3 text-muted-foreground">
             {t.subheadline}
           </p>
 
@@ -59,7 +59,7 @@ export default function LandingPage() {
             <div className="relative w-full">
               <span
                 className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ fontSize: '22px', color: 'rgba(255,255,255,0.3)' }}
+                style={{ fontSize: '22px', color: 'var(--muted-foreground)' }}
               >
                 search
               </span>
@@ -68,10 +68,10 @@ export default function LandingPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t.searchInputPlaceholder}
-                className="w-full rounded-2xl pl-14 pr-6 py-4 text-lg text-white outline-none transition-all"
+                className="w-full rounded-2xl pl-14 pr-6 py-4 text-lg text-foreground outline-none transition-all"
                 style={{
                   backgroundColor: 'var(--input-background)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  border: '1px solid var(--border)',
                 }}
                 onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
@@ -91,14 +91,11 @@ export default function LandingPage() {
       </main>
 
       {/* Bottom: already have account */}
-      <footer className="pb-8 flex items-center justify-center gap-1.5 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+      <footer className="pb-8 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
         <span>{t.alreadyHaveAccount}</span>
         <Link
           href="/login"
-          className="font-semibold transition-colors"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)' }}
+          className="font-semibold transition-colors text-muted-foreground hover:text-foreground"
         >
           {t.signIn}
         </Link>

@@ -70,7 +70,7 @@ export default function Step1() {
                 className={`group relative rounded-2xl overflow-hidden transition-all duration-200 ease-in-out text-left border ${
                   isSelected
                     ? 'border-border'
-                    : 'border-white/10 hover:border-border/50'
+                    : 'border-border hover:border-border/80'
                 }`}
                 style={{
                   aspectRatio: '4/5',
@@ -93,7 +93,7 @@ export default function Step1() {
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 transition-colors"
                     style={{
-                      backgroundColor: isSelected ? 'var(--secondary)' : 'rgba(255,255,255,0.15)',
+                      backgroundColor: isSelected ? 'var(--secondary)' : 'var(--secondary)',
                       backdropFilter: 'blur(12px)',
                     }}
                   >
@@ -104,9 +104,8 @@ export default function Step1() {
                       {cat.icon}
                     </span>
                   </div>
-                  <h3 className="text-xl font-bold text-white">{cat.label}</h3>
-                  <p className="text-xs mt-1 uppercase tracking-widest font-bold"
-                     style={{ color: '#94a3b8' }}>
+                  <h3 className="text-xl font-bold text-foreground">{cat.label}</h3>
+                  <p className="text-xs mt-1 uppercase tracking-widest font-bold text-muted-foreground">
                     {cat.sub}
                   </p>
                 </div>

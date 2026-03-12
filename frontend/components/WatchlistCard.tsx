@@ -45,7 +45,7 @@ export function WatchlistCard({ watchlist, onDelete, onExpand, isExpanded }: Pro
 
   return (
     <div
-      className={`relative flex items-center gap-3 rounded-2xl bg-surface border px-4 py-3 transition-colors${onExpand ? ' cursor-pointer' : ''}${isExpanded ? ' border-primary/40' : ' border-white/10 hover:border-white/20'}`}
+      className={`relative flex items-center gap-3 rounded-2xl bg-card border px-4 py-3 transition-colors${onExpand ? ' cursor-pointer' : ''}${isExpanded ? ' border-primary/40' : ' border-border hover:border-border/80'}`}
       onClick={onExpand}
     >
       {/* New-listings badge — top right */}
@@ -55,14 +55,14 @@ export function WatchlistCard({ watchlist, onDelete, onExpand, isExpanded }: Pro
             {watchlist.new_count} {t.newListings}
           </span>
         ) : (
-          <span className="text-xs font-medium text-text-muted bg-white/5 rounded-full px-2 py-0.5">
+          <span className="text-xs font-medium text-muted-foreground bg-muted rounded-full px-2 py-0.5">
             {t.updated}
           </span>
         )}
       </div>
 
       {/* Thumbnail or K placeholder */}
-      <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-surface border border-white/10 flex items-center justify-center">
+      <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-card border border-border flex items-center justify-center">
         {watchlist.preview_image_url ? (
           <Image
             src={watchlist.preview_image_url}
@@ -81,7 +81,7 @@ export function WatchlistCard({ watchlist, onDelete, onExpand, isExpanded }: Pro
         <div ref={containerRef} className="overflow-hidden">
           <span
             ref={titleRef}
-            className={`text-sm font-semibold text-text whitespace-nowrap inline-block${marqueeOffset > 0 ? ' animate-marquee' : ''}`}
+            className={`text-sm font-semibold text-foreground whitespace-nowrap inline-block${marqueeOffset > 0 ? ' animate-marquee' : ''}`}
             style={
               marqueeOffset > 0
                 ? ({ '--marquee-offset': `-${marqueeOffset}px` } as React.CSSProperties)
@@ -93,7 +93,7 @@ export function WatchlistCard({ watchlist, onDelete, onExpand, isExpanded }: Pro
         </div>
 
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-          <span className="text-xs text-text-muted">
+          <span className="text-xs text-muted-foreground">
             {new Date(watchlist.created_at).toLocaleDateString('da-DK')}
           </span>
           {watchlist.active && (
@@ -109,7 +109,7 @@ export function WatchlistCard({ watchlist, onDelete, onExpand, isExpanded }: Pro
 
       <button
         onClick={(e) => { e.stopPropagation(); onDelete(watchlist.id) }}
-        className="flex items-center justify-center min-w-[40px] min-h-[40px] p-2 rounded-xl text-text-muted hover:text-red-400 hover:bg-red-400/10 transition-colors flex-shrink-0"
+        className="flex items-center justify-center min-w-[40px] min-h-[40px] p-2 rounded-xl text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors flex-shrink-0"
         aria-label={t.removeWatch}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

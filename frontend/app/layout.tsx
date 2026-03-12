@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import { LocaleProvider } from "@/components/LocaleProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
@@ -23,7 +24,7 @@ export default function RootLayout({
   const gaId = process.env.NEXT_PUBLIC_GA_ID ?? 'G-TCHJJVVWK8';
 
   return (
-    <html lang="da" className="dark">
+    <html lang="da" suppressHydrationWarning>
       <head>
         <link
           rel="stylesheet"
@@ -31,9 +32,11 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <LocaleProvider>
-          {children}
-        </LocaleProvider>
+        <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
+          <LocaleProvider>
+            {children}
+          </LocaleProvider>
+        </ThemeProvider>
 
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}

@@ -28,8 +28,8 @@ export function OnboardingHeader({ currentStep, showSkip = false, showProgress =
           {showSkip && (
             <button
               onClick={() => router.push('/login')}
-              className="border border-white/20 rounded-lg px-4 py-2 text-sm font-bold hover:border-white/40 transition-colors"
-              style={{ color: '#64748b' }}
+              className="border border-border rounded-lg px-4 py-2 text-sm font-bold hover:border-border/80 transition-colors"
+              style={{ color: 'var(--muted-foreground)' }}
             >
               Spring over
             </button>
@@ -39,7 +39,7 @@ export function OnboardingHeader({ currentStep, showSkip = false, showProgress =
         {/* Progress bar + step label */}
         {showProgress && currentStep && (
           <div className="flex items-center gap-4">
-            <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-surface">
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-muted">
               <div
                 className="h-full rounded-full"
                 style={{
@@ -50,7 +50,7 @@ export function OnboardingHeader({ currentStep, showSkip = false, showProgress =
             </div>
             <span
               className="text-xs font-bold uppercase tracking-widest whitespace-nowrap"
-              style={{ color: '#64748b' }}
+              style={{ color: 'var(--muted-foreground)' }}
             >
               Trin {currentStep} {t.stepOf} 4
             </span>

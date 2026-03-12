@@ -28,7 +28,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg text-white flex">
+    <div className="min-h-screen bg-bg text-foreground flex">
       <SideNav active="profil" onChange={() => {}} />
 
       <main className="flex-1 md:pl-60 flex flex-col items-center justify-center px-6 pb-24 md:pb-6">
@@ -42,8 +42,8 @@ export default function ProfilePage() {
               person
             </span>
             <div className="flex flex-col gap-2">
-              <h2 className="text-xl font-black text-white">{t.profileTeaserHeading}</h2>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <h2 className="text-xl font-black text-foreground">{t.profileTeaserHeading}</h2>
+              <p className="text-sm text-muted-foreground">
                 {t.profileTeaserSubtext}
               </p>
             </div>
@@ -67,21 +67,20 @@ export default function ProfilePage() {
 
             {/* Email */}
             {email && (
-              <p className="text-base font-semibold" style={{ color: '#f1f5f9' }}>
+              <p className="text-base font-semibold text-foreground">
                 {email}
               </p>
             )}
 
             {/* Coming soon */}
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <p className="text-sm text-muted-foreground">
               {t.profileComingSoon}
             </p>
 
             {/* Sign out */}
             <button
               onClick={handleSignOut}
-              className="w-full py-3 rounded-xl text-sm font-semibold transition-colors border border-white/10 hover:border-red-500/30 hover:text-red-400"
-              style={{ color: 'rgba(255,255,255,0.6)' }}
+              className="w-full py-3 rounded-xl text-sm font-semibold transition-colors border border-border hover:border-red-500/30 hover:text-red-400 text-muted-foreground"
             >
               {t.signOut}
             </button>

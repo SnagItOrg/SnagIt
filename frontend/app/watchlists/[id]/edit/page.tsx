@@ -80,7 +80,7 @@ export default function EditWatchlistPage() {
             </div>
 
             {loading ? (
-              <div className="rounded-3xl animate-pulse bg-surface border border-white/10 h-80" />
+              <div className="rounded-3xl animate-pulse bg-card border border-border h-80" />
             ) : (
               <div
                 className="p-8 md:p-12 rounded-3xl"
