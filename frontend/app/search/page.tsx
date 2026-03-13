@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { Listing } from '@/lib/supabase'
 import { SearchResultCard } from '@/components/SearchResultCard'
+import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
@@ -59,8 +60,10 @@ function SearchPageInner() {
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState<string | null>(null)
   const [searched,     setSearched]     = useState(false)
-  const [creating,         setCreating]         = useState(false)
-  const [toast,            setToast]            = useState<string | null>(null)
+  const [creating,             setCreating]             = useState(false)
+  const [toast,                setToast]                = useState<string | null>(null)
+  const [showWatchlistModal,   setShowWatchlistModal]   = useState(false)
+  const [watchlistModalQuery,  setWatchlistModalQuery]  = useState('')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [categories,       setCategories]       = useState<Category[]>([])
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -138,10 +141,8 @@ function SearchPageInner() {
       return
     }
 
-    setCreating(true)
     let q: string
     if (listingTitle) {
-      // Truncate at last word boundary before 60 chars
       q = listingTitle.length > 60
         ? (listingTitle.lastIndexOf(' ', 60) > 0
             ? listingTitle.slice(0, listingTitle.lastIndexOf(' ', 60))
@@ -150,8 +151,14 @@ function SearchPageInner() {
     } else {
       q = inputValue.trim() || (params.get('q') ?? '')
     }
-    const body: Record<string, unknown> = { query: q }
-    if (maxPrice !== '' && maxPrice > 0) body.max_price = maxPrice
+    setWatchlistModalQuery(q)
+    setShowWatchlistModal(true)
+  }
+
+  async function handleModalConfirm(query: string, modalMaxPrice?: number) {
+    setCreating(true)
+    const body: Record<string, unknown> = { query }
+    if (modalMaxPrice != null && modalMaxPrice > 0) body.max_price = modalMaxPrice
 
     const res = await fetch('/api/watchlists', {
       method: 'POST',
@@ -160,6 +167,7 @@ function SearchPageInner() {
     })
 
     if (res.ok) {
+      setShowWatchlistModal(false)
       showToast(t.watchlistCreated)
     } else {
       const data = await res.json()
@@ -429,6 +437,14 @@ function SearchPageInner() {
       </div>
 
       <BottomNav />
+
+      <CreateWatchlistModal
+        isOpen={showWatchlistModal}
+        onClose={() => setShowWatchlistModal(false)}
+        onConfirm={handleModalConfirm}
+        initialQuery={watchlistModalQuery}
+        creating={creating}
+      />
 
       {/* Toast */}
       {toast && (
