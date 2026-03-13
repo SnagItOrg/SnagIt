@@ -52,23 +52,6 @@ export function SideNav({ active, onChange }: Props) {
   // Items with `href` are route-based (active via pathname); others are tab-based.
   const navItems: { tab?: NavTab; href?: string; label: string; icon: React.ReactNode }[] = [
     {
-      tab: 'hjem',
-      label: t.navHome,
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" />
-          <path d="M9 21V12h6v9" />
-        </svg>
-      ),
-    },
-    {
-      href: '/watchlists',
-      label: t.navWatchlists,
-      icon: (
-        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>notifications</span>
-      ),
-    },
-    {
       href: '/search',
       label: t.navSearch,
       icon: (
@@ -88,7 +71,14 @@ export function SideNav({ active, onChange }: Props) {
       ),
     },
     {
-      tab: 'profil',
+      href: '/watchlists',
+      label: t.navNotifications,
+      icon: (
+        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>notifications</span>
+      ),
+    },
+    {
+      href: '/profile',
       label: t.navProfile,
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

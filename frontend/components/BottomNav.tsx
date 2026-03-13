@@ -48,10 +48,10 @@ export function BottomNav() {
     })
   }, [])
 
-  const isHome   = pathname === '/watchlists' || pathname.startsWith('/watchlists/')
-  const isSearch = pathname === '/search'
-  const isSaved  = pathname === '/saved'
-  const isProfil = pathname === '/profile'
+  const isSearch        = pathname === '/search'
+  const isSaved         = pathname === '/saved'
+  const isNotifications = pathname === '/watchlists' || pathname.startsWith('/watchlists/')
+  const isProfil        = pathname === '/profile'
 
   // Render nothing while auth state is resolving (avoids wrong-state flash)
   if (authed === null) return null
@@ -95,19 +95,6 @@ export function BottomNav() {
   // Full nav for authenticated users
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex items-end justify-around px-2 pb-[env(safe-area-inset-bottom)] min-h-[56px]">
-      {/* Home */}
-      <NavItem
-        label={t.navHome}
-        active={isHome}
-        href="/watchlists"
-        icon={
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" />
-            <path d="M9 21V12h6v9" />
-          </svg>
-        }
-      />
-
       {/* Search FAB — elevated centre button */}
       <div className="relative flex flex-col items-center pb-3">
         <Link
@@ -140,8 +127,15 @@ export function BottomNav() {
         }
       />
 
-      {/* Theme toggle */}
-      <ThemeToggle />
+      {/* Notifications (watchlists) */}
+      <NavItem
+        label={t.navNotifications}
+        active={isNotifications}
+        href="/watchlists"
+        icon={
+          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>notifications</span>
+        }
+      />
 
       {/* Profile */}
       <NavItem
