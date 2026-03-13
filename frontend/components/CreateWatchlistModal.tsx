@@ -15,7 +15,7 @@ interface Props {
 
 export function CreateWatchlistModal({ isOpen, onClose, onConfirm, initialQuery = '', creating }: Props) {
   const [query,    setQuery]    = useState(initialQuery)
-  const [maxPrice, setMaxPrice] = useState(4500)
+  const [maxPrice, setMaxPrice] = useState(50000)
 
   // Sync query when initialQuery changes (e.g. opened from different listing)
   useEffect(() => {
@@ -82,7 +82,7 @@ export function CreateWatchlistModal({ isOpen, onClose, onConfirm, initialQuery 
               </label>
               <span className="text-lg font-black text-foreground">
                 {atMax
-                  ? <span className="text-muted-foreground text-sm font-medium">Ingen grænse</span>
+                  ? <>100K+ <span className="text-sm font-bold text-muted-foreground">DKK</span></>
                   : <>{maxPrice.toLocaleString('da-DK')} <span className="text-sm font-bold text-muted-foreground">DKK</span></>
                 }
               </span>
