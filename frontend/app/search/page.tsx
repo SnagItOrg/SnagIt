@@ -67,6 +67,7 @@ function SearchPageInner() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [brands,           setBrands]           = useState<Brand[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedBrand,    setSelectedBrand]    = useState<Brand | null>(null)
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
   const [showFilters,      setShowFilters]      = useState(false)
