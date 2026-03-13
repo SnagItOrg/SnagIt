@@ -65,7 +65,7 @@ export function SideNav({ active, onChange }: Props) {
       href: '/watchlists',
       label: t.navWatchlists,
       icon: (
-        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>visibility</span>
+        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>notifications</span>
       ),
     },
     {

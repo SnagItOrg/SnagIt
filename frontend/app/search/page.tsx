@@ -386,7 +386,7 @@ function SearchPageInner() {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add_alert</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>notifications</span>
                   {t.createWatchlist}
                 </button>
               </div>

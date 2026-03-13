@@ -57,6 +57,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
   const [captureEmail,   setCaptureEmail]  = useState('')
   const [captureLoading, setCaptureLoading] = useState(false)
   const [captureSent,    setCaptureSent]   = useState(false)
+  const [heartToast,     setHeartToast]    = useState(false)
 
   useEffect(() => {
     fetch(`/api/price-observations?listing_id=${listing.id}`)
@@ -110,6 +111,14 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
     } else {
       setShowCapture(true)
     }
+  }
+
+  async function handleHeartClick() {
+    const supabase = createSupabaseBrowserClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setShowCapture(true); return }
+    setHeartToast(true)
+    setTimeout(() => setHeartToast(false), 2000)
   }
 
   async function handleCaptureSubmit(e: React.FormEvent) {
@@ -180,14 +189,14 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
             </span>
           )}
 
-          {/* Save / heart button */}
+          {/* Heart — save listing */}
           <button
-            onClick={() => onCreateWatchlist(listing.title)}
-            disabled={creating}
-            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center transition-opacity hover:opacity-90 disabled:opacity-50"
-            aria-label="Gem overvågning"
+            onClick={handleHeartClick}
+            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center transition-opacity hover:opacity-90"
+            aria-label="Gem annonce"
+            style={{ color: 'var(--muted-foreground)' }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#111' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </button>
@@ -385,26 +394,44 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
             </form>
           )
         ) : (
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={handleWatchlistClick}
-              disabled={creating}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add_alert</span>
-              {t.createWatchlist}
-            </button>
-            <a
-              href={listing.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-border hover:border-border/80 transition-colors"
-              style={{ color: 'var(--foreground)' }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
-              {t.viewListing}
-            </a>
+          <div className="flex flex-col gap-1.5 mt-2">
+            {heartToast && (
+              <p className="text-xs text-muted-foreground italic">Kommer snart 🤍</p>
+            )}
+            <div className="flex gap-2">
+              {/* Heart — save listing (coming soon) */}
+              <button
+                onClick={handleHeartClick}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--muted-foreground)' }}
+                aria-label="Gem annonce"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+                Gem
+              </button>
+              {/* Bell — create watchlist alert */}
+              <button
+                onClick={handleWatchlistClick}
+                disabled={creating}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>notifications</span>
+                {t.createWatchlist}
+              </button>
+              <a
+                href={listing.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-border hover:border-border/80 transition-colors"
+                style={{ color: 'var(--foreground)' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
+                {t.viewListing}
+              </a>
+            </div>
           </div>
         )}
       </div>
