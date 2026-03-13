@@ -37,16 +37,12 @@ interface Props {
 function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boolean }) {
   const platform = listing.platform ?? listing.source
   const cls = absolute
-    ? 'absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full'
-    : 'text-xs font-medium px-2 py-0.5 rounded-full'
+    ? 'absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border'
+    : 'text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border'
 
-  if (platform === 'reverb') {
-    return <span className={`${cls} bg-orange-500 text-white`}>Reverb</span>
-  }
-  if (platform === 'facebook' || platform === 'fb') {
-    return <span className={`${cls} bg-blue-500 text-white`}>Facebook</span>
-  }
-  return <span className={`${cls} bg-secondary text-muted-foreground border border-border`}>DBA</span>
+  if (platform === 'reverb') return <span className={cls}>Reverb</span>
+  if (platform === 'facebook' || platform === 'fb') return <span className={cls}>FB</span>
+  return <span className={cls}>DBA</span>
 }
 
 export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast, variant = 'list' }: Props) {
@@ -179,10 +175,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
 
           {/* Discount badge */}
           {hasDiscount && (
-            <span
-              className="absolute bottom-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }}
-            >
+            <span className="absolute bottom-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full bg-secondary text-foreground border border-border">
               ↓ -{discountPct}%
             </span>
           )}
@@ -202,9 +195,12 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
 
         {/* Card body */}
         <div className="p-3 flex flex-col gap-1">
-          <p className="text-sm font-semibold truncate text-foreground">{listing.title}</p>
-
-          <p className="text-base font-black text-foreground">{priceFormatted}</p>
+          {/* KUP-RATING: Intentionally hidden until knowledge graph has sufficient
+              per-variant price history. Do not ship without data validation. */}
+          <div className="flex justify-between items-start gap-2">
+            <p className="text-sm font-semibold text-foreground flex-1 truncate">{listing.title}</p>
+            <p className="text-sm font-black text-foreground flex-shrink-0">{priceFormatted}</p>
+          </div>
 
           {/* Typical price */}
           <button

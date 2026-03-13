@@ -140,7 +140,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
             <p className="text-sm font-bold text-foreground truncate mb-1.5">{displayName}</p>
             <div className="flex items-center gap-1.5 flex-wrap">
               {watchlist.new_count > 0 && (
-                <span className="text-xs font-black px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground border border-border">
+                <span className="text-xs font-black px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
                   {watchlist.new_count} {t.newMatches}
                 </span>
               )}

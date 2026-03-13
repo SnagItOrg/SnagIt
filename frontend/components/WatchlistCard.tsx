@@ -51,7 +51,7 @@ export function WatchlistCard({ watchlist, onDelete, onExpand, isExpanded }: Pro
       {/* New-listings badge — top right */}
       <div className="absolute top-2.5 right-12">
         {watchlist.new_count > 0 ? (
-          <span className="text-xs font-semibold text-bg bg-primary rounded-full px-2 py-0.5">
+          <span className="text-xs font-semibold bg-accent text-accent-foreground rounded-full px-2 py-0.5">
             {watchlist.new_count} {t.newListings}
           </span>
         ) : (
@@ -97,11 +97,11 @@ export function WatchlistCard({ watchlist, onDelete, onExpand, isExpanded }: Pro
             {new Date(watchlist.created_at).toLocaleDateString('da-DK')}
           </span>
           {watchlist.active && (
-            <span className="text-xs font-medium text-primary bg-primary/10 rounded-full px-2 py-px">
+            <span className="text-xs font-medium bg-accent text-accent-foreground rounded-full px-2 py-px">
               {t.activeLabel}
             </span>
           )}
-          <span className="text-xs font-medium text-sky-400 bg-sky-400/10 rounded-full px-2 py-px">
+          <span className="text-xs font-medium bg-secondary text-muted-foreground border border-border rounded-full px-2 py-px">
             {watchlist.type === 'listing' ? t.listingLabel : t.queryLabel}
           </span>
         </div>
