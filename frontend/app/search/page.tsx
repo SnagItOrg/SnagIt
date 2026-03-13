@@ -66,6 +66,7 @@ function SearchPageInner() {
   const [brands,           setBrands]           = useState<Brand[]>([])
   const [selectedBrand,    setSelectedBrand]    = useState<Brand | null>(null)
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
+  const [showFilters,      setShowFilters]      = useState(false)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function showToast(msg: string) {
@@ -205,7 +206,7 @@ function SearchPageInner() {
         {/* Sticky search bar */}
         <div className="sticky top-0 z-30 w-full bg-bg border-b border-border px-4 py-3 md:px-8">
           <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-            {/* Search input row */}
+            {/* Row 1: search input + filter toggle */}
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <span
@@ -230,160 +231,98 @@ function SearchPageInner() {
                 />
               </div>
               <button
-                type="submit"
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 active:opacity-100 flex-shrink-0"
-                style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                type="button"
+                onClick={() => setShowFilters((v) => !v)}
+                className="flex items-center justify-center w-10 h-10 rounded-xl transition-colors flex-shrink-0"
+                style={showFilters
+                  ? { backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--foreground)' }
+                  : { backgroundColor: 'transparent', border: '1px solid var(--border)', color: 'var(--muted-foreground)' }
+                }
+                aria-label="Filtre"
               >
-                {t.search}
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>tune</span>
               </button>
             </div>
 
-            {/* Filter row */}
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Max price */}
-              <div className="flex items-center gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  {t.maxPrice}
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min={0}
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                    placeholder="—"
-                    className="w-24 rounded-lg px-2 py-1 text-xs outline-none text-right"
-                    style={{
-                      backgroundColor: 'var(--input-background)',
-                      border: '1px solid var(--border)',
-                      color: 'var(--foreground)',
-                    }}
-                  />
-                  <span
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none"
-                    style={{ color: 'var(--muted-foreground)' }}
-                  >
-                    kr
-                  </span>
-                </div>
-              </div>
-
-              {/* Sort */}
-              <div className="flex items-center gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  {t.filterLabel}
-                </label>
-                <div className="flex gap-1">
-                  {([
-                    { key: 'newest',     label: t.sortNewest },
-                    { key: 'price_asc',  label: t.sortPriceLow },
-                    { key: 'price_desc', label: t.sortPriceHigh },
-                  ] as { key: SortKey; label: string }[]).map(({ key, label }) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setSort(key)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
-                      style={{
-                        backgroundColor: sort === key ? 'var(--secondary)' : 'transparent',
-                        color: sort === key ? 'var(--foreground)' : 'var(--muted-foreground)',
-                        border: sort === key ? '1px solid var(--border)' : '1px solid var(--border)',
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Category chip row */}
-            {categories.length > 0 && (
-              <div className="relative w-full overflow-hidden after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-8 after:bg-gradient-to-l after:from-bg after:to-transparent after:pointer-events-none">
-                <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide flex-nowrap">
-                  <button
-                    type="button"
-                    onClick={() => handleSelectCategory(null)}
-                    className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
-                    style={{
-                      backgroundColor: !selectedCategory ? 'var(--secondary)' : 'transparent',
-                      color:           !selectedCategory ? 'var(--foreground)' : 'var(--muted-foreground)',
-                      border:          '1px solid var(--border)',
-                    }}
-                  >
-                    Alle
-                  </button>
-                  {categories.map((cat) => {
-                    const isSelected = selectedCategory?.id === cat.id
-                    const label = (t.categoryNames as Record<string, string>)[cat.slug] ?? cat.name_da
-                    return (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => handleSelectCategory(isSelected ? null : cat)}
-                        className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
+            {/* Expanded filter panel */}
+            {showFilters && (
+              <>
+                {/* Row 2: max price + sort */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      {t.maxPrice}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={0}
+                        value={maxPrice}
+                        onChange={(e) => setMaxPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="—"
+                        className="w-24 rounded-lg px-2 py-1 text-xs outline-none text-right"
                         style={{
-                          backgroundColor: isSelected ? 'var(--secondary)' : 'transparent',
-                          color:           isSelected ? 'var(--foreground)' : 'var(--muted-foreground)',
-                          border:          '1px solid var(--border)',
+                          backgroundColor: 'var(--input-background)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--foreground)',
+                        }}
+                      />
+                      <span
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none"
+                        style={{ color: 'var(--muted-foreground)' }}
+                      >
+                        kr
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-1">
+                    {([
+                      { key: 'newest',     label: t.sortNewest },
+                      { key: 'price_asc',  label: t.sortPriceLow },
+                      { key: 'price_desc', label: t.sortPriceHigh },
+                    ] as { key: SortKey; label: string }[]).map(({ key, label }) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setSort(key)}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                        style={{
+                          backgroundColor: sort === key ? 'var(--secondary)' : 'transparent',
+                          color: sort === key ? 'var(--foreground)' : 'var(--muted-foreground)',
+                          border: '1px solid var(--border)',
                         }}
                       >
                         {label}
                       </button>
-                    )
-                  })}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
 
-            {/* Brand chip row — filtered by selected category */}
-            {visibleBrands.length > 0 && (
-              <div className="relative w-full overflow-hidden after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-8 after:bg-gradient-to-l after:from-bg after:to-transparent after:pointer-events-none">
-                <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide flex-nowrap">
-                  {visibleBrands.map((brand) => {
-                    const isSelected = selectedBrand?.id === brand.id
-                    return (
-                      <button
-                        key={brand.id}
-                        type="button"
-                        onClick={() => setSelectedBrand(isSelected ? null : brand)}
-                        className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
-                        style={{
-                          backgroundColor: isSelected ? 'var(--secondary)' : 'transparent',
-                          color:           isSelected ? 'var(--foreground)' : 'var(--muted-foreground)',
-                          border:          '1px solid var(--border)',
-                        }}
-                      >
-                        {brand.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Platform chip row — only when results are present and multiple platforms exist */}
-            {platformsInResults.length > 1 && (
-              <div className="flex gap-2 flex-wrap">
-                {platformsInResults.map((p) => {
-                  const isSelected = selectedPlatform === p
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setSelectedPlatform(isSelected ? null : p)}
-                      className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
-                      style={{
-                        backgroundColor: isSelected ? 'var(--secondary)' : 'transparent',
-                        color:           isSelected ? 'var(--foreground)' : 'var(--muted-foreground)',
-                        border:          '1px solid var(--border)',
-                      }}
-                    >
-                      {platformLabel[p] ?? p}
-                    </button>
-                  )
-                })}
-              </div>
+                {/* Platform chips — only when multiple platforms in results */}
+                {platformsInResults.length > 1 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {platformsInResults.map((p) => {
+                      const isSelected = selectedPlatform === p
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setSelectedPlatform(isSelected ? null : p)}
+                          className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
+                          style={{
+                            backgroundColor: isSelected ? 'var(--secondary)' : 'transparent',
+                            color:           isSelected ? 'var(--foreground)' : 'var(--muted-foreground)',
+                            border:          '1px solid var(--border)',
+                          }}
+                        >
+                          {platformLabel[p] ?? p}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </form>
         </div>
