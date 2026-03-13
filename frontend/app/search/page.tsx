@@ -61,8 +61,11 @@ function SearchPageInner() {
   const [searched,     setSearched]     = useState(false)
   const [creating,         setCreating]         = useState(false)
   const [toast,            setToast]            = useState<string | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [categories,       setCategories]       = useState<Category[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [brands,           setBrands]           = useState<Brand[]>([])
   const [selectedBrand,    setSelectedBrand]    = useState<Brand | null>(null)
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
@@ -163,16 +166,6 @@ function SearchPageInner() {
     }
     setCreating(false)
   }
-
-  function handleSelectCategory(cat: Category | null) {
-    setSelectedCategory(cat)
-    setSelectedBrand(null)
-  }
-
-  // Brands visible in chip row (filtered by selected category)
-  const visibleBrands = selectedCategory
-    ? brands.filter((b) => b.category_id === selectedCategory.id)
-    : brands
 
   // Platforms present in current results
   function normalisePlatform(l: Listing): string {
