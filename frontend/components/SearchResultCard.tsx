@@ -42,7 +42,7 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
     const base = 'absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm'
     if (platform === 'reverb') return <span className={`${base} bg-orange-500 text-white`}>Reverb</span>
     if (platform === 'facebook' || platform === 'fb') return <span className={`${base} bg-blue-500 text-white`}>FB</span>
-    return <span className={`${base} bg-white/90 text-gray-900`}>DBA</span>
+    return <span className={`${base} bg-blue-600 text-white`}>DBA</span>
   }
 
   // Inline badges (list variant) — standard neutral style
@@ -167,16 +167,16 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
   // ─── Grid variant ──────────────────────────────────────────────────────────
   if (variant === 'grid') {
     return (
-      <div className="flex flex-col rounded-2xl bg-card border border-card-border overflow-hidden">
+      <div className="group flex flex-col rounded-2xl bg-card border border-card-border overflow-hidden hover:shadow-md transition-shadow duration-300">
         {/* Image area */}
-        <div className="relative w-full aspect-[4/3] bg-muted">
+        <div className="relative w-full aspect-[4/3] bg-muted overflow-hidden">
           {listing.image_url ? (
             <Image
               src={listing.image_url}
               alt={listing.title}
               fill
               sizes="(min-width: 768px) 25vw, 100vw"
-              className="object-cover"
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -191,8 +191,8 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
 
           {/* Discount badge */}
           {hasDiscount && (
-            <span className="absolute bottom-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full bg-secondary text-foreground border border-border">
-              ↓ -{discountPct}%
+            <span className="absolute bottom-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full bg-green-500 text-white">
+              -{discountPct}%
             </span>
           )}
 
@@ -213,7 +213,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
           {/* KUP-RATING: Intentionally hidden until knowledge graph has sufficient
               per-variant price history. Do not ship without data validation. */}
           <div className="flex justify-between items-start gap-2">
-            <p className="text-sm font-semibold text-foreground flex-1 truncate">{listing.title}</p>
+            <p className="text-sm font-semibold text-foreground flex-1 line-clamp-2 min-h-[2.5rem]">{listing.title}</p>
             <p className="text-sm font-black text-foreground flex-shrink-0">{priceFormatted}</p>
           </div>
 
@@ -232,6 +232,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-auto pt-1">
             {listing.location && (
               <>
+                <span className="material-symbols-outlined flex-shrink-0" style={{ fontSize: '12px' }}>location_on</span>
                 <span className="truncate">{listing.location}</span>
                 <span>·</span>
               </>
