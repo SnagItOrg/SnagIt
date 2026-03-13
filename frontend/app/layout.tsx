@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import Script from "next/script";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
@@ -50,6 +52,8 @@ export default function RootLayout({
             gtag('config', '${gaId}');
           `}
         </Script>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
