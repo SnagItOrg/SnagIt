@@ -36,10 +36,17 @@ interface Props {
 
 function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boolean }) {
   const platform = listing.platform ?? listing.source
-  const cls = absolute
-    ? 'absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border'
-    : 'text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border'
 
+  if (absolute) {
+    // On-image badges — need guaranteed contrast over any photo
+    const base = 'absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm'
+    if (platform === 'reverb') return <span className={`${base} bg-orange-500 text-white`}>Reverb</span>
+    if (platform === 'facebook' || platform === 'fb') return <span className={`${base} bg-blue-500 text-white`}>FB</span>
+    return <span className={`${base} bg-white/90 text-gray-900`}>DBA</span>
+  }
+
+  // Inline badges (list variant) — standard neutral style
+  const cls = 'text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border'
   if (platform === 'reverb') return <span className={cls}>Reverb</span>
   if (platform === 'facebook' || platform === 'fb') return <span className={cls}>FB</span>
   return <span className={cls}>DBA</span>
@@ -192,11 +199,10 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
           {/* Heart — save listing */}
           <button
             onClick={handleHeartClick}
-            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center transition-opacity hover:opacity-90"
+            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center transition-opacity hover:opacity-90"
             aria-label="Gem annonce"
-            style={{ color: 'var(--muted-foreground)' }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-800">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </button>
