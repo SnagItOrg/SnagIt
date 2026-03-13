@@ -9,6 +9,7 @@ interface Props {
   step?: number
   bg?: string
   border?: string
+  mode?: 'range' | 'single'
   onChange: (min: number, max: number) => void
 }
 
@@ -19,9 +20,11 @@ export function PriceRangeSlider({
   step = STEP,
   bg = 'var(--background)',
   border = 'var(--border)',
+  mode = 'range',
   onChange,
 }: Props) {
-  const minPct = (minPrice / maxValue) * 100
+  const effectiveMin = mode === 'single' ? 0 : minPrice
+  const minPct = (effectiveMin / maxValue) * 100
   const maxPct = (maxPrice / maxValue) * 100
 
   function handleMin(e: React.ChangeEvent<HTMLInputElement>) {
@@ -30,8 +33,8 @@ export function PriceRangeSlider({
   }
 
   function handleMax(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = Math.max(Number(e.target.value), minPrice + step)
-    onChange(minPrice, val)
+    const val = Math.max(Number(e.target.value), effectiveMin + step)
+    onChange(effectiveMin, val)
   }
 
   // When min thumb is pushed to the far right, promote it above max thumb
@@ -65,19 +68,21 @@ export function PriceRangeSlider({
         />
       </div>
 
-      {/* Min input — track is non-interactive, only thumb captures events */}
-      <input
-        type="range"
-        min={0}
-        max={maxValue}
-        step={step}
-        value={minPrice}
-        onChange={handleMin}
-        className="absolute w-full h-full appearance-none bg-transparent pointer-events-none m-0 p-0 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:bg-transparent [&::-webkit-slider-thumb]:border-none [&::-webkit-slider-thumb]:shadow-none [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:bg-transparent [&::-moz-range-thumb]:border-none"
-        style={{ zIndex: minZ }}
-      />
+      {/* Min input — hidden in single mode */}
+      {mode === 'range' && (
+        <input
+          type="range"
+          min={0}
+          max={maxValue}
+          step={step}
+          value={minPrice}
+          onChange={handleMin}
+          className="absolute w-full h-full appearance-none bg-transparent pointer-events-none m-0 p-0 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:bg-transparent [&::-webkit-slider-thumb]:border-none [&::-webkit-slider-thumb]:shadow-none [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:bg-transparent [&::-moz-range-thumb]:border-none"
+          style={{ zIndex: minZ }}
+        />
+      )}
 
-      {/* Max input — track is non-interactive, only thumb captures events */}
+      {/* Max input */}
       <input
         type="range"
         min={0}
@@ -89,23 +94,25 @@ export function PriceRangeSlider({
         style={{ zIndex: maxZ }}
       />
 
-      {/* Visual min thumb */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: `${minPct}%`,
-          transform: 'translate(-50%, -50%)',
-          width: '20px',
-          height: '20px',
-          borderRadius: '50%',
-          backgroundColor: 'var(--card)',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
-          pointerEvents: 'none',
-          zIndex: 2,
-          flexShrink: 0,
-        }}
-      />
+      {/* Visual min thumb — hidden in single mode */}
+      {mode === 'range' && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: `${minPct}%`,
+            transform: 'translate(-50%, -50%)',
+            width: '20px',
+            height: '20px',
+            borderRadius: '50%',
+            backgroundColor: 'var(--card)',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
+            pointerEvents: 'none',
+            zIndex: 2,
+            flexShrink: 0,
+          }}
+        />
+      )}
 
       {/* Visual max thumb */}
       <div

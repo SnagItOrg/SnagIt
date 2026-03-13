@@ -91,6 +91,7 @@ export function CreateWatchlistModal({ isOpen, onClose, onConfirm, initialQuery 
               minPrice={0}
               maxPrice={maxPrice}
               maxValue={MAX_PRICE}
+              mode="single"
               onChange={(_, max) => setMaxPrice(max)}
             />
             <div
