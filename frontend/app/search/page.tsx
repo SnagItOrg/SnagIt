@@ -10,21 +10,7 @@ import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
-type SortKey = 'newest' | 'price_asc' | 'price_desc'
-
-type Category = {
-  id: string
-  slug: string
-  name_da: string
-  name_en: string
-}
-
-type Brand = {
-  id: string
-  slug: string
-  name: string
-  category_id: string
-}
+type SortKey = 'newest' | 'oldest' | 'price_asc' | 'price_desc'
 
 function sortListings(listings: Listing[], sort: SortKey): Listing[] {
   const copy = [...listings]
@@ -44,6 +30,9 @@ function sortListings(listings: Listing[], sort: SortKey): Listing[] {
       return b.price - a.price
     })
   }
+  if (sort === 'oldest') {
+    return copy.sort((a, b) => new Date(a.scraped_at).getTime() - new Date(b.scraped_at).getTime())
+  }
   // newest: sort by scraped_at desc (default)
   return copy.sort((a, b) => new Date(b.scraped_at).getTime() - new Date(a.scraped_at).getTime())
 }
@@ -54,7 +43,6 @@ function SearchPageInner() {
   const { t } = useLocale()
 
   const [inputValue,   setInputValue]   = useState(() => params.get('q') ?? '')
-  const [maxPrice,     setMaxPrice]     = useState<number | ''>('')
   const [sort,         setSort]         = useState<SortKey>('newest')
   const [listings,     setListings]     = useState<Listing[]>([])
   const [loading,      setLoading]      = useState(false)
@@ -64,14 +52,6 @@ function SearchPageInner() {
   const [toast,                setToast]                = useState<string | null>(null)
   const [showWatchlistModal,   setShowWatchlistModal]   = useState(false)
   const [watchlistModalQuery,  setWatchlistModalQuery]  = useState('')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [categories,       setCategories]       = useState<Category[]>([])
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [brands,           setBrands]           = useState<Brand[]>([])
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [selectedBrand,    setSelectedBrand]    = useState<Brand | null>(null)
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
   const [showFilters,      setShowFilters]      = useState(false)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -111,17 +91,10 @@ function SearchPageInner() {
     setLoading(false)
   }
 
-  // Fire on mount: search if ?q= present, always load brands
+  // Fire on mount: search if ?q= present
   useEffect(() => {
     const q = params.get('q')
     if (q) void runSearch(q)
-    fetch('/api/brands')
-      .then((r) => r.ok ? r.json() : { categories: [], brands: [] })
-      .then((data: { categories: Category[]; brands: Brand[] }) => {
-        setCategories(data.categories ?? [])
-        setBrands(data.brands ?? [])
-      })
-      .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -191,10 +164,7 @@ function SearchPageInner() {
 
   // Client-side filter + sort
   const filtered = sortListings(
-    listings
-      .filter((l) => maxPrice === '' || maxPrice <= 0 || l.price == null || l.price <= (maxPrice as number))
-      .filter((l) => !selectedBrand || l.title.toLowerCase().includes(selectedBrand.name.toLowerCase()))
-      .filter((l) => !selectedPlatform || normalisePlatform(l) === selectedPlatform),
+    listings.filter((l) => !selectedPlatform || normalisePlatform(l) === selectedPlatform),
     sort,
   )
 
@@ -248,83 +218,57 @@ function SearchPageInner() {
 
             {/* Expanded filter panel */}
             {showFilters && (
-              <>
-                {/* Row 2: max price + sort */}
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">
-                      {t.maxPrice}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min={0}
-                        value={maxPrice}
-                        onChange={(e) => setMaxPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                        placeholder="—"
-                        className="w-24 rounded-lg px-2 py-1 text-xs outline-none text-right"
-                        style={{
-                          backgroundColor: 'var(--input-background)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--foreground)',
-                        }}
-                      />
-                      <span
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-xs pointer-events-none"
-                        style={{ color: 'var(--muted-foreground)' }}
-                      >
-                        kr
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-1">
-                    {([
-                      { key: 'newest',     label: t.sortNewest },
-                      { key: 'price_asc',  label: t.sortPriceLow },
-                      { key: 'price_desc', label: t.sortPriceHigh },
-                    ] as { key: SortKey; label: string }[]).map(({ key, label }) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setSort(key)}
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
-                        style={{
-                          backgroundColor: sort === key ? 'var(--secondary)' : 'transparent',
-                          color: sort === key ? 'var(--foreground)' : 'var(--muted-foreground)',
-                          border: '1px solid var(--border)',
-                        }}
-                      >
-                        {label}
-                      </button>
+              <div className="flex gap-2 flex-wrap mt-1">
+                {/* Platform select */}
+                <div className="relative inline-flex items-center">
+                  <select
+                    value={selectedPlatform ?? ''}
+                    onChange={(e) => setSelectedPlatform(e.target.value || null)}
+                    className="appearance-none rounded-xl px-3 py-2 pr-8 text-sm outline-none cursor-pointer min-w-[140px]"
+                    style={{
+                      backgroundColor: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--foreground)',
+                    }}
+                  >
+                    <option value="">Alle platforme</option>
+                    {(platformsInResults.length > 0 ? platformsInResults : ['dba', 'reverb', 'facebook']).map((p) => (
+                      <option key={p} value={p}>{platformLabel[p] ?? p}</option>
                     ))}
-                  </div>
+                  </select>
+                  <span
+                    className="material-symbols-outlined absolute right-2 pointer-events-none"
+                    style={{ fontSize: '18px', color: 'var(--muted-foreground)' }}
+                  >
+                    expand_more
+                  </span>
                 </div>
 
-                {/* Platform chips — only when multiple platforms in results */}
-                {platformsInResults.length > 1 && (
-                  <div className="flex gap-2 flex-wrap">
-                    {platformsInResults.map((p) => {
-                      const isSelected = selectedPlatform === p
-                      return (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => setSelectedPlatform(isSelected ? null : p)}
-                          className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
-                          style={{
-                            backgroundColor: isSelected ? 'var(--secondary)' : 'transparent',
-                            color:           isSelected ? 'var(--foreground)' : 'var(--muted-foreground)',
-                            border:          '1px solid var(--border)',
-                          }}
-                        >
-                          {platformLabel[p] ?? p}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </>
+                {/* Sort select */}
+                <div className="relative inline-flex items-center">
+                  <select
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value as SortKey)}
+                    className="appearance-none rounded-xl px-3 py-2 pr-8 text-sm outline-none cursor-pointer min-w-[140px]"
+                    style={{
+                      backgroundColor: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--foreground)',
+                    }}
+                  >
+                    <option value="newest">{t.sortNewest}</option>
+                    <option value="oldest">Ældste først</option>
+                    <option value="price_asc">{t.sortPriceLow}</option>
+                    <option value="price_desc">{t.sortPriceHigh}</option>
+                  </select>
+                  <span
+                    className="material-symbols-outlined absolute right-2 pointer-events-none"
+                    style={{ fontSize: '18px', color: 'var(--muted-foreground)' }}
+                  >
+                    expand_more
+                  </span>
+                </div>
+              </div>
             )}
           </form>
         </div>
