@@ -167,7 +167,12 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
   // ─── Grid variant ──────────────────────────────────────────────────────────
   if (variant === 'grid') {
     return (
-      <div className="group flex flex-col rounded-2xl bg-card border border-card-border overflow-hidden hover:shadow-md transition-shadow duration-300">
+      <a
+        href={listing.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group flex flex-col rounded-2xl bg-card border border-card-border overflow-hidden hover:shadow-md transition-shadow duration-300"
+      >
         {/* Image area */}
         <div className="relative w-full aspect-[4/3] bg-muted overflow-hidden">
           {listing.image_url ? (
@@ -198,7 +203,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
 
           {/* Heart — save listing */}
           <button
-            onClick={handleHeartClick}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleHeartClick() }}
             className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center transition-opacity hover:opacity-90"
             aria-label="Gem annonce"
           >
@@ -219,7 +224,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
 
           {/* Typical price */}
           <button
-            onClick={handleClickPrice}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleClickPrice() }}
             className="text-left text-[11px] w-fit transition-opacity hover:opacity-80 text-muted-foreground"
           >
             {showRange
@@ -240,7 +245,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
             <span className="flex-shrink-0">{timeSince(listing.scraped_at, locale)}</span>
           </div>
         </div>
-      </div>
+      </a>
     )
   }
 
