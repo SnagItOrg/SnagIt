@@ -49,6 +49,8 @@ const DRY_RUN = args.includes('--dry-run')
 const queryFilter = args.find(a => a.startsWith('--query='))?.split('=')[1]?.toLowerCase() ?? null
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
+const USD_TO_DKK = 7.0
+
 const FETCH_DELAY_MS = 2500
 const FETCH_JITTER_MS = 500
 let lastFetchTime = 0
@@ -194,8 +196,9 @@ async function main() {
 
     if (DRY_RUN) {
       for (const l of listings) {
-        const price = l.price ? parseFloat(l.price.amount) : null
-        console.log(`     • ${l.title} — ${price ?? '?'} ${l.price?.currency ?? ''} (${l.condition?.display_name ?? 'unknown condition'})`)
+        const raw = l.price ? parseFloat(l.price.amount) : null
+        const dkk = raw != null ? Math.round(raw * USD_TO_DKK) : null
+        console.log(`     • ${l.title} — ${dkk ?? '?'} DKK (${l.condition?.display_name ?? 'unknown condition'})`)
       }
       console.log()
       continue
@@ -208,8 +211,8 @@ async function main() {
         watchlist_id:  watchlist.id,
         query:         watchlist.query,
         source:        'reverb',
-        price:         parseFloat(l.price!.amount),
-        currency:      l.price!.currency,
+        price:         Math.round(parseFloat(l.price!.amount) * USD_TO_DKK),
+        currency:      'DKK',
         condition:     l.condition?.display_name ?? null,
         listing_url:   l._links?.web?.href ?? null,
         listing_title: l.title ?? null,
