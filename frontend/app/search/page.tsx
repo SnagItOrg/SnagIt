@@ -180,7 +180,12 @@ function SearchPageInner() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ listing_id: listing.id, listing_data: listing }),
         })
-        if (!res.ok) { setSavedListingIds(prev); return }
+        if (!res.ok) {
+          const errText = await res.text()
+          console.error('POST /api/saved-listings failed:', res.status, errText)
+          setSavedListingIds(prev)
+          return
+        }
         showToast(t.listingSaved)
       } catch (err) {
         console.error('handleToggleSave error:', err)
