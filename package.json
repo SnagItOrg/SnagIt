@@ -12,7 +12,9 @@
     "scrape-vse": "tsx scripts/scrape-vintagesynth.ts",
     "expand-synonyms": "tsx scripts/expand-synonyms-vse.ts",
     "seed-design-watchlists": "tsx scripts/seed-design-watchlists.ts",
-    "scrape-facebook": "tsx scripts/scrape-facebook.ts"
+    "scrape-facebook": "tsx scripts/scrape-facebook.ts",
+    "fetch-reverb-prices": "tsx scripts/fetch-reverb-prices.ts",
+    "fetch-auctionet-prices": "tsx scripts/fetch-auctionet-prices.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.96.0",
