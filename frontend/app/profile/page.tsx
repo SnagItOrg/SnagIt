@@ -52,7 +52,6 @@ export default function ProfilePage() {
   const router = useRouter()
   const { t } = useLocale()
 
-  const [authed,        setAuthed]        = useState<boolean | null>(null)
   const [email,         setEmail]         = useState<string | null>(null)
   const [prefs,         setPrefs]         = useState<NotifPrefs | null>(null)
   const [watchlists,    setWatchlists]    = useState<Watchlist[]>([])
@@ -64,7 +63,6 @@ export default function ProfilePage() {
     const supabase = createSupabaseBrowserClient()
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) return
-      setAuthed(true)
       setEmail(data.user.email ?? null)
     })
 
