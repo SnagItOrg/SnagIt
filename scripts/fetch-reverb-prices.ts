@@ -48,9 +48,46 @@ const args = process.argv.slice(2)
 const DRY_RUN = args.includes('--dry-run')
 const queryFilter = args.find(a => a.startsWith('--query='))?.split('=')[1]?.toLowerCase() ?? null
 
-// ── Rate limiting ─────────────────────────────────────────────────────────────
-const USD_TO_DKK = 7.0
+// ── Exchange rates ────────────────────────────────────────────────────────────
+// Rates: how many DKK per 1 unit of foreign currency
+const FALLBACK_RATES: Record<string, number> = {
+  USD: 7.0,
+  EUR: 7.46,
+  SEK: 0.65,
+  NOK: 0.63,
+  DKK: 1.0,
+}
 
+// Populated at startup from Frankfurter API; falls back to FALLBACK_RATES
+let toDKK: Record<string, number> = { ...FALLBACK_RATES }
+
+async function fetchExchangeRates(): Promise<void> {
+  try {
+    const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=DKK,SEK,NOK,EUR')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = (await res.json()) as { rates: Record<string, number> }
+    // data.rates gives DKK/SEK/NOK/EUR per 1 USD
+    // We need: for each currency, how many DKK is 1 unit?
+    const usdToDkk = data.rates['DKK']
+    toDKK = {
+      DKK: 1.0,
+      USD: usdToDkk,
+      EUR: usdToDkk / data.rates['EUR'],  // 1 EUR = (DKK/USD) / (EUR/USD)
+      SEK: usdToDkk / data.rates['SEK'],
+      NOK: usdToDkk / data.rates['NOK'],
+    }
+    console.log(`💱 Live rates (DKK): USD=${toDKK['USD'].toFixed(4)}, EUR=${toDKK['EUR'].toFixed(4)}, SEK=${toDKK['SEK'].toFixed(4)}, NOK=${toDKK['NOK'].toFixed(4)}`)
+  } catch (err) {
+    console.warn(`⚠️  Could not fetch live exchange rates (${(err as Error).message}). Using fallback rates.`)
+  }
+}
+
+function convertToDKK(amount: number, currency: string): number {
+  const rate = toDKK[currency.toUpperCase()] ?? toDKK['USD']
+  return Math.round(amount * rate)
+}
+
+// ── Rate limiting ─────────────────────────────────────────────────────────────
 const FETCH_DELAY_MS = 2500
 const FETCH_JITTER_MS = 500
 let lastFetchTime = 0
@@ -156,6 +193,9 @@ async function main() {
   if (queryFilter) console.log(`   Query filter: ${queryFilter}`)
   console.log()
 
+  await fetchExchangeRates()
+  console.log()
+
   const watchlists = await fetchWatchlists()
 
   if (watchlists.length === 0) {
@@ -197,7 +237,7 @@ async function main() {
     if (DRY_RUN) {
       for (const l of listings) {
         const raw = l.price ? parseFloat(l.price.amount) : null
-        const dkk = raw != null ? Math.round(raw * USD_TO_DKK) : null
+        const dkk = raw != null ? convertToDKK(raw, l.price!.currency) : null
         console.log(`     • ${l.title} — ${dkk ?? '?'} DKK (${l.condition?.display_name ?? 'unknown condition'})`)
       }
       console.log()
@@ -211,7 +251,7 @@ async function main() {
         watchlist_id:  watchlist.id,
         query:         watchlist.query,
         source:        'reverb',
-        price:         Math.round(parseFloat(l.price!.amount) * USD_TO_DKK),
+        price:         convertToDKK(parseFloat(l.price!.amount), l.price!.currency),
         currency:      'DKK',
         condition:     l.condition?.display_name ?? null,
         listing_url:   l._links?.web?.href ?? null,
