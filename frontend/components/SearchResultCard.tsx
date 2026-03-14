@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import {
+  ResponsiveContainer,
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from 'recharts'
 import type { Listing } from '@/lib/supabase'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
@@ -24,7 +33,9 @@ function timeSince(dateStr: string, locale: string): string {
   return `${days}d ago`
 }
 
-type PriceStats = { count: number; p25: number | null; p75: number | null }
+type PriceStats   = { count: number; p25: number | null; p75: number | null }
+type MarketPrice  = { min: number; max: number; count: number }
+type PricePoint   = { sold_at: string; price: number; condition: string | null; source: 'reverb' | 'auctionet' }
 
 interface Props {
   listing:           Listing
@@ -34,30 +45,135 @@ interface Props {
   variant?:          'list' | 'grid'
   isSaved?:          boolean
   onToggleSave?:     (listing: Listing) => void
+  searchQuery?:      string
+}
+
+// ── Condition colour mapping ───────────────────────────────────────────────────
+function conditionColor(condition: string | null): string {
+  if (!condition) return '#9ca3af'
+  const c = condition.toLowerCase()
+  if (c.includes('mint') || c.includes('excellent') || c.includes('new'))   return '#22c55e'
+  if (c.includes('very good') || c.includes('good'))                         return '#3b82f6'
+  if (c.includes('fair') || c.includes('acceptable') || c.includes('poor')) return '#f59e0b'
+  return '#9ca3af'
+}
+
+// Group price points by condition for separate Scatter series
+function groupByCondition(points: PricePoint[]): Record<string, { date: number; price: number; condition: string | null }[]> {
+  const groups: Record<string, { date: number; price: number; condition: string | null }[]> = {}
+  for (const p of points) {
+    const key = p.condition ?? 'Ukendt'
+    if (!groups[key]) groups[key] = []
+    groups[key].push({ date: new Date(p.sold_at).getTime(), price: p.price, condition: p.condition })
+  }
+  return groups
 }
 
 function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boolean }) {
   const platform = listing.platform ?? listing.source
 
   if (absolute) {
-    // On-image badges — need guaranteed contrast over any photo
     const base = 'absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm'
-    if (platform === 'reverb') return <span className={`${base} bg-orange-500 text-white`}>Reverb</span>
-    if (platform === 'facebook' || platform === 'fb') return <span className={`${base} bg-blue-500 text-white`}>FB</span>
+    if (platform === 'reverb')                            return <span className={`${base} bg-orange-500 text-white`}>Reverb</span>
+    if (platform === 'facebook' || platform === 'fb')    return <span className={`${base} bg-blue-500 text-white`}>FB</span>
     return <span className={`${base} bg-blue-600 text-white`}>DBA</span>
   }
 
-  // Inline badges (list variant) — standard neutral style
   const cls = 'text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border'
-  if (platform === 'reverb') return <span className={cls}>Reverb</span>
-  if (platform === 'facebook' || platform === 'fb') return <span className={cls}>FB</span>
+  if (platform === 'reverb')                            return <span className={cls}>Reverb</span>
+  if (platform === 'facebook' || platform === 'fb')    return <span className={cls}>FB</span>
   return <span className={cls}>DBA</span>
 }
 
-export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast, variant = 'list', isSaved = false, onToggleSave }: Props) {
+// ── Inline price history chart ─────────────────────────────────────────────────
+function PriceHistoryChart({ points }: { points: PricePoint[] }) {
+  const groups = groupByCondition(points)
+  const conditions = Object.keys(groups)
+
+  const formatDate = (ts: number) => {
+    const d = new Date(ts)
+    return `${d.toLocaleString('da-DK', { month: 'short' })} ${d.getFullYear()}`
+  }
+
+  const formatPrice = (v: number) => `${v.toLocaleString('da-DK')} kr`
+
+  return (
+    <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+      <p className="text-[11px] font-semibold mb-1.5" style={{ color: 'var(--muted-foreground)' }}>
+        Prishistorik
+      </p>
+      <ResponsiveContainer width="100%" height={160}>
+        <ScatterChart margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis
+            dataKey="date"
+            type="number"
+            domain={['auto', 'auto']}
+            tickFormatter={formatDate}
+            tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            dataKey="price"
+            type="number"
+            tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+            tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }}
+            tickLine={false}
+            axisLine={false}
+            width={32}
+          />
+          <Tooltip
+            formatter={(value) => [formatPrice(value as number), 'Solgt']}
+            labelFormatter={(ts) => formatDate(ts as number)}
+            contentStyle={{
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              fontSize: '11px',
+              color: 'var(--foreground)',
+            }}
+          />
+          {conditions.map((cond) => (
+            <Scatter
+              key={cond}
+              name={cond}
+              data={groups[cond]}
+              fill={conditionColor(groups[cond][0]?.condition ?? null)}
+            />
+          ))}
+        </ScatterChart>
+      </ResponsiveContainer>
+      {/* Condition legend */}
+      {conditions.length > 1 && (
+        <div className="flex flex-wrap gap-2 mt-1.5">
+          {conditions.map((cond) => (
+            <span key={cond} className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--muted-foreground)' }}>
+              <span
+                className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                style={{ backgroundColor: conditionColor(groups[cond][0]?.condition ?? null) }}
+              />
+              {cond}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function SearchResultCard({
+  listing, onCreateWatchlist, creating, onToast,
+  variant = 'list', isSaved = false, onToggleSave,
+  searchQuery,
+}: Props) {
   const { locale, t } = useLocale()
 
   const [stats,          setStats]         = useState<PriceStats | null>(null)
+  const [marketPrice,    setMarketPrice]   = useState<MarketPrice | null>(null)
+  const [showChart,      setShowChart]     = useState(false)
+  const [chartData,      setChartData]     = useState<PricePoint[]>([])
+  const [chartLoading,   setChartLoading]  = useState(false)
   const [editing,        setEditing]       = useState(false)
   const [fromPrice,      setFromPrice]     = useState('')
   const [toPrice,        setToPrice]       = useState('')
@@ -67,6 +183,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
   const [captureLoading, setCaptureLoading] = useState(false)
   const [captureSent,    setCaptureSent]   = useState(false)
 
+  // Fetch crowd-sourced price stats
   useEffect(() => {
     fetch(`/api/price-observations?listing_id=${listing.id}`)
       .then((r) => r.ok ? r.json() : null)
@@ -76,9 +193,43 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
       .catch(() => {})
   }, [listing.id])
 
+  // Fetch market price from sold history (reverb + auctionet)
+  useEffect(() => {
+    const wid = listing.watchlist_id ?? null
+    const q   = searchQuery ?? null
+    if (!wid && !q) return
+    const param = wid ? `watchlist_id=${wid}` : `query=${encodeURIComponent(q!)}`
+    fetch(`/api/market-price?${param}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: MarketPrice | null) => { if (data) setMarketPrice(data) })
+      .catch(() => {})
+  }, [listing.watchlist_id, searchQuery])
+
+  async function handleToggleChart(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (showChart) { setShowChart(false); return }
+    setShowChart(true)
+    if (chartData.length > 0) return
+    setChartLoading(true)
+    const wid = listing.watchlist_id ?? null
+    const q   = searchQuery ?? null
+    if (!wid && !q) { setChartLoading(false); return }
+    const param = wid ? `watchlist_id=${wid}` : `query=${encodeURIComponent(q!)}`
+    const data: PricePoint[] = await fetch(`/api/price-history?${param}`)
+      .then((r) => r.ok ? r.json() : [])
+      .catch(() => [])
+    setChartData(data)
+    setChartLoading(false)
+  }
+
   const priceFormatted = listing.price != null
     ? `${listing.price.toLocaleString('da-DK')} kr`
     : t.priceNotListed
+
+  const marketPriceFormatted = marketPrice
+    ? `${marketPrice.min.toLocaleString('da-DK')} – ${marketPrice.max.toLocaleString('da-DK')} kr`
+    : null
 
   async function handleSave() {
     const fra = parseInt(fromPrice, 10)
@@ -158,6 +309,8 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
   const hasStats  = stats !== null && stats.count > 0
   const showRange = hasStats && stats!.p25 != null && stats!.p75 != null
 
+  const hasChartSource = !!(listing.watchlist_id || searchQuery)
+
   const priceOriginal = (listing as Listing & { price_original?: number | null }).price_original
   const hasDiscount   = priceOriginal != null && listing.price != null && priceOriginal > listing.price
   const discountPct   = hasDiscount
@@ -222,16 +375,48 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
             <p className="text-sm font-black text-foreground flex-shrink-0">{priceFormatted}</p>
           </div>
 
-          {/* Typical price */}
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleClickPrice() }}
-            className="text-left text-[11px] w-fit transition-opacity hover:opacity-80 text-muted-foreground"
-          >
-            {showRange
-              ? `Typisk ${stats!.p25!.toLocaleString('da-DK')}–${stats!.p75!.toLocaleString('da-DK')} kr`
-              : <>Typisk pris · <span className="italic">{t.comingSoon.toLowerCase()}</span></>
-            }
-          </button>
+          {/* Markedspris */}
+          {marketPriceFormatted && (
+            <p className="text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
+              <span className="font-medium" style={{ color: 'var(--foreground)' }}>Markedspris</span>
+              {' '}{marketPriceFormatted}
+            </p>
+          )}
+
+          {/* Typical price / price history toggle */}
+          {hasChartSource ? (
+            <button
+              onClick={handleToggleChart}
+              className="text-left text-[11px] w-fit transition-opacity hover:opacity-80 text-muted-foreground flex items-center gap-1"
+            >
+              {showRange
+                ? `Typisk ${stats!.p25!.toLocaleString('da-DK')}–${stats!.p75!.toLocaleString('da-DK')} kr`
+                : 'Prishistorik'
+              }
+              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>
+                {showChart ? 'expand_less' : 'expand_more'}
+              </span>
+            </button>
+          ) : (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleClickPrice() }}
+              className="text-left text-[11px] w-fit transition-opacity hover:opacity-80 text-muted-foreground"
+            >
+              {showRange
+                ? `Typisk ${stats!.p25!.toLocaleString('da-DK')}–${stats!.p75!.toLocaleString('da-DK')} kr`
+                : <>Typisk pris · <span className="italic">{t.comingSoon.toLowerCase()}</span></>
+              }
+            </button>
+          )}
+
+          {/* Inline price history chart */}
+          {showChart && (
+            chartLoading
+              ? <div className="h-[160px] mt-2 rounded-lg bg-muted animate-pulse" />
+              : chartData.length > 0
+                ? <PriceHistoryChart points={chartData} />
+                : <p className="text-[11px] mt-2" style={{ color: 'var(--muted-foreground)' }}>Ingen prishistorik endnu.</p>
+          )}
 
           {/* Location · time */}
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-auto pt-1">
@@ -274,10 +459,18 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
         {/* Title */}
         <p className="text-sm font-semibold text-foreground truncate">{listing.title}</p>
 
-        {/* Price */}
-        <p className="text-base font-black" style={{ color: 'var(--foreground)' }}>
-          {priceFormatted}
-        </p>
+        {/* Price row */}
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <p className="text-base font-black" style={{ color: 'var(--foreground)' }}>
+            {priceFormatted}
+          </p>
+          {/* Markedspris inline */}
+          {marketPriceFormatted && (
+            <p className="text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
+              <span className="font-medium">Markedspris</span> {marketPriceFormatted}
+            </p>
+          )}
+        </div>
 
         {/* Typical price — interactive */}
         {editing ? (
@@ -330,16 +523,41 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
             </button>
           </div>
         ) : (
-          <button
-            onClick={handleClickPrice}
-            className="text-left text-[11px] w-fit transition-opacity hover:opacity-80"
-            style={{ color: 'var(--muted-foreground)' }}
-          >
-            {showRange
-              ? `Typisk ${stats!.p25!.toLocaleString('da-DK')}–${stats!.p75!.toLocaleString('da-DK')} kr`
-              : <>Typisk pris · <span className="italic">{t.comingSoon.toLowerCase()}</span></>
-            }
-          </button>
+          hasChartSource ? (
+            <button
+              onClick={handleToggleChart}
+              className="text-left text-[11px] w-fit transition-opacity hover:opacity-80 flex items-center gap-1"
+              style={{ color: 'var(--muted-foreground)' }}
+            >
+              {showRange
+                ? `Typisk ${stats!.p25!.toLocaleString('da-DK')}–${stats!.p75!.toLocaleString('da-DK')} kr`
+                : 'Prishistorik'
+              }
+              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>
+                {showChart ? 'expand_less' : 'expand_more'}
+              </span>
+            </button>
+          ) : (
+            <button
+              onClick={handleClickPrice}
+              className="text-left text-[11px] w-fit transition-opacity hover:opacity-80"
+              style={{ color: 'var(--muted-foreground)' }}
+            >
+              {showRange
+                ? `Typisk ${stats!.p25!.toLocaleString('da-DK')}–${stats!.p75!.toLocaleString('da-DK')} kr`
+                : <>Typisk pris · <span className="italic">{t.comingSoon.toLowerCase()}</span></>
+              }
+            </button>
+          )
+        )}
+
+        {/* Inline price history chart */}
+        {showChart && (
+          chartLoading
+            ? <div className="h-[160px] mt-2 rounded-lg bg-muted animate-pulse" />
+            : chartData.length > 0
+              ? <PriceHistoryChart points={chartData} />
+              : <p className="text-[11px] mt-1" style={{ color: 'var(--muted-foreground)' }}>Ingen prishistorik endnu.</p>
         )}
 
         {/* Meta: platform + time */}

@@ -44,4 +44,5 @@ export type Listing = {
   scraped_at: string
   source: string
   platform?: string | null
+  watchlist_id?: string | null
 }
