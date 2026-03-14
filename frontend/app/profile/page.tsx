@@ -168,9 +168,9 @@ export default function ProfilePage() {
             ) : (
               <div className="flex flex-col gap-4">
                 {([
-                  { key: 'email_enabled' as const, label: 'Email notifikationer',  desc: 'Modtag emails om nye deals og prisudsalg' },
+                  { key: 'email_enabled' as const, label: 'Email notifikationer',  desc: 'Modtag emails om nye deals og prisfald' },
                   { key: 'push_enabled'  as const, label: 'Push notifikationer',   desc: 'Modtag push beskeder i browseren', disabled: true },
-                  { key: 'price_drops'   as const, label: 'Prisudsalg',            desc: 'Få besked når prisen falder på gemte produkter' },
+                  { key: 'price_drops'   as const, label: 'Prisfald',              desc: 'Få besked når prisen falder på gemte produkter' },
                   { key: 'new_listings'  as const, label: 'Nye annoncer',          desc: 'Få besked om nye annoncer der matcher dine søgninger' },
                 ] as { key: keyof NotifPrefs; label: string; desc: string; disabled?: boolean }[]).map(({ key, label, desc, disabled }) => (
                   <div key={key}>
