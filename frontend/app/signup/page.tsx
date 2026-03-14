@@ -9,10 +9,13 @@ import type { Locale } from '@/lib/i18n'
 
 export default function SignupPage() {
   const { locale, setLocale, t } = useLocale()
-  const [email,   setEmail]   = useState('')
-  const [error,   setError]   = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [sent,    setSent]    = useState(false)
+  const [email,    setEmail]    = useState('')
+  const [password, setPassword] = useState('')
+  const [error,    setError]    = useState<string | null>(null)
+  const [loading,  setLoading]  = useState(false)
+  const [sent,     setSent]     = useState(false)
+
+  const usePassword = password.length >= 8
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -20,18 +23,23 @@ export default function SignupPage() {
     setLoading(true)
 
     const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/confirm`,
-        shouldCreateUser: true,
-      },
-    })
 
-    if (error) {
-      setError(t.signupError)
-      setLoading(false)
-      return
+    if (usePassword) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
+      })
+      if (error) { setError(t.signupError); setLoading(false); return }
+    } else {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+          shouldCreateUser: true,
+        },
+      })
+      if (error) { setError(t.signupError); setLoading(false); return }
     }
 
     setSent(true)
@@ -77,8 +85,10 @@ export default function SignupPage() {
                   {t.checkInbox}
                 </h1>
                 <p style={{ color: 'var(--muted-foreground)' }}>
-                  {t.magicLinkSent}{' '}
-                  <span className="font-semibold" style={{ color: 'var(--foreground)' }}>{email}</span>
+                  {usePassword
+                    ? t.signupConfirmEmail
+                    : <>{t.magicLinkSent}{' '}<span className="font-semibold" style={{ color: 'var(--foreground)' }}>{email}</span></>
+                  }
                 </p>
               </div>
             </div>
@@ -124,6 +134,31 @@ export default function SignupPage() {
                       onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
                       onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
                     />
+                  </div>
+
+                  {/* Password (optional) */}
+                  <div className="flex flex-col gap-2">
+                    <label
+                      className="text-xs font-bold uppercase tracking-widest"
+                      style={{ color: 'var(--muted-foreground)' }}
+                    >
+                      {t.passwordOptionalLabel}
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      minLength={8}
+                      autoComplete="new-password"
+                      placeholder={t.passwordOptionalPlaceholder}
+                      className="w-full rounded-2xl px-5 py-4 text-base outline-none transition-all"
+                      style={{ backgroundColor: 'var(--input-background)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
+                      onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
+                    />
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                      {t.passwordOptionalHint}
+                    </p>
                   </div>
 
                   {error && (
