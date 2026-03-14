@@ -384,6 +384,7 @@ function SearchPageInner() {
                     variant="list"
                     isSaved={savedListingIds.has(listing.id)}
                     onToggleSave={handleToggleSave}
+                    searchQuery={currentQuery || undefined}
                   />
                 ))}
               </div>
@@ -400,6 +401,7 @@ function SearchPageInner() {
                     variant="grid"
                     isSaved={savedListingIds.has(listing.id)}
                     onToggleSave={handleToggleSave}
+                    searchQuery={currentQuery || undefined}
                   />
                 ))}
               </div>

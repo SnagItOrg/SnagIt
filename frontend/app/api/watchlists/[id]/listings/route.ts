@@ -28,7 +28,7 @@ export async function GET(
 
   const { data, error, count } = await supabase
     .from('listings')
-    .select('id, title, price, currency, url, image_url, location, scraped_at, source', { count: 'exact' })
+    .select('id, title, price, currency, url, image_url, location, scraped_at, source, watchlist_id', { count: 'exact' })
     .eq('watchlist_id', params.id)
     .order('scraped_at', { ascending: false })
     .range(from, to)
