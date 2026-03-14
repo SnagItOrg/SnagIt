@@ -406,16 +406,15 @@ function SearchPageInner() {
             </>
           ) : (
             // Initial state: no search yet
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center max-w-sm mx-auto">
               <span
                 className="material-symbols-outlined"
                 style={{ fontSize: '48px', color: 'var(--muted-foreground)', opacity: 0.4 }}
               >
                 manage_search
               </span>
-              <p className="text-sm text-muted-foreground">
-                {t.searchInputPlaceholder}
-              </p>
+              <p className="text-base font-semibold text-foreground">{t.searchEmptyHeading}</p>
+              <p className="text-sm text-muted-foreground">{t.searchEmptySubtext}</p>
             </div>
           )}
         </main>

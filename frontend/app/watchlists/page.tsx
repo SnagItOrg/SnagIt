@@ -181,15 +181,26 @@ export default function WatchlistsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
                   <AddWatchlistCard onOpen={() => setShowCreator(true)} />
                 </div>
-                <div className="flex flex-col items-center gap-3 text-center py-8">
+                <div className="flex flex-col items-center gap-3 text-center py-8 max-w-sm mx-auto">
                   <span
                     className="material-symbols-outlined"
                     style={{ fontSize: '56px', color: 'var(--muted-foreground)', opacity: 0.6 }}
                   >
                     travel_explore
                   </span>
-                  <p className="text-base font-semibold text-foreground">{t.emptyStateHeading}</p>
-                  <p className="text-sm text-muted-foreground">{t.emptyStateSubtext}</p>
+                  <p className="text-base font-semibold text-foreground">{t.watchlistsEmptyHeading}</p>
+                  <p className="text-sm text-muted-foreground">{t.watchlistsEmptySubtext}</p>
+                </div>
+
+                <div className="flex flex-col items-center gap-3 text-center py-8 max-w-sm mx-auto">
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: '56px', color: 'var(--muted-foreground)', opacity: 0.6 }}
+                  >
+                    notifications_none
+                  </span>
+                  <p className="text-base font-semibold text-foreground">{t.notificationsEmptyHeading}</p>
+                  <p className="text-sm text-muted-foreground">{t.notificationsEmptySubtext}</p>
                 </div>
               </>
             ) : (
