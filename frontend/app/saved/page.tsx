@@ -35,11 +35,8 @@ export default function SavedPage() {
   async function loadSaved() {
     setLoading(true)
     const res = await fetch('/api/saved-listings')
-    if (!res.ok) {
-      console.error('GET /api/saved-listings failed:', res.status, await res.text())
-    } else {
+    if (res.ok) {
       const data: SavedRow[] = await res.json()
-      console.log('saved rows returned:', data.length, data)
       setRows(data)
     }
     setLoading(false)

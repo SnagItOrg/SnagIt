@@ -159,7 +159,6 @@ function SearchPageInner() {
 
   async function handleToggleSave(listing: Listing) {
     const alreadySaved = savedListingIds.has(listing.id)
-    console.log('handleToggleSave called', listing.id, 'isSaved:', alreadySaved)
     const prev = new Set(savedListingIds)
 
     if (alreadySaved) {
@@ -173,22 +172,15 @@ function SearchPageInner() {
       showToast(t.listingUnsaved)
     } else {
       setSavedListingIds(new Set(Array.from(savedListingIds).concat(listing.id)))
-      console.log('POSTing to /api/saved-listings', { listing_id: listing.id })
       try {
         const res = await fetch('/api/saved-listings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ listing_id: listing.id, listing_data: listing }),
         })
-        if (!res.ok) {
-          const errText = await res.text()
-          console.error('POST /api/saved-listings failed:', res.status, errText)
-          setSavedListingIds(prev)
-          return
-        }
+        if (!res.ok) { setSavedListingIds(prev); return }
         showToast(t.listingSaved)
-      } catch (err) {
-        console.error('handleToggleSave error:', err)
+      } catch {
         setSavedListingIds(prev)
       }
     }
