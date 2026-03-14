@@ -54,6 +54,7 @@ function SearchPageInner() {
   const [watchlistModalQuery,  setWatchlistModalQuery]  = useState('')
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
   const [showFilters,      setShowFilters]      = useState(false)
+  const [savedListingIds,  setSavedListingIds]  = useState<Set<string>>(new Set())
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function showToast(msg: string) {
@@ -91,10 +92,17 @@ function SearchPageInner() {
     setLoading(false)
   }
 
-  // Fire on mount: search if ?q= present
+  // Fire on mount: search if ?q= present + load saved listing ids
   useEffect(() => {
     const q = params.get('q')
     if (q) void runSearch(q)
+
+    fetch('/api/saved-listings')
+      .then((r) => r.ok ? r.json() : [])
+      .then((rows: { listing_id: string }[]) => {
+        setSavedListingIds(new Set(rows.map((r) => r.listing_id)))
+      })
+      .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -147,6 +155,31 @@ function SearchPageInner() {
       showToast(data.error ?? t.addWatchlistError)
     }
     setCreating(false)
+  }
+
+  async function handleToggleSave(listing: Listing) {
+    const alreadySaved = savedListingIds.has(listing.id)
+    const prev = new Set(savedListingIds)
+
+    if (alreadySaved) {
+      setSavedListingIds(new Set(Array.from(savedListingIds).filter((id) => id !== listing.id)))
+      const res = await fetch('/api/saved-listings', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listing_id: listing.id }),
+      })
+      if (!res.ok) { setSavedListingIds(prev); return }
+      showToast(t.listingUnsaved)
+    } else {
+      setSavedListingIds(new Set(Array.from(savedListingIds).concat(listing.id)))
+      const res = await fetch('/api/saved-listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listing_id: listing.id, listing_data: listing }),
+      })
+      if (!res.ok) { setSavedListingIds(prev); return }
+      showToast(t.listingSaved)
+    }
   }
 
   // Platforms present in current results
@@ -345,6 +378,8 @@ function SearchPageInner() {
                     creating={creating}
                     onToast={showToast}
                     variant="list"
+                    isSaved={savedListingIds.has(listing.id)}
+                    onToggleSave={handleToggleSave}
                   />
                 ))}
               </div>
@@ -359,6 +394,8 @@ function SearchPageInner() {
                     creating={creating}
                     onToast={showToast}
                     variant="grid"
+                    isSaved={savedListingIds.has(listing.id)}
+                    onToggleSave={handleToggleSave}
                   />
                 ))}
               </div>

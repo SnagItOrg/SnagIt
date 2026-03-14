@@ -32,6 +32,8 @@ interface Props {
   creating:          boolean
   onToast?:          (msg: string) => void
   variant?:          'list' | 'grid'
+  isSaved?:          boolean
+  onToggleSave?:     (listing: Listing) => void
 }
 
 function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boolean }) {
@@ -52,7 +54,7 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
   return <span className={cls}>DBA</span>
 }
 
-export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast, variant = 'list' }: Props) {
+export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast, variant = 'list', isSaved = false, onToggleSave }: Props) {
   const { locale, t } = useLocale()
 
   const [stats,          setStats]         = useState<PriceStats | null>(null)
@@ -64,7 +66,6 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
   const [captureEmail,   setCaptureEmail]  = useState('')
   const [captureLoading, setCaptureLoading] = useState(false)
   const [captureSent,    setCaptureSent]   = useState(false)
-  const [heartToast,     setHeartToast]    = useState(false)
 
   useEffect(() => {
     fetch(`/api/price-observations?listing_id=${listing.id}`)
@@ -124,8 +125,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
     const supabase = createSupabaseBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setShowCapture(true); return }
-    setHeartToast(true)
-    setTimeout(() => setHeartToast(false), 2000)
+    onToggleSave?.(listing)
   }
 
   async function handleCaptureSubmit(e: React.FormEvent) {
@@ -202,7 +202,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
             className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center transition-opacity hover:opacity-90"
             aria-label="Gem annonce"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-800">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isSaved ? 'text-red-500' : 'text-gray-800'}>
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </button>
@@ -402,21 +402,18 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
           )
         ) : (
           <div className="flex flex-col gap-1.5 mt-2">
-            {heartToast && (
-              <p className="text-xs text-muted-foreground italic">Kommer snart 🤍</p>
-            )}
             <div className="flex gap-2">
-              {/* Heart — save listing (coming soon) */}
+              {/* Heart — save listing */}
               <button
                 onClick={handleHeartClick}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--muted-foreground)' }}
+                style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: isSaved ? 'var(--foreground)' : 'var(--muted-foreground)' }}
                 aria-label="Gem annonce"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isSaved ? 'text-red-500' : ''}>
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                 </svg>
-                Gem
+                {isSaved ? 'Gemt' : 'Gem'}
               </button>
               {/* Bell — create watchlist alert */}
               <button
