@@ -117,8 +117,8 @@ export default function SavedPage() {
               >
                 bookmark
               </span>
-              <h1 className="text-xl font-bold text-foreground">{t.noSavedListings}</h1>
-              <p className="text-sm text-muted-foreground">{t.noSavedListingsSubtext}</p>
+              <h1 className="text-xl font-bold text-foreground">{t.savedEmptyHeading}</h1>
+              <p className="text-sm text-muted-foreground">{t.savedEmptySubtext}</p>
               <button
                 onClick={() => router.push('/search')}
                 className="w-full py-3 rounded-xl text-sm font-semibold transition-colors bg-primary text-bg hover:bg-primary/90"
