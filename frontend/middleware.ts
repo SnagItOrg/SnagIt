@@ -20,7 +20,6 @@ function isPublicPath(pathname: string): boolean {
   if (pathname === '/') return true
   if (pathname === '/watchlists') return true  // shows teaser for unauthenticated
   if (pathname === '/saved') return true        // shows teaser for unauthenticated
-  if (pathname === '/profile') return true      // shows teaser for unauthenticated
   if (pathname === '/onboarding') return true
   return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))
 }
@@ -61,14 +60,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/watchlists', request.url))
   }
 
+  // Logged-in users on /login or /signup → search
+  if (user && (pathname === '/login' || pathname === '/signup')) {
+    return NextResponse.redirect(new URL('/search', request.url))
+  }
+
   // Logged-in users are bounced out of the onboarding flow → watchlists
   if (user && isOnboardingPath(pathname)) {
     return NextResponse.redirect(new URL('/watchlists', request.url))
   }
 
-  // Unauthenticated users on protected routes → /
+  // Unauthenticated users on protected routes → /login
   if (!user && !isPublicPath(pathname)) {
-    return NextResponse.redirect(new URL('/', request.url))
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   return supabaseResponse

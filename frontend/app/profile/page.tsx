@@ -63,7 +63,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) { router.replace('/login'); return }
+      if (!data.user) return
       setAuthed(true)
       setEmail(data.user.email ?? null)
     })
@@ -113,8 +113,6 @@ export default function ProfilePage() {
     if (res.ok) setWatchlists((prev) => prev.filter((w) => w.id !== id))
     setDeleting(null)
   }
-
-  if (authed === null) return null
 
   const cardClass = "rounded-2xl p-6 flex flex-col gap-4"
   const cardStyle = { backgroundColor: 'var(--card)', border: '1px solid var(--border)' }
