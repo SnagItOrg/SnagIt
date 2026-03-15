@@ -12,25 +12,38 @@ export default function LoginPage() {
   const router = useRouter()
   const { locale, setLocale, t } = useLocale()
 
-  const [tab,      setTab]      = useState<Tab>('password')
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [error,    setError]    = useState<string | null>(null)
-  const [loading,  setLoading]  = useState(false)
-  const [sent,     setSent]     = useState(false)
+  const [tab,                setTab]                = useState<Tab>('password')
+  const [email,              setEmail]              = useState('')
+  const [password,           setPassword]           = useState('')
+  const [error,              setError]              = useState<string | null>(null)
+  const [loading,            setLoading]            = useState(false)
+  const [sent,               setSent]               = useState(false)
+  const [passwordLoginFailed, setPasswordLoginFailed] = useState(false)
+  const [resetSent,          setResetSent]          = useState(false)
 
   async function handlePasswordLogin(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setPasswordLoginFailed(false)
     setLoading(true)
     const supabase = createSupabaseBrowserClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setError(t.loginError)
+      setPasswordLoginFailed(true)
       setLoading(false)
       return
     }
     router.push('/search')
+  }
+
+  async function handleResetPassword() {
+    if (!email) return
+    const supabase = createSupabaseBrowserClient()
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/auth/confirm',
+    })
+    setResetSent(true)
   }
 
   async function handleMagicLink(e: React.FormEvent) {
@@ -111,7 +124,7 @@ export default function LoginPage() {
           ]).map(({ key, label }) => (
             <button
               key={key}
-              onClick={() => { setTab(key); setError(null); setSent(false) }}
+              onClick={() => { setTab(key); setError(null); setSent(false); setPasswordLoginFailed(false); setResetSent(false) }}
               className="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
               style={tab === key
                 ? { backgroundColor: 'var(--card)', color: 'var(--foreground)', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }
@@ -163,11 +176,35 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div
-                className="rounded-xl px-4 py-3 text-sm"
-                style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}
-              >
-                {error}
+              <div className="flex flex-col gap-0">
+                <p className="text-sm text-red-500">{error}</p>
+                {passwordLoginFailed && (
+                  <div
+                    className="rounded-xl p-3 mt-2 flex flex-col gap-2"
+                    style={{ backgroundColor: 'var(--muted)', border: '1px solid var(--border)' }}
+                  >
+                    <p className="text-xs text-muted-foreground">{t.noPasswordYet}</p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setTab('magic'); setError(null); setPasswordLoginFailed(false) }}
+                        className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-80"
+                        style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+                      >
+                        {t.tryMagicLink}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResetPassword}
+                        disabled={resetSent}
+                        className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                        style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+                      >
+                        {resetSent ? '✓' : t.resetPassword}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -178,14 +215,6 @@ export default function LoginPage() {
               style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
               {loading ? t.loginLoading : t.loginButton}
-            </button>
-
-            <button
-              type="button"
-              className="text-xs text-center transition-opacity hover:opacity-70"
-              style={{ color: 'var(--muted-foreground)' }}
-            >
-              {t.forgotPassword}
             </button>
           </form>
         ) : sent ? (
