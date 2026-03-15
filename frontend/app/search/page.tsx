@@ -8,6 +8,7 @@ import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
+import { platformList } from '@/lib/platforms'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 type SortKey = 'newest' | 'oldest' | 'price_asc' | 'price_desc'
@@ -40,7 +41,7 @@ function sortListings(listings: Listing[], sort: SortKey): Listing[] {
 function SearchPageInner() {
   const router = useRouter()
   const params = useSearchParams()
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
 
   const [inputValue,   setInputValue]   = useState(() => params.get('q') ?? '')
   const [sort,         setSort]         = useState<SortKey>('newest')
@@ -414,7 +415,7 @@ function SearchPageInner() {
                 manage_search
               </span>
               <p className="text-base font-semibold text-foreground">{t.searchEmptyHeading}</p>
-              <p className="text-sm text-muted-foreground">{t.searchEmptySubtext}</p>
+              <p className="text-sm text-muted-foreground">{t.searchEmptySubtext.replace('{platforms}', platformList(locale))}</p>
             </div>
           )}
         </main>
