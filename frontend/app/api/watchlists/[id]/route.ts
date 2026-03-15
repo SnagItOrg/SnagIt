@@ -63,11 +63,11 @@ export async function DELETE(
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // RLS ensures the user can only delete their own watchlists
   const { error } = await supabase
     .from('watchlists')
     .delete()
     .eq('id', params.id)
+    .eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
