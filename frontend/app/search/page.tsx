@@ -213,6 +213,12 @@ function SearchPageInner() {
       <SideNav active={'soeg'} onChange={() => {}} />
 
       <div className="flex-1 min-w-0 flex flex-col md:ml-60">
+        {/* Page header */}
+        <div className="px-4 pt-6 pb-2 md:px-8">
+          <h1 className="text-xl font-black text-foreground">{t.searchPageHeading}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t.searchPageSubtext.replace('{platforms}', platformList(locale))}</p>
+        </div>
+
         {/* Sticky search bar */}
         <div className="sticky top-0 z-30 w-full bg-bg border-b border-border px-4 py-3 md:px-8">
           <form onSubmit={handleSubmit} className="flex flex-col gap-2">
