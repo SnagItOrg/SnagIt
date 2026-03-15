@@ -32,6 +32,18 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'rvb-img.reverb.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'reverb-res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'd3ugyf87b0homh.cloudfront.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.reverb.com',
+      },
     ],
   },
 };

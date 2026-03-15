@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { scrapeDba } from '@/lib/scrapers/dba'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
-export async function POST(req: NextRequest) {
-  const { query } = await req.json()
+export async function GET(request: NextRequest) {
+  const query = request.nextUrl.searchParams.get('q')
 
   if (!query || typeof query !== 'string') {
     return NextResponse.json({ error: 'Missing query parameter' }, { status: 400 })
@@ -37,7 +37,9 @@ export async function POST(req: NextRequest) {
     const reverbData = (reverbRaw ?? []).filter((l) =>
       words.every((w) => normalize(String(l.title)).includes(normalize(w)))
     ).slice(0, 20)
-    return NextResponse.json({ inserted: 0, listings: reverbData, query })
+    return NextResponse.json({ inserted: 0, listings: reverbData, query }, {
+      headers: { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60' },
+    })
   }
 
   const now = new Date().toISOString()
@@ -74,5 +76,7 @@ export async function POST(req: NextRequest) {
     total_scraped: listings.length,
     query,
     listings: merged,
+  }, {
+    headers: { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60' },
   })
 }

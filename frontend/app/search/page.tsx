@@ -72,11 +72,7 @@ function SearchPageInner() {
     setSearched(true)
 
     try {
-      const res = await fetch('/api/scrape', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q }),
-      })
+      const res = await fetch(`/api/scrape?q=${encodeURIComponent(q)}`)
       if (!res.ok) {
         const data = await res.json()
         setError(data.error ?? t.searchFailed)
