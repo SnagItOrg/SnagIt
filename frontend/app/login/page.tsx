@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import type { Locale } from '@/lib/i18n'
@@ -313,6 +314,14 @@ export default function LoginPage() {
           </svg>
           {t.continueWithGoogle}
         </button>
+
+        {/* Signup link */}
+        <p className="text-sm text-center" style={{ color: 'var(--muted-foreground)' }}>
+          {t.newUser}{' '}
+          <Link href="/signup" className="underline hover:opacity-80 transition-opacity" style={{ color: 'var(--foreground)' }}>
+            {t.createFreeAccount}
+          </Link>
+        </p>
 
         {/* Terms */}
         <p className="text-xs text-center" style={{ color: 'var(--muted-foreground)' }}>

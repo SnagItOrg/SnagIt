@@ -16,6 +16,8 @@ export const translations = {
     confirmationSentTo: 'Vi har sendt et bekr\u00e6ftelseslink til',
     clickToActivate: 'Klik p\u00e5 linket for at aktivere din konto.',
     alreadyHaveAccount: 'Har du allerede en konto?',
+    newUser: 'Ny bruger?',
+    createFreeAccount: 'Opret gratis konto',
     watchlists: 'Overv\u00e5gninger',
     watchlistsDescription:
       'Vi tjekker dba.dk hvert 10. minut og sender dig en email ved nye annoncer.',
@@ -167,6 +169,8 @@ export const translations = {
     confirmationSentTo: "We\u2019ve sent a confirmation link to",
     clickToActivate: 'Click the link to activate your account.',
     alreadyHaveAccount: 'Already have an account?',
+    newUser: 'New user?',
+    createFreeAccount: 'Create free account',
     watchlists: 'Watchlists',
     watchlistsDescription:
       'We check dba.dk every 10 minutes and send you an email when new listings appear.',
