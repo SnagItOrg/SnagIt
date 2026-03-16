@@ -31,6 +31,25 @@ function formatLocation(location: string): string {
   return code ? `${countryFlag(code)} ${country}` : location
 }
 
+function getLocationDisplay(listing: Listing): string | null {
+  if (!listing.location && listing.source !== 'dba') return null
+
+  switch (listing.source) {
+    case 'dba':
+      return '🇩🇰 Danmark'
+    case 'reverb':
+      return listing.location ? formatLocation(listing.location) : null
+    case 'kleinanzeigen':
+      return '🇩🇪 Tyskland'
+    case 'blocket':
+      return '🇸🇪 Sverige'
+    case 'finn':
+      return '🇳🇴 Norge'
+    default:
+      return listing.location ?? null
+  }
+}
+
 function timeSince(dateStr: string, locale: string): string {
   const diff  = Date.now() - new Date(dateStr).getTime()
   const mins  = Math.floor(diff / 60_000)
@@ -194,14 +213,10 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
 
           {/* Location · time */}
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-auto pt-1">
-            {listing.location && (
+            {getLocationDisplay(listing) && (
               <>
                 <span className="material-symbols-outlined flex-shrink-0" style={{ fontSize: '12px' }}>location_on</span>
-                <span className="truncate">
-                  {listing.platform === 'reverb'
-                    ? formatLocation(listing.location)
-                    : `🇩🇰 ${listing.location}`}
-                </span>
+                <span className="truncate">{getLocationDisplay(listing)}</span>
                 <span>·</span>
               </>
             )}
@@ -248,14 +263,10 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
           <PlatformBadge listing={listing} />
           <span>·</span>
           <span>{timeSince(listing.scraped_at, locale)}</span>
-          {listing.location && (
+          {getLocationDisplay(listing) && (
             <>
               <span>·</span>
-              <span className="truncate">
-                {listing.platform === 'reverb'
-                  ? formatLocation(listing.location)
-                  : `🇩🇰 ${listing.location}`}
-              </span>
+              <span className="truncate">{getLocationDisplay(listing)}</span>
             </>
           )}
         </div>
