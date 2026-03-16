@@ -9,6 +9,7 @@ import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { Listing } from '@/lib/supabase'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
+import { MobileSearchBar } from '@/components/MobileSearchBar'
 
 type SavedRow = {
   listing_id: string
@@ -68,7 +69,9 @@ export default function SavedPage() {
     <div className="min-h-screen bg-bg text-foreground flex">
       <SideNav active="gemt" onChange={() => {}} />
 
-      <main className="flex-1 md:pl-60 flex flex-col px-4 pt-6 pb-24 md:pb-6 md:px-8">
+      <main className="flex-1 md:pl-60 flex flex-col pb-24 md:pb-6">
+        <MobileSearchBar />
+        <div className="flex flex-col px-4 pt-2 md:px-8 md:pt-6 flex-1">
         {authed === false ? (
           /* Teaser for unauthenticated visitors */
           <div className="flex flex-col items-center justify-center flex-1">
@@ -148,6 +151,7 @@ export default function SavedPage() {
             ))}
           </div>
         )}
+        </div>
       </main>
 
       <BottomNav />

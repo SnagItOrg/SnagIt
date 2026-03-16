@@ -12,6 +12,7 @@ import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { loadOnboarding, clearOnboarding, fireEvent } from '@/lib/onboarding'
 import { Toast } from '@/components/Toast'
+import { MobileSearchBar } from '@/components/MobileSearchBar'
 
 export default function WatchlistsPage() {
   const router = useRouter()
@@ -130,6 +131,7 @@ export default function WatchlistsPage() {
       <SideNav active={'hjem'} onChange={() => router.push('/')} />
 
       <div className="flex-1 flex flex-col md:ml-60">
+        <MobileSearchBar />
         {showCreator ? (
           <WatchlistCreatorPanel
             onSave={(w) => { setWatchlists((prev) => [w, ...prev]); setShowCreator(false) }}
