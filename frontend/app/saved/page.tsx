@@ -8,6 +8,7 @@ import { SearchResultCard } from '@/components/SearchResultCard'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { Listing } from '@/lib/supabase'
+import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 
 type SavedRow = {
   listing_id: string
@@ -133,16 +134,17 @@ export default function SavedPage() {
               {rows.length} {rows.length === 1 ? 'gemt annonce' : 'gemte annoncer'}
             </p>
             {rows.map((row) => (
-              <SearchResultCard
-                key={row.listing_id}
-                listing={row.listing_data}
-                onCreateWatchlist={() => {}}
-                creating={false}
-                onToast={showToast}
-                variant="list"
-                isSaved={true}
-                onToggleSave={handleToggleSave}
-              />
+              <ListingErrorBoundary key={row.listing_id} listingId={row.listing_id}>
+                <SearchResultCard
+                  listing={row.listing_data}
+                  onCreateWatchlist={() => {}}
+                  creating={false}
+                  onToast={showToast}
+                  variant="list"
+                  isSaved={true}
+                  onToggleSave={handleToggleSave}
+                />
+              </ListingErrorBoundary>
             ))}
           </div>
         )}

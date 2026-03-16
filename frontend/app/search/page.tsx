@@ -10,6 +10,7 @@ import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { platformList } from '@/lib/platforms'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 
 type SortKey = 'newest' | 'oldest' | 'price_asc' | 'price_desc'
 
@@ -378,32 +379,34 @@ function SearchPageInner() {
               {/* Mobile: list */}
               <div className="flex flex-col gap-3 md:hidden">
                 {filtered.map((listing) => (
-                  <SearchResultCard
-                    key={listing.id}
-                    listing={listing}
-                    onCreateWatchlist={handleCreateWatchlist}
-                    creating={creating}
-                    onToast={showToast}
-                    variant="list"
-                    isSaved={savedListingIds.has(listing.id)}
-                    onToggleSave={handleToggleSave}
-                  />
+                  <ListingErrorBoundary key={listing.id} listingId={listing.id}>
+                    <SearchResultCard
+                      listing={listing}
+                      onCreateWatchlist={handleCreateWatchlist}
+                      creating={creating}
+                      onToast={showToast}
+                      variant="list"
+                      isSaved={savedListingIds.has(listing.id)}
+                      onToggleSave={handleToggleSave}
+                    />
+                  </ListingErrorBoundary>
                 ))}
               </div>
 
               {/* Desktop: 4-col grid */}
               <div className="hidden md:grid md:grid-cols-4 md:gap-4">
                 {filtered.map((listing) => (
-                  <SearchResultCard
-                    key={listing.id}
-                    listing={listing}
-                    onCreateWatchlist={handleCreateWatchlist}
-                    creating={creating}
-                    onToast={showToast}
-                    variant="grid"
-                    isSaved={savedListingIds.has(listing.id)}
-                    onToggleSave={handleToggleSave}
-                  />
+                  <ListingErrorBoundary key={listing.id} listingId={listing.id}>
+                    <SearchResultCard
+                      listing={listing}
+                      onCreateWatchlist={handleCreateWatchlist}
+                      creating={creating}
+                      onToast={showToast}
+                      variant="grid"
+                      isSaved={savedListingIds.has(listing.id)}
+                      onToggleSave={handleToggleSave}
+                    />
+                  </ListingErrorBoundary>
                 ))}
               </div>
             </>
