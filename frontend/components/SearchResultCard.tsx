@@ -34,7 +34,6 @@ interface Props {
   listing:           Listing
   onCreateWatchlist: (listingTitle?: string) => void
   creating:          boolean
-  onToast?:          (msg: string) => void
   variant?:          'list' | 'grid'
   isSaved?:          boolean
   onToggleSave?:     (listing: Listing) => void
@@ -57,7 +56,7 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
   return <span className={cls}>DBA</span>
 }
 
-export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast, variant = 'list', isSaved = false, onToggleSave, marketPrice }: Props) {
+export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave, marketPrice }: Props) {
   const { locale, t } = useLocale()
 
   const [showCapture,    setShowCapture]   = useState(false)

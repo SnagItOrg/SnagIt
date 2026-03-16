@@ -395,7 +395,7 @@ function SearchPageInner() {
                       listing={listing}
                       onCreateWatchlist={handleCreateWatchlist}
                       creating={creating}
-                      onToast={showToast}
+
                       variant="list"
                       isSaved={savedListingIds.has(listing.id)}
                       onToggleSave={handleToggleSave}
@@ -413,7 +413,7 @@ function SearchPageInner() {
                       listing={listing}
                       onCreateWatchlist={handleCreateWatchlist}
                       creating={creating}
-                      onToast={showToast}
+
                       variant="grid"
                       isSaved={savedListingIds.has(listing.id)}
                       onToggleSave={handleToggleSave}

@@ -139,7 +139,7 @@ export default function SavedPage() {
                   listing={row.listing_data}
                   onCreateWatchlist={() => {}}
                   creating={false}
-                  onToast={showToast}
+
                   variant="list"
                   isSaved={true}
                   onToggleSave={handleToggleSave}
