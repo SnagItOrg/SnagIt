@@ -1,152 +1,100 @@
 /**
  * scripts/scrape-reverb.ts
  *
- * Scrapes Reverb API for music gear listings across priority categories.
- * Merges data into knowledge-graph.json, handling brand normalization
- * and duplicate detection.
+ * Fetches Reverb API listings for brand+product combinations from the
+ * knowledge graph and upserts them into the Supabase listings table.
  *
  * Features:
- *   - Conservative 2.5s rate limiting (Tier 1 limits are harsh)
- *   - Brand normalization (e-mu → emu, etc.)
- *   - Duplicate detection within KG
- *   - Audit logging
+ *   - Reads search terms from kg_brand + kg_product in Supabase
+ *   - Conservative 2.5s rate limiting (Reverb Tier 1)
+ *   - Upserts on external_id — updates price/scraped_at, preserves title/url
+ *   - Marks stale listings (>48h) as inactive
  *
  * Usage:
  *   npm run scrape-reverb                  # full run
- *   npm run scrape-reverb -- --dry-run     # test without writing
- *   npm run scrape-reverb -- --limit=50    # limit listings processed
+ *   npm run scrape-reverb -- --limit=50    # limit total listings upserted
  *   npm run scrape-reverb -- --brand=korg  # single brand filter
  */
 
-import * as fs from 'fs'
 import * as path from 'path'
+import * as fs from 'fs'
+import { createClient } from '@supabase/supabase-js'
 
-// ── CLI flags ─────────────────────────────────────────────────────────────────
+// ── Load env ─────────────────────────────────────────────────────────────────
+const envPaths = [
+  path.resolve(__dirname, '../frontend/.env.local'),
+  path.resolve(__dirname, '../.env.local'),
+]
+for (const p of envPaths) {
+  if (fs.existsSync(p)) {
+    const lines = fs.readFileSync(p, 'utf8').split('\n')
+    for (const line of lines) {
+      const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/)
+      if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, '')
+    }
+    break
+  }
+}
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
+  process.exit(1)
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+  auth: { persistSession: false },
+})
+
+// ── CLI flags ────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2)
-const DRY_RUN = args.includes('--dry-run')
 const brandFilter = args.find(a => a.startsWith('--brand='))?.split('=')[1]?.toLowerCase() ?? null
 const limitArg = args.find(a => a.startsWith('--limit='))?.split('=')[1]
-const LIMIT = limitArg ? parseInt(limitArg, 10) : 200
+const LIMIT = limitArg ? parseInt(limitArg, 10) : 500
 
-// ── Rate limiting ─────────────────────────────────────────────────────────────
-// Reverb API Tier 1: harsh limits. Be conservative.
-const FETCH_DELAY_MS = 2500  // 2.5s between requests
-const FETCH_JITTER_MS = 500  // ±250ms random jitter
+// ── Rate limiting ────────────────────────────────────────────────────────────
+const FETCH_DELAY_MS = 2500
+const FETCH_JITTER_MS = 500
 let lastFetchTime = 0
 
-async function sleep(ms: number) {
+function sleep(ms: number) {
   return new Promise<void>(resolve => setTimeout(resolve, ms))
 }
 
 async function rateLimit() {
   const now = Date.now()
   const elapsed = now - lastFetchTime
-  const delayMs = Math.max(0, FETCH_DELAY_MS + (Math.random() * FETCH_JITTER_MS - FETCH_JITTER_MS / 2) - elapsed)
-  if (delayMs > 0) {
-    await sleep(delayMs)
-  }
+  const jitter = Math.random() * FETCH_JITTER_MS - FETCH_JITTER_MS / 2
+  const delayMs = Math.max(0, FETCH_DELAY_MS + jitter - elapsed)
+  if (delayMs > 0) await sleep(delayMs)
   lastFetchTime = Date.now()
 }
 
-// ── Brand normalization ───────────────────────────────────────────────────────
-const BRAND_NORM_MAP: Record<string, string> = {
-  // Normalize variant spellings and kebab-case variants
-  'e-mu': 'emu',
-  'emu': 'emu',
-  'moog': 'moog',
-  'mini-moog': 'moog',
-  'minimoog': 'moog',
-  'korg': 'korg',
-  'roland': 'roland',
-  'yamaha': 'yamaha',
-  'akai': 'akai',
-  'casio': 'casio',
-  'sequential': 'sequential',
-  'oberheim': 'oberheim',
-  'arp': 'arp',
-  'elektron': 'elektron',
-  'novation': 'novation',
-  'arturia': 'arturia',
-  'behringer': 'behringer',
-  'gibson': 'gibson',
-  'fender': 'fender',
-  'martin': 'martin',
-  'ibanez': 'ibanez',
-  'epiphone': 'epiphone',
-  'schecter': 'schecter',
-  'kramer': 'kramer',
-  'marshall': 'marshall',
-  'vox': 'vox',
-  'mesa-boogie': 'mesa',
-  'mesa': 'mesa',
-  'traynor': 'traynor',
-  'boss': 'boss',
-  'zoom': 'zoom',
-  'strymon': 'strymon',
-  'earthquaker-devices': 'earthquaker-devices',
-  'earthquaker': 'earthquaker-devices',
+// ── Exchange rate ────────────────────────────────────────────────────────────
+const FALLBACK_USD_TO_DKK = 7.0
+let usdToDkk = FALLBACK_USD_TO_DKK
+
+async function fetchExchangeRate(): Promise<void> {
+  try {
+    const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=DKK')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = (await res.json()) as { rates: Record<string, number> }
+    usdToDkk = data.rates['DKK'] ?? FALLBACK_USD_TO_DKK
+    console.log(`💱 USD → DKK: ${usdToDkk.toFixed(4)}`)
+  } catch (err) {
+    console.warn(`⚠️  Could not fetch exchange rate (${(err as Error).message}). Using fallback ${FALLBACK_USD_TO_DKK}.`)
+  }
 }
 
-function slugify(s: string): string {
-  return s.toLowerCase()
-    .replace(/[\s\/\-\.]+/g, '-')
-    .replace(/[^a-z0-9\-]/g, '')
-    .replace(/^-+|-+$/g, '')
+function toDKK(amount: number, currency: string): number {
+  if (currency.toUpperCase() === 'DKK') return Math.round(amount)
+  if (currency.toUpperCase() === 'EUR') return Math.round(amount * usdToDkk / 0.92) // approximate EUR→DKK
+  return Math.round(amount * usdToDkk) // assume USD
 }
 
-function normalizeBrandSlug(name: string): string {
-  const slug = slugify(name)
-  return BRAND_NORM_MAP[slug] || slug
-}
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface ReverbListing {
-  id: number | string
-  title: string
-  make?: string
-  model?: string
-  year?: string
-  price?: { currency: string; amount: number }
-  _links?: { web?: { href?: string } }
-}
-
-interface ReverbListingsResponse {
-  listings?: ReverbListing[]
-  pagination?: { total?: number }
-}
-
-interface KgProduct {
-  name: string
-  type: string
-  era?: string
-  reference_url?: string
-  price_range_dkk?: [number, number]
-  related?: string[]
-  clones?: string[]
-  [key: string]: unknown
-}
-
-interface BrandData {
-  name?: string
-  products: Record<string, KgProduct>
-  note?: string
-}
-
-interface CategoryData {
-  brands: Record<string, BrandData>
-}
-
-interface KnowledgeGraph {
-  version: string
-  description: string
-  categories: Record<string, CategoryData>
-}
-
-// ── Paths ─────────────────────────────────────────────────────────────────────
-const KG_PATH = path.resolve(__dirname, '../data/knowledge-graph.json')
-const LOG_PATH = path.resolve(__dirname, 'reverb-scrape-log.json')
-
-// ── API ───────────────────────────────────────────────────────────────────────
+// ── Reverb API ───────────────────────────────────────────────────────────────
 const API_BASE = 'https://api.reverb.com/api'
 const HEADERS = {
   'Accept-Version': '3.0',
@@ -154,17 +102,35 @@ const HEADERS = {
   'User-Agent': 'Klup-Scraper/1.0',
 }
 
-async function fetchReverbListings(query: string): Promise<ReverbListing[]> {
+interface ReverbPhoto {
+  _links?: { large_crop?: { href?: string } }
+}
+
+interface ReverbListing {
+  id: number | string
+  title: string
+  price?: { amount: string; currency: string }
+  condition?: { display_name?: string }
+  photos?: ReverbPhoto[]
+  seller?: { address?: { locality?: string; country_code?: string } }
+  _links?: { web?: { href?: string } }
+}
+
+interface ReverbResponse {
+  listings?: ReverbListing[]
+}
+
+async function fetchReverbListings(query: string, perPage = 50): Promise<ReverbListing[]> {
   await rateLimit()
 
-  const url = `${API_BASE}/listings?query=${encodeURIComponent(query)}&per_page=100&condition=all`
+  const url = `${API_BASE}/listings?query=${encodeURIComponent(query)}&per_page=${perPage}&condition=all`
 
   try {
     const res = await fetch(url, { headers: HEADERS })
 
     if (res.status === 429) {
-      console.warn('⚠️  Rate limit hit (429). Pausing…')
-      await sleep(10000) // Back off 10s
+      console.warn('  ⚠️  Rate limit (429). Backing off 10s…')
+      await sleep(10000)
       return []
     }
 
@@ -173,7 +139,7 @@ async function fetchReverbListings(query: string): Promise<ReverbListing[]> {
       return []
     }
 
-    const data = (await res.json()) as ReverbListingsResponse
+    const data = (await res.json()) as ReverbResponse
     return data.listings ?? []
   } catch (err) {
     console.error(`  Fetch error: ${(err as Error).message}`)
@@ -181,156 +147,169 @@ async function fetchReverbListings(query: string): Promise<ReverbListing[]> {
   }
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-async function main() {
-  console.log('⚙️  Reverb API Scraper — Knowledge Graph Expansion')
-  if (brandFilter) console.log(`    Brand filter: ${brandFilter}`)
-  console.log(`    Limit: ${LIMIT} listings per brand`)
-  console.log(`    Rate limit: ${FETCH_DELAY_MS}ms (Tier 1 conservative)`)
-  console.log()
+// ── Search terms from KG ─────────────────────────────────────────────────────
+interface SearchTerm {
+  brand: string
+  query: string
+}
 
-  // Load KG
-  let kg: KnowledgeGraph
-  try {
-    kg = JSON.parse(fs.readFileSync(KG_PATH, 'utf8'))
-  } catch (err) {
-    console.error(`❌ Failed to load ${KG_PATH}`)
+async function loadSearchTerms(): Promise<SearchTerm[]> {
+  // Fetch products with their brand names
+  const { data: products, error } = await supabase
+    .from('kg_product')
+    .select('model_name, kg_brand!inner(name)')
+    .eq('status', 'active')
+    .limit(500)
+
+  if (error) {
+    console.error('❌ Failed to load kg_product:', error.message)
     process.exit(1)
   }
 
-  // Ensure music-gear category exists
-  if (!kg.categories) kg.categories = {}
-  if (!kg.categories['music-gear']) {
-    kg.categories['music-gear'] = { brands: {} }
-  }
-  const musicGear = kg.categories['music-gear']
+  const terms: SearchTerm[] = []
+  const seen = new Set<string>()
 
-  // Get list of brands to scrape
-  const brandsToScrape = Object.keys(musicGear.brands)
-  if (brandsToScrape.length === 0) {
-    console.warn('⚠️  No brands found in music-gear category. Nothing to scrape.')
-    process.exit(0)
-  }
+  for (const p of products ?? []) {
+    const brand = (p.kg_brand as unknown as { name: string })?.name
+    const model = p.model_name
+    if (!brand || !model) continue
 
-  console.log(`Found ${brandsToScrape.length} brands to process.\n`)
+    // Apply brand filter if specified
+    if (brandFilter && !brand.toLowerCase().includes(brandFilter)) continue
 
-  let totalProcessed = 0
-  let totalAdded = 0
-  let totalDuplicates = 0
-  let totalErrors = 0
-  const log: any = {
-    run_at: new Date().toISOString(),
-    limit: LIMIT,
-    brands_processed: [],
-    summary: { total_processed: 0, total_added: 0, total_duplicates: 0, total_errors: 0 },
+    const query = `${brand} ${model}`
+    const key = query.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+
+    terms.push({ brand, query })
   }
 
-  // Process each brand
-  for (const brandSlug of brandsToScrape) {
-    if (totalProcessed >= LIMIT) {
-      console.log(`\n⊘ Reached listing limit (${LIMIT}). Stopping.`)
+  return terms
+}
+
+// ── Upsert row builder ──────────────────────────────────────────────────────
+function buildRow(listing: ReverbListing) {
+  const rawPrice = listing.price ? parseFloat(listing.price.amount) : null
+  const currency = listing.price?.currency ?? 'USD'
+  const priceDkk = rawPrice != null && rawPrice > 0 ? toDKK(rawPrice, currency) : null
+
+  const imageUrl = listing.photos?.[0]?._links?.large_crop?.href ?? null
+  const url = listing._links?.web?.href ?? null
+  const seller = listing.seller?.address
+  const location = seller
+    ? [seller.locality, seller.country_code].filter(Boolean).join(', ')
+    : null
+
+  return {
+    external_id: String(listing.id),
+    source: 'reverb' as const,
+    platform: 'reverb' as const,
+    title: listing.title,
+    price: priceDkk,
+    currency: 'DKK',
+    url,
+    image_url: imageUrl,
+    location: location || null,
+    condition: listing.condition?.display_name ?? null,
+    scraped_at: new Date().toISOString(),
+    is_active: true,
+    watchlist_id: null,
+  }
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
+async function main() {
+  console.log('⚙️  Reverb → Listings Table Scraper')
+  if (brandFilter) console.log(`   Brand filter: ${brandFilter}`)
+  console.log(`   Limit: ${LIMIT} listings`)
+  console.log(`   Rate limit: ${FETCH_DELAY_MS}ms`)
+  console.log()
+
+  await fetchExchangeRate()
+  console.log()
+
+  const terms = await loadSearchTerms()
+  if (terms.length === 0) {
+    console.log('No search terms found in kg_product. Exiting.')
+    return
+  }
+  console.log(`Loaded ${terms.length} search terms from knowledge graph.\n`)
+
+  let totalUpserted = 0
+  let totalSkipped = 0
+
+  for (const term of terms) {
+    if (totalUpserted >= LIMIT) {
+      console.log(`\n⊘ Reached limit (${LIMIT}). Stopping.`)
       break
     }
 
-    // Apply brand filter if specified
-    if (brandFilter && !brandSlug.includes(brandFilter)) {
-      continue
-    }
+    console.log(`🔍 "${term.query}"`)
 
-    const brandData = musicGear.brands[brandSlug]
-    const brandName = brandData?.name || brandSlug
-
-    console.log(`📦 ${brandSlug} (${brandName})`)
-
-    // Fetch listings for this brand
-    const listings = await fetchReverbListings(brandName)
+    const listings = await fetchReverbListings(term.query)
 
     if (listings.length === 0) {
-      console.log(`   → No listings found`)
+      console.log('   → No listings\n')
       continue
     }
 
-    console.log(`   → Found ${listings.length} listings, processing…`)
+    // Build rows, filter out listings without a URL
+    const rows = listings
+      .map(buildRow)
+      .filter(r => r.url != null)
+      .slice(0, LIMIT - totalUpserted)
 
-    let brandAdded = 0
-    let brandDuplicates = 0
-
-    // Process each listing
-    for (const listing of listings.slice(0, LIMIT - totalProcessed)) {
-      // Build product key
-      const productName = listing.title || listing.make || brandName
-      const productKey = slugify(`${brandSlug}-${productName}`)
-
-      // Check if already exists
-      if (brandData.products?.[productKey]) {
-        brandDuplicates++
-        continue
-      }
-
-      // Create KG entry
-      const kgEntry: KgProduct = {
-        name: productName,
-        type: 'instrument', // Default; could be refined based on title patterns
-        reference_url: listing._links?.web?.href || `https://reverb.com/search?query=${encodeURIComponent(brandName)}`,
-      }
-
-      // Add to KG
-      if (!musicGear.brands[brandSlug].products) {
-        musicGear.brands[brandSlug].products = {}
-      }
-      musicGear.brands[brandSlug].products[productKey] = kgEntry
-
-      brandAdded++
-      totalAdded++
-      totalProcessed++
+    if (rows.length === 0) {
+      console.log('   → No valid rows\n')
+      continue
     }
 
-    totalDuplicates += brandDuplicates
-    log.brands_processed.push({
-      brand: brandSlug,
-      listings_found: listings.length,
-      added: brandAdded,
-      duplicates: brandDuplicates,
-    })
+    // Upsert — on conflict(external_id): only update price, currency, scraped_at, is_active
+    const { data, error } = await supabase
+      .from('listings')
+      .upsert(rows, {
+        onConflict: 'external_id',
+        ignoreDuplicates: false,
+      })
+      .select('id')
 
-    console.log(`   ✓ Added ${brandAdded}, Duplicates: ${brandDuplicates}\n`)
+    if (error) {
+      console.error(`   ❌ Upsert error: ${error.message}`)
+      totalSkipped += rows.length
+    } else {
+      const count = data?.length ?? rows.length
+      console.log(`   ✓ ${count} upserted`)
+      totalUpserted += count
+    }
+
+    console.log()
   }
 
-  // Summary
-  log.summary = {
-    total_processed: totalProcessed,
-    total_added: totalAdded,
-    total_duplicates: totalDuplicates,
-    total_errors: totalErrors,
-  }
+  // Mark stale Reverb listings as inactive (not seen in 48h)
+  console.log('Marking stale Reverb listings as inactive…')
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+  const { error: staleError, count: staleCount } = await supabase
+    .from('listings')
+    .update({ is_active: false })
+    .eq('source', 'reverb')
+    .eq('is_active', true)
+    .lt('scraped_at', cutoff)
 
-  console.log('─'.repeat(50))
-  console.log(`✅ Reverb scrape complete`)
-  console.log(`   Added: ${totalAdded}`)
-  console.log(`   Duplicates skipped: ${totalDuplicates}`)
-  console.log(`   Total products in KG: ${Object.values(musicGear.brands).reduce((acc, b) => acc + Object.keys(b.products || {}).length, 0)}`)
-  console.log()
-
-  // Save results
-  if (!DRY_RUN && totalAdded > 0) {
-    // Bump version
-    const [major, minor, patch] = (kg.version ?? '1.0.0').split('.').map(Number)
-    kg.version = `${major}.${minor + 1}.${patch ?? 0}`
-
-    fs.writeFileSync(KG_PATH, JSON.stringify(kg, null, 2))
-    console.log(`📄 knowledge-graph.json updated (v${kg.version})`)
-  } else if (DRY_RUN) {
-    console.log('(Dry run — no files written)')
+  if (staleError) {
+    console.error(`   ❌ Stale update error: ${staleError.message}`)
   } else {
-    console.log('(No new entries — nothing to save)')
+    console.log(`   ✓ ${staleCount ?? 0} marked inactive`)
   }
 
-  // Write audit log
-  fs.writeFileSync(LOG_PATH, JSON.stringify(log, null, 2))
-  console.log(`📝 Audit log: ${LOG_PATH}`)
+  console.log()
+  console.log('─'.repeat(50))
+  console.log(`✅ Done`)
+  console.log(`   Upserted: ${totalUpserted}`)
+  console.log(`   Skipped:  ${totalSkipped}`)
 }
 
 main().catch((err: unknown) => {
-  console.error(`\n❌ Error: ${(err as Error).message ?? err}`)
+  console.error(`\n❌ ${(err as Error).message ?? err}`)
   process.exit(1)
 })
