@@ -6,6 +6,31 @@ import type { Listing } from '@/lib/supabase'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
+// Country name → ISO code for flag emoji lookup
+const COUNTRY_CODES: Record<string, string> = {
+  'Germany': 'DE', 'Netherlands': 'NL', 'Italy': 'IT', 'Spain': 'ES',
+  'United States': 'US', 'United Kingdom': 'GB', 'France': 'FR',
+  'Denmark': 'DK', 'Sweden': 'SE', 'Norway': 'NO', 'Japan': 'JP',
+  'Australia': 'AU', 'Canada': 'CA', 'Belgium': 'BE', 'Austria': 'AT',
+  'Poland': 'PL', 'Portugal': 'PT', 'Finland': 'FI', 'Switzerland': 'CH',
+  'Czech Republic': 'CZ', 'Hungary': 'HU', 'Greece': 'GR',
+}
+
+function countryFlag(code: string): string {
+  const upper = code.toUpperCase()
+  return String.fromCodePoint(0x1F1E6 - 65 + upper.charCodeAt(0)) +
+         String.fromCodePoint(0x1F1E6 - 65 + upper.charCodeAt(1))
+}
+
+// Parse "City, Country" → flag + country, or fall back to raw string
+function formatLocation(location: string): string {
+  const lastComma = location.lastIndexOf(', ')
+  if (lastComma === -1) return location
+  const country = location.slice(lastComma + 2)
+  const code = COUNTRY_CODES[country]
+  return code ? `${countryFlag(code)} ${country}` : location
+}
+
 function timeSince(dateStr: string, locale: string): string {
   const diff  = Date.now() - new Date(dateStr).getTime()
   const mins  = Math.floor(diff / 60_000)
@@ -172,7 +197,11 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
             {listing.location && (
               <>
                 <span className="material-symbols-outlined flex-shrink-0" style={{ fontSize: '12px' }}>location_on</span>
-                <span className="truncate">{listing.location}</span>
+                <span className="truncate">
+                  {listing.platform === 'reverb'
+                    ? formatLocation(listing.location)
+                    : listing.location}
+                </span>
                 <span>·</span>
               </>
             )}
@@ -214,7 +243,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
           {priceFormatted}
         </p>
 
-        {/* Meta: platform + time */}
+        {/* Meta: platform + time + location */}
         <div className="flex items-center gap-1.5 text-[11px] mt-auto text-muted-foreground">
           <PlatformBadge listing={listing} />
           <span>·</span>
@@ -222,7 +251,11 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
           {listing.location && (
             <>
               <span>·</span>
-              <span className="truncate">{listing.location}</span>
+              <span className="truncate">
+                {listing.platform === 'reverb'
+                  ? formatLocation(listing.location)
+                  : listing.location}
+              </span>
             </>
           )}
         </div>

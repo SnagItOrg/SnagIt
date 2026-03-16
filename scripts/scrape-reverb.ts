@@ -112,7 +112,7 @@ interface ReverbListing {
   price?: { amount: string; currency: string }
   condition?: { display_name?: string }
   photos?: ReverbPhoto[]
-  seller?: { address?: { locality?: string; country_code?: string } }
+  location?: { locality?: string; country_code?: string; display_location?: string }
   _links?: { web?: { href?: string } }
 }
 
@@ -197,10 +197,7 @@ function buildRow(listing: ReverbListing) {
 
   const imageUrl = listing.photos?.[0]?._links?.large_crop?.href ?? null
   const url = listing._links?.web?.href ?? null
-  const seller = listing.seller?.address
-  const location = seller
-    ? [seller.locality, seller.country_code].filter(Boolean).join(', ')
-    : null
+  const location = listing.location?.display_location ?? null
 
   return {
     external_id: String(listing.id),
