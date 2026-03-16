@@ -44,13 +44,19 @@ export async function GET(request: NextRequest) {
 
   const now = new Date().toISOString()
   // watchlist_id: null marks these as manual scrapes (not tied to a watchlist)
-  const rows = listings.map((l) => ({ ...l, scraped_at: now, watchlist_id: null }))
+  // Use url as external_id fallback for DBA listings (they have no native external_id)
+  const rows = listings.map((l) => ({
+    ...l,
+    scraped_at: now,
+    watchlist_id: null,
+    external_id: l.url,
+  }))
 
   // Upsert DBA + fetch Reverb in parallel
   const [{ data, error }, { data: reverbRaw }] = await Promise.all([
     getSupabaseAdmin()
       .from('listings')
-      .upsert(rows, { onConflict: 'url,watchlist_id' })
+      .upsert(rows, { onConflict: 'external_id,source' })
       .select('*'),
     reverbPromise,
   ])

@@ -75,8 +75,7 @@ function SearchPageInner() {
     try {
       const res = await fetch(`/api/scrape?q=${encodeURIComponent(q)}`)
       if (!res.ok) {
-        const data = await res.json()
-        setError(data.error ?? t.searchFailed)
+        setError(t.searchFailed)
         setListings([])
       } else {
         const data = await res.json()
