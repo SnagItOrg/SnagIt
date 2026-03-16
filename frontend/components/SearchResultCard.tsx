@@ -59,6 +59,7 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
 export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave, marketPrice }: Props) {
   const { locale, t } = useLocale()
 
+  const [imgError,       setImgError]      = useState(false)
   const [showCapture,    setShowCapture]   = useState(false)
   const [captureEmail,   setCaptureEmail]  = useState('')
   const [captureLoading, setCaptureLoading] = useState(false)
@@ -125,13 +126,14 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
       >
         {/* Image area */}
         <div className="relative w-full aspect-[4/3] bg-muted overflow-hidden">
-          {listing.image_url ? (
+          {listing.image_url && !imgError ? (
             <Image
               src={listing.image_url}
               alt={listing.title}
               fill
               sizes="(min-width: 768px) 25vw, 100vw"
               className="object-cover group-hover:scale-105 transition-transform duration-300"
+              onError={() => setImgError(true)}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -200,13 +202,14 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
     <div className="flex gap-3 p-3 rounded-2xl bg-card border border-border hover:border-border/80 transition-colors">
       {/* Thumbnail */}
       <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-        {listing.image_url ? (
+        {listing.image_url && !imgError ? (
           <Image
             src={listing.image_url}
             alt={listing.title}
             width={80}
             height={80}
             className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
           />
         ) : (
           <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--muted-foreground)' }}>

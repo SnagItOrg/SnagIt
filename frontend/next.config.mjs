@@ -27,10 +27,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: '**.autobild.dk',
       },
-      // Reverb listing images
+      // Reverb listing images (wildcard covers rvb-img, images, etc.)
       {
         protocol: 'https',
-        hostname: 'rvb-img.reverb.com',
+        hostname: '**.reverb.com',
       },
       {
         protocol: 'https',
@@ -39,10 +39,6 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'd3ugyf87b0homh.cloudfront.net',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.reverb.com',
       },
     ],
   },
