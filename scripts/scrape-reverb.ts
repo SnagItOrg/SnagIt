@@ -180,29 +180,37 @@ async function loadSearchTerms(): Promise<SearchTerm[]> {
 
   console.log(`   Loaded ${allProducts.length} products from knowledge graph`)
 
-  const terms: SearchTerm[] = []
-  const seen = new Set<string>()
+  // Fetch all watchlist queries to rank products by demand
+  const { data: watchlistData } = await supabase
+    .from('watchlists')
+    .select('query')
+  const watchlistQueries = (watchlistData ?? []).map(w => w.query.toLowerCase())
+  console.log(`   Loaded ${watchlistQueries.length} watchlists for demand ranking`)
+
+  // Deduplicate into terms and count watchlist matches per query
+  const termMap = new Map<string, SearchTerm & { watchlistCount: number }>()
 
   for (const p of allProducts) {
     const brand = (p.kg_brand as unknown as { name: string })?.name
     if (!brand) continue
 
-    // Prefer canonical_name (already includes brand), fall back to brand + model_name
     const query = p.canonical_name?.trim()
       ?? (p.model_name ? `${brand} ${p.model_name}` : null)
     if (!query) continue
 
-    // Apply brand filter if specified
     if (brandFilter && !brand.toLowerCase().includes(brandFilter)) continue
 
     const key = query.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
+    if (termMap.has(key)) continue
 
-    terms.push({ brand, query })
+    const watchlistCount = watchlistQueries.filter(wq => wq.includes(key)).length
+    termMap.set(key, { brand, query, watchlistCount })
   }
 
-  return terms
+  // Sort: most-watched first, then alphabetically
+  return Array.from(termMap.values())
+    .sort((a, b) => b.watchlistCount - a.watchlistCount || a.query.localeCompare(b.query))
+    .map(({ brand, query }) => ({ brand, query }))
 }
 
 // ── Upsert row builder ──────────────────────────────────────────────────────
