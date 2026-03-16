@@ -17,7 +17,7 @@ export function MobileSearchBar() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="md:hidden px-4 pt-4 pb-2">
+    <form onSubmit={handleSubmit} className="hidden md:block px-4 pt-4 pb-2">
       <div className="relative">
         <span
           className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
