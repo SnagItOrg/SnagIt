@@ -37,8 +37,11 @@ function getLocationDisplay(listing: Listing): string | null {
   switch (listing.source) {
     case 'dba.dk':
       return '🇩🇰 Danmark'
-    case 'reverb':
-      return listing.location ? formatLocation(listing.location) : null
+    case 'reverb': {
+      const loc = listing.location
+      if (!loc || loc === 'International' || loc === 'Local') return null
+      return formatLocation(loc)
+    }
     case 'kleinanzeigen':
       return '🇩🇪 Tyskland'
     case 'blocket':
