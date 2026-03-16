@@ -12,10 +12,11 @@ import { platformList } from '@/lib/platforms'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 
-type SortKey = 'newest' | 'oldest' | 'price_asc' | 'price_desc'
+type SortKey = 'relevance' | 'newest' | 'oldest' | 'price_asc' | 'price_desc'
 
 function sortListings(listings: Listing[], sort: SortKey): Listing[] {
   const copy = [...listings]
+  if (sort === 'relevance') return copy // preserve server interleave order
   if (sort === 'price_asc') {
     return copy.sort((a, b) => {
       if (a.price == null && b.price == null) return 0
@@ -35,7 +36,6 @@ function sortListings(listings: Listing[], sort: SortKey): Listing[] {
   if (sort === 'oldest') {
     return copy.sort((a, b) => new Date(a.scraped_at).getTime() - new Date(b.scraped_at).getTime())
   }
-  // newest: sort by scraped_at desc (default)
   return copy.sort((a, b) => new Date(b.scraped_at).getTime() - new Date(a.scraped_at).getTime())
 }
 
@@ -45,7 +45,7 @@ function SearchPageInner() {
   const { t, locale } = useLocale()
 
   const [inputValue,   setInputValue]   = useState(() => params.get('q') ?? '')
-  const [sort,         setSort]         = useState<SortKey>('newest')
+  const [sort,         setSort]         = useState<SortKey>('relevance')
   const [listings,     setListings]     = useState<Listing[]>([])
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState<string | null>(null)
@@ -297,6 +297,7 @@ function SearchPageInner() {
                       color: 'var(--foreground)',
                     }}
                   >
+                    <option value="relevance">Relevans</option>
                     <option value="newest">{t.sortNewest}</option>
                     <option value="oldest">Ældste først</option>
                     <option value="price_asc">{t.sortPriceLow}</option>
