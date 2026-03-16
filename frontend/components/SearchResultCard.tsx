@@ -24,12 +24,6 @@ function timeSince(dateStr: string, locale: string): string {
   return `${days}d ago`
 }
 
-export interface MarketPriceData {
-  min: number
-  max: number
-  count: number
-}
-
 interface Props {
   listing:           Listing
   onCreateWatchlist: (listingTitle?: string) => void
@@ -37,7 +31,6 @@ interface Props {
   variant?:          'list' | 'grid'
   isSaved?:          boolean
   onToggleSave?:     (listing: Listing) => void
-  marketPrice?:      MarketPriceData | null
 }
 
 function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boolean }) {
@@ -56,7 +49,7 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
   return <span className={cls}>DBA</span>
 }
 
-export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave, marketPrice }: Props) {
+export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave }: Props) {
   const { locale, t } = useLocale()
 
   const [imgError,       setImgError]      = useState(false)
@@ -174,13 +167,6 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
             <p className="text-sm font-black text-foreground flex-shrink-0">{priceFormatted}</p>
           </div>
 
-          {/* Typical price */}
-          {marketPrice && (
-            <p className="text-[11px] text-muted-foreground">
-              Typisk {marketPrice.min.toLocaleString('da-DK')}–{marketPrice.max.toLocaleString('da-DK')} kr
-            </p>
-          )}
-
           {/* Location · time */}
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-auto pt-1">
             {listing.location && (
@@ -227,13 +213,6 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
         <p className="text-base font-black" style={{ color: 'var(--foreground)' }}>
           {priceFormatted}
         </p>
-
-        {/* Typical price */}
-        {marketPrice && (
-          <p className="text-[11px] text-muted-foreground">
-            Typisk {marketPrice.min.toLocaleString('da-DK')}–{marketPrice.max.toLocaleString('da-DK')} kr
-          </p>
-        )}
 
         {/* Meta: platform + time */}
         <div className="flex items-center gap-1.5 text-[11px] mt-auto text-muted-foreground">

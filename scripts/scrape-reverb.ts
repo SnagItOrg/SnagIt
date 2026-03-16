@@ -207,6 +207,7 @@ function buildRow(listing: ReverbListing) {
     source: 'reverb' as const,
     platform: 'reverb' as const,
     title: listing.title,
+    normalized_text: listing.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
     price: priceDkk,
     currency: 'DKK',
     url,

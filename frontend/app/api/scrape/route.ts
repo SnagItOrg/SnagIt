@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
     scraped_at: now,
     watchlist_id: null,
     external_id: l.url,
+    normalized_text: l.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
   }))
 
   // Upsert DBA + fetch Reverb in parallel

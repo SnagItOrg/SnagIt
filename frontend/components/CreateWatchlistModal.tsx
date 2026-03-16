@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { PriceRangeSlider } from '@/components/PriceRangeSlider'
-
-const MAX_PRICE = 100000
+import { MAX_WATCHLIST_PRICE } from '@/lib/constants'
 
 interface Props {
   isOpen:        boolean
@@ -24,7 +23,7 @@ export function CreateWatchlistModal({ isOpen, onClose, onConfirm, initialQuery 
 
   if (!isOpen) return null
 
-  const atMax = maxPrice === MAX_PRICE
+  const atMax = maxPrice === MAX_WATCHLIST_PRICE
 
   function handleConfirm() {
     const q = query.trim()
@@ -90,7 +89,7 @@ export function CreateWatchlistModal({ isOpen, onClose, onConfirm, initialQuery 
             <PriceRangeSlider
               minPrice={0}
               maxPrice={maxPrice}
-              maxValue={MAX_PRICE}
+              maxValue={MAX_WATCHLIST_PRICE}
               mode="single"
               onChange={(_, max) => setMaxPrice(max)}
             />

@@ -45,4 +45,9 @@ export type Listing = {
   source: string
   platform?: string | null
   watchlist_id?: string | null
+  external_id?: string | null
+  normalized_text?: string | null
+  condition?: string | null
+  brand_id?: string | null
+  is_active?: boolean | null
 }

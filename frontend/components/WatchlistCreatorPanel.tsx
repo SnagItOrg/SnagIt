@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { Watchlist } from '@/lib/supabase'
+import { MAX_WATCHLIST_PRICE } from '@/lib/constants'
 
 interface Props {
   onSave:  (watchlist: Watchlist) => void
@@ -14,8 +15,7 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState<string | null>(null)
 
-  const MAX_PRICE = 20000
-  const pct = (maxPrice / MAX_PRICE) * 100
+  const pct = (maxPrice / MAX_WATCHLIST_PRICE) * 100
 
   async function handleSave() {
     if (!query.trim()) return
@@ -115,7 +115,7 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
                   </label>
                   <div className="text-2xl font-black">
                     <span style={{ color: 'var(--foreground)' }}>
-                      {maxPrice === MAX_PRICE
+                      {maxPrice === MAX_WATCHLIST_PRICE
                         ? `${maxPrice.toLocaleString('da-DK')}+`
                         : maxPrice.toLocaleString('da-DK')}
                     </span>
@@ -125,7 +125,7 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
                 <input
                   type="range"
                   min={0}
-                  max={MAX_PRICE}
+                  max={MAX_WATCHLIST_PRICE}
                   step={100}
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
@@ -140,10 +140,10 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
                   style={{ color: 'var(--muted-foreground)' }}
                 >
                   <span>0</span>
-                  <span>5.000</span>
-                  <span>10.000</span>
-                  <span>15.000</span>
-                  <span>20.000+</span>
+                  <span>25k</span>
+                  <span>50k</span>
+                  <span>75k</span>
+                  <span>100k+</span>
                 </div>
               </div>
 

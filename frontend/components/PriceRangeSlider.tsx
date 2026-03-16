@@ -16,7 +16,7 @@ interface Props {
 export function PriceRangeSlider({
   minPrice,
   maxPrice,
-  maxValue = 20000,
+  maxValue = 100000,
   step = STEP,
   bg = 'var(--background)',
   border = 'var(--border)',

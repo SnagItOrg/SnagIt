@@ -6,8 +6,7 @@ import { loadOnboarding, saveOnboarding, fireEvent } from '@/lib/onboarding'
 import { useLocale } from '@/components/LocaleProvider'
 import { OnboardingHeader } from '@/components/OnboardingHeader'
 import { PriceRangeSlider } from '@/components/PriceRangeSlider'
-
-const MAX_PRICE = 20000
+import { MAX_WATCHLIST_PRICE } from '@/lib/constants'
 
 export default function Step3() {
   const router = useRouter()
@@ -103,7 +102,7 @@ export default function Step3() {
                   <div className="text-2xl font-black">
                     <span style={{ color: 'var(--foreground)' }}>
                       {minPrice > 0 ? `${minPrice.toLocaleString('da-DK')} – ` : ''}
-                      {maxPrice === MAX_PRICE
+                      {maxPrice === MAX_WATCHLIST_PRICE
                         ? `${maxPrice.toLocaleString('da-DK')}+`
                         : maxPrice.toLocaleString('da-DK')}
                     </span>
@@ -114,7 +113,7 @@ export default function Step3() {
                   <PriceRangeSlider
                     minPrice={minPrice}
                     maxPrice={maxPrice}
-                    maxValue={MAX_PRICE}
+                    maxValue={MAX_WATCHLIST_PRICE}
                     onChange={(min, max) => { setMinPrice(min); setMaxPrice(max) }}
                   />
                   <div
@@ -125,7 +124,7 @@ export default function Step3() {
                     <span>5.000</span>
                     <span>10.000</span>
                     <span>15.000</span>
-                    <span>20.000+</span>
+                    <span>100k+</span>
                   </div>
                 </div>
               </div>

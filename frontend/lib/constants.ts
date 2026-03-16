@@ -1,0 +1,2 @@
+export const MAX_WATCHLIST_PRICE = 100_000
+export const MIN_WATCHLIST_PRICE = 0

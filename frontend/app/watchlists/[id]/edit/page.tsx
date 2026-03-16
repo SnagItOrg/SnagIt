@@ -5,8 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { SideNav } from '@/components/SideNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { PriceRangeSlider } from '@/components/PriceRangeSlider'
-
-const MAX_PRICE = 20000
+import { MAX_WATCHLIST_PRICE } from '@/lib/constants'
 
 export default function EditWatchlistPage() {
   const router = useRouter()
@@ -136,7 +135,7 @@ export default function EditWatchlistPage() {
                       <div className="text-2xl font-black">
                         <span style={{ color: 'var(--foreground)' }}>
                           {minPrice > 0 ? `${minPrice.toLocaleString('da-DK')} – ` : ''}
-                          {maxPrice === MAX_PRICE
+                          {maxPrice === MAX_WATCHLIST_PRICE
                             ? `${maxPrice.toLocaleString('da-DK')}+`
                             : maxPrice.toLocaleString('da-DK')}
                         </span>
@@ -147,7 +146,7 @@ export default function EditWatchlistPage() {
                       <PriceRangeSlider
                         minPrice={minPrice}
                         maxPrice={maxPrice}
-                        maxValue={MAX_PRICE}
+                        maxValue={MAX_WATCHLIST_PRICE}
                         onChange={(min, max) => { setMinPrice(min); setMaxPrice(max) }}
                       />
                       <div
@@ -158,7 +157,7 @@ export default function EditWatchlistPage() {
                         <span>5.000</span>
                         <span>10.000</span>
                         <span>15.000</span>
-                        <span>20.000+</span>
+                        <span>100k+</span>
                       </div>
                     </div>
                   </div>
