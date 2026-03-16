@@ -200,7 +200,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
                 <span className="truncate">
                   {listing.platform === 'reverb'
                     ? formatLocation(listing.location)
-                    : listing.location}
+                    : `🇩🇰 ${listing.location}`}
                 </span>
                 <span>·</span>
               </>
@@ -254,7 +254,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               <span className="truncate">
                 {listing.platform === 'reverb'
                   ? formatLocation(listing.location)
-                  : listing.location}
+                  : `🇩🇰 ${listing.location}`}
               </span>
             </>
           )}
