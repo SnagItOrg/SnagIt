@@ -4,7 +4,7 @@ module.exports = {
       name: 'scrape-reverb',
       script: 'npx',
       args: 'tsx scripts/scrape-reverb.ts',
-      cron_restart: '0 */6 * * *', // every 6 hours
+      cron_restart: '0 2 * * *', // daily at 02:00
       autorestart: false,
       max_restarts: 0,
       max_memory_restart: '512M',

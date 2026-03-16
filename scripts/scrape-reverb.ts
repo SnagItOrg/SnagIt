@@ -11,7 +11,7 @@
  *   - Marks stale listings (>48h) as inactive
  *
  * Usage:
- *   npm run scrape-reverb                  # full run
+ *   npm run scrape-reverb                  # full run (~3,300 queries, several hours)
  *   npm run scrape-reverb -- --limit=50    # limit total listings upserted
  *   npm run scrape-reverb -- --brand=korg  # single brand filter
  */
@@ -52,7 +52,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
 const args = process.argv.slice(2)
 const brandFilter = args.find(a => a.startsWith('--brand='))?.split('=')[1]?.toLowerCase() ?? null
 const limitArg = args.find(a => a.startsWith('--limit='))?.split('=')[1]
-const LIMIT = limitArg ? parseInt(limitArg, 10) : 500
+const LIMIT = limitArg ? parseInt(limitArg, 10) : Infinity
 
 // ── Rate limiting ────────────────────────────────────────────────────────────
 const FETCH_DELAY_MS = 2500
@@ -154,31 +154,47 @@ interface SearchTerm {
 }
 
 async function loadSearchTerms(): Promise<SearchTerm[]> {
-  // Fetch products with their brand names
-  const { data: products, error } = await supabase
-    .from('kg_product')
-    .select('model_name, kg_brand!inner(name, kg_category!inner(slug))')
-    .eq('status', 'active')
-    .eq('kg_brand.kg_category.slug', 'music-gear')
-    .limit(500)
+  const PAGE_SIZE = 1000
+  let page = 0
+  const allProducts: Array<{ canonical_name: string | null; model_name: string | null; kg_brand: unknown }> = []
 
-  if (error) {
-    console.error('❌ Failed to load kg_product:', error.message)
-    process.exit(1)
+  // Paginate to fetch all music-gear products
+  while (true) {
+    const { data, error } = await supabase
+      .from('kg_product')
+      .select('canonical_name, model_name, kg_brand!inner(name, kg_category!inner(slug))')
+      .eq('status', 'active')
+      .eq('kg_brand.kg_category.slug', 'music-gear')
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+
+    if (error) {
+      console.error('❌ Failed to load kg_product:', error.message)
+      process.exit(1)
+    }
+
+    if (!data || data.length === 0) break
+    allProducts.push(...data)
+    if (data.length < PAGE_SIZE) break
+    page++
   }
+
+  console.log(`   Loaded ${allProducts.length} products from knowledge graph`)
 
   const terms: SearchTerm[] = []
   const seen = new Set<string>()
 
-  for (const p of products ?? []) {
+  for (const p of allProducts) {
     const brand = (p.kg_brand as unknown as { name: string })?.name
-    const model = p.model_name
-    if (!brand || !model) continue
+    if (!brand) continue
+
+    // Prefer canonical_name (already includes brand), fall back to brand + model_name
+    const query = p.canonical_name?.trim()
+      ?? (p.model_name ? `${brand} ${p.model_name}` : null)
+    if (!query) continue
 
     // Apply brand filter if specified
     if (brandFilter && !brand.toLowerCase().includes(brandFilter)) continue
 
-    const query = `${brand} ${model}`
     const key = query.toLowerCase()
     if (seen.has(key)) continue
     seen.add(key)
