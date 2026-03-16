@@ -157,8 +157,9 @@ async function loadSearchTerms(): Promise<SearchTerm[]> {
   // Fetch products with their brand names
   const { data: products, error } = await supabase
     .from('kg_product')
-    .select('model_name, kg_brand!inner(name)')
+    .select('model_name, kg_brand!inner(name, kg_category!inner(slug))')
     .eq('status', 'active')
+    .eq('kg_brand.kg_category.slug', 'music-gear')
     .limit(500)
 
   if (error) {
@@ -269,7 +270,7 @@ async function main() {
     const { data, error } = await supabase
       .from('listings')
       .upsert(rows, {
-        onConflict: 'external_id',
+        onConflict: 'external_id,source',
         ignoreDuplicates: false,
       })
       .select('id')
