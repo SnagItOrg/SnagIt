@@ -71,13 +71,24 @@ export async function GET(request: NextRequest) {
     words.every((w) => normalize(String(l.title)).includes(normalize(w)))
   ).slice(0, 20)
 
-  // Merge DBA + Reverb, deduplicate by url
+  // Interleave DBA + Reverb 1:1, deduplicate by url
   const seen = new Set<string>()
-  const merged = [...(data ?? []), ...reverbData].filter((l) => {
+  const dba = (data ?? []).filter((l) => {
     if (seen.has(l.url as string)) return false
     seen.add(l.url as string)
     return true
   })
+  const reverb = reverbData.filter((l) => {
+    if (seen.has(l.url as string)) return false
+    seen.add(l.url as string)
+    return true
+  })
+  const merged: typeof dba = []
+  const len = Math.max(dba.length, reverb.length)
+  for (let i = 0; i < len; i++) {
+    if (i < dba.length)    merged.push(dba[i])
+    if (i < reverb.length) merged.push(reverb[i])
+  }
 
   return NextResponse.json({
     inserted: data?.length ?? 0,
