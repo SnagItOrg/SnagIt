@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
         .from('listings')
         .select('*')
         .eq('source', 'reverb')
+        .eq('is_active', true)
+        .not('image_url', 'is', null)
         .ilike('title', `%${words[0]}%`)
         .limit(100)
     : Promise.resolve({ data: [] as Record<string, unknown>[] })
