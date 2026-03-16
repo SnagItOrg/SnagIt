@@ -32,10 +32,10 @@ function formatLocation(location: string): string {
 }
 
 function getLocationDisplay(listing: Listing): string | null {
-  if (!listing.location && listing.source !== 'dba') return null
+  if (!listing.location && listing.source !== 'dba.dk') return null
 
   switch (listing.source) {
-    case 'dba':
+    case 'dba.dk':
       return '🇩🇰 Danmark'
     case 'reverb':
       return listing.location ? formatLocation(listing.location) : null
