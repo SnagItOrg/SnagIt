@@ -65,14 +65,15 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
   const [captureLoading, setCaptureLoading] = useState(false)
   const [captureSent,    setCaptureSent]   = useState(false)
 
-  useEffect(() => {
-    fetch(`/api/price-observations?listing_id=${listing.id}`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data: PriceStats | null) => {
-        if (data && data.count > 0) setStats(data)
-      })
-      .catch(() => {})
-  }, [listing.id])
+  // Temporarily disabled — batching needed before re-enabling
+  // useEffect(() => {
+  //   fetch(`/api/price-observations?listing_id=${listing.id}`)
+  //     .then((r) => r.ok ? r.json() : null)
+  //     .then((data: PriceStats | null) => {
+  //       if (data && data.count > 0) setStats(data)
+  //     })
+  //     .catch(() => {})
+  // }, [listing.id])
 
   const priceFormatted = listing.price != null
     ? `${listing.price.toLocaleString('da-DK')} kr`
