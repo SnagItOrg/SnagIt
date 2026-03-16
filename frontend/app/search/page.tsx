@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { Listing } from '@/lib/supabase'
-import { SearchResultCard } from '@/components/SearchResultCard'
+import { SearchResultCard, type MarketPriceData } from '@/components/SearchResultCard'
 import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
@@ -57,6 +57,7 @@ function SearchPageInner() {
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
   const [showFilters,      setShowFilters]      = useState(false)
   const [savedListingIds,  setSavedListingIds]  = useState<Set<string>>(new Set())
+  const [marketPrices,     setMarketPrices]     = useState<Record<string, MarketPriceData>>({})
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function showToast(msg: string) {
@@ -79,8 +80,19 @@ function SearchPageInner() {
         setListings([])
       } else {
         const data = await res.json()
-        setListings(data.listings ?? [])
+        const results: Listing[] = data.listings ?? []
+        setListings(results)
         setSelectedPlatform(null)
+        setMarketPrices({})
+
+        // Batched market-price fetch — one call for all listings
+        if (results.length > 0) {
+          const ids = results.map((l) => l.id).join(',')
+          fetch(`/api/market-price?listing_ids=${encodeURIComponent(ids)}`)
+            .then((r) => r.ok ? r.json() : {})
+            .then((prices: Record<string, MarketPriceData>) => setMarketPrices(prices ?? {}))
+            .catch(() => {})
+        }
       }
     } catch {
       setError(t.unknownError)
@@ -387,6 +399,7 @@ function SearchPageInner() {
                       variant="list"
                       isSaved={savedListingIds.has(listing.id)}
                       onToggleSave={handleToggleSave}
+                      marketPrice={marketPrices[listing.id] ?? null}
                     />
                   </ListingErrorBoundary>
                 ))}
@@ -404,6 +417,7 @@ function SearchPageInner() {
                       variant="grid"
                       isSaved={savedListingIds.has(listing.id)}
                       onToggleSave={handleToggleSave}
+                      marketPrice={marketPrices[listing.id] ?? null}
                     />
                   </ListingErrorBoundary>
                 ))}

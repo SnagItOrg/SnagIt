@@ -36,5 +36,17 @@ module.exports = {
         NODE_ENV: 'production',
       },
     },
+    {
+      name: 'process-price-queue',
+      script: 'npx',
+      args: 'tsx scripts/process-price-queue.ts',
+      cron_restart: '*/5 * * * *', // every 5 minutes
+      autorestart: false,
+      max_restarts: 0,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
   ],
 }

@@ -24,7 +24,11 @@ function timeSince(dateStr: string, locale: string): string {
   return `${days}d ago`
 }
 
-type PriceStats = { count: number; p25: number | null; p75: number | null }
+export interface MarketPriceData {
+  min: number
+  max: number
+  count: number
+}
 
 interface Props {
   listing:           Listing
@@ -34,6 +38,7 @@ interface Props {
   variant?:          'list' | 'grid'
   isSaved?:          boolean
   onToggleSave?:     (listing: Listing) => void
+  marketPrice?:      MarketPriceData | null
 }
 
 function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boolean }) {
@@ -52,63 +57,17 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
   return <span className={cls}>DBA</span>
 }
 
-export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast, variant = 'list', isSaved = false, onToggleSave }: Props) {
+export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast, variant = 'list', isSaved = false, onToggleSave, marketPrice }: Props) {
   const { locale, t } = useLocale()
 
-  const [stats,          setStats]         = useState<PriceStats | null>(null)
-  const [editing,        setEditing]       = useState(false)
-  const [fromPrice,      setFromPrice]     = useState('')
-  const [toPrice,        setToPrice]       = useState('')
-  const [saving,         setSaving]        = useState(false)
   const [showCapture,    setShowCapture]   = useState(false)
   const [captureEmail,   setCaptureEmail]  = useState('')
   const [captureLoading, setCaptureLoading] = useState(false)
   const [captureSent,    setCaptureSent]   = useState(false)
 
-  // Temporarily disabled — batching needed before re-enabling
-  // useEffect(() => {
-  //   fetch(`/api/price-observations?listing_id=${listing.id}`)
-  //     .then((r) => r.ok ? r.json() : null)
-  //     .then((data: PriceStats | null) => {
-  //       if (data && data.count > 0) setStats(data)
-  //     })
-  //     .catch(() => {})
-  // }, [listing.id])
-
   const priceFormatted = listing.price != null
     ? `${listing.price.toLocaleString('da-DK')} kr`
     : t.priceNotListed
-
-  async function handleSave() {
-    const fra = parseInt(fromPrice, 10)
-    const til = parseInt(toPrice, 10)
-    if (isNaN(fra) || fra <= 0) return
-
-    const supabase = createSupabaseBrowserClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setShowCapture(true); return }
-
-    setSaving(true)
-    const res = await fetch('/api/price-observations', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        listing_id:    listing.id,
-        price_dkk:     fra,
-        price_min_dkk: fra,
-        price_max_dkk: !isNaN(til) && til > fra ? til : undefined,
-      }),
-    })
-    setSaving(false)
-
-    if (res.ok) {
-      setStats({ count: (stats?.count ?? 0) + 1, p25: fra, p75: !isNaN(til) && til > fra ? til : fra })
-      setEditing(false)
-      setFromPrice('')
-      setToPrice('')
-      onToast?.(t.priceSaved)
-    }
-  }
 
   async function handleWatchlistClick() {
     const supabase = createSupabaseBrowserClient()
@@ -149,13 +108,6 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
     setCaptureLoading(false)
     setCaptureSent(true)
   }
-
-  function handleClickPrice() {
-    setEditing(true)
-  }
-
-  const hasStats  = stats !== null && stats.count > 0
-  const showRange = hasStats && stats!.p25 != null && stats!.p75 != null
 
   const priceOriginal = (listing as Listing & { price_original?: number | null }).price_original
   const hasDiscount   = priceOriginal != null && listing.price != null && priceOriginal > listing.price
@@ -222,15 +174,11 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
           </div>
 
           {/* Typical price */}
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleClickPrice() }}
-            className="text-left text-[11px] w-fit transition-opacity hover:opacity-80 text-muted-foreground"
-          >
-            {showRange
-              ? `Typisk ${stats!.p25!.toLocaleString('da-DK')}–${stats!.p75!.toLocaleString('da-DK')} kr`
-              : <>Typisk pris · <span className="italic">{t.comingSoon.toLowerCase()}</span></>
-            }
-          </button>
+          {marketPrice && (
+            <p className="text-[11px] text-muted-foreground">
+              Typisk {marketPrice.min.toLocaleString('da-DK')}–{marketPrice.max.toLocaleString('da-DK')} kr
+            </p>
+          )}
 
           {/* Location · time */}
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-auto pt-1">
@@ -278,67 +226,11 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, onToast
           {priceFormatted}
         </p>
 
-        {/* Typical price — interactive */}
-        {editing ? (
-          <div className="flex items-center gap-1 mt-0.5">
-            <input
-              type="number"
-              min={0}
-              value={fromPrice}
-              onChange={(e) => setFromPrice(e.target.value)}
-              placeholder="Fra"
-              className="w-16 rounded px-1.5 py-0.5 text-[11px] outline-none"
-              style={{
-                backgroundColor: 'var(--input-background)',
-                border: '1px solid var(--border)',
-                color: 'var(--foreground)',
-              }}
-              autoFocus
-            />
-            <input
-              type="number"
-              min={0}
-              value={toPrice}
-              onChange={(e) => setToPrice(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-              placeholder="Til"
-              className="w-16 rounded px-1.5 py-0.5 text-[11px] outline-none"
-              style={{
-                backgroundColor: 'var(--input-background)',
-                border: '1px solid var(--border)',
-                color: 'var(--foreground)',
-              }}
-            />
-            <span className="text-[11px]" style={{ color: 'var(--muted-foreground)' }}>kr</span>
-            <button
-              onClick={handleSave}
-              disabled={saving || !fromPrice}
-              className="text-[11px] px-1.5 py-0.5 rounded transition-opacity disabled:opacity-40"
-              style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
-              title="Gem"
-            >
-              ✓
-            </button>
-            <button
-              onClick={() => { setEditing(false); setFromPrice(''); setToPrice('') }}
-              className="text-[11px] px-1.5 py-0.5 rounded"
-              style={{ color: 'var(--muted-foreground)' }}
-              title="Annuller"
-            >
-              ✗
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={handleClickPrice}
-            className="text-left text-[11px] w-fit transition-opacity hover:opacity-80"
-            style={{ color: 'var(--muted-foreground)' }}
-          >
-            {showRange
-              ? `Typisk ${stats!.p25!.toLocaleString('da-DK')}–${stats!.p75!.toLocaleString('da-DK')} kr`
-              : <>Typisk pris · <span className="italic">{t.comingSoon.toLowerCase()}</span></>
-            }
-          </button>
+        {/* Typical price */}
+        {marketPrice && (
+          <p className="text-[11px] text-muted-foreground">
+            Typisk {marketPrice.min.toLocaleString('da-DK')}–{marketPrice.max.toLocaleString('da-DK')} kr
+          </p>
         )}
 
         {/* Meta: platform + time */}
