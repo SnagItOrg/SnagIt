@@ -106,9 +106,11 @@ export default function ProfilePage() {
   }
 
   async function handleDeleteWatchlist(id: string) {
+    const prev = watchlists
+    setWatchlists((w) => w.filter((x) => x.id !== id))
     setDeleting(id)
     const res = await fetch(`/api/watchlists/${id}`, { method: 'DELETE' })
-    if (res.ok) setWatchlists((prev) => prev.filter((w) => w.id !== id))
+    if (!res.ok) setWatchlists(prev)
     setDeleting(null)
   }
 

@@ -10,6 +10,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { Listing } from '@/lib/supabase'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
+import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 
 type SavedRow = {
   listing_id: string
@@ -19,10 +20,13 @@ type SavedRow = {
 export default function SavedPage() {
   const router = useRouter()
   const { t } = useLocale()
-  const [authed,   setAuthed]   = useState<boolean | null>(null)
-  const [rows,     setRows]     = useState<SavedRow[]>([])
-  const [loading,  setLoading]  = useState(false)
-  const [toast,    setToast]    = useState<string | null>(null)
+  const [authed,             setAuthed]           = useState<boolean | null>(null)
+  const [rows,               setRows]             = useState<SavedRow[]>([])
+  const [loading,            setLoading]          = useState(false)
+  const [toast,              setToast]            = useState<string | null>(null)
+  const [showModal,          setShowModal]        = useState(false)
+  const [modalQuery,         setModalQuery]       = useState('')
+  const [creating,           setCreating]         = useState(false)
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
@@ -47,6 +51,32 @@ export default function SavedPage() {
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(null), 3000)
+  }
+
+  function handleCreateWatchlist(listingTitle?: string) {
+    const q = listingTitle
+      ? (listingTitle.length > 60
+          ? listingTitle.slice(0, listingTitle.lastIndexOf(' ', 60) || 60)
+          : listingTitle)
+      : ''
+    setModalQuery(q)
+    setShowModal(true)
+  }
+
+  async function handleModalConfirm(query: string, maxPrice?: number) {
+    setCreating(true)
+    const body: Record<string, unknown> = { query }
+    if (maxPrice != null && maxPrice > 0) body.max_price = maxPrice
+    const res = await fetch('/api/watchlists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (res.ok) {
+      setShowModal(false)
+      showToast(t.watchlistCreated)
+    }
+    setCreating(false)
   }
 
   async function handleToggleSave(listing: Listing) {
@@ -140,9 +170,8 @@ export default function SavedPage() {
               <ListingErrorBoundary key={row.listing_id} listingId={row.listing_id}>
                 <SearchResultCard
                   listing={row.listing_data}
-                  onCreateWatchlist={() => {}}
-                  creating={false}
-
+                  onCreateWatchlist={handleCreateWatchlist}
+                  creating={creating}
                   variant="list"
                   isSaved={true}
                   onToggleSave={handleToggleSave}
@@ -155,6 +184,14 @@ export default function SavedPage() {
       </main>
 
       <BottomNav />
+
+      <CreateWatchlistModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onConfirm={handleModalConfirm}
+        initialQuery={modalQuery}
+        creating={creating}
+      />
 
       {toast && (
         <div
