@@ -75,7 +75,7 @@ export default function ProfilePage() {
       .then((r) => r.ok ? r.json() : [])
       .then((data: Watchlist[]) => setWatchlists(data))
       .catch(() => {})
-  }, [router])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSignOut() {
     const supabase = createSupabaseBrowserClient()

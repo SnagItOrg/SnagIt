@@ -22,7 +22,7 @@ export default function SavedPage() {
   const { t } = useLocale()
   const [authed,             setAuthed]           = useState<boolean | null>(null)
   const [rows,               setRows]             = useState<SavedRow[]>([])
-  const [loading,            setLoading]          = useState(false)
+  const [loading,            setLoading]          = useState(true)
   const [toast,              setToast]            = useState<string | null>(null)
   const [showModal,          setShowModal]        = useState(false)
   const [modalQuery,         setModalQuery]       = useState('')
@@ -34,6 +34,7 @@ export default function SavedPage() {
       const isAuthed = !!data.user
       setAuthed(isAuthed)
       if (isAuthed) loadSaved()
+      else setLoading(false)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
