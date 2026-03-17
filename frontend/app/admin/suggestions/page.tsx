@@ -150,18 +150,28 @@ export default function AdminSuggestionsPage() {
   }
 
   async function saveEdit(id: string) {
-    if (!editName.trim()) return
+    const newName = editName.trim()
+    if (!newName) { setEditingId(null); return }
+
+    // Optimistic update — close input and show new name immediately
+    const prevRows = rows
+    setRows(prev => prev.map(r => r.id === id ? { ...r, canonical_name: newName } : r))
+    // Clear stale duplicate hint — name changed so old match may be wrong
+    setDuplicates(prev => { const next = { ...prev }; delete next[id]; return next })
+    setEditingId(null)
+
     setActionLoading(id)
     const res = await fetch(`/api/admin/suggestions/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ canonical_name: editName.trim() }),
+      body: JSON.stringify({ canonical_name: newName }),
     })
-    if (res.ok) {
-      setRows(prev => prev.map(r => r.id === id ? { ...r, canonical_name: editName.trim() } : r))
+    if (!res.ok) {
+      setRows(prevRows) // rollback
+      showToast('Fejl ved opdatering')
+    } else {
       showToast('Navn opdateret')
     }
-    setEditingId(null)
     setActionLoading(null)
   }
 
@@ -257,6 +267,22 @@ export default function AdminSuggestionsPage() {
   function removeRow(id: string) {
     setRows(prev => prev.filter(r => r.id !== id))
     setTotal(prev => prev - 1)
+  }
+
+  async function handleSendBack(s: Suggestion) {
+    setActionLoading(s.id)
+    const res = await fetch(`/api/admin/suggestions/${s.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'send-back' }),
+    })
+    if (res.ok) {
+      removeRow(s.id)
+      showToast('Sendt tilbage til pending')
+    } else {
+      showToast('Fejl')
+    }
+    setActionLoading(null)
   }
 
   // ── Rename modal ───────────────────────────────────────────────────────────
@@ -394,13 +420,16 @@ export default function AdminSuggestionsPage() {
                           style={inputStyle}
                         />
                       ) : (
-                        <button
-                          onClick={() => startEdit(s)}
-                          className="text-sm font-medium text-foreground truncate text-left w-full hover:underline"
-                          title="Klik for at redigere"
-                        >
-                          {s.canonical_name}
-                        </button>
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="text-sm font-medium text-foreground truncate">{s.canonical_name}</span>
+                          <button
+                            onClick={() => startEdit(s)}
+                            className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                            title="Rediger navn"
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit</span>
+                          </button>
+                        </div>
                       )}
                       {dup && tab === 'pending' && (
                         <div className="flex items-center gap-1.5">
@@ -457,6 +486,20 @@ export default function AdminSuggestionsPage() {
                             Afvis
                           </button>
                         </>
+                      ) : tab === 'approved' ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground italic">
+                            {s.reviewed_at ? new Date(s.reviewed_at).toLocaleDateString('da-DK') : '—'}
+                          </span>
+                          <button
+                            onClick={() => handleSendBack(s)}
+                            disabled={actionLoading === s.id}
+                            className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
+                            style={{ backgroundColor: 'var(--secondary)', color: 'var(--muted-foreground)' }}
+                          >
+                            Send tilbage
+                          </button>
+                        </div>
                       ) : (
                         <span className="text-xs text-muted-foreground italic">
                           {s.reviewed_at

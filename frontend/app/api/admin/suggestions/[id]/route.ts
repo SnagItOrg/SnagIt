@@ -58,6 +58,20 @@ export async function PATCH(
     return NextResponse.json({ ok: true })
   }
 
+  if (action === 'send-back') {
+    const { error } = await admin
+      .from('kg_product_suggestions')
+      .update({
+        status: 'pending',
+        reviewed_by: null,
+        reviewed_at: null,
+        notes: null,
+      })
+      .eq('id', params.id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true })
+  }
+
   if (action === 'reject') {
     const { error } = await admin
       .from('kg_product_suggestions')
