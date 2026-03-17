@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     variant_names: string[]
   } = await req.json()
 
-  if (!kg_product_id || !suggestion_ids?.length) {
+  if (!kg_product_id || !kg_product_slug || !suggestion_ids?.length) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
   // Insert all variant names as synonyms on the existing product
   const synonymsToInsert = variant_names.map(name => ({
     alias: name,
+    canonical_query: kg_product_slug,
     product_id: kg_product_id,
     match_type: 'alias',
     lang: 'en',

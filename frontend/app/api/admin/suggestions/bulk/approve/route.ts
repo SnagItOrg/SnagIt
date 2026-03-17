@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
     .filter(name => name.toLowerCase() !== canonical_name.toLowerCase())
     .map(name => ({
       alias: name,
+      canonical_query: slug,
       product_id: newProduct.id,
       match_type: 'alias',
       lang: 'en',
