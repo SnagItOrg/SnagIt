@@ -87,7 +87,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: insertErr?.message ?? 'Insert failed' }, { status: 500 })
   }
 
-  console.log('[bulk/approve] new product id:', newProduct.id, 'type:', typeof newProduct.id)
+  const productId: string = (newProduct as { id: string }).id
+  if (!productId) {
+    return NextResponse.json({ error: 'product_id is null after insert' }, { status: 500 })
+  }
 
   // Insert all variant names as synonyms (skip the canonical name itself)
   const synonymsToInsert = variant_names
@@ -95,19 +98,19 @@ export async function POST(req: NextRequest) {
     .map(name => ({
       alias: name,
       canonical_query: slug,
-      product_id: newProduct.id,
+      product_id: productId,
       match_type: 'alias',
       lang: 'en',
       priority: 50,
     }))
 
-  console.log('[bulk/approve] synonym insert payload:', JSON.stringify(synonymsToInsert, null, 2))
-
   if (synonymsToInsert.length > 0) {
     const { error: synonymErr } = await admin
       .from('synonym')
       .upsert(synonymsToInsert, { onConflict: 'alias,product_id', ignoreDuplicates: true })
-    console.log('[bulk/approve] synonym upsert error:', synonymErr ?? 'none')
+    if (synonymErr) {
+      return NextResponse.json({ error: `Synonym insert failed: ${synonymErr.message}` }, { status: 500 })
+    }
   }
 
   // Mark all suggestions as approved
@@ -123,5 +126,5 @@ export async function POST(req: NextRequest) {
 
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 })
 
-  return NextResponse.json({ ok: true, slug, product_id: newProduct.id })
+  return NextResponse.json({ ok: true, slug, product_id: productId })
 }
