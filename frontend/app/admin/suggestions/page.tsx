@@ -229,6 +229,7 @@ export default function AdminSuggestionsPage() {
       <div className="flex gap-1 items-center flex-wrap">
         {TABS.map(t => (
           <button
+            type="button"
             key={t.key}
             onClick={() => handleTabChange(t.key)}
             className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
@@ -292,6 +293,7 @@ export default function AdminSuggestionsPage() {
                         <div className="flex items-center gap-1 min-w-0">
                           <span className="text-sm font-medium text-foreground truncate">{s.canonical_name}</span>
                           <button
+                            type="button"
                             onClick={() => startEdit(s)}
                             className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
                             title="Rediger navn"
@@ -309,6 +311,7 @@ export default function AdminSuggestionsPage() {
                             Mulig dublet: {dup.canonical_name}
                           </span>
                           <button
+                            type="button"
                             onClick={() => startMerge(s, dup.canonical_name)}
                             className="text-[11px] font-semibold px-1.5 py-0.5 rounded transition-colors hover:opacity-80"
                             style={{ backgroundColor: 'rgba(245, 158, 11, 0.25)', color: 'rgb(180, 120, 10)' }}
@@ -334,6 +337,7 @@ export default function AdminSuggestionsPage() {
                       {tab === 'pending' ? (
                         <>
                           <button
+                            type="button"
                             onClick={() => startApprove(s)}
                             disabled={actionLoading === s.id}
                             className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
@@ -342,6 +346,7 @@ export default function AdminSuggestionsPage() {
                             Godkend
                           </button>
                           <button
+                            type="button"
                             onClick={() => startMerge(s)}
                             disabled={actionLoading === s.id}
                             className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
@@ -350,6 +355,7 @@ export default function AdminSuggestionsPage() {
                             Merger
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleReject(s)}
                             disabled={actionLoading === s.id}
                             className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
@@ -364,6 +370,7 @@ export default function AdminSuggestionsPage() {
                             {s.reviewed_at ? new Date(s.reviewed_at).toLocaleDateString('da-DK') : '—'}
                           </span>
                           <button
+                            type="button"
                             onClick={() => handleSendBack(s)}
                             disabled={actionLoading === s.id}
                             className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
@@ -390,13 +397,14 @@ export default function AdminSuggestionsPage() {
                       <input
                         value={approveModelName}
                         onChange={e => setApproveModelName(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') confirmApprove(s) }}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); confirmApprove(s) } }}
                         placeholder="Valgfrit (fx JP-8000)"
                         autoFocus
                         className="text-xs rounded-lg px-2 py-1.5 outline-none flex-1"
                         style={inputStyle}
                       />
                       <button
+                        type="button"
                         onClick={() => confirmApprove(s)}
                         disabled={actionLoading === s.id}
                         className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
@@ -405,6 +413,7 @@ export default function AdminSuggestionsPage() {
                         Bekræft
                       </button>
                       <button
+                        type="button"
                         onClick={() => setApprovingId(null)}
                         className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                       >
@@ -430,6 +439,7 @@ export default function AdminSuggestionsPage() {
                           style={inputStyle}
                         />
                         <button
+                          type="button"
                           onClick={() => setMergingId(null)}
                           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                         >
@@ -443,6 +453,7 @@ export default function AdminSuggestionsPage() {
                         <div className="flex flex-col gap-0.5">
                           {mergeResults.map(p => (
                             <button
+                              type="button"
                               key={p.id}
                               onClick={() => confirmMerge(s.id, p.id)}
                               disabled={actionLoading === s.id}
@@ -468,6 +479,7 @@ export default function AdminSuggestionsPage() {
           {total > PAGE_SIZE && (
             <div className="flex items-center justify-between pt-2">
               <button
+                type="button"
                 onClick={() => setOffset(o => Math.max(0, o - PAGE_SIZE))}
                 disabled={offset === 0}
                 className="text-sm font-medium px-3 py-1.5 rounded-lg disabled:opacity-30"
@@ -479,6 +491,7 @@ export default function AdminSuggestionsPage() {
                 {offset + 1}–{Math.min(offset + PAGE_SIZE, total)} af {total}
               </span>
               <button
+                type="button"
                 onClick={() => setOffset(o => o + PAGE_SIZE)}
                 disabled={offset + PAGE_SIZE >= total}
                 className="text-sm font-medium px-3 py-1.5 rounded-lg disabled:opacity-30"
