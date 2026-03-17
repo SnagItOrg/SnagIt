@@ -69,8 +69,10 @@ export async function POST(req: NextRequest) {
     .eq('brand_id', brand_id)
 
   const existingByName = new Map<string, { id: string; slug: string }>()
+  const existingBySlug = new Map<string, { id: string; slug: string }>()
   for (const p of existingProducts ?? []) {
     existingByName.set(p.canonical_name.toLowerCase(), { id: p.id, slug: p.slug })
+    existingBySlug.set(p.slug, { id: p.id, slug: p.slug })
   }
 
   const nameList = (suggestions as SuggestionRow[]).map(s => s.canonical_name).join('\n')
@@ -137,7 +139,8 @@ export async function POST(req: NextRequest) {
     if (members.length === 0) continue
 
     const nameLower = group.canonical_name.toLowerCase()
-    const kgMatch = existingByName.get(nameLower)
+    const groupSlug = group.canonical_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    const kgMatch = existingByName.get(nameLower) ?? existingBySlug.get(groupSlug)
 
     enriched.push({
       canonical_name: group.canonical_name,
