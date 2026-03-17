@@ -25,22 +25,36 @@ export async function POST(req: NextRequest) {
 
   const {
     kg_product_id,
-    kg_product_slug,
+    kg_product_slug: slugFromClient,
     suggestion_ids,
     variant_names,
   }: {
     kg_product_id: string
-    kg_product_slug: string
+    kg_product_slug?: string
     suggestion_ids: string[]
     variant_names: string[]
   } = await req.json()
 
-  if (!kg_product_id || !kg_product_slug || !suggestion_ids?.length) {
+  if (!kg_product_id || !suggestion_ids?.length) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
   const admin = getSupabaseAdmin()
   const now = new Date().toISOString()
+
+  // Resolve slug if not provided by client (manual merge from search)
+  let kg_product_slug = slugFromClient
+  if (!kg_product_slug) {
+    const { data: product } = await admin
+      .from('kg_product')
+      .select('slug')
+      .eq('id', kg_product_id)
+      .single()
+    if (!product?.slug) {
+      return NextResponse.json({ error: 'Target product not found' }, { status: 404 })
+    }
+    kg_product_slug = product.slug
+  }
 
   // Insert all variant names as synonyms on the existing product
   const synonymsToInsert = variant_names.map(name => ({

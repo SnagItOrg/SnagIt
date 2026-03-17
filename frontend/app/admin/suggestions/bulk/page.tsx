@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 type Brand = {
   id: string
@@ -26,11 +26,18 @@ type Group = {
 }
 
 type GroupState = Group & {
-  // local UI state
   editName: string
   editModel: string
   status: 'pending' | 'approved' | 'rejected' | 'loading' | 'error'
   errorMsg?: string
+  // updated after a manual merge so the done badge shows the right slug
+  mergedIntoSlug?: string
+}
+
+type KgProduct = {
+  id: string
+  canonical_name: string
+  kg_brand: { name: string }
 }
 
 export default function BulkReviewPage() {
@@ -43,6 +50,13 @@ export default function BulkReviewPage() {
   const [total, setTotal] = useState(0)
 
   const [toast, setToast] = useState<string | null>(null)
+
+  // Manual merge search — only one group open at a time
+  const [mergingIdx, setMergingIdx] = useState<number | null>(null)
+  const [mergeQuery, setMergeQuery] = useState('')
+  const [mergeResults, setMergeResults] = useState<KgProduct[]>([])
+  const [mergeSearching, setMergeSearching] = useState(false)
+  const mergeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function showToast(msg: string) {
     setToast(msg)
@@ -59,6 +73,7 @@ export default function BulkReviewPage() {
   async function handleBrandSelect(brand: Brand) {
     setSelectedBrand(brand)
     setGroups([])
+    setMergingIdx(null)
     setGrouping(true)
 
     const res = await fetch('/api/admin/suggestions/bulk/group', {
@@ -90,6 +105,53 @@ export default function BulkReviewPage() {
     setGroups(prev => prev.map((g, i) => i === idx ? { ...g, ...patch } : g))
   }
 
+  function openMergeSearch(idx: number, prefill?: string) {
+    setMergingIdx(idx)
+    setMergeQuery(prefill ?? '')
+    setMergeResults([])
+    if (prefill && prefill.length >= 2) searchMerge(prefill)
+  }
+
+  function searchMerge(q: string) {
+    setMergeQuery(q)
+    if (mergeDebounce.current) clearTimeout(mergeDebounce.current)
+    if (q.length < 2) { setMergeResults([]); return }
+    mergeDebounce.current = setTimeout(async () => {
+      setMergeSearching(true)
+      const res = await fetch(`/api/admin/msrp?q=${encodeURIComponent(q)}`)
+      if (res.ok) {
+        const data: KgProduct[] = await res.json()
+        setMergeResults(data.slice(0, 6))
+      }
+      setMergeSearching(false)
+    }, 250)
+  }
+
+  async function confirmManualMerge(idx: number, product: KgProduct) {
+    const g = groups[idx]
+    updateGroup(idx, { status: 'loading' })
+    setMergingIdx(null)
+
+    const res = await fetch('/api/admin/suggestions/bulk/merge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kg_product_id: product.id,
+        kg_product_slug: (product as unknown as { slug?: string }).slug ?? product.canonical_name,
+        suggestion_ids: g.suggestions.map(s => s.id),
+        variant_names: g.suggestions.map(s => s.canonical_name),
+      }),
+    })
+
+    const data = await res.json()
+    if (res.ok) {
+      updateGroup(idx, { status: 'approved', mergedIntoSlug: product.canonical_name })
+      showToast(`Merget ind på "${product.canonical_name}"`)
+    } else {
+      updateGroup(idx, { status: 'error', errorMsg: data.error ?? 'Fejl' })
+    }
+  }
+
   async function approveGroup(idx: number) {
     const g = groups[idx]
     updateGroup(idx, { status: 'loading' })
@@ -111,12 +173,16 @@ export default function BulkReviewPage() {
     if (res.ok) {
       updateGroup(idx, { status: 'approved' })
       showToast(`"${g.editName}" oprettet`)
+    } else if (res.status === 409) {
+      // Slug collision — open merge search pre-filled with the conflicting name
+      updateGroup(idx, { status: 'pending', errorMsg: data.error })
+      openMergeSearch(idx, g.editName.trim())
     } else {
       updateGroup(idx, { status: 'error', errorMsg: data.error ?? 'Fejl' })
     }
   }
 
-  async function mergeIntoExisting(idx: number) {
+  async function mergeIntoDetected(idx: number) {
     const g = groups[idx]
     updateGroup(idx, { status: 'loading' })
 
@@ -133,7 +199,7 @@ export default function BulkReviewPage() {
 
     const data = await res.json()
     if (res.ok) {
-      updateGroup(idx, { status: 'approved' })
+      updateGroup(idx, { status: 'approved', mergedIntoSlug: g.kg_product_slug ?? undefined })
       showToast(`Merget ind på ${g.kg_product_slug}`)
     } else {
       updateGroup(idx, { status: 'error', errorMsg: data.error ?? 'Fejl' })
@@ -234,7 +300,7 @@ export default function BulkReviewPage() {
         </div>
       )}
 
-      {/* Results */}
+      {/* Results summary */}
       {!grouping && groups.length > 0 && (
         <div className="flex flex-col gap-1 text-xs text-muted-foreground">
           {total} forslag fra {selectedBrand?.name} → {groups.length} grupper
@@ -246,15 +312,13 @@ export default function BulkReviewPage() {
           {groups.map((g, idx) => {
             const done = g.status === 'approved' || g.status === 'rejected'
             const busy = g.status === 'loading'
+            const isMergeOpen = mergingIdx === idx
 
             return (
               <div
                 key={idx}
                 className="rounded-2xl overflow-hidden transition-opacity"
-                style={{
-                  ...cardStyle,
-                  opacity: done ? 0.45 : 1,
-                }}
+                style={{ ...cardStyle, opacity: done ? 0.45 : 1 }}
               >
                 <div className="px-5 py-4 flex flex-col gap-3">
                   {/* Header: name + model */}
@@ -329,10 +393,21 @@ export default function BulkReviewPage() {
                     </p>
                   )}
 
+                  {/* 409 collision hint shown inline (status stays pending) */}
+                  {g.status === 'pending' && g.errorMsg && (
+                    <p className="text-xs font-medium" style={{ color: 'rgb(220, 60, 60)' }}>
+                      {g.errorMsg}
+                    </p>
+                  )}
+
                   {/* Done badge */}
                   {g.status === 'approved' && (
                     <p className="text-xs font-semibold" style={{ color: 'rgb(22, 140, 60)' }}>
-                      {g.exists_in_kg ? `✓ Merget → ${g.kg_product_slug}` : '✓ Oprettet'}
+                      {g.mergedIntoSlug
+                        ? `✓ Merget → ${g.mergedIntoSlug}`
+                        : g.exists_in_kg
+                          ? `✓ Merget → ${g.kg_product_slug}`
+                          : '✓ Oprettet'}
                     </p>
                   )}
                   {g.status === 'rejected' && (
@@ -341,11 +416,11 @@ export default function BulkReviewPage() {
 
                   {/* Actions */}
                   {!done && (
-                    <div className="flex items-center gap-2 pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
+                    <div className="flex flex-wrap items-center gap-2 pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
                       {g.exists_in_kg ? (
                         <button
                           type="button"
-                          onClick={() => mergeIntoExisting(idx)}
+                          onClick={() => mergeIntoDetected(idx)}
                           disabled={busy}
                           className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
                           style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
@@ -365,6 +440,19 @@ export default function BulkReviewPage() {
                       )}
                       <button
                         type="button"
+                        onClick={() => isMergeOpen ? setMergingIdx(null) : openMergeSearch(idx, g.editName.trim())}
+                        disabled={busy}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
+                        style={{
+                          backgroundColor: isMergeOpen ? 'var(--secondary)' : 'var(--secondary)',
+                          color: isMergeOpen ? 'var(--foreground)' : 'var(--muted-foreground)',
+                          outline: isMergeOpen ? '1px solid var(--border)' : 'none',
+                        }}
+                      >
+                        Søg og merger
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => rejectGroup(idx)}
                         disabled={busy}
                         className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
@@ -372,6 +460,46 @@ export default function BulkReviewPage() {
                       >
                         Afvis gruppe
                       </button>
+                    </div>
+                  )}
+
+                  {/* Manual merge search panel */}
+                  {!done && isMergeOpen && (
+                    <div
+                      className="flex flex-col gap-2 rounded-xl p-3 border"
+                      style={{ borderColor: 'var(--border)', backgroundColor: 'var(--secondary)' }}
+                    >
+                      <input
+                        autoFocus
+                        value={mergeQuery}
+                        onChange={e => searchMerge(e.target.value)}
+                        placeholder="Søg eksisterende produkt…"
+                        className="text-xs rounded-lg px-2.5 py-1.5 outline-none w-full"
+                        style={inputStyle}
+                      />
+                      {mergeSearching && (
+                        <p className="text-xs text-muted-foreground px-1">Søger…</p>
+                      )}
+                      {!mergeSearching && mergeResults.length > 0 && (
+                        <div className="flex flex-col gap-0.5">
+                          {mergeResults.map(p => (
+                            <button
+                              type="button"
+                              key={p.id}
+                              onClick={() => confirmManualMerge(idx, p)}
+                              className="text-left text-xs px-2 py-1.5 rounded-lg transition-colors hover:bg-card flex items-center gap-2"
+                            >
+                              <span className="text-muted-foreground">
+                                {(p.kg_brand as unknown as { name: string }).name}
+                              </span>
+                              <span className="font-medium text-foreground">{p.canonical_name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {!mergeSearching && mergeQuery.length >= 2 && mergeResults.length === 0 && (
+                        <p className="text-xs text-muted-foreground px-1">Ingen produkter fundet.</p>
+                      )}
                     </div>
                   )}
                 </div>
