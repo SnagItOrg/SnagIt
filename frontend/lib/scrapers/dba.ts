@@ -21,9 +21,9 @@ function extractListingId(url: string): string {
 // Fetch and parse one page of dba.dk search results.
 // Returns an empty array if no results are found (signals caller to stop pagination).
 async function fetchDbaPage(normalizedQ: string, page: number): Promise<ScrapedListing[]> {
-  const params = new URLSearchParams({ q: normalizedQ })
-  if (page > 1) params.set('page', String(page))
-  const url = `https://www.dba.dk/recommerce/forsale/search?${params}`
+  // Build URL manually — URLSearchParams encodes * as %2A, breaking DBA wildcard searches
+  const q = normalizedQ.replace(/ /g, '+')
+  const url = `https://www.dba.dk/recommerce/forsale/search?q=${q}${page > 1 ? `&page=${page}` : ''}`
 
   const res = await fetch(url, {
     headers: {
