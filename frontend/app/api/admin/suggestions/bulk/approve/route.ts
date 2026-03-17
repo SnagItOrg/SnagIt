@@ -87,6 +87,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: insertErr?.message ?? 'Insert failed' }, { status: 500 })
   }
 
+  console.log('[bulk/approve] new product id:', newProduct.id, 'type:', typeof newProduct.id)
+
   // Insert all variant names as synonyms (skip the canonical name itself)
   const synonymsToInsert = variant_names
     .filter(name => name.toLowerCase() !== canonical_name.toLowerCase())
@@ -99,10 +101,13 @@ export async function POST(req: NextRequest) {
       priority: 50,
     }))
 
+  console.log('[bulk/approve] synonym insert payload:', JSON.stringify(synonymsToInsert, null, 2))
+
   if (synonymsToInsert.length > 0) {
-    await admin
+    const { error: synonymErr } = await admin
       .from('synonym')
       .upsert(synonymsToInsert, { onConflict: 'alias,product_id', ignoreDuplicates: true })
+    console.log('[bulk/approve] synonym upsert error:', synonymErr ?? 'none')
   }
 
   // Mark all suggestions as approved
