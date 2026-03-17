@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 
 type Suggestion = {
   id: string
@@ -10,6 +10,14 @@ type Suggestion = {
   status: string
   reviewed_at: string | null
   created_at: string
+}
+
+type DuplicateInfo = { id: string; canonical_name: string }
+
+type KgProduct = {
+  id: string
+  canonical_name: string
+  kg_brand: { name: string }
 }
 
 type Tab = 'pending' | 'approved' | 'rejected'
@@ -45,22 +53,13 @@ const DESCRIPTOR_WORDS = new Set([
 const NUM_KEY_RE = /^\d+-key$/i
 
 function cleanProductName(fullName: string, brandName: string): string {
-  // Remove brand prefix
   let name = fullName
   if (name.toLowerCase().startsWith(brandName.toLowerCase())) {
     name = name.slice(brandName.length).trim()
   }
-
-  // Strip year patterns and everything after
   name = name.replace(YEAR_RE, '')
-
-  // Strip " - Color" suffixes
   name = name.replace(COLOR_RE, '')
-
-  // Strip everything from " / " onward (category separators)
   name = name.replace(SLASH_RE, '')
-
-  // Strip trailing generic descriptor words
   const words = name.trim().split(/\s+/)
   while (words.length > 1) {
     const last = words[words.length - 1]
@@ -70,12 +69,8 @@ function cleanProductName(fullName: string, brandName: string): string {
       break
     }
   }
-
   name = words.join(' ').trim()
-
-  // Strip trailing " -" left over from removed suffixes
   name = name.replace(/\s*-\s*$/, '').trim()
-
   return name ? `${brandName} ${name}` : fullName
 }
 
@@ -101,6 +96,20 @@ export default function AdminSuggestionsPage() {
   const [editName, setEditName] = useState('')
   const [toast, setToast] = useState<string | null>(null)
 
+  // Duplicate detection
+  const [duplicates, setDuplicates] = useState<Record<string, DuplicateInfo>>({})
+
+  // Approve panel state
+  const [approvingId, setApprovingId] = useState<string | null>(null)
+  const [approveModelName, setApproveModelName] = useState('')
+
+  // Merge state
+  const [mergingId, setMergingId] = useState<string | null>(null)
+  const [mergeQuery, setMergeQuery] = useState('')
+  const [mergeResults, setMergeResults] = useState<KgProduct[]>([])
+  const [mergeSearching, setMergeSearching] = useState(false)
+  const mergeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Rename modal state
   const [showRename, setShowRename] = useState(false)
   const [renameRows, setRenameRows] = useState<RenameRow[]>([])
@@ -119,6 +128,7 @@ export default function AdminSuggestionsPage() {
       const data = await res.json()
       setRows(data.suggestions)
       setTotal(data.total)
+      setDuplicates(data.duplicates ?? {})
     }
     setLoading(false)
   }, [])
@@ -130,6 +140,8 @@ export default function AdminSuggestionsPage() {
   function handleTabChange(t: Tab) {
     setTab(t)
     setOffset(0)
+    setApprovingId(null)
+    setMergingId(null)
   }
 
   function startEdit(s: Suggestion) {
@@ -153,23 +165,37 @@ export default function AdminSuggestionsPage() {
     setActionLoading(null)
   }
 
-  async function handleApprove(s: Suggestion) {
+  // ── Approve (as new product) ───────────────────────────────────────────────
+
+  function startApprove(s: Suggestion) {
+    setApprovingId(s.id)
+    setApproveModelName('')
+    setMergingId(null)
+  }
+
+  async function confirmApprove(s: Suggestion) {
     setActionLoading(s.id)
     const res = await fetch(`/api/admin/suggestions/${s.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'approve', canonical_name: s.canonical_name }),
+      body: JSON.stringify({
+        action: 'approve',
+        canonical_name: s.canonical_name,
+        model_name: approveModelName.trim() || undefined,
+      }),
     })
     if (res.ok) {
-      setRows(prev => prev.filter(r => r.id !== s.id))
-      setTotal(prev => prev - 1)
+      removeRow(s.id)
       showToast(`"${s.canonical_name}" godkendt`)
     } else {
       const data = await res.json()
       showToast(data.error ?? 'Fejl')
     }
+    setApprovingId(null)
     setActionLoading(null)
   }
+
+  // ── Reject ────────────────────────────────────────────────────────────────
 
   async function handleReject(s: Suggestion) {
     setActionLoading(s.id)
@@ -179,11 +205,58 @@ export default function AdminSuggestionsPage() {
       body: JSON.stringify({ action: 'reject' }),
     })
     if (res.ok) {
-      setRows(prev => prev.filter(r => r.id !== s.id))
-      setTotal(prev => prev - 1)
+      removeRow(s.id)
       showToast('Afvist')
     }
     setActionLoading(null)
+  }
+
+  // ── Merge ─────────────────────────────────────────────────────────────────
+
+  function startMerge(s: Suggestion, prefill?: string) {
+    setMergingId(s.id)
+    setMergeQuery(prefill ?? '')
+    setMergeResults([])
+    setApprovingId(null)
+    if (prefill) searchMergeTarget(prefill)
+  }
+
+  function searchMergeTarget(q: string) {
+    setMergeQuery(q)
+    if (mergeDebounce.current) clearTimeout(mergeDebounce.current)
+    if (q.length < 2) { setMergeResults([]); return }
+    mergeDebounce.current = setTimeout(async () => {
+      setMergeSearching(true)
+      const res = await fetch(`/api/admin/msrp?q=${encodeURIComponent(q)}`)
+      if (res.ok) {
+        const data: KgProduct[] = await res.json()
+        setMergeResults(data.slice(0, 5))
+      }
+      setMergeSearching(false)
+    }, 250)
+  }
+
+  async function confirmMerge(suggestionId: string, productId: string) {
+    setActionLoading(suggestionId)
+    const res = await fetch(`/api/admin/suggestions/${suggestionId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'merge', merge_product_id: productId }),
+    })
+    if (res.ok) {
+      removeRow(suggestionId)
+      showToast('Merget')
+    } else {
+      const data = await res.json()
+      showToast(data.error ?? 'Fejl')
+    }
+    setMergingId(null)
+    setActionLoading(null)
+  }
+
+  function removeRow(id: string) {
+    setRows(prev => prev.filter(r => r.id !== id))
+    setTotal(prev => prev - 1)
   }
 
   // ── Rename modal ───────────────────────────────────────────────────────────
@@ -196,7 +269,6 @@ export default function AdminSuggestionsPage() {
 
     const products: Array<{ id: string; canonical_name: string; brand_name: string }> = await res.json()
 
-    // Apply auto-rename and only show rows where the name would change
     const changed: RenameRow[] = []
     for (const p of products) {
       const cleaned = cleanProductName(p.canonical_name, p.brand_name)
@@ -204,7 +276,6 @@ export default function AdminSuggestionsPage() {
         changed.push({ id: p.id, before: p.canonical_name, after: cleaned, brandName: p.brand_name })
       }
     }
-    // Sort by brand then name
     changed.sort((a, b) => a.brandName.localeCompare(b.brandName) || a.before.localeCompare(b.before))
     setRenameRows(changed)
     setRenameLoading(false)
@@ -243,13 +314,14 @@ export default function AdminSuggestionsPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const cardStyle = { backgroundColor: 'var(--card)', border: '1px solid var(--border)' }
+  const inputStyle = { backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--foreground)' }
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-bold text-foreground">KG Forslag</h1>
 
       {/* Tabs + Rens navne button */}
-      <div className="flex gap-1 items-center">
+      <div className="flex gap-1 items-center flex-wrap">
         {TABS.map(t => (
           <button
             key={t.key}
@@ -291,85 +363,192 @@ export default function AdminSuggestionsPage() {
       ) : (
         <>
           {/* Header */}
-          <div className="hidden md:grid grid-cols-[1fr_140px_80px_120px] gap-2 px-4 text-xs font-bold text-muted-foreground">
+          <div className="hidden md:grid grid-cols-[1fr_120px_60px_auto] gap-3 px-4 text-xs font-bold text-muted-foreground">
             <span>Produkt</span>
             <span>Brand</span>
-            <span className="text-right">Annoncer</span>
-            <span className="text-right">Handlinger</span>
+            <span className="text-right">Antal</span>
+            <span className="text-right" style={{ minWidth: '220px' }}>Handlinger</span>
           </div>
 
           {/* Rows */}
-          <div className="flex flex-col gap-1">
-            {rows.map(s => (
-              <div
-                key={s.id}
-                className="rounded-xl px-4 py-3 md:grid md:grid-cols-[1fr_140px_80px_120px] md:items-center flex flex-col gap-2"
-                style={cardStyle}
-              >
-                {/* Name (editable) */}
-                <div className="min-w-0">
-                  {editingId === s.id ? (
-                    <input
-                      value={editName}
-                      onChange={e => setEditName(e.target.value)}
-                      onBlur={() => saveEdit(s.id)}
-                      onKeyDown={e => { if (e.key === 'Enter') saveEdit(s.id); if (e.key === 'Escape') setEditingId(null) }}
-                      autoFocus
-                      className="w-full text-sm font-medium rounded-lg px-2 py-1 outline-none"
-                      style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
-                    />
-                  ) : (
-                    <button
-                      onClick={() => startEdit(s)}
-                      className="text-sm font-medium text-foreground truncate text-left w-full hover:underline"
-                      title="Klik for at redigere"
+          <div className="flex flex-col gap-1.5">
+            {rows.map(s => {
+              const dup = duplicates[s.id]
+              const isApproving = approvingId === s.id
+              const isMerging = mergingId === s.id
+
+              return (
+                <div key={s.id} className="rounded-xl overflow-hidden" style={cardStyle}>
+                  {/* Main row */}
+                  <div className="px-4 py-3 md:grid md:grid-cols-[1fr_120px_60px_auto] md:items-center flex flex-col gap-2">
+                    {/* Name (editable) + duplicate indicator */}
+                    <div className="min-w-0 flex flex-col gap-1">
+                      {editingId === s.id ? (
+                        <input
+                          value={editName}
+                          onChange={e => setEditName(e.target.value)}
+                          onBlur={() => saveEdit(s.id)}
+                          onKeyDown={e => { if (e.key === 'Enter') saveEdit(s.id); if (e.key === 'Escape') setEditingId(null) }}
+                          autoFocus
+                          className="w-full text-sm font-medium rounded-lg px-2 py-1 outline-none"
+                          style={inputStyle}
+                        />
+                      ) : (
+                        <button
+                          onClick={() => startEdit(s)}
+                          className="text-sm font-medium text-foreground truncate text-left w-full hover:underline"
+                          title="Klik for at redigere"
+                        >
+                          {s.canonical_name}
+                        </button>
+                      )}
+                      {dup && tab === 'pending' && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] px-1.5 py-0.5 rounded font-medium" style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', color: 'rgb(180, 120, 10)' }}>
+                            Mulig dublet: {dup.canonical_name}
+                          </span>
+                          <button
+                            onClick={() => startMerge(s, dup.canonical_name)}
+                            className="text-[11px] font-semibold px-1.5 py-0.5 rounded transition-colors hover:opacity-80"
+                            style={{ backgroundColor: 'rgba(245, 158, 11, 0.25)', color: 'rgb(180, 120, 10)' }}
+                          >
+                            Merger
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Brand */}
+                    <span className="text-xs text-muted-foreground truncate">
+                      {s.brand_name ?? '—'}
+                    </span>
+
+                    {/* Count */}
+                    <span className="text-xs text-muted-foreground md:text-right">
+                      {s.listing_count}
+                    </span>
+
+                    {/* Actions */}
+                    <div className="flex gap-1.5 md:justify-end" style={{ minWidth: '220px' }}>
+                      {tab === 'pending' ? (
+                        <>
+                          <button
+                            onClick={() => startApprove(s)}
+                            disabled={actionLoading === s.id}
+                            className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
+                            style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                          >
+                            Godkend
+                          </button>
+                          <button
+                            onClick={() => startMerge(s)}
+                            disabled={actionLoading === s.id}
+                            className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
+                            style={{ backgroundColor: 'var(--secondary)', color: 'var(--foreground)' }}
+                          >
+                            Merger
+                          </button>
+                          <button
+                            onClick={() => handleReject(s)}
+                            disabled={actionLoading === s.id}
+                            className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
+                            style={{ backgroundColor: 'var(--secondary)', color: 'var(--muted-foreground)' }}
+                          >
+                            Afvis
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">
+                          {s.reviewed_at
+                            ? new Date(s.reviewed_at).toLocaleDateString('da-DK')
+                            : '—'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Approve panel (inline) */}
+                  {isApproving && (
+                    <div
+                      className="px-4 py-3 flex items-center gap-3 border-t"
+                      style={{ borderColor: 'var(--border)', backgroundColor: 'var(--secondary)' }}
                     >
-                      {s.canonical_name}
-                    </button>
-                  )}
-                </div>
-
-                {/* Brand */}
-                <span className="text-xs text-muted-foreground truncate">
-                  {s.brand_name ?? '—'}
-                </span>
-
-                {/* Count */}
-                <span className="text-xs text-muted-foreground md:text-right">
-                  {s.listing_count}
-                </span>
-
-                {/* Actions */}
-                <div className="flex gap-1.5 md:justify-end">
-                  {tab === 'pending' ? (
-                    <>
+                      <label className="text-xs text-muted-foreground flex-shrink-0">model_name:</label>
+                      <input
+                        value={approveModelName}
+                        onChange={e => setApproveModelName(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') confirmApprove(s) }}
+                        placeholder="Valgfrit (fx JP-8000)"
+                        autoFocus
+                        className="text-xs rounded-lg px-2 py-1.5 outline-none flex-1"
+                        style={inputStyle}
+                      />
                       <button
-                        onClick={() => handleApprove(s)}
+                        onClick={() => confirmApprove(s)}
                         disabled={actionLoading === s.id}
-                        className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
                         style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
                       >
-                        Godkend
+                        Bekræft
                       </button>
                       <button
-                        onClick={() => handleReject(s)}
-                        disabled={actionLoading === s.id}
-                        className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
-                        style={{ backgroundColor: 'var(--secondary)', color: 'var(--muted-foreground)' }}
+                        onClick={() => setApprovingId(null)}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        Afvis
+                        Annuller
                       </button>
-                    </>
-                  ) : (
-                    <span className="text-xs text-muted-foreground italic">
-                      {s.reviewed_at
-                        ? new Date(s.reviewed_at).toLocaleDateString('da-DK')
-                        : '—'}
-                    </span>
+                    </div>
+                  )}
+
+                  {/* Merge panel (inline) */}
+                  {isMerging && (
+                    <div
+                      className="px-4 py-3 flex flex-col gap-2 border-t"
+                      style={{ borderColor: 'var(--border)', backgroundColor: 'var(--secondary)' }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-muted-foreground flex-shrink-0">Merger med:</label>
+                        <input
+                          value={mergeQuery}
+                          onChange={e => searchMergeTarget(e.target.value)}
+                          placeholder="Søg eksisterende produkt..."
+                          autoFocus
+                          className="text-xs rounded-lg px-2 py-1.5 outline-none flex-1"
+                          style={inputStyle}
+                        />
+                        <button
+                          onClick={() => setMergingId(null)}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          Annuller
+                        </button>
+                      </div>
+                      {mergeSearching && (
+                        <p className="text-xs text-muted-foreground px-1">Søger...</p>
+                      )}
+                      {mergeResults.length > 0 && (
+                        <div className="flex flex-col gap-0.5">
+                          {mergeResults.map(p => (
+                            <button
+                              key={p.id}
+                              onClick={() => confirmMerge(s.id, p.id)}
+                              disabled={actionLoading === s.id}
+                              className="text-left text-xs px-2 py-1.5 rounded-lg transition-colors hover:bg-card disabled:opacity-40 flex items-center gap-2"
+                            >
+                              <span className="text-muted-foreground">{(p.kg_brand as unknown as { name: string }).name}</span>
+                              <span className="font-medium text-foreground">{p.canonical_name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {!mergeSearching && mergeQuery.length >= 2 && mergeResults.length === 0 && (
+                        <p className="text-xs text-muted-foreground px-1">Ingen produkter fundet.</p>
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Pagination */}
@@ -406,7 +585,6 @@ export default function AdminSuggestionsPage() {
             className="w-full max-w-3xl max-h-[80vh] flex flex-col rounded-2xl overflow-hidden"
             style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
           >
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
               <div>
                 <h2 className="text-base font-bold text-foreground">Rens produktnavne</h2>
@@ -422,7 +600,6 @@ export default function AdminSuggestionsPage() {
               </button>
             </div>
 
-            {/* Content */}
             <div className="flex-1 overflow-y-auto">
               {renameLoading ? (
                 <div className="flex flex-col gap-2 p-6">
@@ -436,7 +613,6 @@ export default function AdminSuggestionsPage() {
                 </p>
               ) : (
                 <div className="flex flex-col">
-                  {/* Column headers */}
                   <div className="grid grid-cols-[1fr_1fr_36px] gap-3 px-6 py-2 text-xs font-bold text-muted-foreground border-b" style={{ borderColor: 'var(--border)' }}>
                     <span>Før</span>
                     <span>Efter</span>
@@ -456,11 +632,7 @@ export default function AdminSuggestionsPage() {
                         value={r.after}
                         onChange={e => updateRenameRow(r.id, e.target.value)}
                         className="text-xs font-medium rounded-lg px-2 py-1.5 outline-none w-full"
-                        style={{
-                          backgroundColor: 'var(--secondary)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--foreground)',
-                        }}
+                        style={inputStyle}
                       />
                       <button
                         onClick={() => removeRenameRow(r.id)}
@@ -475,7 +647,6 @@ export default function AdminSuggestionsPage() {
               )}
             </div>
 
-            {/* Footer */}
             {renameRows.length > 0 && !renameLoading && (
               <div className="flex items-center justify-between px-6 py-4 border-t" style={{ borderColor: 'var(--border)' }}>
                 <button

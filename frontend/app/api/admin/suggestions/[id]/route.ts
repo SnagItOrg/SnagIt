@@ -24,7 +24,7 @@ function slugify(name: string): string {
 }
 
 // PATCH /api/admin/suggestions/[id]
-// Body: { action: 'approve' | 'reject', canonical_name?: string }
+// Body: { action: 'approve' | 'reject' | 'merge', canonical_name?, model_name?, merge_product_id? }
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
@@ -33,7 +33,7 @@ export async function PATCH(
   if (!auth.ok) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  const { action, canonical_name } = body
+  const { action, canonical_name, model_name, merge_product_id } = body
   const admin = getSupabaseAdmin()
   const now = new Date().toISOString()
 
@@ -89,16 +89,21 @@ export async function PATCH(
       )
     }
 
-    // Insert into kg_product
+    // Insert into kg_product (with optional model_name)
+    const insertData: Record<string, unknown> = {
+      slug,
+      canonical_name: name,
+      brand_id: suggestion.brand_id,
+      category_id: suggestion.category_id,
+      status: 'active',
+    }
+    if (model_name && typeof model_name === 'string' && model_name.trim()) {
+      insertData.model_name = model_name.trim()
+    }
+
     const { error: insertErr } = await admin
       .from('kg_product')
-      .insert({
-        slug,
-        canonical_name: name,
-        brand_id: suggestion.brand_id,
-        category_id: suggestion.category_id,
-        status: 'active',
-      })
+      .insert(insertData)
 
     if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 })
 
@@ -115,6 +120,56 @@ export async function PATCH(
 
     if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 })
     return NextResponse.json({ ok: true, slug })
+  }
+
+  if (action === 'merge') {
+    if (!merge_product_id || typeof merge_product_id !== 'string') {
+      return NextResponse.json({ error: 'Missing merge_product_id' }, { status: 400 })
+    }
+
+    // Verify the target product exists
+    const { data: targetProduct, error: targetErr } = await admin
+      .from('kg_product')
+      .select('id, slug')
+      .eq('id', merge_product_id)
+      .single()
+
+    if (targetErr || !targetProduct) {
+      return NextResponse.json({ error: 'Target product not found' }, { status: 404 })
+    }
+
+    // 1. Add suggestion canonical_name as a synonym
+    await admin
+      .from('synonym')
+      .upsert({
+        alias: suggestion.canonical_name,
+        product_id: merge_product_id,
+        match_type: 'alias',
+        lang: 'en',
+        priority: 50,
+      }, { onConflict: 'alias,product_id', ignoreDuplicates: true })
+
+    // 2. Update any listing_product_match rows that matched via this suggestion's name
+    // Match on normalized_text containing key words from the suggestion
+    const normalizedSuggestion = suggestion.canonical_name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+    await admin
+      .from('listing_product_match')
+      .update({ product_id: merge_product_id })
+      .ilike('match_reason', `%${normalizedSuggestion}%`)
+
+    // 3. Mark suggestion as approved with merge note
+    const { error: updateErr } = await admin
+      .from('kg_product_suggestions')
+      .update({
+        status: 'approved',
+        reviewed_by: auth.userId,
+        reviewed_at: now,
+        notes: `merged into ${targetProduct.slug}`,
+      })
+      .eq('id', params.id)
+
+    if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 })
+    return NextResponse.json({ ok: true, merged_into: targetProduct.slug })
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
