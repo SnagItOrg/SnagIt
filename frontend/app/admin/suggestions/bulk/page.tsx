@@ -116,6 +116,30 @@ export default function BulkReviewPage() {
     }
   }
 
+  async function mergeIntoExisting(idx: number) {
+    const g = groups[idx]
+    updateGroup(idx, { status: 'loading' })
+
+    const res = await fetch('/api/admin/suggestions/bulk/merge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kg_product_id: g.kg_product_id,
+        kg_product_slug: g.kg_product_slug,
+        suggestion_ids: g.suggestions.map(s => s.id),
+        variant_names: g.suggestions.map(s => s.canonical_name),
+      }),
+    })
+
+    const data = await res.json()
+    if (res.ok) {
+      updateGroup(idx, { status: 'approved' })
+      showToast(`Merget ind på ${g.kg_product_slug}`)
+    } else {
+      updateGroup(idx, { status: 'error', errorMsg: data.error ?? 'Fejl' })
+    }
+  }
+
   async function rejectGroup(idx: number) {
     const g = groups[idx]
     updateGroup(idx, { status: 'loading' })
@@ -308,7 +332,7 @@ export default function BulkReviewPage() {
                   {/* Done badge */}
                   {g.status === 'approved' && (
                     <p className="text-xs font-semibold" style={{ color: 'rgb(22, 140, 60)' }}>
-                      ✓ Oprettet
+                      {g.exists_in_kg ? `✓ Merget → ${g.kg_product_slug}` : '✓ Oprettet'}
                     </p>
                   )}
                   {g.status === 'rejected' && (
@@ -318,15 +342,27 @@ export default function BulkReviewPage() {
                   {/* Actions */}
                   {!done && (
                     <div className="flex items-center gap-2 pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
-                      <button
-                        type="button"
-                        onClick={() => approveGroup(idx)}
-                        disabled={busy || !g.editName.trim()}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
-                        style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
-                      >
-                        {busy ? 'Opretter…' : 'Opret + merger alle varianter'}
-                      </button>
+                      {g.exists_in_kg ? (
+                        <button
+                          type="button"
+                          onClick={() => mergeIntoExisting(idx)}
+                          disabled={busy}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
+                          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                        >
+                          {busy ? 'Merger…' : `Merger alle ind på ${g.kg_product_slug}`}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => approveGroup(idx)}
+                          disabled={busy || !g.editName.trim()}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
+                          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                        >
+                          {busy ? 'Opretter…' : 'Opret + merger alle varianter'}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => rejectGroup(idx)}
