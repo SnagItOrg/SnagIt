@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import Anthropic from '@anthropic-ai/sdk'
 
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
 async function verifyAdmin(): Promise<boolean> {
   const supabase = createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -71,14 +73,11 @@ export async function POST(req: NextRequest) {
     existingByName.set(p.canonical_name.toLowerCase(), { id: p.id, slug: p.slug })
   }
 
-  // Call Claude to group suggestions
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
   const nameList = (suggestions as SuggestionRow[]).map(s => s.canonical_name).join('\n')
 
   let aiGroups: AiGroup[] = []
   try {
-    const message = await anthropic.messages.create({
+    const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       system:
