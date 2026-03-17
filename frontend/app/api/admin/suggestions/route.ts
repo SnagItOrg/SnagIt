@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // For pending suggestions, check for possible duplicates in kg_product
-  let duplicates: Record<string, { id: string; canonical_name: string }> = {}
+  const duplicates: Record<string, { id: string; canonical_name: string }> = {}
   if (status === 'pending' && data && data.length > 0) {
     // Build ilike patterns: extract key words from each suggestion name
     // We check each suggestion against kg_product for close matches
