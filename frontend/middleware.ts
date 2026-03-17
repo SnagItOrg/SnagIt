@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
@@ -68,6 +69,27 @@ export async function middleware(request: NextRequest) {
   // Logged-in users are bounced out of the onboarding flow → watchlists
   if (user && isOnboardingPath(pathname)) {
     return NextResponse.redirect(new URL('/watchlists', request.url))
+  }
+
+  // Admin routes: must be authenticated + is_admin on user_preferences
+  if (pathname.startsWith('/admin')) {
+    if (!user) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } },
+    )
+    const { data: prefs } = await admin
+      .from('user_preferences')
+      .select('is_admin')
+      .eq('user_id', user.id)
+      .single()
+    if (!prefs?.is_admin) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+    return supabaseResponse
   }
 
   // Unauthenticated users on protected routes → /login
