@@ -3,8 +3,8 @@
  *
  * For each kg_product that has a thomann_url but no thomann_price_dkk yet:
  *   1. Fetch the Thomann product page
- *   2. Extract DKK price from JSON-LD (<script type="application/ld+json">)
- *   3. Also extract image_url from JSON-LD "image" field
+ *   2. Extract DKK price from JS bootstrap object ("rawPrice" field)
+ *   3. Also extract image_url from "image" field in page HTML
  *   4. Upsert thomann_price_dkk + image_url on kg_product
  *
  * Run build-thomann-urls.ts first to populate thomann_url on all products.
@@ -62,80 +62,20 @@ const DRY_RUN = args.includes('--dry-run')
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-// ── JSON-LD extraction ────────────────────────────────────────────────────────
-type JsonLd = {
-  '@type'?: string
-  price?: string | number
-  priceCurrency?: string
-  image?: string | string[]
-  offers?: JsonLd | JsonLd[]
-}
-
-function parseJsonLd(html: string): JsonLd | null {
-  const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
-  let m: RegExpExecArray | null
-  while ((m = re.exec(html)) !== null) {
-    try {
-      const obj = JSON.parse(m[1]) as JsonLd
-      // Look for Product schema (direct or nested)
-      const product = findProduct(obj)
-      if (product) return product
-    } catch {
-      // malformed JSON-LD — skip
-    }
-  }
-  return null
-}
-
-function findProduct(obj: unknown): JsonLd | null {
-  if (!obj || typeof obj !== 'object') return null
-  const o = obj as JsonLd
-  if (o['@type'] === 'Product') return o
-  // Some pages wrap Product in @graph
-  const graph = (obj as Record<string, unknown>)['@graph']
-  if (Array.isArray(graph)) {
-    for (const item of graph) {
-      const found = findProduct(item)
-      if (found) return found
-    }
-  }
-  return null
-}
-
+// ── Price + image extraction ──────────────────────────────────────────────────
 type PriceAndImage = {
   priceDkk: number | null
   imageUrl: string | null
 }
 
 function extractPriceAndImage(html: string): PriceAndImage {
-  const ld = parseJsonLd(html)
-  if (!ld) return { priceDkk: null, imageUrl: null }
+  // Price from JS bootstrap object: "rawPrice":"XXXX.XXXX"
+  const priceMatch = html.match(/"rawPrice":"([\d.]+)"/)
+  const priceDkk = priceMatch ? Math.round(parseFloat(priceMatch[1])) : null
 
-  // Price can be on the Product directly or in offers
-  let priceDkk: number | null = null
-  const offers = ld.offers
-    ? Array.isArray(ld.offers)
-      ? ld.offers
-      : [ld.offers]
-    : [ld]
-
-  for (const offer of offers) {
-    const currency = offer.priceCurrency ?? ''
-    const rawPrice = offer.price
-    if (currency === 'DKK' && rawPrice != null) {
-      const parsed = parseFloat(String(rawPrice))
-      if (isFinite(parsed) && parsed > 0) {
-        priceDkk = Math.round(parsed)
-        break
-      }
-    }
-  }
-
-  // Image
-  let imageUrl: string | null = null
-  if (ld.image) {
-    imageUrl = Array.isArray(ld.image) ? ld.image[0] : ld.image
-  }
+  // Image from first https URL in a JSON "image" field
+  const imgMatch = html.match(/"image"\s*:\s*"(https?:\/\/[^"]+)"/)
+  const imageUrl = imgMatch ? imgMatch[1] : null
 
   return { priceDkk, imageUrl }
 }
@@ -206,7 +146,7 @@ function sleep(ms: number) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('💰 Thomann Price Fetcher (JSON-LD / DKK)')
+  console.log('💰 Thomann Price Fetcher')
   if (DRY_RUN) console.log('   (dry run — no DB writes)')
   console.log()
 
