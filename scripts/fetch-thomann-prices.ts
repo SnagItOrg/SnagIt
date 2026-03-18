@@ -152,11 +152,15 @@ async function main() {
 
   const products = await fetchProducts()
 
+  console.log(`Products with thomann_url: ${products.length}`)
   if (products.length === 0) {
-    console.log('No products to process. Run build-thomann-urls.ts first if thomann_url is empty.')
+    console.log('Nothing to process — run build-thomann-urls.ts first to populate thomann_url.')
     return
   }
 
+  console.log('First 5 URLs to fetch:')
+  products.slice(0, 5).forEach((p, i) => console.log(`  ${i + 1}. ${p.thomann_url}`))
+  console.log()
   console.log(`Processing ${products.length} products\n`)
 
   let found = 0
