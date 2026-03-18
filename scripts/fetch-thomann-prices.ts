@@ -69,8 +69,10 @@ type PriceAndImage = {
 }
 
 function extractPriceAndImage(html: string): PriceAndImage {
-  // Price from JS bootstrap object: "rawPrice":"XXXX.XXXX"
-  const priceMatch = html.match(/"rawPrice":"([\d.]+)"/)
+  // Some pages use "rawPrice":"1299.0000", others use "price":1299
+  const priceMatch =
+    html.match(/"rawPrice":"([\d.]+)"/) ??
+    html.match(/"price":(\d+),/)
   const priceDkk = priceMatch ? Math.round(parseFloat(priceMatch[1])) : null
 
   // Image from first https URL in a JSON "image" field
