@@ -44,8 +44,18 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const BATCH_SIZE = 100
-const DELAY_MS = 3000
+const DELAY_MS = 5000
 const THOMANN_BASE = 'https://www.thomann.dk'
+
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'da-DK,da;q=0.9,en-US;q=0.8,en;q=0.7',
+  'Accept-Encoding': 'gzip, deflate, br',
+  'Cache-Control': 'no-cache',
+  'Pragma': 'no-cache',
+  'Referer': 'https://www.thomann.dk/',
+}
 
 const args = process.argv.slice(2)
 const DRY_RUN = args.includes('--dry-run')
@@ -81,11 +91,7 @@ const RAW_PRICE_RE = /"rawPrice"\s*:\s*"?(\d+(?:\.\d+)?)"?/
 async function fetchPrice(url: string): Promise<number | null> {
   try {
     const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Klup-Bot/1.0)',
-        'Accept-Language': 'da-DK,da;q=0.9',
-        'Accept': 'text/html',
-      },
+      headers: BROWSER_HEADERS,
       signal: AbortSignal.timeout(15_000),
     })
 
