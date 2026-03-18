@@ -67,27 +67,41 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 // ── Sitemap download + parse ──────────────────────────────────────────────────
 async function fetchOneSitemap(sitemapUrl: string): Promise<string[]> {
-  const res = await fetch(sitemapUrl, {
-    headers: { 'Accept-Encoding': 'gzip, deflate, br' },
-    signal: AbortSignal.timeout(30_000),
-  })
-  if (!res.ok) throw new Error(`Sitemap fetch failed (${sitemapUrl}): HTTP ${res.status}`)
-
-  const buf = Buffer.from(await res.arrayBuffer())
-  const xml = await new Promise<string>((resolve, reject) => {
-    zlib.gunzip(buf, (err, result) => {
-      if (err) reject(err)
-      else resolve(result.toString('utf8'))
+  const name = sitemapUrl.split('/').pop()!
+  try {
+    const res = await fetch(sitemapUrl, {
+      headers: { 'Accept-Encoding': 'gzip, deflate, br' },
+      signal: AbortSignal.timeout(30_000),
     })
-  })
+    if (res.status === 403) {
+      console.warn(`   ⚠️  ${name} — 403 Forbidden, skipping`)
+      return []
+    }
+    if (!res.ok) {
+      console.warn(`   ⚠️  ${name} — HTTP ${res.status}, skipping`)
+      return []
+    }
 
-  const urls: string[] = []
-  const locRe = /<loc>([^<]+)<\/loc>/g
-  let m: RegExpExecArray | null
-  while ((m = locRe.exec(xml)) !== null) {
-    urls.push(m[1].trim())
+    const buf = Buffer.from(await res.arrayBuffer())
+    const xml = await new Promise<string>((resolve, reject) => {
+      zlib.gunzip(buf, (err, result) => {
+        if (err) reject(err)
+        else resolve(result.toString('utf8'))
+      })
+    })
+
+    const urls: string[] = []
+    const locRe = /<loc>([^<]+)<\/loc>/g
+    let m: RegExpExecArray | null
+    while ((m = locRe.exec(xml)) !== null) {
+      urls.push(m[1].trim())
+    }
+    return urls
+  } catch (err) {
+    const msg = (err as Error).message ?? String(err)
+    console.warn(`   ⚠️  ${name} — ${msg}, skipping`)
+    return []
   }
-  return urls
 }
 
 async function fetchAllSitemapUrls(): Promise<string[]> {
@@ -95,7 +109,9 @@ async function fetchAllSitemapUrls(): Promise<string[]> {
   const all: string[] = []
   for (const url of SITEMAP_URLS) {
     const urls = await fetchOneSitemap(url)
-    console.log(`   ${url.split('/').pop()} → ${urls.length.toLocaleString()} URLs`)
+    if (urls.length > 0) {
+      console.log(`   ${url.split('/').pop()} → ${urls.length.toLocaleString()} URLs`)
+    }
     all.push(...urls)
   }
   console.log(`   Total: ${all.length.toLocaleString()} URLs`)
