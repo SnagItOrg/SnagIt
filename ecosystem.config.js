@@ -37,6 +37,18 @@ module.exports = {
       },
     },
     {
+      name: 'fetch-thomann-prices',
+      script: 'npx',
+      args: 'tsx scripts/fetch-thomann-prices.ts',
+      cron_restart: '0 4 * * 0', // weekly on Sunday at 04:00
+      autorestart: false,
+      max_restarts: 0,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
       name: 'process-price-queue',
       script: 'npx',
       args: 'tsx scripts/process-price-queue.ts',
