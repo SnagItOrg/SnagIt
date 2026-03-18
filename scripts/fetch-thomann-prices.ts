@@ -1,12 +1,13 @@
 /**
  * scripts/fetch-thomann-prices.ts
  *
- * For each active kg_product (music-gear category, non-vintage, no thomann_url yet):
- *   1. Convert slug → Thomann filename  (boss-rv-500 → boss_rv_500)
- *   2. Fetch https://www.thomann.dk/{filename}.htm
- *   3. Extract rawPrice from the JS bootstrap payload
- *   4. Convert EUR → DKK via live Frankfurter rate
- *   5. Upsert thomann_price_dkk + thomann_url on kg_product
+ * For each kg_product that has a thomann_url but no thomann_price_dkk yet:
+ *   1. Fetch the Thomann product page
+ *   2. Extract DKK price from JSON-LD (<script type="application/ld+json">)
+ *   3. Also extract image_url from JSON-LD "image" field
+ *   4. Upsert thomann_price_dkk + image_url on kg_product
+ *
+ * Run build-thomann-urls.ts first to populate thomann_url on all products.
  *
  * Usage:
  *   npx tsx scripts/fetch-thomann-prices.ts
@@ -45,7 +46,6 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 // ── Config ────────────────────────────────────────────────────────────────────
 const BATCH_SIZE = 100
 const DELAY_MS = 5000
-const THOMANN_BASE = 'https://www.thomann.dk'
 
 const BROWSER_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -60,94 +60,123 @@ const BROWSER_HEADERS = {
 const args = process.argv.slice(2)
 const DRY_RUN = args.includes('--dry-run')
 
-// ── Exchange rate ─────────────────────────────────────────────────────────────
-let eurToDkk = 7.46 // fallback
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-async function fetchEurToDkk(): Promise<void> {
-  try {
-    const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=DKK')
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = (await res.json()) as { rates: { DKK: number } }
-    eurToDkk = data.rates.DKK
-    console.log(`💱 EUR→DKK: ${eurToDkk.toFixed(4)} (live)`)
-  } catch (err) {
-    console.warn(`⚠️  Exchange rate fetch failed (${(err as Error).message}). Using fallback ${eurToDkk}.`)
+// ── JSON-LD extraction ────────────────────────────────────────────────────────
+type JsonLd = {
+  '@type'?: string
+  price?: string | number
+  priceCurrency?: string
+  image?: string | string[]
+  offers?: JsonLd | JsonLd[]
+}
+
+function parseJsonLd(html: string): JsonLd | null {
+  const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(html)) !== null) {
+    try {
+      const obj = JSON.parse(m[1]) as JsonLd
+      // Look for Product schema (direct or nested)
+      const product = findProduct(obj)
+      if (product) return product
+    } catch {
+      // malformed JSON-LD — skip
+    }
   }
+  return null
 }
 
-// ── Thomann fetch + parse ─────────────────────────────────────────────────────
-function slugToFilename(slug: string): string {
-  return slug.replace(/-/g, '_')
+function findProduct(obj: unknown): JsonLd | null {
+  if (!obj || typeof obj !== 'object') return null
+  const o = obj as JsonLd
+  if (o['@type'] === 'Product') return o
+  // Some pages wrap Product in @graph
+  const graph = (obj as Record<string, unknown>)['@graph']
+  if (Array.isArray(graph)) {
+    for (const item of graph) {
+      const found = findProduct(item)
+      if (found) return found
+    }
+  }
+  return null
 }
 
-function buildUrl(slug: string): string {
-  return `${THOMANN_BASE}/${slugToFilename(slug)}.htm`
+type PriceAndImage = {
+  priceDkk: number | null
+  imageUrl: string | null
 }
 
-// Matches the first rawPrice in the page's JS bootstrap data.
-// Thomann embeds product data as:  "rawPrice":"1299.0000"  or  "rawPrice":1299
-const RAW_PRICE_RE = /"rawPrice"\s*:\s*"?(\d+(?:\.\d+)?)"?/
+function extractPriceAndImage(html: string): PriceAndImage {
+  const ld = parseJsonLd(html)
+  if (!ld) return { priceDkk: null, imageUrl: null }
 
-async function fetchPrice(url: string): Promise<number | null> {
+  // Price can be on the Product directly or in offers
+  let priceDkk: number | null = null
+  const offers = ld.offers
+    ? Array.isArray(ld.offers)
+      ? ld.offers
+      : [ld.offers]
+    : [ld]
+
+  for (const offer of offers) {
+    const currency = offer.priceCurrency ?? ''
+    const rawPrice = offer.price
+    if (currency === 'DKK' && rawPrice != null) {
+      const parsed = parseFloat(String(rawPrice))
+      if (isFinite(parsed) && parsed > 0) {
+        priceDkk = Math.round(parsed)
+        break
+      }
+    }
+  }
+
+  // Image
+  let imageUrl: string | null = null
+  if (ld.image) {
+    imageUrl = Array.isArray(ld.image) ? ld.image[0] : ld.image
+  }
+
+  return { priceDkk, imageUrl }
+}
+
+// ── Fetch product page ────────────────────────────────────────────────────────
+async function fetchPage(url: string): Promise<PriceAndImage> {
   try {
     const res = await fetch(url, {
       headers: BROWSER_HEADERS,
       signal: AbortSignal.timeout(15_000),
     })
 
-    if (res.status === 404) return null
+    if (res.status === 404) return { priceDkk: null, imageUrl: null }
     if (!res.ok) {
       console.warn(`    HTTP ${res.status}`)
-      return null
+      return { priceDkk: null, imageUrl: null }
     }
 
     const html = await res.text()
-
-    // Find the rawPrice closest to the start of the page — this is the main
-    // product price, not a related-article price which appears later in the DOM.
-    const match = RAW_PRICE_RE.exec(html)
-    if (!match) return null
-
-    const eur = parseFloat(match[1])
-    if (!isFinite(eur) || eur <= 0) return null
-
-    return Math.round(eur * eurToDkk)
+    return extractPriceAndImage(html)
   } catch (err) {
     console.warn(`    Fetch error: ${(err as Error).message}`)
-    return null
+    return { priceDkk: null, imageUrl: null }
   }
 }
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-
 type Product = {
   id: string
-  slug: string
   canonical_name: string
+  thomann_url: string
 }
 
 async function fetchProducts(): Promise<Product[]> {
-  // Join via kg_brand to filter by music-gear category
-  const { data: musicGearCategory } = await supabase
-    .from('kg_category')
-    .select('id')
-    .eq('slug', 'music-gear')
-    .single()
-
-  if (!musicGearCategory) {
-    console.error('❌ Could not find music-gear category')
-    process.exit(1)
-  }
-
   const { data, error } = await supabase
     .from('kg_product')
-    .select('id, slug, canonical_name')
+    .select('id, canonical_name, thomann_url')
+    .not('thomann_url', 'is', null)
+    .is('thomann_price_dkk', null)
     .eq('status', 'active')
-    .is('thomann_url', null)
-    .is('era', null)           // skip vintage (era IS NOT NULL = vintage)
-    .eq('category_id', musicGearCategory.id)
-    .order('slug')
+    .order('canonical_name')
     .limit(BATCH_SIZE)
 
   if (error) {
@@ -158,23 +187,13 @@ async function fetchProducts(): Promise<Product[]> {
   return (data ?? []) as Product[]
 }
 
-async function upsertProduct(id: string, url: string, priceDkk: number): Promise<void> {
+async function updateProduct(id: string, priceDkk: number, imageUrl: string | null): Promise<void> {
+  const update: Record<string, unknown> = { thomann_price_dkk: priceDkk }
+  if (imageUrl) update.image_url = imageUrl
+
   const { error } = await supabase
     .from('kg_product')
-    .update({
-      thomann_url: url,
-      thomann_price_dkk: priceDkk,
-    })
-    .eq('id', id)
-
-  if (error) throw new Error(error.message)
-}
-
-async function markNoUrl(id: string, url: string): Promise<void> {
-  // Still set thomann_url so we don't retry on the next run
-  const { error } = await supabase
-    .from('kg_product')
-    .update({ thomann_url: url })
+    .update(update)
     .eq('id', id)
 
   if (error) throw new Error(error.message)
@@ -187,17 +206,14 @@ function sleep(ms: number) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('🛒 Thomann Price Fetcher')
+  console.log('💰 Thomann Price Fetcher (JSON-LD / DKK)')
   if (DRY_RUN) console.log('   (dry run — no DB writes)')
-  console.log()
-
-  await fetchEurToDkk()
   console.log()
 
   const products = await fetchProducts()
 
   if (products.length === 0) {
-    console.log('No products to process. Exiting.')
+    console.log('No products to process. Run build-thomann-urls.ts first if thomann_url is empty.')
     return
   }
 
@@ -209,37 +225,27 @@ async function main() {
 
   for (let i = 0; i < products.length; i++) {
     const p = products[i]
-    const url = buildUrl(p.slug)
-
     process.stdout.write(`[${i + 1}/${products.length}] ${p.canonical_name} … `)
 
-    const priceDkk = await fetchPrice(url)
+    const { priceDkk, imageUrl } = await fetchPage(p.thomann_url)
 
     if (priceDkk !== null) {
-      console.log(`✓ ${priceDkk.toLocaleString('da-DK')} kr`)
+      const imgNote = imageUrl ? ' 🖼️' : ''
+      console.log(`✓ ${priceDkk.toLocaleString('da-DK')} kr${imgNote}`)
       found++
       if (!DRY_RUN) {
         try {
-          await upsertProduct(p.id, url, priceDkk)
+          await updateProduct(p.id, priceDkk, imageUrl)
         } catch (err) {
           console.error(`  ❌ DB error: ${(err as Error).message}`)
           errors++
         }
       }
     } else {
-      console.log(`→ No price found`)
+      console.log('→ No price found')
       notFound++
-      if (!DRY_RUN) {
-        try {
-          await markNoUrl(p.id, url)
-        } catch (err) {
-          console.error(`  ❌ DB error: ${(err as Error).message}`)
-          errors++
-        }
-      }
     }
 
-    // Rate limit — skip delay after last item
     if (i < products.length - 1) {
       await sleep(DELAY_MS)
     }

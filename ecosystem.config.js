@@ -37,10 +37,22 @@ module.exports = {
       },
     },
     {
+      name: 'build-thomann-urls',
+      script: 'npx',
+      args: 'tsx scripts/build-thomann-urls.ts',
+      cron_restart: '0 3 * * 0', // weekly on Sunday at 03:00 (before price fetch)
+      autorestart: false,
+      max_restarts: 0,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
       name: 'fetch-thomann-prices',
       script: 'npx',
       args: 'tsx scripts/fetch-thomann-prices.ts',
-      cron_restart: '0 4 * * 0', // weekly on Sunday at 04:00
+      cron_restart: '0 4 * * 0', // weekly on Sunday at 04:00 (after URL builder)
       autorestart: false,
       max_restarts: 0,
       max_memory_restart: '512M',
