@@ -125,7 +125,11 @@ function extractFilename(url: string): string | null {
 
 // ── Slug → best URL ───────────────────────────────────────────────────────────
 function slugToPrefix(slug: string): string {
-  return slug.replace(/-/g, '_').toLowerCase()
+  return slug
+    .replace(/-/g, '_')
+    .toLowerCase()
+    .replace(/__+/g, '_')
+    .replace(/^_|_$/g, '')
 }
 
 function bestMatch(prefix: string, index: Map<string, string[]>): string | null {
