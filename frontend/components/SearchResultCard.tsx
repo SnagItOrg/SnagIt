@@ -232,52 +232,57 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
 
   // ─── List variant (default) ─────────────────────────────────────────────────
   return (
-    <div className="flex gap-3 p-3 rounded-2xl bg-card border border-border hover:border-border/80 transition-colors">
-      {/* Thumbnail */}
-      <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-        {listing.image_url && !imgError ? (
-          <Image
-            src={listing.image_url}
-            alt={listing.title}
-            width={80}
-            height={80}
-            className="w-full h-full object-cover"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--muted-foreground)' }}>
-            image
-          </span>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0 flex flex-col gap-1">
-        {/* Title */}
-        <p className="text-sm font-semibold text-foreground truncate">{listing.title}</p>
-
-        {/* Price */}
-        <p className="text-base font-black" style={{ color: 'var(--foreground)' }}>
-          {priceFormatted}
-        </p>
-
-        {/* Meta: platform + time + location */}
-        <div className="flex items-center gap-1.5 text-[11px] mt-auto text-muted-foreground">
-          <PlatformBadge listing={listing} />
-          <span>·</span>
-          <span>{timeSince(listing.scraped_at, locale)}</span>
-          {getLocationDisplay(listing) && (
-            <>
-              <span>·</span>
-              <span className="truncate">{getLocationDisplay(listing)}</span>
-            </>
+    <div className="rounded-2xl bg-card border border-border hover:border-border/80 transition-colors overflow-hidden">
+      {/* Clickable area: thumbnail + title/price/meta */}
+      <a
+        href={listing.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex gap-3 px-3 pt-3 pb-2"
+      >
+        {/* Thumbnail */}
+        <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+          {listing.image_url && !imgError ? (
+            <Image
+              src={listing.image_url}
+              alt={listing.title}
+              width={80}
+              height={80}
+              className="w-full h-full object-cover"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--muted-foreground)' }}>
+              image
+            </span>
           )}
         </div>
 
-        {/* CTAs / inline login capture */}
+        {/* Title + price + meta */}
+        <div className="flex-1 min-w-0 flex flex-col gap-1">
+          <p className="text-sm font-semibold text-foreground truncate">{listing.title}</p>
+          <p className="text-base font-black truncate" style={{ color: 'var(--foreground)' }}>
+            {priceFormatted}
+          </p>
+          <div className="flex items-center gap-1.5 text-[11px] mt-auto text-muted-foreground min-w-0">
+            <PlatformBadge listing={listing} />
+            <span className="flex-shrink-0">·</span>
+            <span className="flex-shrink-0">{timeSince(listing.scraped_at, locale)}</span>
+            {getLocationDisplay(listing) && (
+              <>
+                <span className="flex-shrink-0">·</span>
+                <span className="truncate">{getLocationDisplay(listing)}</span>
+              </>
+            )}
+          </div>
+        </div>
+      </a>
+
+      {/* CTAs / inline login capture — outside the <a> */}
+      <div className="px-3 pb-3">
         {showCapture ? (
           captureSent ? (
-            <div className="flex flex-col gap-1 mt-2 py-1">
+            <div className="flex flex-col gap-1 py-1">
               <div className="flex items-center gap-1.5">
                 <span
                   className="material-symbols-outlined"
@@ -294,7 +299,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               </p>
             </div>
           ) : (
-            <form onSubmit={handleCaptureSubmit} className="flex flex-col gap-1.5 mt-2">
+            <form onSubmit={handleCaptureSubmit} className="flex flex-col gap-1.5">
               <input
                 type="email"
                 value={captureEmail}
@@ -325,41 +330,39 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
             </form>
           )
         ) : (
-          <div className="flex flex-col gap-1.5 mt-2">
-            <div className="flex gap-2">
-              {/* Heart — save listing */}
-              <button
-                onClick={handleHeartClick}
-                className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap transition-all"
-                style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: isSaved ? 'var(--foreground)' : 'var(--muted-foreground)' }}
-                aria-label="Gem annonce"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isSaved ? 'text-red-500' : ''}>
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-                {isSaved ? 'Gemt' : 'Gem'}
-              </button>
-              {/* Bell — create watchlist alert */}
-              <button
-                onClick={handleWatchlistClick}
-                disabled={creating}
-                className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>notifications</span>
-                {t.createWatchlist}
-              </button>
-              <a
-                href={listing.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap border border-border hover:border-border/80 transition-colors"
-                style={{ color: 'var(--foreground)' }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
-                {t.viewListing}
-              </a>
-            </div>
+          <div className="flex gap-2">
+            {/* Heart — save listing */}
+            <button
+              onClick={(e) => { e.stopPropagation(); handleHeartClick() }}
+              className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap transition-all"
+              style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: isSaved ? 'var(--foreground)' : 'var(--muted-foreground)' }}
+              aria-label="Gem annonce"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isSaved ? 'text-red-500' : ''}>
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+              {isSaved ? 'Gemt' : 'Gem'}
+            </button>
+            {/* Bell — create watchlist alert */}
+            <button
+              onClick={(e) => { e.stopPropagation(); handleWatchlistClick() }}
+              disabled={creating}
+              className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>notifications</span>
+              {t.createWatchlist}
+            </button>
+            <a
+              href={listing.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap border border-border hover:border-border/80 transition-colors"
+              style={{ color: 'var(--foreground)' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
+              {t.viewListing}
+            </a>
           </div>
         )}
       </div>
