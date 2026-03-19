@@ -83,7 +83,7 @@ export function BottomNav() {
         {/* Kom i gang */}
         <button
           onClick={() => router.push('/signup')}
-          className="text-sm font-bold transition-opacity hover:opacity-80"
+          className="text-sm font-bold whitespace-nowrap min-h-[44px] flex items-center transition-opacity hover:opacity-80"
           style={{ color: 'var(--foreground)' }}
         >
           {t.getStarted}

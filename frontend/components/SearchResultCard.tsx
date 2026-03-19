@@ -314,7 +314,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               <button
                 type="submit"
                 disabled={captureLoading || !captureEmail.trim()}
-                className="w-full rounded-xl py-2 text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full rounded-xl py-2 min-h-[44px] text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
               >
                 {captureLoading ? '...' : t.sendLoginLink}
@@ -330,7 +330,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               {/* Heart — save listing */}
               <button
                 onClick={handleHeartClick}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap transition-all"
                 style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: isSaved ? 'var(--foreground)' : 'var(--muted-foreground)' }}
                 aria-label="Gem annonce"
               >
@@ -343,7 +343,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               <button
                 onClick={handleWatchlistClick}
                 disabled={creating}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>notifications</span>
@@ -353,7 +353,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
                 href={listing.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-border hover:border-border/80 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap border border-border hover:border-border/80 transition-colors"
                 style={{ color: 'var(--foreground)' }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>

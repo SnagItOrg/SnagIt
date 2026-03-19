@@ -123,13 +123,13 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
                   e.stopPropagation()
                   onDelete(watchlist.id)
                 }}
-                className="flex-1 py-1.5 rounded-lg bg-red-500/80 hover:bg-red-500 text-white text-sm font-bold transition-colors"
+                className="flex-1 py-1.5 min-h-[44px] rounded-lg bg-red-500/80 hover:bg-red-500 text-white text-sm font-bold transition-colors"
               >
                 Ja, slet
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setConfirming(false) }}
-                className="flex-1 py-1.5 rounded-lg text-muted-foreground text-sm hover:text-foreground hover:bg-secondary transition-colors"
+                className="flex-1 py-1.5 min-h-[44px] rounded-lg text-muted-foreground text-sm hover:text-foreground hover:bg-secondary transition-colors"
               >
                 Annuller
               </button>

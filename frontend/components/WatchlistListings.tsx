@@ -56,7 +56,7 @@ export function WatchlistListings({ watchlistId }: Props) {
           <button
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="text-xs font-medium px-3 py-1.5 min-h-[44px] rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {t.previous}
           </button>
@@ -66,7 +66,7 @@ export function WatchlistListings({ watchlistId }: Props) {
           <button
             disabled={page === data.totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="text-xs font-medium px-3 py-1.5 min-h-[44px] rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {t.next}
           </button>
