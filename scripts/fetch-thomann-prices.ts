@@ -44,7 +44,6 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const BATCH_SIZE = 100
 const DELAY_MS = 5000
 
 const BROWSER_HEADERS = {
@@ -119,7 +118,6 @@ async function fetchProducts(): Promise<Product[]> {
     .is('thomann_price_dkk', null)
     .eq('status', 'active')
     .order('canonical_name')
-    .limit(BATCH_SIZE)
 
   if (error) {
     console.error('❌ Failed to fetch products:', error.message)
