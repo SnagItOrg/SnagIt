@@ -147,22 +147,32 @@ async function fetchProducts(): Promise<Product[]> {
 
   const brandIds = brands.map((b: { id: string }) => b.id)
 
-  // Fetch all active products in those brands without a thomann_url yet
-  const { data, error } = await supabase
-    .from('kg_product')
-    .select('id, canonical_name')
-    .eq('status', 'active')
-    .not('canonical_name', 'is', null)
-    .is('thomann_url', null)
-    .in('brand_id', brandIds)
-    .order('canonical_name')
+  // Paginate in pages of 1000 to bypass Supabase's default row cap
+  const PAGE = 1000
+  const all: Product[] = []
+  let from = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from('kg_product')
+      .select('id, canonical_name')
+      .eq('status', 'active')
+      .not('canonical_name', 'is', null)
+      .is('thomann_url', null)
+      .in('brand_id', brandIds)
+      .order('canonical_name')
+      .range(from, from + PAGE - 1)
 
-  if (error) {
-    console.error('❌ Failed to fetch products:', error.message)
-    process.exit(1)
+    if (error) {
+      console.error('❌ Failed to fetch products:', error.message)
+      process.exit(1)
+    }
+
+    all.push(...((data ?? []) as Product[]))
+    if ((data ?? []).length < PAGE) break
+    from += PAGE
   }
 
-  return (data ?? []) as Product[]
+  return all
 }
 
 async function setThomannUrl(id: string, url: string): Promise<void> {
@@ -196,6 +206,7 @@ async function main() {
   let matched = 0
   let unmatched = 0
   let errors = 0
+  const sampleMatches: string[] = []
 
   for (const p of products) {
     const words = nameToWords(p.canonical_name)
@@ -203,8 +214,9 @@ async function main() {
 
     if (result) {
       const pct = Math.round(result.score * 100)
-      console.log(`✓ ${p.canonical_name} (${pct}%)`)
-      console.log(`  ${result.url}`)
+      if (sampleMatches.length < 5) {
+        sampleMatches.push(`  ✓ ${p.canonical_name} → ${result.url} (${pct}%)`)
+      }
       matched++
       if (!DRY_RUN) {
         try {
@@ -215,7 +227,6 @@ async function main() {
         }
       }
     } else {
-      console.log(`✗ ${p.canonical_name}`)
       unmatched++
     }
   }
@@ -226,6 +237,11 @@ async function main() {
   console.log(`   Matched:   ${matched}`)
   console.log(`   Unmatched: ${unmatched}`)
   if (errors > 0) console.log(`   DB errors: ${errors}`)
+  if (sampleMatches.length > 0) {
+    console.log()
+    console.log('Sample matches:')
+    sampleMatches.forEach(s => console.log(s))
+  }
 }
 
 main().catch((err: unknown) => {
