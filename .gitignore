@@ -17,6 +17,5 @@ frontend/out/
 dist/
 build/
 data/*.bak
-scripts/*-log.json
-data/*.bak
+data/thomann-sitemap.json
 scripts/*-log.json

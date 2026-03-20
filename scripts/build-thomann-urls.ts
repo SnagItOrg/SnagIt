@@ -1,11 +1,14 @@
 /**
  * scripts/build-thomann-urls.ts
  *
- * Downloads all 4 Thomann DK sitemaps, fuzzy-matches each kg_product
- * canonical_name to a sitemap URL, and writes thomann_url to the database.
+ * Reads data/thomann-sitemap.json (produced by download-thomann-sitemap.ts),
+ * fuzzy-matches every kg_product canonical_name to a sitemap URL, and writes
+ * thomann_url to the database. Only confirmed sitemap URLs are written.
+ *
+ * Run download-thomann-sitemap.ts first (once weekly), then this script.
  *
  * Strategy:
- *   1. Fetch sitemap1–4.xml.gz and union all <loc> URLs
+ *   1. Load data/thomann-sitemap.json
  *   2. Filter out bundle/pack/set/kit pages
  *   3. For each kg_product, tokenise canonical_name into words
  *   4. Score each sitemap filename by: matched_words / total_words
@@ -20,8 +23,9 @@
 import 'dotenv/config'
 import * as path from 'path'
 import * as fs from 'fs'
-import * as zlib from 'zlib'
 import { createClient } from '@supabase/supabase-js'
+
+const SITEMAP_JSON = path.resolve(__dirname, '../data/thomann-sitemap.json')
 
 // ── Load env ──────────────────────────────────────────────────────────────────
 const envPaths = [
@@ -48,13 +52,6 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const SITEMAP_URLS = [
-  'https://www.thomann.dk/sitemap1.xml.gz',
-  'https://www.thomann.dk/sitemap2.xml.gz',
-  'https://www.thomann.dk/sitemap3.xml.gz',
-  'https://www.thomann.dk/sitemap4.xml.gz',
-]
-
 // Patterns that indicate a bundle/set/pack — not individual products
 const BUNDLE_RE = /[_-](bundle|pack|set|kit|rig|starter|combo|value|deal)\b/i
 
@@ -65,57 +62,15 @@ const DRY_RUN = args.includes('--dry-run')
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-// ── Sitemap download + parse ──────────────────────────────────────────────────
-async function fetchOneSitemap(sitemapUrl: string): Promise<string[]> {
-  const name = sitemapUrl.split('/').pop()!
-  try {
-    const res = await fetch(sitemapUrl, {
-      headers: { 'Accept-Encoding': 'gzip, deflate, br' },
-      signal: AbortSignal.timeout(30_000),
-    })
-    if (res.status === 403) {
-      console.warn(`   ⚠️  ${name} — 403 Forbidden, skipping`)
-      return []
-    }
-    if (!res.ok) {
-      console.warn(`   ⚠️  ${name} — HTTP ${res.status}, skipping`)
-      return []
-    }
-
-    const buf = Buffer.from(await res.arrayBuffer())
-    const xml = await new Promise<string>((resolve, reject) => {
-      zlib.gunzip(buf, (err, result) => {
-        if (err) reject(err)
-        else resolve(result.toString('utf8'))
-      })
-    })
-
-    const urls: string[] = []
-    const locRe = /<loc>([^<]+)<\/loc>/g
-    let m: RegExpExecArray | null
-    while ((m = locRe.exec(xml)) !== null) {
-      urls.push(m[1].trim())
-    }
-    return urls
-  } catch (err) {
-    const msg = (err as Error).message ?? String(err)
-    console.warn(`   ⚠️  ${name} — ${msg}, skipping`)
-    return []
+// ── Load sitemap from JSON cache ──────────────────────────────────────────────
+function loadSitemapUrls(): string[] {
+  if (!fs.existsSync(SITEMAP_JSON)) {
+    console.error(`❌ ${SITEMAP_JSON} not found — run download-thomann-sitemap.ts first`)
+    process.exit(1)
   }
-}
-
-async function fetchAllSitemapUrls(): Promise<string[]> {
-  console.log('📥 Fetching Thomann sitemaps…')
-  const all: string[] = []
-  for (const url of SITEMAP_URLS) {
-    const urls = await fetchOneSitemap(url)
-    if (urls.length > 0) {
-      console.log(`   ${url.split('/').pop()} → ${urls.length.toLocaleString()} URLs`)
-    }
-    all.push(...urls)
-  }
-  console.log(`   Total: ${all.length.toLocaleString()} URLs`)
-  return all
+  const urls = JSON.parse(fs.readFileSync(SITEMAP_JSON, 'utf8')) as string[]
+  console.log(`📂 Loaded ${urls.length.toLocaleString()} URLs from thomann-sitemap.json`)
+  return urls
 }
 
 // ── Fuzzy matching ────────────────────────────────────────────────────────────
@@ -210,7 +165,7 @@ async function main() {
   if (DRY_RUN) console.log('   (dry run — no DB writes)')
   console.log()
 
-  const urls = await fetchAllSitemapUrls()
+  const urls = loadSitemapUrls()
   const entries = buildEntryList(urls)
   console.log(`   Entry list built — ${entries.length.toLocaleString()} product pages`)
   console.log()
