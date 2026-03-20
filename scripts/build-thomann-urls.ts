@@ -122,24 +122,39 @@ type Product = {
 }
 
 async function fetchProducts(): Promise<Product[]> {
-  const { data: musicGearCategory } = await supabase
+  // Resolve music-gear category id
+  const { data: category } = await supabase
     .from('kg_category')
     .select('id')
     .eq('slug', 'music-gear')
     .single()
 
-  if (!musicGearCategory) {
+  if (!category) {
     console.error('❌ Could not find music-gear category')
     process.exit(1)
   }
 
+  // Collect brand ids that belong to music-gear
+  const { data: brands, error: brandsError } = await supabase
+    .from('kg_brand')
+    .select('id')
+    .eq('category_id', category.id)
+
+  if (brandsError || !brands || brands.length === 0) {
+    console.error('❌ No brands found for music-gear category')
+    process.exit(1)
+  }
+
+  const brandIds = brands.map((b: { id: string }) => b.id)
+
+  // Fetch all active products in those brands without a thomann_url yet
   const { data, error } = await supabase
     .from('kg_product')
     .select('id, canonical_name')
     .eq('status', 'active')
+    .not('canonical_name', 'is', null)
     .is('thomann_url', null)
-    .is('era', null)
-    .eq('category_id', musicGearCategory.id)
+    .in('brand_id', brandIds)
     .order('canonical_name')
 
   if (error) {
