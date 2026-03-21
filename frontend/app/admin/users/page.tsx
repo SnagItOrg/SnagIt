@@ -16,8 +16,6 @@ type UserDetail = {
 }
 
 export default function AdminUsersPage() {
-  // TEMP: autodeploy demo — remove after showing Jacob
-
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -79,18 +77,6 @@ export default function AdminUsersPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div style={{
-        background: 'linear-gradient(90deg, #ff0000, #ff7700, #ffff00, #00cc00, #0000ff, #8b00ff)',
-        padding: '16px 32px',
-        borderRadius: '12px',
-        textAlign: 'center',
-        fontSize: '2rem',
-        fontWeight: 'bold',
-        color: 'white',
-        textShadow: '0 2px 4px rgba(0,0,0,0.4)',
-      }}>
-        hi Jacob 👋
-      </div>
       <h1 className="text-xl font-bold text-foreground">Brugere ({users.length})</h1>
 
       {loading ? (
