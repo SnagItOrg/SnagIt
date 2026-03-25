@@ -17,31 +17,53 @@ export async function GET() {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data || data.length === 0) return NextResponse.json([])
 
-  // Enrich with Thomann price + product slug via listing_product_match → kg_product
-  const listingIds = data.map((r) => r.listing_id as string)
+  // Enrich with Thomann price + product slug — two explicit queries, no PostgREST join syntax
+  const listingIds = data.map((r) => String(r.listing_id))
   const admin = getSupabaseAdmin()
-  const { data: matches } = await admin
+
+  // Step 1: best product match per listing
+  const { data: matchRows, error: matchError } = await admin
     .from('listing_product_match')
-    .select('listing_id, score, kg_product(slug, thomann_price_dkk, thomann_url, image_url)')
+    .select('listing_id, product_id, score')
     .in('listing_id', listingIds)
     .order('score', { ascending: false })
 
-  type ProductInfo = { slug: string | null; thomann_price_dkk: number | null; thomann_url: string | null; image_url: string | null }
-  const matchMap = new Map<string, ProductInfo>()
-  for (const m of (matches ?? [])) {
-    if (!matchMap.has(m.listing_id as string)) {
-      matchMap.set(m.listing_id as string, m.kg_product as unknown as ProductInfo)
+  if (matchError) console.error('[saved-listings] listing_product_match error:', matchError.message)
+
+  // Keep only highest-score match per listing
+  const listingToProduct = new Map<string, string>()
+  for (const m of (matchRows ?? [])) {
+    const lid = String(m.listing_id)
+    if (!listingToProduct.has(lid)) listingToProduct.set(lid, String(m.product_id))
+  }
+
+  // Step 2: fetch kg_product rows for matched product ids
+  type ProductInfo = { id: string; slug: string | null; thomann_price_dkk: number | null; thomann_url: string | null; image_url: string | null }
+  const productMap = new Map<string, ProductInfo>()
+  const productIds = Array.from(new Set(listingToProduct.values()))
+
+  if (productIds.length > 0) {
+    const { data: products, error: productError } = await admin
+      .from('kg_product')
+      .select('id, slug, thomann_price_dkk, thomann_url, image_url')
+      .in('id', productIds)
+
+    if (productError) console.error('[saved-listings] kg_product error:', productError.message)
+
+    for (const p of (products ?? [])) {
+      productMap.set(String(p.id), p as unknown as ProductInfo)
     }
   }
 
   const enriched = data.map((row) => {
-    const p = matchMap.get(row.listing_id as string)
+    const productId = listingToProduct.get(String(row.listing_id))
+    const p = productId ? productMap.get(productId) : undefined
     return {
       ...row,
       thomann_price_dkk: p?.thomann_price_dkk ?? null,
-      thomann_url: p?.thomann_url ?? null,
-      product_slug: p?.slug ?? null,
-      thomann_image_url: p?.image_url ?? null,
+      thomann_url:       p?.thomann_url       ?? null,
+      product_slug:      p?.slug              ?? null,
+      thomann_image_url: p?.image_url         ?? null,
     }
   })
 
