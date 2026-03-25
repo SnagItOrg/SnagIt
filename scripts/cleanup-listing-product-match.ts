@@ -69,12 +69,14 @@ async function findDuplicatesToDelete(): Promise<string[]> {
   console.log('Scanning listing_product_match for duplicates...')
 
   const toDelete: string[] = []
-  // Track (listing_id, product_id) → id of the row we are keeping
-  const keeper = new Map<string, string>()
+  // Track seen (listing_id, product_id) pairs — first occurrence wins (highest score)
+  const seen = new Set<string>()
+  const keeper = new Map<string, string>()  // key → id to keep
 
   let offset = 0
   const PAGE = 10_000
   let totalScanned = 0
+  let lastLoggedAt = 0
 
   while (true) {
     const { data, error } = await supabase
@@ -94,20 +96,28 @@ async function findDuplicatesToDelete(): Promise<string[]> {
 
     for (const row of data) {
       const key = `${row.listing_id}:${row.product_id}`
-      if (!keeper.has(key)) {
-        // First (highest-score) row for this pair — keep it
+      if (!seen.has(key)) {
+        seen.add(key)
         keeper.set(key, row.id as string)
       } else {
-        // Duplicate — mark for deletion
         toDelete.push(row.id as string)
       }
     }
 
+    // Advance by actual rows returned — works even if Supabase caps below PAGE
+    offset += data.length
     totalScanned += data.length
-    process.stdout.write(`\r  Scanned ${totalScanned.toLocaleString()} rows, found ${toDelete.length.toLocaleString()} duplicates so far...`)
 
-    if (data.length < PAGE) break
-    offset += PAGE
+    // Log every 10,000 rows
+    if (totalScanned - lastLoggedAt >= 10_000) {
+      console.log(`Scanned ${totalScanned.toLocaleString()} rows, ${toDelete.length.toLocaleString()} duplicates found so far...`)
+      lastLoggedAt = totalScanned
+    }
+
+    // Only stop early if Supabase returned a full page but we're clearly done.
+    // Do NOT break on data.length < PAGE — Supabase may cap pages below PAGE
+    // (default cap is 1,000). We rely on the empty-page check at the top.
+
   }
 
   console.log(`\nScan complete. Total scanned: ${totalScanned.toLocaleString()}, duplicates to delete: ${toDelete.length.toLocaleString()}`)
