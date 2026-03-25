@@ -18,8 +18,12 @@ export async function GET() {
   if (!data || data.length === 0) return NextResponse.json([])
 
   // One batched query: listing_product_match JOIN kg_product for all listing_ids at once
+  // NOTE: no .not() filter on the foreign table — that syntax is fragile in PostgREST
+  // and causes the entire query to error silently. Null filtering is done in JS below.
   const listingIds = data.map((r) => String(r.listing_id))
   const admin = getSupabaseAdmin()
+
+  console.log(`[saved-listings] querying KG matches for ${listingIds.length} listing_ids`)
 
   type KgProduct = { slug: string | null; thomann_price_dkk: number | null; thomann_url: string | null; image_url: string | null }
   type MatchRow  = { listing_id: string; score: number; kg_product: KgProduct }
@@ -28,10 +32,12 @@ export async function GET() {
     .from('listing_product_match')
     .select('listing_id, score, kg_product!inner(slug, thomann_price_dkk, thomann_url, image_url)')
     .in('listing_id', listingIds)
-    .not('kg_product.thomann_price_dkk', 'is', null)
     .order('score', { ascending: false })
 
   if (matchError) console.error('[saved-listings] kg match error:', matchError.message)
+
+  console.log(`[saved-listings] matchRows returned: ${matchRows?.length ?? 0}`)
+  if (matchRows && matchRows.length > 0) console.log('[saved-listings] first match:', JSON.stringify(matchRows[0]))
 
   // Keep highest-score match per listing
   const kgMap = new Map<string, KgProduct>()
@@ -50,6 +56,9 @@ export async function GET() {
       thomann_image_url: p?.image_url         ?? null,
     }
   })
+
+  const withPrice = enriched.filter((r) => r.thomann_price_dkk !== null).length
+  console.log(`[saved-listings] enriched rows with thomann_price_dkk: ${withPrice}/${enriched.length}`)
 
   return NextResponse.json(enriched, {
     headers: { 'Cache-Control': 'private, max-age=60' },

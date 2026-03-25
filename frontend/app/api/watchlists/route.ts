@@ -65,12 +65,24 @@ export async function GET() {
 
   const ids = data.map((w) => w.id)
 
-  // Count unnotified listings per watchlist
-  const { data: unnotified } = await supabase
-    .from('listings')
-    .select('watchlist_id')
-    .is('notified_at', null)
-    .in('watchlist_id', ids)
+  // Both sub-queries are independent — run in parallel
+  const [{ data: unnotified }, { data: images }] = await Promise.all([
+    // Count unnotified listings per watchlist
+    supabase
+      .from('listings')
+      .select('watchlist_id')
+      .is('notified_at', null)
+      .in('watchlist_id', ids),
+
+    // Most recent image per watchlist — limit to avoid scanning the full table
+    supabase
+      .from('listings')
+      .select('watchlist_id, image_url')
+      .in('watchlist_id', ids)
+      .not('image_url', 'is', null)
+      .order('scraped_at', { ascending: false })
+      .limit(ids.length * 10),
+  ])
 
   const countMap = new Map<string, number>()
   for (const row of unnotified ?? []) {
@@ -78,14 +90,6 @@ export async function GET() {
       countMap.set(row.watchlist_id, (countMap.get(row.watchlist_id) ?? 0) + 1)
     }
   }
-
-  // Most recent image per watchlist (ordered DESC so first hit per id wins)
-  const { data: images } = await supabase
-    .from('listings')
-    .select('watchlist_id, image_url')
-    .in('watchlist_id', ids)
-    .not('image_url', 'is', null)
-    .order('scraped_at', { ascending: false })
 
   const imageMap = new Map<string, string>()
   for (const row of images ?? []) {
@@ -99,7 +103,9 @@ export async function GET() {
     new_count: countMap.get(w.id) ?? 0,
     preview_image_url: imageMap.get(w.id) ?? null,
   }))
-  return NextResponse.json(result)
+  return NextResponse.json(result, {
+    headers: { 'Cache-Control': 'private, max-age=60' },
+  })
 }
 
 export async function POST(req: NextRequest) {
