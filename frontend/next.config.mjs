@@ -40,6 +40,11 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'd3ugyf87b0homh.cloudfront.net',
       },
+      // Thomann product images
+      {
+        protocol: 'https',
+        hostname: '**.thomann.de',
+      },
     ],
   },
 };

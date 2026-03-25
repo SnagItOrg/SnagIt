@@ -72,12 +72,16 @@ function timeSince(dateStr: string, locale: string): string {
 }
 
 interface Props {
-  listing:           Listing
-  onCreateWatchlist: (listingTitle?: string) => void
-  creating:          boolean
-  variant?:          'list' | 'grid'
-  isSaved?:          boolean
-  onToggleSave?:     (listing: Listing) => void
+  listing:            Listing
+  onCreateWatchlist:  (listingTitle?: string) => void
+  creating:           boolean
+  variant?:           'list' | 'grid'
+  isSaved?:           boolean
+  onToggleSave?:      (listing: Listing) => void
+  thomannPriceDkk?:   number | null
+  thomannUrl?:        string | null
+  productSlug?:       string | null
+  thomannImageUrl?:   string | null
 }
 
 function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boolean }) {
@@ -96,7 +100,7 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
   return <span className={cls}>DBA</span>
 }
 
-export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave }: Props) {
+export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave, thomannPriceDkk, thomannUrl, productSlug, thomannImageUrl }: Props) {
   const { locale, t } = useLocale()
 
   const [imgError,       setImgError]      = useState(false)
@@ -149,6 +153,8 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
     setCaptureSent(true)
   }
 
+  const imgSrc = listing.image_url ?? thomannImageUrl ?? null
+
   const priceOriginal = (listing as Listing & { price_original?: number | null }).price_original
   const hasDiscount   = priceOriginal != null && listing.price != null && priceOriginal > listing.price
   const discountPct   = hasDiscount
@@ -166,9 +172,9 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
       >
         {/* Image area */}
         <div className="relative w-full aspect-[4/3] bg-muted overflow-hidden">
-          {listing.image_url && !imgError ? (
+          {imgSrc && !imgError ? (
             <Image
-              src={listing.image_url}
+              src={imgSrc}
               alt={listing.title}
               fill
               sizes="(min-width: 768px) 25vw, 100vw"
@@ -242,9 +248,9 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
       >
         {/* Thumbnail */}
         <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-          {listing.image_url && !imgError ? (
+          {imgSrc && !imgError ? (
             <Image
-              src={listing.image_url}
+              src={imgSrc}
               alt={listing.title}
               width={80}
               height={80}
@@ -277,6 +283,20 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
           </div>
         </div>
       </a>
+
+      {/* Thomann new price — outside <a> to avoid nested anchor */}
+      {thomannPriceDkk != null && thomannUrl && (
+        <div className="px-3 pb-1">
+          <a
+            href={thomannUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-white/50 hover:text-white/70 transition-colors"
+          >
+            Ny hos Thomann: {thomannPriceDkk.toLocaleString('da-DK')} kr →
+          </a>
+        </div>
+      )}
 
       {/* CTAs / inline login capture — outside the <a> */}
       <div className="px-3 pb-3">
@@ -363,6 +383,15 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
               {t.viewListing}
             </a>
+            {productSlug && (
+              <a
+                href={`/product/${productSlug}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap border border-border hover:border-border/80 transition-colors"
+                style={{ color: 'var(--muted-foreground)' }}
+              >
+                Se produktside →
+              </a>
+            )}
           </div>
         )}
       </div>

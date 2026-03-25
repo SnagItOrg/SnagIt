@@ -15,7 +15,37 @@ export async function GET() {
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data ?? [])
+  if (!data || data.length === 0) return NextResponse.json([])
+
+  // Enrich with Thomann price + product slug via listing_product_match → kg_product
+  const listingIds = data.map((r) => r.listing_id as string)
+  const admin = getSupabaseAdmin()
+  const { data: matches } = await admin
+    .from('listing_product_match')
+    .select('listing_id, score, kg_product(slug, thomann_price_dkk, thomann_url, image_url)')
+    .in('listing_id', listingIds)
+    .order('score', { ascending: false })
+
+  type ProductInfo = { slug: string | null; thomann_price_dkk: number | null; thomann_url: string | null; image_url: string | null }
+  const matchMap = new Map<string, ProductInfo>()
+  for (const m of (matches ?? [])) {
+    if (!matchMap.has(m.listing_id as string)) {
+      matchMap.set(m.listing_id as string, m.kg_product as unknown as ProductInfo)
+    }
+  }
+
+  const enriched = data.map((row) => {
+    const p = matchMap.get(row.listing_id as string)
+    return {
+      ...row,
+      thomann_price_dkk: p?.thomann_price_dkk ?? null,
+      thomann_url: p?.thomann_url ?? null,
+      product_slug: p?.slug ?? null,
+      thomann_image_url: p?.image_url ?? null,
+    }
+  })
+
+  return NextResponse.json(enriched)
 }
 
 export async function POST(req: NextRequest) {

@@ -15,6 +15,10 @@ import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 type SavedRow = {
   listing_id: string
   listing_data: Listing
+  thomann_price_dkk: number | null
+  thomann_url: string | null
+  product_slug: string | null
+  thomann_image_url: string | null
 }
 
 export default function SavedPage() {
@@ -176,6 +180,10 @@ export default function SavedPage() {
                   variant="list"
                   isSaved={true}
                   onToggleSave={handleToggleSave}
+                  thomannPriceDkk={row.thomann_price_dkk}
+                  thomannUrl={row.thomann_url}
+                  productSlug={row.product_slug}
+                  thomannImageUrl={row.thomann_image_url}
                 />
               </ListingErrorBoundary>
             ))}
