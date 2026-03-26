@@ -65,8 +65,8 @@ export async function GET() {
 
   const ids = data.map((w) => w.id)
 
-  // Both sub-queries are independent — run in parallel
-  const [{ data: unnotified }, { data: images }] = await Promise.all([
+  // All three sub-queries are independent — run in parallel
+  const [{ data: unnotified }, { data: recentImages }, { data: topPriceImages }] = await Promise.all([
     // Count unnotified listings per watchlist
     supabase
       .from('listings')
@@ -74,14 +74,22 @@ export async function GET() {
       .is('notified_at', null)
       .in('watchlist_id', ids),
 
-    // Most recent image per watchlist — limit to avoid scanning the full table
+    // Priority 1: most recently scraped image per watchlist (no limit — global ordering would starve old watchlists)
     supabase
       .from('listings')
       .select('watchlist_id, image_url')
       .in('watchlist_id', ids)
       .not('image_url', 'is', null)
-      .order('scraped_at', { ascending: false })
-      .limit(ids.length * 10),
+      .order('scraped_at', { ascending: false }),
+
+    // Priority 2: most expensive listing image per watchlist (fills gaps left by priority 1)
+    supabase
+      .from('listings')
+      .select('watchlist_id, image_url')
+      .in('watchlist_id', ids)
+      .not('image_url', 'is', null)
+      .not('price', 'is', null)
+      .order('price', { ascending: false }),
   ])
 
   const countMap = new Map<string, number>()
@@ -92,7 +100,13 @@ export async function GET() {
   }
 
   const imageMap = new Map<string, string>()
-  for (const row of images ?? []) {
+  for (const row of recentImages ?? []) {
+    if (row.watchlist_id && row.image_url && !imageMap.has(row.watchlist_id)) {
+      imageMap.set(row.watchlist_id, row.image_url)
+    }
+  }
+  // Fill any watchlists still without an image using highest-priced listing
+  for (const row of topPriceImages ?? []) {
     if (row.watchlist_id && row.image_url && !imageMap.has(row.watchlist_id)) {
       imageMap.set(row.watchlist_id, row.image_url)
     }
