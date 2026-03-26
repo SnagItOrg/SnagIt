@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import Script from "next/script";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { PostHogProvider } from "@/components/PostHogProvider";
+import { PostHogPageView } from "@/components/PostHogPageView";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -41,11 +43,14 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
-          <LocaleProvider>
-            {children}
-          </LocaleProvider>
-        </ThemeProvider>
+        <PostHogProvider>
+          <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
+            <LocaleProvider>
+              {children}
+              <PostHogPageView />
+            </LocaleProvider>
+          </ThemeProvider>
+        </PostHogProvider>
 
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
