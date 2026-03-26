@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { usePostHog } from 'posthog-js/react'
 import type { Watchlist } from '@/lib/supabase'
 import { WatchlistBentoCard } from '@/components/WatchlistBentoCard'
 import { AddWatchlistCard } from '@/components/AddWatchlistCard'
@@ -17,6 +18,7 @@ import { MobileSearchBar } from '@/components/MobileSearchBar'
 export default function WatchlistsPage() {
   const router = useRouter()
   const { t } = useLocale()
+  const posthog = usePostHog()
   const [authed,       setAuthed]       = useState<boolean | null>(null)
   const [watchlists,   setWatchlists]   = useState<Watchlist[]>([])
   const [loading,      setLoading]      = useState(true)
@@ -33,6 +35,9 @@ export default function WatchlistsPage() {
         void loadWatchlists()
         void syncOnboarding()
         void createPendingWatchlist()
+        if (new URLSearchParams(window.location.search).get('create_pending') === '1') {
+          posthog?.capture('signup_completed', { method: 'magic_link' })
+        }
       } else {
         setLoading(false)
       }

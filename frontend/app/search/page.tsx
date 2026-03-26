@@ -10,6 +10,7 @@ import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { platformList } from '@/lib/platforms'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { usePostHog } from 'posthog-js/react'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 
 type SortKey = 'relevance' | 'newest' | 'oldest' | 'price_asc' | 'price_desc'
@@ -43,6 +44,7 @@ function SearchPageInner() {
   const router = useRouter()
   const params = useSearchParams()
   const { t, locale } = useLocale()
+  const posthog = usePostHog()
 
   const [inputValue,   setInputValue]   = useState(() => params.get('q') ?? '')
   const [sort,         setSort]         = useState<SortKey>('relevance')
@@ -82,6 +84,7 @@ function SearchPageInner() {
         const results: Listing[] = data.listings ?? []
         setListings(results)
         setSelectedPlatform(null)
+        posthog?.capture('search_performed', { query: q, result_count: results.length })
       }
     } catch {
       setError(t.unknownError)
@@ -148,6 +151,7 @@ function SearchPageInner() {
     if (res.ok) {
       setShowWatchlistModal(false)
       showToast(t.watchlistCreated)
+      posthog?.capture('watchlist_created', { query })
     } else {
       const data = await res.json()
       showToast(data.error ?? t.addWatchlistError)

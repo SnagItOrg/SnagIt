@@ -5,6 +5,7 @@ import Image from 'next/image'
 import type { Listing } from '@/lib/supabase'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { usePostHog } from 'posthog-js/react'
 
 // Country name → ISO code for flag emoji lookup
 const COUNTRY_CODES: Record<string, string> = {
@@ -102,6 +103,7 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
 
 export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave, thomannPriceDkk, thomannUrl, productSlug, thomannImageUrl }: Props) {
   const { locale, t } = useLocale()
+  const posthog = usePostHog()
 
   const [imgError,       setImgError]      = useState(false)
   const [showCapture,    setShowCapture]   = useState(false)
@@ -127,6 +129,9 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
     const supabase = createSupabaseBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setShowCapture(true); return }
+    if (!isSaved) {
+      posthog?.capture('listing_saved', { listing_id: listing.id, source: listing.source })
+    }
     onToggleSave?.(listing)
   }
 
@@ -169,6 +174,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
         target="_blank"
         rel="noopener noreferrer"
         className="group flex flex-col rounded-2xl bg-card border border-card-border overflow-hidden hover:shadow-md transition-shadow duration-300"
+        onClick={() => posthog?.capture('listing_clicked', { listing_id: listing.id, source: listing.source, price: listing.price ?? 0 })}
       >
         {/* Image area */}
         <div className="relative w-full aspect-[4/3] bg-muted overflow-hidden">
@@ -245,6 +251,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
         target="_blank"
         rel="noopener noreferrer"
         className="flex gap-3 px-3 pt-3 pb-2"
+        onClick={() => posthog?.capture('listing_clicked', { listing_id: listing.id, source: listing.source, price: listing.price ?? 0 })}
       >
         {/* Thumbnail */}
         <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center">

@@ -39,7 +39,7 @@ export const translations = {
     navHome: 'Hjem',
     navWatch: 'Overv\u00e5g',
     navWatchlists: 'Overv\u00e5g',
-    navNotifications: 'Notifikationer',
+    navNotifications: 'Overvågninger',
     navSearch: 'S\u00f8g',
     navSaved: 'Gemt',
     navProfile: 'Profil',
