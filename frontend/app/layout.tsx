@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
+import { Suspense } from 'react';
 import { LocaleProvider } from "@/components/LocaleProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { PostHogProvider } from "@/components/PostHogProvider";
@@ -47,7 +48,9 @@ export default function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
             <LocaleProvider>
               {children}
-              <PostHogPageView />
+              <Suspense fallback={null}>
+                <PostHogPageView />
+              </Suspense>
             </LocaleProvider>
           </ThemeProvider>
         </PostHogProvider>
