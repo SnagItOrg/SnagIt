@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { scrapeDba } from '@/lib/scrapers/dba'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { detectListingUrl, fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get('q')
@@ -9,9 +10,38 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing query parameter' }, { status: 400 })
   }
 
+  const trimmed = query.trim()
+
+  // ── URL mode: paste a DBA / Thomann / Reverb link directly ──────────────────
+  if (detectListingUrl(trimmed)) {
+    try {
+      const result = await fetchListingFromUrl(trimmed)
+      if (result) {
+        const now = new Date().toISOString()
+        const row = {
+          ...result.listing,
+          scraped_at: now,
+          watchlist_id: null,
+          external_id: result.listing.url,
+          normalized_text: result.listing.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
+        }
+        // Upsert so repeated pastes of the same URL are idempotent
+        await getSupabaseAdmin()
+          .from('listings')
+          .upsert(row, { onConflict: 'external_id,source' })
+
+        return NextResponse.json({ inserted: 1, listings: [row], query: trimmed })
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      return NextResponse.json({ error: message }, { status: 502 })
+    }
+  }
+
+  // ── Query mode: normal text search ──────────────────────────────────────────
   let listings
   try {
-    listings = await scrapeDba(query.trim())
+    listings = await scrapeDba(trimmed)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error: message }, { status: 502 })
@@ -20,7 +50,7 @@ export async function GET(request: NextRequest) {
   // Fetch Reverb listings from DB in parallel with DBA upsert.
   // Anchor on first word, then filter client-side requiring all words.
   // Normalize hyphens/spaces so "re-201" matches "RE 201" and "RE201".
-  const words = query.trim().split(/\s+/).filter((w) => w.length > 1)
+  const words = trimmed.split(/\s+/).filter((w) => w.length > 1)
   const normalize = (s: string) => s.toLowerCase().replace(/[-\s_]+/g, '')
 
   const reverbPromise = words.length > 0

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { scrapeDba } from '@/lib/scrapers/dba'
-import { scrapeDbaListing } from '@/lib/scrapers/dba-listing'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { sendNewListingsEmail } from '@/lib/email'
 import { matchListings } from '@/lib/matching/match-listings'
+import { fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
@@ -36,9 +36,9 @@ export async function GET(req: NextRequest) {
         continue
       }
 
-      let listing
+      let fetchResult
       try {
-        listing = await scrapeDbaListing(watchlist.source_url)
+        fetchResult = await fetchListingFromUrl(watchlist.source_url)
       } catch (err) {
         results.push({
           watchlist_id: watchlist.id,
@@ -48,6 +48,12 @@ export async function GET(req: NextRequest) {
         continue
       }
 
+      if (!fetchResult) {
+        results.push({ watchlist_id: watchlist.id, query: watchlist.query, error: 'Ukendt link format' })
+        continue
+      }
+
+      const listing = fetchResult.listing
       const row = { ...listing, scraped_at: now, watchlist_id: watchlist.id }
 
       const { data: upserted, error: upsertError } = await getSupabaseAdmin()

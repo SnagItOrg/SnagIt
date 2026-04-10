@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import { isDbaListingUrl, scrapeDbaListing } from '@/lib/scrapers/dba-listing'
 import { scrapeDba } from '@/lib/scrapers/dba'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { detectListingUrl, fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 
 // Runs in the background after the 201 response is sent.
 // Scrapes up to 3 pages so the user sees results immediately.
@@ -17,7 +17,9 @@ async function runInitialScrape(
 
   try {
     if (type === 'listing' && sourceUrl) {
-      const listing = await scrapeDbaListing(sourceUrl)
+      const result = await fetchListingFromUrl(sourceUrl)
+      if (!result) return
+      const { listing } = result
       const row = { ...listing, scraped_at: now, watchlist_id: watchlistId }
       await admin.from('listings').upsert(row, { onConflict: 'url,watchlist_id' })
       await admin.from('price_snapshots').insert({
@@ -149,19 +151,25 @@ export async function POST(req: NextRequest) {
     max_price?: number
   }
 
-  if (isDbaListingUrl(query)) {
-    // Fetch the listing title to use as the display name
-    let listing
+  const urlSource = detectListingUrl(query)
+
+  if (urlSource) {
+    // Fetch the listing to use its title as the watchlist display name
+    let result
     try {
-      listing = await scrapeDbaListing(query)
+      result = await fetchListingFromUrl(query)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Kunne ikke hente annonce'
       return NextResponse.json({ error: message }, { status: 502 })
     }
 
+    if (!result) {
+      return NextResponse.json({ error: 'Ukendt link format' }, { status: 400 })
+    }
+
     insertData = {
       user_id: user.id,
-      query: listing.title,
+      query: result.listing.title,
       type: 'listing',
       source_url: query,
       ...(minPrice !== undefined && { min_price: minPrice }),
