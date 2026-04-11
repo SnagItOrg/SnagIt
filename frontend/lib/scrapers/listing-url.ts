@@ -86,11 +86,36 @@ async function fetchThomannListing(url: string): Promise<ScrapedListingResult> {
 
   const html = await res.text()
 
-  // Price + currency from JS bootstrap data
-  const priceMatch = html.match(/"rawPrice":"([\d.]+)"/)
-  const currencyMatch = html.match(/"currency":"([A-Z]{3})"/)
-  const rawPrice = priceMatch ? parseFloat(priceMatch[1]) : null
-  const currency = currencyMatch?.[1] ?? 'EUR'
+  // ── Price + currency ──────────────────────────────────────────────────────
+  // Strategy 1: JSON-LD Product schema — always refers to the main product,
+  // never to accessories or bundles that appear earlier in the page.
+  let rawPrice: number | null = null
+  let currency = 'EUR'
+
+  for (const m of html.matchAll(/<script type="application\/ld\+json">([^<]+)<\/script>/g)) {
+    try {
+      const json = JSON.parse(m[1]) as Record<string, unknown>
+      const offers = json['offers'] as Record<string, unknown> | undefined
+      if (json['@type'] === 'Product' && offers?.['price'] != null) {
+        rawPrice = parseFloat(String(offers['price']))
+        currency = String(offers['priceCurrency'] ?? 'EUR')
+        break
+      }
+    } catch { /* skip malformed */ }
+  }
+
+  // Strategy 2: rawPrice + currency in the same JSON object (within 80 chars of each other)
+  if (rawPrice === null) {
+    const m = html.match(/"rawPrice":"([\d.]+)"[^}]{0,80}"currency":"([A-Z]{3})"/)
+           ?? html.match(/"currency":"([A-Z]{3})"[^}]{0,80}"rawPrice":"([\d.]+)"/)
+    if (m) {
+      // Determine which capture group is price vs currency based on pattern
+      const isRawFirst = m[0].indexOf('"rawPrice"') < m[0].indexOf('"currency"')
+      rawPrice = parseFloat(isRawFirst ? m[1] : m[2])
+      currency = isRawFirst ? m[2] : m[1]
+    }
+  }
+
   const rate = rates[currency] ?? FALLBACK_RATES[currency] ?? 1
   const price = rawPrice !== null ? Math.round(rawPrice * rate) : null
 

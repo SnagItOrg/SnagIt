@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
   const trimmed = query.trim()
 
   // ── URL mode: paste a DBA / Thomann / Reverb link directly ──────────────────
-  if (detectListingUrl(trimmed)) {
+  const urlSource = detectListingUrl(trimmed)
+  if (urlSource) {
     try {
       const result = await fetchListingFromUrl(trimmed)
       if (result) {
@@ -35,7 +36,13 @@ export async function GET(request: NextRequest) {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
-      return NextResponse.json({ error: message }, { status: 502 })
+      // DBA failures (broken link) → 502 so user knows the link is bad.
+      // Thomann/Reverb may be Cloudflare-blocked → return empty, not an error.
+      if (urlSource === 'dba') {
+        return NextResponse.json({ error: message }, { status: 502 })
+      }
+      console.error(`[scrape] ${urlSource} URL fetch failed:`, message)
+      return NextResponse.json({ inserted: 0, listings: [], query: trimmed })
     }
   }
 
