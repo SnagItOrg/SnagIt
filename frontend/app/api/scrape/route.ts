@@ -64,8 +64,36 @@ export async function GET(request: NextRequest) {
         .limit(100)
     : Promise.resolve({ data: [] as Record<string, unknown>[] })
 
-  // Fetch Thomann search results live — never blocks DBA/Reverb on failure
-  const thomannPromise = scrapeThomannSearch(trimmed).catch(() => [])
+  // Fetch Thomann results: try live search, fall back to kg_product if Cloudflare blocks
+  const thomannPromise: Promise<import('@/lib/scrapers/thomann-search').ThomannProduct[]> =
+    scrapeThomannSearch(trimmed).then((results) => {
+      if (results.length > 0) return results
+      // Cloudflare likely blocked the search page — fall back to kg_product table
+      // which already has thomann_url + thomann_price_dkk + image_url for matched products
+      return (async () => {
+        let q = getSupabaseAdmin()
+          .from('kg_product')
+          .select('canonical_name, thomann_url, thomann_price_dkk, image_url')
+          .not('thomann_url', 'is', null)
+          .not('thomann_price_dkk', 'is', null)
+          .eq('status', 'active')
+        for (const w of words) {
+          q = (q as typeof q).ilike('canonical_name', `%${w}%`)
+        }
+        const { data } = await q.limit(5)
+        return ((data ?? []) as Array<{
+          canonical_name: string
+          thomann_url: string
+          thomann_price_dkk: number
+          image_url: string | null
+        }>).map((p) => ({
+          thomann_url:    p.thomann_url,
+          canonical_name: p.canonical_name,
+          image_url:      p.image_url,
+          price_dkk:      p.thomann_price_dkk,
+        }))
+      })()
+    }).catch(() => [])
 
   const now = new Date().toISOString()
 

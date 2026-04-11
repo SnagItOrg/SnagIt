@@ -53,29 +53,56 @@ const BROWSER_HEADERS = {
 
 export type ScrapedListingResult = Omit<Listing, 'id' | 'scraped_at'>
 
+const FALLBACK_RATES: Record<string, number> = { USD: 7.1, EUR: 7.46, GBP: 8.8, DKK: 1.0 }
+
+async function fetchExchangeRates(): Promise<Record<string, number>> {
+  try {
+    const res = await fetch('https://api.frankfurter.app/latest?from=DKK&to=USD,EUR,GBP', {
+      signal: AbortSignal.timeout(5_000),
+    })
+    if (!res.ok) return FALLBACK_RATES
+    const data = await res.json() as { rates: Record<string, number> }
+    // Frankfurter gives DKK→X, we want X→DKK
+    const result: Record<string, number> = { DKK: 1.0 }
+    for (const [cur, rate] of Object.entries(data.rates)) {
+      result[cur] = 1 / rate
+    }
+    return result
+  } catch {
+    return FALLBACK_RATES
+  }
+}
+
 async function fetchThomannListing(url: string): Promise<ScrapedListingResult> {
-  const res = await fetch(url, {
-    headers: { ...BROWSER_HEADERS, 'Referer': 'https://www.thomann.dk/' },
-    signal: AbortSignal.timeout(15_000),
-  })
+  const [res, rates] = await Promise.all([
+    fetch(url, {
+      headers: { ...BROWSER_HEADERS, 'Referer': 'https://www.thomann.dk/' },
+      signal: AbortSignal.timeout(15_000),
+    }),
+    fetchExchangeRates(),
+  ])
 
   if (!res.ok) throw new Error(`Thomann fetch failed: ${res.status}`)
 
   const html = await res.text()
 
-  // Price: "rawPrice":"1299.0000" or "price":1299
-  const priceMatch =
-    html.match(/"rawPrice":"([\d.]+)"/) ??
-    html.match(/"price":(\d+),/)
-  const price = priceMatch ? Math.round(parseFloat(priceMatch[1])) : null
+  // Price + currency from JS bootstrap data
+  const priceMatch = html.match(/"rawPrice":"([\d.]+)"/)
+  const currencyMatch = html.match(/"currency":"([A-Z]{3})"/)
+  const rawPrice = priceMatch ? parseFloat(priceMatch[1]) : null
+  const currency = currencyMatch?.[1] ?? 'EUR'
+  const rate = rates[currency] ?? FALLBACK_RATES[currency] ?? 1
+  const price = rawPrice !== null ? Math.round(rawPrice * rate) : null
 
-  // Image
-  const imgMatch = html.match(/"image"\s*:\s*"(https?:\/\/[^"]+)"/)
+  // Image from og:image (the "image" JSON field returns unrelated flag SVGs)
+  const imgMatch = html.match(/property="og:image"\s+content="([^"]+)"/) ??
+                   html.match(/content="([^"]+)"\s+property="og:image"/)
   const image_url = imgMatch ? imgMatch[1] : null
 
-  // Title from og:title or <title>
+  // Title from og:title
   const titleMatch =
-    html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/) ??
+    html.match(/property="og:title"\s+content="([^"]+)"/) ??
+    html.match(/content="([^"]+)"\s+property="og:title"/) ??
     html.match(/<title>([^<]+)<\/title>/)
   const rawTitle = titleMatch ? titleMatch[1].replace(/ \| Thomann.*$/, '').trim() : url
 
