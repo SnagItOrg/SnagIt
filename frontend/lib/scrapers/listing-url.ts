@@ -28,7 +28,7 @@ export function detectListingUrl(input: string): SourceType {
     return 'dba'
   }
 
-  if (host === 'thomann.de' || host === 'thomann.dk' || host === 'thomann.com') {
+  if (host === 'thomann.de' || host === 'thomann.dk' || host === 'thomann.com' || host === 'thomannmusic.com') {
     // Product pages end in .htm or .html
     if (/\.html?$/.test(url.pathname)) return 'thomann'
     return null

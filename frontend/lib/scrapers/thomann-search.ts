@@ -38,15 +38,35 @@ interface ThomannArticle {
   mainImage?:  { fileName?: string }
 }
 
+function extractBootstrapArray(html: string): string | null {
+  // Find the start of tho.bootstrapModule('search.index', [
+  const marker = html.indexOf("bootstrapModule('search.index'")
+  if (marker === -1) return null
+
+  // Find the opening bracket of the data array
+  const bracketStart = html.indexOf('[', marker)
+  if (bracketStart === -1) return null
+
+  // Walk forward tracking bracket depth to find the matching close bracket
+  let depth = 0
+  for (let i = bracketStart; i < html.length; i++) {
+    const ch = html[i]
+    if (ch === '[') depth++
+    else if (ch === ']') {
+      depth--
+      if (depth === 0) return html.slice(bracketStart, i + 1)
+    }
+  }
+  return null
+}
+
 function parseBootstrap(html: string): ThomannProduct[] {
-  // tho.bootstrapModule('search.index', [DATA], {})
-  // DATA is a JSON array; the first element has an `articles` array
-  const match = html.match(/tho\.bootstrapModule\(\s*['"]search\.index['"]\s*,\s*(\[[\s\S]*?\])\s*,\s*\{/)
-  if (!match) return []
+  const raw = extractBootstrapArray(html)
+  if (!raw) return []
 
   let parsed: unknown
   try {
-    parsed = JSON.parse(match[1])
+    parsed = JSON.parse(raw)
   } catch {
     return []
   }
