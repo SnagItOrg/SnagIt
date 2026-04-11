@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { scrapeDba } from '@/lib/scrapers/dba'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { detectListingUrl, fetchListingFromUrl } from '@/lib/scrapers/listing-url'
+import { scrapeThomannSearch } from '@/lib/scrapers/thomann-search'
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get('q')
@@ -63,17 +64,56 @@ export async function GET(request: NextRequest) {
         .limit(100)
     : Promise.resolve({ data: [] as Record<string, unknown>[] })
 
+  // Fetch Thomann search results live — never blocks DBA/Reverb on failure
+  const thomannPromise = scrapeThomannSearch(trimmed).catch(() => [])
+
+  const now = new Date().toISOString()
+
+  // Helper: transform Thomann scrape results into Listing-shaped objects
+  function thomannToListings(results: Awaited<typeof thomannPromise>) {
+    return results.map((p) => ({
+      id:          crypto.randomUUID(),
+      title:       p.canonical_name,
+      price:       p.price_dkk,
+      currency:    'DKK',
+      url:         p.thomann_url,
+      image_url:   p.image_url,
+      location:    null,
+      scraped_at:  now,
+      source:      'thomann',
+      condition:   'Ny',
+      watchlist_id: null,
+    }))
+  }
+
+  // Helper: persist Thomann results fire-and-forget (don't block response)
+  function persistThomann(results: Awaited<typeof thomannPromise>) {
+    if (results.length === 0) return
+    void getSupabaseAdmin()
+      .from('thomann_product')
+      .upsert(
+        results.map((p) => ({
+          thomann_url:    p.thomann_url,
+          canonical_name: p.canonical_name,
+          image_url:      p.image_url,
+          price_dkk:      p.price_dkk,
+          scraped_at:     now,
+        })),
+        { onConflict: 'thomann_url' },
+      )
+  }
+
   if (listings.length === 0) {
-    const { data: reverbRaw } = await reverbPromise
+    const [{ data: reverbRaw }, thomannResults] = await Promise.all([reverbPromise, thomannPromise])
     const reverbData = (reverbRaw ?? []).filter((l) =>
       words.every((w) => normalize(String(l.title)).includes(normalize(w)))
     ).slice(0, 20)
-    return NextResponse.json({ inserted: 0, listings: reverbData, query }, {
+    persistThomann(thomannResults)
+    return NextResponse.json({ inserted: 0, listings: [...thomannToListings(thomannResults), ...reverbData], query }, {
       headers: { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60' },
     })
   }
 
-  const now = new Date().toISOString()
   // watchlist_id: null marks these as manual scrapes (not tied to a watchlist)
   // Use url as external_id fallback for DBA listings (they have no native external_id)
   const rows = listings.map((l) => ({
@@ -84,18 +124,21 @@ export async function GET(request: NextRequest) {
     normalized_text: l.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
   }))
 
-  // Upsert DBA + fetch Reverb in parallel
-  const [{ data, error }, { data: reverbRaw }] = await Promise.all([
+  // Upsert DBA + fetch Reverb + fetch Thomann — all in parallel
+  const [{ data, error }, { data: reverbRaw }, thomannResults] = await Promise.all([
     getSupabaseAdmin()
       .from('listings')
       .upsert(rows, { onConflict: 'external_id,source' })
       .select('*'),
     reverbPromise,
+    thomannPromise,
   ])
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  persistThomann(thomannResults)
 
   const reverbData = (reverbRaw ?? []).filter((l) =>
     words.every((w) => normalize(String(l.title)).includes(normalize(w)))
@@ -103,6 +146,14 @@ export async function GET(request: NextRequest) {
 
   // Interleave DBA + Reverb 1:1, deduplicate by url
   const seen = new Set<string>()
+
+  // Thomann first (retail "new price" context at the top)
+  const thomannListings = thomannToListings(thomannResults).filter((l) => {
+    if (seen.has(l.url)) return false
+    seen.add(l.url)
+    return true
+  })
+
   const dba = (data ?? []).filter((l) => {
     if (seen.has(l.url as string)) return false
     seen.add(l.url as string)
@@ -113,18 +164,18 @@ export async function GET(request: NextRequest) {
     seen.add(l.url as string)
     return true
   })
-  const merged: typeof dba = []
+  const interleaved: typeof dba = []
   const len = Math.max(dba.length, reverb.length)
   for (let i = 0; i < len; i++) {
-    if (i < dba.length)    merged.push(dba[i])
-    if (i < reverb.length) merged.push(reverb[i])
+    if (i < dba.length)    interleaved.push(dba[i])
+    if (i < reverb.length) interleaved.push(reverb[i])
   }
 
   return NextResponse.json({
     inserted: data?.length ?? 0,
     total_scraped: listings.length,
     query,
-    listings: merged,
+    listings: [...thomannListings, ...interleaved],
   }, {
     headers: { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60' },
   })

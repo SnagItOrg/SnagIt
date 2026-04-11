@@ -33,6 +33,7 @@ function formatLocation(location: string): string {
 }
 
 function getLocationDisplay(listing: Listing): string | null {
+  if (listing.source === 'thomann') return null
   if (!listing.location && listing.source !== 'dba.dk') return null
 
   switch (listing.source) {
@@ -92,12 +93,14 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
     const base = 'absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm'
     if (platform === 'reverb')                         return <span className={`${base} bg-orange-500 text-white`}>Reverb</span>
     if (platform === 'facebook' || platform === 'fb') return <span className={`${base} bg-blue-500 text-white`}>FB</span>
+    if (platform === 'thomann')                       return <span className={`${base} bg-red-700 text-white`}>Thomann</span>
     return <span className={`${base} bg-blue-600 text-white`}>DBA</span>
   }
 
   const cls = 'text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border'
   if (platform === 'reverb')                         return <span className={cls}>Reverb</span>
   if (platform === 'facebook' || platform === 'fb') return <span className={cls}>FB</span>
+  if (platform === 'thomann')                       return <span className={cls}>Thomann</span>
   return <span className={cls}>DBA</span>
 }
 
