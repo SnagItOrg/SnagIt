@@ -32,6 +32,19 @@ export async function GET(request: NextRequest) {
           .from('listings')
           .upsert(row, { onConflict: 'external_id,source' })
 
+        // Persist Thomann URL paste to thomann_product (fire-and-forget)
+        if (urlSource === 'thomann' && result.listing.price != null) {
+          void getSupabaseAdmin()
+            .from('thomann_product')
+            .upsert({
+              thomann_url:    result.listing.url,
+              canonical_name: result.listing.title,
+              image_url:      result.listing.image_url ?? null,
+              price_dkk:      result.listing.price,
+              scraped_at:     now,
+            }, { onConflict: 'thomann_url' })
+        }
+
         return NextResponse.json({ inserted: 1, listings: [row], query: trimmed })
       }
     } catch (err) {
