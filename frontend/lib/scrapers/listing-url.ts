@@ -92,9 +92,11 @@ async function fetchThomannListing(url: string): Promise<ScrapedListingResult> {
   let rawPrice: number | null = null
   let currency = 'EUR'
 
-  for (const m of html.matchAll(/<script type="application\/ld\+json">([^<]+)<\/script>/g)) {
+  const ldRe = /<script type="application\/ld\+json">([^<]+)<\/script>/g
+  let ldMatch: RegExpExecArray | null
+  while ((ldMatch = ldRe.exec(html)) !== null) {
     try {
-      const json = JSON.parse(m[1]) as Record<string, unknown>
+      const json = JSON.parse(ldMatch[1]) as Record<string, unknown>
       const offers = json['offers'] as Record<string, unknown> | undefined
       if (json['@type'] === 'Product' && offers?.['price'] != null) {
         rawPrice = parseFloat(String(offers['price']))
