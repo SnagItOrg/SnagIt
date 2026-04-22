@@ -1,11 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { scrapeDba } from '@/lib/scrapers/dba'
+import { scrapeFinn } from '@/lib/scrapers/finn'
+import { scrapeBlocket } from '@/lib/scrapers/blocket'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { detectListingUrl, fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 import { scrapeThomannSearch } from '@/lib/scrapers/thomann-search'
 
+const ALL_SOURCES = ['dba', 'finn', 'blocket', 'reverb', 'thomann'] as const
+type SourceKey = typeof ALL_SOURCES[number]
+
+function parseSources(raw: string | null): Set<SourceKey> {
+  if (!raw) return new Set(ALL_SOURCES)
+  const requested = raw.split(',').map((s) => s.trim().toLowerCase())
+  const allowed = new Set<SourceKey>()
+  for (const s of requested) {
+    if ((ALL_SOURCES as readonly string[]).includes(s)) allowed.add(s as SourceKey)
+  }
+  return allowed.size > 0 ? allowed : new Set(ALL_SOURCES)
+}
+
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get('q')
+  const sources = parseSources(request.nextUrl.searchParams.get('sources'))
 
   if (!query || typeof query !== 'string') {
     return NextResponse.json({ error: 'Missing query parameter' }, { status: 400 })
@@ -27,12 +43,10 @@ export async function GET(request: NextRequest) {
           external_id: result.listing.url,
           normalized_text: result.listing.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
         }
-        // Upsert so repeated pastes of the same URL are idempotent
         await getSupabaseAdmin()
           .from('listings')
           .upsert(row, { onConflict: 'external_id,source' })
 
-        // Persist Thomann URL paste to thomann_product (fire-and-forget)
         if (urlSource === 'thomann' && result.listing.price != null) {
           void getSupabaseAdmin()
             .from('thomann_product')
@@ -49,8 +63,6 @@ export async function GET(request: NextRequest) {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
-      // DBA failures (broken link) → 502 so user knows the link is bad.
-      // Thomann/Reverb may be Cloudflare-blocked → return empty, not an error.
       if (urlSource === 'dba') {
         return NextResponse.json({ error: message }, { status: 502 })
       }
@@ -59,22 +71,19 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // ── Query mode: normal text search ──────────────────────────────────────────
-  let listings
-  try {
-    listings = await scrapeDba(trimmed)
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 502 })
-  }
+  // ── Query mode: run all enabled Schibsted scrapers in parallel ──────────────
+  const schibstedJobs: Array<Promise<Awaited<ReturnType<typeof scrapeDba>>>> = []
+  if (sources.has('dba'))     schibstedJobs.push(scrapeDba(trimmed).catch(() => []))
+  if (sources.has('finn'))    schibstedJobs.push(scrapeFinn(trimmed).catch(() => []))
+  if (sources.has('blocket')) schibstedJobs.push(scrapeBlocket(trimmed).catch(() => []))
 
-  // Fetch Reverb listings from DB in parallel with DBA upsert.
-  // Anchor on first word, then filter client-side requiring all words.
-  // Normalize hyphens/spaces so "re-201" matches "RE 201" and "RE201".
+  const schibstedResults = (await Promise.all(schibstedJobs)).flat()
+
+  // Reverb: anchor on first word, then filter client-side requiring all words.
   const words = trimmed.split(/\s+/).filter((w) => w.length > 1)
   const normalize = (s: string) => s.toLowerCase().replace(/[-\s_]+/g, '')
 
-  const reverbPromise = words.length > 0
+  const reverbPromise = sources.has('reverb') && words.length > 0
     ? getSupabaseAdmin()
         .from('listings')
         .select('*')
@@ -84,40 +93,46 @@ export async function GET(request: NextRequest) {
         .limit(100)
     : Promise.resolve({ data: [] as Record<string, unknown>[] })
 
-  // Fetch Thomann results: try live search, fall back to kg_product if Cloudflare blocks
+  // Thomann: live search, fall back to kg_product when Cloudflare blocks
   const thomannPromise: Promise<import('@/lib/scrapers/thomann-search').ThomannProduct[]> =
-    scrapeThomannSearch(trimmed).then((results) => {
-      if (results.length > 0) return results
-      // Cloudflare likely blocked the search page — fall back to kg_product table
-      // which already has thomann_url + thomann_price_dkk + image_url for matched products
-      return (async () => {
-        let q = getSupabaseAdmin()
-          .from('kg_product')
-          .select('canonical_name, thomann_url, thomann_price_dkk, image_url')
-          .not('thomann_url', 'is', null)
-          .not('thomann_price_dkk', 'is', null)
-          .eq('status', 'active')
-        for (const w of words) {
-          q = (q as typeof q).ilike('canonical_name', `%${w}%`)
-        }
-        const { data } = await q.limit(5)
-        return ((data ?? []) as Array<{
-          canonical_name: string
-          thomann_url: string
-          thomann_price_dkk: number
-          image_url: string | null
-        }>).map((p) => ({
-          thomann_url:    p.thomann_url,
-          canonical_name: p.canonical_name,
-          image_url:      p.image_url,
-          price_dkk:      p.thomann_price_dkk,
-        }))
-      })()
-    }).catch(() => [])
+    sources.has('thomann')
+      ? scrapeThomannSearch(trimmed).then((results) => {
+          if (results.length > 0) return results
+          return (async () => {
+            let q = getSupabaseAdmin()
+              .from('kg_product')
+              .select('canonical_name, thomann_url, thomann_price_dkk, image_url')
+              .not('thomann_url', 'is', null)
+              .not('thomann_price_dkk', 'is', null)
+              .eq('status', 'active')
+            for (const w of words) {
+              q = (q as typeof q).ilike('canonical_name', `%${w}%`)
+            }
+            const { data } = await q.limit(5)
+            return ((data ?? []) as Array<{
+              canonical_name: string
+              thomann_url: string
+              thomann_price_dkk: number
+              image_url: string | null
+            }>).map((p) => {
+              // Legacy kg_product rows have literal "\/" escapes; normalize.
+              // Also drop /sbpics/ URLs — those point to Thomann salesperson
+              // portraits, not product images. Card falls back to placeholder.
+              let img = p.image_url ? p.image_url.replace(/\\\//g, '/') : null
+              if (img && img.includes('/sbpics/')) img = null
+              return {
+                thomann_url:    p.thomann_url,
+                canonical_name: p.canonical_name,
+                image_url:      img,
+                price_dkk:      p.thomann_price_dkk,
+              }
+            })
+          })()
+        }).catch(() => [])
+      : Promise.resolve([])
 
   const now = new Date().toISOString()
 
-  // Helper: transform Thomann scrape results into Listing-shaped objects
   function thomannToListings(results: Awaited<typeof thomannPromise>) {
     return results.map((p) => ({
       id:          crypto.randomUUID(),
@@ -134,7 +149,6 @@ export async function GET(request: NextRequest) {
     }))
   }
 
-  // Helper: persist Thomann results fire-and-forget (don't block response)
   function persistThomann(results: Awaited<typeof thomannPromise>) {
     if (results.length === 0) return
     void getSupabaseAdmin()
@@ -151,20 +165,18 @@ export async function GET(request: NextRequest) {
       )
   }
 
-  if (listings.length === 0) {
+  if (schibstedResults.length === 0) {
     const [{ data: reverbRaw }, thomannResults] = await Promise.all([reverbPromise, thomannPromise])
     const reverbData = (reverbRaw ?? []).filter((l) =>
       words.every((w) => normalize(String(l.title)).includes(normalize(w)))
     ).slice(0, 20)
     persistThomann(thomannResults)
-    return NextResponse.json({ inserted: 0, listings: [...thomannToListings(thomannResults), ...reverbData], query }, {
+    return NextResponse.json({ inserted: 0, listings: [...thomannToListings(thomannResults), ...reverbData], query: trimmed }, {
       headers: { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60' },
     })
   }
 
-  // watchlist_id: null marks these as manual scrapes (not tied to a watchlist)
-  // Use url as external_id fallback for DBA listings (they have no native external_id)
-  const rows = listings.map((l) => ({
+  const rows = schibstedResults.map((l) => ({
     ...l,
     scraped_at: now,
     watchlist_id: null,
@@ -172,7 +184,6 @@ export async function GET(request: NextRequest) {
     normalized_text: l.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
   }))
 
-  // Upsert DBA + fetch Reverb + fetch Thomann — all in parallel
   const [{ data, error }, { data: reverbRaw }, thomannResults] = await Promise.all([
     getSupabaseAdmin()
       .from('listings')
@@ -192,7 +203,6 @@ export async function GET(request: NextRequest) {
     words.every((w) => normalize(String(l.title)).includes(normalize(w)))
   ).slice(0, 20)
 
-  // Interleave DBA + Reverb 1:1, deduplicate by url
   const seen = new Set<string>()
 
   // Thomann first (retail "new price" context at the top)
@@ -202,7 +212,7 @@ export async function GET(request: NextRequest) {
     return true
   })
 
-  const dba = (data ?? []).filter((l) => {
+  const schibstedRows = (data ?? []).filter((l) => {
     if (seen.has(l.url as string)) return false
     seen.add(l.url as string)
     return true
@@ -212,17 +222,19 @@ export async function GET(request: NextRequest) {
     seen.add(l.url as string)
     return true
   })
-  const interleaved: typeof dba = []
-  const len = Math.max(dba.length, reverb.length)
+
+  // Interleave Schibsted (already a mix of dba/finn/blocket) with Reverb 1:1
+  const interleaved: typeof schibstedRows = []
+  const len = Math.max(schibstedRows.length, reverb.length)
   for (let i = 0; i < len; i++) {
-    if (i < dba.length)    interleaved.push(dba[i])
-    if (i < reverb.length) interleaved.push(reverb[i])
+    if (i < schibstedRows.length) interleaved.push(schibstedRows[i])
+    if (i < reverb.length)        interleaved.push(reverb[i])
   }
 
   return NextResponse.json({
     inserted: data?.length ?? 0,
-    total_scraped: listings.length,
-    query,
+    total_scraped: schibstedResults.length,
+    query: trimmed,
     listings: [...thomannListings, ...interleaved],
   }, {
     headers: { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60' },
