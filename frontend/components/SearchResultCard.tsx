@@ -6,6 +6,7 @@ import type { Listing } from '@/lib/supabase'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { usePostHog } from 'posthog-js/react'
+import { formatOriginalPrice, formatDkkApprox } from '@/lib/currency'
 
 // Country name → ISO code for flag emoji lookup
 const COUNTRY_CODES: Record<string, string> = {
@@ -34,7 +35,8 @@ function formatLocation(location: string): string {
 
 function getLocationDisplay(listing: Listing): string | null {
   if (listing.source === 'thomann') return null
-  if (!listing.location && listing.source !== 'dba.dk') return null
+  const schibstedWithoutLocation = ['dba.dk', 'finn', 'blocket']
+  if (!listing.location && !schibstedWithoutLocation.includes(listing.source)) return null
 
   switch (listing.source) {
     case 'dba.dk':
@@ -91,16 +93,20 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
 
   if (absolute) {
     const base = 'absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm'
-    if (platform === 'reverb')                         return <span className={`${base} bg-orange-500 text-white`}>Reverb</span>
+    if (platform === 'reverb')                         return <span className={`${base} text-white`} style={{ backgroundColor: '#EC5A2C' }}>Reverb</span>
     if (platform === 'facebook' || platform === 'fb') return <span className={`${base} bg-blue-500 text-white`}>FB</span>
-    if (platform === 'thomann')                       return <span className={`${base} bg-red-700 text-white`}>Thomann</span>
-    return <span className={`${base} bg-blue-600 text-white`}>DBA</span>
+    if (platform === 'thomann')                       return <span className={base} style={{ backgroundColor: '#FFFFFF', color: '#002D4C', border: '1px solid #002D4C' }}>Thomann</span>
+    if (platform === 'finn')                           return <span className={`${base} text-white`} style={{ backgroundColor: '#06bffc' }}>Finn</span>
+    if (platform === 'blocket')                        return <span className={`${base} text-white`} style={{ backgroundColor: '#F71414' }}>Blocket</span>
+    return <span className={`${base} text-white`} style={{ backgroundColor: '#00098A' }}>DBA</span>
   }
 
   const cls = 'text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border'
   if (platform === 'reverb')                         return <span className={cls}>Reverb</span>
   if (platform === 'facebook' || platform === 'fb') return <span className={cls}>FB</span>
   if (platform === 'thomann')                       return <span className={cls}>Thomann</span>
+  if (platform === 'finn')                           return <span className={cls}>Finn</span>
+  if (platform === 'blocket')                        return <span className={cls}>Blocket</span>
   return <span className={cls}>DBA</span>
 }
 
@@ -115,8 +121,11 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
   const [captureSent,    setCaptureSent]   = useState(false)
 
   const priceFormatted = listing.price != null
-    ? `${listing.price.toLocaleString('da-DK')} kr`
+    ? formatOriginalPrice(listing.price, listing.currency)
     : t.priceNotListed
+  const dkkApprox = listing.price != null
+    ? formatDkkApprox(listing.price, listing.currency)
+    : null
 
   async function handleWatchlistClick() {
     const supabase = createSupabaseBrowserClient()
@@ -226,7 +235,12 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               per-variant price history. Do not ship without data validation. */}
           <div className="flex justify-between items-start gap-2">
             <p className="text-sm font-semibold text-foreground flex-1 line-clamp-2 min-h-[2.5rem]">{listing.title}</p>
-            <p className="text-sm font-black text-foreground flex-shrink-0">{priceFormatted}</p>
+            <div className="flex flex-col items-end flex-shrink-0">
+              <p className="text-sm font-black text-foreground">{priceFormatted}</p>
+              {dkkApprox && (
+                <p className="text-[10px] text-muted-foreground leading-tight">{dkkApprox}</p>
+              )}
+            </div>
           </div>
 
           {/* Location · time */}
@@ -277,9 +291,14 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
         {/* Title + price + meta */}
         <div className="flex-1 min-w-0 flex flex-col gap-1">
           <p className="text-sm font-semibold text-foreground truncate">{listing.title}</p>
-          <p className="text-base font-black truncate" style={{ color: 'var(--foreground)' }}>
-            {priceFormatted}
-          </p>
+          <div className="flex items-baseline gap-2 min-w-0">
+            <p className="text-base font-black truncate" style={{ color: 'var(--foreground)' }}>
+              {priceFormatted}
+            </p>
+            {dkkApprox && (
+              <span className="text-[11px] text-muted-foreground flex-shrink-0">{dkkApprox}</span>
+            )}
+          </div>
           <div className="flex items-center gap-1.5 text-[11px] mt-auto text-muted-foreground min-w-0">
             <PlatformBadge listing={listing} />
             <span className="flex-shrink-0">·</span>

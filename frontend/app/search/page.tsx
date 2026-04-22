@@ -15,6 +15,16 @@ import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 
 type SortKey = 'relevance' | 'newest' | 'oldest' | 'price_asc' | 'price_desc'
 
+const ALL_SOURCES = ['dba', 'finn', 'blocket', 'reverb', 'thomann'] as const
+type SourceKey = typeof ALL_SOURCES[number]
+const SOURCE_LABEL: Record<SourceKey, string> = {
+  dba: 'DBA',
+  finn: 'Finn',
+  blocket: 'Blocket',
+  reverb: 'Reverb',
+  thomann: 'Thomann',
+}
+
 function sortListings(listings: Listing[], sort: SortKey): Listing[] {
   const copy = [...listings]
   if (sort === 'relevance') return copy // preserve server interleave order
@@ -56,7 +66,7 @@ function SearchPageInner() {
   const [toast,                setToast]                = useState<string | null>(null)
   const [showWatchlistModal,   setShowWatchlistModal]   = useState(false)
   const [watchlistModalQuery,  setWatchlistModalQuery]  = useState('')
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
+  const [enabledSources,   setEnabledSources]   = useState<Set<SourceKey>>(() => new Set(ALL_SOURCES))
   const [showFilters,      setShowFilters]      = useState(false)
   const [savedListingIds,  setSavedListingIds]  = useState<Set<string>>(new Set())
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -67,15 +77,21 @@ function SearchPageInner() {
     toastTimer.current = setTimeout(() => setToast(null), 3000)
   }
 
-  async function runSearch(query: string) {
+  async function runSearch(query: string, sources: Set<SourceKey>) {
     const q = query.trim()
     if (!q) return
+    if (sources.size === 0) {
+      setListings([])
+      setSearched(true)
+      return
+    }
     setLoading(true)
     setError(null)
     setSearched(true)
 
     try {
-      const res = await fetch(`/api/scrape?q=${encodeURIComponent(q)}`)
+      const sourcesParam = Array.from(sources).join(',')
+      const res = await fetch(`/api/scrape?q=${encodeURIComponent(q)}&sources=${sourcesParam}`)
       if (!res.ok) {
         setError(t.searchFailed)
         setListings([])
@@ -83,8 +99,11 @@ function SearchPageInner() {
         const data = await res.json()
         const results: Listing[] = data.listings ?? []
         setListings(results)
-        setSelectedPlatform(null)
-        posthog?.capture('search_performed', { query: q, result_count: results.length })
+        posthog?.capture('search_performed', {
+          query: q,
+          result_count: results.length,
+          sources: sourcesParam,
+        })
       }
     } catch {
       setError(t.unknownError)
@@ -93,10 +112,19 @@ function SearchPageInner() {
     setLoading(false)
   }
 
+  function toggleSource(key: SourceKey) {
+    setEnabledSources((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
   // Fire on mount: search if ?q= present + load saved listing ids
   useEffect(() => {
     const q = params.get('q')
-    if (q) void runSearch(q)
+    if (q) void runSearch(q, enabledSources)
 
     fetch('/api/saved-listings')
       .then((r) => r.ok ? r.json() : [])
@@ -112,7 +140,7 @@ function SearchPageInner() {
     const q = inputValue.trim()
     if (!q) return
     router.replace(`/search?q=${encodeURIComponent(q)}`)
-    void runSearch(q)
+    void runSearch(q, enabledSources)
   }
 
   async function handleCreateWatchlist(listingTitle?: string) {
@@ -188,24 +216,20 @@ function SearchPageInner() {
     }
   }
 
-  // Platforms present in current results
-  function normalisePlatform(l: Listing): string {
-    const p = l.platform ?? l.source ?? ''
-    if (p === 'reverb') return 'reverb'
-    if (p === 'facebook' || p === 'fb') return 'facebook'
-    return 'dba'
+  function listingSourceKey(l: Listing): SourceKey | null {
+    const s = l.source
+    if (s === 'dba.dk') return 'dba'
+    if (s === 'finn' || s === 'blocket' || s === 'reverb' || s === 'thomann') return s
+    return null
   }
-  const platformsInResults: string[] = listings.length > 0
-    ? Array.from(new Set(listings.map(normalisePlatform)))
-    : []
 
-  const platformLabel: Record<string, string> = { reverb: 'Reverb', dba: 'DBA', facebook: 'Facebook' }
-
-  // Client-side filter + sort
-  const filtered = sortListings(
-    listings.filter((l) => !selectedPlatform || normalisePlatform(l) === selectedPlatform),
-    sort,
-  )
+  // Client-side filter: hide listings whose source is toggled off, so toggles
+  // give instant visual feedback without re-scraping.
+  const visible = listings.filter((l) => {
+    const key = listingSourceKey(l)
+    return key === null || enabledSources.has(key)
+  })
+  const filtered = sortListings(visible, sort)
 
   const currentQuery = params.get('q') ?? inputValue
 
@@ -263,33 +287,31 @@ function SearchPageInner() {
 
             {/* Expanded filter panel */}
             {showFilters && (
-              <div className="flex gap-2 flex-wrap mt-1">
-                {/* Platform select */}
-                <div className="relative inline-flex items-center">
-                  <select
-                    value={selectedPlatform ?? ''}
-                    onChange={(e) => setSelectedPlatform(e.target.value || null)}
-                    className="appearance-none rounded-xl px-3 py-2 pr-8 text-sm outline-none cursor-pointer min-w-[140px]"
-                    style={{
-                      backgroundColor: 'var(--card)',
-                      border: '1px solid var(--border)',
-                      color: 'var(--foreground)',
-                    }}
-                  >
-                    <option value="">Alle platforme</option>
-                    {(platformsInResults.length > 0 ? platformsInResults : ['dba', 'reverb', 'facebook']).map((p) => (
-                      <option key={p} value={p}>{platformLabel[p] ?? p}</option>
-                    ))}
-                  </select>
-                  <span
-                    className="material-symbols-outlined absolute right-2 pointer-events-none"
-                    style={{ fontSize: '18px', color: 'var(--muted-foreground)' }}
-                  >
-                    expand_more
-                  </span>
+              <div className="flex flex-col gap-2 mt-1">
+                {/* Source toggles — control which sites we search */}
+                <div className="flex gap-1.5 flex-wrap">
+                  {ALL_SOURCES.map((key) => {
+                    const active = enabledSources.has(key)
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => toggleSource(key)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
+                        style={active
+                          ? { backgroundColor: 'var(--foreground)', color: 'var(--background)', border: '1px solid var(--foreground)' }
+                          : { backgroundColor: 'transparent', color: 'var(--muted-foreground)', border: '1px solid var(--border)' }
+                        }
+                        aria-pressed={active}
+                      >
+                        {SOURCE_LABEL[key]}
+                      </button>
+                    )
+                  })}
                 </div>
 
                 {/* Sort select */}
+                <div className="flex gap-2 flex-wrap">
                 <div className="relative inline-flex items-center">
                   <select
                     value={sort}
@@ -313,6 +335,7 @@ function SearchPageInner() {
                   >
                     expand_more
                   </span>
+                </div>
                 </div>
               </div>
             )}
