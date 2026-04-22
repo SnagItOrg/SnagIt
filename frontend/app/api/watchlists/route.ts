@@ -67,8 +67,32 @@ export async function GET() {
 
   const ids = data.map((w) => w.id)
 
-  // All three sub-queries are independent — run in parallel
-  const [{ data: unnotified }, { data: recentImages }, { data: topPriceImages }] = await Promise.all([
+  // Priority 0: canonical product image from kg_product — mirrors what appears
+  // as the Thomann top-card on the search page. Runs per-watchlist in parallel.
+  const kgImagePromises = data.map(async (w) => {
+    if (w.query.startsWith('http')) return [w.id, null] as const
+    const words = w.query.split(/\s+/).filter((word: string) => word.length > 1)
+    if (words.length === 0) return [w.id, null] as const
+    let q = supabase
+      .from('kg_product')
+      .select('image_url')
+      .not('image_url', 'is', null)
+      .eq('status', 'active')
+    for (const word of words) {
+      q = q.ilike('canonical_name', `%${word}%`)
+    }
+    const { data: rows } = await q.limit(1)
+    let img = rows?.[0]?.image_url as string | null | undefined
+    if (img) img = img.replace(/\\\//g, '/')
+    // /sbpics/ are Thomann salesperson portraits, not product shots
+    if (img && img.includes('/sbpics/')) img = null
+    return [w.id, img ?? null] as const
+  })
+
+  // Remaining sub-queries are independent — run in parallel
+  const [kgImageResults, { data: unnotified }, { data: recentImages }, { data: topPriceImages }] = await Promise.all([
+    Promise.all(kgImagePromises),
+
     // Count unnotified listings per watchlist
     supabase
       .from('listings')
@@ -102,12 +126,17 @@ export async function GET() {
   }
 
   const imageMap = new Map<string, string>()
+  // Priority 0: canonical product image
+  for (const [id, img] of kgImageResults) {
+    if (img) imageMap.set(id, img)
+  }
+  // Priority 1: most recently scraped listing image
   for (const row of recentImages ?? []) {
     if (row.watchlist_id && row.image_url && !imageMap.has(row.watchlist_id)) {
       imageMap.set(row.watchlist_id, row.image_url)
     }
   }
-  // Fill any watchlists still without an image using highest-priced listing
+  // Priority 2: highest-priced listing image
   for (const row of topPriceImages ?? []) {
     if (row.watchlist_id && row.image_url && !imageMap.has(row.watchlist_id)) {
       imageMap.set(row.watchlist_id, row.image_url)
