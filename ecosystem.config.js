@@ -12,18 +12,17 @@ module.exports = {
         NODE_ENV: 'production',
       },
     },
-    // match-listings: PAUSED — listing_product_match has 17M rows (mostly duplicates).
-    // Re-enable after table is cleaned up and a unique index on (listing_id, product_id) is added.
-    // {
-    //   name: 'match-listings',
-    //   script: 'npx',
-    //   args: 'tsx scripts/match-listings.ts',
-    //   cron_restart: '30 */1 * * *', // every hour at :30 (after scrapers)
-    //   autorestart: false,
-    //   max_restarts: 0,
-    //   max_memory_restart: '512M',
-    //   env: { NODE_ENV: 'production' },
-    // },
+    {
+      name: 'match-listings',
+      script: 'npx',
+      args: 'tsx scripts/match-listings.ts',
+      cron_restart: '30 */1 * * *', // every hour at :30 (after scrapers)
+      autorestart: false,           // cron-start only — never restart-on-crash
+      max_restarts: 3,
+      min_uptime: '10s',
+      max_memory_restart: '512M',
+      env: { NODE_ENV: 'production' },
+    },
     {
       name: 'fetch-reverb-prices',
       script: 'npx',
