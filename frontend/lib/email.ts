@@ -1,6 +1,10 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend(): Resend {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) throw new Error('RESEND_API_KEY not set')
+  return new Resend(apiKey)
+}
 
 type ListingSnippet = {
   title: string
@@ -40,7 +44,7 @@ export async function sendNewListingsEmail({
     `View all: ${appUrl}`,
   ].join('\n')
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to,
     subject: `${listings.length} new${listings.length === 1 ? '' : ' listings'}: "${query}" on dba.dk`,

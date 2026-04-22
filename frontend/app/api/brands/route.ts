@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
+// Touches Supabase admin env vars, which aren't available at build time.
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const supabase = getSupabaseAdmin()
 

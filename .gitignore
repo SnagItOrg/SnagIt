@@ -19,3 +19,4 @@ build/
 data/*.bak
 data/thomann-sitemap.json
 scripts/*-log.json
+.vercel
