@@ -1,4 +1,4 @@
-export const ACTIVE_PLATFORMS = ['DBA', 'Reverb'] as const
+export const ACTIVE_PLATFORMS = ['DBA', 'Finn', 'Blocket', 'Reverb'] as const
 export type Platform = typeof ACTIVE_PLATFORMS[number]
 
 // Human readable list for copy: "DBA og Reverb" / "DBA, Reverb og Facebook"

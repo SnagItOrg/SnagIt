@@ -27,6 +27,16 @@ const nextConfig = {
         protocol: 'https',
         hostname: '**.autobild.dk',
       },
+      // Finn.no listing images
+      {
+        protocol: 'https',
+        hostname: '**.finncdn.no',
+      },
+      // Blocket.se listing images
+      {
+        protocol: 'https',
+        hostname: '**.blocketcdn.se',
+      },
       // Reverb listing images (wildcard covers rvb-img, images, etc.)
       {
         protocol: 'https',
@@ -48,6 +58,11 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'fast-images.static-thomann.de',
+      },
+      // Thomann thumbnail CDN (`**.thomann.de` does NOT match static-thomann.de)
+      {
+        protocol: 'https',
+        hostname: '**.static-thomann.de',
       },
       {
         protocol: 'https',
