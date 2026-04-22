@@ -95,34 +95,36 @@ async function fetchExchangeRates(): Promise<Record<string, number>> {
   }
 }
 
-// ── Price extraction (JSON-LD first, then paired rawPrice+currency) ───────────
+// ── Price extraction ──────────────────────────────────────────────────────────
+// Thomann product pages (as of 2026-04) embed a Google Analytics GA4 `view_item`
+// payload with the canonical main-product price. The accessory/recommendation
+// slots use a different JSON shape ("rawPrice"/"currency":{key:...}), so
+// anchoring on `affiliation:"Online Store"` is what tells us "this is the page's
+// hero product" versus some ad block. Example:
+//   "ecommerce":{"items":[{"item_id":"462509","item_name":"Les Paul Standard 60s IT",
+//    "affiliation":"Online Store","currency":"DKK","item_brand":"Gibson",
+//    "item_category":"GI","price":19490,...}]}
+// On thomann.dk the `currency` is already "DKK" so no FX conversion is needed;
+// we still honour the currency field in case that changes or a .de page is fed.
 type PriceResult = { priceDkk: number | null; imageUrl: string | null }
 
 function extractPrice(html: string, rates: Record<string, number>): PriceResult {
   let rawPrice: number | null = null
-  let currency = 'EUR'
+  let currency = 'DKK'
 
-  // Strategy 1: JSON-LD Product — always the main product, never accessories
-  for (const m of html.matchAll(/<script type="application\/ld\+json">([^<]+)<\/script>/g)) {
-    try {
-      const json = JSON.parse(m[1]) as Record<string, unknown>
-      const offers = json['offers'] as Record<string, unknown> | undefined
-      if (json['@type'] === 'Product' && offers?.['price'] != null) {
-        rawPrice = parseFloat(String(offers['price']))
-        currency = String(offers['priceCurrency'] ?? 'EUR')
-        break
-      }
-    } catch { /* skip */ }
+  // Primary: GA4 view_item block — anchored on affiliation to avoid accessory ads
+  const ga = html.match(/"affiliation":"Online Store","currency":"([A-Z]{3})"[^}]*?"price":([\d.]+)/)
+  if (ga) {
+    currency = ga[1]
+    rawPrice = parseFloat(ga[2])
   }
 
-  // Strategy 2: rawPrice + currency in the same JSON object
+  // Fallback: itemprop=price microdata (DKK on thomann.dk)
   if (rawPrice === null) {
-    const m = html.match(/"rawPrice":"([\d.]+)"[^}]{0,80}"currency":"([A-Z]{3})"/)
-           ?? html.match(/"currency":"([A-Z]{3})"[^}]{0,80}"rawPrice":"([\d.]+)"/)
+    const m = html.match(/itemprop="price"[^>]*content="([\d.]+)"/)
     if (m) {
-      const isRawFirst = m[0].indexOf('"rawPrice"') < m[0].indexOf('"currency"')
-      rawPrice = parseFloat(isRawFirst ? m[1] : m[2])
-      currency = isRawFirst ? m[2] : m[1]
+      rawPrice = parseFloat(m[1])
+      currency = 'DKK'
     }
   }
 
