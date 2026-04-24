@@ -89,7 +89,7 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
 
   type ListingRow = Record<string, unknown>
   const listings = (matchesRes.data ?? [])
-    .map((m) => ({ score: m.score as number ?? 0, listing: m.listings as ListingRow | null }))
+    .map((m) => ({ score: m.score as number ?? 0, listing: m.listings as unknown as ListingRow | null }))
     .filter(({ listing }) => listing != null && listing.is_active !== false)
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score
