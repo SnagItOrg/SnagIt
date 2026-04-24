@@ -142,6 +142,7 @@ async function main() {
   for (let i = 0; i < totalBatches; i++) {
     const batch = batch_rows.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
     const batchNum = i + 1;
+    process.stdout.write(`Batch ${batchNum}/${totalBatches} — calling API...`);
 
     const userPrompt =
       `Classify each product using ONLY a slug from the taxonomy list below.\n\n` +
@@ -158,12 +159,15 @@ async function main() {
     let results: ClassificationResult[] = [];
 
     try {
-      const response = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
-      });
+      const response = await anthropic.messages.create(
+        {
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userPrompt }],
+        },
+        { timeout: 30_000 },
+      );
 
       const raw = response.content[0].type === 'text' ? response.content[0].text : '';
       const cleaned = stripMarkdown(raw);
@@ -236,7 +240,7 @@ async function main() {
       }
     }
 
-    console.log(`Batch ${batchNum}/${totalBatches} — classified ${classified}, skipped ${skipped} (invalid slugs)`);
+    process.stdout.write(` classified ${classified}, skipped ${skipped}\n`);
     totalClassified += classified;
     totalSkipped    += skipped;
 
