@@ -191,8 +191,8 @@ export async function matchListings(
   for (let i = 0; i < matchRows.length; i += BATCH) {
     const { error } = await supabase
       .from('listing_product_match')
-      .insert(matchRows.slice(i, i + BATCH))
-    if (error) throw new Error(`Insert listing_product_match batch ${i}: ${error.message}`)
+      .upsert(matchRows.slice(i, i + BATCH), { onConflict: 'listing_id,product_id', ignoreDuplicates: true })
+    if (error) throw new Error(`Upsert listing_product_match batch ${i}: ${error.message}`)
   }
 
   return { matched: matchRows.length, total: listings.length }
