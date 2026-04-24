@@ -70,6 +70,27 @@ function resolveCanonical(canonical: string, products: Product[]): Product | und
   )
 }
 
+// ── Pagination helper (PostgREST caps at 1000 rows regardless of .limit()) ────
+
+async function fetchAllRows<T>(
+  builder: () => ReturnType<SupabaseClient['from']>['select'],
+  pageSize = 1000,
+  label = 'table',
+): Promise<T[]> {
+  const rows: T[] = []
+  let offset = 0
+  for (;;) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (builder() as any).range(offset, offset + pageSize - 1)
+    if (error) throw new Error(`Fetch ${label} page ${offset}: ${error.message}`)
+    if (!data?.length) break
+    rows.push(...(data as T[]))
+    if (data.length < pageSize) break
+    offset += pageSize
+  }
+  return rows
+}
+
 // ── Core ──────────────────────────────────────────────────────────────────────
 
 export async function matchListings(
@@ -78,26 +99,24 @@ export async function matchListings(
 ): Promise<{ matched: number; total: number }> {
   if (listingIds.length === 0) return { matched: 0, total: 0 }
 
-  const [
-    { data: productsData,   error: pErr },
-    { data: identsData,     error: iErr },
-    { data: synonymsData,   error: sErr },
-    { data: listingsData,   error: lErr },
-  ] = await Promise.all([
-    supabase.from('kg_product')   .select('id, slug, canonical_name, model_name').limit(10000),
-    supabase.from('kg_identifier').select('product_id, type, value').in('type', ['SKU', 'MODEL']).limit(10000),
-    supabase.from('synonym')      .select('alias, canonical_query').eq('match_type', 'alias').limit(10000),
+  const [products, idents, synonyms, listingsResult] = await Promise.all([
+    fetchAllRows<Product>(
+      () => supabase.from('kg_product').select('id, slug, canonical_name, model_name'),
+      1000, 'kg_product',
+    ),
+    fetchAllRows<Identifier>(
+      () => supabase.from('kg_identifier').select('product_id, type, value').in('type', ['SKU', 'MODEL']),
+      1000, 'kg_identifier',
+    ),
+    fetchAllRows<Synonym>(
+      () => supabase.from('synonym').select('alias, canonical_query').eq('match_type', 'alias'),
+      1000, 'synonym',
+    ),
     supabase.from('listings').select('id, title').in('id', listingIds).not('title', 'is', null),
   ])
 
-  if (pErr) throw new Error(`Fetch kg_product: ${pErr.message}`)
-  if (iErr) throw new Error(`Fetch kg_identifier: ${iErr.message}`)
-  if (sErr) throw new Error(`Fetch synonym: ${sErr.message}`)
+  const { data: listingsData, error: lErr } = listingsResult
   if (lErr) throw new Error(`Fetch listings: ${lErr.message}`)
-
-  const products = (productsData as Product[])    ?? []
-  const idents   = (identsData   as Identifier[]) ?? []
-  const synonyms = (synonymsData as Synonym[])    ?? []
 
   // Pre-resolve canonical_query → product for each unique canonical
   const canonicalToProduct = new Map<string, Product>()
