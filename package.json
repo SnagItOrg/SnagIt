@@ -17,9 +17,11 @@
     "fetch-auctionet-prices": "tsx scripts/fetch-auctionet-prices.ts",
     "process-price-queue": "tsx scripts/process-price-queue.ts",
     "build-thomann-urls": "tsx scripts/build-thomann-urls.ts",
-    "fetch-thomann-prices": "tsx scripts/fetch-thomann-prices.ts"
+    "fetch-thomann-prices": "tsx scripts/fetch-thomann-prices.ts",
+    "enrich-products": "tsx scripts/enrich-products.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.79.0",
     "@supabase/supabase-js": "^2.96.0",
     "dotenv": "^16.4.5"
   },
