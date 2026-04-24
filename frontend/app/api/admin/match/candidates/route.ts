@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
   const batch = (listings as RawListing[]).slice(0, 50)
   const lines = batch.map((l, i) => `${i + 1}. [${l.id}] ${l.title}`).join('\n')
 
-  let scores: Record<string, { score: 'yes' | 'maybe' | 'no'; reason: string }> = {}
+  const scores: Record<string, { score: 'yes' | 'maybe' | 'no'; reason: string }> = {}
 
   try {
     const msg = await anthropic.messages.create({
