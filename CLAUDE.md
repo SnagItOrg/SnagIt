@@ -354,4 +354,37 @@ Run a cleanup migration at that point.
 
 ---
 
+## Known Issues
+
+### No listings on matched products (e.g. Juno-60)
+`/product/[slug]` pages show zero listings despite the search API returning
+results for the same query. Root cause unknown — likely a mismatch between
+how `listing_product_match` is queried on the product page vs. how the
+scrape/search pipeline populates it. Investigate before building more
+product page features.
+
+### Category cards missing Unsplash images
+`/browse` category cards rely on images in Supabase Storage at
+`onboarding-assets/categories/[slug].webp`. Most are missing — only the
+original onboarding categories have images. The 14 Reverb root category
+slugs need corresponding `.webp` files uploaded. Slugs that need images:
+electric-guitars, acoustic-guitars, bass-guitars, amps, effects-and-pedals,
+keyboards-and-synths, drums-and-percussion, pro-audio, accessories,
+folk-instruments, band-and-orchestra, home-audio, dj-and-lighting-gear, parts
+
+### Product cards have no images
+`ProductCard` renders text-only. kg_product has no image field.
+Planned solution: store a representative Unsplash image URL per product
+(or per subcategory as fallback) in kg_product.image_url (nullable text).
+Populate manually or via script for high-value products first.
+
+### Products missing descriptions and specs
+kg_product has no description or specs fields. Needed for product detail
+pages. Only worth rendering for higher-value / well-known products to avoid
+noise. Planned: add description (text) and specs (jsonb) columns to
+kg_product, populate via AI enrichment script for products with
+active_listing_count > 3 or price_min_dkk > 2000.
+
+---
+
 *Last updated: 2026-04-24*
