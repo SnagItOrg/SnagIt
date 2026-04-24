@@ -78,6 +78,7 @@ async function main() {
           .from('listings')
           .select('id, title')
           .not('title', 'is', null)
+          .in('source', ['reverb', 'finn', 'blocket', 'dba'])
           .range(offset, offset + BATCH - 1),
         QUERY_TIMEOUT_MS,
         `listings range ${offset}`,
