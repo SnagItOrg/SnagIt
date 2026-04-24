@@ -184,14 +184,22 @@ async function fetchReverbCSP(query: string): Promise<{ csp: ReverbCSP | null; l
     const csp = data.csps?.[0] ?? null
     let listingDesc = ''
 
-    // Try to get a listing description for extra spec context
+    // Try to get a listing for extra spec context — log raw JSON for inspection
     if (csp?._links?.used_search?.href) {
       try {
         const listingsData = await fetchJson(
           `${csp._links.used_search.href}&per_page=1`,
           { 'Accept-Version': '3.0' }
-        ) as { listings: Array<{ description?: string }> }
-        listingDesc = listingsData.listings?.[0]?.description?.slice(0, 500) ?? ''
+        ) as { listings: Array<Record<string, unknown>> }
+        const firstListing = listingsData.listings?.[0]
+        if (firstListing) {
+          console.log('  📋  Reverb listing raw fields:', JSON.stringify(
+            Object.fromEntries(
+              Object.entries(firstListing).filter(([, v]) => typeof v !== 'object' || v === null)
+            ), null, 2
+          ))
+          listingDesc = (firstListing.description as string | undefined)?.slice(0, 500) ?? ''
+        }
       } catch { /* optional */ }
     }
 
@@ -264,10 +272,16 @@ async function enrichProduct(target: ProductTarget, allSlugs: string[]): Promise
     vseText = await fetchVSE(vsePath)
   }
 
-  const combinedText = [wikiExtract, reverbSummary, vseText, listingDesc]
-    .filter(Boolean)
-    .join('\n\n')
-    .slice(0, 3000)
+  // Prioritér VSE som primær kilde til history hvis Wikipedia-extract er kort
+  const wikiIsShort = wikiExtract.length < 200
+  if (wikiIsShort && vseText) {
+    console.log(`   ℹ️   Wikipedia kort (${wikiExtract.length} tegn) — VSE er primær historikkilde`)
+  }
+
+  const combinedText = (wikiIsShort && vseText
+    ? [vseText, wikiExtract, reverbSummary, listingDesc]
+    : [wikiExtract, reverbSummary, vseText, listingDesc]
+  ).filter(Boolean).join('\n\n').slice(0, 3000)
 
   // ── Description ──
   console.log('   Haiku → description…')
@@ -327,12 +341,23 @@ Prioritér: forgængere, efterfølgere, samtidige konkurrenter.`
     specs.production_years = end ? `${start}–${end}` : `${start}–`
   }
 
+  // Filter related products mot faktiske KG-slugs, log hvad der fjernes
+  let related_products: RelatedProduct[] | undefined
+  if (related?.length) {
+    const valid   = related.filter(r => allSlugs.includes(r.slug))
+    const removed = related.filter(r => !allSlugs.includes(r.slug))
+    if (removed.length > 0) {
+      console.log(`  🗑️   Related fjernet (ikke i KG): ${removed.map(r => r.slug).join(', ')}`)
+    }
+    related_products = valid.length > 0 ? valid : undefined
+  }
+
   return {
     description: description || undefined,
     specs:       Object.keys(specs).length > 0 ? specs : undefined,
     history:     history?.length ? history : undefined,
     external_links: external_links.length > 0 ? external_links : undefined,
-    related_products: related?.filter(r => allSlugs.includes(r.slug)) ?? undefined,
+    related_products,
   }
 }
 
