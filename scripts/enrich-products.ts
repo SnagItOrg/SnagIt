@@ -221,21 +221,69 @@ async function fetchReverbCSP(query: string): Promise<{ csp: ReverbCSP | null; l
 }
 
 // ── Vintage Synth Explorer ────────────────────────────────────────────────────
-async function fetchVSE(vsePath: string): Promise<string> {
+interface VSEResult {
+  text:  string
+  specs: Record<string, string>
+}
+
+async function fetchVSE(vsePath: string): Promise<VSEResult> {
   try {
     const html = await fetchText(`https://www.vintagesynth.com${vsePath}`)
-    // Extract plain text from the specs/overview section
-    const bodyMatch = html.match(/<div[^>]*class="[^"]*entry-content[^"]*"[^>]*>([\s\S]{200,3000}?)<\/div>/)
-    if (!bodyMatch) return ''
-    return bodyMatch[1]
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .slice(0, 1000)
+
+    // ── Parse specs table ──
+    // Structure: <span class="specification-term" title="Polyphony" ...>
+    //            <span class="specification-value">6 voices</span>
+    const specs: Record<string, string> = {}
+    const termRe = /class="specification-term"[^>]*title="([^"]+)"[^>]*>[\s\S]*?class="specification-value">([^<]+)/g
+    let m: RegExpExecArray | null
+    while ((m = termRe.exec(html)) !== null) {
+      const key = m[1].trim()
+      const val = m[2].trim()
+      if (val && val.toLowerCase() !== 'none' && val !== '-') {
+        specs[key] = val
+      }
+    }
+    console.log(`  📋  VSE specs fundet (${Object.keys(specs).length}):`, JSON.stringify(specs, null, 2))
+
+    // ── Extract body text for history/description ──
+    const paragraphs: string[] = []
+    const pRe = /<p>([^<]{40,})<\/p>/g
+    while ((m = pRe.exec(html)) !== null) {
+      paragraphs.push(m[1].replace(/<[^>]+>/g, '').trim())
+    }
+    const text = paragraphs.join('\n\n').slice(0, 1000)
+
+    return { text, specs }
   } catch (e) {
     console.warn(`  ⚠️  VSE miss (${vsePath}): ${(e as Error).message}`)
-    return ''
+    return { text: '', specs: {} }
   }
+}
+
+// ── Map VSE spec keys → our canonical keys ────────────────────────────────────
+function normaliseVSESpecs(raw: Record<string, string>): Record<string, string | number | boolean> {
+  const out: Record<string, string | number | boolean> = {}
+  const map: Record<string, string> = {
+    'Polyphony':     'polyphony',
+    'Oscillators':   'oscillators',
+    'LFO':           'lfo',
+    'Filter':        'filter',
+    'VCA':           'vca',
+    'Keyboard':      'keys',
+    'Memory':        'memory',
+    'Control':       'control',
+    'Date Produced': 'production_years',
+    'Arpeg/Seq':     'arpeggiator',
+    'Effects':       'effects',
+  }
+  for (const [vseKey, ourKey] of Object.entries(map)) {
+    if (raw[vseKey]) out[ourKey] = raw[vseKey]
+  }
+  // Parse midi bool from control field
+  if (typeof out.control === 'string' && /midi/i.test(out.control)) {
+    out.midi = true
+  }
+  return out
 }
 
 // ── Haiku helpers ─────────────────────────────────────────────────────────────
@@ -277,9 +325,12 @@ async function enrichProduct(target: ProductTarget, allSlugs: string[]): Promise
   const reverbUrl     = csp?._links?.web?.href ?? ''
 
   let vseText = ''
+  let vseRawSpecs: Record<string, string> = {}
   if (vsePath) {
     console.log('   Fetching Vintage Synth Explorer…')
-    vseText = await fetchVSE(vsePath)
+    const vseResult = await fetchVSE(vsePath)
+    vseText     = vseResult.text
+    vseRawSpecs = vseResult.specs
   }
 
   // Prioritér VSE som primær kilde til history hvis Wikipedia-extract er kort
@@ -341,17 +392,54 @@ Prioritér: forgængere, efterfølgere, samtidige konkurrenter.`
   if (vsePath)   external_links.push({ label: 'Vintage Synth Explorer', url: `https://www.vintagesynth.com${vsePath}` })
   if (reverbUrl) external_links.push({ label: 'Reverb',                 url: reverbUrl })
 
-  // ── Specs — build from structured data only (no hallucination) ──
-  // Wikipedia extract often has year ranges; we parse what we can from CSP listing
-  const specs: Record<string, string | number | boolean> = {}
+  // ── Specs: 1) VSE parse, 2) Wikipedia year fallback, 3) Haiku fallback ──
+  let specs: Record<string, string | number | boolean> = {}
+  let specsSource = 'none'
 
-  // Try to extract production years from Wikipedia extract
-  const yearsMatch = wikiExtract.match(/introduced in (\d{4})|(\d{4})–(\d{4})|since (\d{4})/i)
-  if (yearsMatch) {
-    const start = yearsMatch[1] || yearsMatch[2] || yearsMatch[4]
-    const end   = yearsMatch[3]
-    specs.production_years = end ? `${start}–${end}` : `${start}–`
+  if (Object.keys(vseRawSpecs).length > 0) {
+    specs = normaliseVSESpecs(vseRawSpecs)
+    specsSource = 'vse'
+    console.log(`  ✅  Specs fra VSE (${Object.keys(specs).length} felter)`)
+  } else {
+    // Wikipedia production years fallback
+    const yearsMatch = wikiExtract.match(/introduced in (\d{4})|(\d{4})[–-](\d{4})|since (\d{4})/i)
+    if (yearsMatch) {
+      const start = yearsMatch[1] || yearsMatch[2] || yearsMatch[4]
+      const end   = yearsMatch[3]
+      specs.production_years = end ? `${start}–${end}` : `${start}–`
+      specsSource = 'wikipedia'
+    }
+
+    // Haiku fallback — bruges kun hvis ingen anden kilde har specs
+    if (Object.keys(specs).length === 0) {
+      console.log('   Haiku → specs fallback…')
+      const haikuSpecs = await haikuJson<Record<string, unknown>>(
+        'You are a precise music gear encyclopedia. Output ONLY valid JSON — no markdown, no prose.',
+        `List technical specs for ${canonicalName} as JSON with these exact keys (omit any you are unsure of):
+{
+  "polyphony": "string e.g. '6 voices'",
+  "oscillators": "string",
+  "filter": "string",
+  "keys": "string e.g. '61 keys'",
+  "midi": true or false,
+  "production_years": "string e.g. '1984–1985'",
+  "weight_kg": number or null
+}
+Output ONLY valid JSON.`
+      )
+      if (haikuSpecs && typeof haikuSpecs === 'object') {
+        for (const [k, v] of Object.entries(haikuSpecs)) {
+          if (v !== null && v !== undefined && v !== '') specs[k] = v as string | number | boolean
+        }
+        if (Object.keys(specs).length > 0) {
+          specs._source = 'haiku'
+          specsSource = 'haiku'
+          console.log(`  ⚠️   Specs fra Haiku (ikke verificerede) — ${Object.keys(specs).length} felter`)
+        }
+      }
+    }
   }
+  console.log(`  📊  Specs-kilde: ${specsSource}`)
 
   // Filter related products mot faktiske KG-slugs, log hvad der fjernes
   let related_products: RelatedProduct[] | undefined
