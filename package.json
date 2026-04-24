@@ -18,7 +18,8 @@
     "process-price-queue": "tsx scripts/process-price-queue.ts",
     "build-thomann-urls": "tsx scripts/build-thomann-urls.ts",
     "fetch-thomann-prices": "tsx scripts/fetch-thomann-prices.ts",
-    "enrich-products": "tsx scripts/enrich-products.ts"
+    "enrich-products": "tsx scripts/enrich-products.ts",
+    "seed-reverb-categories": "tsx scripts/seed-reverb-categories.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.79.0",

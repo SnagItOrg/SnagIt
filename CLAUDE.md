@@ -335,4 +335,23 @@ er testet af rigtige brugere.
 
 ---
 
+---
+
+## Technical Debt
+
+### kg_product.category_id (legacy)
+
+The original `category_id` column on `kg_product` (pointing to the 4 coarse
+seed categories) is superseded by `subcategory_id`. It is retained for
+referential safety during the category migration. Remove it — along with the
+corresponding column on `kg_brand` — once:
+
+1. `subcategory_id` coverage reaches ~95% of active products
+2. Browse pages are live and verified
+3. No frontend code references `category_id` directly
+
+Run a cleanup migration at that point.
+
+---
+
 *Last updated: 2026-04-24*
