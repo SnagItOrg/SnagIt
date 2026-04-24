@@ -62,6 +62,13 @@ export function SideNav({ active, onChange }: Props) {
       ),
     },
     {
+      href: '/browse',
+      label: t.navBrowse,
+      icon: (
+        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>grid_view</span>
+      ),
+    },
+    {
       href: '/saved',
       label: t.navSaved,
       icon: (

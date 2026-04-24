@@ -52,6 +52,7 @@ export function BottomNav() {
   const isSaved         = pathname === '/saved'
   const isNotifications = pathname === '/watchlists' || pathname.startsWith('/watchlists/')
   const isProfil        = pathname === '/profile'
+  const isBrowse        = pathname === '/browse' || pathname.startsWith('/browse/')
 
   // Render nothing while auth state is resolving (avoids wrong-state flash)
   if (authed === null) return null
@@ -59,7 +60,7 @@ export function BottomNav() {
   // Simplified nav for unauthenticated users
   if (!authed) {
     return (
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex items-center justify-around px-6 pb-[env(safe-area-inset-bottom)]" style={{ minHeight: '64px' }}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex items-center justify-around px-4 pb-[env(safe-area-inset-bottom)]" style={{ minHeight: '64px' }}>
         {/* Search FAB */}
         <div className="flex flex-col items-center pb-1">
           <Link
@@ -76,6 +77,14 @@ export function BottomNav() {
             {t.navSearch}
           </span>
         </div>
+
+        {/* Browse */}
+        <NavItem
+          label={t.navBrowse}
+          active={isBrowse}
+          href="/browse"
+          icon={<span className="material-symbols-outlined" style={{ fontSize: '24px' }}>grid_view</span>}
+        />
 
         {/* Theme toggle */}
         <ThemeToggle />
@@ -114,6 +123,14 @@ export function BottomNav() {
           {t.navSearch}
         </span>
       </div>
+
+      {/* Browse */}
+      <NavItem
+        label={t.navBrowse}
+        active={isBrowse}
+        href="/browse"
+        icon={<span className="material-symbols-outlined" style={{ fontSize: '24px' }}>grid_view</span>}
+      />
 
       {/* Saved */}
       <NavItem

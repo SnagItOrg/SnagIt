@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, DM_Serif_Display } from "next/font/google";
 import Script from "next/script";
 import { Suspense } from 'react';
 import { LocaleProvider } from "@/components/LocaleProvider";
@@ -11,6 +11,12 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
+const dmSerifDisplay = DM_Serif_Display({
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+  variable: "--font-dm-serif",
+});
 
 export const metadata: Metadata = {
   title: "Klup",
@@ -43,7 +49,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} ${dmSerifDisplay.variable}`}>
         <PostHogProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
             <LocaleProvider>
