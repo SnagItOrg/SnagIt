@@ -333,10 +333,10 @@ async function enrichProduct(target: ProductTarget, allSlugs: string[]): Promise
     vseRawSpecs = vseResult.specs
   }
 
-  // Prioritér VSE som primær kilde til history hvis Wikipedia-extract er kort
+  // Prioritise VSE as primary history source when Wikipedia extract is short
   const wikiIsShort = wikiExtract.length < 200
   if (wikiIsShort && vseText) {
-    console.log(`   ℹ️   Wikipedia kort (${wikiExtract.length} tegn) — VSE er primær historikkilde`)
+    console.log(`   ℹ️   Wikipedia short (${wikiExtract.length} chars) — VSE is primary history source`)
   }
 
   const combinedText = (wikiIsShort && vseText
@@ -347,11 +347,11 @@ async function enrichProduct(target: ProductTarget, allSlugs: string[]): Promise
   // ── Description ──
   console.log('   Haiku → description…')
   const description = await haikuText(
-    'Du er redaktør på et dansk musikudstyr-site. Skriv altid på dansk. Returner KUN den rå tekst — ingen overskrifter, ingen markdown.',
-    `Skriv en beskrivelse på dansk på præcis 120-150 ord af ${canonicalName}.
-Stil: faktuel, engageret, ikke salgsorienteret.
-Inkluder: hvad gør den unik, hvem brugte den, hvornår den blev produceret.
-Brug disse kildetekster som grundlag:
+    'You are an editor for a music gear marketplace. Write only in English. Return ONLY raw text — no headings, no markdown.',
+    `Write a description in English of exactly 100-150 words for ${canonicalName}.
+Style: factual, concise, not promotional. Use standard music gear terminology.
+Include: what makes it unique, who used it, when it was produced.
+Use these source texts as a basis:
 ---
 ${combinedText}
 ---`
@@ -360,14 +360,14 @@ ${combinedText}
   // ── History ──
   console.log('   Haiku → history…')
   const history = await haikuJson<HistoryEvent[]>(
-    'Du er en historisk redaktør for et dansk musikudstyr-site. Output KUN valid JSON — ingen markdown, ingen forklaring.',
-    `Lav 3-4 historiske milepæle for ${canonicalName}.
-Brug kildeteksten nedenfor som grundlag. Hvis kildeteksten er tynd, suppler med din viden om instrumentet.
-Milepæle bør dække: lancering, gennembrud/popularitet, produktionsstop/arv.
-Output KUN et JSON array:
-[{ "year": number, "title": "string (max 4 ord, dansk)", "body": "string (max 30 ord, dansk)" }]
+    'You are a music gear historian. Output ONLY valid JSON — no markdown, no explanation.',
+    `Create 3-4 historical milestones for ${canonicalName}.
+Use the source text below as a basis. If the source text is thin, supplement with your knowledge of the instrument.
+Milestones should cover: launch, breakthrough/popularity, end of production, legacy.
+Output ONLY a JSON array:
+[{ "year": number, "title": "string (max 4 words, English)", "body": "string (max 30 words, English)" }]
 
-Kildetekst:
+Source text:
 ---
 ${combinedText}
 ---`
@@ -376,14 +376,14 @@ ${combinedText}
   // ── Related products ──
   console.log('   Haiku → related products…')
   const related = await haikuJson<RelatedProduct[]>(
-    'Du er musikekspert. Output KUN valid JSON — ingen markdown, ingen forklaring.',
-    `Foreslå 3-5 relaterede musikinstrumenter til ${canonicalName}.
-Disse produkter SKAL eksistere i denne liste (brug kun slugs herfra):
+    'You are a music gear expert. Output ONLY valid JSON — no markdown, no explanation.',
+    `Suggest 3-5 related instruments to ${canonicalName}.
+These products MUST exist in this list (use only slugs from here):
 ${allSlugs.join(', ')}
 
-Output KUN et JSON array:
-[{ "slug": "string (fra listen ovenfor)", "reason": "string (max 8 ord, dansk)" }]
-Prioritér: forgængere, efterfølgere, samtidige konkurrenter.`
+Output ONLY a JSON array:
+[{ "slug": "string (from the list above)", "reason": "string (max 8 words, English)" }]
+Prioritise: predecessors, successors, contemporary competitors.`
   )
 
   // ── External links ──
