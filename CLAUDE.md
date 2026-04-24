@@ -298,6 +298,32 @@ Ryddes over tid — ikke akut.
 
 ---
 
+## Community features — planlagt (ikke bygget)
+
+**Filosofi:** Co-creation er i fundamentet af Klup. Brugerne
+definerer hvad der er vigtigt — ikke redaktionen.
+
+**Product pages (wiki-agtig model):**
+- Nominer notable artists/spillere per produkt
+- Reddit-style upvote på artist-nominations
+- Foreslå ændringer til specs/description (pending admin review)
+- Produktsider er tilgængelige uden login
+
+**Platform-ønsker:**
+- Brugere kan stemme på hvilke platforme vi skal understøtte
+- Bug reports + feature requests med upvote
+- Ønsk ny product page (demand-driven KG-vækst)
+
+**Teknisk implikation:**
+- Kræver: votes-tabel, suggestions-tabel, public read på product pages
+- RLS: public read, authenticated write, admin approve
+- Ingen builds før core matching + product pages er stabile
+
+**Prioritet:** efter match-listings er verified + produktsider
+er testet af rigtige brugere.
+
+---
+
 ## What Claude Code should do at session start
 
 1. Read this file
