@@ -247,8 +247,9 @@ export default function ProductPage() {
                           }}
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           formatter={(v: any) => [`${Number(v).toLocaleString('da-DK')} kr`, 'Pris']}
-                          labelFormatter={(l: string) =>
-                            new Date(l).toLocaleDateString('da-DK', { month: 'short', year: 'numeric' })
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          labelFormatter={(l: any) =>
+                            new Date(String(l)).toLocaleDateString('da-DK', { month: 'short', year: 'numeric' })
                           }
                         />
                         <Area
