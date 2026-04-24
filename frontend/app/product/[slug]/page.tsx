@@ -28,13 +28,13 @@ export default function ProductPage() {
   const params = useParams()
   const slug = params.slug as string
 
-  const [product, setProduct]       = useState<Product | null>(null)
-  const [listings, setListings]     = useState<Listing[]>([])
+  const [product, setProduct]           = useState<Product | null>(null)
+  const [listings, setListings]         = useState<Listing[]>([])
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([])
-  const [priceRange, setPriceRange] = useState<PriceRange | null>(null)
-  const [loading, setLoading]       = useState(true)
-  const [notFound, setNotFound]     = useState(false)
-  const [imgError, setImgError]     = useState(false)
+  const [priceRange, setPriceRange]     = useState<PriceRange | null>(null)
+  const [loading, setLoading]           = useState(true)
+  const [notFound, setNotFound]         = useState(false)
+  const [imgError, setImgError]         = useState(false)
 
   const [showModal,  setShowModal]  = useState(false)
   const [modalQuery, setModalQuery] = useState('')
@@ -81,21 +81,31 @@ export default function ProductPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-bg text-foreground flex">
+    <div className="min-h-screen bg-background text-foreground flex">
       <SideNav active="soeg" onChange={() => {}} />
 
-      <main className="flex-1 md:pl-60 flex flex-col pb-24 md:pb-6">
+      <main className="flex-1 md:pl-60 flex flex-col pb-24 md:pb-10">
         <MobileSearchBar />
 
-        <div className="flex flex-col px-4 pt-2 md:px-8 md:pt-6 max-w-2xl w-full">
+        <div className="flex flex-col px-4 pt-4 md:px-8 md:pt-8 max-w-4xl w-full">
+
+          {/* ── Loading skeleton ──────────────────────────────── */}
           {loading ? (
-            <div className="flex flex-col gap-4">
-              <div className="h-8 w-2/3 rounded-lg bg-muted animate-pulse" />
-              <div className="h-4 w-1/3 rounded bg-muted animate-pulse" />
-              <div className="h-4 w-1/4 rounded bg-muted animate-pulse" />
+            <div className="grid lg:grid-cols-2 gap-8">
+              <div className="aspect-square rounded-2xl bg-muted animate-pulse" />
+              <div className="flex flex-col gap-4 pt-2">
+                <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+                <div className="h-8 w-3/4 rounded-lg bg-muted animate-pulse" />
+                <div className="h-3 w-20 rounded bg-muted animate-pulse" />
+                <div className="h-12 w-2/3 rounded-lg bg-muted animate-pulse mt-4" />
+                <div className="h-3 w-32 rounded bg-muted animate-pulse" />
+                <div className="h-11 w-full rounded-xl bg-muted animate-pulse mt-6" />
+              </div>
             </div>
           ) : notFound || !product ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+
+            /* ── Not found ──────────────────────────────────── */
+            <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
               <span
                 className="material-symbols-outlined"
                 style={{ fontSize: '48px', color: 'var(--muted-foreground)' }}
@@ -106,93 +116,159 @@ export default function ProductPage() {
             </div>
           ) : (
             <>
-              {/* Product header */}
-              <div className="flex gap-4 mb-6">
-                {product.image_url && !imgError && (
-                  <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-muted">
+              {/* ── Hero: image + info ────────────────────────── */}
+              <div className="grid lg:grid-cols-2 gap-8 mb-10">
+
+                {/* Left — product image */}
+                <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted flex-shrink-0">
+                  {product.image_url && !imgError ? (
                     <Image
                       src={product.image_url}
                       alt={product.canonical_name}
-                      width={96}
-                      height={96}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                       onError={() => setImgError(true)}
+                      sizes="(max-width: 1024px) 100vw, 50vw"
                     />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: 72, color: 'var(--muted-foreground)' }}
+                      >
+                        piano
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right — product info */}
+                <div className="flex flex-col gap-5 lg:justify-center">
+
+                  {/* Brand + name + era */}
+                  <div className="flex flex-col gap-1">
+                    {product.kg_brand && (
+                      <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                        {product.kg_brand.name}
+                      </p>
+                    )}
+                    <h1 className="text-2xl font-bold leading-tight text-foreground">
+                      {product.canonical_name}
+                    </h1>
+                    {product.era && (
+                      <p className="text-sm text-muted-foreground">{product.era}</p>
+                    )}
                   </div>
-                )}
-                <div className="flex flex-col gap-1 justify-center">
-                  {product.kg_brand && (
-                    <p className="text-sm text-muted-foreground">{product.kg_brand.name}</p>
+
+                  {/* Typical used price */}
+                  {priceRange ? (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Typisk brugtpris
+                      </p>
+                      <p className="text-3xl font-bold tracking-tight text-foreground">
+                        {priceRange.low.toLocaleString('da-DK')}
+                        <span className="text-muted-foreground font-normal mx-2">–</span>
+                        {priceRange.high.toLocaleString('da-DK')} kr
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Median {priceRange.median.toLocaleString('da-DK')} kr
+                        <span className="mx-1.5">·</span>
+                        baseret på {priceRange.count} salg
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Ikke nok prisdata til at beregne typisk pris endnu.
+                    </p>
                   )}
-                  <h1 className="text-xl font-bold text-foreground">{product.canonical_name}</h1>
-                  {product.era && (
-                    <p className="text-sm text-muted-foreground">{product.era}</p>
-                  )}
+
+                  {/* Thomann new price reference */}
                   {product.thomann_price_dkk != null && product.thomann_url && (
                     <a
                       href={product.thomann_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm font-semibold hover:opacity-80 transition-opacity"
-                      style={{ color: 'var(--foreground)' }}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      Ny pris: {product.thomann_price_dkk.toLocaleString('da-DK')} kr hos Thomann →
+                      Ny fra Thomann:{' '}
+                      <span className="font-semibold text-foreground">
+                        {product.thomann_price_dkk.toLocaleString('da-DK')} kr
+                      </span>{' '}
+                      →
                     </a>
                   )}
+
+                  {/* Listing count + watchlist CTA */}
+                  <div className="flex flex-col gap-2 pt-4 border-t border-border">
+                    <p className="text-sm text-muted-foreground">
+                      {listings.length === 0
+                        ? 'Ingen aktive annoncer'
+                        : `${listings.length} ${listings.length === 1 ? 'aktiv annonce' : 'aktive annoncer'} til salg`}
+                    </p>
+                    <button
+                      onClick={() => handleCreateWatchlist()}
+                      className="w-full px-5 py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-80"
+                      style={{ background: 'var(--foreground)', color: 'var(--background)' }}
+                    >
+                      + Tilføj til watchlist
+                    </button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Få besked når nye annoncer dukker op
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Typisk pris + prishistorik */}
-              {(priceRange || priceHistory.length > 0) && (
-                <div className="flex flex-col gap-3 mb-6 p-4 rounded-xl bg-muted/40 border border-border">
-                  {priceRange && (
-                    <div className="flex flex-col gap-0.5">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Typisk brugtpris</p>
-                      <p className="text-lg font-semibold text-foreground">
-                        {priceRange.low.toLocaleString('da-DK')} – {priceRange.high.toLocaleString('da-DK')} kr
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Median {priceRange.median.toLocaleString('da-DK')} kr · baseret på {priceRange.count} salg
-                      </p>
-                    </div>
-                  )}
-                  {priceHistory.length >= 5 && (
-                    <div className="h-24 w-full mt-1">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={priceHistory} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-                          <defs>
-                            <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.15} />
-                              <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <XAxis dataKey="sold_at" hide />
-                          <YAxis hide domain={['auto', 'auto']} />
-                          <Tooltip
-                            contentStyle={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
-                            formatter={(v: number) => [`${v.toLocaleString('da-DK')} kr`, 'Pris']}
-                            labelFormatter={(l: string) => new Date(l).toLocaleDateString('da-DK', { month: 'short', year: 'numeric' })}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="price"
-                            stroke="var(--foreground)"
-                            strokeWidth={1.5}
-                            fill="url(#priceGrad)"
-                            dot={false}
-                            activeDot={{ r: 3 }}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
+              {/* ── Price history ─────────────────────────────── */}
+              {priceHistory.length >= 5 && (
+                <div className="flex flex-col gap-3 mb-10 p-5 rounded-2xl border border-border">
+                  <div className="flex items-baseline justify-between">
+                    <p className="text-sm font-medium text-foreground">Prishistorik</p>
+                    <p className="text-xs text-muted-foreground">{priceHistory.length} salg registreret</p>
+                  </div>
+                  <div className="h-28 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={priceHistory} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.12} />
+                            <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis dataKey="sold_at" hide />
+                        <YAxis hide domain={['auto', 'auto']} />
+                        <Tooltip
+                          contentStyle={{
+                            background: 'var(--background)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 8,
+                            fontSize: 12,
+                          }}
+                          formatter={(v: number) => [`${v.toLocaleString('da-DK')} kr`, 'Pris']}
+                          labelFormatter={(l: string) =>
+                            new Date(l).toLocaleDateString('da-DK', { month: 'short', year: 'numeric' })
+                          }
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="price"
+                          stroke="var(--foreground)"
+                          strokeWidth={1.5}
+                          fill="url(#priceGrad)"
+                          dot={false}
+                          activeDot={{ r: 3 }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               )}
 
-              {/* Active listings */}
+              {/* ── Active listings ───────────────────────────── */}
               {listings.length > 0 && (
                 <div className="flex flex-col gap-3">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm font-medium text-foreground">
                     {listings.length} {listings.length === 1 ? 'annonce' : 'annoncer'}
                   </p>
                   {listings.map((listing) => (
@@ -209,7 +285,7 @@ export default function ProductPage() {
                 </div>
               )}
 
-              {listings.length === 0 && (
+              {listings.length === 0 && !loading && (
                 <p className="text-sm text-muted-foreground py-4">
                   Ingen aktive annoncer for dette produkt.
                 </p>
