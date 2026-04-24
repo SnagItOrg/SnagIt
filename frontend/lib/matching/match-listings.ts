@@ -36,7 +36,7 @@ interface Product {
 
 interface MatchCandidate {
   product_id: string
-  method:     'EAN' | 'SKU' | 'MODEL' | 'SYNONYM' | 'MODEL_NAME' | 'FUZZY'
+  method:     'EAN' | 'SKU' | 'MODEL' | 'SYNONYM' | 'FUZZY'
   score:      number
   explain:    Record<string, unknown>
 }
@@ -166,7 +166,7 @@ export async function matchListings(
         ) {
           candidates.push({
             product_id: product.id,
-            method:     'MODEL_NAME',
+            method:     'MODEL',
             score:      70,
             explain:    { matched_model_name: product.model_name },
           })

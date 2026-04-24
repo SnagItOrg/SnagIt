@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     listing_id,
     product_id,
     score:      1.0,   // manually confirmed — highest confidence
-    match_type: 'manual',
+    method:     'FUZZY',
   }))
 
   const { error } = await admin
