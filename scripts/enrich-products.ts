@@ -182,25 +182,35 @@ async function fetchReverbCSP(query: string): Promise<{ csp: ReverbCSP | null; l
     ) as { csps: ReverbCSP[] }
 
     const csp = data.csps?.[0] ?? null
+
+    // Log CSP links so we can see what Reverb returns
+    console.log('  📋  Reverb CSP _links:', JSON.stringify(csp?._links ?? null, null, 2))
+
     let listingDesc = ''
 
     // Try to get a listing for extra spec context — log raw JSON for inspection
-    if (csp?._links?.used_search?.href) {
+    const searchHref = csp?._links?.used_search?.href ?? csp?._links?.web?.href
+    if (searchHref) {
       try {
-        const listingsData = await fetchJson(
-          `${csp._links.used_search.href}&per_page=1`,
-          { 'Accept-Version': '3.0' }
-        ) as { listings: Array<Record<string, unknown>> }
+        const searchUrl = searchHref.includes('/api/')
+          ? `${searchHref}&per_page=1`
+          : `https://api.reverb.com/api/listings?query=${encodeURIComponent(query)}&per_page=1`
+        const listingsData = await fetchJson(searchUrl, { 'Accept-Version': '3.0' }) as { listings: Array<Record<string, unknown>> }
         const firstListing = listingsData.listings?.[0]
         if (firstListing) {
-          console.log('  📋  Reverb listing raw fields:', JSON.stringify(
-            Object.fromEntries(
-              Object.entries(firstListing).filter(([, v]) => typeof v !== 'object' || v === null)
-            ), null, 2
-          ))
+          const scalarFields = Object.fromEntries(
+            Object.entries(firstListing).filter(([, v]) => typeof v !== 'object' || v === null)
+          )
+          console.log('  📋  Reverb listing scalar fields:', JSON.stringify(scalarFields, null, 2))
           listingDesc = (firstListing.description as string | undefined)?.slice(0, 500) ?? ''
+        } else {
+          console.log('  ℹ️   Reverb listings: ingen resultater')
         }
-      } catch { /* optional */ }
+      } catch (le) {
+        console.warn(`  ⚠️  Reverb listings fetch fejlede: ${(le as Error).message}`)
+      }
+    } else {
+      console.log('  ℹ️   Reverb CSP: ingen used_search link')
     }
 
     return { csp, listingDesc }
@@ -299,12 +309,14 @@ ${combinedText}
   // ── History ──
   console.log('   Haiku → history…')
   const history = await haikuJson<HistoryEvent[]>(
-    'Du er en historisk redaktør. Output KUN valid JSON — ingen markdown, ingen forklaring.',
-    `Udtræk 3-4 historiske milepæle for ${canonicalName} fra denne tekst.
-Output KUN et JSON array med denne struktur:
+    'Du er en historisk redaktør for et dansk musikudstyr-site. Output KUN valid JSON — ingen markdown, ingen forklaring.',
+    `Lav 3-4 historiske milepæle for ${canonicalName}.
+Brug kildeteksten nedenfor som grundlag. Hvis kildeteksten er tynd, suppler med din viden om instrumentet.
+Milepæle bør dække: lancering, gennembrud/popularitet, produktionsstop/arv.
+Output KUN et JSON array:
 [{ "year": number, "title": "string (max 4 ord, dansk)", "body": "string (max 30 ord, dansk)" }]
 
-Tekst:
+Kildetekst:
 ---
 ${combinedText}
 ---`
