@@ -157,14 +157,21 @@ async function main() {
     try {
       const response = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 2000,
+        max_tokens: 4096,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       });
 
       const raw = response.content[0].type === 'text' ? response.content[0].text : '';
       const cleaned = stripMarkdown(raw);
-      results = JSON.parse(cleaned) as ClassificationResult[];
+      try {
+        results = JSON.parse(cleaned) as ClassificationResult[];
+      } catch (parseErr: any) {
+        console.error(`  Parse error: ${parseErr.message}`);
+        console.error(`  stop_reason: ${response.stop_reason}`);
+        console.error(`  Raw response (first 500 chars): ${cleaned.slice(0, 500)}`);
+        throw parseErr;
+      }
     } catch (err: any) {
       console.error(`Batch ${batchNum}/${totalBatches} — API/parse error: ${err.message}. Skipping batch.`);
       totalSkipped += batch.length;
