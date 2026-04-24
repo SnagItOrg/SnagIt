@@ -91,26 +91,37 @@ async function main() {
   // so it can only pick valid pairings.
   const taxonomyList = Array.from(subByCompound.keys()).sort().join('\n');
 
-  console.log(`Loaded ${rootBySlug.size} roots, ${subBySlug.size} subcategories from DB.`);
+  console.log(`Loaded ${rootBySlug.size} roots, ${subByCompound.size} subcategories from DB.`);
 
-  // Step 2: Fetch unclassified products
-  const { data: products, error: prodErr } = await supabase
-    .from('kg_product')
-    .select('id, canonical_name, model_name, kg_brand!inner(name)')
-    .is('subcategory_id', null)
-    .order('canonical_name') as any;
+  // Step 2: Fetch all unclassified products (paginated — Supabase caps at 1000/request)
+  const rows: ProductRow[] = [];
+  const PAGE = 1000;
+  let page = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('kg_product')
+      .select('id, canonical_name, model_name, kg_brand!inner(name)')
+      .is('subcategory_id', null)
+      .order('canonical_name')
+      .range(page * PAGE, (page + 1) * PAGE - 1) as any;
 
-  if (prodErr || !products) {
-    console.error('Failed to load products:', prodErr?.message);
-    process.exit(1);
+    if (error) {
+      console.error('Failed to load products:', error.message);
+      process.exit(1);
+    }
+    if (!data || data.length === 0) break;
+
+    for (const p of data) {
+      rows.push({
+        id: p.id,
+        canonical_name: p.canonical_name,
+        model_name: p.model_name ?? null,
+        brand_name: p.kg_brand.name,
+      });
+    }
+    if (data.length < PAGE) break;
+    page++;
   }
-
-  const rows: ProductRow[] = products.map((p: any) => ({
-    id: p.id,
-    canonical_name: p.canonical_name,
-    model_name: p.model_name ?? null,
-    brand_name: p.kg_brand.name,
-  }));
 
   const total = DRY_RUN ? Math.min(rows.length, BATCH_SIZE) : rows.length;
   const batch_rows = DRY_RUN ? rows.slice(0, BATCH_SIZE) : rows;
