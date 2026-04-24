@@ -245,7 +245,7 @@ export default function ProductPage() {
                             borderRadius: 8,
                             fontSize: 12,
                           }}
-                          formatter={(v: number) => [`${v.toLocaleString('da-DK')} kr`, 'Pris']}
+                          formatter={(v: number | string) => [`${Number(v).toLocaleString('da-DK')} kr`, 'Pris']}
                           labelFormatter={(l: string) =>
                             new Date(l).toLocaleDateString('da-DK', { month: 'short', year: 'numeric' })
                           }
