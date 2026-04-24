@@ -99,6 +99,15 @@ export async function matchListings(
   const idents   = (identsData   as Identifier[]) ?? []
   const synonyms = (synonymsData as Synonym[])    ?? []
 
+  // DEBUG — remove after diagnosis
+  console.error(`[DEBUG] products=${products.length} idents=${idents.length} synonyms=${synonyms.length} listings=${(listingsData ?? []).length}`)
+  if (products.length > 0) {
+    const sample = products.find(p => p.model_name)
+    console.error(`[DEBUG] sample product with model_name: ${JSON.stringify(sample)}`)
+  }
+  const firstListing = (listingsData as Listing[] ?? [])[0]
+  if (firstListing) console.error(`[DEBUG] first listing: ${JSON.stringify(firstListing)}`)
+
   // Pre-resolve canonical_query → product for each unique canonical
   const canonicalToProduct = new Map<string, Product>()
   for (const syn of synonyms) {
@@ -121,6 +130,7 @@ export async function matchListings(
     explain:    Record<string, unknown>
   }> = []
 
+  let debugCount = 0
   for (const listing of listings) {
     const norm       = listing.title.toLowerCase().trim()
     const candidates: MatchCandidate[] = []
@@ -175,7 +185,10 @@ export async function matchListings(
       }
     }
 
-    if (candidates.length === 0) continue
+    if (candidates.length === 0) {
+      if (debugCount++ < 3) console.error(`[DEBUG] no match for: "${listing.title.slice(0, 60)}"`)
+      continue
+    }
 
     const best = candidates.reduce((a, b) => b.score > a.score ? b : a)
     matchRows.push({
