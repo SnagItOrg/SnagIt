@@ -15,6 +15,12 @@ export type PriceRange = {
   count:  number
 }
 
+export type RelatedProduct = {
+  slug:       string
+  name:       string
+  image_url:  string | null
+}
+
 function iqrFilter(prices: number[]): number[] {
   if (prices.length < 4) return prices
   const sorted = [...prices].sort((a, b) => a - b)
@@ -47,7 +53,12 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
 
   const canonicalName = (product as unknown as Record<string, unknown>).canonical_name as string
 
-  const [matchesRes, reverbRes, auctionetRes] = await Promise.all([
+  // Resolve related product slugs from attributes
+  type AttrShape = { related_products?: Array<{ slug: string }> } | null
+  const attrs = (product as unknown as Record<string, unknown>).attributes as AttrShape
+  const relatedSlugs: string[] = (attrs?.related_products ?? []).map((r) => r.slug).slice(0, 6)
+
+  const [matchesRes, reverbRes, auctionetRes, relatedRes] = await Promise.all([
     admin
       .from('listing_product_match')
       .select('score, listings(*)')
@@ -68,6 +79,12 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
       .not('sold_at', 'is', null)
       .order('sold_at', { ascending: true })
       .limit(500),
+    relatedSlugs.length > 0
+      ? admin
+          .from('kg_product')
+          .select('slug, canonical_name, image_url')
+          .in('slug', relatedSlugs)
+      : Promise.resolve({ data: [] as { slug: string; canonical_name: string; image_url: string | null }[] }),
   ])
 
   const listings = (matchesRes.data ?? [])
@@ -98,7 +115,14 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
     ? { low: Math.min(...filtered), high: Math.max(...filtered), median: Math.round(median(filtered)), count: filtered.length }
     : null
 
-  return NextResponse.json({ product, listings, priceHistory, priceRange }, {
+  type RelatedRow = { slug: string; canonical_name: string; image_url: string | null }
+  const relatedProducts: RelatedProduct[] = ((relatedRes.data ?? []) as RelatedRow[]).map((r) => ({
+    slug:      r.slug,
+    name:      r.canonical_name,
+    image_url: r.image_url,
+  }))
+
+  return NextResponse.json({ product, listings, priceHistory, priceRange, relatedProducts }, {
     headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' },
   })
 }

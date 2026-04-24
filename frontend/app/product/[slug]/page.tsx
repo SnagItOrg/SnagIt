@@ -11,7 +11,15 @@ import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts'
 import type { Listing } from '@/lib/supabase'
-import type { PricePoint, PriceRange } from '@/app/api/product/[slug]/route'
+import type { PricePoint, PriceRange, RelatedProduct } from '@/app/api/product/[slug]/route'
+
+type ProductAttributes = {
+  description?:     string
+  specs?:           Record<string, string | boolean | number>
+  history?:         Array<{ year: number; title: string; body: string }>
+  external_links?:  Array<{ label: string; url: string }>
+  related_products?: Array<{ slug: string; reason: string }>
+}
 
 type Product = {
   id: string
@@ -22,6 +30,7 @@ type Product = {
   thomann_url: string | null
   image_url: string | null
   kg_brand: { name: string; slug: string } | null
+  attributes: ProductAttributes | null
 }
 
 export default function ProductPage() {
@@ -35,6 +44,8 @@ export default function ProductPage() {
   const [loading, setLoading]           = useState(true)
   const [notFound, setNotFound]         = useState(false)
   const [imgError, setImgError]         = useState(false)
+
+  const [relatedProducts, setRelatedProducts] = useState<RelatedProduct[]>([])
 
   const [showModal,  setShowModal]  = useState(false)
   const [modalQuery, setModalQuery] = useState('')
@@ -52,6 +63,7 @@ export default function ProductPage() {
         setListings(data.listings ?? [])
         setPriceHistory(data.priceHistory ?? [])
         setPriceRange(data.priceRange ?? null)
+        setRelatedProducts(data.relatedProducts ?? [])
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false))
@@ -263,6 +275,123 @@ export default function ProductPage() {
                         />
                       </AreaChart>
                     </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Description ───────────────────────────────── */}
+              {product.attributes?.description && (
+                <p className="text-foreground/80 leading-relaxed mb-10">
+                  {product.attributes.description}
+                </p>
+              )}
+
+              {/* ── Specs ─────────────────────────────────────── */}
+              {product.attributes?.specs && Object.keys(product.attributes.specs).filter((k) => k !== '_source').length > 0 && (
+                <div className="flex flex-col gap-3 mb-10">
+                  <p className="text-sm font-medium text-foreground">Specifications</p>
+                  <dl className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
+                    {Object.entries(product.attributes.specs)
+                      .filter(([k, v]) => k !== '_source' && v !== '' && v !== null && v !== undefined)
+                      .map(([key, value]) => (
+                        <div key={key} className="grid grid-cols-2 gap-4 px-4 py-2.5">
+                          <dt className="text-sm text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</dt>
+                          <dd className="text-sm text-foreground">
+                            {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
+                          </dd>
+                        </div>
+                      ))}
+                  </dl>
+                </div>
+              )}
+
+              {/* ── History ───────────────────────────────────── */}
+              {product.attributes?.history && product.attributes.history.length > 0 && (
+                <div className="flex flex-col gap-3 mb-10">
+                  <p className="text-sm font-medium text-foreground">History</p>
+                  <div className="flex flex-col">
+                    {product.attributes.history.map((milestone, i) => (
+                      <div key={i} className="flex gap-4">
+                        {/* Timeline spine */}
+                        <div className="flex flex-col items-center">
+                          <div
+                            className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold"
+                            style={{ background: 'var(--foreground)', color: 'var(--background)' }}
+                          >
+                            {milestone.year}
+                          </div>
+                          {i < product.attributes!.history!.length - 1 && (
+                            <div className="w-px flex-1 bg-border my-1" />
+                          )}
+                        </div>
+                        {/* Content */}
+                        <div className="pb-6 pt-2">
+                          <p className="text-sm font-semibold text-foreground leading-tight">{milestone.title}</p>
+                          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{milestone.body}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── External links ────────────────────────────── */}
+              {product.attributes?.external_links && product.attributes.external_links.length > 0 && (
+                <div className="flex flex-wrap gap-3 mb-10">
+                  {product.attributes.external_links.map((link) => (
+                    <a
+                      key={link.url}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: 14 }}
+                      >
+                        open_in_new
+                      </span>
+                      {link.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Related products ──────────────────────────── */}
+              {relatedProducts.length > 0 && (
+                <div className="flex flex-col gap-3 mb-10">
+                  <p className="text-sm font-medium text-foreground">Related gear</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {relatedProducts.map((rel) => (
+                      <a
+                        key={rel.slug}
+                        href={`/product/${rel.slug}`}
+                        className="flex flex-col gap-2 rounded-xl border border-border overflow-hidden hover:border-foreground/30 transition-colors"
+                      >
+                        <div className="aspect-square bg-muted relative">
+                          {rel.image_url ? (
+                            <Image
+                              src={rel.image_url}
+                              alt={rel.name}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 640px) 50vw, 33vw"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <span
+                                className="material-symbols-outlined"
+                                style={{ fontSize: 32, color: 'var(--muted-foreground)' }}
+                              >
+                                piano
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs font-medium text-foreground px-3 pb-3 leading-snug">{rel.name}</p>
+                      </a>
+                    ))}
                   </div>
                 </div>
               )}
