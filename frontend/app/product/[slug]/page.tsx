@@ -9,7 +9,9 @@ import { SearchResultCard } from '@/components/SearchResultCard'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts'
 import type { Listing } from '@/lib/supabase'
+import type { PricePoint, PriceRange } from '@/app/api/product/[slug]/route'
 
 type Product = {
   id: string
@@ -26,11 +28,13 @@ export default function ProductPage() {
   const params = useParams()
   const slug = params.slug as string
 
-  const [product, setProduct]   = useState<Product | null>(null)
-  const [listings, setListings] = useState<Listing[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [notFound, setNotFound] = useState(false)
-  const [imgError, setImgError] = useState(false)
+  const [product, setProduct]       = useState<Product | null>(null)
+  const [listings, setListings]     = useState<Listing[]>([])
+  const [priceHistory, setPriceHistory] = useState<PricePoint[]>([])
+  const [priceRange, setPriceRange] = useState<PriceRange | null>(null)
+  const [loading, setLoading]       = useState(true)
+  const [notFound, setNotFound]     = useState(false)
+  const [imgError, setImgError]     = useState(false)
 
   const [showModal,  setShowModal]  = useState(false)
   const [modalQuery, setModalQuery] = useState('')
@@ -46,6 +50,8 @@ export default function ProductPage() {
         if (!data) return
         setProduct(data.product)
         setListings(data.listings ?? [])
+        setPriceHistory(data.priceHistory ?? [])
+        setPriceRange(data.priceRange ?? null)
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false))
@@ -135,6 +141,53 @@ export default function ProductPage() {
                   )}
                 </div>
               </div>
+
+              {/* Typisk pris + prishistorik */}
+              {(priceRange || priceHistory.length > 0) && (
+                <div className="flex flex-col gap-3 mb-6 p-4 rounded-xl bg-muted/40 border border-border">
+                  {priceRange && (
+                    <div className="flex flex-col gap-0.5">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Typisk brugtpris</p>
+                      <p className="text-lg font-semibold text-foreground">
+                        {priceRange.low.toLocaleString('da-DK')} – {priceRange.high.toLocaleString('da-DK')} kr
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Median {priceRange.median.toLocaleString('da-DK')} kr · baseret på {priceRange.count} salg
+                      </p>
+                    </div>
+                  )}
+                  {priceHistory.length >= 5 && (
+                    <div className="h-24 w-full mt-1">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={priceHistory} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.15} />
+                              <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <XAxis dataKey="sold_at" hide />
+                          <YAxis hide domain={['auto', 'auto']} />
+                          <Tooltip
+                            contentStyle={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
+                            formatter={(v: number) => [`${v.toLocaleString('da-DK')} kr`, 'Pris']}
+                            labelFormatter={(l: string) => new Date(l).toLocaleDateString('da-DK', { month: 'short', year: 'numeric' })}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="price"
+                            stroke="var(--foreground)"
+                            strokeWidth={1.5}
+                            fill="url(#priceGrad)"
+                            dot={false}
+                            activeDot={{ r: 3 }}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Active listings */}
               {listings.length > 0 && (
