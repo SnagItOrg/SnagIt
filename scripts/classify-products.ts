@@ -48,8 +48,7 @@ interface ProductRow {
 
 interface ClassificationResult {
   id: string;
-  reverb_root_slug: string;
-  reverb_sub_slug: string;
+  slug: string; // compound "root/sub" — must be an exact entry from the taxonomy list
   confidence: number;
 }
 
@@ -77,27 +76,20 @@ async function main() {
     process.exit(1);
   }
 
-  const rootBySlug = new Map<string, string>(); // root slug → id
-  const subBySlug  = new Map<string, string>(); // compound slug → id
-  // Also a quick set of just the reverb sub_slugs (bare, not compound) per root
-  // to validate AI output: reverb_root_slug + reverb_sub_slug must map to a valid compound slug
-  const validCompound = new Set<string>();
+  const rootBySlug    = new Map<string, string>(); // root slug → id
+  const subByCompound = new Map<string, string>(); // "root/sub" → id
 
   for (const row of catRows as CategoryRow[]) {
     if (row.parent_id === null) {
       rootBySlug.set(row.slug, row.id);
     } else {
-      subBySlug.set(row.slug, row.id); // compound: "electric-guitars/solid-body"
-      validCompound.add(row.slug);
+      subByCompound.set(row.slug, row.id); // e.g. "electric-guitars/solid-body"
     }
   }
 
-  const rootSlugs = Array.from(rootBySlug.keys()).sort();
-  // For the prompt, give AI just the bare sub-slugs (right side of "/")
-  const subSlugsForPrompt = Array.from(subBySlug.keys())
-    .map((s) => s.split('/')[1])
-    .filter((v, i, a) => a.indexOf(v) === i) // unique
-    .sort();
+  // Full taxonomy list given to the model — no separate root+sub lists,
+  // so it can only pick valid pairings.
+  const taxonomyList = Array.from(subByCompound.keys()).sort().join('\n');
 
   console.log(`Loaded ${rootBySlug.size} roots, ${subBySlug.size} subcategories from DB.`);
 
@@ -127,8 +119,9 @@ async function main() {
   console.log(`Found ${rows.length} unclassified products. Processing ${total} in ${totalBatches} batch(es).\n`);
 
   const systemPrompt =
-    'You are a music gear taxonomy classifier. Given a list of products, ' +
-    'return a JSON array mapping each to the closest Reverb subcategory. ' +
+    'You are a music gear taxonomy classifier. Given a list of products and a taxonomy, ' +
+    'return a JSON array mapping each product to the single closest taxonomy entry. ' +
+    'You MUST only use slug values that appear exactly in the provided taxonomy list. ' +
     'Respond ONLY with a valid JSON array — no markdown, no preamble.';
 
   let totalClassified = 0;
@@ -140,16 +133,15 @@ async function main() {
     const batchNum = i + 1;
 
     const userPrompt =
-      `Classify each product into the closest Reverb music gear category.\n\n` +
-      `Valid root slugs: ${rootSlugs.join(', ')}\n\n` +
-      `Valid sub slugs: ${subSlugsForPrompt.join(', ')}\n\n` +
-      `Products:\n${JSON.stringify(batch.map(p => ({
+      `Classify each product using ONLY a slug from the taxonomy list below.\n\n` +
+      `TAXONOMY (one valid slug per line, format is root/subcategory):\n${taxonomyList}\n\n` +
+      `PRODUCTS:\n${JSON.stringify(batch.map(p => ({
         id: p.id,
         canonical_name: p.canonical_name,
         brand_name: p.brand_name,
       })), null, 2)}\n\n` +
-      `Return ONLY a JSON array:\n` +
-      `[{ "id": "...", "reverb_root_slug": "...", "reverb_sub_slug": "...", "confidence": 0-100 }, ...]\n` +
+      `Return ONLY a JSON array — every slug must be copied exactly from the taxonomy list:\n` +
+      `[{ "id": "...", "slug": "root/subcategory", "confidence": 0-100 }, ...]\n` +
       `confidence is 0-100. Use 50 if genuinely uncertain.`;
 
     let results: ClassificationResult[] = [];
@@ -184,25 +176,21 @@ async function main() {
     let skipped    = 0;
 
     for (const result of results) {
-      const compound = `${result.reverb_root_slug}/${result.reverb_sub_slug}`;
-      const rootValid = rootBySlug.has(result.reverb_root_slug);
-      const subValid  = validCompound.has(compound);
+      const subcategory_id = subByCompound.get(result.slug);
 
-      if (!rootValid || !subValid) {
-        console.warn(
-          `  [skip] ${result.id} — invalid slugs: root="${result.reverb_root_slug}" sub="${result.reverb_sub_slug}"`,
-        );
+      if (!subcategory_id) {
+        console.warn(`  [skip] ${result.id} — unknown slug: "${result.slug}"`);
         skipped++;
         skippedIds.push(result.id);
         continue;
       }
 
-      const subcategory_id = subBySlug.get(compound)!;
+      const [reverb_root_slug, reverb_sub_slug] = result.slug.split('/');
 
       if (DRY_RUN) {
         const product = batch.find((p) => p.id === result.id);
         console.log(`  [would write] ${product?.canonical_name}`);
-        console.log(`    root="${result.reverb_root_slug}" sub="${result.reverb_sub_slug}" confidence=${result.confidence}`);
+        console.log(`    slug="${result.slug}" confidence=${result.confidence}`);
         console.log(`    subcategory_id=${subcategory_id}`);
         classified++;
         continue;
@@ -213,8 +201,8 @@ async function main() {
         .update({
           subcategory_id,
           subcategory_confidence: result.confidence,
-          reverb_root_slug: result.reverb_root_slug,
-          reverb_sub_slug: result.reverb_sub_slug,
+          reverb_root_slug,
+          reverb_sub_slug,
         })
         .eq('id', result.id);
 
