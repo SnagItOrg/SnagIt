@@ -73,7 +73,8 @@ function resolveCanonical(canonical: string, products: Product[]): Product | und
 // ── Pagination helper (PostgREST caps at 1000 rows regardless of .limit()) ────
 
 async function fetchAllRows<T>(
-  builder: () => ReturnType<SupabaseClient['from']>['select'],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  builder: () => any,
   pageSize = 1000,
   label = 'table',
 ): Promise<T[]> {
