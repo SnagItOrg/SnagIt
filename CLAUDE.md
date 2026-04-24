@@ -82,7 +82,7 @@ If the product can answer that without the user having to think, we're building 
 | `fetch-reverb-prices` | Daily 03:00 | Running |
 | `fetch-thomann-prices` | Sunday 03:00 | Running |
 | `process-price-queue` | Every 5 min | Running |
-| `match-listings` | On demand | **Stopped** — restart after `listing_product_match` cleanup |
+| `match-listings` | Every 30 min | Running — 40% match-rate |
 
 ---
 
@@ -289,9 +289,10 @@ Revisit when Player II arrives in the DK catalogue.
 
 ### match-listings: ✅ LØST (2026-04-24)
 
-Fix: model_name-matching tilføjet. 139/490 matches på første kørsel (28%).
-PM2 kører hver time — listing_product_match vokser ~140 rows/time.
-source-filter og brand_id IS NOT NULL sikrer kun musikudstyr processeres.
+Fix 1: upsert med ignoreDuplicates — constraint-fejl skippede hele batches
+Fix 2: range() pagination — PostgREST max-rows = 1000 kan ikke overrides med .limit()
+Match-rate: 40% (145/359 per kørsel)
+PM2: kører hvert 30. min, listing_product_match vokser gradvist
 
 Synonym-tabel: 1.266 aliases, 1.128 er > 30 tegn (ubrugelige).
 Ryddes over tid — ikke akut.
