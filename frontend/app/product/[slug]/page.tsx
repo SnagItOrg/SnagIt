@@ -29,6 +29,7 @@ type Product = {
   thomann_price_dkk: number | null
   thomann_url: string | null
   image_url: string | null
+  hero_image_url: string | null
   kg_brand: { name: string; slug: string } | null
   attributes: ProductAttributes | null
 }
@@ -133,9 +134,9 @@ export default function ProductPage() {
 
                 {/* Left — product image */}
                 <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted flex-shrink-0">
-                  {product.image_url && !imgError ? (
+                  {(product.hero_image_url ?? product.image_url) && !imgError ? (
                     <Image
-                      src={product.image_url}
+                      src={(product.hero_image_url ?? product.image_url)!}
                       alt={product.canonical_name}
                       fill
                       className="object-cover"
@@ -286,54 +287,65 @@ export default function ProductPage() {
                 </p>
               )}
 
-              {/* ── Specs ─────────────────────────────────────── */}
-              {product.attributes?.specs && Object.keys(product.attributes.specs).filter((k) => k !== '_source').length > 0 && (
-                <div className="flex flex-col gap-3 mb-10">
-                  <p className="text-sm font-medium text-foreground">Specifications</p>
-                  <dl className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
-                    {Object.entries(product.attributes.specs)
-                      .filter(([k, v]) => k !== '_source' && v !== '' && v !== null && v !== undefined)
-                      .map(([key, value]) => (
-                        <div key={key} className="grid grid-cols-2 gap-4 px-4 py-2.5">
-                          <dt className="text-sm text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</dt>
-                          <dd className="text-sm text-foreground">
-                            {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
-                          </dd>
-                        </div>
-                      ))}
-                  </dl>
-                </div>
-              )}
+              {/* ── Specs + History — 2-col on desktop ────────── */}
+              {(() => {
+                const hasSpecs = !!(product.attributes?.specs &&
+                  Object.keys(product.attributes.specs).filter((k) => k !== '_source').length > 0)
+                const hasHistory = !!(product.attributes?.history && product.attributes.history.length > 0)
+                if (!hasSpecs && !hasHistory) return null
+                return (
+                  <div className={`grid gap-6 mb-10 items-start${hasSpecs && hasHistory ? ' lg:grid-cols-2' : ''}`}>
 
-              {/* ── History ───────────────────────────────────── */}
-              {product.attributes?.history && product.attributes.history.length > 0 && (
-                <div className="flex flex-col gap-3 mb-10">
-                  <p className="text-sm font-medium text-foreground">History</p>
-                  <div className="flex flex-col">
-                    {product.attributes.history.map((milestone, i) => (
-                      <div key={i} className="flex gap-4">
-                        {/* Timeline spine */}
-                        <div className="flex flex-col items-center">
-                          <div
-                            className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold"
-                            style={{ background: 'var(--foreground)', color: 'var(--background)' }}
-                          >
-                            {milestone.year}
-                          </div>
-                          {i < product.attributes!.history!.length - 1 && (
-                            <div className="w-px flex-1 bg-border my-1" />
-                          )}
-                        </div>
-                        {/* Content */}
-                        <div className="pb-6 pt-2">
-                          <p className="text-sm font-semibold text-foreground leading-tight">{milestone.title}</p>
-                          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{milestone.body}</p>
+                    {/* Specs card */}
+                    {hasSpecs && (
+                      <div className="rounded-2xl border border-border p-6">
+                        <p className="text-sm font-semibold text-foreground mb-4">Specifications</p>
+                        <dl className="divide-y divide-border">
+                          {Object.entries(product.attributes!.specs!)
+                            .filter(([k, v]) => k !== '_source' && v !== '' && v !== null && v !== undefined)
+                            .map(([key, value]) => (
+                              <div key={key} className="flex justify-between gap-4 py-2.5">
+                                <dt className="text-sm text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</dt>
+                                <dd className="text-sm text-foreground text-right">
+                                  {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
+                                </dd>
+                              </div>
+                            ))}
+                        </dl>
+                      </div>
+                    )}
+
+                    {/* History card */}
+                    {hasHistory && (
+                      <div className="rounded-2xl border border-border p-6">
+                        <p className="text-sm font-semibold text-foreground mb-4">Product History</p>
+                        <div className="flex flex-col">
+                          {product.attributes!.history!.map((milestone, i) => (
+                            <div key={i} className="flex gap-4">
+                              <div className="flex flex-col items-center">
+                                <div
+                                  className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-bold"
+                                  style={{ background: 'var(--foreground)', color: 'var(--background)', fontSize: 11 }}
+                                >
+                                  {milestone.year}
+                                </div>
+                                {i < product.attributes!.history!.length - 1 && (
+                                  <div className="w-px flex-1 bg-border my-1" />
+                                )}
+                              </div>
+                              <div className="pb-5 pt-1.5">
+                                <p className="text-sm font-semibold text-foreground leading-tight">{milestone.title}</p>
+                                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{milestone.body}</p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    )}
+
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
               {/* ── External links ────────────────────────────── */}
               {product.attributes?.external_links && product.attributes.external_links.length > 0 && (
