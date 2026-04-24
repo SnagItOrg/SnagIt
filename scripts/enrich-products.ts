@@ -87,7 +87,7 @@ const TARGETS: ProductTarget[] = [
     canonicalName:  'Roland Juno-60',
     wikipediaTitle: 'Roland_Juno-60',
     reverbQuery:    'Roland Juno-60',
-    vsePath:        '/roland/juno60',
+    vsePath:        '/roland/juno-60',
   },
   {
     slug:           'roland-juno-106',
@@ -101,7 +101,7 @@ const TARGETS: ProductTarget[] = [
     canonicalName:  'Roland Jupiter-8',
     wikipediaTitle: 'Roland_Jupiter-8',
     reverbQuery:    'Roland Jupiter-8',
-    vsePath:        '/roland/jupiter8',
+    vsePath:        '/roland/jupiter-8',
   },
 ]
 
@@ -310,7 +310,7 @@ async function haikuJson<T>(systemPrompt: string, userContent: string): Promise<
 }
 
 // ── Main enrichment logic ─────────────────────────────────────────────────────
-async function enrichProduct(target: ProductTarget, allSlugs: string[]): Promise<Attributes> {
+async function enrichProduct(target: ProductTarget, allSlugs: string[], relatedCandidates: string[]): Promise<Attributes> {
   const { slug, canonicalName, wikipediaTitle, reverbQuery, vsePath } = target
 
   console.log(`\n▶  ${canonicalName}`)
@@ -378,12 +378,12 @@ ${combinedText}
   const related = await haikuJson<RelatedProduct[]>(
     'You are a music gear expert. Output ONLY valid JSON — no markdown, no explanation.',
     `Suggest 3-5 related instruments to ${canonicalName}.
-These products MUST exist in this list (use only slugs from here):
-${allSlugs.join(', ')}
+These products MUST exist in this list (use ONLY slugs from this list — do not invent slugs):
+${relatedCandidates.join(', ')}
 
 Output ONLY a JSON array:
 [{ "slug": "string (from the list above)", "reason": "string (max 8 words, English)" }]
-Prioritise: predecessors, successors, contemporary competitors.`
+Prioritise: predecessors, successors, contemporary competitors of the same instrument type.`
   )
 
   // ── External links ──
@@ -461,14 +461,46 @@ Output ONLY valid JSON.`
   }
 }
 
+// ── KG product record for related-product filtering ───────────────────────────
+interface KGProduct {
+  slug:             string
+  kg_category_id:   number | null
+  kg_brand_id:      number | null
+}
+
+// Build a focused slug list for Haiku: same category first, then same brand
+function buildRelatedCandidates(
+  targetSlug: string,
+  allKG:      KGProduct[],
+): string[] {
+  const self = allKG.find(p => p.slug === targetSlug)
+  if (!self) return allKG.map(p => p.slug).slice(0, 50)
+
+  const sameCat   = allKG.filter(p => p.slug !== targetSlug && p.kg_category_id != null && p.kg_category_id === self.kg_category_id)
+  const sameBrand = allKG.filter(p => p.slug !== targetSlug && p.kg_brand_id    != null && p.kg_brand_id    === self.kg_brand_id && !sameCat.includes(p))
+
+  let candidates = [...sameCat, ...sameBrand]
+
+  // Fallback: if very few same-cat products, pad with random KG entries
+  if (candidates.length < 10) {
+    const others = allKG.filter(p => p.slug !== targetSlug && !candidates.includes(p))
+    candidates = [...candidates, ...others.slice(0, 40)]
+  }
+
+  const slugs = candidates.map(p => p.slug).slice(0, 80)
+  console.log(`  ℹ️   Related candidates: ${slugs.length} slugs (${sameCat.length} same-cat, ${sameBrand.length} same-brand)`)
+  return slugs
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 async function main() {
-  // Fetch all kg_product slugs for related_products validation
+  // Fetch all kg_product slugs + category/brand for filtering
   const { data: allProducts, error: pErr } = await supabase
     .from('kg_product')
-    .select('slug')
+    .select('slug, kg_category_id, kg_brand_id')
   if (pErr) { console.error('❌  Fetch kg_product:', pErr.message); process.exit(1) }
-  const allSlugs = (allProducts ?? []).map((p: { slug: string }) => p.slug)
+  const allKG    = (allProducts ?? []) as KGProduct[]
+  const allSlugs = allKG.map(p => p.slug)
   console.log(`ℹ️   ${allSlugs.length} produkter i KG`)
 
   const targets = SLUG_FILTER
@@ -484,7 +516,8 @@ async function main() {
 
   for (const target of targets) {
     try {
-      const attrs = await enrichProduct(target, allSlugs)
+      const relatedCandidates = buildRelatedCandidates(target.slug, allKG)
+      const attrs = await enrichProduct(target, allSlugs, relatedCandidates)
 
       console.log('\n─────────────────────────────────────────')
       console.log(`📦  ${target.slug}`)
