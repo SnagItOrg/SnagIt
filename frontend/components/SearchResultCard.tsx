@@ -95,7 +95,7 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
     const base = 'absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm'
     if (platform === 'reverb')                         return <span className={`${base} text-white`} style={{ backgroundColor: '#EC5A2C' }}>Reverb</span>
     if (platform === 'facebook' || platform === 'fb') return <span className={`${base} bg-blue-500 text-white`}>FB</span>
-    if (platform === 'thomann')                       return <span className={base} style={{ backgroundColor: '#FFFFFF', color: '#002D4C', border: '1px solid #002D4C' }}>Thomann</span>
+    if (platform === 'thomann')                       return <span className={`${base} text-white`} style={{ backgroundColor: '#002D4C' }}>Thomann</span>
     if (platform === 'finn')                           return <span className={`${base} text-white`} style={{ backgroundColor: '#06bffc' }}>Finn</span>
     if (platform === 'blocket')                        return <span className={`${base} text-white`} style={{ backgroundColor: '#F71414' }}>Blocket</span>
     return <span className={`${base} text-white`} style={{ backgroundColor: '#00098A' }}>DBA</span>
