@@ -463,9 +463,9 @@ Output ONLY valid JSON.`
 
 // ── KG product record for related-product filtering ───────────────────────────
 interface KGProduct {
-  slug:             string
-  kg_category_id:   number | null
-  kg_brand_id:      number | null
+  slug:        string
+  category_id: number | null
+  brand_id:    number | null
 }
 
 // Build a focused slug list for Haiku: same category first, then same brand
@@ -476,8 +476,8 @@ function buildRelatedCandidates(
   const self = allKG.find(p => p.slug === targetSlug)
   if (!self) return allKG.map(p => p.slug).slice(0, 50)
 
-  const sameCat   = allKG.filter(p => p.slug !== targetSlug && p.kg_category_id != null && p.kg_category_id === self.kg_category_id)
-  const sameBrand = allKG.filter(p => p.slug !== targetSlug && p.kg_brand_id    != null && p.kg_brand_id    === self.kg_brand_id && !sameCat.includes(p))
+  const sameCat   = allKG.filter(p => p.slug !== targetSlug && p.category_id != null && p.category_id === self.category_id)
+  const sameBrand = allKG.filter(p => p.slug !== targetSlug && p.brand_id    != null && p.brand_id    === self.brand_id && !sameCat.includes(p))
 
   let candidates = [...sameCat, ...sameBrand]
 
@@ -497,7 +497,7 @@ async function main() {
   // Fetch all kg_product slugs + category/brand for filtering
   const { data: allProducts, error: pErr } = await supabase
     .from('kg_product')
-    .select('slug, kg_category_id, kg_brand_id')
+    .select('slug, category_id, brand_id')
   if (pErr) { console.error('❌  Fetch kg_product:', pErr.message); process.exit(1) }
   const allKG    = (allProducts ?? []) as KGProduct[]
   const allSlugs = allKG.map(p => p.slug)
