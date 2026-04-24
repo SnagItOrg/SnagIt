@@ -240,6 +240,15 @@ export default function ProductPage() {
                     <p className="text-sm font-medium text-foreground">Prishistorik</p>
                     <p className="text-xs text-muted-foreground">{priceHistory.length} salg registreret</p>
                   </div>
+                  <a
+                    href="https://reverb.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 self-start"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 12 }}>open_in_new</span>
+                    Prisdata fra Reverb
+                  </a>
                   <div className="h-28 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={priceHistory} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>

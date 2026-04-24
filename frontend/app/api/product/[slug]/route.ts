@@ -87,9 +87,15 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
       : Promise.resolve({ data: [] as { slug: string; canonical_name: string; image_url: string | null }[] }),
   ])
 
+  type ListingRow = Record<string, unknown>
   const listings = (matchesRes.data ?? [])
-    .map((m) => m.listings)
-    .filter((l) => l != null && (l as unknown as Record<string, unknown>).is_active !== false)
+    .map((m) => ({ score: m.score as number ?? 0, listing: m.listings as ListingRow | null }))
+    .filter(({ listing }) => listing != null && listing.is_active !== false)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      return ((b.listing?.price as number) ?? 0) - ((a.listing?.price as number) ?? 0)
+    })
+    .map(({ listing }) => listing)
     .slice(0, 20)
 
   // Build price history time-series
