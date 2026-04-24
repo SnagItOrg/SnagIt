@@ -287,6 +287,36 @@ Revisit when Player II arrives in the DK catalogue.
 
 ---
 
+## Aktiv opgave — IKKE DONE
+
+### match-listings: 0 matches (root cause fundet, fix implementeret — afventer verifikation)
+
+Root cause: synonym-tabellen er fyldt med fulde Reverb-titler (gns. 51 tegn),
+ikke korte aliases. containsToken() finder aldrig et match.
+
+Fix: tilføj model_name-matching i matchListings()-funktionen.
+For hvert kg_product: normaliser model_name (lowercase, bindestreg → mellemrum)
+og tjek om listing-titlen indeholder den streng.
+Score=70, method='MODEL_NAME'.
+
+**Status:** Koden er ændret i `frontend/lib/matching/match-listings.ts`.
+SQL-simulering viser 371/500 listings vil matches. Kør på panter for at verificere:
+```
+ssh panter && cd ~/workspace/SnagIt && npm run match-listings
+```
+
+**Verifikation:** Match er godkendt når:
+- `SELECT COUNT(*) FROM listing_product_match` viser > 50 rows
+- `pm2 logs match-listings --lines 30` viser `matched > 0` per batch
+
+/admin/match er bygget som workaround — nyttigt, men ikke erstatning for fix.
+Gør IKKE mere admin UI arbejde før denne fix er verificeret.
+
+Synonym-tabel: 1.266 aliases, 1.128 er > 30 tegn (ubrugelige).
+Ryddes over tid — ikke akut.
+
+---
+
 ## What Claude Code should do at session start
 
 1. Read this file
@@ -297,4 +327,4 @@ Revisit when Player II arrives in the DK catalogue.
 
 ---
 
-*Last updated: 2026-04-22*
+*Last updated: 2026-04-24*

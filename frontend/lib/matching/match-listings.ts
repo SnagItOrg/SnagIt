@@ -31,11 +31,12 @@ interface Product {
   id:             string
   slug:           string
   canonical_name: string
+  model_name:     string | null
 }
 
 interface MatchCandidate {
   product_id: string
-  method:     'EAN' | 'SKU' | 'MODEL' | 'SYNONYM' | 'FUZZY'
+  method:     'EAN' | 'SKU' | 'MODEL' | 'SYNONYM' | 'MODEL_NAME' | 'FUZZY'
   score:      number
   explain:    Record<string, unknown>
 }
@@ -83,7 +84,7 @@ export async function matchListings(
     { data: synonymsData,   error: sErr },
     { data: listingsData,   error: lErr },
   ] = await Promise.all([
-    supabase.from('kg_product')   .select('id, slug, canonical_name'),
+    supabase.from('kg_product')   .select('id, slug, canonical_name, model_name'),
     supabase.from('kg_identifier').select('product_id, type, value').in('type', ['SKU', 'MODEL']),
     supabase.from('synonym')      .select('alias, canonical_query').eq('match_type', 'alias'),
     supabase.from('listings').select('id, title').in('id', listingIds).not('title', 'is', null),
@@ -149,6 +150,28 @@ export async function matchListings(
           explain:    { matched_alias: syn.alias, canonical_query: syn.canonical_query },
         })
         break
+      }
+    }
+
+    // Model name match — score 70
+    // Tries both hyphenated ("Juno-106") and space-normalised ("juno 106")
+    if (candidates.length === 0) {
+      for (const product of products) {
+        if (!product.model_name) continue
+        const mOrig = product.model_name.toLowerCase().trim()
+        const mSpace = mOrig.replace(/-/g, ' ')
+        if (
+          (mOrig.length >= 3 && containsToken(norm, mOrig)) ||
+          (mSpace !== mOrig && mSpace.length >= 3 && containsToken(norm, mSpace))
+        ) {
+          candidates.push({
+            product_id: product.id,
+            method:     'MODEL_NAME',
+            score:      70,
+            explain:    { matched_model_name: product.model_name },
+          })
+          break
+        }
       }
     }
 
