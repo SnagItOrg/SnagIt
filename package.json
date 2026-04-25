@@ -7,6 +7,7 @@
     "import-kg": "tsx scripts/import-knowledge-graph.ts",
     "export-kg": "tsx scripts/export-knowledge-graph.ts",
     "match-listings": "tsx scripts/match-listings.ts",
+    "match-listings:backfill": "tsx scripts/match-listings.ts --backfill",
     "scrape-reverb": "tsx scripts/scrape-reverb.ts",
     "expand-kg": "tsx scripts/expand-knowledge-graph.ts",
     "scrape-vse": "tsx scripts/scrape-vintagesynth.ts",

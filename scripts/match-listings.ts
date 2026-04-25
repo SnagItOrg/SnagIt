@@ -42,7 +42,12 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 })
 
 // ── Safety knobs ──────────────────────────────────────────────────────────────
-const MAX_PER_RUN      = 500      // hard cap: scan at most this many listings per invocation
+const BACKFILL = process.argv.includes('--backfill')
+let MAX_PER_RUN = 500             // hard cap: scan at most this many listings per invocation
+if (BACKFILL) {
+  MAX_PER_RUN = 60_000
+  console.log('[match] Backfill mode — processing up to 60000 listings')
+}
 const BATCH            = 50       // listings fetched per batch
 const QUERY_TIMEOUT_MS = 30_000   // per-query timeout; on timeout skip batch instead of crashing
 const BATCH_SLEEP_MS   = 500      // pause between batches
@@ -79,6 +84,7 @@ async function main() {
           .select('id, title')
           .not('title', 'is', null)
           .in('source', ['reverb', 'finn', 'blocket', 'dba'])
+          .order('scraped_at', { ascending: false })
           .range(offset, offset + BATCH - 1),
         QUERY_TIMEOUT_MS,
         `listings range ${offset}`,
