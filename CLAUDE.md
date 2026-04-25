@@ -385,6 +385,23 @@ noise. Planned: add description (text) and specs (jsonb) columns to
 kg_product, populate via AI enrichment script for products with
 active_listing_count > 3 or price_min_dkk > 2000.
 
+### Short model_name false matches
+Products with short or generic model names (e.g. "Tom", "Solo") produce
+false positive matches because the token appears in unrelated listing text.
+Fix: require brand name co-occurrence in listing title when model_name is
+< 5 characters. Or set model_name = NULL for ambiguous products and rely
+on synonym matching only.
+
+### Product page caching (possible)
+Juno-60 product page may serve stale data after listings were added.
+Investigate whether /api/product/[slug] has a revalidate or cache header
+that needs to be shortened or removed.
+
+### Platform filter badges (planned)
+Listings on product pages should be filterable by source (reverb, finn,
+blocket, dba). DBA/Finn/Blocket signal Nordic local market; Reverb is
+international. Users want to see their local market first.
+
 ---
 
-*Last updated: 2026-04-24*
+*Last updated: 2026-04-25*
