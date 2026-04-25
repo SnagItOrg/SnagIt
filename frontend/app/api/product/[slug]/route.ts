@@ -129,6 +129,6 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
   }))
 
   return NextResponse.json({ product, listings, priceHistory, priceRange, relatedProducts }, {
-    headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' },
+    headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30' },
   })
 }
