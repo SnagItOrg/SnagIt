@@ -269,11 +269,19 @@ Vercel auto-deploys from `main`. That's it. Never use Vercel CLI.
 and "Roland Juno-60") each accumulate history independently. Fase 3's
 `reverb_csp_id` anchoring is the fix.
 
-**Outlier filtering is missing on Reverb sold-price data.** Jupiter-8 range
-as of 2026-04-21: 339 – 212.318 DKK, because the Reverb `state=sold` feed
-includes parts (pitch bender caps, DCO chips) tagged under the main-synth
-CSP. Kup-rating / "typical price range" display must filter outliers (IQR,
-or min price threshold per category) before reaching the UI.
+### Price history polluted by parts/accessories matches
+`/api/product/[slug]` queries `reverb_price_history` and `auctionet_price_history`
+using `ilike` on `canonical_name`. For products like "Fender Jazz Bass" this
+matches sold parts (necks, pickguards, pickups) alongside complete instruments,
+pulling the secondhand price range artificially low.
+
+Note: Thomann is intentionally a separate data series — new/retail price reference,
+not secondhand. The Thomann link as fallback when price history is thin is correct
+behaviour. Do not conflate the two series.
+
+Fix for parts pollution: apply a minimum price floor per root subcategory when
+querying price history (e.g. bass-guitars floor at 2000 DKK). Floor values should
+live in kg_category as a nullable `price_floor_dkk` column.
 
 **Price history is not yet rendered on product pages.** Data lives in
 `reverb_price_history` but `/product/[slug]` only reads from
