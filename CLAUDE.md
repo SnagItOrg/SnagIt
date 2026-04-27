@@ -349,6 +349,42 @@ Ryddes over tid — ikke akut.
 
 ---
 
+## Payment integration — planlagt (ikke bygget)
+
+**Strategisk spor**, ikke umiddelbar implementering. Betalinger bliver
+relevante når Klup går fra "deal-intelligens" til "deal-facilitering"
+(escrow for køber/sælger, premium-features, eller marketplace-fee på
+formidlede handler).
+
+**Nordic mobile-first er ikke til forhandling.** I Norden er card-only
+checkout en konversionsdræber:
+- **Danmark**: MobilePay (~95% smartphone-penetration, Danske Bank-ejet)
+- **Norge**: Vipps
+- **Sverige**: Swish
+- **Finland**: MobilePay (samme app som DK)
+
+**Mulige veje:**
+1. **Stripe** — bredeste integration, dækker MobilePay via "MobilePay" som
+   Payment Method (live i Stripe siden 2024). Sweetspot for hurtig
+   one-stop-shop. Vipps + Swish har separat integration.
+2. **Adyen** — bedre native Nordic-coverage, men dyrere og mere
+   enterprise-orienteret.
+3. **Direkte MobilePay Online API** + Stripe for cards — to-vejs setup,
+   mere arbejde, men giver kontrol over MobilePay-flowet (fx subscription).
+
+**Beslutning udskudt** indtil:
+- Vi har valideret hvilken transaktions-model der er rigtig (escrow vs.
+  fee vs. premium subscription)
+- Bruger-volumen er der til at retfærdiggøre integration-arbejdet
+- Compliance-risiko er kortlagt (KYC for escrow, moms på fees)
+
+**Bias mod for tidlig implementering:** intet payment-flow før der er
+verified user demand for det specifikke transaktions-mønster. Klup's
+core-værdi er still "er denne pris god?" — payment bygges oven på,
+ikke ind i, kerneproduktet.
+
+---
+
 ## Community features — planlagt (ikke bygget)
 
 **Filosofi:** Co-creation er i fundamentet af Klup. Brugerne
@@ -406,12 +442,19 @@ Run a cleanup migration at that point.
 
 ## Known Issues
 
-### No listings on matched products (e.g. Juno-60)
-`/product/[slug]` pages show zero listings despite the search API returning
-results for the same query. Root cause unknown — likely a mismatch between
-how `listing_product_match` is queried on the product page vs. how the
-scrape/search pipeline populates it. Investigate before building more
-product page features.
+### Product pages show Reverb listings only (cornercase)
+`/product/[slug]` renders matched listings — but in practice only Reverb
+listings appear. DBA/Finn/Blocket are absent even when the same search
+query surfaces them. Likely root causes (unverified):
+- `match-listings` only succeeds on Reverb's structured `make`/`model`
+  fields; Schibsted free-text titles don't pass the matching threshold
+- The product API filters by source somewhere downstream
+- Schibsted scrapers run less frequently so the listings table is sparser
+
+**Investigate before assuming a fix** — chasing "all platforms on product
+pages" as a feature is a rabbit hole if the right answer is to fix matching
+for the Nordic local markets first (DBA = highest KUP value, since that's
+where local-market price gaps live).
 
 ### Category cards missing Unsplash images
 `/browse` category cards rely on images in Supabase Storage at
@@ -452,11 +495,14 @@ Listings on product pages should be filterable by source (reverb, finn,
 blocket, dba). DBA/Finn/Blocket signal Nordic local market; Reverb is
 international. Users want to see their local market first.
 
-### Resend has stopped sending notifications (2026-04-27)
+### Resend has stopped sending notifications (2026-04-27) — backlog
 Email notifications are silently failing. Auth webhook + watchlist alerts
-do not deliver. Investigate: check Resend dashboard for bounces / API key
-status, verify `RESEND_API_KEY` env on Vercel, confirm `RESEND_FROM_EMAIL`
-domain is still verified (DNS at Simply.com — never touch Protonmail MX).
+do not deliver. **Deprioritized** — not a limiting factor pre-launch
+(no real users yet). Revisit before the marketing push, after vanity
+issues (product pages, stock imagery) are sorted. When investigating:
+check Resend dashboard for bounces / API key status, verify
+`RESEND_API_KEY` env on Vercel, confirm `RESEND_FROM_EMAIL` domain is
+still verified (DNS at Simply.com — never touch Protonmail MX).
 Lazy-init pattern in `lib/email.ts` may be hiding errors silently.
 
 ### Browse anchor is slug, not Reverb UUID
