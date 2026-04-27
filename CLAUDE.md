@@ -116,7 +116,8 @@ demand-driven KG enrichment (see Knowledge Graph → Reverb CSP integration).
 
 The KG lives in Supabase tables `kg_product`, `kg_brand`, `kg_category`, `synonym`.
 
-**Current state:** ~3,298 music-gear products.
+**Current state:** ~3,840 music-gear products. ~999+ classified into the
+two-level subcategory hierarchy via `classify-products.ts` (Haiku batch).
 
 **canonical_name rule:** Always `brand + model`. Never strip brand. "Roland Juno-106" not "Juno-106".
 
@@ -130,17 +131,45 @@ The KG lives in Supabase tables `kg_product`, `kg_brand`, `kg_category`, `synony
 - Thomann → new/current production gear (best product images)
 - Reverb → vintage/discontinued gear
 
-**Reverb CSP integration (planned — Fase 3):**
-- Planned column: `kg_product.reverb_csp_id int` — deterministic anchor to Reverb's
-  Comparison Shopping Page (the canonical product record across all listings).
+**Reverb category mirror (shipped 2026-04):**
+- `scripts/seed-reverb-categories.ts` imports Reverb's full taxonomy
+  (`/api/categories/flat`, 320 categories in 14 music roots) into `kg_category`
+  as a two-level hierarchy via `parent_id`. Source data cached in
+  `data/reverb-categories.json`.
+- Anchor on `kg_category.slug` (e.g. `keyboards-and-synths/analog-synths`),
+  NOT on Reverb UUIDs. Pragmatic for shipping; fragile if Reverb renames a
+  slug. Migrating to UUID anchors is a known TODO.
+- `kg_product.reverb_root_slug` + `reverb_sub_slug` denormalise the join for
+  fast filtering on browse pages.
+
+**Reverb CSP integration (still planned — Fase 2 of strategic plan):**
+- Planned column: `kg_product.reverb_csp_id int` — deterministic anchor to a
+  CSP (Comparison Shopping Page = the canonical product record across all
+  listings, including parts/accessories tagged under the parent product).
 - Known CSP ids already resolved:
   - Roland Juno-60 → `1677`
   - Roland Juno-106 → `2444`
   - Roland Jupiter-8 → `27660`
+- Why it still matters even with the category mirror in place:
+  - Joins `reverb_price_history` deterministically (current rows are
+    query-keyed, see Known issues).
+  - Filters parts pollution: a "Jupiter-8 pitch bender cap" listing under
+    the `parts` root is excluded from price-history aggregations on the
+    parent product.
+  - Enables demand-driven KG growth (Lag 3): unknown query → CSP search →
+    auto-create kg_product → cache.
 - Planned script: `scripts/enrich-from-reverb-csp.ts` — given a search term,
-  looks up CSP, populates kg_product (image, csp_id, used_low_price). Called
-  from the matching pipeline when no kg_product match is found, so KG growth
-  is demand-driven — no KG rows without user intent.
+  looks up CSP, populates kg_product (image, csp_id, used_low_price).
+
+**AI enrichment scripts (shipped 2026-04):**
+- `scripts/classify-products.ts` — Haiku batch classifier. Reads unclassified
+  `kg_product` rows, returns `subcategory_id` + `subcategory_confidence`
+  (smallint 0–100). Paginated via `range()` because PostgREST caps at
+  1000 rows per request.
+- `scripts/enrich-products.ts` — populates `kg_product.attributes` (jsonb)
+  with `{ description, specs, history, external_links, related_products }`.
+  Source pipeline: Wikipedia → Reverb CSP → Haiku fallback. English-only
+  output. Originally seeded for the 7 priority products.
 
 **What the KG is NOT:**
 - Design furniture (design-objects category) — do not import or build
@@ -162,12 +191,25 @@ The KG lives in Supabase tables `kg_product`, `kg_brand`, `kg_category`, `synony
 | `listings` | Raw scraped listings from all sources |
 | `kg_product` | Canonical product knowledge graph |
 | `kg_brand` | Brands |
+| `kg_category` | Categories — two-level hierarchy (`parent_id`, `domain`) since 2026-04 |
 | `saved_listings` | User-saved listings (RLS-protected) |
 | `watchlists` | User watchlists — tied to a product or query |
 | `listing_product_match` | Maps listings → KG products |
-| `reverb_price_history` | Reverb sold prices per product |
+| `reverb_price_history` | Reverb sold prices, query-keyed (not product-keyed yet) |
 | `auctionet_price_history` | Auctionet hammer prices |
 | `kg_suggestions` | Pending AI-generated KG product proposals |
+| `thomann_product` | Thomann retail products + scraped prices |
+
+**`kg_product` columns added 2026-04** (migrations 028, 029):
+- `hero_image_url text` — manual editorial override over `image_url`
+- `subcategory_id uuid → kg_category` — leaf-level classification
+- `subcategory_confidence smallint` — Haiku confidence 0–100
+- `reverb_root_slug text`, `reverb_sub_slug text` — denormalised category anchors
+- `attributes jsonb` — `{ description, specs, history, external_links, related_products }`
+
+**`kg_category` columns added 2026-04:**
+- `domain text` — `music` / `design` / `other`
+- `parent_id uuid → kg_category` — enables 2-level hierarchy
 
 **listing_product_match** was truncated April 2026 (17M rows of garbage from runaway PM2 loop). Now has unique constraint `(listing_id, product_id)` and index on `listing_id`. Match-listings job should be restarted after confirming it won't loop.
 
@@ -410,6 +452,19 @@ Listings on product pages should be filterable by source (reverb, finn,
 blocket, dba). DBA/Finn/Blocket signal Nordic local market; Reverb is
 international. Users want to see their local market first.
 
+### Resend has stopped sending notifications (2026-04-27)
+Email notifications are silently failing. Auth webhook + watchlist alerts
+do not deliver. Investigate: check Resend dashboard for bounces / API key
+status, verify `RESEND_API_KEY` env on Vercel, confirm `RESEND_FROM_EMAIL`
+domain is still verified (DNS at Simply.com — never touch Protonmail MX).
+Lazy-init pattern in `lib/email.ts` may be hiding errors silently.
+
+### Browse anchor is slug, not Reverb UUID
+`kg_product.reverb_root_slug` / `reverb_sub_slug` and `kg_category.slug`
+are text. Reverb's `/api/categories/flat` exposes stable UUIDs that would
+be a more durable join key. Worth migrating once we touch the same area
+again — low effort, eliminates rename-fragility.
+
 ---
 
-*Last updated: 2026-04-25*
+*Last updated: 2026-04-27*
