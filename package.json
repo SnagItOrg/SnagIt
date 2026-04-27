@@ -21,7 +21,8 @@
     "fetch-thomann-prices": "tsx scripts/fetch-thomann-prices.ts",
     "enrich-products": "tsx scripts/enrich-products.ts",
     "seed-reverb-categories": "tsx scripts/seed-reverb-categories.ts",
-    "classify-products": "tsx scripts/classify-products.ts"
+    "classify-products": "tsx scripts/classify-products.ts",
+    "enrich-from-reverb-csp": "tsx scripts/enrich-from-reverb-csp.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.79.0",
