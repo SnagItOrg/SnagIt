@@ -318,7 +318,7 @@ async function main() {
         else if (resolution.confidence === 'low')    low++
         else                                          none++
       } else {
-        console.log(`${idx} · ${p.slug.padEnd(30)} → no CSP candidates`)
+        console.log(`${idx} · ${p.slug.padEnd(30)} → no CSP candidates  [q="${p.canonical_name}" make=${brand?.slug ?? 'null'}]`)
         none++
       }
       await writeBack(p, resolution, candidates)

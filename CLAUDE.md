@@ -142,24 +142,50 @@ two-level subcategory hierarchy via `classify-products.ts` (Haiku batch).
 - `kg_product.reverb_root_slug` + `reverb_sub_slug` denormalise the join for
   fast filtering on browse pages.
 
-**Reverb CSP integration (still planned — Fase 2 of strategic plan):**
-- Planned column: `kg_product.reverb_csp_id int` — deterministic anchor to a
-  CSP (Comparison Shopping Page = the canonical product record across all
-  listings, including parts/accessories tagged under the parent product).
-- Known CSP ids already resolved:
+**Reverb CSP integration (shipped 2026-04-27, partial):**
+- `kg_product.reverb_csp_id integer` — added by migration 030. Deterministic
+  anchor to a CSP (Comparison Shopping Page = canonical product record across
+  all listings, including parts/accessories tagged under the parent product).
+- `reverb_price_history.kg_product_id uuid` — added by migration 031. FK to
+  `kg_product`, nullable. Backfill from existing query-keyed rows is TBD
+  (planned migration 034 — listing_url → CSP id → kg_product join).
+- `kg_category.reverb_uuid uuid` — added by migration 033. Stable join key
+  to Reverb's taxonomy (slugs are fragile if Reverb renames). Backfill via
+  `npm run backfill-category-uuids` reads `data/reverb-categories.json`.
+- Hand-seeded CSP ids on `attributes.reverb_csp`:
   - Roland Juno-60 → `1677`
   - Roland Juno-106 → `2444`
   - Roland Jupiter-8 → `27660`
-- Why it still matters even with the category mirror in place:
-  - Joins `reverb_price_history` deterministically (current rows are
-    query-keyed, see Known issues).
+- `scripts/enrich-from-reverb-csp.ts` — bulk-resolves Reverb CSPs into
+  `kg_product.attributes.reverb_csp` (jsonb) using `canonical_name` + brand
+  slug. Run via `npm run enrich-from-reverb-csp`. Flags: `--dry-run`,
+  `--limit=N`, `--slug=X`, `--brand=X`, `--force`. Rate-limited at 2.5s
+  → ~2.5h for the full ~3,840 catalogue. Idempotent (skips rows that already
+  have `attributes.reverb_csp.csp_id` unless `--force`).
+- Bulk enrichment run completed 2026-04-27 on Mac Mini (panter):
+  resolved 1150/3577 (high=910 medium=109 low=114 none=2444 errors=2).
+  Migration 032 then promoted high+medium into the typed column → **1114
+  rows have `kg_product.reverb_csp_id` set**. Verify any time with
+  `npx tsx scripts/verify-csp-progress.ts`.
+- Migration 033 + `npm run backfill-category-uuids` completed 2026-04-27 →
+  **320/340 `kg_category` rows have `reverb_uuid`**. The 20 unmatched are
+  internal/non-Reverb taxonomy entries (custom subcategories etc.).
+- Migration 034 authored 2026-04-27 (not yet applied) — DML that backfills
+  `reverb_price_history.kg_product_id` from query-text via normalised
+  canonical_name match. Preview shows ~37% hit rate on current 927 rows.
+- **Hit rate is bimodal by canonical_name quality** — see Known issues
+  ("kg_product canonical_name hygiene"). Roland resolves ~80%, Fender ~10%
+  on the same script. Bulk backfill is a retrofit; the architecturally
+  intended path is demand-driven CSP attachment on user searches (new
+  kg_product rows are created with a clean canonical_name + CSP already
+  attached).
+- Why CSP anchoring matters:
+  - Joins `reverb_price_history` deterministically (currently query-keyed).
   - Filters parts pollution: a "Jupiter-8 pitch bender cap" listing under
     the `parts` root is excluded from price-history aggregations on the
     parent product.
-  - Enables demand-driven KG growth (Lag 3): unknown query → CSP search →
-    auto-create kg_product → cache.
-- Planned script: `scripts/enrich-from-reverb-csp.ts` — given a search term,
-  looks up CSP, populates kg_product (image, csp_id, used_low_price).
+  - Enables demand-driven KG growth: unknown query → CSP search → auto-create
+    kg_product → cache.
 
 **AI enrichment scripts (shipped 2026-04):**
 - `scripts/classify-products.ts` — Haiku batch classifier. Reads unclassified
@@ -170,6 +196,9 @@ two-level subcategory hierarchy via `classify-products.ts` (Haiku batch).
   with `{ description, specs, history, external_links, related_products }`.
   Source pipeline: Wikipedia → Reverb CSP → Haiku fallback. English-only
   output. Originally seeded for the 7 priority products.
+- `scripts/enrich-from-reverb-csp.ts` — see Reverb CSP integration above.
+- `scripts/backfill-category-uuids.ts` — populates `kg_category.reverb_uuid`
+  from `data/reverb-categories.json`. Run after migration 033.
 
 **What the KG is NOT:**
 - Design furniture (design-objects category) — do not import or build
@@ -200,16 +229,22 @@ two-level subcategory hierarchy via `classify-products.ts` (Haiku batch).
 | `kg_suggestions` | Pending AI-generated KG product proposals |
 | `thomann_product` | Thomann retail products + scraped prices |
 
-**`kg_product` columns added 2026-04** (migrations 028, 029):
+**`kg_product` columns added 2026-04** (migrations 028–030):
 - `hero_image_url text` — manual editorial override over `image_url`
 - `subcategory_id uuid → kg_category` — leaf-level classification
 - `subcategory_confidence smallint` — Haiku confidence 0–100
 - `reverb_root_slug text`, `reverb_sub_slug text` — denormalised category anchors
-- `attributes jsonb` — `{ description, specs, history, external_links, related_products }`
+- `attributes jsonb` — `{ description, specs, history, external_links, related_products, reverb_csp, reverb_csp_candidates }`
+- `reverb_csp_id integer` — typed CSP anchor (migration 030). Populated by
+  migration 032 from `attributes.reverb_csp` after enrichment script runs.
 
-**`kg_category` columns added 2026-04:**
+**`reverb_price_history` columns added 2026-04** (migration 031):
+- `kg_product_id uuid → kg_product` — nullable FK. Backfill TBD (migration 034).
+
+**`kg_category` columns added 2026-04** (migrations 029, 033):
 - `domain text` — `music` / `design` / `other`
 - `parent_id uuid → kg_category` — enables 2-level hierarchy
+- `reverb_uuid uuid` — stable Reverb taxonomy join key (migration 033).
 
 **listing_product_match** was truncated April 2026 (17M rows of garbage from runaway PM2 loop). Now has unique constraint `(listing_id, product_id)` and index on `listing_id`. Match-listings job should be restarted after confirming it won't loop.
 
@@ -305,11 +340,14 @@ Vercel auto-deploys from `main`. That's it. Never use Vercel CLI.
 
 ## Known issues
 
-**`reverb_price_history` is query-keyed, not product-keyed.** Rows store
-`query` (free text from the owning watchlist) + `listing_url`, not a
-`kg_product_id`. Two different queries for the same model ("Roland Juno 60"
-and "Roland Juno-60") each accumulate history independently. Fase 3's
-`reverb_csp_id` anchoring is the fix.
+**`reverb_price_history` is query-keyed; `kg_product_id` FK partially
+backfilled.** Migration 031 added a nullable `kg_product_id` FK. Migration
+034 (authored 2026-04-27) backfills via normalised canonical_name match
+between `rph.query` and `kg_product.canonical_name` — expected to map
+~37% of the current 927 rows. The remaining ~63% are legacy design-furniture
+queries (deprioritised vertical), generic terms, or queries for products
+not yet in the KG. The deterministic path for the long tail is migration
+035 (planned): `listing_url → Reverb listing → csp_id → kg_product`.
 
 ### Price history polluted by parts/accessories matches
 `/api/product/[slug]` queries `reverb_price_history` and `auctionet_price_history`
@@ -442,6 +480,32 @@ Run a cleanup migration at that point.
 
 ## Known Issues
 
+### kg_product canonical_name hygiene
+Many `kg_product` rows have `canonical_name` (and slug) derived from full
+Reverb listing titles, not the curated `brand + model` form CLAUDE.md
+specifies. Examples seen 2026-04-27:
+- `akai-akai-mpk-mini-mk-iii-clavier-matre-25-touches` (duplicated brand,
+  French qualifiers)
+- `fender-1958-fender-precision-bass-old-blue-refin` (year, condition notes)
+- `fender-basso-elettrico-fender-american-vintage-ii-1960-precision-bass-...`
+  (Italian qualifier, duplicated brand)
+
+**Impact:** Reverb CSP enrichment hit-rate is bimodal by brand:
+- Roland: ~80% high-confidence (clean canonical_names)
+- Fender: ~10% (mostly listing-title noise)
+
+**The architecturally correct fix is demand-driven, not bulk:** when a user
+searches for a product, Haiku resolves a clean `brand + model` and creates a
+kg_product with CSP already attached. Bulk backfilling is a one-time retrofit
+only — `confidence: 'none'` is written to rows that can't resolve, marking
+them so they aren't re-queried. Migration 032 only promotes high+medium
+into the typed `reverb_csp_id` column, so dirty rows don't pollute the anchor.
+
+**Cleanup workstream (deferred):** a Haiku pass that takes a bloated slug
+plus linked listing data and emits a clean canonical_name. Then re-run
+enrichment with `--force` on those rows. Worth doing only after demand-driven
+curation has had time to surface which products users actually care about.
+
 ### Product pages show Reverb listings only (cornercase)
 `/product/[slug]` renders matched listings — but in practice only Reverb
 listings appear. DBA/Finn/Blocket are absent even when the same search
@@ -507,10 +571,10 @@ Lazy-init pattern in `lib/email.ts` may be hiding errors silently.
 
 ### Browse anchor is slug, not Reverb UUID
 `kg_product.reverb_root_slug` / `reverb_sub_slug` and `kg_category.slug`
-are text. Reverb's `/api/categories/flat` exposes stable UUIDs that would
-be a more durable join key. Worth migrating once we touch the same area
-again — low effort, eliminates rename-fragility.
+are text. Migration 033 added `kg_category.reverb_uuid` as the durable
+join key; backfill via `npm run backfill-category-uuids`. Frontend code
+still reads slugs — migrate to UUIDs in the same area where touched next.
 
 ---
 
-*Last updated: 2026-04-27*
+*Last updated: 2026-04-27 — migrations 030–033 applied + category UUID backfill done (320/340); CSP enrichment completed (1114 typed `reverb_csp_id`); migration 034 authored, awaiting application*

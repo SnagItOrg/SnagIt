@@ -41,10 +41,43 @@ in order; some have backfill steps that need a script run between them.
 030, 031, 033 are independent DDL — apply them all up front. The data scripts
 can run before or after but are most useful once the columns exist.
 
+## 034 — authored 2026-04-27
+
+`034_backfill_reverb_price_history_kg_product_id.sql` — pure DML, idempotent.
+Maps `reverb_price_history.query` to `kg_product.canonical_name` via a
+two-sided alphanumeric-only normalised match. Skips ambiguous (≥2 matches)
+and unmatched rows.
+
+Verified dry-run hit rate at authoring time: ~37% of the 927 rows.
+The remainder are legacy design-furniture queries (deprioritised vertical),
+generic terms ("Reverb", "Jazz guitar"), or queries for products not yet
+in the KG. Looser query matching is not the answer for these — a follow-up
+script that resolves `listing_url → Reverb listing → csp_id → kg_product`
+is the deterministic path for the long tail.
+
+Preview the impact before running:
+
+```sql
+SELECT
+  COUNT(*) FILTER (WHERE match_count = 1) AS will_map,
+  COUNT(*) FILTER (WHERE match_count > 1) AS ambiguous,
+  COUNT(*) FILTER (WHERE match_count = 0) AS no_match
+FROM (
+  SELECT
+    rph.id,
+    (SELECT COUNT(*) FROM kg_product kp
+      WHERE regexp_replace(lower(rph.query),     '[^a-z0-9]+', '', 'g')
+          = regexp_replace(lower(kp.canonical_name), '[^a-z0-9]+', '', 'g')
+    ) AS match_count
+  FROM reverb_price_history rph
+  WHERE rph.kg_product_id IS NULL AND rph.query IS NOT NULL
+) t;
+```
+
 ## Followup not yet authored
 
-- `034_*.sql` — backfill `reverb_price_history.kg_product_id` from
-  `kg_product.reverb_csp_id` joined via the row's `query` text or
-  (preferably) `listing_url → Reverb listing → csp_id`. Not yet written
-  because the lookup logic is non-trivial and may need `listing_url`-based
-  enrichment in code first.
+- `035_*.sql` — backfill the long-tail of `reverb_price_history.kg_product_id`
+  via `listing_url → Reverb listing → csp_id → kg_product.reverb_csp_id`.
+  Needs a small enrichment script that hits the Reverb listing API per row
+  to extract its CSP. Worth doing only after demand-driven curation has
+  reduced the dirty-query population.
