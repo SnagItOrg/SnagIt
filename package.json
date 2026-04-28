@@ -23,15 +23,18 @@
     "seed-reverb-categories": "tsx scripts/seed-reverb-categories.ts",
     "classify-products": "tsx scripts/classify-products.ts",
     "enrich-from-reverb-csp": "tsx scripts/enrich-from-reverb-csp.ts",
-    "backfill-category-uuids": "tsx scripts/backfill-category-uuids.ts"
+    "backfill-category-uuids": "tsx scripts/backfill-category-uuids.ts",
+    "upload-images": "tsx scripts/upload-product-images.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.79.0",
     "@supabase/supabase-js": "^2.96.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/sharp": "^0.31.1",
     "tsx": "^4.19.0",
     "typescript": "^5"
   }

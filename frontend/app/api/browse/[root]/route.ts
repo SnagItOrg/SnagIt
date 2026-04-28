@@ -52,13 +52,14 @@ export async function GET(
     id: string
     slug: string
     canonical_name: string
+    image_url: string | null
     subcategory_id: string | null
     kg_brand: { name: string } | null
   }
 
   const { data: productsRaw, error: prodErr } = await admin
     .from('kg_product')
-    .select('id, slug, canonical_name, subcategory_id, kg_brand!inner(name)')
+    .select('id, slug, canonical_name, image_url, subcategory_id, kg_brand!inner(name)')
     .in('subcategory_id', subcatIds)
     .limit(200) as { data: RawProduct[] | null; error: unknown }
 
@@ -90,6 +91,7 @@ export async function GET(
       return {
         slug: p.slug,
         canonical_name: p.canonical_name,
+        image_url: p.image_url ?? null,
         brand_name: p.kg_brand?.name ?? '',
         subcategory_name_da: subcat?.name_da ?? '',
         subcategory_name_en: subcat?.name_en ?? '',

@@ -8,7 +8,7 @@ export async function GET() {
   const [rootsRes, subsRes, productsRes] = await Promise.all([
     admin
       .from('kg_category')
-      .select('id, slug, name_da, name_en')
+      .select('id, slug, name_da, name_en, image_url')
       .eq('domain', 'music')
       .is('parent_id', null),
     admin
@@ -47,7 +47,7 @@ export async function GET() {
       name_da: c.name_da,
       name_en: c.name_en,
       product_count: countByRoot.get(c.id) ?? 0,
-      image_url: `${supabaseUrl}/storage/v1/object/public/onboarding-assets/categories/${c.slug}.webp`,
+      image_url: c.image_url ?? `${supabaseUrl}/storage/v1/object/public/onboarding-assets/categories/${c.slug}.webp`,
     }))
     .sort((a, b) => b.product_count - a.product_count)
 
