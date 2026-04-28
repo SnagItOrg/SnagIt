@@ -60,7 +60,7 @@ const BATCH: { slug: string; url: string }[] = [
   // Batch 3
   { slug: 'fender-telecaster',            url: 'https://images.unsplash.com/photo-1635891360509-8705d6d128bb' },
   { slug: 'roland-tr-808',               url: 'https://images.unsplash.com/photo-1571512379940-716326f35dbd' },
-  { slug: 'roland-tr-09',               url: 'https://images.unsplash.com/photo-1685017207768-1681e4ed71a7' },
+  { slug: 'roland-tr-09',               url: 'https://images.unsplash.com/photo-1590678600630-0505618e95f6' },
   { slug: 'roland-jx-8p',               url: 'https://images.unsplash.com/photo-1641994245125-06dd360cadf7' },
   { slug: 'roland-sp-404-mkii',          url: 'https://images.unsplash.com/photo-1758626445322-d5dda0431094' },
   { slug: 'roland-sp-404a',             url: 'https://images.unsplash.com/photo-1587916849729-61978d3f0601' },
@@ -73,6 +73,11 @@ const BATCH: { slug: string; url: string }[] = [
   { slug: 'akai-mpc-5000',             url: 'https://images.unsplash.com/photo-1628452803026-e15039313d0e' },
   { slug: 'ableton-push',              url: 'https://images.unsplash.com/photo-1535979014625-490762ceb2ff' },
   { slug: 'fender-stratocaster',       url: 'https://images.unsplash.com/photo-1606041281659-3f2cec516ac0' },
+  // Batch 4
+  { slug: 'moog-grandmother',          url: 'https://images.unsplash.com/photo-1634286050107-567499885ff9' },
+  { slug: 'roland-tr-08',              url: 'https://images.unsplash.com/photo-1590678600630-0505618e95f6' },
+  { slug: 'korg-minikorg-700',         url: 'https://images.unsplash.com/photo-1636108775865-133fd03cd46c' },
+  { slug: 'korg-volca-sample',         url: 'https://images.unsplash.com/photo-1597994421076-c716556dd10a' },
 ]
 
 // ── Core ─────────────────────────────────────────────────────────────────────
