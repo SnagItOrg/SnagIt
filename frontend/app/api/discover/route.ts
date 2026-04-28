@@ -50,7 +50,7 @@ export async function GET() {
   }))
 
   // Popular: top products by active listing count, excluding legendary
-  const topIds = [...countByProduct.entries()]
+  const topIds = Array.from(countByProduct.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 40)
     .map(([id]) => id)
