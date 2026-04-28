@@ -78,6 +78,10 @@ const BATCH: { slug: string; url: string }[] = [
   { slug: 'roland-tr-08',              url: 'https://images.unsplash.com/photo-1590678600630-0505618e95f6' },
   { slug: 'korg-minikorg-700',         url: 'https://images.unsplash.com/photo-1636108775865-133fd03cd46c' },
   { slug: 'korg-volca-sample',         url: 'https://images.unsplash.com/photo-1597994421076-c716556dd10a' },
+  // Batch 5
+  { slug: 'elektron-model-cycles',     url: 'https://images.unsplash.com/photo-1657081295310-049af6f5952c' },
+  { slug: 'gibson-les-paul',           url: 'https://images.unsplash.com/photo-1649384843712-cba648ad6585' },
+  { slug: 'gibson-sg',                 url: 'https://images.unsplash.com/photo-1763762228692-66171fc0ac50' },
 ]
 
 // ── Core ─────────────────────────────────────────────────────────────────────
