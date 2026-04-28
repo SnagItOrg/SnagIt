@@ -72,6 +72,7 @@ const BATCH: { slug: string; url: string }[] = [
   { slug: 'native-instruments-maschine',url: 'https://images.unsplash.com/photo-1646071996900-b3989dac101b' },
   { slug: 'akai-mpc-5000',             url: 'https://images.unsplash.com/photo-1628452803026-e15039313d0e' },
   { slug: 'ableton-push',              url: 'https://images.unsplash.com/photo-1535979014625-490762ceb2ff' },
+  { slug: 'fender-stratocaster',       url: 'https://images.unsplash.com/photo-1606041281659-3f2cec516ac0' },
 ]
 
 // ── Core ─────────────────────────────────────────────────────────────────────
