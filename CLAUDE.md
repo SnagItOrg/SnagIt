@@ -121,6 +121,9 @@ two-level subcategory hierarchy via `classify-products.ts` (Haiku batch).
 
 **canonical_name rule:** Always `brand + model`. Never strip brand. "Roland Juno-106" not "Juno-106".
 
+**KG data integrity rule — verify before writing:**
+Before creating or updating any `kg_product` row (slug, canonical_name, image_url, tier, etc.), always verify the product name independently — do not blindly trust user input. If the user supplies a product name alongside an image URL, cross-check the name against the Unsplash page description, the image content, and any existing KG entry. If there is a mismatch (e.g. user says "PO-04" but the image shows a PO-14, or "PO-04" already maps to an existing entry), flag the discrepancy before writing. The KG is the source of truth — a dirty row is harder to clean than to prevent.
+
 **Priority products to build product pages for first:**
 - Fender Telecaster, Telecaster Custom Shop, Fender Stratocaster, Fender Vintera II
 - Gibson Les Paul, Gibson ES-335

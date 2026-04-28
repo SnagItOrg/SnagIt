@@ -10,7 +10,7 @@ import type { DiscoverProduct } from '@/app/api/discover/route'
 
 export default function LandingPage() {
   const router = useRouter()
-  const { t, locale } = useLocale()
+  const { t } = useLocale()
   const [query, setQuery] = useState('')
   const [legendary, setLegendary] = useState<DiscoverProduct[]>([])
   const [popular, setPopular] = useState<DiscoverProduct[]>([])

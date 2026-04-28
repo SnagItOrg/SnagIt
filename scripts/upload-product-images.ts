@@ -84,7 +84,7 @@ const BATCH: { slug: string; url: string }[] = [
   { slug: 'gibson-sg',                 url: 'https://images.unsplash.com/photo-1763762228692-66171fc0ac50' },
   // Batch 6
   { slug: 'teenage-engineering-po-33',       url: 'https://images.unsplash.com/photo-1553010214-b15a4029d601' },
-  { slug: 'teenage-engineering-po-04',       url: 'https://images.unsplash.com/photo-1518216049389-a6ce1f175e59' },
+  { slug: 'teenage-engineering-po-14',       url: 'https://images.unsplash.com/photo-1518216049389-a6ce1f175e59' },
   { slug: 'teenage-engineering-tp-7',        url: 'https://images.unsplash.com/photo-1695224109897-ace6dd192539' },
   { slug: 'teenage-engineering-ep-133-ko-ii',url: 'https://images.unsplash.com/photo-1701453031613-22e83bbb3893' },
 ]
