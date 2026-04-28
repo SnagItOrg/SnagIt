@@ -52,6 +52,11 @@ const BATCH: { slug: string; url: string }[] = [
   { slug: 'moog-moog-music-subsequent-25', url: 'https://images.unsplash.com/photo-1649365810362-a5bf4414f1dc' },
   { slug: 'korg-minilogue',               url: 'https://images.unsplash.com/photo-1771272258869-22d80b851870' },
   { slug: 'waldorf-blofeld',              url: 'https://images.unsplash.com/photo-1591909862480-b6a599ea362b' },
+  { slug: 'korg-volca-beats',             url: 'https://images.unsplash.com/photo-1732199327984-7baedc962fa7' },
+  { slug: 'korg-microkorg',               url: 'https://images.unsplash.com/photo-1765448999810-528c435f2ed6' },
+  { slug: 'moog-dfam',                    url: 'https://images.unsplash.com/photo-1732282343119-163df43f9677' },
+  { slug: 'roland-tr-909',               url: 'https://images.unsplash.com/photo-1617833140106-f85990a942bf' },
+  { slug: 'linn-electronics-linndrum',    url: 'https://images.unsplash.com/photo-1571512379797-4613cb587cc0' },
 ]
 
 // ── Core ─────────────────────────────────────────────────────────────────────
