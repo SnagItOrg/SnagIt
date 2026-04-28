@@ -26,6 +26,8 @@ type Product = {
   slug: string
   canonical_name: string
   era: string | null
+  tier: 'standard' | 'classic' | 'legendary'
+  year_released: number | null
   thomann_price_dkk: number | null
   thomann_url: string | null
   image_url: string | null
@@ -165,9 +167,20 @@ export default function ProductPage() {
                         {product.kg_brand.name}
                       </p>
                     )}
-                    <h1 className="text-2xl font-bold leading-tight text-foreground">
-                      {product.canonical_name}
-                    </h1>
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <h1 className="text-2xl font-bold leading-tight text-foreground">
+                        {product.canonical_name}
+                      </h1>
+                      {product.tier && product.tier !== 'standard' && (
+                        <span
+                          className="mt-1 shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
+                          style={{ background: 'var(--foreground)', color: 'var(--background)' }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 12 }}>workspace_premium</span>
+                          {product.tier === 'legendary' ? 'Legendary' : 'Classic'}
+                        </span>
+                      )}
+                    </div>
                     {product.era && (
                       <p className="text-sm text-muted-foreground">{product.era}</p>
                     )}
