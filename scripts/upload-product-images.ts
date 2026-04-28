@@ -51,6 +51,7 @@ const BATCH: { slug: string; url: string }[] = [
   { slug: 'elektron-analog-four',          url: 'https://images.unsplash.com/photo-1695407773492-dffd52d73b8c' },
   { slug: 'moog-moog-music-subsequent-25', url: 'https://images.unsplash.com/photo-1649365810362-a5bf4414f1dc' },
   { slug: 'korg-minilogue',               url: 'https://images.unsplash.com/photo-1771272258869-22d80b851870' },
+  { slug: 'waldorf-blofeld',              url: 'https://images.unsplash.com/photo-1591909862480-b6a599ea362b' },
 ]
 
 // ── Core ─────────────────────────────────────────────────────────────────────
