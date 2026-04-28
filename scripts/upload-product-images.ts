@@ -43,7 +43,13 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 // Resolve the actual image URL from the Unsplash page URL first (see below),
 // or paste the images.unsplash.com URL directly.
 const BATCH: { slug: string; url: string }[] = [
-  // { slug: 'roland-juno-106', url: 'https://images.unsplash.com/photo-xxx...' },
+  { slug: 'fender-jazz-bass',              url: 'https://images.unsplash.com/photo-1544722712-2ac7c0b365ef' },
+  { slug: 'moog-minitaur',                 url: 'https://images.unsplash.com/photo-1695407773587-c1e378e3b4cf' },
+  { slug: 'elektron-digitakt',             url: 'https://images.unsplash.com/photo-1689951993157-5f2aea0983e2' },
+  { slug: 'elektron-digitone',             url: 'https://images.unsplash.com/photo-1654048210688-ca790c0fe5e1' },
+  { slug: 'te-op-1',                       url: 'https://images.unsplash.com/photo-1646551387209-18632aa0bad3' },
+  { slug: 'elektron-analog-four',          url: 'https://images.unsplash.com/photo-1695407773492-dffd52d73b8c' },
+  { slug: 'moog-moog-music-subsequent-25', url: 'https://images.unsplash.com/photo-1649365810362-a5bf4414f1dc' },
 ]
 
 // ── Core ─────────────────────────────────────────────────────────────────────
