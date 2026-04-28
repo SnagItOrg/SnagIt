@@ -61,6 +61,7 @@ export async function GET(
     .from('kg_product')
     .select('id, slug, canonical_name, image_url, subcategory_id, kg_brand!inner(name)')
     .in('subcategory_id', subcatIds)
+    .eq('status', 'active')
     .limit(200) as { data: RawProduct[] | null; error: unknown }
 
   if (prodErr) {
