@@ -57,6 +57,21 @@ const BATCH: { slug: string; url: string }[] = [
   { slug: 'moog-dfam',                    url: 'https://images.unsplash.com/photo-1732282343119-163df43f9677' },
   { slug: 'roland-tr-909',               url: 'https://images.unsplash.com/photo-1617833140106-f85990a942bf' },
   { slug: 'linn-electronics-linndrum',    url: 'https://images.unsplash.com/photo-1571512379797-4613cb587cc0' },
+  // Batch 3
+  { slug: 'fender-telecaster',            url: 'https://images.unsplash.com/photo-1635891360509-8705d6d128bb' },
+  { slug: 'roland-tr-808',               url: 'https://images.unsplash.com/photo-1571512379940-716326f35dbd' },
+  { slug: 'roland-tr-09',               url: 'https://images.unsplash.com/photo-1685017207768-1681e4ed71a7' },
+  { slug: 'roland-jx-8p',               url: 'https://images.unsplash.com/photo-1641994245125-06dd360cadf7' },
+  { slug: 'roland-sp-404-mkii',          url: 'https://images.unsplash.com/photo-1758626445322-d5dda0431094' },
+  { slug: 'roland-sp-404a',             url: 'https://images.unsplash.com/photo-1587916849729-61978d3f0601' },
+  { slug: 'roland-jx-08',               url: 'https://images.unsplash.com/photo-1641994245114-38cb2df59881' },
+  { slug: 'roland-jd-08',               url: 'https://images.unsplash.com/photo-1641994245608-91a52d3f95ac' },
+  { slug: 'ampex-atr-700',              url: 'https://images.unsplash.com/photo-1709283937750-96694edc213a' },
+  { slug: 'behringer-poly-d',           url: 'https://images.unsplash.com/photo-1710284032550-e6de0ff9c072' },
+  { slug: 'arturia-polybrute',          url: 'https://images.unsplash.com/photo-1634041551278-a843c116ff28' },
+  { slug: 'native-instruments-maschine',url: 'https://images.unsplash.com/photo-1646071996900-b3989dac101b' },
+  { slug: 'akai-mpc-5000',             url: 'https://images.unsplash.com/photo-1628452803026-e15039313d0e' },
+  { slug: 'ableton-push',              url: 'https://images.unsplash.com/photo-1535979014625-490762ceb2ff' },
 ]
 
 // ── Core ─────────────────────────────────────────────────────────────────────

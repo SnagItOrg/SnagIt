@@ -204,7 +204,24 @@ two-level subcategory hierarchy via `classify-products.ts` (Haiku batch).
 - Design furniture (design-objects category) — do not import or build
 - Cykler, tech, biler — not our vertical
 
+**Product tier system (shipped 2026-04-28):**
+- `kg_product.tier text` — `standard` (default) | `classic` | `legendary`
+- `kg_product.tags text[]` — facet tags e.g. `vintage`, `discontinued`, `limited-edition`
+- `kg_product.year_released int` — production year for era filtering
+- Legendary products get a badge on product page hero and product cards, and appear in the homepage "Legendarisk gear" carousel
+- Admin curation at `/admin/products` — search any product, click tier badge to cycle, inline year editing
+- API: `GET /api/discover` — returns `{ legendary[], popular[] }` for homepage carousels
+
+**Image pipeline (shipped 2026-04-28):**
+- `kg_product.image_url text` — Unsplash URL initially; run `npm run upload-images -- --batch` on panter to convert to Supabase Storage webp
+- `kg_product.hero_image_url text` — optional editorial override (same image, CSS handles crop difference)
+- `kg_category.image_url text` — category card background; falls back to Supabase Storage path if null
+- Storage bucket: `onboarding-assets` (public). Products: `products/{slug}.webp`. Categories: `categories/{slug}.webp`
+- Script: `scripts/upload-product-images.ts` — download → sharp webp → Storage upload → DB update. Run with `npm run upload-images -- --batch` or `npm run upload-images -- <slug> <url>`
+- `next.config.mjs` allows `images.unsplash.com` as remote pattern
+
 **Admin tools for KG curation:**
+- `/admin/products` — set tier (legendary/classic/standard) and year_released on any product
 - `/admin/suggestions` — review AI-generated product suggestions (pending/approved/rejected)
 - `/admin/suggestions/bulk` — bulk review by brand (AI groups proposals, human approves)
 - `/admin/msrp` — set manual price ranges on products
@@ -229,14 +246,17 @@ two-level subcategory hierarchy via `classify-products.ts` (Haiku batch).
 | `kg_suggestions` | Pending AI-generated KG product proposals |
 | `thomann_product` | Thomann retail products + scraped prices |
 
-**`kg_product` columns added 2026-04** (migrations 028–030):
-- `hero_image_url text` — manual editorial override over `image_url`
+**`kg_product` columns added 2026-04** (migrations 025–031):
+- `image_url text` — product image URL (Unsplash initially, Storage after upload-images run)
+- `hero_image_url text` — editorial override; falls back to `image_url` on product page
 - `subcategory_id uuid → kg_category` — leaf-level classification
 - `subcategory_confidence smallint` — Haiku confidence 0–100
 - `reverb_root_slug text`, `reverb_sub_slug text` — denormalised category anchors
 - `attributes jsonb` — `{ description, specs, history, external_links, related_products, reverb_csp, reverb_csp_candidates }`
-- `reverb_csp_id integer` — typed CSP anchor (migration 030). Populated by
-  migration 032 from `attributes.reverb_csp` after enrichment script runs.
+- `reverb_csp_id integer` — typed CSP anchor (migration 030). Populated by migration 032.
+- `tier text DEFAULT 'standard'` — `standard` | `classic` | `legendary` (migration 031)
+- `tags text[] DEFAULT '{}'` — facet tags (migration 031)
+- `year_released int` — production year (migration 031)
 
 **`reverb_price_history` columns added 2026-04** (migration 031):
 - `kg_product_id uuid → kg_product` — nullable FK. Backfill TBD (migration 034).
@@ -577,4 +597,4 @@ still reads slugs — migrate to UUIDs in the same area where touched next.
 
 ---
 
-*Last updated: 2026-04-27 — migrations 030–033 applied + category UUID backfill done (320/340); CSP enrichment completed (1114 typed `reverb_csp_id`); migration 034 authored, awaiting application*
+*Last updated: 2026-04-28 — tier system shipped (migration 031: tier/tags/year_released); image pipeline live (kg_product.image_url + upload-product-images.ts); 19 legendary products seeded; homepage carousels (/api/discover); /admin/products curation UI; 10 new KG products created (SP-404 MkII, SP-404A, JX-08, JD-08, Behringer Poly D, Arturia PolyBrute, NI Maschine, Akai MPC 5000, Ampex ATR-700, Ableton Push); Ampex + Ableton brands added*
