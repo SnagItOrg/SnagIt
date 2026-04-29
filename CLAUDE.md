@@ -563,6 +563,35 @@ hygiene). Do not start a second vertical until the first is stable.
 
 ## Technical Debt
 
+### Product families and variant modeling (deferred)
+
+Three taxonomy patterns the KG doesn't model cleanly yet:
+
+**1. Product families** — Telecaster, Stratocaster, Les Paul are family names
+that span hundreds of variants. A `kg_product_family` grouping would improve
+browse and disambiguation. Not worth building until the KG is clean and
+families can be curated from real demand data (which variants users actually
+search for).
+
+**2. Cross-manufacturer clones** — Les Paul-style guitars (Epiphone, Burny),
+Minimoog-style synths (Behringer Model D). The `kg_relation` table already
+has `type = 'clone'` and `'alternative'`. Needs populating for the most
+common cases, especially where clone pricing affects the parent product's
+market value.
+
+**3. Generation and size variants** — FLkey 25/37/49-key, MkI/MkII/MkIII.
+Size variants are arguably one product with a `variants` attribute.
+Generational variants are `type = 'successor'` in `kg_relation`.
+Cleanup queue should merge listing-title variants into the correct
+generational product, not into an arbitrary sibling.
+
+Rule for cleanup queue: when a dirty row is clearly a variant (size, year,
+condition) of a clean parent — merge. When it is a genuinely distinct
+generation (MkII vs MkIII have different specs) — check if both exist as
+clean rows before merging.
+
+---
+
 ### kg_product.category_id (legacy)
 
 The original `category_id` column on `kg_product` (pointing to the 4 coarse
