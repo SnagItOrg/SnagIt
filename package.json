@@ -24,7 +24,8 @@
     "classify-products": "tsx scripts/classify-products.ts",
     "enrich-from-reverb-csp": "tsx scripts/enrich-from-reverb-csp.ts",
     "backfill-category-uuids": "tsx scripts/backfill-category-uuids.ts",
-    "upload-images": "tsx scripts/upload-product-images.ts"
+    "upload-images": "tsx scripts/upload-product-images.ts",
+    "flag-dirty-products": "tsx scripts/flag-dirty-products.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.79.0",
