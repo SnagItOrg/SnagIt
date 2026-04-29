@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
@@ -16,7 +16,7 @@ type Row = {
 
 // GET /api/admin/cleanup/brands
 // Returns distinct brands with pending product counts
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const user = await requireAuth()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
