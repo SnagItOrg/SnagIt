@@ -34,7 +34,6 @@ export async function GET(
 
   const subcatsList = subcatsRaw ?? []
   const subcatIds = subcatsList.map((s) => s.id)
-  // Map from compound slug (e.g. "electric-guitars/solid-body") → bare sub slug ("solid-body")
   const subcatById = new Map(subcatsList.map((s) => [s.id, s]))
 
   if (subcatIds.length === 0) {
@@ -53,13 +52,14 @@ export async function GET(
     slug: string
     canonical_name: string
     image_url: string | null
+    tier: string
     subcategory_id: string | null
     kg_brand: { name: string } | null
   }
 
   const { data: productsRaw, error: prodErr } = await admin
     .from('kg_product')
-    .select('id, slug, canonical_name, image_url, subcategory_id, kg_brand!inner(name)')
+    .select('id, slug, canonical_name, image_url, tier, subcategory_id, kg_brand!inner(name)')
     .in('subcategory_id', subcatIds)
     .eq('status', 'active')
     .limit(200) as { data: RawProduct[] | null; error: unknown }
@@ -85,7 +85,8 @@ export async function GET(
     }
   }
 
-  const shaped = products
+  // Filter: only products with ≥1 active listing OR tier classic/legendary
+  const filtered = products
     .map((p) => {
       const subcat = p.subcategory_id ? subcatById.get(p.subcategory_id) : null
       const bareSlug = subcat?.slug?.split('/')[1] ?? subcat?.slug ?? ''
@@ -93,23 +94,47 @@ export async function GET(
         slug: p.slug,
         canonical_name: p.canonical_name,
         image_url: p.image_url ?? null,
+        tier: p.tier,
         brand_name: p.kg_brand?.name ?? '',
         subcategory_name_da: subcat?.name_da ?? '',
         subcategory_name_en: subcat?.name_en ?? '',
         subcategory_slug: bareSlug,
+        _subcategory_id: p.subcategory_id,
         active_listing_count: listingCountByProduct[p.id] ?? 0,
       }
     })
+    .filter((p) => p.active_listing_count >= 1 || p.tier === 'classic' || p.tier === 'legendary')
     .sort((a, b) => b.active_listing_count - a.active_listing_count)
-    .slice(0, 48)
 
-  // Strip compound prefix from subcategory slugs for URL/filter use
-  const subcategories = subcatsList.map((s) => ({
-    id: s.id,
-    slug: s.slug.split('/')[1] ?? s.slug,
-    name_da: s.name_da,
-    name_en: s.name_en,
+  // Count qualifying products per subcategory (from full filtered set, not just top 48)
+  const subcatCount = new Map<string, number>()
+  for (const p of filtered) {
+    if (p._subcategory_id) {
+      subcatCount.set(p._subcategory_id, (subcatCount.get(p._subcategory_id) ?? 0) + 1)
+    }
+  }
+
+  const shaped = filtered.slice(0, 48).map((p) => ({
+    slug: p.slug,
+    canonical_name: p.canonical_name,
+    image_url: p.image_url,
+    tier: p.tier,
+    brand_name: p.brand_name,
+    subcategory_name_da: p.subcategory_name_da,
+    subcategory_name_en: p.subcategory_name_en,
+    subcategory_slug: p.subcategory_slug,
+    active_listing_count: p.active_listing_count,
   }))
+
+  // Subcategory pills: only where ≥2 qualifying products
+  const subcategories = subcatsList
+    .filter((s) => (subcatCount.get(s.id) ?? 0) >= 2)
+    .map((s) => ({
+      id: s.id,
+      slug: s.slug.split('/')[1] ?? s.slug,
+      name_da: s.name_da,
+      name_en: s.name_en,
+    }))
 
   return NextResponse.json({
     category: rootCat,
