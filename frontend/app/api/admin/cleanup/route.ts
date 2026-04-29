@@ -151,6 +151,8 @@ function stripSearchTerm(name: string): string {
   s = s.replace(NOISE_WORDS_RE, '')
   // Strip trailing punctuation artifacts and collapse whitespace
   s = s.replace(/[-\s]+$/, '').replace(/\s+/g, ' ').trim()
+  // Truncate to first 4 words — prevents compound names from splitting trigram similarity
+  s = s.split(' ').slice(0, 4).join(' ')
   return s || name.trim()  // fallback to original if stripping empties the string
 }
 
