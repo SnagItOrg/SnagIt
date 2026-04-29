@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // For each pending row, find up to 3 clean parent candidates via trigram similarity
+  // For each pending row, find up to 5 clean parent candidates via trigram similarity
   const results = await Promise.all(pending.map(async (row) => {
     const brandId = row.brand_id
 
@@ -82,8 +82,9 @@ export async function GET(req: NextRequest) {
     let candidates: CandidateRow[] = []
 
     if (brandId) {
+      const searchTerm = stripSearchTerm(row.canonical_name)
       const { data: cands } = await admin.rpc('find_clean_candidates', {
-        p_canonical_name: row.canonical_name,
+        p_canonical_name: searchTerm,
         p_brand_id: brandId,
         p_exclude_id: row.id,
       }) as { data: CandidateRow[] | null }
@@ -124,6 +125,26 @@ export async function GET(req: NextRequest) {
     page,
     per_page: perPage,
   })
+}
+
+// ── Search term stripping ─────────────────────────────────────────────────────
+
+const NOISE_WORDS_RE = /\b(Synthesizer|Monophonic|Analog|Polyphonic|Vintage|Black|White|Silver|Gold|Original|Standard|Classic|Serviced|Restored|Modified)\b/gi
+const KEY_COUNT_RE   = /\s*\d+[-\s]?Keys?\b/gi  // e.g. "49-Key", "61 Keys", "25Key"
+
+function stripSearchTerm(name: string): string {
+  let s = name.trim()
+  // Remove leading duplicate brand word: "Roland Roland Jupiter" → "Roland Jupiter"
+  s = s.replace(/^(\S+)\s+\1\s+/i, '$1 ')
+  // Remove 4-digit year and everything after it
+  s = s.replace(/\s*\d{4}.*$/, '')
+  // Remove keyboard key-count descriptors
+  s = s.replace(KEY_COUNT_RE, '')
+  // Remove noise words
+  s = s.replace(NOISE_WORDS_RE, '')
+  // Strip trailing punctuation artifacts and collapse whitespace
+  s = s.replace(/[-\s]+$/, '').replace(/\s+/g, ' ').trim()
+  return s || name.trim()  // fallback to original if stripping empties the string
 }
 
 // ── Bigram similarity helpers ─────────────────────────────────────────────────
