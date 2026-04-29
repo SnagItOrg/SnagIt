@@ -128,8 +128,15 @@ two-level subcategory hierarchy via `classify-products.ts` (Haiku batch).
 - Moog Minimoog, Moog Subsequent 37
 
 **Image strategy:**
-- Thomann → new/current production gear (best product images)
-- Reverb → vintage/discontinued gear
+- Thomann → new/current production gear (`image_url` via `fetch-thomann-prices`)
+- Reverb CSP → vintage/discontinued gear (`image_url` promoted from
+  `attributes.reverb_csp.image_url` via `scripts/promote-csp-images.ts`;
+  710 products populated 2026-04-29)
+- Unsplash / Pexels → editorial hero overrides (`hero_image_url`). Managed
+  in `scripts/set-hero-images.ts` — the canonical list. `hero_image_url`
+  takes precedence over `image_url` in the frontend. Current entries:
+  Gibson Hummingbird, Gibson ES-335, Fender Telecaster, Fender Jazzmaster,
+  Fender Jaguar, Roland TR-909.
 
 **Reverb category mirror (shipped 2026-04):**
 - `scripts/seed-reverb-categories.ts` imports Reverb's full taxonomy
@@ -529,11 +536,16 @@ electric-guitars, acoustic-guitars, bass-guitars, amps, effects-and-pedals,
 keyboards-and-synths, drums-and-percussion, pro-audio, accessories,
 folk-instruments, band-and-orchestra, home-audio, dj-and-lighting-gear, parts
 
-### Product cards have no images
-`ProductCard` renders text-only. kg_product has no image field.
-Planned solution: store a representative Unsplash image URL per product
-(or per subcategory as fallback) in kg_product.image_url (nullable text).
-Populate manually or via script for high-value products first.
+### Product cards have no images (partially resolved 2026-04-29)
+`kg_product.image_url` is populated for:
+- Thomann-sourced products (via `fetch-thomann-prices`)
+- 710 products with high/medium Reverb CSP confidence (via `promote-csp-images.ts`)
+- 6 products with editorial Unsplash/Pexels hero images (via `set-hero-images.ts`)
+
+Remaining gap: ~2,400 products with dirty canonical_names that didn't get a
+CSP match. These will be filled organically as demand-driven KG curation
+improves canonical_name quality. `ProductCard` should gracefully degrade to
+a subcategory-level fallback image or placeholder.
 
 ### Products missing descriptions and specs
 kg_product has no description or specs fields. Needed for product detail
@@ -577,4 +589,4 @@ still reads slugs — migrate to UUIDs in the same area where touched next.
 
 ---
 
-*Last updated: 2026-04-27 — migrations 030–033 applied + category UUID backfill done (320/340); CSP enrichment completed (1114 typed `reverb_csp_id`); migration 034 authored, awaiting application*
+*Last updated: 2026-04-29 — migration 034 applied (339 price-history rows mapped); 710 kg_product image_url populated from CSP; 6 editorial hero images set (Unsplash/Pexels)*
