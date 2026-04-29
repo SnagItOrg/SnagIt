@@ -5,12 +5,13 @@ export async function GET() {
   const admin = getSupabaseAdmin()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 
-  const [rootsRes, subsRes, productsRes, matchesRes] = await Promise.all([
+  const [rootsRes, subsRes, productsRes, matchesRes, musicGearRes] = await Promise.all([
     admin
       .from('kg_category')
       .select('id, slug, name_da, name_en, image_url')
       .eq('domain', 'music')
-      .is('parent_id', null),
+      .is('parent_id', null)
+      .neq('slug', 'music-gear'),
     admin
       .from('kg_category')
       .select('id, parent_id')
@@ -28,11 +29,19 @@ export async function GET() {
       .select('product_id, listings!inner(is_active)')
       .eq('listings.is_active', true)
       .limit(50000),
+    // music-gear root image — inherited by keyboards-and-synths
+    admin
+      .from('kg_category')
+      .select('image_url')
+      .eq('slug', 'music-gear')
+      .single(),
   ])
 
   if (rootsRes.error || subsRes.error || productsRes.error) {
     return NextResponse.json({ error: 'Failed to load categories' }, { status: 500 })
   }
+
+  const musicGearImageUrl = musicGearRes.data?.image_url ?? null
 
   // subcategory_id → root_id
   const subToRoot = new Map<string, string>()
@@ -55,15 +64,25 @@ export async function GET() {
     if (rootId) countByRoot.set(rootId, (countByRoot.get(rootId) ?? 0) + 1)
   }
 
+  const storageFallback = (slug: string) =>
+    `${supabaseUrl}/storage/v1/object/public/onboarding-assets/categories/${slug}.webp`
+
   const categories = (rootsRes.data ?? [])
-    .map((c) => ({
-      id: c.id,
-      slug: c.slug,
-      name_da: c.name_da,
-      name_en: c.name_en,
-      product_count: countByRoot.get(c.id) ?? 0,
-      image_url: c.image_url ?? `${supabaseUrl}/storage/v1/object/public/onboarding-assets/categories/${c.slug}.webp`,
-    }))
+    .map((c) => {
+      // keyboards-and-synths inherits the music-gear vertical image
+      const imageUrl =
+        c.slug === 'keyboards-and-synths' && musicGearImageUrl
+          ? musicGearImageUrl
+          : (c.image_url ?? storageFallback(c.slug))
+      return {
+        id: c.id,
+        slug: c.slug,
+        name_da: c.name_da,
+        name_en: c.name_en,
+        product_count: countByRoot.get(c.id) ?? 0,
+        image_url: imageUrl,
+      }
+    })
     .filter((c) => c.product_count > 0)
     .sort((a, b) => b.product_count - a.product_count)
 
