@@ -132,19 +132,17 @@ function normalizeName(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-function bigrams(s: string): Set<string> {
-  return new Set(Array.from({ length: s.length - 1 }, (_, i) => s.slice(i, i + 2)))
-}
-
 function jsSimilarity(a: string, b: string): number {
   const na = normalizeName(a), nb = normalizeName(b)
   if (na === nb) return 1
-  const ba = bigrams(na), bb = bigrams(nb)
-  if (ba.size === 0 && bb.size === 0) return 1
-  if (ba.size === 0 || bb.size === 0) return 0
+  const ba: string[] = [], bb: string[] = []
+  for (let i = 0; i < na.length - 1; i++) ba.push(na.slice(i, i + 2))
+  for (let i = 0; i < nb.length - 1; i++) bb.push(nb.slice(i, i + 2))
+  if (ba.length === 0 && bb.length === 0) return 1
+  if (ba.length === 0 || bb.length === 0) return 0
   let intersection = 0
-  for (const bg of ba) { if (bb.has(bg)) intersection++ }
-  return (2 * intersection) / (ba.size + bb.size)
+  for (const bg of ba) { if (bb.indexOf(bg) !== -1) intersection++ }
+  return (2 * intersection) / (ba.length + bb.length)
 }
 
 // ── Flag reconstruction (mirrors flag-dirty-products.ts logic) ────────────────
