@@ -351,6 +351,8 @@ Vercel auto-deploys from `main`. That's it. Never use Vercel CLI.
 
 **Strategic alignment before implementation.** If a feature doesn't move toward "is this a good price?", deprioritise it.
 
+**No quick fixes.** Every change is built to last. If the right solution takes longer, take longer. Shortcuts create cleanup debt that costs more than the time saved. If a fix feels hacky, it is — stop and find the correct approach before writing code.
+
 **Never:**
 - Run scrapers without rate limiting (min 2s between requests + jitter)
 - Let PM2 restart a crashing job immediately — add crash-and-don't-restart logic on timeout-prone jobs
