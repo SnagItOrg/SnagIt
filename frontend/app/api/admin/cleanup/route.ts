@@ -25,19 +25,35 @@ export async function GET(req: NextRequest) {
   const user = await requireAuth()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const page    = parseInt(req.nextUrl.searchParams.get('page')     ?? '0')
-  const perPage = parseInt(req.nextUrl.searchParams.get('per_page') ?? '20')
-  const from    = page * perPage
-  const to      = from + perPage - 1
+  const page      = parseInt(req.nextUrl.searchParams.get('page')     ?? '0')
+  const perPage   = parseInt(req.nextUrl.searchParams.get('per_page') ?? '20')
+  const brandSlug = req.nextUrl.searchParams.get('brand_slug') ?? null
+  const from      = page * perPage
+  const to        = from + perPage - 1
 
   const admin = getSupabaseAdmin()
 
-  // Fetch pending rows (paginated)
-  const { data: rows, error: rowsErr, count } = await admin
+  // Resolve brand slug to id if provided
+  let brandId: string | null = null
+  if (brandSlug) {
+    const { data: brandRow } = await admin
+      .from('kg_brand')
+      .select('id')
+      .eq('slug', brandSlug)
+      .single()
+    brandId = brandRow?.id ?? null
+  }
+
+  // Fetch pending rows (paginated, optionally filtered by brand)
+  let baseQuery = admin
     .from('kg_product')
     .select('id, slug, canonical_name, cleanup_status, brand_id, kg_brand(name)', { count: 'exact' })
     .eq('cleanup_status', 'pending')
     .eq('status', 'active')
+
+  if (brandId) baseQuery = baseQuery.eq('brand_id', brandId)
+
+  const { data: rows, error: rowsErr, count } = await baseQuery
     .range(from, to) as { data: PendingRow[] | null; error: unknown; count: number | null }
 
   if (rowsErr) return NextResponse.json({ error: 'Query failed' }, { status: 500 })

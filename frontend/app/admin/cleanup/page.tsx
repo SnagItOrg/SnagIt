@@ -2,6 +2,12 @@
 
 import { useEffect, useState, useCallback } from 'react'
 
+type BrandOption = {
+  name: string
+  slug: string
+  count: number
+}
+
 type Candidate = {
   id: string
   slug: string
@@ -33,12 +39,25 @@ const FLAG_LABEL: Record<string, string> = {
   too_long:              'too long',
 }
 
+function computeCleanName(name: string): string {
+  // Remove consecutive duplicate first word (e.g. "JoMox JoMox Moonwind" → "JoMox Moonwind")
+  const deduped = name.replace(/^(\S+)\s+\1(\s+)/i, '$1$2')
+  // Strip trailing colour/finish suffix (e.g. " - Black", " - Vintage White")
+  const stripped = deduped.replace(
+    /\s+-\s+(Black|White|Silver|Red|Blue|Green|Gold|Natural|Sunburst|Cream|Vintage White)\s*$/i,
+    '',
+  )
+  return stripped.trim()
+}
+
 export default function CleanupPage() {
   const [items, setItems] = useState<ItemState[]>([])
   const [totalPending, setTotalPending] = useState(0)
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
+  const [brands, setBrands] = useState<BrandOption[]>([])
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null)
   const perPage = 20
 
   function showToast(msg: string) {
@@ -46,9 +65,18 @@ export default function CleanupPage() {
     setTimeout(() => setToast(null), 3000)
   }
 
-  const loadPage = useCallback(async (p: number) => {
+  // Fetch brand list once on mount
+  useEffect(() => {
+    fetch('/api/admin/cleanup/brands')
+      .then((r) => r.json())
+      .then((d) => setBrands(d.brands ?? []))
+  }, [])
+
+  const loadPage = useCallback(async (p: number, brand: string | null) => {
     setLoading(true)
-    const res = await fetch(`/api/admin/cleanup?page=${p}&per_page=${perPage}`)
+    const params = new URLSearchParams({ page: String(p), per_page: String(perPage) })
+    if (brand) params.set('brand_slug', brand)
+    const res = await fetch(`/api/admin/cleanup?${params}`)
     const data = await res.json()
     setItems((data.items ?? []).map((item: CleanupItem) => ({ ...item, status: 'pending' })))
     setTotalPending(data.total_pending ?? 0)
@@ -56,8 +84,13 @@ export default function CleanupPage() {
   }, [])
 
   useEffect(() => {
-    loadPage(page)
-  }, [page, loadPage])
+    loadPage(page, selectedBrand)
+  }, [page, selectedBrand, loadPage])
+
+  function handleBrandChange(slug: string | null) {
+    setSelectedBrand(slug)
+    setPage(0)
+  }
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -131,6 +164,24 @@ export default function CleanupPage() {
     }
   }
 
+  async function handleSelfClean(item: ItemState) {
+    const cleanName = computeCleanName(item.canonical_name)
+    updateItem(item.id, { status: 'loading' })
+    const res = await fetch('/api/admin/cleanup/self-clean', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dirty_id: item.id, clean_name: cleanName }),
+    })
+    if (res.ok) {
+      updateItem(item.id, { status: 'done', doneLabel: `→ ${cleanName} (new)` })
+      setTotalPending((n) => Math.max(0, n - 1))
+      showToast(`Created and merged → ${cleanName}`)
+    } else {
+      const d = await res.json()
+      updateItem(item.id, { status: 'error', errorMsg: d.error ?? 'Self-clean failed' })
+    }
+  }
+
   const doneOnPage = items.filter((it) => it.status === 'done').length
   const totalPages = Math.ceil(totalPending / perPage)
 
@@ -153,6 +204,41 @@ export default function CleanupPage() {
           </div>
         )}
       </div>
+
+      {/* Brand filter */}
+      {brands.length > 0 && (
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
+            Brand
+          </label>
+          <select
+            value={selectedBrand ?? ''}
+            onChange={(e) => handleBrandChange(e.target.value || null)}
+            className="text-sm px-3 py-1.5 rounded-xl"
+            style={{
+              background: 'var(--secondary)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <option value="">All brands</option>
+            {brands.map((b) => (
+              <option key={b.slug} value={b.slug}>
+                {b.name} ({b.count})
+              </option>
+            ))}
+          </select>
+          {selectedBrand && (
+            <button
+              onClick={() => handleBrandChange(null)}
+              className="text-xs px-2 py-1 rounded-lg"
+              style={{ color: 'var(--muted-foreground)' }}
+            >
+              Clear ×
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Progress bar */}
       {totalPending > 0 && (
@@ -186,6 +272,8 @@ export default function CleanupPage() {
           {items.map((item) => {
             const done = item.status === 'done'
             const busy = item.status === 'loading'
+            const cleanName = computeCleanName(item.canonical_name)
+            const canSelfClean = item.candidates.length === 0 && cleanName !== item.canonical_name
 
             return (
               <div
@@ -263,6 +351,31 @@ export default function CleanupPage() {
                           </button>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {/* Self-clean suggestion */}
+                  {canSelfClean && !done && (
+                    <div
+                      className="flex items-center justify-between gap-3 rounded-xl px-3 py-2"
+                      style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: 'rgb(59,130,246)' }}>
+                          No candidates — use cleaned name
+                        </p>
+                        <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
+                          {cleanName}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => void handleSelfClean(item)}
+                        disabled={busy}
+                        className="text-xs font-semibold px-2.5 py-1 rounded-lg shrink-0 disabled:opacity-40"
+                        style={{ background: 'rgb(59,130,246)', color: '#fff' }}
+                      >
+                        Use this name →
+                      </button>
                     </div>
                   )}
 
