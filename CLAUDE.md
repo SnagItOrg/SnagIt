@@ -121,6 +121,9 @@ two-level subcategory hierarchy via `classify-products.ts` (Haiku batch).
 
 **canonical_name rule:** Always `brand + model`. Never strip brand. "Roland Juno-106" not "Juno-106".
 
+**KG data integrity rule — verify before writing:**
+Before creating or updating any `kg_product` row (slug, canonical_name, image_url, tier, etc.), always verify the product name independently — do not blindly trust user input. If the user supplies a product name alongside an image URL, cross-check the name against the Unsplash page description, the image content, and any existing KG entry. If there is a mismatch (e.g. user says "PO-04" but the image shows a PO-14, or "PO-04" already maps to an existing entry), flag the discrepancy before writing. The KG is the source of truth — a dirty row is harder to clean than to prevent.
+
 **Priority products to build product pages for first:**
 - Fender Telecaster, Telecaster Custom Shop, Fender Stratocaster, Fender Vintera II
 - Gibson Les Paul, Gibson ES-335
@@ -211,7 +214,24 @@ two-level subcategory hierarchy via `classify-products.ts` (Haiku batch).
 - Design furniture (design-objects category) — do not import or build
 - Cykler, tech, biler — not our vertical
 
+**Product tier system (shipped 2026-04-28):**
+- `kg_product.tier text` — `standard` (default) | `classic` | `legendary`
+- `kg_product.tags text[]` — facet tags e.g. `vintage`, `discontinued`, `limited-edition`
+- `kg_product.year_released int` — production year for era filtering
+- Legendary products get a badge on product page hero and product cards, and appear in the homepage "Legendarisk gear" carousel
+- Admin curation at `/admin/products` — search any product, click tier badge to cycle, inline year editing
+- API: `GET /api/discover` — returns `{ legendary[], popular[] }` for homepage carousels
+
+**Image pipeline (shipped 2026-04-28):**
+- `kg_product.image_url text` — Unsplash URL initially; run `npm run upload-images -- --batch` on panter to convert to Supabase Storage webp
+- `kg_product.hero_image_url text` — optional editorial override (same image, CSS handles crop difference)
+- `kg_category.image_url text` — category card background; falls back to Supabase Storage path if null
+- Storage bucket: `onboarding-assets` (public). Products: `products/{slug}.webp`. Categories: `categories/{slug}.webp`
+- Script: `scripts/upload-product-images.ts` — download → sharp webp → Storage upload → DB update. Run with `npm run upload-images -- --batch` or `npm run upload-images -- <slug> <url>`
+- `next.config.mjs` allows `images.unsplash.com` as remote pattern
+
 **Admin tools for KG curation:**
+- `/admin/products` — set tier (legendary/classic/standard) and year_released on any product
 - `/admin/suggestions` — review AI-generated product suggestions (pending/approved/rejected)
 - `/admin/suggestions/bulk` — bulk review by brand (AI groups proposals, human approves)
 - `/admin/msrp` — set manual price ranges on products
@@ -236,14 +256,17 @@ two-level subcategory hierarchy via `classify-products.ts` (Haiku batch).
 | `kg_suggestions` | Pending AI-generated KG product proposals |
 | `thomann_product` | Thomann retail products + scraped prices |
 
-**`kg_product` columns added 2026-04** (migrations 028–030):
-- `hero_image_url text` — manual editorial override over `image_url`
+**`kg_product` columns added 2026-04** (migrations 025–031):
+- `image_url text` — product image URL (Unsplash initially, Storage after upload-images run)
+- `hero_image_url text` — editorial override; falls back to `image_url` on product page
 - `subcategory_id uuid → kg_category` — leaf-level classification
 - `subcategory_confidence smallint` — Haiku confidence 0–100
 - `reverb_root_slug text`, `reverb_sub_slug text` — denormalised category anchors
 - `attributes jsonb` — `{ description, specs, history, external_links, related_products, reverb_csp, reverb_csp_candidates }`
-- `reverb_csp_id integer` — typed CSP anchor (migration 030). Populated by
-  migration 032 from `attributes.reverb_csp` after enrichment script runs.
+- `reverb_csp_id integer` — typed CSP anchor (migration 030). Populated by migration 032.
+- `tier text DEFAULT 'standard'` — `standard` | `classic` | `legendary` (migration 031)
+- `tags text[] DEFAULT '{}'` — facet tags (migration 031)
+- `year_released int` — production year (migration 031)
 
 **`reverb_price_history` columns added 2026-04** (migration 031):
 - `kg_product_id uuid → kg_product` — nullable FK. Backfill TBD (migration 034).
@@ -334,6 +357,8 @@ Vercel auto-deploys from `main`. That's it. Never use Vercel CLI.
 **Over-engineering is the recurring failure mode.** When in doubt, do less. Ship smaller.
 
 **Strategic alignment before implementation.** If a feature doesn't move toward "is this a good price?", deprioritise it.
+
+**No quick fixes.** Every change is built to last. If the right solution takes longer, take longer. Shortcuts create cleanup debt that costs more than the time saved. If a fix feels hacky, it is — stop and find the correct approach before writing code.
 
 **Never:**
 - Run scrapers without rate limiting (min 2s between requests + jitter)
@@ -466,9 +491,115 @@ er testet af rigtige brugere.
 
 ---
 
+## Scraping lessons — do not repeat in new verticals
+
+These mistakes were made in the music vertical and cost significant cleanup time.
+
+**1. Never build the KG from listing titles.**
+Reverb listing titles like "Fender 1958 Precision Bass Old Blue Refin" became
+`kg_product` rows. They are not products — they are listing descriptions. Every
+row in `kg_product` must have a source that is a canonical product reference
+(manufacturer page, Reverb CSP, Thomann product page), not a listing title.
+Enforcement: the demand-driven creation path (user search → Haiku resolves
+clean brand+model → CSP confirmed) is the only automated path. Bulk import
+from listing data is permanently prohibited.
+
+**2. Wildcard scraping a general marketplace produces garbage.**
+DBA.dk wildcard search hit bot detection immediately and returned
+inconsistent results before it did. Finn.no and Blocket return free-text
+titles that don't match `model_name` tokens reliably. Structured sources
+(Reverb API with `make`/`model` fields, Thomann sitemap with SKUs) produce
+10x better match rates with no extra work.
+Rule: every new scraper must map to a structured field (SKU, model number,
+or manufacturer slug) — not rely on fuzzy title matching.
+
+**3. PM2 restart on crash + no rate limiting = database destruction.**
+The match-listings loop crashed on timeout, PM2 restarted immediately,
+and the job generated 44,000+ Supabase requests/hour and 17M garbage rows
+in `listing_product_match` before it was caught.
+Rule: every PM2 job must have `max_restarts: 3` and `min_uptime: 30000`.
+Every scraper must have minimum 2s delay between requests plus jitter.
+Crash logs must be checked after every deploy that touches a PM2 job.
+
+**4. Subcategory classification on dirty data propagates errors.**
+The AI classifier correctly classified listing-title rows — but into the
+wrong categories, because "Fender 1958 Precision Bass Old Blue Refin" reads
+as a specific vintage variant, not a Precision Bass. Clean the KG before
+running classification, not after.
+Rule: run `SELECT COUNT(*) FROM kg_product WHERE canonical_name ~ '\d{4}'`
+before any bulk classification run. If > 0, clean first.
+
+**5. Currency and pricing: always store raw + currency, convert at render.**
+Early listings stored pre-converted DKK with a hardcoded 7.5 USD/DKK rate.
+When the rate moved, prices were silently wrong.
+Rule: always store `price` + `currency` from the source. Convert to DKK at
+read time via Frankfurter API with hardcoded fallback.
+
+---
+
+## Vertical expansion — principles and gates
+
+Klup is vertical-first by design. Music gear is the only active vertical.
+
+**Do not speculate about future verticals in this file.** PostHog unmatched
+search data will surface real demand when it exists. A vertical is not
+planned until that signal is clear.
+
+### Rules for any future vertical (learned from music gear)
+
+**1. Find a structured primary source first.**
+Every vertical needs one dominant source with structured product data —
+SKUs, model numbers, manufacturer slugs. Without this, scrapers produce
+listing-title pollution in the KG (see Scraping lessons).
+Finn.no, Blocket, and DBA are open marketplaces with free-text titles.
+They are listing sources, not KG sources. They can supplement a vertical
+but cannot anchor one.
+
+**2. Seed the KG before scraping.**
+50–100 canonical products with clean `brand + model` names must exist
+before any scraper runs. The scraper maps TO the KG. It does not build it.
+
+**3. Validate demand before building.**
+≥ 10 PostHog unmatched search sessions for a category = a signal worth
+investigating. Not a green light to build — a reason to research the
+primary source and assess scrapability.
+
+**4. One vertical at a time.**
+The music vertical is not fully clean yet (see Known Issues: canonical_name
+hygiene). Do not start a second vertical until the first is stable.
+
 ---
 
 ## Technical Debt
+
+### Product families and variant modeling (deferred)
+
+Three taxonomy patterns the KG doesn't model cleanly yet:
+
+**1. Product families** — Telecaster, Stratocaster, Les Paul are family names
+that span hundreds of variants. A `kg_product_family` grouping would improve
+browse and disambiguation. Not worth building until the KG is clean and
+families can be curated from real demand data (which variants users actually
+search for).
+
+**2. Cross-manufacturer clones** — Les Paul-style guitars (Epiphone, Burny),
+Minimoog-style synths (Behringer Model D). The `kg_relation` table already
+has `type = 'clone'` and `'alternative'`. Needs populating for the most
+common cases, especially where clone pricing affects the parent product's
+market value.
+
+**3. Generation and size variants** — FLkey 25/37/49-key, MkI/MkII/MkIII.
+Size variants are arguably one product with a `variants` attribute.
+Generational variants are `type = 'successor'` in `kg_relation`.
+Cleanup queue should merge listing-title variants into the correct
+generational product, not into an arbitrary sibling.
+
+Rule for cleanup queue: when a dirty row is clearly a variant (size, year,
+condition) of a clean parent — merge. When it is a genuinely distinct
+generation (MkII vs MkIII have different specs) — check if both exist as
+clean rows before merging.
+
+---
 
 ### kg_product.category_id (legacy)
 
@@ -589,4 +720,4 @@ still reads slugs — migrate to UUIDs in the same area where touched next.
 
 ---
 
-*Last updated: 2026-04-29 — migration 034 applied (339 price-history rows mapped); 710 kg_product image_url populated from CSP; 6 editorial hero images set (Unsplash/Pexels)*
+*Last updated: 2026-04-29 — migration 034 applied (339 price-history rows mapped); 710 kg_product image_url populated from CSP; 6 editorial hero images set (Unsplash/Pexels); scraping lessons added; browse status filter fixed; KG cleanup queue added*

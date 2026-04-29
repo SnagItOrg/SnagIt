@@ -1,0 +1,1 @@
+ALTER TABLE kg_category ADD COLUMN IF NOT EXISTS image_url TEXT;

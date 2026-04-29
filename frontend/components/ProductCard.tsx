@@ -1,6 +1,8 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
+import { useState } from 'react'
 
 interface Props {
   slug: string
@@ -8,6 +10,8 @@ interface Props {
   brandName: string
   subcategoryName: string
   activeListingCount: number
+  imageUrl?: string | null
+  tier?: 'standard' | 'classic' | 'legendary'
   variant?: 'grid' | 'list'
 }
 
@@ -17,8 +21,12 @@ export function ProductCard({
   brandName,
   subcategoryName,
   activeListingCount,
+  imageUrl,
+  tier,
   variant = 'grid',
 }: Props) {
+  const [imgError, setImgError] = useState(false)
+
   if (variant === 'list') {
     return (
       <Link
@@ -52,28 +60,59 @@ export function ProductCard({
   return (
     <Link
       href={`/product/${slug}`}
-      className="flex flex-col gap-2 p-4 rounded-xl border transition-colors hover:bg-secondary"
+      className="flex flex-col rounded-xl border overflow-hidden transition-colors hover:bg-secondary"
       style={{ background: 'var(--card)', borderColor: 'var(--card-border)' }}
     >
-      <div className="flex items-start justify-between gap-2">
+      {/* Image area */}
+      <div className="relative w-full aspect-[4/3] overflow-hidden" style={{ background: 'var(--secondary)' }}>
+        {imageUrl && !imgError ? (
+          <Image
+            src={imageUrl}
+            alt={canonicalName}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 50vw, 25vw"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="material-symbols-outlined" style={{ fontSize: 36, color: 'var(--muted-foreground)', opacity: 0.4 }}>
+              piano
+            </span>
+          </div>
+        )}
+        {/* Tier badge */}
+        {tier && tier !== 'standard' && (
+          <span
+            className="absolute top-2 left-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
+            style={{ background: 'var(--foreground)', color: 'var(--background)' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 11 }}>workspace_premium</span>
+            {tier === 'legendary' ? 'Legendary' : 'Classic'}
+          </span>
+        )}
         {activeListingCount > 0 && (
           <span
-            className="text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ml-auto"
-            style={{ background: 'var(--secondary)', color: 'var(--foreground)' }}
+            className="absolute top-2 right-2 text-[11px] font-medium px-2 py-0.5 rounded-full"
+            style={{ background: 'var(--card)', color: 'var(--foreground)' }}
           >
             {activeListingCount} til salg
           </span>
         )}
       </div>
-      <p
-        className="text-sm font-semibold leading-snug"
-        style={{ fontFamily: '"DM Serif Display", serif', color: 'var(--foreground)' }}
-      >
-        {canonicalName}
-      </p>
-      <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-        {brandName}
-      </p>
+
+      {/* Text area */}
+      <div className="p-3 flex flex-col gap-0.5">
+        <p
+          className="text-sm font-semibold leading-snug"
+          style={{ fontFamily: '"DM Serif Display", serif', color: 'var(--foreground)' }}
+        >
+          {canonicalName}
+        </p>
+        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+          {brandName}
+        </p>
+      </div>
     </Link>
   )
 }

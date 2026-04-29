@@ -5,10 +5,12 @@ import { usePathname } from 'next/navigation'
 
 const links = [
   { href: '/admin/users', label: 'Brugere', icon: 'group' },
+  { href: '/admin/products', label: 'Produkter', icon: 'workspace_premium' },
   { href: '/admin/suggestions', label: 'Forslag', icon: 'lightbulb' },
   { href: '/admin/suggestions/bulk', label: 'Bulk review', icon: 'auto_awesome' },
   { href: '/admin/match', label: 'Match', icon: 'link' },
   { href: '/admin/msrp', label: 'MSRP', icon: 'sell' },
+  { href: '/admin/cleanup', label: 'KG Cleanup', icon: 'mop' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

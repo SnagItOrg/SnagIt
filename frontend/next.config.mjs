@@ -68,6 +68,11 @@ const nextConfig = {
         protocol: 'https',
         hostname: '**.thomannmusic.com',
       },
+      // Unsplash (product + category stock photos)
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
   },
 };

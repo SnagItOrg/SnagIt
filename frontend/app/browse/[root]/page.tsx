@@ -26,6 +26,7 @@ interface Subcategory {
 interface Product {
   slug: string
   canonical_name: string
+  image_url: string | null
   brand_name: string
   subcategory_name_da: string
   subcategory_name_en: string
@@ -158,6 +159,7 @@ export default function BrowseCategoryPage() {
                 brandName={p.brand_name}
                 subcategoryName={locale === 'da' ? p.subcategory_name_da : p.subcategory_name_en}
                 activeListingCount={p.active_listing_count}
+                imageUrl={p.image_url}
               />
             ))}
           </div>
