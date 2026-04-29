@@ -482,6 +482,50 @@ er testet af rigtige brugere.
 
 ---
 
+## Scraping lessons — do not repeat in new verticals
+
+These mistakes were made in the music vertical and cost significant cleanup time.
+
+**1. Never build the KG from listing titles.**
+Reverb listing titles like "Fender 1958 Precision Bass Old Blue Refin" became
+`kg_product` rows. They are not products — they are listing descriptions. Every
+row in `kg_product` must have a source that is a canonical product reference
+(manufacturer page, Reverb CSP, Thomann product page), not a listing title.
+Enforcement: the demand-driven creation path (user search → Haiku resolves
+clean brand+model → CSP confirmed) is the only automated path. Bulk import
+from listing data is permanently prohibited.
+
+**2. Wildcard scraping a general marketplace produces garbage.**
+DBA.dk wildcard search hit bot detection immediately and returned
+inconsistent results before it did. Finn.no and Blocket return free-text
+titles that don't match `model_name` tokens reliably. Structured sources
+(Reverb API with `make`/`model` fields, Thomann sitemap with SKUs) produce
+10x better match rates with no extra work.
+Rule: every new scraper must map to a structured field (SKU, model number,
+or manufacturer slug) — not rely on fuzzy title matching.
+
+**3. PM2 restart on crash + no rate limiting = database destruction.**
+The match-listings loop crashed on timeout, PM2 restarted immediately,
+and the job generated 44,000+ Supabase requests/hour and 17M garbage rows
+in `listing_product_match` before it was caught.
+Rule: every PM2 job must have `max_restarts: 3` and `min_uptime: 30000`.
+Every scraper must have minimum 2s delay between requests plus jitter.
+Crash logs must be checked after every deploy that touches a PM2 job.
+
+**4. Subcategory classification on dirty data propagates errors.**
+The AI classifier correctly classified listing-title rows — but into the
+wrong categories, because "Fender 1958 Precision Bass Old Blue Refin" reads
+as a specific vintage variant, not a Precision Bass. Clean the KG before
+running classification, not after.
+Rule: run `SELECT COUNT(*) FROM kg_product WHERE canonical_name ~ '\d{4}'`
+before any bulk classification run. If > 0, clean first.
+
+**5. Currency and pricing: always store raw + currency, convert at render.**
+Early listings stored pre-converted DKK with a hardcoded 7.5 USD/DKK rate.
+When the rate moved, prices were silently wrong.
+Rule: always store `price` + `currency` from the source. Convert to DKK at
+read time via Frankfurter API with hardcoded fallback.
+
 ---
 
 ## Technical Debt
@@ -600,4 +644,4 @@ still reads slugs — migrate to UUIDs in the same area where touched next.
 
 ---
 
-*Last updated: 2026-04-28 — tier system shipped (migration 031: tier/tags/year_released); image pipeline live (kg_product.image_url + upload-product-images.ts); 19 legendary products seeded; homepage carousels (/api/discover); /admin/products curation UI; 10 new KG products created (SP-404 MkII, SP-404A, JX-08, JD-08, Behringer Poly D, Arturia PolyBrute, NI Maschine, Akai MPC 5000, Ampex ATR-700, Ableton Push); Ampex + Ableton brands added*
+*Last updated: 2026-04-29 — scraping lessons section added (5 rules from music vertical mistakes); browse status filter fixed (inactive products leaking into browse); browse visibility rules planned (leaf ≥1 listing OR classic/legendary tier; subcategory ≥2; root category ≥5)*
