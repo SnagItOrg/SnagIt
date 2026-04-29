@@ -172,8 +172,8 @@ async function main() {
     console.log('Fetching listing match counts...')
     const flaggedIds = flagged.map((r) => r.id)
 
-    // Batch in chunks of 500 to stay within URL length limits
-    const CHUNK = 500
+    // Batch in chunks of 100 to stay within PostgREST header limits
+    const CHUNK = 100
     const countById = new Map<string, number>()
 
     for (let i = 0; i < flaggedIds.length; i += CHUNK) {
