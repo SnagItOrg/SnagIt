@@ -52,13 +52,23 @@ export async function GET(req: NextRequest) {
 
   const excludeIds = (alreadyMatched ?? []).map((r) => r.listing_id as string)
 
-  // Candidate listings: active, title ilike product name words, not yet matched
-  const words = productName.split(/\s+/).filter((w) => w.length > 2)
+  // Normalize product name: replace hyphens with spaces so "Juno-106" matches "Juno 106"
+  const normalizedName = productName.replace(/-/g, ' ').toLowerCase()
+  const words = normalizedName.split(/\s+/).filter((w) => w.length > 2)
+
+  // Optional source filter (comma-separated, e.g. "dba,finn,blocket,reverb")
+  const sourcesParam = searchParams.get('sources')
+  const sourcesFilter = sourcesParam ? sourcesParam.split(',').filter(Boolean) : null
+
   let q = admin
     .from('listings')
     .select('id, title, price, url, source, scraped_at')
     .eq('is_active', true)
     .not('title', 'is', null)
+
+  if (sourcesFilter && sourcesFilter.length > 0) {
+    q = (q as typeof q).in('source', sourcesFilter)
+  }
 
   for (const w of words) {
     q = (q as typeof q).ilike('title', `%${w}%`)
@@ -87,6 +97,7 @@ export async function GET(req: NextRequest) {
       max_tokens: 1024,
       system:
         'You are a music gear expert. For each listing title, decide if it is likely to be the specific product asked about. ' +
+        'Hyphens and spaces are equivalent in model names (e.g. "Juno-106" = "Juno 106", "TR-08" = "TR 08"). ' +
         'Return JSON only — no markdown.',
       messages: [
         {

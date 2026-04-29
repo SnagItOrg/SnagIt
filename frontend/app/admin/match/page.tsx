@@ -10,18 +10,38 @@ type KgProduct = {
   kg_brand:       { name: string } | null
 }
 
+const SOURCE_CONFIG = [
+  { key: 'dba',     label: 'DBA',     color: '#00098A' },
+  { key: 'finn',    label: 'Finn.no', color: '#06bffc' },
+  { key: 'blocket', label: 'Blocket', color: '#F71414' },
+  { key: 'reverb',  label: 'Reverb',  color: '#EC5A2C' },
+] as const
+
 export default function AdminMatchPage() {
   const [query, setQuery]           = useState('')
   const [suggestions, setSuggestions] = useState<KgProduct[]>([])
   const [searching, setSearching]   = useState(false)
   const [product, setProduct]       = useState<KgProduct | null>(null)
 
+  const [sources, setSources]       = useState<Set<string>>(new Set(['dba', 'finn', 'blocket', 'reverb']))
   const [loading, setLoading]       = useState(false)
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [approved, setApproved]     = useState<Set<string>>(new Set())
   const [rejected, setRejected]     = useState<Set<string>>(new Set())
   const [saving, setSaving]         = useState(false)
   const [toast, setToast]           = useState<string | null>(null)
+
+  function toggleSource(key: string) {
+    setSources((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        if (next.size > 1) next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
 
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -62,8 +82,9 @@ export default function AdminMatchPage() {
     setLoading(true)
     setCandidates([])
     try {
+      const sourcesParam = Array.from(sources).join(',')
       const res = await fetch(
-        `/api/admin/match/candidates?product_id=${product.id}&product_name=${encodeURIComponent(product.canonical_name)}`
+        `/api/admin/match/candidates?product_id=${product.id}&product_name=${encodeURIComponent(product.canonical_name)}&sources=${sourcesParam}`
       )
       const data = await res.json() as { candidates: Candidate[] }
       setCandidates(data.candidates ?? [])
@@ -72,7 +93,7 @@ export default function AdminMatchPage() {
     } finally {
       setLoading(false)
     }
-  }, [product])
+  }, [product, sources])
 
   function toggle(id: string, action: 'approve' | 'reject') {
     if (action === 'approve') {
@@ -161,26 +182,49 @@ export default function AdminMatchPage() {
       </div>
 
       {product && (
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-foreground">{product.canonical_name}</span>
-            <a
-              href={`/product/${product.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted-foreground hover:underline"
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-foreground">{product.canonical_name}</span>
+              <a
+                href={`/product/${product.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:underline"
+              >
+                /product/{product.slug} ↗
+              </a>
+            </div>
+            <button
+              onClick={loadCandidates}
+              disabled={loading}
+              className="ml-auto px-4 py-2 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: '#002D4C' }}
             >
-              /product/{product.slug} ↗
-            </a>
+              {loading ? 'Henter…' : 'Find kandidater'}
+            </button>
           </div>
-          <button
-            onClick={loadCandidates}
-            disabled={loading}
-            className="ml-auto px-4 py-2 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-            style={{ backgroundColor: '#002D4C' }}
-          >
-            {loading ? 'Henter…' : 'Find kandidater'}
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Kilder:</span>
+            {SOURCE_CONFIG.map(({ key, label, color }) => {
+              const active = sources.has(key)
+              return (
+                <button
+                  key={key}
+                  onClick={() => toggleSource(key)}
+                  className="px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all"
+                  style={{
+                    backgroundColor: active ? color : 'transparent',
+                    borderColor: color,
+                    color: active ? '#fff' : color,
+                    opacity: active ? 1 : 0.5,
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 
@@ -243,7 +287,15 @@ export default function AdminMatchPage() {
                     </a>
                     <p className="text-xs text-muted-foreground mt-0.5">{c.reason}</p>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-muted-foreground">{c.source}</span>
+                      <span
+                        className="text-xs font-semibold px-1.5 py-0.5 rounded"
+                        style={{
+                          backgroundColor: SOURCE_CONFIG.find((s) => s.key === c.source)?.color ?? 'var(--muted)',
+                          color: '#fff',
+                        }}
+                      >
+                        {c.source}
+                      </span>
                       {c.price != null && (
                         <span className="text-xs font-medium text-foreground">
                           {c.price.toLocaleString('da-DK')} kr
