@@ -93,24 +93,7 @@ export async function GET(req: NextRequest) {
       // Apply similarity floor
       candidates = candidates.filter((c) => c.sim >= 0.4)
 
-      // Deduplicate near-duplicate candidates (JS bigram similarity)
-      function normalize(s: string) {
-        return s.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim()
-      }
-      function bigrams(s: string): Set<string> {
-        return new Set(Array.from({ length: s.length - 1 }, (_, i) => s.slice(i, i + 2)))
-      }
-      function jsSimilarity(a: string, b: string): number {
-        const na = normalize(a), nb = normalize(b)
-        if (na === nb) return 1
-        const ba = bigrams(na), bb = bigrams(nb)
-        if (ba.size === 0 && bb.size === 0) return 1
-        if (ba.size === 0 || bb.size === 0) return 0
-        let intersection = 0
-        for (const bg of ba) { if (bb.has(bg)) intersection++ }
-        return (2 * intersection) / (ba.size + bb.size)
-      }
-
+      // Deduplicate near-duplicate candidates
       const deduped: CandidateRow[] = []
       for (const c of candidates) {
         const isDupe = deduped.some(
@@ -141,6 +124,27 @@ export async function GET(req: NextRequest) {
     page,
     per_page: perPage,
   })
+}
+
+// ── Bigram similarity helpers ─────────────────────────────────────────────────
+
+function normalizeName(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function bigrams(s: string): Set<string> {
+  return new Set(Array.from({ length: s.length - 1 }, (_, i) => s.slice(i, i + 2)))
+}
+
+function jsSimilarity(a: string, b: string): number {
+  const na = normalizeName(a), nb = normalizeName(b)
+  if (na === nb) return 1
+  const ba = bigrams(na), bb = bigrams(nb)
+  if (ba.size === 0 && bb.size === 0) return 1
+  if (ba.size === 0 || bb.size === 0) return 0
+  let intersection = 0
+  for (const bg of ba) { if (bb.has(bg)) intersection++ }
+  return (2 * intersection) / (ba.size + bb.size)
 }
 
 // ── Flag reconstruction (mirrors flag-dirty-products.ts logic) ────────────────
