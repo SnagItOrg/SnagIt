@@ -134,6 +134,13 @@ const KEY_COUNT_RE   = /\s*\d+[-\s]?Keys?\b/gi  // e.g. "49-Key", "61 Keys", "25
 
 function stripSearchTerm(name: string): string {
   let s = name.trim()
+  // Remove bracketed and parenthesised content first
+  s = s.replace(/\[.*?\]/g, '')
+  s = s.replace(/\(.*?\)/g, '')
+  // Remove special characters
+  s = s.replace(/[:|*!]/g, '')
+  // Collapse after special char removal before further stripping
+  s = s.replace(/\s+/g, ' ').trim()
   // Remove leading duplicate brand word: "Roland Roland Jupiter" → "Roland Jupiter"
   s = s.replace(/^(\S+)\s+\1\s+/i, '$1 ')
   // Remove 4-digit year and everything after it
