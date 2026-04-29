@@ -528,6 +528,39 @@ read time via Frankfurter API with hardcoded fallback.
 
 ---
 
+## Vertical expansion — principles and gates
+
+Klup is vertical-first by design. Music gear is the only active vertical.
+
+**Do not speculate about future verticals in this file.** PostHog unmatched
+search data will surface real demand when it exists. A vertical is not
+planned until that signal is clear.
+
+### Rules for any future vertical (learned from music gear)
+
+**1. Find a structured primary source first.**
+Every vertical needs one dominant source with structured product data —
+SKUs, model numbers, manufacturer slugs. Without this, scrapers produce
+listing-title pollution in the KG (see Scraping lessons).
+Finn.no, Blocket, and DBA are open marketplaces with free-text titles.
+They are listing sources, not KG sources. They can supplement a vertical
+but cannot anchor one.
+
+**2. Seed the KG before scraping.**
+50–100 canonical products with clean `brand + model` names must exist
+before any scraper runs. The scraper maps TO the KG. It does not build it.
+
+**3. Validate demand before building.**
+≥ 10 PostHog unmatched search sessions for a category = a signal worth
+investigating. Not a green light to build — a reason to research the
+primary source and assess scrapability.
+
+**4. One vertical at a time.**
+The music vertical is not fully clean yet (see Known Issues: canonical_name
+hygiene). Do not start a second vertical until the first is stable.
+
+---
+
 ## Technical Debt
 
 ### kg_product.category_id (legacy)
