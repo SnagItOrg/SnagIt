@@ -21,9 +21,9 @@ function scrapeRateAllowed(ip: string): boolean {
   const now = Date.now()
   // Opportunistic GC so the map can't grow unbounded on a long-lived Edge instance.
   if (scrapeRateLimit.size > 10_000) {
-    for (const [k, v] of scrapeRateLimit) {
+    scrapeRateLimit.forEach((v, k) => {
       if (now > v.resetAt) scrapeRateLimit.delete(k)
-    }
+    })
   }
   const entry = scrapeRateLimit.get(ip)
   if (!entry || now > entry.resetAt) {
