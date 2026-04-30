@@ -142,8 +142,9 @@ fields, one result. Priority chain:
    - Reverb CSP promoted (via `scripts/promote-csp-images.ts`; 710 products
      populated 2026-04-29)
    - Reverb CSP → Storage webp (via `scripts/upload-csp-images.ts`; delta-safe,
-     skips products already in storage). 460 products eligible. Run on panter:
-     `npm run upload-csp-images -- --tier=legendary` then `npm run upload-csp-images`
+     skips products already in storage). Run completed on panter 2026-04-30 —
+     ~1,246 products already in storage (prior bulk run). ~11 remain with
+     non-storage URLs; use `--force --limit=50` to reprocess if needed.
 
 **Reverb category mirror (shipped 2026-04):**
 - `scripts/seed-reverb-categories.ts` imports Reverb's full taxonomy
@@ -687,8 +688,8 @@ score=1 = Reverb CDN thumbnail, below MIN_AUTO_SCORE threshold):
 
 **Need editorial Unsplash/Pexels URLs added to EDITORIAL_OVERRIDES in
 `scripts/set-category-images.ts`, then re-run the script:**
-- `music-gear` — ⚠ highest priority: keyboards-and-synths inherits this image
-  via the browse API. Without it, keyboards-and-synths shows no category image.
+- `music-gear` — ✅ DONE 2026-04-30: wired to existing onboarding Storage image
+  (`categories/music-gear.webp`). keyboards-and-synths now inherits this.
 - `amps`
 - `dj-and-lighting-gear`
 - `drums-and-percussion`
@@ -756,4 +757,4 @@ still reads slugs — migrate to UUIDs in the same area where touched next.
 
 ---
 
-*Last updated: 2026-04-30 — browse API: music-gear excluded, keyboards-and-synths inherits image; set-category-images.ts live (4 categories populated); upload-csp-images.ts added (460 products eligible, not yet run on panter); Roland RE-201 set to legendary; image strategy clarified (one image per product: hero_image_url ?? image_url)*
+*Last updated: 2026-04-30 — browse API: music-gear excluded, keyboards-and-synths inherits image; set-category-images.ts live (4 categories + music-gear populated); ~1,246 products in Storage (prior panter bulk run confirmed); Roland RE-201 set to legendary; image strategy: one image per product (hero_image_url ?? image_url)*

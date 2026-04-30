@@ -45,8 +45,10 @@ const supabase = createClient(
 // Editorial overrides — set these to lock in a specific image for a category
 // or the music-gear root (which keyboards-and-synths inherits in the API).
 const EDITORIAL_OVERRIDES: Record<string, string> = {
-  // 'music-gear': 'https://images.unsplash.com/...',  ← set this; keyboards-and-synths inherits it
-  // 'electric-guitars': 'https://...',
+  // keyboards-and-synths inherits this via the browse API (see frontend/app/api/browse/route.ts)
+  'music-gear': 'https://lmogfnyfpaqaxtrrcupw.supabase.co/storage/v1/object/public/onboarding-assets/categories/music-gear.webp',
+  // Add other editorial overrides below:
+  // 'amps': 'https://images.unsplash.com/...',
 }
 
 // These categories are skipped by auto-derive entirely.
