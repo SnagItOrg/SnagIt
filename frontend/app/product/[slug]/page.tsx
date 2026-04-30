@@ -54,6 +54,8 @@ export default function ProductPage() {
   const [modalQuery, setModalQuery] = useState('')
   const [creating,   setCreating]   = useState(false)
 
+  const [savedListingIds, setSavedListingIds] = useState<Set<string>>(new Set())
+
   useEffect(() => {
     fetch(`/api/product/${slug}`)
       .then((r) => {
@@ -71,6 +73,42 @@ export default function ProductPage() {
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false))
   }, [slug])
+
+  useEffect(() => {
+    fetch('/api/saved-listings')
+      .then((r) => r.ok ? r.json() : [])
+      .then((rows: { listing_id: string }[]) => {
+        setSavedListingIds(new Set(rows.map((r) => r.listing_id)))
+      })
+      .catch(() => {})
+  }, [])
+
+  async function handleToggleSave(listing: Listing) {
+    const alreadySaved = savedListingIds.has(listing.id)
+    const prev = new Set(savedListingIds)
+
+    if (alreadySaved) {
+      setSavedListingIds(new Set(Array.from(savedListingIds).filter((id) => id !== listing.id)))
+      const res = await fetch('/api/saved-listings', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listing_id: listing.id }),
+      })
+      if (!res.ok) setSavedListingIds(prev)
+    } else {
+      setSavedListingIds(new Set(Array.from(savedListingIds).concat(listing.id)))
+      try {
+        const res = await fetch('/api/saved-listings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listing_id: listing.id, listing_data: listing }),
+        })
+        if (!res.ok) setSavedListingIds(prev)
+      } catch {
+        setSavedListingIds(prev)
+      }
+    }
+  }
 
   function handleCreateWatchlist(listingTitle?: string) {
     const q = listingTitle
@@ -444,6 +482,8 @@ export default function ProductPage() {
                         creating={creating}
                         variant="list"
                         thomannImageUrl={product.image_url}
+                        isSaved={savedListingIds.has(listing.id)}
+                        onToggleSave={handleToggleSave}
                       />
                     </ListingErrorBoundary>
                   ))}
