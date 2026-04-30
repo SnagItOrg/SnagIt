@@ -60,35 +60,25 @@ export async function GET() {
 
   const musicGearImageUrl = musicGearRes.data?.image_url ?? null
 
+  // subcategory_id → root_id
+  const subToRoot = new Map<string, string>()
+  for (const sub of subsRes.data ?? []) {
+    if (sub.parent_id) subToRoot.set(sub.id, sub.parent_id)
+  }
+
   // Build set of product IDs that have active listings
   const withListings = new Set<string>()
   for (const m of ((matchCountsRes.data ?? []) as MatchCountRow[])) {
     withListings.add(m.product_id)
   }
 
-  // Build a map: subcategory_id → products in that subcategory
-  const productsBySubcategory = new Map<string, ProductRow[]>()
-  for (const p of allProducts) {
-    if (!p.subcategory_id) continue
-    if (!productsBySubcategory.has(p.subcategory_id)) {
-      productsBySubcategory.set(p.subcategory_id, [])
-    }
-    productsBySubcategory.get(p.subcategory_id)!.push(p)
-  }
-
-  // Count qualifying products per root category by iterating through subcategories
+  // root_id → qualifying product count (listings ≥1 OR tier classic/legendary)
   const countByRoot = new Map<string, number>()
-  for (const sub of subsRes.data ?? []) {
-    const rootId = sub.parent_id
-    if (!rootId) continue
-
-    const productsInSub = productsBySubcategory.get(sub.id) ?? []
-    for (const p of productsInSub) {
-      const qualifies = withListings.has(p.id) || p.tier === 'classic' || p.tier === 'legendary'
-      if (qualifies) {
-        countByRoot.set(rootId, (countByRoot.get(rootId) ?? 0) + 1)
-      }
-    }
+  for (const p of allProducts) {
+    const qualifies = withListings.has(p.id) || p.tier === 'classic' || p.tier === 'legendary'
+    if (!qualifies) continue
+    const rootId = subToRoot.get(p.subcategory_id!)
+    if (rootId) countByRoot.set(rootId, (countByRoot.get(rootId) ?? 0) + 1)
   }
 
   const storageFallback = (slug: string) =>
