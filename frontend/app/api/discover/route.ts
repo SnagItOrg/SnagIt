@@ -20,16 +20,16 @@ type RawProduct = {
 export async function GET() {
   const admin = getSupabaseAdmin()
 
-  // Active listing counts per product_id
+  // Aggregate: one row per product_id with its active listing count.
+  // Eliminates the 1000-row PostgREST cap that the prior row-per-match fetch hit.
   const { data: matches } = await admin
     .from('listing_product_match')
-    .select('product_id, listings!inner(is_active)')
+    .select('product_id, count:product_id.count()')
     .eq('listings.is_active', true)
-    .limit(5000)
 
   const countByProduct = new Map<string, number>()
-  for (const m of (matches ?? []) as { product_id: string }[]) {
-    countByProduct.set(m.product_id, (countByProduct.get(m.product_id) ?? 0) + 1)
+  for (const m of (matches ?? []) as { product_id: string; count: number }[]) {
+    countByProduct.set(m.product_id, m.count)
   }
 
   // Legendary products

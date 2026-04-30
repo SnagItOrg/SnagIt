@@ -62,7 +62,8 @@ export async function GET(
     .select('id, slug, canonical_name, image_url, tier, subcategory_id, kg_brand!inner(name)')
     .in('subcategory_id', subcatIds)
     .eq('status', 'active')
-    .limit(200) as { data: RawProduct[] | null; error: unknown }
+    // TODO: replace with paginated query when product count exceeds 500 per subcategory
+    .limit(500) as { data: RawProduct[] | null; error: unknown }
 
   if (prodErr) {
     return NextResponse.json({ error: 'Failed to load products' }, { status: 500 })
@@ -76,12 +77,12 @@ export async function GET(
   if (productIds.length > 0) {
     const { data: matches } = await admin
       .from('listing_product_match')
-      .select('product_id, listings!inner(is_active)')
+      .select('product_id, count:product_id.count()')
       .in('product_id', productIds)
       .eq('listings.is_active', true)
 
-    for (const m of (matches ?? []) as { product_id: string }[]) {
-      listingCountByProduct[m.product_id] = (listingCountByProduct[m.product_id] ?? 0) + 1
+    for (const m of (matches ?? []) as { product_id: string; count: number }[]) {
+      listingCountByProduct[m.product_id] = m.count
     }
   }
 
