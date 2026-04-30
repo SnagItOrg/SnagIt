@@ -185,15 +185,11 @@ fields, one result. Priority chain:
 - Migration 033 + `npm run backfill-category-uuids` completed 2026-04-27 →
   **320/340 `kg_category` rows have `reverb_uuid`**. The 20 unmatched are
   internal/non-Reverb taxonomy entries (custom subcategories etc.).
-- Migration 034 authored 2026-04-27 (not yet applied) — DML that backfills
+- Migration 034 applied 2026-04-30 — DML that backfills
   `reverb_price_history.kg_product_id` from query-text via normalised
-  canonical_name match. Preview shows ~37% hit rate on current 927 rows.
-- **Hit rate is bimodal by canonical_name quality** — see Known issues
-  ("kg_product canonical_name hygiene"). Roland resolves ~80%, Fender ~10%
-  on the same script. Bulk backfill is a retrofit; the architecturally
-  intended path is demand-driven CSP attachment on user searches (new
-  kg_product rows are created with a clean canonical_name + CSP already
-  attached).
+  canonical_name match. Final hit rate: 193 rows mapped (TR-808: 20, RE-201: 20,
+  Minimoog: 63, Strymon TimeLine: 90). Remaining 443 rows are design-furniture
+  queries (deprioritised vertical) or unresolvable noise.
 - Why CSP anchoring matters:
   - Joins `reverb_price_history` deterministically (currently query-keyed).
   - Filters parts pollution: a "Jupiter-8 pitch bender cap" listing under
@@ -392,6 +388,53 @@ Vercel auto-deploys from `main`. That's it. Never use Vercel CLI.
 
 ---
 
+## Phase 0 — Security & stability hardening (completed 2026-04-30)
+
+### 0.1 — /api/scrape hardened
+
+- **Per-IP token bucket rate limiting**: 20 req/min via Vercel Edge Middleware
+  (file: `middleware.ts`, lines 10-36). In-memory per-Edge-instance map.
+  Scoped to `/api/scrape` only. Returns 429 `{ error: 'rate_limit', retry_after: 60 }`.
+- **Fire-and-forget write errors now surfaced**: Thomann product upserts
+  (lines 82-95) replaced silent catch with structured `console.error`:
+  `{ route: '/api/scrape', action: 'thomann_write', error, query }`.
+  Non-blocking; errors surface as structured logs without breaking user response.
+- **Deterministic Thomann listing IDs**: `crypto.randomUUID()` (line 175) replaced
+  with SHA-256 hash of `thomann:${url}` (line 16: `deterministicListingId()`).
+  Formatted as UUID. Saved listings now survive page refresh via stable ID.
+
+### 0.2 — PostgREST 1000-row truncation fixed
+
+- **browse/route.ts** (lines 8-50): `kg_product` query replaced with paginated
+  `range()` loop (lines 30-49) to fetch all ~3,840 products. `listing_product_match`
+  replaced with `count:product_id.count()` aggregate (line 27) — one row per product
+  instead of one per listing match. Verified: is_active filter applied correctly.
+- **browse/[root]/route.ts** (line 65): product `.limit(200)` → `.limit(500)` with
+  TODO. Listing count query (lines 80-85) uses same aggregate pattern.
+- **discover/route.ts** (lines 23-32): matches query (line 27) uses aggregate
+  instead of `limit(5000)`. One row per product_id with active listing count.
+- **Verified correct**: aggregate counts match active-only manual counts on top 5
+  products: Gibson Les Paul (705), J-45 (400), Jazz Bass (392), Hummingbird (311),
+  P-Bass (272).
+- **Note**: `eq('listings.is_active', true)` relies on PostgREST 12 implicit join
+  filtering (without embedding listings in select). Verified working on current
+  Supabase Pro version. If Supabase upgrades break this, move filter to explicit
+  subquery.
+
+### 0.3 — PII-adjacent logs removed
+
+- **saved-listings/route.ts**: Four `console.log` lines removed (lines ~26, ~39, ~40, ~61)
+  that linked listing IDs to user context or returned match data.
+- **Silent catch {} replaced** (lines 122-124): catch block on price_fetch_queue
+  upsert now surfaces errors via structured `console.error`:
+  `{ error: err instanceof Error ? err.message : String(err) }`.
+
+### 0.4 — Migration 034 applied
+
+- See Reverb CSP integration → "Migration 034 applied 2026-04-30" above.
+
+---
+
 ## Known issues
 
 **`reverb_price_history` is query-keyed; `kg_product_id` FK partially
@@ -403,19 +446,28 @@ queries (deprioritised vertical), generic terms, or queries for products
 not yet in the KG. The deterministic path for the long tail is migration
 035 (planned): `listing_url → Reverb listing → csp_id → kg_product`.
 
-### Price history polluted by parts/accessories matches
-`/api/product/[slug]` queries `reverb_price_history` and `auctionet_price_history`
-using `ilike` on `canonical_name`. For products like "Fender Jazz Bass" this
-matches sold parts (necks, pickguards, pickups) alongside complete instruments,
-pulling the secondhand price range artificially low.
+### Price history polluted by parts/accessories matches — partially fixed
+
+**Reverb price history:** `/api/product/[slug]` (line 71-77) now uses
+`.eq('kg_product_id', product.id)` FK join instead of `ilike` on canonical_name.
+Parts pollution eliminated for Reverb sold-price history. Applied 2026-04-30
+after migration 034 backfilled the FK.
+
+**Auctionet price history:** `/api/product/[slug]` (line 78-86) still uses `ilike`
+on canonical_name. `auctionet_price_history` has no `kg_product_id` column yet.
+Deferred to a separate migration when auctionet data quality justifies the work.
+
+**Other legacy consumers:** `/api/market-price/route.ts` and `/api/price-history/route.ts`
+still use `ilike` on reverb_price_history with free-text ?query= input. These need
+a query → kg_product resolution layer before migrating. Phase 1 item.
 
 Note: Thomann is intentionally a separate data series — new/retail price reference,
 not secondhand. The Thomann link as fallback when price history is thin is correct
 behaviour. Do not conflate the two series.
 
-Fix for parts pollution: apply a minimum price floor per root subcategory when
-querying price history (e.g. bass-guitars floor at 2000 DKK). Floor values should
-live in kg_category as a nullable `price_floor_dkk` column.
+**Future:** apply a minimum price floor per root subcategory when querying price
+history (e.g. bass-guitars floor at 2000 DKK). Floor values should live in
+kg_category as a nullable `price_floor_dkk` column.
 
 **Price history is not yet rendered on product pages.** Data lives in
 `reverb_price_history` but `/product/[slug]` only reads from
@@ -757,4 +809,85 @@ still reads slugs — migrate to UUIDs in the same area where touched next.
 
 ---
 
-*Last updated: 2026-04-30 — browse API: music-gear excluded, keyboards-and-synths inherits image; set-category-images.ts live (4 categories + music-gear populated); ~1,246 products in Storage (prior panter bulk run confirmed); Roland RE-201 set to legendary; image strategy: one image per product (hero_image_url ?? image_url)*
+## KG quality snapshot (2026-04-30)
+
+**Current state:**
+- ~3,840 total `kg_product` rows
+- ~1,114 (29%) have `reverb_csp_id` verified (migration 032 promoted high+medium
+  confidence from enrichment run 2026-04-27)
+- ~193 `reverb_price_history` rows now FK-mapped to kg_product via migration 034
+  backfill
+- 636 total `reverb_price_history` rows: breakdown = 193 mapped (30%) + ~175
+  furniture/auctionet (permanent orphans) + ~104 noise (unresolvable) + ~164
+  music gear with KG gaps or naming mismatches (Phase 1)
+
+**Known dirty patterns in the KG:**
+- Listing-title slugs: `fender-1958-fender-precision-bass-old-blue-refin` — Reverb
+  listing imports, not canonical products. `cleanup_status` column exists for
+  tracking.
+- Parenthetical suffixes break the migration 034 normalizer: "Roland TR-808
+  (Rhythm Composer)" won't match query "roland-tr-808". Direct SQL mapping required.
+- Brand prefix mismatches: query "minimoog" vs canonical "Moog Minimoog". Same fix.
+
+**Products verified clean and fully enriched** (CSP + price history mapped):
+- Roland TR-808 (`roland-tr-808`) — 20 price points
+- Roland RE-201 (`roland-re-201`) — note: 15 listing-title duplicates exist in
+  KG; canonical entry is UUID 07cc1ac5, 20 price points
+- Moog Minimoog (`moog-minimoog`) — note: 15 listing-title duplicates exist; canonical
+  entry is UUID a03a8e67, 63 price points
+- Strymon TimeLine (`strymon-timeline`) — new entry, CSP enrichment run 2026-04-30,
+  90 price points
+
+---
+
+## Phase 1 — next (not started)
+
+**Prerequisite:** Pull PostHog top 20 searches. Cross-reference against kg_product for:
+(a) searches with no matching product, (b) products with `reverb_csp_id IS NULL`.
+That list is the Phase 1 work queue.
+
+**Build target:** `/product/[slug]` product detail page as the first surface where
+"is this a good price?" works end-to-end.
+- FK join is clean (migration 034 + Phase 0.2)
+- Price history populated for verified top products
+- IQR filter in `/api/product/[slug]` is correct (existing implementation)
+- Leverage price_history chart (data exists; UI task)
+
+**Deferred until Phase 1 complete:**
+- `/api/market-price` and `/api/price-history` ilike → FK migration (needs
+  query → kg_product resolution layer)
+- Re-enable PM2 scrapers (confirm `ecosystem.config.js` has `max_restarts: 3`,
+  `min_uptime: 30000` before turning on)
+- Re-enable price-observations as batch job (not real-time)
+- Facebook Marketplace / Apify — do not touch until alternative approach identified
+
+---
+
+## Architecture decisions (validated 2026-04-30)
+
+A full senior engineering and product audit was conducted on 2026-04-30 covering
+migrations 001-035, all API routes (`/api/scrape`, `/api/product/[slug]`,
+`/api/browse/*`, `/api/discover`, etc.), frontend components, and infrastructure
+config. The audit identified KG hygiene as the primary limiting factor and three
+security/reliability issues (now fixed in Phase 0). Audit findings are the basis
+for the Phase 0/1/2 roadmap in this document.
+
+**Key architectural decisions validated:**
+- **CSP as the durable anchor**: `kg_product.reverb_csp_id` is the join key for
+  price history and avoids parts pollution. Query-keyed legacy rows are a retrofit;
+  new rows are created with clean canonical_name + CSP already attached.
+- **Demand-driven scraping queue**: Scrapers run on search terms derived from KG
+  products users actually follow, not pre-emptively. Reduces waste and focuses
+  infrastructure budget on user-requested data.
+- **Partial unique indexes**: `listing_product_match (listing_id, product_id)` +
+  `(listing_id)` enables efficient deduplication and bulk matching. Cap-and-exit
+  pattern in match-listings prevents runaway loops (40% match rate verified).
+- **IQR-filtered price ranges**: Outlier-resistant (Q1 - 1.5×IQR, Q3 + 1.5×IQR).
+  Correctly handles long-tail distributions in secondhand pricing.
+- **Demand-driven KG growth**: User search → Haiku resolves clean brand+model →
+  CSP confirmed → create kg_product. Prevents listing-title pollution at source.
+
+---
+
+*Last updated: 2026-04-30 — Phase 0 security hardening complete; migration 034 applied;
+PostgREST 1000-row truncation fixed (browse/route: paginated products + count aggregate, music-gear image inherited by keyboards-and-synths); image strategy live (one per product: hero_image_url ?? image_url); KG quality snapshot and Phase 1 entry point added; architecture decisions validated*
