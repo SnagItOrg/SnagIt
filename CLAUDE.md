@@ -130,16 +130,20 @@ Before creating or updating any `kg_product` row (slug, canonical_name, image_ur
 - Roland Juno-60, Roland Juno-106, Roland Jupiter-8
 - Moog Minimoog, Moog Subsequent 37
 
-**Image strategy:**
-- Thomann → new/current production gear (`image_url` via `fetch-thomann-prices`)
-- Reverb CSP → vintage/discontinued gear (`image_url` promoted from
-  `attributes.reverb_csp.image_url` via `scripts/promote-csp-images.ts`;
-  710 products populated 2026-04-29)
-- Unsplash / Pexels → editorial hero overrides (`hero_image_url`). Managed
-  in `scripts/set-hero-images.ts` — the canonical list. `hero_image_url`
-  takes precedence over `image_url` in the frontend. Current entries:
-  Gibson Hummingbird, Gibson ES-335, Fender Telecaster, Fender Jazzmaster,
-  Fender Jaguar, Roland TR-909.
+**Image strategy — one displayed image per product:**
+Each product renders exactly one image: `hero_image_url ?? image_url`. Two
+fields, one result. Priority chain:
+1. `hero_image_url` — editorial Unsplash/Pexels pick. Managed in
+   `scripts/set-hero-images.ts`. Current entries: Gibson Hummingbird,
+   Gibson ES-335, Fender Telecaster, Fender Jazzmaster, Fender Jaguar,
+   Roland TR-909.
+2. `image_url` — best available auto-derived source, in fill order:
+   - Thomann → current production gear (via `fetch-thomann-prices`)
+   - Reverb CSP promoted (via `scripts/promote-csp-images.ts`; 710 products
+     populated 2026-04-29)
+   - Reverb CSP → Storage webp (via `scripts/upload-csp-images.ts`; delta-safe,
+     skips products already in storage). 460 products eligible. Run on panter:
+     `npm run upload-csp-images -- --tier=legendary` then `npm run upload-csp-images`
 
 **Reverb category mirror (shipped 2026-04):**
 - `scripts/seed-reverb-categories.ts` imports Reverb's full taxonomy
@@ -222,13 +226,30 @@ Before creating or updating any `kg_product` row (slug, canonical_name, image_ur
 - Admin curation at `/admin/products` — search any product, click tier badge to cycle, inline year editing
 - API: `GET /api/discover` — returns `{ legendary[], popular[] }` for homepage carousels
 
-**Image pipeline (shipped 2026-04-28):**
-- `kg_product.image_url text` — Unsplash URL initially; run `npm run upload-images -- --batch` on panter to convert to Supabase Storage webp
-- `kg_product.hero_image_url text` — optional editorial override (same image, CSS handles crop difference)
-- `kg_category.image_url text` — category card background; falls back to Supabase Storage path if null
-- Storage bucket: `onboarding-assets` (public). Products: `products/{slug}.webp`. Categories: `categories/{slug}.webp`
-- Script: `scripts/upload-product-images.ts` — download → sharp webp → Storage upload → DB update. Run with `npm run upload-images -- --batch` or `npm run upload-images -- <slug> <url>`
-- `next.config.mjs` allows `images.unsplash.com` as remote pattern
+**Image pipeline (shipped 2026-04-28, extended 2026-04-30):**
+- `kg_product.image_url text` — best auto-derived image URL. Storage webp preferred.
+- `kg_product.hero_image_url text` — editorial override; always wins over `image_url`.
+- `kg_category.image_url text` — category card background. Browse API falls back to
+  `onboarding-assets/categories/{slug}.webp` if null.
+- Storage bucket: `onboarding-assets` (public). Products: `products/{slug}.webp`.
+  Categories: `categories/{slug}.webp`.
+- `scripts/upload-product-images.ts` — curated Unsplash batch (43 products). Run:
+  `npm run upload-images -- --batch` or `npm run upload-images -- <slug> <url>`.
+  Runs all items every time (no delta check); upsert overwrites safely.
+- `scripts/upload-csp-images.ts` — Reverb CSP → Storage webp for all eligible
+  products. Delta-safe by default. Flags: `--dry-run`, `--force`, `--limit=N`,
+  `--tier=X`, `--slug=X`. Run on panter after `git pull`.
+- `scripts/set-category-images.ts` — populates `kg_category.image_url` from best
+  product image in each root category (score: legendary+hero=6 … any+image=1).
+  EDITORIAL_OVERRIDES dict for manual overrides. SKIP_AUTO set for inherited cats.
+  MIN_AUTO_SCORE=2 (rejects Reverb CDN thumbnails). Ran live 2026-04-30:
+  electric-guitars (score=6), acoustic-guitars (score=2), bass-guitars (score=4),
+  pro-audio (score=4) populated. 9 categories still need editorial images (see
+  Known Issues).
+- Browse API (`/api/browse`): music-gear root excluded from results (it IS the
+  browse vertical, not a subcategory). keyboards-and-synths inherits
+  `music-gear.image_url` via API logic. Storage fallback for all category images.
+- `next.config.mjs` allows `images.unsplash.com` as remote pattern.
 
 **Admin tools for KG curation:**
 - `/admin/products` — set tier (legendary/classic/standard) and year_released on any product
@@ -658,14 +679,29 @@ pages" as a feature is a rabbit hole if the right answer is to fix matching
 for the Nordic local markets first (DBA = highest KUP value, since that's
 where local-market price gaps live).
 
-### Category cards missing Unsplash images
-`/browse` category cards rely on images in Supabase Storage at
-`onboarding-assets/categories/[slug].webp`. Most are missing — only the
-original onboarding categories have images. The 14 Reverb root category
-slugs need corresponding `.webp` files uploaded. Slugs that need images:
-electric-guitars, acoustic-guitars, bass-guitars, amps, effects-and-pedals,
-keyboards-and-synths, drums-and-percussion, pro-audio, accessories,
-folk-instruments, band-and-orchestra, home-audio, dj-and-lighting-gear, parts
+### Category cards — 9 still need editorial images (2026-04-30)
+`kg_category.image_url` is now populated for 4 root categories via
+`set-category-images.ts` (electric-guitars, acoustic-guitars, bass-guitars,
+pro-audio). The remaining 9 have no qualifying product image (best auto
+score=1 = Reverb CDN thumbnail, below MIN_AUTO_SCORE threshold):
+
+**Need editorial Unsplash/Pexels URLs added to EDITORIAL_OVERRIDES in
+`scripts/set-category-images.ts`, then re-run the script:**
+- `music-gear` — ⚠ highest priority: keyboards-and-synths inherits this image
+  via the browse API. Without it, keyboards-and-synths shows no category image.
+- `amps`
+- `dj-and-lighting-gear`
+- `drums-and-percussion`
+- `effects-and-pedals`
+- `home-audio`
+- `band-and-orchestra`
+- `accessories`
+- `parts`
+- `folk-instruments`
+
+How to add: find an Unsplash/Pexels URL for each category, add to the
+`EDITORIAL_OVERRIDES` dict in `set-category-images.ts`, then run
+`npx tsx scripts/set-category-images.ts` (no `--dry-run`).
 
 ### Product cards have no images (partially resolved 2026-04-29)
 `kg_product.image_url` is populated for:
@@ -720,4 +756,4 @@ still reads slugs — migrate to UUIDs in the same area where touched next.
 
 ---
 
-*Last updated: 2026-04-29 — migration 034 applied (339 price-history rows mapped); 710 kg_product image_url populated from CSP; 6 editorial hero images set (Unsplash/Pexels); scraping lessons added; browse status filter fixed; KG cleanup queue added*
+*Last updated: 2026-04-30 — browse API: music-gear excluded, keyboards-and-synths inherits image; set-category-images.ts live (4 categories populated); upload-csp-images.ts added (460 products eligible, not yet run on panter); Roland RE-201 set to legendary; image strategy clarified (one image per product: hero_image_url ?? image_url)*
