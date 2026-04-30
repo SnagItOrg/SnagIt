@@ -65,13 +65,18 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
       .eq('product_id', product.id)
       .order('score', { ascending: false })
       .limit(50),
+    // Reverb price history: deterministic FK join (mig 031 added the column,
+    // mig 034 backfills it). Replaces the prior ilike on canonical_name which
+    // pulled in parts and accessories — see CLAUDE.md "parts pollution".
     admin
       .from('reverb_price_history')
       .select('price, sold_at, condition')
-      .ilike('query', `%${canonicalName}%`)
+      .eq('kg_product_id', product.id)
       .not('sold_at', 'is', null)
       .order('sold_at', { ascending: true })
       .limit(500),
+    // Auctionet still uses ilike — auctionet_price_history has no kg_product_id
+    // column yet. Migrating it is a separate, scoped change.
     admin
       .from('auctionet_price_history')
       .select('price, sold_at, condition')
