@@ -3,6 +3,38 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// Per-IP rate limit for /api/scrape only. The route is unauthenticated and
+// performs DB writes, so any caller can otherwise drive scraper + DB load by
+// varying ?q= (which bypasses Vercel's edge cache). In-memory map per Edge
+// instance is intentional — at our traffic an external store is overkill.
+const SCRAPE_RATE_WINDOW_MS = 60_000
+const SCRAPE_RATE_MAX       = 20
+const scrapeRateLimit = new Map<string, { count: number; resetAt: number }>()
+
+function clientIp(request: NextRequest): string {
+  const xff = request.headers.get('x-forwarded-for')
+  if (xff) return xff.split(',')[0].trim()
+  return request.headers.get('x-real-ip') ?? 'unknown'
+}
+
+function scrapeRateAllowed(ip: string): boolean {
+  const now = Date.now()
+  // Opportunistic GC so the map can't grow unbounded on a long-lived Edge instance.
+  if (scrapeRateLimit.size > 10_000) {
+    for (const [k, v] of scrapeRateLimit) {
+      if (now > v.resetAt) scrapeRateLimit.delete(k)
+    }
+  }
+  const entry = scrapeRateLimit.get(ip)
+  if (!entry || now > entry.resetAt) {
+    scrapeRateLimit.set(ip, { count: 1, resetAt: now + SCRAPE_RATE_WINDOW_MS })
+    return true
+  }
+  if (entry.count >= SCRAPE_RATE_MAX) return false
+  entry.count++
+  return true
+}
+
 // Paths that do not require authentication.
 const PUBLIC_PREFIXES = [
   '/login',
@@ -30,6 +62,17 @@ function isOnboardingPath(pathname: string): boolean {
 }
 
 export async function middleware(request: NextRequest) {
+  // Rate-limit gate runs before Supabase auth so abusive callers don't load
+  // the auth client. Scoped to /api/scrape — every other route is unaffected.
+  if (request.nextUrl.pathname === '/api/scrape') {
+    if (!scrapeRateAllowed(clientIp(request))) {
+      return NextResponse.json(
+        { error: 'rate_limit', retry_after: 60 },
+        { status: 429, headers: { 'Retry-After': '60' } },
+      )
+    }
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(

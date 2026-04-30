@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash } from 'node:crypto'
 import { scrapeDba } from '@/lib/scrapers/dba'
 import { scrapeFinn } from '@/lib/scrapers/finn'
 import { scrapeBlocket } from '@/lib/scrapers/blocket'
@@ -8,6 +9,36 @@ import { scrapeThomannSearch } from '@/lib/scrapers/thomann-search'
 
 const ALL_SOURCES = ['dba', 'finn', 'blocket', 'reverb', 'thomann'] as const
 type SourceKey = typeof ALL_SOURCES[number]
+
+// Stable id from (source, natural-key) so a saved Thomann listing survives
+// page refresh — crypto.randomUUID() rotated on every response and silently
+// broke the saved-listings lookup.
+function deterministicListingId(source: string, key: string): string {
+  const h = createHash('sha256').update(`${source}:${key}`).digest('hex')
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`
+}
+
+// Non-blocking telemetry for fire-and-forget Supabase writes. Resolved
+// responses with `{ error }` AND thrown rejections both used to vanish; now
+// we surface them as structured logs without blocking the user response.
+function logFireAndForget(p: PromiseLike<unknown>, query: string): void {
+  void Promise.resolve(p).then(
+    (res) => {
+      const errMsg = (res as { error?: { message?: string } | null } | null | undefined)?.error?.message
+      if (errMsg) {
+        console.error(JSON.stringify({
+          route: '/api/scrape', action: 'thomann_write', error: errMsg, query,
+        }))
+      }
+    },
+    (err: unknown) => {
+      console.error(JSON.stringify({
+        route: '/api/scrape', action: 'thomann_write',
+        error: err instanceof Error ? err.message : String(err), query,
+      }))
+    },
+  )
+}
 
 function parseSources(raw: string | null): Set<SourceKey> {
   if (!raw) return new Set(ALL_SOURCES)
@@ -48,15 +79,19 @@ export async function GET(request: NextRequest) {
           .upsert(row, { onConflict: 'external_id,source' })
 
         if (urlSource === 'thomann' && result.listing.price != null) {
-          void getSupabaseAdmin()
-            .from('thomann_product')
-            .upsert({
-              thomann_url:    result.listing.url,
-              canonical_name: result.listing.title,
-              image_url:      result.listing.image_url ?? null,
-              price_dkk:      result.listing.price,
-              scraped_at:     now,
-            }, { onConflict: 'thomann_url' })
+          // Don't await — upstream/DB errors are now logged instead of swallowed.
+          logFireAndForget(
+            getSupabaseAdmin()
+              .from('thomann_product')
+              .upsert({
+                thomann_url:    result.listing.url,
+                canonical_name: result.listing.title,
+                image_url:      result.listing.image_url ?? null,
+                price_dkk:      result.listing.price,
+                scraped_at:     now,
+              }, { onConflict: 'thomann_url' }),
+            trimmed,
+          )
         }
 
         return NextResponse.json({ inserted: 1, listings: [row], query: trimmed })
@@ -135,7 +170,9 @@ export async function GET(request: NextRequest) {
 
   function thomannToListings(results: Awaited<typeof thomannPromise>) {
     return results.map((p) => ({
-      id:          crypto.randomUUID(),
+      // Hashed id keyed on thomann_url — must be stable so /api/saved-listings
+      // can resolve a saved Thomann result after a page refresh.
+      id:          deterministicListingId('thomann', p.thomann_url),
       title:       p.canonical_name,
       price:       p.price_dkk,
       currency:    'DKK',
@@ -151,18 +188,22 @@ export async function GET(request: NextRequest) {
 
   function persistThomann(results: Awaited<typeof thomannPromise>) {
     if (results.length === 0) return
-    void getSupabaseAdmin()
-      .from('thomann_product')
-      .upsert(
-        results.map((p) => ({
-          thomann_url:    p.thomann_url,
-          canonical_name: p.canonical_name,
-          image_url:      p.image_url,
-          price_dkk:      p.price_dkk,
-          scraped_at:     now,
-        })),
-        { onConflict: 'thomann_url' },
-      )
+    // Don't await — upstream/DB errors are now logged instead of swallowed.
+    logFireAndForget(
+      getSupabaseAdmin()
+        .from('thomann_product')
+        .upsert(
+          results.map((p) => ({
+            thomann_url:    p.thomann_url,
+            canonical_name: p.canonical_name,
+            image_url:      p.image_url,
+            price_dkk:      p.price_dkk,
+            scraped_at:     now,
+          })),
+          { onConflict: 'thomann_url' },
+        ),
+      trimmed,
+    )
   }
 
   if (schibstedResults.length === 0) {
