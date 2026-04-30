@@ -97,11 +97,12 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
     .map((m) => ({ score: m.score as number ?? 0, listing: m.listings as unknown as ListingRow | null }))
     .filter(({ listing }) => listing != null && listing.is_active !== false)
     .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score
-      return ((b.listing?.price as number) ?? 0) - ((a.listing?.price as number) ?? 0)
+      const ta = new Date((a.listing?.scraped_at as string) ?? 0).getTime()
+      const tb = new Date((b.listing?.scraped_at as string) ?? 0).getTime()
+      return tb - ta
     })
     .map(({ listing }) => listing)
-    .slice(0, 20)
+    .slice(0, 50)
 
   // Build price history time-series
   const priceHistory: PricePoint[] = [
