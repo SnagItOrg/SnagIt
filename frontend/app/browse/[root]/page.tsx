@@ -8,6 +8,7 @@ import { BottomNav } from '@/components/BottomNav'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { ProductCard } from '@/components/ProductCard'
 import { useLocale } from '@/components/LocaleProvider'
+import type { BrowseLeafResponse } from '@/lib/browse'
 
 interface Category {
   id: string
@@ -43,7 +44,7 @@ interface BrowseData {
   page_size: number
   total_public_products: number
   has_more: boolean
-  debug?: unknown
+  debug?: BrowseLeafResponse['debug']
 }
 
 function BrowseCategoryPageInner() {

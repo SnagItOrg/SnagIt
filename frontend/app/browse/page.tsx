@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { useLocale } from '@/components/LocaleProvider'
+import type { BrowseRootResponse } from '@/lib/browse'
 
 interface Category {
   id: string
@@ -16,17 +18,38 @@ interface Category {
   image_url: string
 }
 
-export default function BrowsePage() {
+interface BrowseRootData {
+  categories: Category[]
+  debug?: BrowseRootResponse['debug']
+}
+
+function BrowsePageInner() {
+  const searchParams = useSearchParams()
   const { t, locale } = useLocale()
-  const [categories, setCategories] = useState<Category[]>([])
+  const debugEnabled = searchParams.get('debug') === '1'
+  const [data, setData] = useState<BrowseRootData>({ categories: [] })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/browse')
-      .then((r) => r.json())
-      .then((d) => setCategories(d.categories ?? []))
+    const url = debugEnabled ? '/api/browse?debug=1' : '/api/browse'
+    setError(null)
+    fetch(url)
+      .then(async (r) => {
+        const payload = await r.json().catch(() => null)
+        if (!r.ok) {
+          throw new Error(payload?.error ?? 'Failed to load browse categories')
+        }
+        return payload
+      })
+      .then((d) => setData({ categories: d?.categories ?? [], debug: d?.debug }))
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : 'Failed to load browse categories'
+        setError(message)
+        setData({ categories: [] })
+      })
       .finally(() => setLoading(false))
-  }, [])
+  }, [debugEnabled])
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)' }}>
@@ -57,9 +80,18 @@ export default function BrowsePage() {
               />
             ))}
           </div>
+        ) : error ? (
+          <div className="px-4 md:px-8 py-12">
+            <div
+              className="rounded-2xl border p-4 text-sm"
+              style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+            >
+              {error}
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-8">
-            {categories.map((cat) => (
+            {data.categories.map((cat) => (
               <Link
                 key={cat.id}
                 href={`/browse/${cat.slug}`}
@@ -89,19 +121,42 @@ export default function BrowsePage() {
                   >
                     {locale === 'da' ? cat.name_da : cat.name_en}
                   </p>
-                  {cat.product_count > 0 && (
-                    <p className="text-xs text-white/70 mt-0.5">
-                      {cat.product_count} {t.browseProducts}
-                    </p>
-                  )}
                 </div>
               </Link>
             ))}
+          </div>
+        )}
+
+        {data.debug && (
+          <div className="px-4 md:px-8 pt-8">
+            <details
+              open
+              className="rounded-2xl border p-4"
+              style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+            >
+              <summary className="cursor-pointer text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+                Browse audit
+              </summary>
+              <pre
+                className="mt-4 text-xs overflow-x-auto whitespace-pre-wrap"
+                style={{ color: 'var(--muted-foreground)' }}
+              >
+                {JSON.stringify(data.debug, null, 2)}
+              </pre>
+            </details>
           </div>
         )}
       </main>
 
       <BottomNav />
     </div>
+  )
+}
+
+export default function BrowsePage() {
+  return (
+    <Suspense>
+      <BrowsePageInner />
+    </Suspense>
   )
 }
