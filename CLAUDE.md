@@ -286,6 +286,16 @@ fields, one result. Priority chain:
 - `tags text[] DEFAULT '{}'` — facet tags (migration 031)
 - `year_released int` — production year (migration 031)
 
+**`kg_product` columns added 2026-05** (migration 036):
+- `browse_visibility text DEFAULT 'qa_only'` — `public` | `qa_only` | `hidden`.
+  CHECK constraint enforced. Controls browse page visibility independent of tier.
+
+**Views added 2026-05** (migration 036):
+- `browse_product_projection` — canonical browse query surface. One row per
+  `kg_product` with pre-computed `taxonomy_state`, `supply_state`, `is_public`,
+  `active_listing_count`, `tier_rank`, `has_image`. All browse routes read
+  from this view via `frontend/lib/browse.ts`. See **Browse architecture** section.
+
 **`reverb_price_history` columns added 2026-04** (migration 031):
 - `kg_product_id uuid → kg_product` — nullable FK. Backfill TBD (migration 034).
 
@@ -432,6 +442,74 @@ Vercel auto-deploys from `main`. That's it. Never use Vercel CLI.
 ### 0.4 — Migration 034 applied
 
 - See Reverb CSP integration → "Migration 034 applied 2026-04-30" above.
+
+### 0.5 — Browse refactor (prerequisite for Phase 1)
+
+Browse visibility bugs discovered during Phase 0 smoke testing triggered
+a full browse architecture refactor. Refactor is complete and is a
+prerequisite for Phase 1. See **Browse architecture** section for full
+details. Browse pages now surface only `is_public=true` products, and the
+visibility model gives a clear, single-field promotion path from KG
+curation to public browse.
+
+---
+
+## Browse architecture (completed 2026-04-30)
+
+Browse now reads from a canonical DB view `browse_product_projection`
+instead of ad-hoc queries in each route. All browse logic is consolidated
+in `frontend/lib/browse.ts`.
+
+**Migration 036 added:**
+- `kg_product.browse_visibility text` — `public` | `qa_only` | `hidden`
+  (default: `qa_only`). CHECK constraint enforced.
+- `idx_kg_product_browse_visibility` — composite index on
+  `(status, browse_visibility, subcategory_id)`.
+- `browse_product_projection` view — one row per `kg_product` with all
+  browse-relevant fields pre-computed.
+
+**View columns (key fields):**
+- `taxonomy_state`: `classified` | `missing_subcategory` | `missing_root_mapping`
+- `supply_state`: `live` | `no_live_listings`
+- `browse_visibility`: `public` | `qa_only` | `hidden`
+- `is_public`: `boolean` — `true` when `status=active` AND
+  `browse_visibility=public` AND `taxonomy_state=classified`
+- `active_listing_count`, `tier_rank`, `has_image` — pre-joined for sorting
+
+**Visibility model:**
+- Public browse shows only `is_public=true` products
+- Initial public set: active products with `subcategory_id` set and
+  `tier IN ('classic', 'legendary')` — 23 products at launch (1 classic,
+  22 legendary). Set by migration 036 UPDATE.
+- Standard-tier products are `qa_only` by default
+- Promoting a product to public = single UPDATE:
+  `SET browse_visibility='public'` via admin UI or SQL
+- `tier` is now an editorial/badge field only — it no longer gates browse
+  visibility directly
+
+**Count semantics (defined once in `lib/browse.ts`, used everywhere):**
+- Root cards: `subtree_public_count`
+- Subcategory labels: `direct_public_count`
+- Public counts are hidden in UI during initial rollout pending QA sign-off
+- Six count variants exposed in debug mode:
+  `direct_catalog_count`, `subtree_catalog_count`,
+  `direct_public_count`, `subtree_public_count`,
+  `direct_live_count`, `subtree_live_count`
+
+**Admin curation:**
+- `browse_visibility` is exposed in `/admin/products` — admins can toggle
+  `public` | `qa_only` | `hidden` per product
+- Debug mode: `/browse?debug=1` and `/browse/[root]?debug=1` — admin only
+- Debug shows: all products regardless of visibility, all six count variants,
+  `exclusion_reason` per product, orphan summary (missing_subcategory,
+  inactive, etc.)
+
+**Known issues (as of 2026-05-01, pending fix):**
+- Debug mode toggle not surfaced as a UI element in admin — requires URL
+  param manually
+- `debug=1` param is stripped on subcategory navigation
+- Admin toggle for `browse_visibility` in `/admin/products` not yet
+  confirmed working end-to-end
 
 ---
 
@@ -861,6 +939,16 @@ That list is the Phase 1 work queue.
 - Re-enable price-observations as batch job (not real-time)
 - Facebook Marketplace / Apify — do not touch until alternative approach identified
 
+**Browse visibility entry point:**
+Browse visibility architecture is in place (migration 036 + `lib/browse.ts`).
+Phase 1 KG work (canonical name cleanup, CSP enrichment, subcategory
+coverage) directly feeds `browse_visibility` promotion. A product becomes
+promotable to public once:
+1. `canonical_name` is clean (`brand + model`, no listing-title noise)
+2. `reverb_csp_id` is set (CSP enriched via `enrich-from-reverb-csp.ts`)
+3. `subcategory_id` is correct (classified by `classify-products.ts`)
+4. Admin sets `browse_visibility='public'` in `/admin/products` or via SQL
+
 ---
 
 ## Architecture decisions (validated 2026-04-30)
@@ -889,5 +977,4 @@ for the Phase 0/1/2 roadmap in this document.
 
 ---
 
-*Last updated: 2026-04-30 — Phase 0 security hardening complete; migration 034 applied;
-PostgREST 1000-row truncation fixed (browse/route: paginated products + count aggregate, music-gear image inherited by keyboards-and-synths); image strategy live (one per product: hero_image_url ?? image_url); KG quality snapshot and Phase 1 entry point added; architecture decisions validated*
+*Last updated: 2026-05-01 — Browse refactor complete (migration 036: browse_visibility column + browse_product_projection view); Browse architecture section added; Phase 0.5 documented; Phase 1 entry point updated with browse visibility promotion path; Database section updated with migration 036 columns and view*
