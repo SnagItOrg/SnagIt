@@ -355,7 +355,7 @@ async function fetchBrowseRows(admin: SupabaseClient, rootCategoryId?: string) {
 
   const { data, error } = await query
   if (error) throw new Error('Failed to load browse projection.')
-  return (data ?? []) as BrowseProjectionRow[]
+  return (data ?? []) as unknown as BrowseProjectionRow[]
 }
 
 function shapeLeafProduct(row: BrowseProjectionRow) {
