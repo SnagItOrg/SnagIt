@@ -589,7 +589,7 @@ export async function buildDiscoverResponse(admin: SupabaseClient): Promise<Disc
     throw new Error('Failed to load discover projection.')
   }
 
-  const publicRows = ((data ?? []) as BrowseProjectionRow[]).sort(compareProducts)
+  const publicRows = ((data ?? []) as unknown as BrowseProjectionRow[]).sort(compareProducts)
 
   const legendary = publicRows
     .filter((row) => row.tier === 'legendary')
