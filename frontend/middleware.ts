@@ -39,9 +39,11 @@ function scrapeRateAllowed(ip: string): boolean {
 const PUBLIC_PREFIXES = [
   '/login',
   '/signup',
+  '/browse',        // public browse experience
   '/search',        // public SERP
   '/auth/',         // OAuth + email confirmation callbacks
   '/onboarding/',   // anonymous-first onboarding flow
+  '/api/browse',    // public browse data; debug payload remains admin-gated in-route
   '/api/brands',    // public lookup used by onboarding
   '/api/scrape',    // needed by public SERP
   '/api/price-observations', // price stats shown on public SERP cards

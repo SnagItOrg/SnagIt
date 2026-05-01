@@ -3,27 +3,40 @@
 import { useState, useEffect, useCallback } from 'react'
 
 type Tier = 'standard' | 'classic' | 'legendary'
+type BrowseVisibility = 'public' | 'qa_only' | 'hidden'
 
 type Product = {
   id: string
   slug: string
   canonical_name: string
   tier: Tier
+  browse_visibility: BrowseVisibility
   year_released: number | null
   image_url: string | null
   kg_brand: { name: string } | null
 }
 
 const TIER_ORDER: Tier[] = ['standard', 'classic', 'legendary']
+const VISIBILITY_ORDER: BrowseVisibility[] = ['qa_only', 'public', 'hidden']
 const TIER_LABEL: Record<Tier, string> = {
   standard:  'Standard',
   classic:   'Classic',
   legendary: 'Legendary',
 }
+const VISIBILITY_LABEL: Record<BrowseVisibility, string> = {
+  qa_only: 'QA only',
+  public: 'Public',
+  hidden: 'Hidden',
+}
 const TIER_STYLE: Record<Tier, { background: string; color: string }> = {
   standard:  { background: 'var(--secondary)', color: 'var(--muted-foreground)' },
   classic:   { background: 'var(--secondary)', color: 'var(--foreground)' },
   legendary: { background: 'var(--foreground)', color: 'var(--background)' },
+}
+const VISIBILITY_STYLE: Record<BrowseVisibility, { background: string; color: string }> = {
+  qa_only: { background: 'var(--secondary)', color: 'var(--muted-foreground)' },
+  public: { background: 'var(--foreground)', color: 'var(--background)' },
+  hidden: { background: 'rgba(239,68,68,0.12)', color: 'rgb(239,68,68)' },
 }
 
 export default function AdminProductsPage() {
@@ -64,6 +77,21 @@ export default function AdminProductsPage() {
     setSaving(null)
   }
 
+  async function cycleVisibility(product: Product) {
+    const currentIdx = VISIBILITY_ORDER.indexOf(product.browse_visibility)
+    const nextVisibility = VISIBILITY_ORDER[(currentIdx + 1) % VISIBILITY_ORDER.length]
+    setSaving(product.id)
+    await fetch(`/api/admin/products/${product.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ browse_visibility: nextVisibility }),
+    })
+    setProducts((prev) =>
+      prev.map((p) => p.id === product.id ? { ...p, browse_visibility: nextVisibility } : p)
+    )
+    setSaving(null)
+  }
+
   async function saveYear(product: Product) {
     const year = parseInt(yearDraft)
     if (isNaN(year) || year < 1900 || year > 2030) { setYearEditing(null); return }
@@ -86,7 +114,7 @@ export default function AdminProductsPage() {
         Produkter
       </h1>
       <p className="text-sm mb-6" style={{ color: 'var(--muted-foreground)' }}>
-        Sæt tier og årstal. Tom søgning viser legendary-produkter.
+        Sæt tier, browse visibility og årstal. Tom søgning viser legendary-produkter.
       </p>
 
       <div className="flex gap-3 mb-6">
@@ -138,6 +166,16 @@ export default function AdminProductsPage() {
                   <span className="material-symbols-outlined" style={{ fontSize: 11 }}>workspace_premium</span>
                 )}
                 {TIER_LABEL[p.tier]}
+              </button>
+
+              <button
+                onClick={() => cycleVisibility(p)}
+                disabled={saving === p.id}
+                className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-opacity disabled:opacity-50"
+                style={VISIBILITY_STYLE[p.browse_visibility]}
+                title="Klik for at skifte browse visibility"
+              >
+                {VISIBILITY_LABEL[p.browse_visibility]}
               </button>
 
               {/* Name + brand */}
