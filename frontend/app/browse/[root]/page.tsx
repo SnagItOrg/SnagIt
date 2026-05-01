@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
@@ -50,13 +50,31 @@ interface BrowseData {
 function BrowseCategoryPageInner() {
   const params = useParams<{ root: string }>()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const { t, locale } = useLocale()
   const [data, setData] = useState<BrowseData | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [activeSubcat, setActiveSubcat] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const debugEnabled = searchParams.get('debug') === '1'
+
+  useEffect(() => {
+    fetch('/api/admin/me')
+      .then(async (r) => {
+        if (!r.ok) return
+        const d = await r.json() as { isAdmin?: boolean }
+        if (d.isAdmin) setIsAdmin(true)
+      })
+      .catch(() => {})
+  }, [])
+
+  function toggleDebug() {
+    router.push(debugEnabled
+      ? `/browse/${params.root}`
+      : `/browse/${params.root}?debug=1`)
+  }
 
   const fetchPage = useCallback(async (page: number, append: boolean) => {
     if (!params.root) return
@@ -145,12 +163,26 @@ function BrowseCategoryPageInner() {
           {loading ? (
             <div className="h-9 w-48 rounded-lg animate-pulse" style={{ background: 'var(--card)' }} />
           ) : (
-            <h1
-              className="text-3xl md:text-4xl font-semibold"
-              style={{ fontFamily: '"DM Serif Display", serif', color: 'var(--foreground)' }}
-            >
-              {categoryName}
-            </h1>
+            <div className="flex items-center justify-between gap-4">
+              <h1
+                className="text-3xl md:text-4xl font-semibold"
+                style={{ fontFamily: '"DM Serif Display", serif', color: 'var(--foreground)' }}
+              >
+                {categoryName}
+              </h1>
+              {isAdmin && (
+                <button
+                  onClick={toggleDebug}
+                  className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full transition-colors"
+                  style={debugEnabled
+                    ? { background: 'var(--foreground)', color: 'var(--background)', border: '1px solid var(--border)' }
+                    : { background: 'var(--secondary)', color: 'var(--muted-foreground)', border: '1px solid var(--border)' }
+                  }
+                >
+                  Debug mode: {debugEnabled ? 'ON' : 'OFF'}
+                </button>
+              )}
+            </div>
           )}
         </div>
 

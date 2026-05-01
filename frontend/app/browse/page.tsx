@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
@@ -25,11 +25,27 @@ interface BrowseRootData {
 
 function BrowsePageInner() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const { t, locale } = useLocale()
   const debugEnabled = searchParams.get('debug') === '1'
   const [data, setData] = useState<BrowseRootData>({ categories: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/admin/me')
+      .then(async (r) => {
+        if (!r.ok) return
+        const d = await r.json() as { isAdmin?: boolean }
+        if (d.isAdmin) setIsAdmin(true)
+      })
+      .catch(() => {})
+  }, [])
+
+  function toggleDebug() {
+    router.push(debugEnabled ? '/browse' : '/browse?debug=1')
+  }
 
   useEffect(() => {
     const url = debugEnabled ? '/api/browse?debug=1' : '/api/browse'
@@ -58,16 +74,30 @@ function BrowsePageInner() {
       <main className="md:ml-60 pb-24 md:pb-8">
         <MobileSearchBar />
 
-        <div className="px-4 pt-6 pb-4 md:px-8 md:pt-8">
-          <h1
-            className="text-3xl md:text-4xl font-semibold"
-            style={{ fontFamily: '"DM Serif Display", serif', color: 'var(--foreground)' }}
-          >
-            {t.browseHeading}
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-            {t.browseSubtext}
-          </p>
+        <div className="px-4 pt-6 pb-4 md:px-8 md:pt-8 flex items-start justify-between gap-4">
+          <div>
+            <h1
+              className="text-3xl md:text-4xl font-semibold"
+              style={{ fontFamily: '"DM Serif Display", serif', color: 'var(--foreground)' }}
+            >
+              {t.browseHeading}
+            </h1>
+            <p className="mt-1 text-sm" style={{ color: 'var(--muted-foreground)' }}>
+              {t.browseSubtext}
+            </p>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={toggleDebug}
+              className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full transition-colors"
+              style={debugEnabled
+                ? { background: 'var(--foreground)', color: 'var(--background)', border: '1px solid var(--border)' }
+                : { background: 'var(--secondary)', color: 'var(--muted-foreground)', border: '1px solid var(--border)' }
+              }
+            >
+              Debug mode: {debugEnabled ? 'ON' : 'OFF'}
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -94,7 +124,7 @@ function BrowsePageInner() {
             {data.categories.map((cat) => (
               <Link
                 key={cat.id}
-                href={`/browse/${cat.slug}`}
+                href={`/browse/${cat.slug}${debugEnabled ? '?debug=1' : ''}`}
                 className="relative rounded-xl overflow-hidden group"
                 style={{ height: '200px', display: 'block' }}
               >
