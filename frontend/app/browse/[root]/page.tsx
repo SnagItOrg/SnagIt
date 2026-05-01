@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { Suspense, useCallback, useEffect, useState } from 'react'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
@@ -27,6 +27,7 @@ interface Product {
   slug: string
   canonical_name: string
   image_url: string | null
+  tier: 'standard' | 'classic' | 'legendary'
   brand_name: string
   subcategory_name_da: string
   subcategory_name_en: string
@@ -38,22 +39,71 @@ interface BrowseData {
   category: Category
   subcategories: Subcategory[]
   products: Product[]
+  page: number
+  page_size: number
+  total_public_products: number
+  has_more: boolean
+  debug?: unknown
 }
 
-export default function BrowseCategoryPage() {
+function BrowseCategoryPageInner() {
   const params = useParams<{ root: string }>()
+  const searchParams = useSearchParams()
   const { t, locale } = useLocale()
   const [data, setData] = useState<BrowseData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [activeSubcat, setActiveSubcat] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const debugEnabled = searchParams.get('debug') === '1'
+
+  const fetchPage = useCallback(async (page: number, append: boolean) => {
+    if (!params.root) return
+    const qs = new URLSearchParams({
+      page: String(page),
+      page_size: '48',
+    })
+    if (debugEnabled) qs.set('debug', '1')
+    const res = await fetch(`/api/browse/${params.root}?${qs.toString()}`)
+    const next = await res.json().catch(() => null)
+    if (!res.ok) {
+      throw new Error(next?.error ?? 'Failed to load browse category')
+    }
+    setData((prev) => {
+      if (!append || !prev) return next
+      return {
+        ...next,
+        products: [...prev.products, ...(next.products ?? [])],
+        debug: prev.debug ?? next.debug,
+      }
+    })
+  }, [debugEnabled, params.root])
 
   useEffect(() => {
     if (!params.root) return
-    fetch(`/api/browse/${params.root}`)
-      .then((r) => r.json())
-      .then((d) => setData(d))
+    setActiveSubcat(null)
+    setLoading(true)
+    setError(null)
+    fetchPage(1, false)
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : 'Failed to load browse category'
+        setError(message)
+        setData(null)
+      })
       .finally(() => setLoading(false))
-  }, [params.root])
+  }, [fetchPage, params.root, debugEnabled])
+
+  async function handleLoadMore() {
+    if (!data?.has_more || loadingMore) return
+    setLoadingMore(true)
+    try {
+      await fetchPage(data.page + 1, true)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load more products'
+      setError(message)
+    }
+    setLoadingMore(false)
+  }
 
   const filteredProducts = activeSubcat
     ? (data?.products ?? []).filter((p) => p.subcategory_slug === activeSubcat)
@@ -145,6 +195,10 @@ export default function BrowseCategoryPage() {
               />
             ))}
           </div>
+        ) : error ? (
+          <div className="px-4 md:px-8 py-16 text-center">
+            <p style={{ color: 'var(--muted-foreground)' }}>{error}</p>
+          </div>
         ) : filteredProducts.length === 0 ? (
           <div className="px-4 md:px-8 py-16 text-center">
             <p style={{ color: 'var(--muted-foreground)' }}>{t.noResults}</p>
@@ -160,13 +214,55 @@ export default function BrowseCategoryPage() {
                 subcategoryName={locale === 'da' ? p.subcategory_name_da : p.subcategory_name_en}
                 activeListingCount={p.active_listing_count}
                 imageUrl={p.image_url}
+                tier={p.tier}
               />
             ))}
+          </div>
+        )}
+
+        {!loading && data?.has_more && (
+          <div className="px-4 md:px-8 pt-5">
+            <button
+              onClick={() => void handleLoadMore()}
+              disabled={loadingMore}
+              className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
+              style={{ background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
+            >
+              {loadingMore ? (locale === 'da' ? 'Henter…' : 'Loading…') : (locale === 'da' ? 'Vis flere' : 'Load more')}
+            </button>
+          </div>
+        )}
+
+        {!!data?.debug && (
+          <div className="px-4 md:px-8 pt-8">
+            <details
+              open
+              className="rounded-2xl border p-4"
+              style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+            >
+              <summary className="cursor-pointer text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+                Browse audit
+              </summary>
+              <pre
+                className="mt-4 text-xs overflow-x-auto whitespace-pre-wrap"
+                style={{ color: 'var(--muted-foreground)' }}
+              >
+                {JSON.stringify(data.debug, null, 2)}
+              </pre>
+            </details>
           </div>
         )}
       </main>
 
       <BottomNav />
     </div>
+  )
+}
+
+export default function BrowseCategoryPage() {
+  return (
+    <Suspense>
+      <BrowseCategoryPageInner />
+    </Suspense>
   )
 }
