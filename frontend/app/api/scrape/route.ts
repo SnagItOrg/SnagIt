@@ -3,12 +3,13 @@ import { createHash } from 'node:crypto'
 import { scrapeDba } from '@/lib/scrapers/dba'
 import { scrapeFinn } from '@/lib/scrapers/finn'
 import { scrapeBlocket } from '@/lib/scrapers/blocket'
+import { scrapeKleinanzeigen } from '@/lib/scrapers/kleinanzeigen'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { detectListingUrl, fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 import { scrapeThomannSearch } from '@/lib/scrapers/thomann-search'
 import { toDkkApprox } from '@/lib/currency'
 
-const ALL_SOURCES = ['dba', 'finn', 'blocket', 'reverb', 'thomann'] as const
+const ALL_SOURCES = ['dba', 'finn', 'blocket', 'kleinanzeigen', 'reverb', 'thomann'] as const
 type SourceKey = typeof ALL_SOURCES[number]
 
 // Stable id from (source, natural-key) so a saved Thomann listing survives
@@ -113,9 +114,10 @@ export async function GET(request: NextRequest) {
 
   // ── Query mode: run all enabled Schibsted scrapers in parallel ──────────────
   const schibstedJobs: Array<Promise<Awaited<ReturnType<typeof scrapeDba>>>> = []
-  if (sources.has('dba'))     schibstedJobs.push(scrapeDba(trimmed).catch(() => []))
-  if (sources.has('finn'))    schibstedJobs.push(scrapeFinn(trimmed).catch(() => []))
-  if (sources.has('blocket')) schibstedJobs.push(scrapeBlocket(trimmed).catch(() => []))
+  if (sources.has('dba'))           schibstedJobs.push(scrapeDba(trimmed).catch(() => []))
+  if (sources.has('finn'))          schibstedJobs.push(scrapeFinn(trimmed).catch(() => []))
+  if (sources.has('blocket'))       schibstedJobs.push(scrapeBlocket(trimmed).catch(() => []))
+  if (sources.has('kleinanzeigen')) schibstedJobs.push(scrapeKleinanzeigen(trimmed).catch(() => []))
 
   const schibstedResults = (await Promise.all(schibstedJobs)).flat()
 
