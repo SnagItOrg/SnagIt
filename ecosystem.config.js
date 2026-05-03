@@ -1,6 +1,30 @@
 module.exports = {
   apps: [
     {
+      name: 'scrape-blocket',
+      script: 'npx',
+      args: 'tsx scripts/scrape-blocket.ts',
+      cron_restart: '0 1 * * *', // daily at 01:00
+      autorestart: false,
+      max_restarts: 0,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
+      name: 'scrape-finn',
+      script: 'npx',
+      args: 'tsx scripts/scrape-finn.ts',
+      cron_restart: '0 1 * * *', // daily at 01:00
+      autorestart: false,
+      max_restarts: 0,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
       name: 'scrape-kleinanzeigen',
       script: 'npx',
       args: 'tsx scripts/scrape-kleinanzeigen.ts',

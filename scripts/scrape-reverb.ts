@@ -231,6 +231,8 @@ function buildRow(listing: ReverbListing) {
     normalized_text: listing.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
     price: priceDkk,
     currency: 'DKK',
+    country: 'US',
+    price_dkk: priceDkk,
     url,
     image_url: imageUrl,
     location: location || null,
