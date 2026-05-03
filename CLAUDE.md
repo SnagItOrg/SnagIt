@@ -254,6 +254,17 @@ fields, one result. Priority chain:
 - `/admin/suggestions/bulk` — bulk review by brand (AI groups proposals, human approves)
 - `/admin/msrp` — set manual price ranges on products
 
+**Private admin-only intelligence tools:**
+- `/intel` — personal arbitrage dashboard, not linked anywhere in the app
+- Access control mirrors `/admin`: authenticated session required +
+  `user_preferences.is_admin = true`
+- Current query surface: active `legendary` products only, with matched active
+  listings split by `country = 'DK'` and `country = 'DE'`, median `price_dkk`
+  per country, and `delta_dkk = dk_median_dkk - de_median_dkk`
+- Sort order: `delta_dkk` descending; products with missing DE or DK data fall
+  to the bottom and render `—`
+- No Klup navigation or branding on this surface; treat it as a private founder tool
+
 **Merge-not-create rule:** Never create duplicate products. Match to existing KG entry first. If unsure, flag for review.
 
 ---
@@ -499,6 +510,9 @@ in `frontend/lib/browse.ts`.
 **Admin curation:**
 - `browse_visibility` is exposed in `/admin/products` — admins can toggle
   `public` | `qa_only` | `hidden` per product
+- `/browse` and `/api/browse` are public for QA and launch-path testing;
+  admin-only debug payload is enforced inside the route handlers, not in
+  middleware
 - Debug mode: `/browse?debug=1` and `/browse/[root]?debug=1` — admin only
 - Debug shows: all products regardless of visibility, all six count variants,
   `exclusion_reason` per product, orphan summary (missing_subcategory,
@@ -977,4 +991,4 @@ for the Phase 0/1/2 roadmap in this document.
 
 ---
 
-*Last updated: 2026-05-01 — Browse refactor complete (migration 036: browse_visibility column + browse_product_projection view); Browse architecture section added; Phase 0.5 documented; Phase 1 entry point updated with browse visibility promotion path; Database section updated with migration 036 columns and view*
+*Last updated: 2026-05-03 — Browse refactor documentation verified present; public browse QA access rule documented; private `/intel` admin-only arbitrage dashboard documented*

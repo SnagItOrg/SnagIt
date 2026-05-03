@@ -43,6 +43,8 @@ export type Listing = {
   location: string | null
   scraped_at: string
   source: string
+  country?: string | null
+  price_dkk?: number | null
   platform?: string | null
   watchlist_id?: string | null
   external_id?: string | null

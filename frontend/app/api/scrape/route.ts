@@ -6,6 +6,7 @@ import { scrapeBlocket } from '@/lib/scrapers/blocket'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { detectListingUrl, fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 import { scrapeThomannSearch } from '@/lib/scrapers/thomann-search'
+import { toDkkApprox } from '@/lib/currency'
 
 const ALL_SOURCES = ['dba', 'finn', 'blocket', 'reverb', 'thomann'] as const
 type SourceKey = typeof ALL_SOURCES[number]
@@ -69,6 +70,10 @@ export async function GET(request: NextRequest) {
         const now = new Date().toISOString()
         const row = {
           ...result.listing,
+          country: (result.listing as { country?: string | null }).country ?? null,
+          price_dkk: result.listing.price != null
+            ? toDkkApprox(result.listing.price, result.listing.currency)
+            : null,
           scraped_at: now,
           watchlist_id: null,
           external_id: result.listing.url,
@@ -219,6 +224,8 @@ export async function GET(request: NextRequest) {
 
   const rows = schibstedResults.map((l) => ({
     ...l,
+    country: l.country,
+    price_dkk: l.price != null ? toDkkApprox(l.price, l.currency) : null,
     scraped_at: now,
     watchlist_id: null,
     external_id: l.url,

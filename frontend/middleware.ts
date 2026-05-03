@@ -137,6 +137,27 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
   }
 
+  // Intel routes: must be authenticated + is_admin on user_preferences
+  if (pathname.startsWith('/intel')) {
+    if (!user) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } },
+    )
+    const { data: prefs } = await admin
+      .from('user_preferences')
+      .select('is_admin')
+      .eq('user_id', user.id)
+      .single()
+    if (!prefs?.is_admin) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    return supabaseResponse
+  }
+
   // Unauthenticated users on protected routes → /login
   if (!user && !isPublicPath(pathname)) {
     return NextResponse.redirect(new URL('/login', request.url))

@@ -8,6 +8,7 @@ type ScrapedListing = Omit<Listing, 'id' | 'scraped_at'>
 export type SchibstedConfig = {
   host: string
   source: string
+  country: string
   currency: string
   acceptLanguage: string
 }
@@ -15,6 +16,7 @@ export type SchibstedConfig = {
 export const DBA_CONFIG: SchibstedConfig = {
   host: 'www.dba.dk',
   source: 'dba.dk',
+  country: 'DK',
   currency: 'DKK',
   acceptLanguage: 'da-DK,da;q=0.9',
 }
@@ -22,6 +24,7 @@ export const DBA_CONFIG: SchibstedConfig = {
 export const FINN_CONFIG: SchibstedConfig = {
   host: 'www.finn.no',
   source: 'finn',
+  country: 'NO',
   currency: 'NOK',
   acceptLanguage: 'nb-NO,nb;q=0.9',
 }
@@ -29,6 +32,7 @@ export const FINN_CONFIG: SchibstedConfig = {
 export const BLOCKET_CONFIG: SchibstedConfig = {
   host: 'www.blocket.se',
   source: 'blocket',
+  country: 'SE',
   currency: 'SEK',
   acceptLanguage: 'sv-SE,sv;q=0.9',
 }
@@ -105,6 +109,7 @@ async function fetchSchibstedPage(
         title: String(product['name']),
         price: price !== null && !isNaN(price) ? price : null,
         currency: String(offers?.['priceCurrency'] ?? config.currency),
+        country: config.country,
         url: String(product['url']),
         image_url: product['image'] ? String(product['image']) : null,
         location: null,
