@@ -1,27 +1,28 @@
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { IntelDashboard } from './IntelDashboard'
+import {
+  MARKETS,
+  type IntelData,
+  type IntelListing,
+  type IntelProduct,
+  type Market,
+  type MarketStats,
+} from './types'
 
-type ProductRow = {
-  id: string
-  canonical_name: string
-}
+type ProductRow = { id: string; canonical_name: string }
 
 type MatchWithListing = {
   product_id: string
   listings: {
     id: string
+    title: string
+    url: string
+    source: string
     country: string | null
     price_dkk: number | string | null
+    location: string | null
+    scraped_at: string
   } | null
-}
-
-type IntelRow = {
-  id: string
-  canonical_name: string
-  dk_count: number
-  de_count: number
-  dk_median_dkk: number | null
-  de_median_dkk: number | null
-  delta_dkk: number | null
 }
 
 function toNumber(value: number | string | null): number | null {
@@ -33,20 +34,36 @@ function toNumber(value: number | string | null): number | null {
   return null
 }
 
-function median(values: number[]): number | null {
-  if (values.length === 0) return null
-  const sorted = [...values].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  if (sorted.length % 2 === 1) return sorted[mid]
-  return Math.round((sorted[mid - 1] + sorted[mid]) / 2)
+function isMarket(value: string | null): value is Market {
+  return value === 'DK' || value === 'DE' || value === 'SE' || value === 'NO' || value === 'US'
 }
 
-function formatDkk(value: number | null) {
-  if (value == null) return '—'
-  return new Intl.NumberFormat('da-DK').format(value)
+function percentile(sorted: number[], p: number): number | null {
+  if (sorted.length === 0) return null
+  if (sorted.length === 1) return sorted[0]
+  const idx = (sorted.length - 1) * p
+  const lo = Math.floor(idx)
+  const hi = Math.ceil(idx)
+  if (lo === hi) return sorted[lo]
+  return Math.round(sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo))
 }
 
-async function loadIntelRows(): Promise<IntelRow[]> {
+function statsFromPrices(prices: number[]): MarketStats {
+  if (prices.length === 0) {
+    return { count: 0, min: null, p25: null, median: null, p75: null, max: null }
+  }
+  const sorted = [...prices].sort((a, b) => a - b)
+  return {
+    count: sorted.length,
+    min: sorted[0],
+    p25: percentile(sorted, 0.25),
+    median: percentile(sorted, 0.5),
+    p75: percentile(sorted, 0.75),
+    max: sorted[sorted.length - 1],
+  }
+}
+
+async function loadIntelData(): Promise<IntelData> {
   const admin = getSupabaseAdmin()
 
   const { data: products, error: productsError } = await admin
@@ -61,16 +78,20 @@ async function loadIntelRows(): Promise<IntelRow[]> {
   }
 
   const productRows = (products ?? []) as ProductRow[]
-  if (productRows.length === 0) return []
+  if (productRows.length === 0) {
+    return { products: [], lastScrape: null, marketsTracked: MARKETS.length }
+  }
 
-  const productIds = productRows.map((product) => product.id)
+  const productIds = productRows.map((p) => p.id)
 
   const { data: matches, error: matchesError } = await admin
     .from('listing_product_match')
-    .select('product_id, listings!inner(id, country, price_dkk)')
+    .select(
+      'product_id, listings!inner(id, title, url, source, country, price_dkk, location, scraped_at)',
+    )
     .in('product_id', productIds)
     .eq('listings.is_active', true)
-    .in('listings.country', ['DK', 'DE'])
+    .in('listings.country', MARKETS as unknown as string[])
 
   if (matchesError) {
     throw new Error(`Failed to load matched listings: ${matchesError.message}`)
@@ -78,111 +99,82 @@ async function loadIntelRows(): Promise<IntelRow[]> {
 
   const matchRows = (matches ?? []) as unknown as MatchWithListing[]
 
-  const pricesByProduct = new Map<string, { DK: number[]; DE: number[] }>()
-  for (const product of productRows) {
-    pricesByProduct.set(product.id, { DK: [], DE: [] })
-  }
+  const grouped = new Map<string, IntelListing[]>()
+  for (const p of productRows) grouped.set(p.id, [])
 
-  for (const match of matchRows) {
-    const listing = match.listings
-    if (!listing) continue
-    if (listing.country !== 'DK' && listing.country !== 'DE') continue
-    const price = toNumber(listing.price_dkk)
-    if (price == null) continue
-    pricesByProduct.get(match.product_id)?.[listing.country].push(price)
-  }
-
-  return productRows
-    .map((product) => {
-      const prices = pricesByProduct.get(product.id) ?? { DK: [], DE: [] }
-      const dkMedian = median(prices.DK)
-      const deMedian = median(prices.DE)
-      return {
-        id: product.id,
-        canonical_name: product.canonical_name,
-        dk_count: prices.DK.length,
-        de_count: prices.DE.length,
-        dk_median_dkk: dkMedian,
-        de_median_dkk: deMedian,
-        delta_dkk: dkMedian != null && deMedian != null ? dkMedian - deMedian : null,
-      }
+  let lastScrape: string | null = null
+  for (const m of matchRows) {
+    const l = m.listings
+    if (!l) continue
+    if (!isMarket(l.country)) continue
+    const price = toNumber(l.price_dkk)
+    if (price == null || price <= 0) continue
+    const list = grouped.get(m.product_id)
+    if (!list) continue
+    list.push({
+      id: l.id,
+      title: l.title,
+      url: l.url,
+      source: l.source,
+      country: l.country,
+      price_dkk: price,
+      location: l.location,
+      scraped_at: l.scraped_at,
     })
-    .sort((a, b) => {
-      if (a.delta_dkk == null && b.delta_dkk == null) {
-        return a.canonical_name.localeCompare(b.canonical_name, 'en')
-      }
-      if (a.delta_dkk == null) return 1
-      if (b.delta_dkk == null) return -1
-      if (b.delta_dkk !== a.delta_dkk) return b.delta_dkk - a.delta_dkk
+    if (!lastScrape || l.scraped_at > lastScrape) lastScrape = l.scraped_at
+  }
+
+  const intelProducts: IntelProduct[] = productRows.map((p) => {
+    const listings = (grouped.get(p.id) ?? []).sort((a, b) => a.price_dkk - b.price_dkk)
+
+    const markets = {
+      DK: statsFromPrices([]),
+      DE: statsFromPrices([]),
+      SE: statsFromPrices([]),
+      NO: statsFromPrices([]),
+      US: statsFromPrices([]),
+    } as Record<Market, MarketStats>
+
+    for (const m of MARKETS) {
+      const prices = listings.filter((l) => l.country === m).map((l) => l.price_dkk)
+      markets[m] = statsFromPrices(prices)
+    }
+
+    const dk = markets.DK.median
+    const delta = (other: number | null) => (dk != null && other != null ? dk - other : null)
+
+    const foreignMedians = [markets.DE.median, markets.SE.median, markets.NO.median, markets.US.median]
+      .filter((v): v is number => v != null)
+    const cheapestForeign = foreignMedians.length > 0 ? Math.min(...foreignMedians) : null
+    const best_delta = dk != null && cheapestForeign != null ? dk - cheapestForeign : null
+
+    return {
+      id: p.id,
+      canonical_name: p.canonical_name,
+      markets,
+      listings,
+      delta_dk_de: delta(markets.DE.median),
+      delta_dk_se: delta(markets.SE.median),
+      delta_dk_no: delta(markets.NO.median),
+      delta_dk_us: delta(markets.US.median),
+      best_delta,
+    }
+  })
+
+  intelProducts.sort((a, b) => {
+    if (a.best_delta == null && b.best_delta == null) {
       return a.canonical_name.localeCompare(b.canonical_name, 'en')
-    })
+    }
+    if (a.best_delta == null) return 1
+    if (b.best_delta == null) return -1
+    if (b.best_delta !== a.best_delta) return b.best_delta - a.best_delta
+    return a.canonical_name.localeCompare(b.canonical_name, 'en')
+  })
+
+  return { products: intelProducts, lastScrape, marketsTracked: MARKETS.length }
 }
 
 export default async function IntelPage() {
-  const rows = await loadIntelRows()
-
-  return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: '#0a0a0a',
-        color: '#f5f5f5',
-        padding: '32px 24px 64px',
-        fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-      }}
-    >
-      <div style={{ maxWidth: 1440, margin: '0 auto' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 600, margin: 0 }}>Intel</h1>
-
-        <div style={{ marginTop: 24, borderTop: '1px solid #222' }}>
-          {rows.map((row) => (
-            <div
-              key={row.id}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(260px, 1.4fr) 1fr 1fr 0.8fr',
-                gap: '16px',
-                padding: '14px 0',
-                borderBottom: '1px solid #171717',
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ fontSize: '14px', lineHeight: 1.4 }}>{row.canonical_name}</div>
-              <div
-                style={{
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                  fontSize: '13px',
-                  color: '#d4d4d4',
-                }}
-              >
-                <span style={{ color: '#8a8a8a', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>DK:</span>{' '}
-                {row.dk_count} listings / {formatDkk(row.dk_median_dkk)} DKK
-              </div>
-              <div
-                style={{
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                  fontSize: '13px',
-                  color: '#d4d4d4',
-                }}
-              >
-                <span style={{ color: '#8a8a8a', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>DE:</span>{' '}
-                {row.de_count} listings / {formatDkk(row.de_median_dkk)} DKK
-              </div>
-              <div
-                style={{
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                  fontSize: '13px',
-                  color: row.delta_dkk != null ? '#f5f5f5' : '#707070',
-                  textAlign: 'right',
-                }}
-              >
-                <span style={{ color: '#8a8a8a', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>Delta:</span>{' '}
-                {row.delta_dkk != null ? `${formatDkk(row.delta_dkk)} DKK` : '—'}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </main>
-  )
+  const data = await loadIntelData()
+  return <IntelDashboard data={data} />
 }

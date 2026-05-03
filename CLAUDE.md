@@ -78,11 +78,14 @@ If the product can answer that without the user having to think, we're building 
 
 | Job | Schedule | Status |
 |---|---|---|
+| `scrape-blocket` | Daily 01:00 | Running — SE listings |
+| `scrape-finn` | Daily 01:00 | Running — NO listings |
+| `scrape-kleinanzeigen` | Daily 01:00 | Running — DE listings |
 | `scrape-reverb` | Daily 02:00 | Running |
 | `fetch-reverb-prices` | Daily 03:00 | Running |
 | `fetch-thomann-prices` | Sunday 03:00 | Running |
 | `process-price-queue` | Every 5 min | Running |
-| `match-listings` | Every 30 min | Running — 40% match-rate |
+| `match-listings` | Every hour at :30 | Running — 40% match-rate |
 
 ---
 
@@ -93,8 +96,9 @@ If the product can answer that without the user having to think, we're building 
 | DBA.dk | Danish used gear listings | Active (wildcard search parked — bot detection) |
 | Reverb API | International used gear + sold price history | Active |
 | Thomann | New price reference (nypris) via sitemap | Active — Cloudflare sometimes blocks from Vercel egress |
-| Finn.no | Nordic used gear | Live (Schibsted scraper) |
-| Blocket.se | Nordic used gear | Live (Schibsted scraper) |
+| Finn.no | Norwegian used gear | Active — Schibsted scraper, daily cron |
+| Blocket.se | Swedish used gear | Active — Schibsted scraper, daily cron |
+| Kleinanzeigen.de | German used gear listings | Active — DOM scraping, category c74 (Musikinstrumente), daily cron |
 | Auctionet | Danish auction prices | Active |
 | Facebook Marketplace | — | **Parked** — Apify consumed budget, zero results |
 
@@ -255,14 +259,17 @@ fields, one result. Priority chain:
 - `/admin/msrp` — set manual price ranges on products
 
 **Private admin-only intelligence tools:**
-- `/intel` — personal arbitrage dashboard, not linked anywhere in the app
-- Access control mirrors `/admin`: authenticated session required +
-  `user_preferences.is_admin = true`
-- Current query surface: active `legendary` products only, with matched active
-  listings split by `country = 'DK'` and `country = 'DE'`, median `price_dkk`
-  per country, and `delta_dkk = dk_median_dkk - de_median_dkk`
-- Sort order: `delta_dkk` descending; products with missing DE or DK data fall
-  to the bottom and render `—`
+- `/intel` — private arbitrage dashboard, not linked anywhere in the app
+- Access control: `middleware.ts` gates `/intel/*` identically to `/admin/*` —
+  session required + `user_preferences.is_admin = true` (service-role Supabase check)
+- Current query surface: active `legendary` products, matched active listings
+  split by `country IN ('DK', 'DE')`, median `price_dkk` per country,
+  `delta_dkk = dk_median_dkk - de_median_dkk`; sorted by `delta_dkk` DESC
+- Query uses PostgREST inner-join embed (`listings!inner(...)`) to avoid URL length
+  limits — filtering on 22 product IDs not 4,000+ listing IDs
+- Being expanded into a full multi-market Bloomberg-style arbitrage dashboard
+  (3-panel: product sidebar + overview table + product detail). Figma Make prompt
+  is at `.claude/plans/sparkling-drifting-treehouse.md`
 - No Klup navigation or branding on this surface; treat it as a private founder tool
 
 **Merge-not-create rule:** Never create duplicate products. Match to existing KG entry first. If unsure, flag for review.
@@ -296,6 +303,11 @@ fields, one result. Priority chain:
 - `tier text DEFAULT 'standard'` — `standard` | `classic` | `legendary` (migration 031)
 - `tags text[] DEFAULT '{}'` — facet tags (migration 031)
 - `year_released int` — production year (migration 031)
+
+**`listings` columns added 2026-05** (migration 037):
+- `country char(2)` — ISO market code. Backfill: DKK rows → `'DK'`; Reverb rows → `'US'` (via `scripts/backfill-reverb-country.ts`). New scrapes write this at upsert time.
+- `price_dkk numeric` — price converted to DKK at scrape time via `toDkkApprox()`. Backfilled from existing `price` column for DKK-currency rows.
+- `frontend/lib/supabase.ts` `Listing` type updated with `country?: string | null` and `price_dkk?: number | null`.
 
 **`kg_product` columns added 2026-05** (migration 036):
 - `browse_visibility text DEFAULT 'qa_only'` — `public` | `qa_only` | `hidden`.
@@ -524,6 +536,68 @@ in `frontend/lib/browse.ts`.
 - `debug=1` param is stripped on subcategory navigation
 - Admin toggle for `browse_visibility` in `/admin/products` not yet
   confirmed working end-to-end
+
+---
+
+## Multi-market expansion (shipped 2026-05-03)
+
+**Goal:** capture cross-border arbitrage opportunities — buy cheap in DE/US, sell at
+DK market rate. The listings table, scrape pipeline, and intel dashboard were all
+extended to support multi-market price comparison.
+
+### Migration 037
+
+- Added `country char(2)` and `price_dkk numeric` (both nullable) to `listings`.
+- Backfill: existing DKK-currency listings → `country='DK'`, `price_dkk=price`.
+- `scripts/backfill-reverb-country.ts` — one-off backfill for Reverb rows:
+  sets `country='US'` (Reverb is a US marketplace; original currency info was
+  lost because `buildRow` converted to DKK at scrape time) and `price_dkk=price`
+  (already in DKK). Uses `.update().eq('id', row.id)` — not upsert — to avoid
+  NOT NULL constraint violations on `title` and other required columns.
+  Run: `npx tsx scripts/backfill-reverb-country.ts`
+
+### Scrape pipeline
+
+- **`frontend/lib/scrapers/schibsted.ts`**: `SchibstedConfig` gained `country: string`.
+  `DBA_CONFIG` → `'DK'`, `FINN_CONFIG` → `'NO'`, `BLOCKET_CONFIG` → `'SE'`.
+  Each scraped listing now carries the correct ISO market code.
+- **`frontend/app/api/scrape/route.ts`**: Schibsted batch upsert and URL-mode upsert
+  now write `country` and `price_dkk` (via `toDkkApprox(price, currency)`).
+  Kleinanzeigen added to `ALL_SOURCES` and the parallel jobs array.
+- **`scripts/scrape-reverb.ts`**: `buildRow` now writes `country: 'US'` and
+  `price_dkk: priceDkk` on every Reverb listing upsert.
+
+### New scraper: Kleinanzeigen.de
+
+- **Frontend library**: `frontend/lib/scrapers/kleinanzeigen.ts`
+  - DOM scraping via `article[data-adid]` (no JSON-LD available on Kleinanzeigen)
+  - URL pattern: `https://www.kleinanzeigen.de/s-musikinstrumente/{query}/k0c74`
+  - Pagination via `?pageNum=N`. Dehyphenation query variant (same as Schibsted).
+  - Returns `country: 'DE'`, `currency: 'EUR'`, `price_dkk` via `toDkkApprox`.
+  - Exported: `scrapeKleinanzeigen(query, maxPages?): Promise<ScrapedListing[]>`
+- **Cron script**: `scripts/scrape-kleinanzeigen.ts`
+  - Targets legendary + `status='active'` products from KG only.
+  - 3 s rate limit between products. Flags: `--limit=N`, `--product="name"`.
+  - Module resolution: `require('../frontend/node_modules/@supabase/supabase-js')` —
+    no root `node_modules`; all scripts in `scripts/` use this pattern.
+  - Registered in `ecosystem.config.js` on panter, cron `0 1 * * *`.
+
+### New cron scripts (same pattern)
+
+- `scripts/scrape-blocket.ts` — SE market via `frontend/lib/scrapers/blocket.ts`
+- `scripts/scrape-finn.ts` — NO market via `frontend/lib/scrapers/finn.ts`
+- Both: legendary products only, 3 s rate limit, `--limit=N` / `--product=` flags,
+  `autorestart: false`, daily 01:00.
+
+### Module resolution pattern for scripts/
+
+Scripts in `scripts/` cannot use `@/` path aliases or bare `@supabase/supabase-js`
+because there is no `node_modules` at the repo root. Use:
+```typescript
+import type { SupabaseClient } from '../frontend/node_modules/@supabase/supabase-js'
+const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
+```
+All scripts in `scripts/` that use Supabase follow this pattern.
 
 ---
 
@@ -991,4 +1065,4 @@ for the Phase 0/1/2 roadmap in this document.
 
 ---
 
-*Last updated: 2026-05-03 — Browse refactor documentation verified present; public browse QA access rule documented; private `/intel` admin-only arbitrage dashboard documented*
+*Last updated: 2026-05-03 — Multi-market expansion: migration 037, country/price_dkk pipeline, Kleinanzeigen scraper, scrape-blocket/finn cron jobs, /intel arbitrage dashboard, backfill-reverb-country script*
