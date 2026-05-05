@@ -267,9 +267,9 @@ fields, one result. Priority chain:
   `delta_dkk = dk_median_dkk - de_median_dkk`; sorted by `delta_dkk` DESC
 - Query uses PostgREST inner-join embed (`listings!inner(...)`) to avoid URL length
   limits — filtering on 22 product IDs not 4,000+ listing IDs
-- Being expanded into a full multi-market Bloomberg-style arbitrage dashboard
-  (3-panel: product sidebar + overview table + product detail). Figma Make prompt
-  is at `.claude/plans/sparkling-drifting-treehouse.md`
+- Multi-market 3-panel Bloomberg-style shell shipped 2026-05-04 — see
+  **Intel dashboard — multi-market shell** section below. Figma Make prompt
+  retained at `.claude/plans/sparkling-drifting-treehouse.md`.
 - No Klup navigation or branding on this surface; treat it as a private founder tool
 
 **Merge-not-create rule:** Never create duplicate products. Match to existing KG entry first. If unsure, flag for review.
@@ -598,6 +598,197 @@ import type { SupabaseClient } from '../frontend/node_modules/@supabase/supabase
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
 ```
 All scripts in `scripts/` that use Supabase follow this pattern.
+
+---
+
+## Intel dashboard — multi-market shell (shipped 2026-05-04)
+
+The single-table DK/DE list at `/intel` was replaced with a three-panel
+Bloomberg-style dashboard. Server-component fetch + client-component
+interactivity, all hardcoded colors (private admin tool — exempt from the
+sparse-accent rule per `frontend/CLAUDE.md`).
+
+**Files:**
+- `frontend/app/intel/page.tsx` — server component. Loads legendary products,
+  joins `listing_product_match` → `listings` via inner-embed, filters
+  `is_active=true` and `country IN ('DK','DE','SE','NO','US')`, computes
+  per-market count + min/p25/median/p75/max in TypeScript, plus deltas
+  (DK–DE, DK–SE, DK–NO, DK–US) and `best_delta` (DK vs cheapest foreign
+  median).
+- `frontend/app/intel/IntelDashboard.tsx` — client component. Holds
+  selection + filter state. 3-panel layout: 180px left sidebar
+  (followed products + best-delta arrows), main panel (overview table +
+  filter chips + last-refreshed timestamp), 320px right panel (product
+  detail).
+- `frontend/app/intel/types.ts` — shared `Market` / `IntelListing` /
+  `IntelProduct` / `IntelData` types.
+
+**Overview table columns:** Product · DK · DE · SE · NO · US · Δ DK–DE ·
+Δ DK–NO · Δ DK–SE. Each market cell shows median (primary) + count
+(muted). Row click opens right-panel detail.
+
+**Right panel sections:** product header (LEGENDARY badge), price-band
+IQR bars per market with a shared x-axis (lowest-median market gets
+`#13ec6d` accent), three delta cards (Δ DK–DE / Δ DK–US / Best deal with
+country + source subtitle), top-10 active listings sorted by
+`price_dkk` ascending with brand-coloured source badges + flag emoji,
+sparkline placeholder.
+
+**Real arbitrage signal confirmed:** Roland Juno-106 NO→DK delta is
+visible in the dashboard once Schibsted price_dkk backfill ran (see
+**Backfills run** below).
+
+**Filter chips** (radio-style): All · Legendary Only · Has DE Data ·
+Delta > 10.000 DKK. Default: All.
+
+---
+
+## Admin product curation page (shipped 2026-05-05)
+
+Founder-facing private curation tool at `/admin/product/[slug]`. Not
+linked from anywhere; reached by typing the URL or via prev/next nav
+between legendary products.
+
+**Files:**
+- `frontend/app/admin/product/[slug]/page.tsx` — server component.
+  Loads `kg_product` (+ brand), `thomann_product` (canonical-name
+  ilike), all `listing_product_match` rows where
+  `is_valid IS NULL OR is_valid = true` joined to `listings`, all
+  `synonym` rows for the product, and prev/next legendary product by
+  `canonical_name` for navigation.
+- `frontend/app/admin/product/[slug]/ProductCurationClient.tsx` —
+  client component. Four sections, optimistic UI updates, brand-coloured
+  source badges, country flag emoji.
+
+**Section 1 — Product header:** hero/image, canonical name, brand · year,
+LEGENDARY badge, Thomann nypris (or "Ingen nypris"), prev / next
+navigation.
+
+**Section 2 — Søgeord / Synonymer:** list current synonyms (alias · lang ·
+priority), inline add form (alias · lang select da/de/en/sv/no ·
+priority numeric), per-row delete button. Adds default
+`match_type='alias'` because the `synonym` table CHECK constraint
+requires one of `('exact','alias','abbrev')`.
+
+**Section 3 — Søg på Kleinanzeigen nu:** query input pre-filled with
+`canonical_name`, runs `scrapeKleinanzeigen(query, 3)` server-side,
+returns scraped listings without writing to the DB. "Gem listing" button
+per result upserts into `listings` and creates a confirmed
+`listing_product_match` (is_valid=true).
+
+**Section 4 — Matchede listings (X):** filter chips (Alle / DBA / Reverb /
+Kleinanzeigen / Finn / Blocket), table with source badge · flag · title
+(truncated 60) · price · price_dkk · location · days · external link ·
+red "Bad match" button. Inactive listings render at 0.5 opacity.
+Rejected matches removed from UI immediately on click.
+
+**API routes (admin-gated):**
+- `POST   /api/admin/product/[slug]/synonym` — insert synonym.
+  Body `{ alias, lang, priority }`. Returns inserted row.
+  400 if alias empty, 404 if slug not found.
+- `DELETE /api/admin/product/[slug]/synonym/[id]` — guarded by
+  `product_id` match so an admin can't delete another product's synonym
+  by id. Returns `{ deleted: true }`. 404 if not found.
+- `POST   /api/admin/product/[slug]/scrape-kleinanzeigen` — body
+  `{ query }`, calls `scrapeKleinanzeigen()`, returns
+  `{ listings: ScrapedListing[] }`. No DB writes.
+- `POST   /api/admin/product/[slug]/save-listing` — body
+  `{ listing }`, upserts `listings` (onConflict `external_id, source`)
+  + upserts `listing_product_match` with `method='FUZZY'`, `score=100`,
+  `is_valid=true`. **Note:** spec asked for `method='manual'` but the
+  CHECK constraint on `listing_product_match.method` only permits
+  `('EAN','SKU','MODEL','SYNONYM','FUZZY')`, so manually-confirmed
+  matches use `'FUZZY'` — same convention as
+  `/api/admin/match/approve/route.ts`.
+- `POST   /api/admin/product/[slug]/reject-match` — body
+  `{ listing_id, reason? }`, sets `is_valid=false` + `rejected_reason`
+  guarded by `(listing_id, product_id)` pair.
+
+**Auth helper:** `frontend/lib/admin-auth.ts` gained
+`requireAdminInRoute(): Promise<NextResponse | null>` that returns 401
+if no session, 403 if not admin, or null on pass-through. The five new
+routes use it because `middleware.ts` gates `/admin/*` page routes but
+**not** `/api/admin/*` — the auth gate has to live in the route
+handler.
+
+---
+
+## Match quality flags (shipped 2026-05-05)
+
+### Migration 038
+
+- Added two nullable columns to `listing_product_match`:
+  - `is_valid boolean` — `null` = unreviewed, `true` = confirmed,
+    `false` = rejected. No default.
+  - `rejected_reason text` — optional free-text, populated when
+    `is_valid = false`.
+- No backfill — existing rows stay `NULL` (unreviewed).
+- No FK, no index, no constraint changes.
+
+### Visibility rules
+
+- **Product detail pages** (`/api/product/[slug]`) and **intel dashboard**
+  (`/api/intel/*` server fetch) must filter
+  `is_valid IS NULL OR is_valid = true` so rejected matches never
+  surface in user-facing or analytical views.
+- The admin curation page applies this filter directly in its server
+  fetch.
+- **TODO:** audit all consumers of `listing_product_match` and apply
+  the same filter — the new column is currently honoured only by the
+  curation page; product/[slug] and intel/page.tsx filters need to be
+  added in a follow-up.
+
+---
+
+## model_name fixes & match-listings recovery (2026-05-05)
+
+### Symptom
+
+`match-listings` was producing 0% match-rate. Diagnosis: `model_name`
+was `NULL` on every legendary product. The matcher uses `model_name` as
+the primary token for the `MODEL` match path (score 70), so a NULL
+`model_name` meant the strongest match path was disabled across the
+entire legendary set.
+
+### Fix
+
+- Manual SQL `UPDATE` populated `model_name` for all 19 legendary
+  products by stripping the brand prefix from `canonical_name`
+  (e.g. `Roland Juno-106` → `Juno-106`).
+- `scripts/backfill-model-names.ts` — re-runnable backfill that
+  derives `model_name` by stripping the matched brand prefix. Targets
+  rows where `tier IN ('legendary','classic')` and `model_name IS
+  NULL`. Idempotent.
+
+### Match-rate after fix
+
+- Recovered to ~7% on the mixed listing pool (up from 0%).
+- The remaining ~19k unmatched Reverb listings are **expected** —
+  parts, accessories, and listings that don't clearly resolve to a KG
+  product. `match-listings` is conservative by design: it only links
+  listings that clearly belong to a single KG product.
+
+### Rule (going forward)
+
+`model_name` must be set for **legendary and classic** tier products.
+A null `model_name` on these tiers disables the highest-confidence
+match path and silently kills match-rate for the most-watched
+products. Standard-tier products may stay `model_name=NULL` until
+demand surfaces them.
+
+---
+
+## Backfills run (2026-05-04 → 2026-05-05)
+
+- `scripts/backfill-schibsted-price-dkk.ts` — populated `price_dkk` and
+  `country` for **1,248 Schibsted/Kleinanzeigen listings** scraped
+  before migration 037 wired the columns into the upsert path.
+  Source-conditional country mapping: dba.dk→DK, finn→NO, blocket→SE,
+  kleinanzeigen→DE. Uses `.update().eq('id', row.id)` per row to avoid
+  NOT NULL violations on `title`.
+- `scripts/backfill-reverb-country.ts` — re-run twice; total **172
+  rows** updated across both runs (covers Reverb listings that landed
+  between the migration and the scraper-config update).
 
 ---
 
@@ -1065,4 +1256,4 @@ for the Phase 0/1/2 roadmap in this document.
 
 ---
 
-*Last updated: 2026-05-03 — Multi-market expansion: migration 037, country/price_dkk pipeline, Kleinanzeigen scraper, scrape-blocket/finn cron jobs, /intel arbitrage dashboard, backfill-reverb-country script*
+*Last updated: 2026-05-05 — Admin product curation page (`/admin/product/[slug]` + 5 API routes), migration 038 match-quality flags (`is_valid`, `rejected_reason`), model_name backfill recovers match-rate from 0% to ~7%, intel dashboard 3-panel multi-market shell, schibsted price_dkk + reverb country backfills*
