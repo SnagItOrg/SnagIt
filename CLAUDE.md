@@ -257,6 +257,46 @@ fields, one result. Priority chain:
 - `/admin/suggestions` — review AI-generated product suggestions (pending/approved/rejected)
 - `/admin/suggestions/bulk` — bulk review by brand (AI groups proposals, human approves)
 - `/admin/msrp` — set manual price ranges on products
+- `/admin/product/new` — create a new KG product (see below)
+
+## Create new product (/admin/product/new)
+
+- Route: `/admin/product/new`
+- Server component: `frontend/app/admin/product/new/page.tsx`
+- Client form: `frontend/app/admin/product/NewProductForm.tsx`
+
+**Form fields:**
+- Brand (required) — searchable select, fetched from `/api/admin/product/brands`
+- Canonical name (required) — "Brand + Model" rule enforced in UI
+- Model name (required) — auto-derived from canonical minus brand, user can override
+- Slug (required) — auto-derived, user can override, preview shown as `klup.dk/product/[slug]`
+- Tier (required) — `legendary` | `classic` | `standard`, default `legendary`
+- Year released (optional) — integer 1900–2030
+- Status — `active` | `inactive`, default `active`
+- Subcategory (optional) — searchable select, fetched from `/api/admin/product/subcategories`
+
+**API routes:**
+- `POST /api/admin/product/new`
+  - Validates all required fields; returns `400 { error, field }` on failure
+  - Checks slug uniqueness — returns `409 { error: 'slug_exists' }` on collision (no auto-suffix; user resolves manually)
+  - Inserts `kg_product` with `browse_visibility='qa_only'`
+  - Returns `201 { id, slug }`
+  - Derives `category_id` from the selected brand's `kg_brand.category_id`
+    (legacy `NOT NULL` column — see **Technical Debt → kg_product.category_id**;
+    invisible to the API contract — clients only send `brand_id`)
+- `GET /api/admin/product/brands`
+  - Returns `{ brands: { id, name }[] }` ordered by name ASC
+  - No pagination — `kg_brand` is small (~200 rows)
+- `GET /api/admin/product/subcategories`
+  - Returns `{ subcategories: { id, name, parent_name }[] }`
+  - Filters `kg_category WHERE parent_id IS NOT NULL` (leaf categories only)
+  - Resolves `parent_name` server-side (single query, no extra round-trip)
+
+**Behavior:**
+- On success: client-side `router.push('/admin/product/' + slug)`
+- On slug collision: inline error, user adjusts manually
+- Entry point: `+ Nyt produkt` button in `/admin/products` page header
+- All new API routes gated with `requireAdminInRoute()` from `lib/admin-auth.ts`
 
 **Private admin-only intelligence tools:**
 - `/intel` — private arbitrage dashboard, not linked anywhere in the app

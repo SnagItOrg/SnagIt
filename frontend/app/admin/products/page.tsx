@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 
 type Tier = 'standard' | 'classic' | 'legendary'
 type BrowseVisibility = 'public' | 'qa_only' | 'hidden'
@@ -110,9 +111,18 @@ export default function AdminProductsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--foreground)' }}>
-        Produkter
-      </h1>
+      <div className="flex items-start justify-between gap-4 mb-1">
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
+          Produkter
+        </h1>
+        <Link
+          href="/admin/product/new"
+          className="text-sm font-semibold px-4 py-2 rounded-xl"
+          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+        >
+          + Nyt produkt
+        </Link>
+      </div>
       <p className="text-sm mb-6" style={{ color: 'var(--muted-foreground)' }}>
         Sæt tier, browse visibility og årstal. Tom søgning viser legendary-produkter.
       </p>

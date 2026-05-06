@@ -71,6 +71,8 @@ export type ScrapedListingPayload = {
   price_dkk: number | null
 }
 
+type SearchPlatform = 'dba' | 'finn' | 'blocket' | 'kleinanzeigen' | 'all'
+
 const SOURCE_BADGE: Record<string, { bg: string; fg: string; label: string }> = {
   'dba.dk':         { bg: '#00098A', fg: '#ffffff', label: 'DBA' },
   'finn':           { bg: '#06bffc', fg: '#000000', label: 'Finn' },
@@ -79,6 +81,14 @@ const SOURCE_BADGE: Record<string, { bg: string; fg: string; label: string }> = 
   'reverb':         { bg: '#EC5A2C', fg: '#ffffff', label: 'Reverb' },
   'kleinanzeigen':  { bg: '#f5c542', fg: '#000000', label: 'Kleinanzeigen' },
 }
+
+const SEARCH_PLATFORM_OPTS: Array<{ key: SearchPlatform; label: string; apiValue?: string }> = [
+  { key: 'dba', label: 'DBA', apiValue: 'dba' },
+  { key: 'finn', label: 'Finn', apiValue: 'finn' },
+  { key: 'blocket', label: 'Blocket', apiValue: 'blocket' },
+  { key: 'kleinanzeigen', label: 'Kleinanzeigen', apiValue: 'kleinanzeigen' },
+  { key: 'all', label: 'Alle' },
+]
 
 const COUNTRY_FLAG: Record<string, string> = {
   DK: '🇩🇰', DE: '🇩🇪', SE: '🇸🇪', NO: '🇳🇴', US: '🇺🇸', GB: '🇬🇧', FR: '🇫🇷', NL: '🇳🇱',
@@ -197,6 +207,11 @@ export default function ProductCurationClient({ data }: { data: CurationData }) 
         onReject={(listingId) => {
           setListings((prev) => prev.filter((l) => l.id !== listingId))
           showToast('Match flagged som ugyldig')
+        }}
+        onSetPrice={(listingId, priceDkk) => {
+          setListings((prev) =>
+            prev.map((l) => l.id === listingId ? { ...l, price_dkk: priceDkk } : l),
+          )
         }}
       />
 
@@ -554,11 +569,20 @@ function ScrapeSection({
   onSaved: (listing: MatchedListing) => void
 }) {
   const [query, setQuery] = useState(defaultQuery)
+  const [platform, setPlatform] = useState<SearchPlatform>('dba')
   const [searching, setSearching] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set())
   const [results, setResults] = useState<ScrapedListingPayload[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  const selectedPlatformLabel =
+    SEARCH_PLATFORM_OPTS.find((opt) => opt.key === platform)?.label ?? 'DBA'
+
+  const selectedPlatforms =
+    platform === 'all'
+      ? ['dba', 'finn', 'blocket', 'kleinanzeigen']
+      : [SEARCH_PLATFORM_OPTS.find((opt) => opt.key === platform)?.apiValue ?? 'dba']
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -569,10 +593,10 @@ function ScrapeSection({
     setResults([])
     setSavedUrls(new Set())
     try {
-      const res = await fetch(`/api/admin/product/${slug}/scrape-kleinanzeigen`, {
+      const res = await fetch(`/api/admin/product/${slug}/scrape-platform`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: trimmed }),
+        body: JSON.stringify({ query: trimmed, platforms: selectedPlatforms }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -636,8 +660,30 @@ function ScrapeSection({
       style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
     >
       <h2 className="text-base font-bold" style={{ color: 'var(--foreground)' }}>
-        Søg på Kleinanzeigen nu
+        {platform === 'all'
+          ? 'Søg på alle platforme nu'
+          : `Søg på ${selectedPlatformLabel} nu`}
       </h2>
+
+      <div className="flex flex-wrap gap-1.5">
+        {SEARCH_PLATFORM_OPTS.map((opt) => {
+          const active = platform === opt.key
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setPlatform(opt.key)}
+              className="text-xs font-semibold px-3 py-1 rounded-full"
+              style={{
+                background: active ? 'var(--foreground)' : 'var(--secondary)',
+                color: active ? 'var(--background)' : 'var(--muted-foreground)',
+              }}
+            >
+              {opt.label}
+            </button>
+          )
+        })}
+      </div>
 
       <form onSubmit={handleSearch} className="flex gap-2">
         <input
@@ -677,9 +723,23 @@ function ScrapeSection({
           {results.map((r) => {
             const saved = savedUrls.has(r.url)
             const saving = savingId === r.url
+            const badge =
+              SOURCE_BADGE[r.source] ?? {
+                bg: 'var(--secondary)',
+                fg: 'var(--foreground)',
+                label: r.source,
+              }
             return (
               <li key={r.url} className="flex items-center justify-between gap-3 py-3">
                 <div className="min-w-0 flex flex-col gap-0.5">
+                  <div>
+                    <span
+                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                      style={{ background: badge.bg, color: badge.fg }}
+                    >
+                      {badge.label}
+                    </span>
+                  </div>
                   <a
                     href={r.url}
                     target="_blank"
@@ -725,6 +785,7 @@ function MatchedListingsSection({
   listings,
   totalCount,
   onReject,
+  onSetPrice,
 }: {
   slug: string
   filter: string
@@ -732,6 +793,7 @@ function MatchedListingsSection({
   listings: MatchedListing[]
   totalCount: number
   onReject: (listingId: string) => void
+  onSetPrice: (listingId: string, priceDkk: number) => void
 }) {
   const [rejectingId, setRejectingId] = useState<string | null>(null)
 
@@ -849,11 +911,13 @@ function MatchedListingsSection({
                     >
                       {fmtPrice(l.price, l.currency)}
                     </td>
-                    <td
-                      className="px-2 py-2 text-right font-mono"
-                      style={{ color: 'var(--muted-foreground)' }}
-                    >
-                      {l.price_dkk != null ? `${fmtNumber(l.price_dkk)} kr` : '—'}
+                    <td className="px-2 py-2 text-right">
+                      <PriceDkkCell
+                        listingId={l.id}
+                        priceDkk={l.price_dkk}
+                        slug={slug}
+                        onSaved={(n) => onSetPrice(l.id, n)}
+                      />
                     </td>
                     <td
                       className="px-2 py-2"
@@ -899,5 +963,103 @@ function MatchedListingsSection({
         </div>
       )}
     </section>
+  )
+}
+
+// ─── PriceDkkCell — inline-editable DKK price ───────────────────────────────
+function PriceDkkCell({
+  listingId,
+  priceDkk,
+  slug,
+  onSaved,
+}: {
+  listingId: string
+  priceDkk: number | null
+  slug: string
+  onSaved: (priceDkk: number) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  function startEdit() {
+    setDraft(priceDkk != null ? String(Math.round(priceDkk)) : '')
+    setEditing(true)
+  }
+
+  function cancel() {
+    setEditing(false)
+    setDraft('')
+  }
+
+  async function submit() {
+    const n = parseInt(draft, 10)
+    if (!Number.isFinite(n) || n <= 0) { cancel(); return }
+    if (priceDkk != null && n === Math.round(priceDkk)) { cancel(); return }
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/admin/product/${slug}/set-price`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listing_id: listingId, price_dkk: n }),
+      })
+      if (res.ok) {
+        onSaved(n)
+        setEditing(false)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') { e.preventDefault(); void submit() }
+    if (e.key === 'Escape') { cancel() }
+  }
+
+  if (editing) {
+    return (
+      <input
+        type="number"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => void submit()}
+        onKeyDown={handleKeyDown}
+        placeholder="DKK"
+        disabled={saving}
+        autoFocus
+        className="w-24 text-right text-xs px-2 py-1 rounded-lg font-mono outline-none"
+        style={{
+          background: 'var(--input-background)',
+          border: '1px solid var(--ring)',
+          color: 'var(--foreground)',
+        }}
+      />
+    )
+  }
+
+  if (priceDkk != null) {
+    return (
+      <button
+        onClick={startEdit}
+        className="text-xs font-mono hover:underline"
+        style={{ color: 'var(--muted-foreground)' }}
+      >
+        {fmtNumber(priceDkk)} kr
+      </button>
+    )
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-1.5">
+      <span style={{ color: 'var(--muted-foreground)' }}>—</span>
+      <button
+        onClick={startEdit}
+        className="text-[10px] hover:underline"
+        style={{ color: 'var(--muted-foreground)' }}
+      >
+        Sæt pris
+      </button>
+    </div>
   )
 }

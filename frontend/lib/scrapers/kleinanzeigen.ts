@@ -27,7 +27,7 @@ function buildKleinanzeigenUrl(normalizedQ: string, page: number): string {
 function parsePrice(raw: string): number | null {
   const cleaned = raw.replace(/VB|€|\./g, '').trim()
   const n = parseInt(cleaned.replace(/[^0-9]/g, ''), 10)
-  return isNaN(n) || n === 0 ? null : n
+  return isNaN(n) || n === 0 || n > 500_000 ? null : n
 }
 
 function absolutizeUrl(url: string | undefined): string | null {
