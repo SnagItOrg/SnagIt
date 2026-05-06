@@ -10,7 +10,6 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // currency = 'DKK' so the listing has a usable price in both columns.
 export async function POST(
   req: NextRequest,
-  _ctx: { params: { slug: string } },
 ) {
   const denied = await requireAdminInRoute()
   if (denied) return denied

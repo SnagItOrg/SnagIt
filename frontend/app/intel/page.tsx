@@ -9,6 +9,8 @@ import {
   type MarketStats,
 } from './types'
 
+export const dynamic = 'force-dynamic'
+
 type ProductRow = { id: string; canonical_name: string }
 
 type MatchWithListing = {
