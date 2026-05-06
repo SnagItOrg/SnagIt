@@ -119,12 +119,13 @@ function extractPrice(html: string, rates: Record<string, number>): PriceResult 
     rawPrice = parseFloat(ga[2])
   }
 
-  // Fallback: itemprop=price microdata (DKK on thomann.dk)
+  // Fallback: itemprop=price microdata
   if (rawPrice === null) {
     const m = html.match(/itemprop="price"[^>]*content="([\d.]+)"/)
     if (m) {
       rawPrice = parseFloat(m[1])
-      currency = 'DKK'
+      const currencyMatch = html.match(/itemprop="priceCurrency"[^>]*content="([A-Z]{3})"/)
+      currency = currencyMatch ? currencyMatch[1] : 'DKK'
     }
   }
 
@@ -140,7 +141,7 @@ function extractPrice(html: string, rates: Record<string, number>): PriceResult 
 }
 
 // ── Fetch one product page ────────────────────────────────────────────────────
-async function fetchPage(url: string, rates: Record<string, number>): Promise<PriceResult> {
+async function fetchPage(url: string, rates: Record<string, number>, canonicalName: string): Promise<PriceResult> {
   try {
     const res = await fetch(url, {
       headers: BROWSER_HEADERS,
@@ -157,6 +158,19 @@ async function fetchPage(url: string, rates: Record<string, number>): Promise<Pr
       console.warn('    Cloudflare blocked')
       return { priceDkk: null, imageUrl: null }
     }
+
+    // Page title validation: warn when the canonical name shares no words with the page title
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+    if (titleMatch) {
+      const pageTitle = titleMatch[1].trim()
+      const titleWords = pageTitle.toLowerCase().split(/\W+/).filter((w) => w.length >= 3)
+      const nameWords  = canonicalName.toLowerCase().split(/\W+/).filter((w) => w.length >= 3)
+      const hasOverlap = nameWords.some((w) => titleWords.includes(w))
+      if (!hasOverlap) {
+        console.warn(`[thomann] Page title mismatch for ${canonicalName}: got "${pageTitle}" — storing anyway but flagging`)
+      }
+    }
+
     return extractPrice(html, rates)
   } catch (err) {
     console.warn(`    Fetch error: ${(err as Error).message}`)
@@ -264,7 +278,12 @@ async function main() {
     const p = products[i]
     process.stdout.write(`[${i + 1}/${products.length}] ${p.canonical_name} … `)
 
-    const { priceDkk, imageUrl } = await fetchPage(p.thomann_url, rates)
+    let { priceDkk, imageUrl } = await fetchPage(p.thomann_url, rates, p.canonical_name)
+
+    if (priceDkk !== null && priceDkk < 500) {
+      console.warn(`[thomann] Suspicious low price for ${p.canonical_name}: ${priceDkk} DKK — skipping`)
+      priceDkk = null
+    }
 
     if (priceDkk !== null) {
       console.log(`✓ ${priceDkk.toLocaleString('da-DK')} kr${imageUrl ? ' 🖼️' : ''}`)
