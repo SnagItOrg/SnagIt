@@ -182,6 +182,7 @@ export default function ProductCurationClient({ data }: { data: CurationData }) 
         slug={header.slug}
         defaultQuery={header.canonical_name}
         productId={header.id}
+        onMoved={(name) => showToast(`Listing gemt og flyttet til ${name}`)}
         onSaved={(listing) => {
           setListings((prev) => {
             if (prev.some((l) => l.id === listing.id)) return prev
@@ -569,11 +570,13 @@ function ScrapeSection({
   defaultQuery,
   productId,
   onSaved,
+  onMoved,
 }: {
   slug: string
   defaultQuery: string
   productId: string
   onSaved: (listing: MatchedListing) => void
+  onMoved?: (productName: string) => void
 }) {
   const [query, setQuery] = useState(defaultQuery)
   const [platform, setPlatform] = useState<SearchPlatform>('dba')
@@ -582,6 +585,7 @@ function ScrapeSection({
   const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set())
   const [results, setResults] = useState<ScrapedListingPayload[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [reassignState, setReassignState] = useState<{ listingUrl: string; listingId: string } | null>(null)
 
   const selectedPlatformLabel =
     SEARCH_PLATFORM_OPTS.find((opt) => opt.key === platform)?.label ?? 'DBA'
@@ -652,6 +656,31 @@ function ScrapeSection({
         is_valid: true,
         rejected_reason: null,
       })
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  async function handleMoveStart(listing: ScrapedListingPayload) {
+    // Toggle off if this row's panel is already open
+    if (reassignState?.listingUrl === listing.url) {
+      setReassignState(null)
+      return
+    }
+    setSavingId(listing.url)
+    setError(null)
+    try {
+      const res = await fetch(`/api/admin/product/${slug}/save-listing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listing }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? 'Kunne ikke gemme listing')
+        return
+      }
+      setReassignState({ listingUrl: listing.url, listingId: data.listing_id })
     } finally {
       setSavingId(null)
     }
@@ -736,45 +765,75 @@ function ScrapeSection({
                 fg: 'var(--foreground)',
                 label: r.source,
               }
+            const movePanelOpen = reassignState?.listingUrl === r.url
             return (
-              <li key={r.url} className="flex items-center justify-between gap-3 py-3">
-                <div className="min-w-0 flex flex-col gap-0.5">
-                  <div>
-                    <span
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                      style={{ background: badge.bg, color: badge.fg }}
+              <li key={r.url} className="flex flex-col gap-2 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex flex-col gap-0.5">
+                    <div>
+                      <span
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: badge.bg, color: badge.fg }}
+                      >
+                        {badge.label}
+                      </span>
+                    </div>
+                    <a
+                      href={r.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium truncate hover:underline"
+                      style={{ color: 'var(--foreground)' }}
                     >
-                      {badge.label}
-                    </span>
+                      {r.title}
+                    </a>
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                      {fmtPrice(r.price, r.currency)}
+                      {r.price_dkk != null && (
+                        <> · ≈ {fmtNumber(r.price_dkk)} kr</>
+                      )}
+                      {r.location && <> · {r.location}</>}
+                    </p>
                   </div>
-                  <a
-                    href={r.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium truncate hover:underline"
-                    style={{ color: 'var(--foreground)' }}
-                  >
-                    {r.title}
-                  </a>
-                  <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                    {fmtPrice(r.price, r.currency)}
-                    {r.price_dkk != null && (
-                      <> · ≈ {fmtNumber(r.price_dkk)} kr</>
-                    )}
-                    {r.location && <> · {r.location}</>}
-                  </p>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => void handleMoveStart(r)}
+                      disabled={saving}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40"
+                      style={{
+                        background: movePanelOpen ? 'var(--foreground)' : 'var(--secondary)',
+                        color: movePanelOpen ? 'var(--background)' : 'var(--muted-foreground)',
+                      }}
+                    >
+                      {saving ? 'Gemmer…' : 'Flyt til →'}
+                    </button>
+                    <button
+                      onClick={() => handleSave(r)}
+                      disabled={saving || saved || movePanelOpen}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40"
+                      style={{
+                        background: saved ? 'var(--secondary)' : 'var(--primary)',
+                        color: saved ? 'var(--muted-foreground)' : 'var(--primary-foreground)',
+                      }}
+                    >
+                      {saved ? 'Gemt ✓' : saving ? 'Gemmer…' : 'Gem listing'}
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleSave(r)}
-                  disabled={saving || saved}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0 disabled:opacity-40"
-                  style={{
-                    background: saved ? 'var(--secondary)' : 'var(--primary)',
-                    color: saved ? 'var(--muted-foreground)' : 'var(--primary-foreground)',
-                  }}
-                >
-                  {saved ? 'Gemt ✓' : saving ? 'Gemmer…' : 'Gem listing'}
-                </button>
+                {movePanelOpen && reassignState && (
+                  <ReassignPanel
+                    slug={slug}
+                    listingId={reassignState.listingId}
+                    onSuccess={({ productName, created }) => {
+                      setReassignState(null)
+                      setResults((prev) => prev.filter((l) => l.url !== r.url))
+                      setSavedUrls((prev) => { const n = new Set(prev); n.add(r.url); return n })
+                      onMoved?.(productName)
+                      void created
+                    }}
+                    onCancel={() => setReassignState(null)}
+                  />
+                )}
               </li>
             )
           })}
