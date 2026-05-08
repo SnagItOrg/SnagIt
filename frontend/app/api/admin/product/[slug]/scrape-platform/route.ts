@@ -5,8 +5,9 @@ import { scrapeBlocket } from '@/lib/scrapers/blocket'
 import { scrapeDba } from '@/lib/scrapers/dba'
 import { scrapeFinn } from '@/lib/scrapers/finn'
 import { scrapeKleinanzeigen } from '@/lib/scrapers/kleinanzeigen'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
-type Platform = 'dba' | 'finn' | 'blocket' | 'kleinanzeigen'
+type Platform = 'dba' | 'finn' | 'blocket' | 'kleinanzeigen' | 'reverb'
 
 type ScrapedListing = {
   title: string
@@ -32,13 +33,34 @@ type RawScrapedListing = {
   price_dkk?: number | null
 }
 
-const VALID_PLATFORMS: Platform[] = ['dba', 'finn', 'blocket', 'kleinanzeigen']
+const VALID_PLATFORMS: Platform[] = ['dba', 'finn', 'blocket', 'kleinanzeigen', 'reverb']
+
+const normalizeTitle = (s: string) => s.toLowerCase().replace(/[-\s_]+/g, '')
+
+async function scrapeReverbDb(query: string): Promise<RawScrapedListing[]> {
+  const words = query.split(/\s+/).filter((w) => w.length > 1)
+  if (words.length === 0) return []
+
+  const admin = getSupabaseAdmin()
+  const { data } = await admin
+    .from('listings')
+    .select('title, price, currency, price_dkk, url, image_url, location, source, country')
+    .eq('source', 'reverb')
+    .eq('is_active', true)
+    .ilike('title', `%${words[0]}%`)
+    .limit(50)
+
+  return ((data ?? []) as RawScrapedListing[]).filter((l) =>
+    words.every((w) => normalizeTitle(String(l.title)).includes(normalizeTitle(w))),
+  )
+}
 
 const SCRAPERS: Record<Platform, (query: string) => Promise<RawScrapedListing[]>> = {
   dba: (query: string) => scrapeDba(query, 1),
   finn: (query: string) => scrapeFinn(query, 1),
   blocket: (query: string) => scrapeBlocket(query, 1),
   kleinanzeigen: (query: string) => scrapeKleinanzeigen(query, 3),
+  reverb: (query: string) => scrapeReverbDb(query),
 }
 
 function isPlatform(value: string): value is Platform {

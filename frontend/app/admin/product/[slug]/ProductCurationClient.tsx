@@ -71,7 +71,7 @@ export type ScrapedListingPayload = {
   price_dkk: number | null
 }
 
-type SearchPlatform = 'dba' | 'finn' | 'blocket' | 'kleinanzeigen' | 'all'
+type SearchPlatform = 'dba' | 'finn' | 'blocket' | 'kleinanzeigen' | 'reverb' | 'all'
 
 const SOURCE_BADGE: Record<string, { bg: string; fg: string; label: string }> = {
   'dba.dk':         { bg: '#00098A', fg: '#ffffff', label: 'DBA' },
@@ -87,6 +87,7 @@ const SEARCH_PLATFORM_OPTS: Array<{ key: SearchPlatform; label: string; apiValue
   { key: 'finn', label: 'Finn', apiValue: 'finn' },
   { key: 'blocket', label: 'Blocket', apiValue: 'blocket' },
   { key: 'kleinanzeigen', label: 'Kleinanzeigen', apiValue: 'kleinanzeigen' },
+  { key: 'reverb', label: 'Reverb', apiValue: 'reverb' },
   { key: 'all', label: 'Alle' },
 ]
 
