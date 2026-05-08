@@ -79,7 +79,7 @@ const SOURCE_BADGE: Record<string, { bg: string; fg: string; label: string }> = 
   'blocket':        { bg: '#F71414', fg: '#ffffff', label: 'Blocket' },
   'thomann':        { bg: '#002D4C', fg: '#ffffff', label: 'Thomann' },
   'reverb':         { bg: '#EC5A2C', fg: '#ffffff', label: 'Reverb' },
-  'kleinanzeigen':  { bg: '#f5c542', fg: '#000000', label: 'Kleinanzeigen' },
+  'kleinanzeigen':  { bg: '#1D4B00', fg: '#ffffff', label: 'Kleinanzeigen' },
 }
 
 const SEARCH_PLATFORM_OPTS: Array<{ key: SearchPlatform; label: string; apiValue?: string }> = [

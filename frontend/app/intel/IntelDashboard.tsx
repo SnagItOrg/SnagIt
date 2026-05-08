@@ -29,7 +29,7 @@ const SANS = 'Inter, ui-sans-serif, system-ui, sans-serif'
 
 const SOURCE_BADGE: Record<string, { bg: string; fg: string; label: string }> = {
   'dba.dk':         { bg: '#00098A', fg: '#ffffff', label: 'DBA' },
-  'kleinanzeigen':  { bg: '#f5c542', fg: '#000000', label: 'KA' },
+  'kleinanzeigen':  { bg: '#1D4B00', fg: '#ffffff', label: 'KA' },
   'blocket':        { bg: '#F71414', fg: '#ffffff', label: 'BLOCKET' },
   'finn':           { bg: '#06bffc', fg: '#000000', label: 'FINN' },
   'reverb':         { bg: '#EC5A2C', fg: '#ffffff', label: 'REVERB' },

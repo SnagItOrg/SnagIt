@@ -36,7 +36,7 @@ listing provenance. Match these exactly — do not swap or approximate.
 | Blocket.se     | `#F71414`  | white      |                                           |
 | Thomann        | `#002D4C`  | white      |                                           |
 | Reverb         | `#EC5A2C`  | white      | unconfirmed — verify against brand guide  |
-| Kleinanzeigen  | `#f5c542`  | black      |                                           |
+| Kleinanzeigen  | `#1D4B00`  | white      |                                           |
 
 ## API routes
 - Always use `createSupabaseServerClient` (not browser client) in API routes

@@ -98,6 +98,7 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
     if (platform === 'thomann')                       return <span className={`${base} text-white`} style={{ backgroundColor: '#002D4C' }}>Thomann</span>
     if (platform === 'finn')                           return <span className={`${base} text-white`} style={{ backgroundColor: '#06bffc' }}>Finn</span>
     if (platform === 'blocket')                        return <span className={`${base} text-white`} style={{ backgroundColor: '#F71414' }}>Blocket</span>
+    if (platform === 'kleinanzeigen')                  return <span className={`${base} text-white`} style={{ backgroundColor: '#1D4B00' }}>KA</span>
     return <span className={`${base} text-white`} style={{ backgroundColor: '#00098A' }}>DBA</span>
   }
 
@@ -107,6 +108,7 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
   if (platform === 'thomann')                       return <span className={cls}>Thomann</span>
   if (platform === 'finn')                           return <span className={cls}>Finn</span>
   if (platform === 'blocket')                        return <span className={cls}>Blocket</span>
+  if (platform === 'kleinanzeigen')                  return <span className={cls}>Kleinanzeigen</span>
   return <span className={cls}>DBA</span>
 }
 
