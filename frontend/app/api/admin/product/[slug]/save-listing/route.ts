@@ -56,11 +56,18 @@ export async function POST(
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
+  const derivedCountry =
+    listing.source === 'dba.dk' ? 'DK'
+    : listing.source === 'finn' ? 'NO'
+    : listing.source === 'blocket' ? 'SE'
+    : listing.source === 'kleinanzeigen' ? 'DE'
+    : listing.source === 'reverb' ? (listing.country ?? null)
+    : null
 
   const row = {
     external_id: listing.url,
     source: listing.source,
-    country: listing.country ?? null,
+    country: derivedCountry,
     price_dkk: listing.price_dkk ?? null,
     currency: listing.currency ?? null,
     price: listing.price ?? null,
