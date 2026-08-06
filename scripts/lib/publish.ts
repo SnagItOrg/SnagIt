@@ -12,17 +12,21 @@
  * Flow:
  *   1. stageListings()   scrape output → listing_staging, keyed by run_id
  *   2. evaluateRun()     health computed from staged rows (scrape-health.ts)
- *   3. promoteRun()      ONLY on `passed` — staging → listings + events
- *                        + lifecycle, all under one run_id
+ *   3. promoteRunAtomic() ONLY on `passed` — delegates to the Postgres
+ *                        function promote_scrape_run(), so listings, price
+ *                        events and lifecycle all move in ONE transaction
  *
  * quarantined → rows stay in staging, zero downstream effect
  * failed      → rows stay in staging for forensics, zero downstream effect
  *
- * Nothing outside promoteRun() may write to `listings` on a scrape path.
+ * Nothing outside promoteRunAtomic() may write to `listings` on a scrape path.
+ *
+ * The promotion logic itself lives in SQL (scripts/migrations/047_staging_digest_guard.sql
+ * is the current definition). Do not reimplement it here — two copies of the
+ * same contract will drift, and only the SQL one runs in a transaction.
  */
 
 import type { SupabaseClient } from '../../frontend/node_modules/@supabase/supabase-js'
-import { appendPriceObservations, reconcileListingLifecycle } from './price-observations'
 
 export const GATE_VERSION = '1.0.0'
 
@@ -169,131 +173,4 @@ export async function hasEstablishedScopeCoverage(
   })
   if (error) return false
   return Boolean(data)
-}
-
-/** @deprecated superseded by promoteRunAtomic — kept only for reference. */
-async function promoteRunLegacy(
-  supabase: SupabaseClient,
-  runId: string,
-  source: string,
-  opts: { coverageComplete: boolean },
-): Promise<{
-  published: number
-  newListings: number
-  priceChanges: number
-  unchanged: number
-  delisted: number
-  reactivated: number
-  lifecycleSkipped: boolean
-  error: string | null
-}> {
-  const base = {
-    published: 0, newListings: 0, priceChanges: 0, unchanged: 0,
-    delisted: 0, reactivated: 0, lifecycleSkipped: true, error: null as string | null,
-  }
-
-  // Read back this run's staged rows.
-  const staged: any[] = []
-  const PAGE = 1000
-  let offset = 0
-  while (true) {
-    const { data, error } = await supabase
-      .from('listing_staging')
-      .select('*')
-      .eq('run_id', runId)
-      .order('id')
-      .range(offset, offset + PAGE - 1)
-    if (error) return { ...base, error: error.message }
-    if (!data || data.length === 0) break
-    staged.push(...data)
-    if (data.length < PAGE) break
-    offset += PAGE
-  }
-  if (staged.length === 0) return base
-
-  const now = new Date().toISOString()
-
-  // 1. Publish listings.
-  let published = 0
-  const CHUNK = 500
-  for (let i = 0; i < staged.length; i += CHUNK) {
-    const rows = staged.slice(i, i + CHUNK).map(s => ({
-      title: s.title,
-      price: s.price,
-      currency: s.currency,
-      price_dkk: s.price_dkk,
-      url: s.url,
-      image_url: s.image_url,
-      location: s.location,
-      source: s.source,
-      country: s.country,
-      normalized_text: s.normalized_text,
-      platform: s.platform,
-      external_id: s.external_id,
-      scraped_at: now,
-      last_seen_at: now,
-      first_seen_at: now,   // preserved on conflict below for existing rows
-      is_active: true,
-      watchlist_id: null,
-    }))
-    const { error } = await supabase
-      .from('listings')
-      .upsert(rows, { onConflict: 'external_id,source', ignoreDuplicates: false })
-    if (error) return { ...base, published, error: error.message }
-    published += rows.length
-  }
-
-  // upsert overwrites first_seen_at on existing rows; restore the earliest
-  // value so time-on-market is not reset every night.
-  await supabase.rpc('restore_first_seen_at', { p_source: source }).then(
-    () => undefined,
-    () => undefined, // helper is optional; see note in migration 043
-  )
-
-  // 2. Price-history events (first_seen / price_change only).
-  const obs = await appendPriceObservations(
-    supabase,
-    staged.map(s => ({
-      source: s.source,
-      country: s.country ?? 'DK',
-      price_type: 'asking' as const,
-      price_raw: s.price,
-      currency: s.currency,
-      price_dkk: s.price_dkk,
-      listing_url: s.url,
-      listing_title: s.title,
-      external_id: s.external_id,
-    })),
-  )
-  if (obs.error) return { ...base, published, error: obs.error }
-
-  // 3. Lifecycle — only on documented complete coverage.
-  let delisted = 0, reactivated = 0, lifecycleSkipped = true
-  if (opts.coverageComplete) {
-    const seen = staged.map(s => s.external_id).filter(Boolean) as string[]
-    const lc = await reconcileListingLifecycle(supabase, source, seen, {
-      runWasComplete: true,
-      runId,
-    })
-    if (lc.error) return { ...base, published, error: lc.error }
-    delisted = lc.delisted
-    reactivated = lc.reactivated
-    lifecycleSkipped = lc.skipped
-  }
-
-  await supabase
-    .from('scrape_run')
-    .update({ published_count: published, promoted_at: now })
-    .eq('id', runId)
-
-  return {
-    published,
-    newListings: obs.firstSeen,
-    priceChanges: obs.priceChanges,
-    unchanged: obs.unchanged,
-    delisted,
-    reactivated,
-    lifecycleSkipped,
-    error: null,
-  }
 }

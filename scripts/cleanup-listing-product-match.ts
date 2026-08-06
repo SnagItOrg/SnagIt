@@ -171,14 +171,15 @@ async function main(): Promise<void> {
 
   console.log(`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Step 2 — run this SQL manually in the Supabase SQL editor
-once the script has completed successfully:
+Step 2 — apply the unique index:
 
-  CREATE UNIQUE INDEX IF NOT EXISTS lpm_listing_product_unique
-  ON listing_product_match(listing_id, product_id);
+  scripts/migrations/049_lpm_listing_product_unique.sql
 
-This will fail if any duplicates remain. If it does, re-run
-this script and try again.
+It will fail if any duplicates remain. If it does, re-run this
+script and try again.
+
+(The SQL used to be printed here inline; it now lives in a
+migration so the repo can reproduce the schema.)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `)
 }

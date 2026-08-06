@@ -115,6 +115,14 @@ DROPs a data-bearing table, and no file deletes rows. `039b` renames a table
 created by `039`; `046` backfills `listing_coverage_scopes` from the column it
 supersedes.
 
+### 049 — retroactive record
+
+`049_lpm_listing_product_unique.sql` documents an index that already existed
+in production but had no migration file: the SQL was printed by
+`scripts/cleanup-listing-product-match.ts` for manual copy-paste, so schema
+lived in a `console.log`. The file is a no-op against production and exists so
+a clean database gets the same constraint.
+
 **Not represented here:** ad-hoc DML run during the session (the
 `price_fetch_queue` status resets, the `listings.external_id` backfill, the
 141 duplicate-row cleanup, and `DROP TABLE price_snapshots_old`). Those were

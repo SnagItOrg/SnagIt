@@ -1,32 +1,35 @@
 /**
  * scripts/lib/price-observations.ts
  *
- * Shared helper: record asking-price HISTORY for scraped listings.
+ * ⚠️ SUPERSEDED — the scrape path no longer uses this module.
  *
- * ── WHY EVENT-BASED, NOT DAILY SNAPSHOTS ────────────────────────────────
- * The naive design (one observation per listing per scrape) is actively
- * misleading for price analysis. A listing that sits on DBA for 90 days
- * would produce 90 rows — but it is ONE unit of supply observed 90 times,
- * not 90 independent data points. Any median computed over that table would
- * be dominated by long-lived, overpriced listings: precisely the ads that
- * did NOT sell would define the "market price".
+ * appendPriceObservations() and reconcileListingLifecycle() were the
+ * TypeScript implementation of price-event writing and lifecycle
+ * reconciliation. Both now live inside the Postgres function
+ * promote_scrape_run() (scripts/migrations/047_staging_digest_guard.sql),
+ * because they must run in the SAME TRANSACTION as the listings upsert —
+ * a multi-call TypeScript version could crash halfway and leave a
+ * half-promoted run.
  *
- * So we write an observation only on a MEANINGFUL EVENT:
- *   - first_seen  — the first time we ever see this listing
- *   - price_change — the seller changed the asking price
+ * Kept only for the domain rules documented below, which the SQL encodes.
+ * DO NOT wire these back into a scraper: two implementations of the same
+ * contract will drift, and only the SQL one is atomic.
  *
- * A listing that sits unchanged for 90 days therefore contributes exactly
- * one row, which is the correct weight. Time-on-market and current status
- * are derived from `listings` (first_seen_at, scraped_at, is_active,
- * delisted_at), not by counting observation rows.
+ * ── THE RULES THE SQL ENCODES ───────────────────────────────────────────
+ * Event-based, not daily snapshots. A listing sitting on DBA for 90 days is
+ * ONE unit of supply observed 90 times, not 90 data points; snapshotting
+ * daily would let long-lived, overpriced listings dominate any median —
+ * precisely the ads that did NOT sell would define the "market price".
+ * So a row is written only on first_seen or price_change.
  *
- * ── WHAT THIS DATA IS AND ISN'T ─────────────────────────────────────────
- * These are ASKING prices — what sellers hoped to get, not realised
- * transactions. A listing disappearing is NOT proof of sale (it may have
- * expired, been deleted, or been renewed). Any downstream "sold price"
- * inference must be explicit about that uncertainty. Keep price_type
- * 'asking' distinct from 'sold' (Reverb transactions) and 'retail'
- * (Thomann new) — never average them together.
+ * market_price_observations is an EVENT LOG, not a statistical sample.
+ * Deriving a median from it over-weights listings that changed price. See
+ * CLAUDE.md → "THREE SEPARATE LAYERS" for which source answers which question.
+ *
+ * These are ASKING prices. A listing disappearing is NOT proof of sale — it
+ * may have expired, been deleted, or been renewed. delisted_at is never a
+ * sale date, and delisting requires DELIST_AFTER_MISSES consecutive misses
+ * on complete, coverage-approved runs.
  */
 
 import type { SupabaseClient } from '../../frontend/node_modules/@supabase/supabase-js'
