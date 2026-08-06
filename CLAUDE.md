@@ -62,30 +62,47 @@ If the product can answer that without the user having to think, we're building 
 
 ---
 
-## Infrastructure — two machines
+## Infrastructure — two machines, Claude runs natively on each
 
 **MacBook** (`dev` user)
 - Claude Code sessions
 - Manual script runs
 - Primary development machine
 
-**Mac Mini M4** (`panter` user — hostname: `panter`)
+**Mac Mini M4** (`panter` user — hostname: `panter` / `Panters-Mac-mini.local`)
 - PM2 scraper jobs
 - Devon/OpenClaw agent (restricted branch access)
-- Connected via Tailscale SSH from MacBook
+- Claude Code sessions run directly on this machine too
 
-**PM2 jobs (current status)**
+**Access pattern (changed 2026-08-05):** Claude Code sessions run remotely on
+whichever machine they're started on — a session working on the Mac Mini is
+running natively there, not relaying commands over SSH from the MacBook.
+Tailscale SSH between the two machines is now occasional/manual only (e.g.
+founder poking around, one-off intervention) — not the primary access path.
+**Don't assume a session is on the MacBook.** Run `hostname` early — this
+determines whether PM2/filesystem state observed is real-time or needs an
+SSH hop. See "What Claude Code should do at session start" below.
+
+**PM2 jobs (status as of 2026-08-06 — verify with `pm2 list`, don't trust this table blindly)**
+
+All 8 are `autorestart: false` + `cron_restart`, so **"stopped" between runs
+is normal** — status here means "does the job actually complete when it fires".
 
 | Job | Schedule | Status |
 |---|---|---|
-| `scrape-blocket` | Daily 01:00 | Running — SE listings |
-| `scrape-finn` | Daily 01:00 | Running — NO listings |
-| `scrape-kleinanzeigen` | Daily 01:00 | Running — DE listings |
-| `scrape-reverb` | Daily 02:00 | Running |
-| `fetch-reverb-prices` | Daily 03:00 | Running |
-| `fetch-thomann-prices` | Sunday 03:00 | Running |
-| `process-price-queue` | Every 5 min | Running |
-| `match-listings` | Every hour at :30 | Running — 40% match-rate |
+| `scrape-blocket` | Daily 01:00 | Deps fixed 2026-08-05, **first clean run not yet confirmed** |
+| `scrape-finn` | Daily 01:00 | Deps fixed 2026-08-05, **first clean run not yet confirmed** |
+| `scrape-kleinanzeigen` | Daily 01:00 | Deps fixed 2026-08-05, **first clean run not yet confirmed** |
+| `scrape-reverb` | Daily 02:00 | Timeout bug fixed 2026-08-05 (missing index); live manual run OK |
+| `fetch-reverb-prices` | Daily 03:00 | Was failing on network at boot — **unverified** |
+| `fetch-thomann-prices` | Sunday 03:00 | Cloudflare HTTP 403 from panter — **still broken** |
+| `process-price-queue` | Every 5 min | Running; constraint + silent-error bugs fixed 2026-08-05 |
+| `match-listings` | Every hour at :30 | Running. Cap-and-exit re-scans the same head of the queue each run, so a given run can match 0 — see Known Issues |
+
+**No listings were scraped from any source between ~2026-05-22 and
+2026-08-05.** Reverb last succeeded 2026-05-22; dba/blocket/finn show
+2026-07-04 (a backfill touch, not a scrape). Check `max(scraped_at)` per
+source before assuming the pipeline is healthy.
 
 ---
 
@@ -331,6 +348,9 @@ fields, one result. Priority chain:
 | `auctionet_price_history` | Auctionet hammer prices |
 | `kg_suggestions` | Pending AI-generated KG product proposals |
 | `thomann_product` | Thomann retail products + scraped prices |
+| `market_price_observations` | **Unified append-only price ledger** (migration 039). Asking/sold/retail across all sources + countries. Read via the `market_price_observations_trusted` view. Nothing writes to it yet |
+| `price_observation` (singular) | **Unrelated live table** — user-submitted manual price reports tied to a `listing_id`, backs `/api/price-observations`. Not the same as the above |
+| `listing_price_history` | Dead stub — 0 rows, zero code references. Superseded by `market_price_observations`; drop pending confirmation |
 
 **`kg_product` columns added 2026-04** (migrations 025–031):
 - `image_url text` — product image URL (Unsplash initially, Storage after upload-images run)
@@ -832,6 +852,495 @@ demand surfaces them.
 
 ---
 
+## Reliability fixes (2026-08-05)
+
+Scrape pipeline had been silently dead for weeks. Root causes found and fixed:
+
+- **`frontend/node_modules` did not exist on panter.** Killed
+  `scrape-finn` / `scrape-blocket` (missing `cheerio`, a frontend-only dep)
+  and `scrape-kleinanzeigen` (its `require('../frontend/node_modules/@supabase/supabase-js')`
+  path). Fixed by `npm install` in `frontend/`. **Note this is the inverse
+  of what the "Module resolution pattern for scripts/" section says** — that
+  pattern assumes `frontend/node_modules` exists and the repo root has none;
+  in reality the root has `node_modules` and frontend's must be installed
+  separately. Both must exist on panter.
+- **`scrape-reverb` stale-marking timed out every run.** The
+  "mark listings inactive after 48h" UPDATE did a **sequential scan over all
+  73k `listings` rows** — no supporting index — and hit the statement
+  timeout, so the job never completed. Fixed by adding
+  `idx_listings_source_active_scraped ON listings (source, scraped_at) WHERE is_active = true`.
+  Verified via `EXPLAIN ANALYZE`: scan time 1.5s → 0.34s. The scraper's
+  fetch/upsert logic was always fine — a live run upserted successfully.
+  **The historical root cause of the 2026-05-22 → 2026-08-05 data gap was
+  never fully confirmed** (logs unrotated; sleep/reboots/DNS ruled out).
+- **`price_fetch_queue` had an unsatisfiable constraint.**
+  `UNIQUE (product_slug, status)` made the `pending → processing → done`
+  transition impossible once a slug already had rows in those states. Both
+  `.update()` error returns in `process-price-queue.ts` were unchecked, so
+  it failed silently: **19,158 reprocessings of one queue row**, generating
+  **97,420 garbage `reverb_price_history` rows** (98.4% of that table) at
+  ~5,760/day. Fixed by dropping the constraint, replacing it with a partial
+  unique index on `(product_slug) WHERE status IN ('pending','processing')`,
+  and adding error checks to every `.update()` in the script.
+- **`listings.external_id` backfilled.** 3,805 dba.dk rows had NULL
+  `external_id`, defeating the `(external_id, source)` unique index. Found
+  141 genuine duplicate rows in the process (one carried a live match, which
+  was reassigned before deletion). Backfilled using the same deterministic
+  SHA-256 convention as Thomann: `encode(digest('dba.dk:' || url, 'sha256'), 'hex')`.
+- **`price_snapshots_old` dropped** (6,136,796 rows, zero code references,
+  superseded by the current `price_snapshots`).
+
+---
+
+## Unified price observations — `market_price_observations` (migration 039, 2026-08-05)
+
+Append-only ledger for price history across every source, price type, and
+country. Built because **`listings` upserts on `(external_id, source)` and
+therefore overwrites price in place** — outside Reverb's separate
+`reverb_price_history`, no asking-price trail existed at all for
+DBA/Finn/Blocket/Kleinanzeigen.
+
+```
+market_price_observations (
+  id, kg_product_id (FK, nullable until matched),
+  source, country, price_type CHECK IN ('asking','sold','retail'),
+  price_raw, currency, price_dkk, condition,
+  listing_url, listing_title, external_id,
+  match_confidence smallint, match_method, is_valid,
+  observed_at, created_at
+)
+```
+
+- `market_price_observations_trusted` view — `kg_product_id IS NOT NULL AND is_valid IS DISTINCT FROM false`.
+  **All charts / deltas / arbitrage queries read the view, never the raw table.**
+- Indexes: dedup on `(source, external_id, price_type, observed_at)`;
+  lookup on `(kg_product_id, price_type, country, observed_at DESC)`.
+- RLS enabled; public read of trusted rows only, writes are service-role.
+
+> ⚠️ **`price_observation` (singular) is a DIFFERENT, LIVE table — do not
+> confuse them.** It backs `frontend/app/api/price-observations/route.ts`
+> (authenticated users submitting a manual price report tied to a
+> `listing_id`; ~14 rows). Migration 039 originally created the new table as
+> `price_observations` (plural, one letter apart) and 039b renamed it to
+> `market_price_observations` before anything referenced it. Keep them apart.
+
+### THREE SEPARATE LAYERS — do not mix them (2026-08-06)
+
+`market_price_observations` is an **event log, not a statistical sample of
+the market.** Computing a median directly over it biases toward listings
+that changed price, because those emit more events than stable ones.
+
+| Purpose | Correct data source |
+|---|---|
+| Current asking median | One current row per **active listing** — query `listings`, never the event log |
+| Price-change history | `market_price_observations` (`first_seen` / `price_change` events) |
+| Historical market level | `market_price_daily` — daily aggregate per product × source × market (migration 041) |
+
+**Never average across `price_type`.** `asking` (what sellers hoped for),
+`sold` (Reverb transactions), and `retail` (Thomann new) are different
+economic quantities.
+
+### Event-based, NOT daily snapshots (corrected 2026-08-06)
+
+**A listing that sits on DBA for 90 days is ONE unit of supply observed 90
+times — not 90 data points.** The first implementation wrote a day-bucketed
+row per listing per scrape, which would have let long-lived, overpriced
+listings dominate any median: the ads that did *not* sell would define the
+"market price". Corrected before the first nightly run compounded it.
+
+A row is now written only on a **meaningful event**:
+- `first_seen` — first time this listing is observed
+- `price_change` — the seller changed the asking price
+
+An unchanged listing writes nothing. Verified: re-scraping 6 unchanged
+Juno-106 listings produced 0 new rows.
+
+**Migration 040** added `listings.first_seen_at` and `listings.delisted_at`
+so listing identity persists across snapshots. Derive time-on-market and
+status from `listings` (first_seen_at → scraped_at, is_active, delisted_at),
+**never by counting observation rows**.
+
+`reconcileListingLifecycle()` in `scripts/lib/price-observations.ts` marks
+listings that stopped appearing. **A disappearance is not proof of sale** —
+it may be expired, deleted, or renewed. Any "sold price" inference must
+carry that uncertainty explicitly.
+
+**Never average across `price_type`.** `asking` (what sellers hoped for),
+`sold` (Reverb transactions), and `retail` (Thomann new) are different
+economic quantities.
+
+**Status: `scrape-dba` is the first writer.** Finn/Blocket/Kleinanzeigen/
+Reverb still need wiring. `market_price_daily` (layer 3) has no writer yet —
+a daily aggregation job is still required.
+
+---
+
+## Scrape quality gate — validate OUTPUT, not exit code (2026-08-06)
+
+**The lesson that forced this:** `scrape-finn` and `scrape-blocket` both
+exited 0 and looked healthy while **100% of saved listings had NULL
+price_dkk** — the field every arbitrage calculation depends on. NO and SE
+were silently invisible for weeks. *A job can be operationally green and
+product-worthless at the same time.*
+
+`scripts/lib/scrape-health.ts` + `scrape_run` table (migration 041).
+Three outcomes:
+
+| Status | Meaning |
+|---|---|
+| `passed` | Data publishes normally |
+| `quarantined` | Stored, but **excluded from price aggregation and Kup-score**; lifecycle skipped |
+| `failed` | Hard invariant broken; **no lifecycle updates**, run untrusted, exit code 1 |
+
+**Hard invariants (→ failed):** all `price_dkk` NULL · empty `external_id` ·
+invalid currency. These make data unusable by definition.
+
+**Soft signals (→ quarantined):** partial NULL price_dkk · high null-title
+rate · duplicate rate >20% · suspiciously low volume · >25% product failures ·
+volume swing >60% vs last passed run. These *alarm*, they do not auto-discard —
+they may be legitimate market movement.
+
+### Fail-closed: stage → evaluate → promote (migration 042)
+
+**The gate must PREVENT damage, not record it.** The first version evaluated
+*after* upserting to `listings`, so a detected fault had already been
+published. Corrected to a staging flow — nothing on the scrape path may
+write to `listings` except `promoteRun()`:
+
+1. `stageListings()` → `listing_staging`, keyed by `run_id`
+2. `evaluateRun()` → health computed from staged rows
+3. `promoteRun()` → **only on `passed`**: listings + price events + lifecycle
+
+`quarantined` / `failed` → rows stay in staging for forensics, zero
+downstream effect, `published_count` stays NULL.
+
+**Proven by fault injection** (`--simulate-bad-data` nulls every `price_dkk`,
+reproducing the Finn bug): gate returned FAILED, and `listings` (7,028),
+`market_price_observations` (612), and `consecutive_misses` (0 rows) were all
+**bit-identical before and after**. The run's rows sat in staging, unpublished.
+
+Regression-test the invariant with:
+`npx tsx scripts/scrape-dba.ts --product="juno-106" --simulate-bad-data`
+
+### Coverage manifest — "no exceptions" is not completeness
+
+A scraper can return HTTP 200 and still lose half its pages to changed
+pagination. `coverage_complete` requires **every expected product scraped**
+(`scrapedProducts === products.length`, zero failures, no `--limit`/
+`--product`), not merely the absence of thrown errors. Lifecycle
+reconciliation is gated on it separately from the data-quality gate: a
+targeted run may publish its listings but must never conclude that unseen
+listings are gone.
+
+### Idempotent miss counting
+
+`listings.last_miss_run_id` ensures a listing accrues **at most one miss per
+unique run**. A retry or resumed job for the same `run_id` cannot compound
+misses into a false delisting. Re-finds clear the counter and the marker.
+
+### Baseline protection
+
+Anomaly comparison uses `robustBaseline()` — the **median volume over the
+last 14 PASSED runs**, never the single previous run. Otherwise one bad run
+becomes the new normal and lets the next bad run through. The baseline used
+in each decision is stored on `scrape_run.baseline` so the call can be
+re-audited.
+
+> ⚠️ **KNOWN DEFECT — baseline is not scope-aware. NEXT TASK.**
+> `robustBaseline()` filters on `status='passed'` only, so **targeted runs
+> pollute the baseline for full runs**. Observed live: the first full
+> 30-product candidate bootstrap reported `volume_swing: 12600% (6 → 762)`
+> because the only prior passed runs were `--product=juno-106` runs of 6
+> listings. Same class of bug as the unscoped coverage function retired in
+> migration 048.
+>
+> Required contract (not yet implemented):
+> - Baseline cohort matched EXACTLY on `source` + `coverage_scope_hash` +
+>   `coverage_version` + `scraper_version` + parser version + pagination strategy.
+> - Only complete, promoted runs with approved coverage may qualify.
+> - Targeted runs, quarantined runs, and run `43f27632-5881-4095-83a7-b7b840638ba1`
+>   must NEVER be included.
+> - No comparable runs → `baseline_unavailable`. That is **information, not a
+>   violation** — a first complete run must not quarantine merely for lacking
+>   a baseline.
+> - A first complete run is judged only on hard invariants and absolute data
+>   contracts. Relative volume rules activate only once a prior qualifying run
+>   with an identical cohort exists.
+> - The chosen baseline and its run IDs are stored on the evaluated run so the
+>   gate verdict can be re-audited deterministically.
+> - Computed from unambiguously named GLOBAL run measurements, never from sums
+>   of query-local counts (see the count-naming note below).
+>
+> Minimum tests: targeted run cannot seed a full scope · different scope hash
+> → `baseline_unavailable` · different version/pagination fields →
+> `baseline_unavailable` · quarantined and unpromoted runs ignored · first
+> complete run not quarantined for missing baseline · second identical run
+> gets a correct baseline · volume collapse within an identical cohort raises
+> anomaly/quarantine · baseline selection stable under concurrent inserts.
+
+### Count naming — these are five different numbers
+
+The candidate bootstrap reported `796 raw`, `760 unique-per-query`,
+`762 staged`, `701 globally unique`. All are legitimate (query results
+overlap), but they must never be conflated:
+
+| Meaning | Where |
+|---|---|
+| Sum of raw results across queries | `sum(scrape_query_coverage.raw_count)` |
+| Sum of query-local unique listings | `sum(scrape_query_coverage.unique_staged_count)` |
+| Globally unique listings for the run | `scrape_run` metric (distinct `external_id`) |
+| Actual staging rows | `scrape_run.staged_count` |
+| Actually published | `scrape_run.published_count` |
+
+Baseline and volume rules use the **global** measurements only.
+
+**Wired into `scrape-dba` only.** Finn/Blocket/Kleinanzeigen/Reverb still
+need it — the gate is meant to be mandatory for every source.
+
+---
+
+## coverage_v2 — lifecycle-grade coverage (migrations 044–048, 2026-08-06)
+
+**Why v1 was unsafe:** it asserted "every expected product was scraped" —
+that is QUERY coverage, not LISTING coverage. A run fetching only page 1 of
+every query passed, established a false universe, and three identical
+pagination faults could then still mass-delist. The bootstrap guard only
+deferred that risk by one night.
+
+### Schema
+
+- `scrape_query_coverage` — one row per expected product/query:
+  `query_started`, `query_completed`, `pages_fetched`, `termination_reason`,
+  `raw_count`, `parsed_count`, `parse_error_count`, `unique_staged_count`,
+  `pagination_tokens`.
+- `scrape_run` gained: `coverage_version`, `coverage_scope_hash`,
+  `staging_digest`, `expected_products`, `covered_products`,
+  `gate_version`, `scraper_version`, `baseline`, `raw_count`,
+  `staged_count`, `published_count`, `promoted_at`.
+- `listing_coverage_scopes(listing_id, scope_hash, source, source_query,
+  first_seen_run_id, last_seen_run_id)` — see Scope provenance below.
+
+### Termination reasons — only three are terminal
+
+`empty_page` · `no_next_token` · `known_last_page` are terminal.
+`max_pages_hit` · `error` · `unknown` are **not** — they mean listings may
+exist that were never seen, which cannot support delisting.
+
+**Pagination runs to documented exhaustion.** `MAX_PAGES_FUSE = 40` is a
+runaway fuse, never a success signal.
+
+`no_next_token` is an **inference**, not proof: Schibsted omits the
+`CollectionPage` block past the last page, which is indistinguishable from an
+intermittently missing block. It therefore requires a **jittered re-fetch of
+the same page that reproduces the same answer**; disagreement → `error`.
+
+### `run_has_lifecycle_coverage(run_id)`
+
+Requires: `status='passed'` · `coverage_version='v2'` · every expected query
+present, completed, and terminal · `parsed/raw ≥ 0.95` (a parser silently
+dropping results looks like "fewer listings exist", which would fake
+delistings).
+
+### Scope-specific bootstrap
+
+`scope_has_established_coverage(source, scope_hash, scraper_version)`.
+Approval belongs to a scope, never to a source.
+
+> Migration 048 **retired** `source_has_established_coverage(source)` — it now
+> RAISEs. It accepted any v2 run, so a single `--product` run established
+> coverage for an entire source. Observed live.
+
+### Scope provenance must be a RELATION
+
+`listings.coverage_scope_hash` was overwritten on every promotion, so a
+targeted run replaced a listing's provenance with a 1-product scope and those
+listings would have escaped miss accumulation in the established universe
+**permanently**. Membership now lives in `listing_coverage_scopes` and is
+**additive** — `ON CONFLICT DO UPDATE` touches only `last_seen_*`. Miss
+eligibility comes from a JOIN on that relation; the column is DEPRECATED.
+
+### Atomic, fail-closed promotion
+
+`promote_scrape_run()` is ONE transaction. It refuses: non-`passed` status ·
+already-promoted runs · `staging_digest` mismatch (staging mutated after the
+gate). `FOR UPDATE` serialises concurrent promotion.
+
+Regression tests (all verified 2026-08-06):
+```bash
+npx tsx scripts/scrape-dba.ts --product="juno-106" --simulate-bad-data
+npx tsx scripts/scrape-dba.ts --product="juno-106" --simulate-promotion-crash
+```
+Both leave `listings`, `market_price_observations` and `consecutive_misses`
+bit-identical. Concurrent promotion: exactly one commits.
+
+### DBA candidate bootstrap — REJECTED, do not reclassify
+
+Run `43f27632-5881-4095-83a7-b7b840638ba1`, `quarantined`, 762 rows in
+staging, never promoted. **Must remain untouched** — no reclassification,
+promotion, misses or delisting. It is forensic evidence.
+
+Findings:
+- **The product universe is 30, not 48** (28 legendary + 2 classic active).
+  The "48" in earlier notes was wrong — it came from a `listing_product_match`
+  row count. Contract is `expected=30`, `recorded=30`.
+- 22/30 queries reached `empty_page`; **8/30 returned `error`**.
+- Baseline pollution (see the defect note above).
+
+### The 8 failing queries — diagnosed, unresolved by design
+
+Ampex ATR-700 · ARP 2600 · Oberheim OB-X · Oberheim OB-Xa · Rhodes Mark I
+Suitcase 73 · Rhodes Mark II Stage 73 · Roland Jupiter-8 (mixed) · Strymon
+TimeLine.
+
+All fail on page 1 with `raw_count=0`. **They are genuinely zero-result
+searches, not faults** — rare vintage gear with no current Danish listings.
+DBA omits the `CollectionPage` block entirely on a zero-result page (the
+second JSON-LD block is present but **empty**, `len=0`), which is
+indistinguishable from a schema break.
+
+`zero_results` was investigated and **deliberately NOT implemented** — no
+positive, stable marker exists:
+
+| Signal | Verdict |
+|---|---|
+| 13 text markers (`no-results`, `"totalCount":0`, …) | none present on the zero page |
+| Lexical diff | only base64-ish payloads |
+| Empty/unparseable JSON-LD block | absence, not a positive signal — rejected |
+| `__NEXT_DATA__` / RSC flight chunks | absent on both pages |
+| Page size (614 KB vs 665 KB) | diagnostic only, never a rule |
+
+**Underlying data endpoint: investigated, NOT operationally viable.**
+`Accept: application/json` → HTML · `.json` suffix → 404 · `RSC: 1` → HTML ·
+`?_data=` → HTML. The page is a server-rendered podlet
+(`recommerce-search-page`); there is no intermediate JSON call to observe.
+Only client-bundle reverse engineering remains, which is explicitly out of
+scope as unstable.
+
+**Consequence: DBA cannot reach complete coverage for all 30 products, so
+DBA lifecycle cannot be enabled.** This is a property of the source, not a
+temporary blocker. Do not reduce the manifest to work around it — "no current
+DBA hits" is a dynamic observation, not a stable scope definition, and a
+history-based scope would hide the transition from zero to one listing. Any
+manifest change is a separate product decision about market relevance.
+
+Fixtures: `scripts/fixtures/dba-{zero,hits}.html`.
+
+### Lifecycle: never delist off one run
+
+`DELIST_AFTER_MISSES = 3`. A single failed or partial search must never
+mass-delist a source — that would fabricate a wave of fake "sold" signals.
+
+- Lifecycle reconciliation runs **only** when the gate returned `passed`
+  AND the run was a complete sweep (no `--limit`, no `--product`, zero
+  product failures). Otherwise it is skipped entirely.
+- Re-found listings reset `consecutive_misses` to 0 and **reactivate** if
+  previously delisted (sellers renew and relist).
+- `delisted_at` is **NOT a sale date.** Expired, deleted, or renewed all
+  look identical from outside. Never infer a transaction from it.
+
+---
+
+## AI match validation — `scripts/ai-validate-matches.ts` (2026-08-05/06)
+
+Two-tier AI review of `listing_product_match`. Solves the dominant bad-match
+pattern: **sellers keyword-stuff accessory/part listings with the full model
+name of a famous instrument** ("Roland TR-909 knob", "Juno-106 dust cover",
+"Stratocaster pickup", EPROMs, CPUs, memory cartridges, flight cases). The
+deterministic matcher cannot distinguish these — the model-name string is
+present either way — so they were polluting price data and product pages.
+
+**Why this mattered urgently:** `/api/product/[slug]` and `/intel` filter
+`is_valid IS NULL OR is_valid = true`, so every unreviewed row was being
+**treated as trusted and shown**. This pass is the first thing that
+actually screens them.
+
+### Usage
+
+```bash
+npx tsx scripts/ai-validate-matches.ts --dry-run              # real cost estimate from a 50-row sample, no writes
+npx tsx scripts/ai-validate-matches.ts --eval                 # accuracy vs. human-labeled rows, no writes
+npx tsx scripts/ai-validate-matches.ts --tier=standard --model=haiku
+npx tsx scripts/ai-validate-matches.ts --pass2 --tier=legendary,classic,standard
+```
+
+Flags: `--model=sonnet|haiku` · `--tier=a,b,c` · `--limit=N` · `--pass2`
+· `--force` · `--dry-run` · `--eval`
+
+- Writes verdicts into `listing_product_match.explain` under `ai_pass1` /
+  `ai_pass2` (model, verdict, confidence, reason, reviewed_at) **alongside**
+  the deterministic matcher's existing explain keys — never overwrites them.
+- Thresholds: `verdict='valid'` + confidence ≥ 85 → `is_valid=true`;
+  `verdict='invalid'` + confidence ≥ 85 → `is_valid=false` + `rejected_reason`;
+  everything else stays NULL and routes to the existing admin curation queue.
+- Idempotent: skips rows already carrying the relevant pass key unless `--force`.
+
+### Results
+
+| Tier | Confirmed valid | Rejected | Pending review |
+|---|---|---|---|
+| legendary | 2,746 | 1,440 | 584 |
+| classic | 46 | 0 | 2 |
+| standard | 15,914 | 7,747 | 1,740 |
+
+~**9,200 bad matches removed** from user-facing and arbitrage surfaces.
+Cost: ~$8 (legendary/classic, Sonnet) + ~$21 (standard, Haiku) + ~$5 (pass 2).
+
+**Pass 2 completed 2026-08-06 and underdelivered — this is a finding, not a
+failure to retry.** Sonnet reviewed 1,908 Pass-1 uncertains and resolved only
+**154** (144 valid, 10 rejected); 1,059 stayed uncertain. **A second opinion
+from a stronger model does not resolve genuine ambiguity.** The remaining
+~2,218 pending rows need *more signal* — images, descriptions, seller
+history — or human review. Do not run a Pass 3 expecting a different result.
+
+### Model selection — measured, not assumed
+
+Both models were evaluated against human-labeled ground truth via `--eval`:
+
+| Model | Precision | Recall | Accuracy |
+|---|---|---|---|
+| Sonnet 5 | 97.0% | 91.5% | 95.7% |
+| Haiku 4.5 (after prompt fix) | 99.6% | 98.8% | 99.0% |
+
+**Haiku was sufficient — the earlier assumption that it wouldn't be was
+wrong, and the difference was the prompt, not the model.** Haiku's first
+eval showed a systematic failure: it rejected genuine clean-titled
+instruments (MIJ vintage Juno-60, Custom Shop relics) purely for pricing
+above `price_max_dkk`. Fix was making the price rule **asymmetric** —
+a price far *below* range is strong accessory evidence; a price *above*
+range is weak evidence only (KG ranges are stale/narrow, and rare, premium,
+or bundled examples legitimately exceed them).
+
+**Rule going forward:** before blaming a model, check whether the prompt
+encodes a rule the model is following too literally. Always `--eval`
+against labeled data before a live pass.
+
+### Gotchas this script hit (relevant to any new script in this repo)
+
+1. **PostgREST caps every request at 1000 rows.** Hit three separate times —
+   on `listing_product_match`, on `kg_product` (standard tier is ~3,800
+   products; the legendary/classic set was small enough to hide the bug),
+   and in the eval fetch. **Any query that could exceed 1000 rows must
+   paginate with `.range()`.**
+2. **`.range()` pagination needs an explicit `.order()`.** Without stable
+   ordering, rows shift between page fetches while other writes land, and
+   chunks are silently dropped — this undercounted standard tier as 7,490
+   instead of 25,162.
+3. **A large `.in()` ID list blows the URL length limit** (`Bad Request`).
+   Chunk to ~50 IDs, or filter in-memory instead. Same constraint the
+   `/intel` dashboard already works around.
+4. **Sonnet 5 runs adaptive thinking by default** — `response.content[0]` is
+   a `thinking` block, not text. Find the block with `type === 'text'`
+   rather than indexing. (Haiku 4.5 does not do this, which is why
+   `classify-products.ts` gets away with `content[0]`.)
+5. **Confidence is verdict-relative.** `confidence: 97` on
+   `verdict: "invalid"` means 97% sure it's *invalid*. Reading confidence
+   without verdict inverts every high-confidence rejection — this bug was
+   caught only because `--eval` ran against ground truth first.
+6. Batches fail intermittently on API load (529 / timeouts). The script
+   skips and logs them; **re-run the same command to sweep stragglers.**
+
+---
+
 ## Known issues
 
 **`reverb_price_history` is query-keyed; `kg_product_id` FK partially
@@ -842,6 +1351,33 @@ between `rph.query` and `kg_product.canonical_name` — expected to map
 queries (deprioritised vertical), generic terms, or queries for products
 not yet in the KG. The deterministic path for the long tail is migration
 035 (planned): `listing_url → Reverb listing → csp_id → kg_product`.
+
+**`reverb_price_history` is now ~98% garbage.** The runaway
+`process-price-queue` loop (see Reliability fixes 2026-08-05) inflated it
+from ~927 rows to **98,971**, of which **97,420 are duplicate rows for a
+single query** (`moog-minimoog-voyager`, 77 listings × ~1,265 copies each).
+The generating bug is fixed, but **the garbage rows were never cleaned up.**
+The `(listing_url, watchlist_id)` unique index does not prevent this because
+`watchlist_id` is NULL on 98.8% of rows and Postgres treats NULLs as
+distinct. Dedupe + `NULLS NOT DISTINCT` (or drop `watchlist_id` from the
+key) before trusting anything in this table.
+
+### Unique constraints defeated by NULLs (2026-08-05 audit)
+
+**No index in the database sets `NULLS NOT DISTINCT`.** Where a nullable
+column sits in a unique key, the constraint silently does nothing for rows
+where that column is NULL:
+
+| Table / index | Nullable col | Impact |
+|---|---|---|
+| `reverb_price_history (listing_url, watchlist_id)` | `watchlist_id` (98.8% NULL) | **97,381 dupes** — see above |
+| `listings (external_id, source)` | `external_id` | Fixed 2026-08-05 (backfilled, 141 dupes removed) |
+| `auctionet_price_history (listing_url, watchlist_id)` | both | Latent — table is empty |
+| `synonym (alias, product_id)` | `product_id` | Latent — 0 NULLs today |
+| `kg_product_suggestions (canonical_name, brand_id)` | `brand_id` | Latent — 0 NULLs today |
+
+`kg_category (reverb_uuid)` and `listings (url, watchlist_id)` are written
+correctly as partial indexes — use those as the pattern.
 
 ### Price history polluted by parts/accessories matches — partially fixed
 
@@ -955,10 +1491,14 @@ er testet af rigtige brugere.
 ## What Claude Code should do at session start
 
 1. Read this file
-2. Check current PM2 status on Mac Mini: `pm2 list`
-3. Check latest Vercel deployment status
-4. Ask one clarifying question if the task is ambiguous
-5. Show what you plan to do before doing it — especially for database changes
+2. Run `hostname` — confirm which machine this session is running on
+   (MacBook vs. `panter` / Mac Mini). Sessions run natively on both; don't
+   assume you're on the MacBook and need SSH to reach PM2/scraper state.
+3. Check current PM2 status: `pm2 list` (run directly if on the Mac Mini;
+   Tailscale SSH only if this session is elsewhere and needs to reach it)
+4. Check latest Vercel deployment status
+5. Ask one clarifying question if the task is ambiguous
+6. Show what you plan to do before doing it — especially for database changes
 
 ---
 
@@ -1237,6 +1777,53 @@ still reads slugs — migrate to UUIDs in the same area where touched next.
 
 ---
 
+## Open workstream — where the next session picks up (2026-08-06)
+
+Ordered by what the founder prioritised: **founder sourcing / arbitrage
+first, and the KG must be clean for that data to have a home.**
+
+1. **Finish AI validation pass 2** — Sonnet second opinion on Pass-1
+   uncertains was mid-run at session end. Re-run to completion:
+   `npx tsx scripts/ai-validate-matches.ts --pass2 --tier=legendary,classic,standard`
+   (idempotent; re-run again to sweep any timeout stragglers).
+2. **Wire scrapers into `market_price_observations`** — the table exists,
+   nothing populates it. Each scraper should append a `price_type='asking'`
+   observation alongside its existing `listings` upsert; Thomann →
+   `'retail'`; Reverb sold → `'sold'`.
+3. **Clean product pages + images** (the founder's stated goal for a clean
+   KG): link Reverb/other images to products, promote products to
+   `browse_visibility='public'`.
+4. **KG expansion — classic/iconic gear not yet in the KG.** Named gaps:
+   Yamaha YTR-8535 and Bach ML 25 trumpets, Martin Committee, SSL consoles,
+   Kush Audio / Distressor outboard. Sources the founder named:
+   **gearspace.com**, **vintagesynth.com** (primary source for synth model
+   data — note `scripts/scrape-vintagesynth.ts` + `expand-synonyms-vse.ts`
+   already exist from an earlier effort), Reverb featured/editorial gear,
+   and UAD's plugin catalogue (UAD emulates classic outboard — an article
+   about a preamp is a strong classic/legendary signal).
+   **Also found: Neumann U 87 Ai is `tier='standard'`** with ~12 duplicate
+   listing-title rows — a clear mistiering worth fixing when this starts.
+5. **Source expansion for arbitrage**, DE-first (founder can drive to
+   collect): Musik-Produktiv B-stock (SKU-based, low risk), eBay Browse API
+   (structured aspects; note eBay *sold* comps need the restricted
+   Marketplace Insights partner API, so eBay is an **asking**-price source
+   only), then Egun.de (free-text — needs the AI validation pipeline).
+   **Craigslist is a separate decision** — no API, ToS prohibits scraping,
+   and Craigslist has litigated this (3taps); the founder wants it for the
+   US market (Chicago/NY/LA/Nashville/Detroit) and should accept that risk
+   explicitly before engineering time goes in.
+6. **Vertical signal** — the founder reads sparse user data as wanting
+   non-music verticals. Pull real PostHog unmatched-search data before
+   building anything (this is the long-documented Phase 1 prerequisite that
+   has still never actually been run).
+
+**Smaller open items:** drop `listing_price_history` (dead stub) pending
+confirmation · dedupe `reverb_price_history` (97k garbage rows) · fix the
+defeated NULL unique constraints · `ecosystem.config.js` `max_restarts`/
+`min_uptime` don't match the documented rule.
+
+---
+
 ## Phase 1 — next (not started)
 
 **Prerequisite:** Pull PostHog top 20 searches. Cross-reference against kg_product for:
@@ -1296,4 +1883,8 @@ for the Phase 0/1/2 roadmap in this document.
 
 ---
 
-*Last updated: 2026-05-05 — Admin product curation page (`/admin/product/[slug]` + 5 API routes), migration 038 match-quality flags (`is_valid`, `rejected_reason`), model_name backfill recovers match-rate from 0% to ~7%, intel dashboard 3-panel multi-market shell, schibsted price_dkk + reverb country backfills*
+*Last updated: 2026-08-06 (late) — coverage_v2 (migrations 042–048): fail-closed staging→evaluate→promote, atomic `promote_scrape_run()` with staging-digest + concurrency guards, per-query pagination coverage with documented exhaustion, normalized `listing_coverage_scopes` provenance, scope-specific bootstrap (unscoped variant retired). DBA candidate bootstrap `43f27632…` REJECTED and preserved. Product universe corrected to 30 (not 48). `zero_results` and the DBA data endpoint investigated and closed as not viable. **NEXT: scope-aware baseline (`baseline_unavailable`) — see the KNOWN DEFECT note in the quality-gate section.** Lifecycle hard-disabled on all sources.*
+
+*Earlier 2026-08-06 — Reliability fixes (frontend deps on panter, scrape-reverb stale-marking index, price_fetch_queue constraint + silent-error bugs, listings.external_id backfill, price_snapshots_old dropped), migration 039/039b `market_price_observations` unified price ledger, `scripts/ai-validate-matches.ts` two-tier AI match validation (~9,200 bad matches rejected across 30k rows; Haiku 99.6%/98.8% precision/recall after prompt fix), PM2 status table corrected, Claude-runs-natively infra update*
+
+*Previous: 2026-05-05 — Admin product curation page (`/admin/product/[slug]` + 5 API routes), migration 038 match-quality flags (`is_valid`, `rejected_reason`), model_name backfill recovers match-rate from 0% to ~7%, intel dashboard 3-panel multi-market shell, schibsted price_dkk + reverb country backfills*

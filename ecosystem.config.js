@@ -1,6 +1,22 @@
 module.exports = {
   apps: [
     {
+      // DBA.dk — the Danish home market. Highest-value source: local-market
+      // price gaps live here. Runs at 00:30, before the other Nordic scrapers,
+      // so the most important market is collected first if anything wedges.
+      // Also appends asking-price history to market_price_observations.
+      name: 'scrape-dba',
+      script: 'npx',
+      args: 'tsx scripts/scrape-dba.ts',
+      cron_restart: '30 0 * * *', // daily at 00:30
+      autorestart: false,
+      max_restarts: 0,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
       name: 'scrape-blocket',
       script: 'npx',
       args: 'tsx scripts/scrape-blocket.ts',

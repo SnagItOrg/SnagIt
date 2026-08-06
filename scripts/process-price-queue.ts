@@ -133,10 +133,15 @@ async function fetchSoldListings(query: string): Promise<ReverbListing[]> {
 // ── Process one queue item ───────────────────────────────────────────────────
 async function processItem(item: { id: string; product_slug: string }): Promise<boolean> {
   // Mark as processing
-  await supabase
+  const { error: processingError } = await supabase
     .from('price_fetch_queue')
     .update({ status: 'processing' })
     .eq('id', item.id)
+
+  if (processingError) {
+    console.error(`    ❌ Failed to mark processing: ${processingError.message}`)
+    return false
+  }
 
   // Look up product for search query
   const { data: product } = await supabase
@@ -148,10 +153,11 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
 
   if (!product) {
     console.log(`    Product not found for slug: ${item.product_slug}`)
-    await supabase
+    const { error } = await supabase
       .from('price_fetch_queue')
       .update({ status: 'failed', processed_at: new Date().toISOString() })
       .eq('id', item.id)
+    if (error) console.error(`    ❌ Failed to mark failed: ${error.message}`)
     return false
   }
 
@@ -163,10 +169,11 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
 
   if (listings.length === 0) {
     console.log('    No sold listings found')
-    await supabase
+    const { error } = await supabase
       .from('price_fetch_queue')
       .update({ status: 'done', processed_at: new Date().toISOString() })
       .eq('id', item.id)
+    if (error) console.error(`    ❌ Failed to mark done: ${error.message}`)
     return true
   }
 
@@ -192,19 +199,21 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
 
     if (error) {
       console.error(`    Upsert error: ${error.message}`)
-      await supabase
+      const { error: failError } = await supabase
         .from('price_fetch_queue')
         .update({ status: 'failed', processed_at: new Date().toISOString() })
         .eq('id', item.id)
+      if (failError) console.error(`    ❌ Failed to mark failed: ${failError.message}`)
       return false
     }
     console.log(`    Upserted ${rows.length} price records`)
   }
 
-  await supabase
+  const { error: doneError } = await supabase
     .from('price_fetch_queue')
     .update({ status: 'done', processed_at: new Date().toISOString() })
     .eq('id', item.id)
+  if (doneError) console.error(`    ❌ Failed to mark done: ${doneError.message}`)
 
   return true
 }
