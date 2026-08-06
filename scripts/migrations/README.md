@@ -81,3 +81,42 @@ FROM (
   Needs a small enrichment script that hits the Reverb listing API per row
   to extract its CSP. Worth doing only after demand-driven curation has
   reduced the dirty-query population.
+
+---
+
+## 039-048 — scrape quality gate & coverage_v2 (2026-08-05/06)
+
+**Already applied in production.** These were applied via the Supabase MCP
+`apply_migration` tool during development, then extracted verbatim from
+`supabase_migrations.schema_migrations` into this directory. The files are the
+exact SQL that ran — they are the record, not a plan.
+
+| File | Kind | Idempotent? |
+|---|---|---|
+| `039_market_price_observations.sql` | table + indexes + RLS + view | **No** — bare `CREATE TABLE`/`CREATE VIEW` |
+| `039b_rename_market_price_observations.sql` | rename | **No** — bare `ALTER ... RENAME` |
+| `039c_market_price_observations_dedup_index.sql` | index | Yes (`DROP IF EXISTS` + create) |
+| `040_listing_lifecycle_tracking.sql` | columns + index | Yes (`IF NOT EXISTS`) |
+| `041_scrape_run_health_and_market_price_daily.sql` | tables + columns + RLS | Partly — `CREATE TABLE` is bare, column adds guarded |
+| `042_listing_staging_fail_closed.sql` | table + columns | Partly — same pattern |
+| `043_promote_scrape_run_transactional.sql` | function / RPC | Yes (`CREATE OR REPLACE`) |
+| `044_coverage_v2_manifest.sql` | table + columns + functions | Partly — `CREATE TABLE` bare, functions `OR REPLACE` |
+| `045_listing_scope_provenance.sql` | columns + function | Yes |
+| `046_listing_coverage_scopes_relation.sql` | table + backfill + function | Partly — `CREATE TABLE` bare |
+| `047_staging_digest_guard.sql` | column + functions | Yes |
+| `048_retire_unscoped_coverage_function.sql` | function retirement | Yes |
+
+**Ordering matters.** 043 → 045 → 046 → 047 each redefine `promote_scrape_run`;
+only the 047 version is current. 048 retires
+`source_has_established_coverage()` introduced in 043.
+
+**Applying to a clean database:** run 039 → 048 in filename order. No file
+DROPs a data-bearing table, and no file deletes rows. `039b` renames a table
+created by `039`; `046` backfills `listing_coverage_scopes` from the column it
+supersedes.
+
+**Not represented here:** ad-hoc DML run during the session (the
+`price_fetch_queue` status resets, the `listings.external_id` backfill, the
+141 duplicate-row cleanup, and `DROP TABLE price_snapshots_old`). Those were
+one-off data operations, not schema contract — see CLAUDE.md → Reliability
+fixes for what they did and why.

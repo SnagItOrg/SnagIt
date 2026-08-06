@@ -1099,6 +1099,34 @@ need it — the gate is meant to be mandatory for every source.
 
 ---
 
+## Where the SQL lives
+
+**`scripts/migrations/NNN_name.sql`** is the record for every schema change.
+Applied manually via the Supabase SQL editor (no migration tooling); the file
+is the source of truth, not this document. See `scripts/migrations/README.md`
+for the 039–048 table with per-file idempotency notes.
+
+**`scripts/queries/`** holds read-only SQL that must never be confused with
+migrations — `diagnostics/`, `verification/`, `operations/`. See
+`scripts/queries/README.md`.
+
+| Contract described below | File |
+|---|---|
+| `market_price_observations` + trusted view | `migrations/039_market_price_observations.sql`, `039b`, `039c` |
+| Listing lifecycle columns | `migrations/040_listing_lifecycle_tracking.sql` |
+| `scrape_run`, `market_price_daily` | `migrations/041_scrape_run_health_and_market_price_daily.sql` |
+| `listing_staging`, fail-closed columns | `migrations/042_listing_staging_fail_closed.sql` |
+| `promote_scrape_run()` (current = 047) | `migrations/043`, `045`, `046`, `047` |
+| `scrape_query_coverage`, coverage_v2 fns | `migrations/044_coverage_v2_manifest.sql` |
+| `listing_coverage_scopes` relation | `migrations/046_listing_coverage_scopes_relation.sql` |
+| `staging_digest` guard | `migrations/047_staging_digest_guard.sql` |
+| Retired unscoped coverage fn | `migrations/048_retire_unscoped_coverage_function.sql` |
+| Fail-closed proof | `queries/verification/fail_closed_publication.sql` |
+| Lifecycle-disabled proof | `queries/verification/lifecycle_disabled.sql` |
+| The finn/blocket NULL-price_dkk detector | `queries/diagnostics/null_rates_per_source.sql` |
+
+---
+
 ## coverage_v2 — lifecycle-grade coverage (migrations 044–048, 2026-08-06)
 
 **Why v1 was unsafe:** it asserted "every expected product was scraped" —
