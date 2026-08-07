@@ -64,33 +64,9 @@ export async function stageListings(
   return { staged, error: null }
 }
 
-/**
- * Robust baseline: median listing volume over recent PASSED runs.
- *
- * Comparing against only the most recent run lets one bad run become the new
- * normal, which would let the NEXT bad run pass. A median over several
- * approved runs resists that drift.
- */
-export async function robustBaseline(
-  supabase: SupabaseClient,
-  source: string,
-  window = 14,
-): Promise<{ medianVolume: number | null; sampleSize: number; runs: number[] }> {
-  const { data } = await supabase
-    .from('scrape_run')
-    .select('listings_fetched')
-    .eq('source', source)
-    .eq('status', 'passed')
-    .order('started_at', { ascending: false })
-    .limit(window)
-
-  const volumes = (data ?? []).map(r => r.listings_fetched as number).filter(v => v > 0)
-  if (volumes.length === 0) return { medianVolume: null, sampleSize: 0, runs: [] }
-
-  const sorted = [...volumes].sort((a, b) => a - b)
-  const median = sorted[Math.floor(sorted.length / 2)]
-  return { medianVolume: median, sampleSize: sorted.length, runs: volumes }
-}
+// Baseline selection lives in lib/baseline.ts. The version that used to sit
+// here filtered on (source, status='passed') only, so targeted runs defined
+// the norm for complete ones — see the cohort contract in that file.
 
 /**
  * Promote a passed run's staged rows into the authoritative tables.

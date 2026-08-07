@@ -21,6 +21,9 @@ belongs in `scripts/migrations/` instead.
 - `lifecycle_disabled.sql` — confirms no scope is established and no listing
   has accrued misses or been delisted.
 - `coverage_v2_status.sql` — per-query pagination coverage for one run.
+- `baseline_cohort_scoping.sql` — re-audits a gate verdict's baseline decision
+  from the evidence stored on `scrape_run.baseline`: which cohort was required,
+  which runs were selected, and why the rest were rejected.
 
 ### diagnostics/
 - `null_rates_per_source.sql` — the query that would have caught the

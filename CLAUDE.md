@@ -1040,43 +1040,105 @@ misses into a false delisting. Re-finds clear the counter and the marker.
 
 ### Baseline protection
 
-Anomaly comparison uses `robustBaseline()` — the **median volume over the
-last 14 PASSED runs**, never the single previous run. Otherwise one bad run
-becomes the new normal and lets the next bad run through. The baseline used
-in each decision is stored on `scrape_run.baseline` so the call can be
-re-audited.
+Anomaly comparison uses the **median volume over the last 14 qualifying
+runs**, never the single previous run. Otherwise one bad run becomes the new
+normal and lets the next bad run through. The baseline used in each decision
+is stored on `scrape_run.baseline` so the call can be re-audited.
 
-> ⚠️ **KNOWN DEFECT — baseline is not scope-aware. NEXT TASK.**
-> `robustBaseline()` filters on `status='passed'` only, so **targeted runs
-> pollute the baseline for full runs**. Observed live: the first full
-> 30-product candidate bootstrap reported `volume_swing: 12600% (6 → 762)`
-> because the only prior passed runs were `--product=juno-106` runs of 6
-> listings. Same class of bug as the unscoped coverage function retired in
-> migration 048.
->
-> Required contract (not yet implemented):
-> - Baseline cohort matched EXACTLY on `source` + `coverage_scope_hash` +
->   `coverage_version` + `scraper_version` + parser version + pagination strategy.
-> - Only complete, promoted runs with approved coverage may qualify.
-> - Targeted runs, quarantined runs, and run `43f27632-5881-4095-83a7-b7b840638ba1`
->   must NEVER be included.
-> - No comparable runs → `baseline_unavailable`. That is **information, not a
->   violation** — a first complete run must not quarantine merely for lacking
->   a baseline.
-> - A first complete run is judged only on hard invariants and absolute data
->   contracts. Relative volume rules activate only once a prior qualifying run
->   with an identical cohort exists.
-> - The chosen baseline and its run IDs are stored on the evaluated run so the
->   gate verdict can be re-audited deterministically.
-> - Computed from unambiguously named GLOBAL run measurements, never from sums
->   of query-local counts (see the count-naming note below).
->
-> Minimum tests: targeted run cannot seed a full scope · different scope hash
-> → `baseline_unavailable` · different version/pagination fields →
-> `baseline_unavailable` · quarantined and unpromoted runs ignored · first
-> complete run not quarantined for missing baseline · second identical run
-> gets a correct baseline · volume collapse within an identical cohort raises
-> anomaly/quarantine · baseline selection stable under concurrent inserts.
+*"Qualifying" is load-bearing and was originally missing* — see **Baseline
+cohort scoping** immediately below.
+
+### Baseline cohort scoping (migrations 050–051, 2026-08-07)
+
+**The defect this fixed:** `robustBaseline()` filtered on `status='passed'`
+only, so **targeted runs polluted the baseline for full runs**. Observed live:
+the first full 30-product candidate bootstrap reported
+`volume_swing: 12600% (6 → 762)` because the only prior passed runs were
+`--product=juno-106` runs of 6 listings. Same class of bug as the unscoped
+coverage function retired in migration 048 — an approval belonging to a narrow
+scope leaking onto a wide one.
+
+Selection now lives in **`scripts/lib/baseline.ts`** as a pure function, so
+every rule is unit-tested without a database and a recorded decision replays
+exactly. `robustBaseline()` and `lastPassedVolume()` are deleted.
+
+**The cohort is six fields, matched EXACTLY:**
+`source` · `coverage_scope_hash` · `coverage_version` · `scraper_version` ·
+`parser_version` · `pagination_strategy`.
+
+`coverage_scope_hash` already digests the product/query universe, but the rest
+are compared independently so a mismatch is visible in the audit trail instead
+of buried in a hash. `parser_version` is separate from `scraper_version`
+because a parser change alters what *one listing* means even when fetching is
+untouched.
+
+**A qualifying run must additionally be** `status='passed'` · promoted
+(`promoted_at IS NOT NULL`) · `run_scope='complete'` · `coverage_complete` ·
+have a non-null positive `global_unique_listings`.
+
+- `run_scope` is stamped from the run's **own intent before scraping**
+  (`--product` / `--limit` → `targeted`), never inferred afterwards from counts
+  a fault could have changed.
+- Quarantined, failed and unpromoted runs are excluded by construction — which
+  includes run `43f27632-5881-4095-83a7-b7b840638ba1` permanently.
+- **No backfill.** Historical rows keep a NULL cohort identity and are
+  disqualified. A run whose provenance was never recorded cannot be
+  retroactively declared comparable.
+
+**`baseline_unavailable` is information, not a violation.** Absolute rules
+(hard invariants, null rates, duplicate rate, low volume, product failure
+rate) always apply. The **relative** rules — `volume_swing` and
+`zero_results_after_volume` — are simply inactive without a baseline. A first
+complete run in a new cohort is never quarantined for lacking one; relative
+rules activate on the second run of an identical cohort.
+
+**Volume rules use `global_unique_listings`** (distinct `external_id` across
+the whole run) on both sides of the comparison. The old code compared raw
+per-query rows against a baseline of a different measure — see the count-naming
+table below.
+
+**Identity is enforced by the database, not by the script (migration 051).**
+`promote_scrape_run()` now refuses a run missing any cohort field, naming the
+missing ones. Without that guard a NULL `coverage_scope_hash` would publish
+listings with no scope and silently skip the `listing_coverage_scopes` insert
+(its `WHERE` requires `v_scope IS NOT NULL`), leaving those listings outside
+the coverage universe permanently. The scraper also fails closed if its own
+identity write errors — regression-test both with:
+
+```bash
+npx tsx scripts/scrape-dba.ts --product="juno-106" --simulate-identity-write-failure
+```
+
+Verified 2026-08-07: `listings` (84,162), `market_price_observations` (613),
+`listing_coverage_scopes` (6) and promoted-run count (6) all bit-identical
+before and after; the run is `failed`, unpromoted, its rows held in staging.
+
+**Deterministic and re-auditable.** Candidates are restricted to runs that
+started strictly before the evaluated run and ordered by
+`(started_at DESC, id DESC)`, so a concurrent insert cannot change the verdict
+and the selection replays identically. `scrape_run.baseline` stores the
+required cohort, selected run IDs and volumes, the median, the window, and a
+per-run rejection reason for everything considered. Re-audit with
+`scripts/queries/verification/baseline_cohort_scoping.sql`.
+
+Tests: `npm test` (`scripts/lib/baseline.test.ts`, 11 cases) — targeted run
+cannot seed a full scope · different scope hash → `baseline_unavailable` ·
+each version/pagination field → `baseline_unavailable` · quarantined and
+unpromoted runs ignored · first complete run not quarantined for a missing
+baseline · missing baseline does not suppress hard invariants · second
+identical run gets a correct baseline · median over the window, not the last
+run · volume collapse within an identical cohort quarantines · global measure
+used instead of per-query sums · selection stable under concurrent inserts and
+row-order permutation.
+
+> **Consequence to be aware of:** DBA cannot currently reach
+> `coverage_complete` (8 of 30 queries are genuine zero-result searches that
+> terminate as `error` — see below), so **the DBA full scope has no baseline
+> and its relative volume rules stay inactive.** That is the fail-safe
+> direction against false quarantines, but it does mean a real DBA volume
+> collapse would only be caught by the absolute rules. Resolving it depends on
+> the zero-result-marker problem, which is closed as not viable — not on the
+> gate.
 
 ### Count naming — these are five different numbers
 
@@ -1088,7 +1150,7 @@ overlap), but they must never be conflated:
 |---|---|
 | Sum of raw results across queries | `sum(scrape_query_coverage.raw_count)` |
 | Sum of query-local unique listings | `sum(scrape_query_coverage.unique_staged_count)` |
-| Globally unique listings for the run | `scrape_run` metric (distinct `external_id`) |
+| Globally unique listings for the run | `scrape_run.global_unique_listings` (distinct `external_id`) — **the only measure baseline and volume rules may use**. `scrape_run.unique_external_ids` is a deprecated alias; `listings_fetched` is raw and counts a listing once per query that returned it |
 | Actual staging rows | `scrape_run.staged_count` |
 | Actually published | `scrape_run.published_count` |
 
@@ -1121,6 +1183,10 @@ migrations — `diagnostics/`, `verification/`, `operations/`. See
 | `listing_coverage_scopes` relation | `migrations/046_listing_coverage_scopes_relation.sql` |
 | `staging_digest` guard | `migrations/047_staging_digest_guard.sql` |
 | Retired unscoped coverage fn | `migrations/048_retire_unscoped_coverage_function.sql` |
+| Baseline cohort identity | `migrations/050_baseline_cohort_scoping.sql` |
+| Promotion requires cohort identity (current `promote_scrape_run` = 051) | `migrations/051_promote_requires_cohort_identity.sql` |
+| Pre-050 `scrape_run` definition + rollback | `migrations/snapshots/050_pre_scrape_run.sql` |
+| Baseline decision re-audit | `queries/verification/baseline_cohort_scoping.sql` |
 | Fail-closed proof | `queries/verification/fail_closed_publication.sql` |
 | Lifecycle-disabled proof | `queries/verification/lifecycle_disabled.sql` |
 | The finn/blocket NULL-price_dkk detector | `queries/diagnostics/null_rates_per_source.sql` |
@@ -1911,7 +1977,19 @@ for the Phase 0/1/2 roadmap in this document.
 
 ---
 
-*Last updated: 2026-08-06 (late) — coverage_v2 (migrations 042–048): fail-closed staging→evaluate→promote, atomic `promote_scrape_run()` with staging-digest + concurrency guards, per-query pagination coverage with documented exhaustion, normalized `listing_coverage_scopes` provenance, scope-specific bootstrap (unscoped variant retired). DBA candidate bootstrap `43f27632…` REJECTED and preserved. Product universe corrected to 30 (not 48). `zero_results` and the DBA data endpoint investigated and closed as not viable. **NEXT: scope-aware baseline (`baseline_unavailable`) — see the KNOWN DEFECT note in the quality-gate section.** Lifecycle hard-disabled on all sources.*
+*Last updated: 2026-08-07 — Baseline cohort scoping (migrations 050–051, both
+APPLIED): baseline selection moved to `scripts/lib/baseline.ts` as a pure,
+unit-tested function; cohort matched exactly on source + scope hash + coverage
+version + scraper version + parser version + pagination strategy; only complete,
+promoted, coverage-approved runs qualify; `baseline_unavailable` is information
+and deactivates only the relative volume rules; volume rules now use
+`global_unique_listings` on both sides; full decision evidence stored on
+`scrape_run.baseline`; `promote_scrape_run()` refuses runs missing cohort
+identity. `robustBaseline()` and `lastPassedVolume()` deleted.
+**NEXT: wire the gate into finn/blocket/kleinanzeigen/reverb — it is meant to be
+mandatory for every source.** Lifecycle remains hard-disabled on all sources.*
+
+*Previous: 2026-08-06 (late) — coverage_v2 (migrations 042–048): fail-closed staging→evaluate→promote, atomic `promote_scrape_run()` with staging-digest + concurrency guards, per-query pagination coverage with documented exhaustion, normalized `listing_coverage_scopes` provenance, scope-specific bootstrap (unscoped variant retired). DBA candidate bootstrap `43f27632…` REJECTED and preserved. Product universe corrected to 30 (not 48). `zero_results` and the DBA data endpoint investigated and closed as not viable. **NEXT: scope-aware baseline (`baseline_unavailable`) — see the KNOWN DEFECT note in the quality-gate section.** Lifecycle hard-disabled on all sources.*
 
 *Earlier 2026-08-06 — Reliability fixes (frontend deps on panter, scrape-reverb stale-marking index, price_fetch_queue constraint + silent-error bugs, listings.external_id backfill, price_snapshots_old dropped), migration 039/039b `market_price_observations` unified price ledger, `scripts/ai-validate-matches.ts` two-tier AI match validation (~9,200 bad matches rejected across 30k rows; Haiku 99.6%/98.8% precision/recall after prompt fix), PM2 status table corrected, Claude-runs-natively infra update*
 

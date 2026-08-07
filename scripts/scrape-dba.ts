@@ -36,7 +36,8 @@ import type { SupabaseClient } from '../frontend/node_modules/@supabase/supabase
 import { scrapeDbaWithCoverage } from '../frontend/lib/scrapers/dba'
 import * as crypto from 'crypto'
 import { evaluateRun, startRun, finishRun, setRunStatus, reportRun, type ListingSample } from './lib/scrape-health'
-import { stageListings, promoteRunAtomic, hasEstablishedScopeCoverage, robustBaseline, GATE_VERSION, type StagedListing } from './lib/publish'
+import { stageListings, promoteRunAtomic, hasEstablishedScopeCoverage, GATE_VERSION, type StagedListing } from './lib/publish'
+import { resolveBaseline, baselineNotAttempted, cohortOf, type Baseline } from './lib/baseline'
 
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
 
@@ -82,6 +83,11 @@ const SIMULATE_BAD_DATA = args.includes('--simulate-bad-data')
 // atomicity: a failure mid-promotion must roll back everything, leaving all
 // authoritative tables identical to the pre-run state.
 const SIMULATE_PROMOTION_CRASH = args.includes('--simulate-promotion-crash')
+// Makes the cohort-identity write fail. Proves the run aborts before
+// promotion rather than publishing under an unknown identity — which would
+// leave listings with a NULL coverage_scope_hash, outside the coverage
+// universe, and the run unusable as a baseline and un-auditable.
+const SIMULATE_IDENTITY_WRITE_FAILURE = args.includes('--simulate-identity-write-failure')
 
 // Jittered delay — DBA is the bot-sensitive host, so be politer than the
 // flat 3s used for Finn/Blocket. Jitter avoids a machine-regular request
@@ -92,7 +98,18 @@ const DELAY_JITTER_MS = 2000
 // Bump when scrape/parse behaviour changes, so a run's output can be
 // attributed to the code that produced it.
 const SCRAPER_VERSION = 'dba-2.0.0'
+// Bump when the extraction/normalisation of a page changes. Separate from
+// SCRAPER_VERSION because a parser change alters what "one listing" MEANS,
+// which breaks volume comparability even when fetching is untouched. Both are
+// independent dimensions of the baseline cohort.
+const PARSER_VERSION = 'dba-jsonld-1.0.0'
 const PAGINATION_STRATEGY = 'page-increment-until-empty'
+// Whether this invocation attempts the FULL expected manifest or a subset.
+// Recorded from the run's own intent BEFORE scraping: a targeted run must
+// never seed a baseline for a complete scope, and that must not depend on
+// counts a fault could have changed.
+const RUN_SCOPE: 'complete' | 'targeted' =
+  productFilter === null && LIMIT === Infinity ? 'complete' : 'targeted'
 // Safety fuse only. Reaching it means coverage is NOT proven — never a
 // success signal. Set high enough that real queries exhaust naturally.
 const MAX_PAGES_FUSE = 40
@@ -228,13 +245,15 @@ async function main() {
   const coverageRows: Record<string, unknown>[] = []
   const scopeHash = computeScopeHash(products.map(p => p.id), products.map(p => p.query))
 
-  // Open the run record FIRST — staging rows are keyed to it.
-  const runId = DRY_RUN ? null : await startRun(supabase, 'dba.dk')
-  if (!DRY_RUN && !runId) {
+  // Open the run record FIRST — staging rows are keyed to it, and its
+  // started_at anchors baseline selection.
+  const run = DRY_RUN ? null : await startRun(supabase, 'dba.dk')
+  if (!DRY_RUN && !run) {
     console.error('Could not open a run record; refusing to scrape without a fail-closed gate.')
     process.exitCode = 1
     return
   }
+  const runId = run?.id ?? null
 
   for (let i = 0; i < products.length; i++) {
     if (i > 0) await jitteredDelay()
@@ -330,12 +349,38 @@ async function main() {
     // promote_scrape_run reads coverage_scope_hash to stamp scope membership
     // and to restrict misses. Writing them afterwards left v_scope NULL
     // inside the transaction, silently skipping scope membership entirely.
-    await supabase.from('scrape_run').update({
+    //
+    // The full cohort identity is stamped here too, so this run is already
+    // addressable as baseline material for the NEXT run the moment it exists,
+    // and so its identity cannot be back-dated after seeing its own results.
+    const { error: identityErr } = await supabase.from('scrape_run').update({
       coverage_version: 'v2',
       coverage_scope_hash: scopeHash,
       scraper_version: SCRAPER_VERSION,
+      parser_version: PARSER_VERSION,
+      pagination_strategy: PAGINATION_STRATEGY,
+      // An invalid value the CHECK constraint rejects, so the failure is a
+      // real database error on the real code path — not a mocked branch.
+      run_scope: SIMULATE_IDENTITY_WRITE_FAILURE ? 'not-a-valid-scope' : RUN_SCOPE,
       expected_products: products.length,
     }).eq('id', runId)
+
+    // FAIL CLOSED. This write was previously unchecked, and a silent failure
+    // here is not cosmetic: promotion would proceed with a NULL scope hash,
+    // skipping scope membership entirely, and the run would carry no cohort
+    // identity — making it both unusable as a baseline and impossible to
+    // audit. Refuse to continue rather than publish under an unknown identity.
+    if (identityErr) {
+      console.error(`Run identity write failed: ${identityErr.message}`)
+      await finishRun(supabase, runId, 'failed', {
+        productsAttempted: products.length, productsFailed: failedProducts,
+        listingsFetched: allSamples.length, listingsSaved: 0,
+        newListings: 0, priceChanges: 0, refoundListings: 0,
+      }, {}, [{ code: 'run_identity_write_failed', severity: 'hard', detail: identityErr.message }], 0)
+      console.error(`   NOT PUBLISHED — ${stagedCount} rows held in staging under run_id ${runId}.`)
+      process.exitCode = 1
+      return
+    }
 
     // Coverage evidence: one row per EXPECTED product. Written before the
     // gate so run_has_lifecycle_coverage() can evaluate it inside the
@@ -358,13 +403,32 @@ async function main() {
     priceChanges: 0,
     refoundListings: 0,
   }
-  const baseline = DRY_RUN
-    ? { medianVolume: null, sampleSize: 0, runs: [] }
-    : await robustBaseline(supabase, 'dba.dk')
-  const { status, violations, metrics } = evaluateRun(allSamples, counters, baseline.medianVolume)
+  // Baseline: only runs that measured the SAME THING may be compared. The
+  // cohort is (source, scope hash, coverage version, scraper version, parser
+  // version, pagination strategy), and a qualifying run must additionally be
+  // complete, promoted and coverage-approved. No qualifying run → the
+  // relative volume rules simply do not apply to this run.
+  const cohort = cohortOf({
+    source: 'dba.dk',
+    coverage_scope_hash: scopeHash,
+    coverage_version: 'v2',
+    scraper_version: SCRAPER_VERSION,
+    parser_version: PARSER_VERSION,
+    pagination_strategy: PAGINATION_STRATEGY,
+  })
+  let baseline: Baseline
+  if (DRY_RUN || !run) {
+    baseline = baselineNotAttempted('dry_run')
+  } else if (cohort === null) {
+    baseline = baselineNotAttempted('cohort_identity_incomplete')
+  } else {
+    baseline = await resolveBaseline(supabase, cohort, { id: run.id, startedAt: run.startedAt })
+  }
+
+  const { status, violations, metrics } = evaluateRun(allSamples, counters, baseline)
 
   console.log(`\n[scrape-dba] ${scrapedProducts}/${products.length} products, ${totalListings} listings scraped, ${stagedCount} staged.`)
-  reportRun(status, violations, metrics)
+  reportRun(status, violations, metrics, baseline)
 
   // Coverage manifest: every expected product actually scraped. "No
   // exceptions thrown" is not proof — a changed pagination can silently
@@ -376,7 +440,7 @@ async function main() {
 
   const coverageComplete =
     !DRY_RUN && status === 'passed' &&
-    !productFilter && LIMIT === Infinity &&
+    RUN_SCOPE === 'complete' &&
     failedProducts === 0 && scrapedProducts === products.length &&
     coverageRowsComplete && allTerminal
 
@@ -402,10 +466,9 @@ async function main() {
     // identical coverage faults could still fabricate a mass delisting.
     // Scope-specific: approval belongs to (source, scope_hash, scraper_version),
     // so a changed product universe or scraper version requires a new bootstrap.
-    const { data: scopeOk } = await supabase.rpc('scope_has_established_coverage', {
-      p_source: 'dba.dk', p_scope_hash: scopeHash, p_scraper_version: SCRAPER_VERSION,
-    })
-    const lifecycleEnabled = Boolean(scopeOk)
+    const lifecycleEnabled = await hasEstablishedScopeCoverage(
+      supabase, 'dba.dk', scopeHash, SCRAPER_VERSION,
+    )
 
     const pr = await promoteRunAtomic(supabase, runId, {
       coverageComplete,
@@ -451,19 +514,43 @@ async function main() {
 
   if (!DRY_RUN && runId) {
     await finishRun(supabase, runId, status, counters, metrics, violations, delisted)
-    await supabase.from('scrape_run').update({
+    const { error: auditErr } = await supabase.from('scrape_run').update({
       expected_products: products.length,
       covered_products: scrapedProducts,
       coverage_complete: coverageComplete,
       gate_version: GATE_VERSION,
       scraper_version: SCRAPER_VERSION,
+      parser_version: PARSER_VERSION,
+      pagination_strategy: PAGINATION_STRATEGY,
+      run_scope: RUN_SCOPE,
       raw_count: allSamples.length,
       staged_count: stagedCount,
-      baseline: { median_volume: baseline.medianVolume, sample_size: baseline.sampleSize },
+      // Full evidence, not just the number: which cohort was required, which
+      // runs were selected, and why every other considered run was rejected.
+      // Enough to re-audit the verdict without re-running selection.
+      baseline_status: baseline.status,
+      baseline: {
+        status: baseline.status,
+        reason: baseline.reason,
+        measure: baseline.measure,
+        median_volume: baseline.medianVolume,
+        sample_size: baseline.sampleSize,
+        run_ids: baseline.runIds,
+        volumes: baseline.volumes,
+        cohort: baseline.cohort,
+        window: baseline.window,
+        version: baseline.version,
+        rejected: baseline.rejected,
+      },
       coverage_version: 'v2',
       coverage_scope_hash: scopeHash,
       parse_error_count: coverageRows.reduce((a, c) => a + Number(c.parse_error_count ?? 0), 0),
     }).eq('id', runId)
+
+    // Publication already happened, so this cannot be failed closed — but a
+    // lost audit record means the next run cannot use this one as a baseline
+    // and this verdict cannot be re-audited. Never swallow it.
+    if (auditErr) console.error(`[scrape-dba] run audit record write failed: ${auditErr.message}`)
   }
 
   // Signal downstream automation: quarantined/failed runs should not be

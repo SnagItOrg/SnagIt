@@ -1,0 +1,106 @@
+-- Pre-migration schema snapshot: public.scrape_run, immediately before
+-- 050_baseline_cohort_scoping.sql was applied.
+--
+-- Kind: schema-only record (READ-ONLY documentation — do NOT run against a
+--       database that already has migration 050; it would recreate the table
+--       definition as it stood BEFORE the change).
+-- Captured: 2026-08-07 15:50 CEST, production
+-- Purpose: rollback reference and a diffable record of exactly what changed.
+--
+-- State at capture:
+--   rows              12
+--   columns           42
+--   constraints       2   (scrape_run_pkey, scrape_run_status_check)
+--   indexes           3   (scrape_run_pkey, idx_scrape_run_source_time,
+--                          idx_scrape_run_status)
+--   md5 of all rows   37ab2021614ab9ed03bba1b944e00649
+--                     (string_agg(t::text, '|' ORDER BY t.id))
+--
+-- Migration 050 adds ONLY: 5 nullable columns, 2 NULL-permitting CHECK
+-- constraints, 1 index, and column comments. It contains no DML.
+--
+-- NOTE ON THAT DIGEST: it is NOT a valid before/after equality check across
+-- this migration. `t::text` serialises the whole row, so adding five columns
+-- appends five empty fields to every row's text form and changes the digest
+-- (observed: 37ab2021… -> 522d9a7e…) without any data changing. Use it only
+-- to detect drift while the column set is fixed.
+--
+-- What was actually verified after applying (2026-08-07):
+--   * column count 42 -> 47; exactly the 5 expected columns, all nullable,
+--     no defaults
+--   * 12 rows before and after; 0 rows have a non-NULL value in any new column
+--   * both new CHECK constraints present and convalidated = true
+--   * run 43f27632-… (REJECTED bootstrap) and 7eea3caa-… byte-identical:
+--     still quarantined, promoted_at NULL, published_count NULL
+--   * the polluting targeted run 3de18555-… (scope 6fee97d8…) unchanged and
+--     now carries run_scope NULL, disqualifying it from every baseline
+
+-- ── COLUMNS (ordinal order) ─────────────────────────────────────────────
+-- id                     uuid                     NOT NULL DEFAULT gen_random_uuid()
+-- source                 text                     NOT NULL
+-- started_at             timestamptz              NOT NULL DEFAULT now()
+-- finished_at            timestamptz              NULL
+-- status                 text                     NOT NULL DEFAULT 'running'::text
+-- products_attempted     integer                  NOT NULL DEFAULT 0
+-- products_failed        integer                  NOT NULL DEFAULT 0
+-- listings_fetched       integer                  NOT NULL DEFAULT 0
+-- listings_saved         integer                  NOT NULL DEFAULT 0
+-- unique_external_ids    integer                  NOT NULL DEFAULT 0
+-- duplicate_rate         numeric                  NULL
+-- null_price             integer                  NOT NULL DEFAULT 0
+-- null_currency          integer                  NOT NULL DEFAULT 0
+-- null_price_dkk         integer                  NOT NULL DEFAULT 0
+-- null_url               integer                  NOT NULL DEFAULT 0
+-- null_title             integer                  NOT NULL DEFAULT 0
+-- price_min_dkk          numeric                  NULL
+-- price_median_dkk       numeric                  NULL
+-- price_max_dkk          numeric                  NULL
+-- new_listings           integer                  NOT NULL DEFAULT 0
+-- price_changes          integer                  NOT NULL DEFAULT 0
+-- refound_listings       integer                  NOT NULL DEFAULT 0
+-- delisted_listings      integer                  NOT NULL DEFAULT 0
+-- volume_delta_pct       numeric                  NULL
+-- violations             jsonb                    NOT NULL DEFAULT '[]'::jsonb
+-- notes                  text                     NULL
+-- expected_products      integer                  NULL
+-- covered_products       integer                  NULL
+-- expected_pages         integer                  NULL
+-- fetched_pages          integer                  NULL
+-- coverage_complete      boolean                  NOT NULL DEFAULT false
+-- gate_version           text                     NULL
+-- scraper_version        text                     NULL
+-- baseline               jsonb                    NULL
+-- raw_count              integer                  NULL
+-- staged_count           integer                  NULL
+-- published_count        integer                  NULL
+-- promoted_at            timestamptz              NULL
+-- coverage_version       text                     NULL
+-- coverage_scope_hash    text                     NULL
+-- parse_error_count      integer                  NOT NULL DEFAULT 0
+-- staging_digest         text                     NULL
+
+-- ── CONSTRAINTS ─────────────────────────────────────────────────────────
+-- scrape_run_pkey         PRIMARY KEY (id)
+-- scrape_run_status_check CHECK (status = ANY (ARRAY['running','passed','quarantined','failed']))
+
+-- ── INDEXES ─────────────────────────────────────────────────────────────
+-- CREATE UNIQUE INDEX scrape_run_pkey ON public.scrape_run USING btree (id);
+-- CREATE INDEX idx_scrape_run_source_time ON public.scrape_run USING btree (source, started_at DESC);
+-- CREATE INDEX idx_scrape_run_status ON public.scrape_run USING btree (source, status, started_at DESC);
+
+-- ── ROLLBACK (if ever needed) ───────────────────────────────────────────
+-- Migration 050 is additive only, so it is reversible without data loss as
+-- long as nothing has been written to the new columns yet. After a run has
+-- populated them, dropping them destroys the audit trail for that run's gate
+-- verdict — take the loss deliberately, not casually.
+--
+--   ALTER TABLE scrape_run
+--     DROP CONSTRAINT IF EXISTS scrape_run_run_scope_check,
+--     DROP CONSTRAINT IF EXISTS scrape_run_baseline_status_check;
+--   DROP INDEX IF EXISTS idx_scrape_run_baseline_cohort;
+--   ALTER TABLE scrape_run
+--     DROP COLUMN IF EXISTS parser_version,
+--     DROP COLUMN IF EXISTS pagination_strategy,
+--     DROP COLUMN IF EXISTS run_scope,
+--     DROP COLUMN IF EXISTS global_unique_listings,
+--     DROP COLUMN IF EXISTS baseline_status;

@@ -4,6 +4,8 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
+    "test": "tsx --test scripts/lib/baseline.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "import-kg": "tsx scripts/import-knowledge-graph.ts",
     "export-kg": "tsx scripts/export-knowledge-graph.ts",
     "match-listings": "tsx scripts/match-listings.ts",

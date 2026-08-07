@@ -123,6 +123,38 @@ in production but had no migration file: the SQL was printed by
 lived in a `console.log`. The file is a no-op against production and exists so
 a clean database gets the same constraint.
 
+### 050–051 — baseline cohort scoping (2026-08-07)
+
+Both applied in production 2026-08-07 via Supabase MCP `apply_migration`.
+
+| File | Kind | Idempotent? |
+|---|---|---|
+| `050_baseline_cohort_scoping.sql` | columns + constraints + index + comments | Yes — verified by applying it twice |
+| `051_promote_requires_cohort_identity.sql` | function / RPC | Yes (`CREATE OR REPLACE`) |
+
+`050` adds the baseline cohort identity (`parser_version`,
+`pagination_strategy`, `run_scope`) plus `global_unique_listings` and
+`baseline_status`. **No backfill by design** — existing rows keep a NULL cohort
+identity, which disqualifies them from every baseline. That is the point: a run
+whose parser and scope provenance was never recorded cannot be retroactively
+declared comparable, and run `43f27632-…` stays untouched.
+
+`051` redefines `promote_scrape_run` so it **refuses** any run missing cohort
+identity, naming the missing fields. Ordering now matters: 043 → 045 → 046 →
+047 → **051**, and only the 051 version is current. Without it, a run with a
+NULL `coverage_scope_hash` would publish listings outside the coverage universe
+and silently skip the `listing_coverage_scopes` insert.
+
+Pre-migration state of `scrape_run` is recorded in
+`snapshots/050_pre_scrape_run.sql`, including a rollback script.
+
+**Verified after applying:** 42 → 47 columns, all five nullable with no
+defaults; both CHECK constraints `convalidated`; 12 rows before and after with
+zero rows carrying a new value; runs `43f27632-…` and `7eea3caa-…`
+byte-identical. Promotion guard proven against the live function: no identity →
+refused listing all six fields, partial identity → refused naming exactly the
+two missing, full identity → proceeds; `listings` unchanged throughout.
+
 **Not represented here:** ad-hoc DML run during the session (the
 `price_fetch_queue` status resets, the `listings.external_id` backfill, the
 141 duplicate-row cleanup, and `DROP TABLE price_snapshots_old`). Those were

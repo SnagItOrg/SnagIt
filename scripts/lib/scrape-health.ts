@@ -21,9 +21,17 @@
  * Hard invariants (→ failed) are things that make the data unusable by
  * definition. Volume and rate swings (→ quarantined) are suspicious but may
  * be legitimate market movement, so they alarm rather than auto-discard.
+ *
+ * ── ABSOLUTE VS RELATIVE RULES ──────────────────────────────────────────
+ * Absolute rules judge a run on its own output and always apply. Relative
+ * rules compare it against a baseline and apply ONLY when a qualifying prior
+ * run exists in an identical cohort (see lib/baseline.ts). A first complete
+ * run in a new cohort has no baseline, and must not be quarantined for that:
+ * `baseline_unavailable` is information, not a violation.
  */
 
 import type { SupabaseClient } from '../../frontend/node_modules/@supabase/supabase-js'
+import { describeBaseline, type Baseline } from './baseline'
 
 export interface ListingSample {
   external_id?: string | null
@@ -57,13 +65,13 @@ const VALID_CURRENCIES = new Set(['DKK', 'NOK', 'SEK', 'EUR', 'USD', 'GBP'])
 // A run that scrapes almost nothing may be a parser break rather than a
 // quiet market. Below this, quarantine and look.
 const MIN_EXPECTED_LISTINGS = 5
-// Volume swing versus the last passed run that trips a quarantine.
+// Volume swing versus the cohort baseline that trips a quarantine.
 const VOLUME_SWING_PCT = 60
 
 export function evaluateRun(
   listings: ListingSample[],
   counters: RunCounters,
-  previousVolume: number | null,
+  baseline: Baseline,
 ): { status: RunStatus; violations: Violation[]; metrics: Record<string, number | null> } {
   const violations: Violation[] = []
   const n = listings.length
@@ -76,8 +84,16 @@ export function evaluateRun(
   const emptyIds     = listings.filter(l => !l.external_id).length
   const badCurrency  = listings.filter(l => l.currency && !VALID_CURRENCIES.has(l.currency)).length
 
-  const uniqueIds = new Set(listings.map(l => l.external_id).filter(Boolean)).size
-  const duplicateRate = n > 0 ? (n - uniqueIds) / n : 0
+  // The GLOBAL run measurement: distinct external_ids across the whole run,
+  // not per query. Volume rules compare this against a baseline of the same
+  // measure — `n` counts a listing once per query that returned it, and
+  // mixing the two would compare different quantities.
+  const globalUniqueListings = new Set(listings.map(l => l.external_id).filter(Boolean)).size
+  const duplicateRate = n > 0 ? (n - globalUniqueListings) / n : 0
+
+  // Relative rules are only meaningful against a qualifying prior run in an
+  // identical cohort. Absent one, they stay switched off entirely.
+  const baselineVolume = baseline.status === 'available' ? baseline.medianVolume : null
 
   const prices = listings.map(l => l.price_dkk).filter((p): p is number => p != null).sort((a, b) => a - b)
   const median = prices.length ? prices[Math.floor(prices.length / 2)] : null
@@ -99,14 +115,14 @@ export function evaluateRun(
 
   // ── SOFT SIGNALS → quarantined ────────────────────────────────────────
 
-  // Zero results where there was substantial volume before. Pagination may
-  // technically end on `empty_page` — a blocked or redesigned source returns
-  // a well-formed page with no results — so termination alone cannot catch
-  // this. Left unflagged it would mark the ENTIRE source missing and, after
-  // three such runs, delist everything.
-  if (n === 0 && previousVolume != null && previousVolume >= MIN_EXPECTED_LISTINGS) {
+  // RELATIVE. Zero results where there was substantial volume before.
+  // Pagination may technically end on `empty_page` — a blocked or redesigned
+  // source returns a well-formed page with no results — so termination alone
+  // cannot catch this. Left unflagged it would mark the ENTIRE source missing
+  // and, after three such runs, delist everything.
+  if (globalUniqueListings === 0 && baselineVolume != null && baselineVolume >= MIN_EXPECTED_LISTINGS) {
     violations.push({ code: 'zero_results_after_volume', severity: 'soft',
-      detail: `0 listings where the recent baseline is ${previousVolume} — source may be blocked or its markup changed` })
+      detail: `0 listings where the cohort baseline is ${baselineVolume} — source may be blocked or its markup changed` })
   }
 
   if (n > 0 && nullPriceDkk > 0 && nullPriceDkk < n) {
@@ -132,12 +148,16 @@ export function evaluateRun(
       detail: `${counters.productsFailed}/${counters.productsAttempted} products failed to scrape` })
   }
 
+  // RELATIVE. Inactive without a cohort baseline — comparing a complete run
+  // against a targeted one produced the 12600% false quarantine this gate was
+  // rebuilt to prevent.
   let volumeDelta: number | null = null
-  if (previousVolume != null && previousVolume > 0) {
-    volumeDelta = ((n - previousVolume) / previousVolume) * 100
+  if (baselineVolume != null && baselineVolume > 0) {
+    volumeDelta = ((globalUniqueListings - baselineVolume) / baselineVolume) * 100
     if (Math.abs(volumeDelta) > VOLUME_SWING_PCT) {
       violations.push({ code: 'volume_swing', severity: 'soft',
-        detail: `volume changed ${volumeDelta.toFixed(0)}% vs last passed run (${previousVolume} → ${n})` })
+        detail: `global unique listings changed ${volumeDelta.toFixed(0)}% vs the cohort baseline ` +
+          `(${baselineVolume} → ${globalUniqueListings}, median over ${baseline.sampleSize} run(s))` })
     }
   }
 
@@ -150,7 +170,9 @@ export function evaluateRun(
     status,
     violations,
     metrics: {
-      unique_external_ids: uniqueIds,
+      global_unique_listings: globalUniqueListings,
+      // Deprecated alias of the above, kept so existing dashboards keep working.
+      unique_external_ids: globalUniqueListings,
       duplicate_rate: Number(duplicateRate.toFixed(4)),
       null_price: nullPrice,
       null_currency: nullCurrency,
@@ -163,18 +185,6 @@ export function evaluateRun(
       volume_delta_pct: volumeDelta == null ? null : Number(volumeDelta.toFixed(2)),
     },
   }
-}
-
-/** Listing volume of the most recent run that actually passed, for comparison. */
-export async function lastPassedVolume(supabase: SupabaseClient, source: string): Promise<number | null> {
-  const { data } = await supabase
-    .from('scrape_run')
-    .select('listings_fetched')
-    .eq('source', source)
-    .eq('status', 'passed')
-    .order('started_at', { ascending: false })
-    .limit(1)
-  return data?.[0]?.listings_fetched ?? null
 }
 
 /**
@@ -197,14 +207,23 @@ export async function setRunStatus(
   if (error) console.error(`[health] could not set run status: ${error.message}`)
 }
 
-export async function startRun(supabase: SupabaseClient, source: string): Promise<string | null> {
+/**
+ * Open the run record. `started_at` is returned because baseline selection is
+ * anchored on it: candidates are restricted to runs that started strictly
+ * earlier, so a run inserted concurrently while this one is being evaluated
+ * cannot change the verdict, and the selection replays identically later.
+ */
+export async function startRun(
+  supabase: SupabaseClient,
+  source: string,
+): Promise<{ id: string; startedAt: string } | null> {
   const { data, error } = await supabase
     .from('scrape_run')
     .insert({ source, status: 'running' })
-    .select('id')
+    .select('id, started_at')
     .single()
   if (error) { console.error(`[health] could not open run record: ${error.message}`); return null }
-  return data.id
+  return { id: data.id, startedAt: data.started_at }
 }
 
 export async function finishRun(
@@ -238,15 +257,24 @@ export async function finishRun(
 }
 
 /** Human-readable gate summary for the run log. */
-export function reportRun(status: RunStatus, violations: Violation[], metrics: Record<string, number | null>): void {
+export function reportRun(
+  status: RunStatus,
+  violations: Violation[],
+  metrics: Record<string, number | null>,
+  baseline: Baseline,
+): void {
   const icon = status === 'passed' ? '✅' : status === 'quarantined' ? '⚠️ ' : '❌'
   console.log(`\n${icon} Quality gate: ${status.toUpperCase()}`)
+  console.log(`   ${describeBaseline(baseline)}`)
+  if (baseline.status === 'available') {
+    console.log(`   baseline runs: ${baseline.runIds.join(', ')}`)
+  }
   if (violations.length > 0) {
     for (const v of violations) {
       console.log(`   [${v.severity}] ${v.code}: ${v.detail}`)
     }
   }
-  console.log(`   unique_ids=${metrics.unique_external_ids} dup_rate=${metrics.duplicate_rate} ` +
+  console.log(`   global_unique=${metrics.global_unique_listings} dup_rate=${metrics.duplicate_rate} ` +
     `null_price_dkk=${metrics.null_price_dkk} median_dkk=${metrics.price_median_dkk ?? 'n/a'}` +
     (metrics.volume_delta_pct != null ? ` vol_delta=${metrics.volume_delta_pct}%` : ''))
   if (status === 'quarantined') {
