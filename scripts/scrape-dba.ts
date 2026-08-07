@@ -451,7 +451,7 @@ async function main() {
 
   // ── 3. PROMOTE (only on pass) ─────────────────────────────────────────
   let published = 0, newListings = 0, priceChanges = 0, unchangedSeen = 0
-  let delisted = 0, reactivated = 0
+  let delisted = 0
 
   // Persist the verdict BEFORE promotion: promote_scrape_run only publishes
   // runs already marked 'passed', so the database — not this script — is the

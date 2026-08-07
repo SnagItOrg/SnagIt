@@ -119,6 +119,19 @@ export interface Baseline {
   rejected: RejectedCandidate[]
 }
 
+/**
+ * Timestamps are compared as instants, never as strings. Lexicographic
+ * comparison happens to work while every value comes from the same PostgREST
+ * rendering, but silently inverts the moment formats mix — `...01.403Z` sorts
+ * ABOVE `...01.403719+00:00` because 'Z' > '7'. The ordering guarantee this
+ * module makes is too load-bearing to rest on that.
+ */
+function toEpoch(ts: string | null | undefined): number | null {
+  if (!ts) return null
+  const ms = Date.parse(ts)
+  return Number.isNaN(ms) ? null : ms
+}
+
 function unavailable(
   reason: string,
   cohort: RunCohort | null,
@@ -174,7 +187,10 @@ export function disqualify(
   // Anchored on the evaluated run's own start time rather than on "now", so a
   // run inserted concurrently while the gate is deciding cannot change the
   // answer. Selection must be reproducible after the fact.
-  if (!(candidate.started_at < anchor.startedAt)) return 'not_before_anchor'
+  const candidateAt = toEpoch(candidate.started_at)
+  const anchorAt = toEpoch(anchor.startedAt)
+  if (candidateAt === null || anchorAt === null) return 'unparseable_started_at'
+  if (candidateAt >= anchorAt) return 'not_before_anchor'
 
   const candidateCohort = cohortOf(candidate)
   if (candidateCohort === null) return 'cohort_identity_incomplete'
@@ -235,11 +251,12 @@ export function selectBaseline(
   }
 
   const selected = [...qualifying]
-    .sort((a, b) =>
-      a.started_at === b.started_at
-        ? (a.id < b.id ? 1 : a.id > b.id ? -1 : 0)
-        : (a.started_at < b.started_at ? 1 : -1),
-    )
+    .sort((a, b) => {
+      // Non-null: disqualify() already rejected anything unparseable.
+      const delta = (toEpoch(b.started_at) as number) - (toEpoch(a.started_at) as number)
+      if (delta !== 0) return delta
+      return a.id < b.id ? 1 : a.id > b.id ? -1 : 0
+    })
     .slice(0, window)
 
   const volumes = selected.map(r => r.global_unique_listings as number)

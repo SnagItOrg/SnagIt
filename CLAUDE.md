@@ -1256,16 +1256,40 @@ eligibility comes from a JOIN on that relation; the column is DEPRECATED.
 ### Atomic, fail-closed promotion
 
 `promote_scrape_run()` is ONE transaction. It refuses: non-`passed` status ·
-already-promoted runs · `staging_digest` mismatch (staging mutated after the
-gate). `FOR UPDATE` serialises concurrent promotion.
+already-promoted runs · **missing cohort identity** (migration 051) ·
+`staging_digest` mismatch. `FOR UPDATE` serialises concurrent promotion.
 
-Regression tests (all verified 2026-08-06):
+> ⚠️ **The `staging_digest` guard is INERT — it has never run.** The check is
+> `IF v_expected_dig IS NOT NULL`, and **no code writes `scrape_run.staging_digest`**.
+> Verified 2026-08-07: 0 of 14 runs have a digest, including all 7 promoted
+> ones. So "staging cannot be mutated between the gate and promotion" is
+> currently an unenforced claim, not a protection. The column, the
+> `compute_staging_digest()` function and the comparison all exist — only the
+> write is missing. Wiring it is a small follow-up, deliberately NOT done
+> during the stabilisation review. Until then, do not count it among the
+> active guards.
+
+Regression tests (all verified 2026-08-06, re-verified 2026-08-07):
 ```bash
 npx tsx scripts/scrape-dba.ts --product="juno-106" --simulate-bad-data
 npx tsx scripts/scrape-dba.ts --product="juno-106" --simulate-promotion-crash
+npx tsx scripts/scrape-dba.ts --product="juno-106" --simulate-identity-write-failure
 ```
-Both leave `listings`, `market_price_observations` and `consecutive_misses`
+All leave `listings`, `market_price_observations` and `consecutive_misses`
 bit-identical. Concurrent promotion: exactly one commits.
+
+> ⚠️ **`scrape_run.price_changes` and `refound_listings` are always 0 under the
+> current promotion path.** `promoteRunAtomic()` reads `r.price_changes` and
+> `r.unchanged` from the RPC result, but `promote_scrape_run()` never returns
+> those keys — it returns only `published`, `first_seen`, `missed`, `delisted`,
+> `lifecycle_applied`. And `first_seen` is itself misnamed: it counts every
+> `market_price_observations` row written, which is first-sightings AND price
+> changes together. Consequence: the per-run split between new listings and
+> price changes is not measured, and the "0 new, 0 price changes, 0 unchanged"
+> line in the run log is meaningless rather than informative. **No data is
+> wrong** — the observation rows themselves are correct — this is a reporting
+> gap only. Found during the 2026-08-07 stabilisation review; registered, not
+> fixed.
 
 ### DBA candidate bootstrap — REJECTED, do not reclassify
 
@@ -1436,6 +1460,24 @@ against labeled data before a live pass.
 ---
 
 ## Known issues
+
+**`listing_staging` has no retention policy.** Rows are never deleted — not
+after a successful promotion, and not for quarantined/failed runs (the latter
+is deliberate: they are forensic evidence). 1,593 rows as of 2026-08-07, of
+which 1,533 belong to the three quarantined full DBA runs. A nightly full run
+adds ~760 rows that serve no purpose once promoted, so this grows by roughly
+280k rows/year unattended. Wants a retention rule that keeps
+quarantined/failed runs indefinitely and prunes promoted ones after a short
+window. Registered during the 2026-08-07 stabilisation review; not fixed.
+
+**`scripts/process-reverb-data.ts` does not compile.** `tsc --noEmit` reports
+`TS1128: Declaration or statement expected` at line 135 — a stray `.` on its
+own line inside a comment block, introduced by commit `18d1004` (2026-03-05)
+and never noticed because the script has no importers, no npm script, and no
+PM2 job. It is the ONLY typecheck error in the repo, so `npm run typecheck`
+exits 2 on a clean tree; treat a single error in this file as the expected
+baseline and anything else as a real regression. Left unfixed deliberately —
+the script is dead code and deleting vs. repairing it is a separate call.
 
 **`reverb_price_history` is query-keyed; `kg_product_id` FK partially
 backfilled.** Migration 031 added a nullable `kg_product_id` FK. Migration

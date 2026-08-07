@@ -361,6 +361,41 @@ test('baseline selection is stable under concurrent inserts', () => {
     ],
   )
 
+  // Timestamps are compared as instants, not strings. PostgREST renders
+  // '+00:00' with microseconds; a Date.toISOString() value is 'Z' with
+  // milliseconds. Lexicographically '...403Z' sorts ABOVE '...403719+00:00'
+  // ('Z' > '7'), which would let a later run into an earlier run's baseline.
+  const mixedFormats = [
+    qualifying({ id: 'run-iso-z', started_at: '2026-08-06T01:00:00.403Z', global_unique_listings: 700 }),
+    qualifying({ id: 'run-pgrst', started_at: '2026-08-06T01:00:00.403719+00:00', global_unique_listings: 700 }),
+  ]
+  const mixed = selectBaseline(mixedFormats, COHORT, ANCHOR)
+  assert.equal(mixed.status, 'available')
+  assert.equal(mixed.sampleSize, 2, 'both are genuinely before the anchor')
+  // Strictly later than the anchor, expressed in the other format.
+  assert.equal(
+    disqualify(
+      qualifying({ started_at: '2026-08-07T01:00:00.000Z' }),
+      COHORT,
+      { id: 'x', startedAt: '2026-08-07T01:00:00.403719+00:00' },
+    ),
+    null,
+    '00.000Z precedes 00.403719+00:00 as an instant',
+  )
+  assert.equal(
+    disqualify(
+      qualifying({ started_at: '2026-08-07T02:00:00.000Z' }),
+      COHORT,
+      { id: 'x', startedAt: '2026-08-07T01:00:00.403719+00:00' },
+    ),
+    'not_before_anchor',
+  )
+  // A timestamp that cannot be read is excluded, never guessed at.
+  assert.equal(
+    disqualify(qualifying({ started_at: 'not-a-timestamp' }), COHORT, ANCHOR),
+    'unparseable_started_at',
+  )
+
   // Simultaneous started_at is broken by id, so ties are deterministic too.
   const tied = [
     qualifying({ id: 'run-y', started_at: '2026-08-06T01:00:00Z', global_unique_listings: 2 }),
