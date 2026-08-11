@@ -1184,7 +1184,9 @@ migrations — `diagnostics/`, `verification/`, `operations/`. See
 | `staging_digest` guard | `migrations/047_staging_digest_guard.sql` |
 | Retired unscoped coverage fn | `migrations/048_retire_unscoped_coverage_function.sql` |
 | Baseline cohort identity | `migrations/050_baseline_cohort_scoping.sql` |
-| Promotion requires cohort identity (current `promote_scrape_run` = 051) | `migrations/051_promote_requires_cohort_identity.sql` |
+| Promotion requires cohort identity | `migrations/051_promote_requires_cohort_identity.sql` |
+| Cross-query duplicate collapse (current `promote_scrape_run` = **052**) | `migrations/052_promote_dedupe_coverage_scopes.sql` |
+| Cross-query duplicate regression fixture | `queries/verification/promotion_cross_query_duplicates.sql` |
 | Pre-050 `scrape_run` definition + rollback | `migrations/snapshots/050_pre_scrape_run.sql` |
 | Baseline decision re-audit | `queries/verification/baseline_cohort_scoping.sql` |
 | Fail-closed proof | `queries/verification/fail_closed_publication.sql` |
@@ -1277,6 +1279,52 @@ npx tsx scripts/scrape-dba.ts --product="juno-106" --simulate-identity-write-fai
 ```
 All leave `listings`, `market_price_observations` and `consecutive_misses`
 bit-identical. Concurrent promotion: exactly one commits.
+
+### Cross-query duplicates in promotion (migration 052, P0, 2026-08-11)
+
+**Four consecutive nightly DBA runs (2026-08-07 … 08-10) passed the gate and
+then failed promotion** with `ON CONFLICT DO UPDATE command cannot affect row a
+second time`. DBA published nothing for four nights.
+
+The `listing_coverage_scopes` upsert selected straight from `listing_staging`
+with no de-duplication, while the two INSERTs above it both use
+`DISTINCT ON (external_id)`. That table is keyed `(listing_id, scope_hash)`, so
+a listing found by several product queries produced several source rows
+resolving to the *same* conflict key — which Postgres refuses inside one
+statement.
+
+**This is normal scraper output, not a data fault.** On 2026-08-10, 768 staged
+rows resolved to 709 distinct listings; one guitar was returned by the
+*Fender Stratocaster*, *Fender Telecaster* **and** *Gibson Les Paul* searches at
+once. Latent since migration 046: targeted `--product` runs produce no
+cross-query duplicates, and before baseline cohort scoping every full run was
+quarantined on a false `volume_swing` and never reached promotion.
+
+**De-duplication semantics.** Measured against real staged data (50 duplicate
+groups): title, price, price_dkk, currency, url, image_url, location, country,
+source and normalized_text are **byte-identical** across duplicates. Exactly one
+column differs — `source_query` — because the difference *is* which query found
+it. So `source_query` is aggregated with **`min()`**: a deterministic
+representative, reproducible for auditing (`id DESC` would not be — `id` is a
+random uuid). It is a debugging label, not the provenance record.
+
+**Staging is never de-duplicated.** Several product queries must remain able to
+document that they each found the same advert. Full per-query provenance lives
+in `listing_staging` (every query × listing row) and `scrape_query_coverage`.
+Scope *membership* keys on `(listing_id, scope_hash)` only, so lifecycle never
+depends on which query is named.
+
+Regression fixture: `scripts/queries/verification/promotion_cross_query_duplicates.sql`
+(self-cleaning, safe to re-run) — 14/14 pass.
+
+**Gate evidence is now persisted BEFORE promotion is attempted.** The four
+failed runs lost `baseline_status`, the baseline evidence, `staged_count`,
+`raw_count`, `covered_products` and `gate_version` entirely, because the audit
+write sat after promotion and the failure path returns early — the audit trail
+vanished exactly when it was needed. `setRunStatus()` is gone; its status write
+is subsumed by that single evidence write, preserving the same ordering
+guarantee. Proven with `--simulate-promotion-crash`: the failed run keeps every
+field and still ends `failed`, unpromoted, fully rolled back.
 
 > ⚠️ **`scrape_run.price_changes` and `refound_listings` are always 0 under the
 > current promotion path.** `promoteRunAtomic()` reads `r.price_changes` and
@@ -2019,7 +2067,17 @@ for the Phase 0/1/2 roadmap in this document.
 
 ---
 
-*Last updated: 2026-08-07 — Baseline cohort scoping (migrations 050–051, both
+*Last updated: 2026-08-11 — **P0 (migration 052, APPLIED):** `promote_scrape_run`
+aborted on every full run because the `listing_coverage_scopes` upsert fed
+duplicate conflict keys into one statement when several product queries found
+the same advert; four nightly DBA runs passed the gate and published nothing.
+Duplicates are now collapsed deterministically (`GROUP BY l.id`,
+`min(source_query)`); `listing_staging` is still never de-duplicated. Gate
+evidence is persisted BEFORE promotion so a failed run keeps its audit trail.
+Verified live: 769 staged → 709 published atomically, 709 coverage-scope rows,
+0 duplicate keys, `violations=[]`, 0 misses, 0 delistings, lifecycle still off.*
+
+*Previous: 2026-08-07 — Baseline cohort scoping (migrations 050–051, both
 APPLIED): baseline selection moved to `scripts/lib/baseline.ts` as a pure,
 unit-tested function; cohort matched exactly on source + scope hash + coverage
 version + scraper version + parser version + pagination strategy; only complete,

@@ -187,25 +187,12 @@ export function evaluateRun(
   }
 }
 
-/**
- * Record the gate verdict on the run BEFORE promotion is attempted.
- * `promote_scrape_run` refuses to publish anything whose status is not
- * already 'passed', so the verdict must be durable first — that ordering is
- * what makes the database the enforcement point rather than this script.
- */
-export async function setRunStatus(
-  supabase: SupabaseClient,
-  runId: string | null,
-  status: RunStatus,
-  violations: Violation[],
-): Promise<void> {
-  if (!runId) return
-  const { error } = await supabase
-    .from('scrape_run')
-    .update({ status, violations })
-    .eq('id', runId)
-  if (error) console.error(`[health] could not set run status: ${error.message}`)
-}
+// The gate verdict is persisted as part of the caller's single pre-promotion
+// evidence write (status + violations + cohort identity + baseline + coverage
+// together), so a standalone status-only setter no longer exists. The ordering
+// it enforced is unchanged: `promote_scrape_run` refuses anything not already
+// marked 'passed', so the verdict must be durable before promotion is
+// attempted — the database, not the script, is the enforcement point.
 
 /**
  * Open the run record. `started_at` is returned because baseline selection is

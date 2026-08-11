@@ -35,7 +35,7 @@ import * as fs from 'fs'
 import type { SupabaseClient } from '../frontend/node_modules/@supabase/supabase-js'
 import { scrapeDbaWithCoverage } from '../frontend/lib/scrapers/dba'
 import * as crypto from 'crypto'
-import { evaluateRun, startRun, finishRun, setRunStatus, reportRun, type ListingSample } from './lib/scrape-health'
+import { evaluateRun, startRun, finishRun, reportRun, type ListingSample } from './lib/scrape-health'
 import { stageListings, promoteRunAtomic, hasEstablishedScopeCoverage, GATE_VERSION, type StagedListing } from './lib/publish'
 import { resolveBaseline, baselineNotAttempted, cohortOf, type Baseline } from './lib/baseline'
 
@@ -449,14 +449,75 @@ async function main() {
     console.log(`   Coverage: ${truncated}/${coverageRows.length} queries did NOT reach documented exhaustion — lifecycle blocked.`)
   }
 
-  // ── 3. PROMOTE (only on pass) ─────────────────────────────────────────
+  // ── 3. PERSIST THE GATE'S EVIDENCE — BEFORE PROMOTION IS ATTEMPTED ────
+  // Two reasons this cannot wait until after promotion:
+  //
+  //   1. promote_scrape_run only publishes runs already marked 'passed' and
+  //      carrying a full cohort identity, so the verdict must be durable
+  //      first — that ordering is what makes the database the enforcement
+  //      point rather than this script.
+  //   2. A promotion failure returns early. When this write lived after
+  //      promotion, four consecutive failed runs lost baseline_status, the
+  //      baseline evidence, staged_count, raw_count, covered_products and
+  //      gate_version entirely — the audit trail vanished at exactly the
+  //      moment it was needed to explain what went wrong.
+  //
+  // Everything here describes what the GATE decided. Nothing here describes
+  // the outcome of promotion; those counters are written afterwards.
+  if (!DRY_RUN && runId) {
+    const { error: evidenceErr } = await supabase.from('scrape_run').update({
+      status,
+      violations,
+      coverage_version: 'v2',
+      coverage_scope_hash: scopeHash,
+      scraper_version: SCRAPER_VERSION,
+      parser_version: PARSER_VERSION,
+      pagination_strategy: PAGINATION_STRATEGY,
+      run_scope: RUN_SCOPE,
+      gate_version: GATE_VERSION,
+      expected_products: products.length,
+      covered_products: scrapedProducts,
+      coverage_complete: coverageComplete,
+      raw_count: allSamples.length,
+      staged_count: stagedCount,
+      parse_error_count: coverageRows.reduce((a, c) => a + Number(c.parse_error_count ?? 0), 0),
+      // global_unique_listings and the null/price metrics ride along here.
+      ...metrics,
+      // Full evidence, not just the number: which cohort was required, which
+      // runs were selected, and why every other considered run was rejected.
+      // Enough to re-audit the verdict without re-running selection.
+      baseline_status: baseline.status,
+      baseline: {
+        status: baseline.status,
+        reason: baseline.reason,
+        measure: baseline.measure,
+        median_volume: baseline.medianVolume,
+        sample_size: baseline.sampleSize,
+        run_ids: baseline.runIds,
+        volumes: baseline.volumes,
+        cohort: baseline.cohort,
+        window: baseline.window,
+        version: baseline.version,
+        rejected: baseline.rejected,
+      },
+    }).eq('id', runId)
+
+    // FAIL CLOSED. Without a durable 'passed' status promotion would refuse
+    // anyway, but an un-recorded verdict must never be followed by a
+    // publication attempt — that is the ordering the whole gate rests on.
+    if (evidenceErr) {
+      console.error(`Run evidence write failed: ${evidenceErr.message}`)
+      await finishRun(supabase, runId, 'failed', counters, metrics,
+        [...violations, { code: 'run_evidence_write_failed', severity: 'hard', detail: evidenceErr.message }], 0)
+      console.error(`   NOT PUBLISHED — ${stagedCount} rows held in staging under run_id ${runId}.`)
+      process.exitCode = 1
+      return
+    }
+  }
+
+  // ── 4. PROMOTE (only on pass) ─────────────────────────────────────────
   let published = 0, newListings = 0, priceChanges = 0, unchangedSeen = 0
   let delisted = 0
-
-  // Persist the verdict BEFORE promotion: promote_scrape_run only publishes
-  // runs already marked 'passed', so the database — not this script — is the
-  // enforcement point.
-  if (!DRY_RUN && runId) await setRunStatus(supabase, runId, status, violations)
 
   if (!DRY_RUN && runId && status === 'passed') {
     // Bootstrap guard: until this source has one complete, passed, promoted
@@ -512,45 +573,13 @@ async function main() {
   counters.priceChanges = priceChanges
   counters.refoundListings = unchangedSeen
 
+  // ── 5. RECORD THE OUTCOME ─────────────────────────────────────────────
+  // Outcome counters only. The gate's evidence (cohort identity, baseline,
+  // coverage, staged/raw counts, violations) was persisted in step 3 and is
+  // deliberately NOT rewritten here — on a promotion failure this line is
+  // never reached from the early return above, and that evidence must survive.
   if (!DRY_RUN && runId) {
     await finishRun(supabase, runId, status, counters, metrics, violations, delisted)
-    const { error: auditErr } = await supabase.from('scrape_run').update({
-      expected_products: products.length,
-      covered_products: scrapedProducts,
-      coverage_complete: coverageComplete,
-      gate_version: GATE_VERSION,
-      scraper_version: SCRAPER_VERSION,
-      parser_version: PARSER_VERSION,
-      pagination_strategy: PAGINATION_STRATEGY,
-      run_scope: RUN_SCOPE,
-      raw_count: allSamples.length,
-      staged_count: stagedCount,
-      // Full evidence, not just the number: which cohort was required, which
-      // runs were selected, and why every other considered run was rejected.
-      // Enough to re-audit the verdict without re-running selection.
-      baseline_status: baseline.status,
-      baseline: {
-        status: baseline.status,
-        reason: baseline.reason,
-        measure: baseline.measure,
-        median_volume: baseline.medianVolume,
-        sample_size: baseline.sampleSize,
-        run_ids: baseline.runIds,
-        volumes: baseline.volumes,
-        cohort: baseline.cohort,
-        window: baseline.window,
-        version: baseline.version,
-        rejected: baseline.rejected,
-      },
-      coverage_version: 'v2',
-      coverage_scope_hash: scopeHash,
-      parse_error_count: coverageRows.reduce((a, c) => a + Number(c.parse_error_count ?? 0), 0),
-    }).eq('id', runId)
-
-    // Publication already happened, so this cannot be failed closed — but a
-    // lost audit record means the next run cannot use this one as a baseline
-    // and this verdict cannot be re-audited. Never swallow it.
-    if (auditErr) console.error(`[scrape-dba] run audit record write failed: ${auditErr.message}`)
   }
 
   // Signal downstream automation: quarantined/failed runs should not be

@@ -148,6 +148,18 @@ and silently skip the `listing_coverage_scopes` insert.
 Pre-migration state of `scrape_run` is recorded in
 `snapshots/050_pre_scrape_run.sql`, including a rollback script.
 
+### 052 — P0 promotion fix (2026-08-11)
+
+`052_promote_dedupe_coverage_scopes.sql` — applied in production 2026-08-11.
+Redefines `promote_scrape_run` so the `listing_coverage_scopes` upsert collapses
+cross-query duplicates (`GROUP BY l.id`, `min(source_query)`) instead of feeding
+duplicate conflict keys into one statement, and makes the two pre-existing
+`DISTINCT ON` blocks deterministic. **Ordering is now 043 → 045 → 046 → 047 →
+051 → 052; only the 052 version is current.**
+
+Re-run safe: one `CREATE OR REPLACE FUNCTION` plus two `COMMENT ON`. No DML, no
+schema change, nothing to apply twice.
+
 **Verified after applying:** 42 → 47 columns, all five nullable with no
 defaults; both CHECK constraints `convalidated`; 12 rows before and after with
 zero rows carrying a new value; runs `43f27632-…` and `7eea3caa-…`

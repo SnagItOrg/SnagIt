@@ -21,6 +21,10 @@ belongs in `scripts/migrations/` instead.
 - `lifecycle_disabled.sql` — confirms no scope is established and no listing
   has accrued misses or been delisted.
 - `coverage_v2_status.sql` — per-query pagination coverage for one run.
+- `promotion_cross_query_duplicates.sql` — regression fixture for the P0 fixed
+  by migration 052: one advert found by three product queries must promote to a
+  single listing and a single coverage-scope row while staging keeps all rows.
+  Creates and removes its own synthetic data; safe to re-run.
 - `baseline_cohort_scoping.sql` — re-audits a gate verdict's baseline decision
   from the evidence stored on `scrape_run.baseline`: which cohort was required,
   which runs were selected, and why the rest were rejected.
