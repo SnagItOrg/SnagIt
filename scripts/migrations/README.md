@@ -204,6 +204,39 @@ intermediate state in which the matcher has zero supported products. An earlier
 split (056 schema + 057 data + a psql wrapper) was **retired before deployment**
 for exactly that reason; `057_*.sql` and `056_057_release.sql` no longer exist.
 
+
+## 057 — release-security correction (2026-08-26). APPLIED? NO — pending.
+
+`057_restrict_release_archive_tables.sql` closes an exposure created by 053/054
+themselves. Their nine archive / mapping tables live in `public`, which is served
+by PostgREST, and this project grants ALL on public tables to `anon` and
+`authenticated`. The archives were therefore world-readable **and world-writable**:
+
+    GET /rest/v1/kg_arch_product_053?select=slug&limit=2  ->  200, 2 rows
+
+The read side is low-sensitivity (slugs of retired duplicates; `kg_product`
+already has a public-read policy). The write side is the real risk: an anonymous
+caller could `DELETE` the evidence that the 053 and 054 rollbacks restore from.
+
+057 enables RLS on all nine with **no policy** (deny-all) and revokes
+anon/authenticated privileges as defence in depth. RLS is enabled **without
+FORCE**, and `postgres` (owner) and `service_role` both carry `bypassrls`, so
+recovery and the documented rollbacks are unaffected — verified on a restored
+snapshot. It also pins `search_path` on `listings_ingestion_identity()`
+(migration 055), whose body resolves no unqualified tables.
+
+`057_rollback.sql` **refuses by default**, because reversing it restores
+anonymous write access to rollback evidence. Escapes:
+`klup.rollback_mode=unpin_search_path` (safe, function only) and
+`klup.rollback_mode=unsafe_reexpose` (full reversal).
+
+**Root cause not fixed here:** the schema-wide default privilege that grants ALL
+on new public tables to anon/authenticated. Any future archive table is born
+exposed the same way. Correcting that is wider than this release — follow-up.
+
+**The number 057 was previously used** by the retired 056/057 activation split,
+deleted before deployment and never run. This file is unrelated to it.
+
 ### 055 promotion-contract correction (2026-08-26)
 
 `055_listing_ingestion_identity.sql` and `055_rollback.sql` originally redefined
