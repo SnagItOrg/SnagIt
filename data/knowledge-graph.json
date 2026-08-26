@@ -2047,9 +2047,7 @@
               "era": "1985",
               "reference_url": "https://www.vintagesynth.com/sequential/tom",
               "model": "TOM",
-              "sku": [
-                "TOM"
-              ],
+              "sku": [],
               "ean": [],
               "related": [
                 "sequential-drumtraks",
@@ -3959,6 +3957,255 @@
               "name": "Fender Vintera II '70s Competition Mustang Bass Guitar Competition Orange",
               "type": "instrument",
               "reference_url": "https://reverb.com/item/92413481-fender-vintera-ii-70s-competition-mustang-bass-guitar-competition-orange"
+            },
+            "fender-american-professional-ii-stratocaster": {
+              "name": "Fender American Professional II Stratocaster",
+              "type": "guitar",
+              "variants": [],
+              "related": [
+                "fender-stratocaster"
+              ],
+              "price_range_dkk": [
+                9000,
+                16000
+              ],
+              "model": "American Professional II Stratocaster",
+              "sku": [],
+              "ean": []
+            },
+            "fender-telecaster-thinline": {
+              "name": "Fender Telecaster Thinline",
+              "type": "guitar",
+              "variants": [],
+              "related": [
+                "fender-telecaster"
+              ],
+              "price_range_dkk": [
+                12000,
+                30000
+              ],
+              "model": "Telecaster Thinline",
+              "sku": [],
+              "ean": []
+            },
+            "fender-telecaster-custom": {
+              "name": "Fender Telecaster Custom",
+              "type": "guitar",
+              "variants": [],
+              "related": [
+                "fender-telecaster"
+              ],
+              "price_range_dkk": [
+                12000,
+                32000
+              ],
+              "model": "Telecaster Custom",
+              "sku": [],
+              "ean": []
+            },
+            "fender-american-vintage-52-telecaster": {
+              "name": "Fender American Vintage '52 Telecaster",
+              "type": "guitar",
+              "variants": [],
+              "related": [
+                "fender-telecaster"
+              ],
+              "price_range_dkk": [
+                18000,
+                40000
+              ],
+              "model": "American Vintage '52 Telecaster",
+              "sku": [],
+              "ean": []
+            },
+            "fender-american-ultra-stratocaster": {
+              "name": "Fender American Ultra Stratocaster",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "American Ultra Stratocaster",
+              "sku": [],
+              "ean": []
+            },
+            "fender-american-vintage-ii-stratocaster": {
+              "name": "Fender American Vintage II Stratocaster",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "American Vintage II Stratocaster",
+              "sku": [],
+              "ean": []
+            },
+            "fender-player-stratocaster": {
+              "name": "Fender Player Stratocaster",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Player Stratocaster",
+              "sku": [],
+              "ean": []
+            },
+            "fender-american-standard-telecaster": {
+              "name": "Fender American Standard Telecaster",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "American Standard Telecaster",
+              "sku": [],
+              "ean": []
+            },
+            "fender-telecaster-deluxe": {
+              "name": "Fender Telecaster Deluxe",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Telecaster Deluxe",
+              "sku": [],
+              "ean": []
+            },
+            "fender-american-vintage-ii-jazzmaster": {
+              "name": "Fender American Vintage II Jazzmaster",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "American Vintage II Jazzmaster",
+              "sku": [],
+              "ean": []
+            },
+            "fender-troy-van-leeuwen-jazzmaster": {
+              "name": "Fender Troy Van Leeuwen Jazzmaster",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Troy Van Leeuwen Jazzmaster",
+              "sku": [],
+              "ean": []
+            },
+            "fender-kurt-cobain-jaguar": {
+              "name": "Fender Kurt Cobain Jaguar",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Kurt Cobain Jaguar",
+              "sku": [],
+              "ean": []
+            },
+            "fender-american-standard-precision-bass": {
+              "name": "Fender American Standard Precision Bass",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "American Standard Precision Bass",
+              "sku": [],
+              "ean": []
+            },
+            "fender-precision-bass-57-reissue": {
+              "name": "Fender Precision Bass '57 Reissue",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "Precision Bass '57 Reissue",
+              "sku": [],
+              "ean": []
+            },
+            "fender-american-standard-jazz-bass": {
+              "name": "Fender American Standard Jazz Bass",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "American Standard Jazz Bass",
+              "sku": [],
+              "ean": []
+            },
+            "fender-deluxe-reverb-vintage": {
+              "name": "Fender Deluxe Reverb (vintage)",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "Deluxe Reverb (vintage)",
+              "sku": [],
+              "ean": []
+            },
+            "fender-65-deluxe-reverb-reissue": {
+              "name": "Fender '65 Deluxe Reverb Reissue",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "'65 Deluxe Reverb Reissue",
+              "sku": [],
+              "ean": []
+            },
+            "fender-68-custom-deluxe-reverb": {
+              "name": "Fender '68 Custom Deluxe Reverb",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "'68 Custom Deluxe Reverb",
+              "sku": [],
+              "ean": []
+            },
+            "fender-tone-master-deluxe-reverb": {
+              "name": "Fender Tone Master Deluxe Reverb",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "Tone Master Deluxe Reverb",
+              "sku": [],
+              "ean": []
+            },
+            "fender-princeton-reverb-vintage": {
+              "name": "Fender Princeton Reverb (vintage)",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "Princeton Reverb (vintage)",
+              "sku": [],
+              "ean": []
+            },
+            "fender-65-princeton-reverb-reissue": {
+              "name": "Fender '65 Princeton Reverb Reissue",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "'65 Princeton Reverb Reissue",
+              "sku": [],
+              "ean": []
+            },
+            "fender-tone-master-princeton-reverb": {
+              "name": "Fender Tone Master Princeton Reverb",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "Tone Master Princeton Reverb",
+              "sku": [],
+              "ean": []
+            },
+            "fender-twin-reverb-vintage": {
+              "name": "Fender Twin Reverb (vintage)",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "Twin Reverb (vintage)",
+              "sku": [],
+              "ean": []
+            },
+            "fender-65-twin-reverb-reissue": {
+              "name": "Fender '65 Twin Reverb Reissue",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "'65 Twin Reverb Reissue",
+              "sku": [],
+              "ean": []
+            },
+            "fender-tone-master-twin-reverb": {
+              "name": "Fender Tone Master Twin Reverb",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "Tone Master Twin Reverb",
+              "sku": [],
+              "ean": []
             }
           }
         },
@@ -3984,9 +4231,9 @@
                 6000,
                 40000
               ],
-              "model": "PAUL",
+              "model": "Les Paul",
               "sku": [
-                "PAUL"
+                "Les Paul"
               ],
               "ean": []
             },
@@ -4007,9 +4254,9 @@
                 8000,
                 35000
               ],
-              "model": "335",
+              "model": "ES-335",
               "sku": [
-                "335"
+                "ES-335"
               ],
               "ean": []
             },
@@ -4812,6 +5059,212 @@
               "name": "Gibson 1957 SJ-200 Light Aged in Vintage Sunburst #21614014",
               "type": "instrument",
               "reference_url": "https://reverb.com/item/86527806-gibson-1957-sj-200-light-aged-in-vintage-sunburst-21614014"
+            },
+            "gibson-les-paul-standard-50s": {
+              "name": "Gibson Les Paul Standard '50s",
+              "type": "guitar",
+              "variants": [],
+              "related": [
+                "gibson-les-paul"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                12000,
+                26000
+              ],
+              "model": "Les Paul Standard '50s",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-les-paul-standard-60s": {
+              "name": "Gibson Les Paul Standard '60s",
+              "type": "guitar",
+              "variants": [],
+              "related": [
+                "gibson-les-paul"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                12000,
+                26000
+              ],
+              "model": "Les Paul Standard '60s",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-les-paul-studio": {
+              "name": "Gibson Les Paul Studio",
+              "type": "guitar",
+              "variants": [],
+              "related": [
+                "gibson-les-paul"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                5000,
+                14000
+              ],
+              "model": "Les Paul Studio",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-les-paul-special": {
+              "name": "Gibson Les Paul Special",
+              "type": "guitar",
+              "variants": [],
+              "related": [
+                "gibson-les-paul"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                8000,
+                22000
+              ],
+              "model": "Les Paul Special",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-es-335-dot": {
+              "name": "Gibson ES-335 Dot",
+              "type": "guitar",
+              "variants": [],
+              "related": [
+                "gibson-es-335"
+              ],
+              "clones": [],
+              "price_range_dkk": [
+                16000,
+                40000
+              ],
+              "model": "ES-335 Dot",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-les-paul-junior": {
+              "name": "Gibson Les Paul Junior",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Les Paul Junior",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-custom-shop-les-paul-r7": {
+              "name": "Gibson Custom Shop Les Paul R7",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Custom Shop Les Paul R7",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-custom-shop-les-paul-r8": {
+              "name": "Gibson Custom Shop Les Paul R8",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Custom Shop Les Paul R8",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-custom-shop-les-paul-r9": {
+              "name": "Gibson Custom Shop Les Paul R9",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Custom Shop Les Paul R9",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-custom-shop-les-paul-r0": {
+              "name": "Gibson Custom Shop Les Paul R0",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Custom Shop Les Paul R0",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-es-335-block": {
+              "name": "Gibson ES-335 Block",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "ES-335 Block",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-es-345": {
+              "name": "Gibson ES-345",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "ES-345",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-es-355": {
+              "name": "Gibson ES-355",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "ES-355",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-es-330": {
+              "name": "Gibson ES-330",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "ES-330",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-sg-61-reissue": {
+              "name": "Gibson SG 61 Reissue",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "SG 61 Reissue",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-firebird": {
+              "name": "Gibson Firebird",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Firebird",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-explorer": {
+              "name": "Gibson Explorer",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Explorer",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-flying-v": {
+              "name": "Gibson Flying V",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Flying V",
+              "sku": [],
+              "ean": []
+            },
+            "gibson-thunderbird": {
+              "name": "Gibson Thunderbird",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "Thunderbird",
+              "sku": [],
+              "ean": []
             }
           }
         },
@@ -7060,6 +7513,15 @@
               "name": "Epiphone 1957 SJ-200 Reissue Vintage Sunburst",
               "type": "instrument",
               "reference_url": "https://reverb.com/item/94489021-epiphone-1957-sj-200-reissue-vintage-sunburst"
+            },
+            "epiphone-casino": {
+              "name": "Epiphone Casino",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Casino",
+              "sku": [],
+              "ean": []
             }
           }
         },
@@ -7618,6 +8080,96 @@
               "name": "Boss - IR-2 - Amp & Cabinet",
               "type": "instrument",
               "reference_url": "https://reverb.com/item/91508227-boss-ir-2-amp-cabinet"
+            },
+            "boss-ph-1": {
+              "name": "Boss PH-1",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "PH-1",
+              "sku": [],
+              "ean": []
+            },
+            "boss-ph-1r": {
+              "name": "Boss PH-1R",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "PH-1R",
+              "sku": [],
+              "ean": []
+            },
+            "boss-ce-2": {
+              "name": "Boss CE-2",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "CE-2",
+              "sku": [],
+              "ean": []
+            },
+            "boss-ce-2w": {
+              "name": "Boss CE-2W",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "CE-2W",
+              "sku": [],
+              "ean": []
+            },
+            "boss-sd-1": {
+              "name": "Boss SD-1",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "SD-1",
+              "sku": [],
+              "ean": []
+            },
+            "boss-ce-1": {
+              "name": "Boss CE-1",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "CE-1",
+              "sku": [],
+              "ean": []
+            },
+            "boss-dm-2": {
+              "name": "Boss DM-2",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "DM-2",
+              "sku": [],
+              "ean": []
+            },
+            "boss-dm-2w": {
+              "name": "Boss DM-2W",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "DM-2W",
+              "sku": [],
+              "ean": []
+            },
+            "boss-od-1": {
+              "name": "Boss OD-1",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "OD-1",
+              "sku": [],
+              "ean": []
+            },
+            "boss-bd-2": {
+              "name": "Boss BD-2",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "BD-2",
+              "sku": [],
+              "ean": []
             }
           }
         },
@@ -9659,7 +10211,7 @@
               ],
               "clones": []
             },
-            "manley-ref-gold": {
+            "manley-reference-gold": {
               "name": "Manley Reference Gold",
               "type": "microphone",
               "era": "1990s-",
@@ -12202,6 +12754,24 @@
               "name": "Korg Ma2 Electronic Metronome",
               "type": "instrument",
               "reference_url": "https://reverb.com/item/93539379-korg-ma2-electronic-metronome"
+            },
+            "korg-sdd-3000-rackmount": {
+              "name": "Korg SDD-3000 (rackmount)",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "SDD-3000 (rackmount)",
+              "sku": [],
+              "ean": []
+            },
+            "korg-sdd-3000-pedal": {
+              "name": "Korg SDD-3000 Pedal",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "SDD-3000 Pedal",
+              "sku": [],
+              "ean": []
             }
           }
         },
@@ -15014,6 +15584,69 @@
               "name": "Yamaha YAC 1425P Air-padded Saxophone Neckstrap",
               "type": "instrument",
               "reference_url": "https://reverb.com/item/45770114-yamaha-yac-1425p-air-padded-saxophone-neckstrap"
+            },
+            "yamaha-bb1200": {
+              "name": "Yamaha BB1200",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "BB1200",
+              "sku": [],
+              "ean": []
+            },
+            "yamaha-bb2000": {
+              "name": "Yamaha BB2000",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "BB2000",
+              "sku": [],
+              "ean": []
+            },
+            "yamaha-bb3000": {
+              "name": "Yamaha BB3000",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "BB3000",
+              "sku": [],
+              "ean": []
+            },
+            "yamaha-bb434": {
+              "name": "Yamaha BB434",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "BB434",
+              "sku": [],
+              "ean": []
+            },
+            "yamaha-bb734a": {
+              "name": "Yamaha BB734A",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "BB734A",
+              "sku": [],
+              "ean": []
+            },
+            "yamaha-bbp34": {
+              "name": "Yamaha BBP34",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "BBP34",
+              "sku": [],
+              "ean": []
+            },
+            "yamaha-sg-2000": {
+              "name": "Yamaha SG-2000",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "SG-2000",
+              "sku": [],
+              "ean": []
             }
           }
         },
@@ -18940,6 +19573,96 @@
               "related": [],
               "clones": [],
               "reference_url": "https://www.vintagesynth.com/electro-harmonix/mini-synthesizer"
+            },
+            "ehx-deluxe-memory-man-vintage-mn3005": {
+              "name": "EHX Deluxe Memory Man (vintage MN3005)",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "EHX Deluxe Memory Man (vintage MN3005)",
+              "sku": [],
+              "ean": []
+            },
+            "ehx-deluxe-memory-man-xo": {
+              "name": "EHX Deluxe Memory Man XO",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "EHX Deluxe Memory Man XO",
+              "sku": [],
+              "ean": []
+            },
+            "ehx-deluxe-memory-man-550-tt": {
+              "name": "EHX Deluxe Memory Man 550-TT",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "EHX Deluxe Memory Man 550-TT",
+              "sku": [],
+              "ean": []
+            },
+            "ehx-deluxe-memory-man-1100-tt": {
+              "name": "EHX Deluxe Memory Man 1100-TT",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "EHX Deluxe Memory Man 1100-TT",
+              "sku": [],
+              "ean": []
+            },
+            "ehx-memory-man-nano": {
+              "name": "EHX Memory Man Nano",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "EHX Memory Man Nano",
+              "sku": [],
+              "ean": []
+            },
+            "ehx-big-muff-pi-triangle": {
+              "name": "EHX Big Muff Pi Triangle",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "EHX Big Muff Pi Triangle",
+              "sku": [],
+              "ean": []
+            },
+            "ehx-big-muff-pi-ram-s-head": {
+              "name": "EHX Big Muff Pi Ram's Head",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "EHX Big Muff Pi Ram's Head",
+              "sku": [],
+              "ean": []
+            },
+            "ehx-big-muff-pi-russian": {
+              "name": "EHX Big Muff Pi Russian",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "EHX Big Muff Pi Russian",
+              "sku": [],
+              "ean": []
+            },
+            "ehx-big-muff-pi-op-amp": {
+              "name": "EHX Big Muff Pi Op-Amp",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "EHX Big Muff Pi Op-Amp",
+              "sku": [],
+              "ean": []
+            },
+            "ehx-big-muff-pi-current": {
+              "name": "EHX Big Muff Pi (current)",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "EHX Big Muff Pi (current)",
+              "sku": [],
+              "ean": []
             }
           }
         },
@@ -19876,6 +20599,69 @@
               "type": "amplifier",
               "year": 2021,
               "reference_url": "https://reverb.com/search?query=Ibanez%20Q54-SFM%20Quest%20Standard"
+            },
+            "ibanez-jem7v": {
+              "name": "Ibanez JEM7V",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "JEM7V",
+              "sku": [],
+              "ean": []
+            },
+            "ibanez-jem777": {
+              "name": "Ibanez JEM777",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "JEM777",
+              "sku": [],
+              "ean": []
+            },
+            "ibanez-jemjr": {
+              "name": "Ibanez JEMJR",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "JEMJR",
+              "sku": [],
+              "ean": []
+            },
+            "ibanez-rg550-genesis": {
+              "name": "Ibanez RG550 Genesis",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "RG550 Genesis",
+              "sku": [],
+              "ean": []
+            },
+            "ibanez-rg421": {
+              "name": "Ibanez RG421",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "RG421",
+              "sku": [],
+              "ean": []
+            },
+            "ibanez-ts808": {
+              "name": "Ibanez TS808",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "TS808",
+              "sku": [],
+              "ean": []
+            },
+            "ibanez-ts9": {
+              "name": "Ibanez TS9",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "TS9",
+              "sku": [],
+              "ean": []
             }
           }
         },
@@ -19961,6 +20747,42 @@
               "type": "guitar",
               "year": 1980,
               "reference_url": "https://reverb.com/search?query=Marshall%20JCM%20800%20Lead%20Series%20Model%204104%2050-Watt%20Master%20Volume%202x12%20Combo"
+            },
+            "marshall-jtm45": {
+              "name": "Marshall JTM45",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "JTM45",
+              "sku": [],
+              "ean": []
+            },
+            "marshall-super-lead-plexi": {
+              "name": "Marshall Super Lead / Plexi",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "Super Lead / Plexi",
+              "sku": [],
+              "ean": []
+            },
+            "marshall-jcm800-2203": {
+              "name": "Marshall JCM800 2203",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "JCM800 2203",
+              "sku": [],
+              "ean": []
+            },
+            "marshall-jcm800-2204": {
+              "name": "Marshall JCM800 2204",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "JCM800 2204",
+              "sku": [],
+              "ean": []
             }
           }
         },
@@ -20030,6 +20852,69 @@
               "name": "Martin D-42 Modern Deluxe",
               "type": "guitar",
               "reference_url": "https://reverb.com/search?query=Martin%20D-42%20Modern%20Deluxe"
+            },
+            "martin-hd-28": {
+              "name": "Martin HD-28",
+              "type": "acoustic guitar",
+              "variants": [],
+              "related": [],
+              "model": "HD-28",
+              "sku": [],
+              "ean": []
+            },
+            "martin-d-18": {
+              "name": "Martin D-18",
+              "type": "acoustic guitar",
+              "variants": [],
+              "related": [],
+              "model": "D-18",
+              "sku": [],
+              "ean": []
+            },
+            "martin-0-18": {
+              "name": "Martin 0-18",
+              "type": "acoustic guitar",
+              "variants": [],
+              "related": [],
+              "model": "0-18",
+              "sku": [],
+              "ean": []
+            },
+            "martin-00-18": {
+              "name": "Martin 00-18",
+              "type": "acoustic guitar",
+              "variants": [],
+              "related": [],
+              "model": "00-18",
+              "sku": [],
+              "ean": []
+            },
+            "martin-000-18": {
+              "name": "Martin 000-18",
+              "type": "acoustic guitar",
+              "variants": [],
+              "related": [],
+              "model": "000-18",
+              "sku": [],
+              "ean": []
+            },
+            "martin-000-28": {
+              "name": "Martin 000-28",
+              "type": "acoustic guitar",
+              "variants": [],
+              "related": [],
+              "model": "000-28",
+              "sku": [],
+              "ean": []
+            },
+            "martin-om-28": {
+              "name": "Martin OM-28",
+              "type": "acoustic guitar",
+              "variants": [],
+              "related": [],
+              "model": "OM-28",
+              "sku": [],
+              "ean": []
             }
           }
         },
@@ -20238,6 +21123,552 @@
               "type": "amplifier",
               "year": 1970,
               "reference_url": "https://reverb.com/search?query=Traynor%20Yba1a"
+            }
+          }
+        },
+        "tokai": {
+          "products": {
+            "tokai-springy-sound": {
+              "name": "Tokai Springy Sound",
+              "type": "guitar",
+              "variants": [],
+              "related": [],
+              "model": "Springy Sound",
+              "sku": [],
+              "ean": []
+            },
+            "tokai-breezy-sound": {
+              "name": "Tokai Breezy Sound",
+              "type": "guitar",
+              "variants": [],
+              "related": [],
+              "model": "Breezy Sound",
+              "sku": [],
+              "ean": []
+            },
+            "tokai-love-rock": {
+              "name": "Tokai Love Rock",
+              "type": "guitar",
+              "variants": [],
+              "related": [],
+              "model": "Love Rock",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "greco": {
+          "products": {
+            "greco-spacey-sound": {
+              "name": "Greco Spacey Sound",
+              "type": "guitar",
+              "variants": [],
+              "related": [],
+              "model": "Spacey Sound",
+              "sku": [],
+              "ean": []
+            },
+            "greco-super-real": {
+              "name": "Greco Super Real",
+              "type": "guitar",
+              "variants": [],
+              "related": [],
+              "model": "Super Real",
+              "sku": [],
+              "ean": []
+            },
+            "greco-mint-collection": {
+              "name": "Greco Mint Collection",
+              "type": "guitar",
+              "variants": [],
+              "related": [],
+              "model": "Mint Collection",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "burny": {
+          "products": {
+            "burny-super-grade": {
+              "name": "Burny Super Grade",
+              "type": "guitar",
+              "variants": [],
+              "related": [],
+              "model": "Super Grade",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "squier": {
+          "products": {
+            "squier-classic-vibe-stratocaster": {
+              "name": "Squier Classic Vibe Stratocaster",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Classic Vibe Stratocaster",
+              "sku": [],
+              "ean": []
+            },
+            "squier-j-mascis-jazzmaster": {
+              "name": "Squier J Mascis Jazzmaster",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "J Mascis Jazzmaster",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "prs": {
+          "products": {
+            "prs-custom-24": {
+              "name": "PRS Custom 24",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Custom 24",
+              "sku": [],
+              "ean": []
+            },
+            "prs-custom-22": {
+              "name": "PRS Custom 22",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Custom 22",
+              "sku": [],
+              "ean": []
+            },
+            "prs-mccarty-594": {
+              "name": "PRS McCarty 594",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "McCarty 594",
+              "sku": [],
+              "ean": []
+            },
+            "prs-silver-sky": {
+              "name": "PRS Silver Sky",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Silver Sky",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "rickenbacker": {
+          "products": {
+            "rickenbacker-360-12": {
+              "name": "Rickenbacker 360/12",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "360/12",
+              "sku": [],
+              "ean": []
+            },
+            "rickenbacker-4001": {
+              "name": "Rickenbacker 4001",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "4001",
+              "sku": [],
+              "ean": []
+            },
+            "rickenbacker-4003": {
+              "name": "Rickenbacker 4003",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "4003",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "gretsch": {
+          "products": {
+            "gretsch-g6120-chet-atkins": {
+              "name": "Gretsch G6120 Chet Atkins",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "G6120 Chet Atkins",
+              "sku": [],
+              "ean": []
+            },
+            "gretsch-g6136-white-falcon": {
+              "name": "Gretsch G6136 White Falcon",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "G6136 White Falcon",
+              "sku": [],
+              "ean": []
+            },
+            "gretsch-g5420t-electromatic": {
+              "name": "Gretsch G5420T Electromatic",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "G5420T Electromatic",
+              "sku": [],
+              "ean": []
+            },
+            "gretsch-duo-jet": {
+              "name": "Gretsch Duo Jet",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Duo Jet",
+              "sku": [],
+              "ean": []
+            },
+            "gretsch-country-gentleman": {
+              "name": "Gretsch Country Gentleman",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Country Gentleman",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "hofner": {
+          "products": {
+            "hofner-500-1-german-reissue": {
+              "name": "Höfner 500/1 German Reissue",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "500/1 German Reissue",
+              "sku": [],
+              "ean": []
+            },
+            "hofner-contemporary-h500-1": {
+              "name": "Höfner Contemporary H500/1",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "Contemporary H500/1",
+              "sku": [],
+              "ean": []
+            },
+            "hofner-ignition-hi-bb": {
+              "name": "Höfner Ignition HI-BB",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "Ignition HI-BB",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "music-man": {
+          "products": {
+            "music-man-stingray-usa": {
+              "name": "Music Man StingRay (USA)",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "StingRay (USA)",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "sterling": {
+          "products": {
+            "sterling-by-music-man": {
+              "name": "Sterling by Music Man",
+              "type": "bass guitar",
+              "variants": [],
+              "related": [],
+              "model": "by Music Man",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "taylor": {
+          "products": {
+            "taylor-314ce": {
+              "name": "Taylor 314ce",
+              "type": "acoustic guitar",
+              "variants": [],
+              "related": [],
+              "model": "314ce",
+              "sku": [],
+              "ean": []
+            },
+            "taylor-gs-mini": {
+              "name": "Taylor GS Mini",
+              "type": "acoustic guitar",
+              "variants": [],
+              "related": [],
+              "model": "GS Mini",
+              "sku": [],
+              "ean": []
+            },
+            "taylor-814ce": {
+              "name": "Taylor 814ce",
+              "type": "acoustic guitar",
+              "variants": [],
+              "related": [],
+              "model": "814ce",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "fernandes": {
+          "products": {
+            "fernandes-the-function": {
+              "name": "Fernandes The Function",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "The Function",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "nash": {
+          "products": {
+            "nash-s-model": {
+              "name": "Nash S-Model",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "S-Model",
+              "sku": [],
+              "ean": []
+            },
+            "nash-t-model": {
+              "name": "Nash T-Model",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "T-Model",
+              "sku": [],
+              "ean": []
+            },
+            "nash-j-model": {
+              "name": "Nash J-Model",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "J-Model",
+              "sku": [],
+              "ean": []
+            },
+            "nash-pb-model": {
+              "name": "Nash PB-Model",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "PB-Model",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "suhr": {
+          "products": {
+            "suhr-classic-s": {
+              "name": "Suhr Classic S",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Classic S",
+              "sku": [],
+              "ean": []
+            },
+            "suhr-classic-t": {
+              "name": "Suhr Classic T",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "Classic T",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "heritage": {
+          "products": {
+            "heritage-h-150": {
+              "name": "Heritage H-150",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "H-150",
+              "sku": [],
+              "ean": []
+            },
+            "heritage-h-535": {
+              "name": "Heritage H-535",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "H-535",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "eastman": {
+          "products": {
+            "eastman-sb59": {
+              "name": "Eastman SB59",
+              "type": "electric guitar",
+              "variants": [],
+              "related": [],
+              "model": "SB59",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "takamine": {
+          "products": {
+            "takamine-f-360s": {
+              "name": "Takamine F-360S",
+              "type": "acoustic guitar",
+              "variants": [],
+              "related": [],
+              "model": "F-360S",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "guild": {
+          "products": {
+            "guild-d-55": {
+              "name": "Guild D-55",
+              "type": "acoustic guitar",
+              "variants": [],
+              "related": [],
+              "model": "D-55",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "pro-co": {
+          "products": {
+            "pro-co-rat-rat2": {
+              "name": "Pro Co RAT / RAT2",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "RAT / RAT2",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "klon": {
+          "products": {
+            "klon-centaur": {
+              "name": "Klon Centaur",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "Centaur",
+              "sku": [],
+              "ean": []
+            },
+            "klon-ktr": {
+              "name": "Klon KTR",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "KTR",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "mxr": {
+          "products": {
+            "mxr-phase-90": {
+              "name": "MXR Phase 90",
+              "type": "effects and pedal",
+              "variants": [],
+              "related": [],
+              "model": "Phase 90",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "vox": {
+          "products": {
+            "vox-ac30-vintage": {
+              "name": "Vox AC30 (vintage)",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "AC30 (vintage)",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "mesa-boogie": {
+          "products": {
+            "mesa-boogie-dual-rectifier": {
+              "name": "Mesa/Boogie Dual Rectifier",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "Dual Rectifier",
+              "sku": [],
+              "ean": []
+            },
+            "mesa-boogie-mark-iic": {
+              "name": "Mesa/Boogie Mark IIC+",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "Mark IIC+",
+              "sku": [],
+              "ean": []
+            }
+          }
+        },
+        "ampeg": {
+          "products": {
+            "ampeg-b-15": {
+              "name": "Ampeg B-15",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "B-15",
+              "sku": [],
+              "ean": []
+            },
+            "ampeg-svt": {
+              "name": "Ampeg SVT",
+              "type": "amp",
+              "variants": [],
+              "related": [],
+              "model": "SVT",
+              "sku": [],
+              "ean": []
             }
           }
         }

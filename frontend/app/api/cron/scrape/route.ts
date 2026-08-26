@@ -1,8 +1,36 @@
+/**
+ * Vercel watchlist cron. Scrapes each ACTIVE watchlist, writes listings, and
+ * hands the matcher exactly the rows this execution FIRST inserted.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * BATCH LIFECYCLE: one batch id per ROUTE EXECUTION, not per watchlist.
+ *
+ * A single invocation loops over every active watchlist, so it can write
+ * several sources (`dba.dk` from the query path; `dba.dk` / `reverb` /
+ * `thomann` from the listing path) and the same listing URL can legitimately
+ * appear under more than one watchlist. Execution scope is the natural unit
+ * because the identity boundary asks "which rows did this execution insert?" —
+ * a per-watchlist id would answer the same question with N times the lookups
+ * and would still have to be reconciled across watchlists before matching.
+ *
+ * The id is minted BEFORE the first listing write, stamped on every attempted
+ * INSERT payload, and made immutable by migration 055's trigger. Both writes
+ * are `ON CONFLICT (url, watchlist_id) DO UPDATE`, so a conflict refresh keeps
+ * the row's ORIGINAL identity: a legacy row stays NULL and a row inserted by an
+ * earlier execution keeps that earlier id. Neither is handed off again.
+ *
+ * ELIGIBILITY is re-queried from the database afterwards and verified again in
+ * memory — never the upsert's returned ids, which include refreshed rows, and
+ * never `scraped_at` / `first_seen_at` / wall-clock inference. Missing,
+ * malformed, mismatched, incomplete, oversized or failed identity evidence
+ * performs ZERO matcher writes for the whole execution.
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { scrapeDba } from '@/lib/scrapers/dba'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { sendNewListingsEmail } from '@/lib/email'
-import { matchListings } from '@/lib/matching/match-listings'
+import { newIngestionBatchId, matchRunInflow, reportBatchMatch } from '@/lib/matching/ingestion-batch'
 import { fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 
 export async function GET(req: NextRequest) {
@@ -25,6 +53,16 @@ export async function GET(req: NextRequest) {
   }
 
   const results = []
+
+  // One immutable identity for this execution, generated before ANY listing
+  // write. Migration 055's trigger stamps `ingested_at` from database time on
+  // first insert and carries both values over verbatim on every refresh.
+  const ingestionBatchId = newIngestionBatchId()
+
+  // `listings.source` values this execution actually ATTEMPTED to write. Taken
+  // from the rows themselves rather than from a source→path mapping, so a new
+  // fetcher cannot silently fall outside the handoff.
+  const writtenSources = new Set<string>()
 
   for (const watchlist of watchlists) {
     const now = new Date().toISOString()
@@ -54,27 +92,28 @@ export async function GET(req: NextRequest) {
       }
 
       const listing = fetchResult.listing
-      const row = { ...listing, scraped_at: now, watchlist_id: watchlist.id }
+      // `ingested_at` is deliberately NOT sent: migration 055 establishes it
+      // from DATABASE time. `scraped_at` keeps its own meaning (last observed).
+      const row = {
+        ...listing,
+        scraped_at: now,
+        watchlist_id: watchlist.id,
+        ingestion_batch_id: ingestionBatchId,
+      }
 
-      const { data: upserted, error: upsertError } = await getSupabaseAdmin()
+      const { error: upsertError } = await getSupabaseAdmin()
         .from('listings')
         .upsert(row, { onConflict: 'url,watchlist_id' })
-        .select('id')
 
       if (upsertError) {
         results.push({ watchlist_id: watchlist.id, query: watchlist.query, error: upsertError.message })
         continue
       }
 
-      // Run matching for the upserted listing
-      if (upserted && upserted.length > 0) {
-        const ids = upserted.map((r: { id: string }) => r.id)
-        try {
-          await matchListings(getSupabaseAdmin(), ids)
-        } catch (err) {
-          console.error(`Match listings failed for watchlist ${watchlist.id}:`, err)
-        }
-      }
+      // Matching is NOT run here. The upsert's returned ids include rows the
+      // conflict path merely refreshed, which are not first ingestion. The
+      // execution-scoped handoff below asks the database instead.
+      if (listing.source) writtenSources.add(listing.source)
 
       // Record price snapshot
       await getSupabaseAdmin()
@@ -148,27 +187,26 @@ export async function GET(req: NextRequest) {
       continue
     }
 
-    const rows = filtered.map((l) => ({ ...l, scraped_at: now, watchlist_id: watchlist.id }))
+    // Every attempted INSERT carries this execution's identity; `ingested_at`
+    // is left to migration 055 (database time), never an application clock.
+    const rows = filtered.map((l) => ({
+      ...l,
+      scraped_at: now,
+      watchlist_id: watchlist.id,
+      ingestion_batch_id: ingestionBatchId,
+    }))
 
-    const { data: upserted, error: upsertError } = await getSupabaseAdmin()
+    const { error: upsertError } = await getSupabaseAdmin()
       .from('listings')
       .upsert(rows, { onConflict: 'url,watchlist_id' })
-      .select('id')
 
     if (upsertError) {
       results.push({ watchlist_id: watchlist.id, query: watchlist.query, error: upsertError.message })
       continue
     }
 
-    // Run matching for all newly upserted listings
-    if (upserted && upserted.length > 0) {
-      const ids = upserted.map((r: { id: string }) => r.id)
-      try {
-        await matchListings(getSupabaseAdmin(), ids)
-      } catch (err) {
-        console.error(`Match listings failed for watchlist ${watchlist.id}:`, err)
-      }
-    }
+    // Matching is NOT run here — see the listing path above.
+    for (const l of filtered) if (l.source) writtenSources.add(l.source)
 
     // Record price snapshots for all price-filtered listings
     const snapshots = filtered.map((l) => ({
@@ -214,10 +252,35 @@ export async function GET(req: NextRequest) {
       type: 'query',
       total_scraped: listings.length,
       filtered_by_price: listings.length - filtered.length,
-      upserted: upserted?.length ?? 0,
+      // Rows WRITTEN (inserted or refreshed). Deliberately not called "new":
+      // how many were first ingestion is decided by the database below, not by
+      // the size of an upsert.
+      upserted: filtered.length,
       notified,
     })
   }
 
-  return NextResponse.json({ ok: true, results })
+  // ── Execution-scoped new-inflow handoff ───────────────────────────────────
+  // Runs once, after every watchlist has been written, so the same listing
+  // identity seen under several watchlists is reconciled before matching.
+  // Fail-closed: an unusable boundary matches nothing for this execution.
+  const inflow = await matchRunInflow(getSupabaseAdmin(), ingestionBatchId, writtenSources)
+  for (const r of inflow.results) reportBatchMatch(r)
+
+  return NextResponse.json({
+    ok: true,
+    results,
+    ingestion: {
+      complete: inflow.complete,
+      // Counts only — never listing titles, urls or secrets.
+      sources: inflow.results.map((r) => ({
+        source: r.source,
+        considered: r.considered,
+        matched: r.matched,
+        rejected: r.rejected,
+        deferred: r.deferred,
+        skipped: r.skipped ?? null,
+      })),
+    },
+  })
 }

@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { hasPlausibleListingPrice } from '@/lib/listing-price-integrity'
 import { IntelDashboard } from './IntelDashboard'
 import {
   MARKETS,
@@ -21,6 +22,8 @@ type MatchWithListing = {
     url: string
     source: string
     country: string | null
+    /** Raw source-currency price — needed for the price-integrity predicate. */
+    price: number | string | null
     price_dkk: number | string | null
     location: string | null
     scraped_at: string
@@ -89,7 +92,7 @@ async function loadIntelData(): Promise<IntelData> {
   const { data: matches, error: matchesError } = await admin
     .from('listing_product_match')
     .select(
-      'product_id, listings!inner(id, title, url, source, country, price_dkk, location, scraped_at)',
+      'product_id, listings!inner(id, title, url, source, country, price, price_dkk, location, scraped_at)',
     )
     .in('product_id', productIds)
     .eq('listings.is_active', true)
@@ -109,6 +112,10 @@ async function loadIntelData(): Promise<IntelData> {
     const l = m.listings
     if (!l) continue
     if (!isMarket(l.country)) continue
+    // Legacy Kleinanzeigen rows with concatenated raw prices would otherwise
+    // dominate every DE median and delta on this dashboard. See
+    // lib/listing-price-integrity.ts.
+    if (!hasPlausibleListingPrice(l)) continue
     const price = toNumber(l.price_dkk)
     if (price == null || price <= 0) continue
     const list = grouped.get(m.product_id)

@@ -1,3 +1,30 @@
+> ## ⚠️ SUPERSEDED — DO NOT EXECUTE AS A CURRENT RUNBOOK
+>
+> **Status:** superseded 2026-08-13 (Prompt H1). Historical, accurate for
+> 2026-03-06 when the knowledge graph was deployed by running the importer
+> directly against production.
+>
+> **`npm run import-kg` is NO LONGER the production activation path.** It
+> **FULL-REPLACES** `kg_identifier`, `kg_relation` and `synonym` (delete +
+> insert). Running it against production today would destroy curated
+> identifiers and aliases produced by migrations 053/054 and the Prompt 04
+> product-data package.
+>
+> The production path is the **atomic additive migration**
+> `scripts/migrations/056_activation_package.sql`, applied only after the
+> operator prerequisites are met. The importer remains valid **only** for
+> seeding a fresh, empty database.
+>
+> Authoritative replacements:
+> - [`docs/klup-foundation-handover.md`](docs/klup-foundation-handover.md) → *Migration and rollback package*, *Controlled activation sequence*
+> - [`scripts/migrations/README.md`](scripts/migrations/README.md)
+> - [`CLAUDE.md`](CLAUDE.md) → §5 Migrations
+>
+> The counts below (~3,298 products / 197 brands, KG v1.14.0) are the 2026-03
+> figures. The reviewed seed now carries 221 music brands and 3,440 products.
+
+---
+
 # Deployment Guide: Knowledge Graph & Synonyms to Supabase
 
 This guide explains how to deploy updated knowledge graphs and synonyms to Supabase.

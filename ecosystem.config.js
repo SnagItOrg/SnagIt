@@ -64,17 +64,22 @@ module.exports = {
         NODE_ENV: 'production',
       },
     },
-    {
-      name: 'match-listings',
-      script: 'npx',
-      args: 'tsx scripts/match-listings.ts',
-      cron_restart: '30 */1 * * *', // every hour at :30 (after scrapers)
-      autorestart: false,           // cron-start only — never restart-on-crash
-      max_restarts: 3,
-      min_uptime: '10s',
-      max_memory_restart: '512M',
-      env: { NODE_ENV: 'production' },
-    },
+    // ── `match-listings` REMOVED as a scheduled job ──────────────────────────
+    //
+    // It selected work by recency across the whole `listings` table
+    // (ORDER BY scraped_at DESC, up to 500 rows) with no batch id and no
+    // activation boundary, so every hourly run reached into the
+    // pre-activation unmatched backlog.
+    //
+    // New inflow is now matched inside each scraper, bounded to the listing
+    // ids that run itself wrote (scripts/lib/match-new-inflow.ts). Keeping the
+    // hourly job as well would mean two writers to listing_product_match, one
+    // of them unbounded — so the schedule is removed rather than retained.
+    //
+    // scripts/match-listings.ts still exists but now refuses to run without
+    // `--historical-backfill --sources= --max=`, and is dry-run unless
+    // `--apply` is passed. That mode is separately authorised and is NOT
+    // reachable from any schedule in this file.
     {
       name: 'fetch-reverb-prices',
       script: 'npx',

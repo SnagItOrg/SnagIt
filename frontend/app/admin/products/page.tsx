@@ -70,7 +70,7 @@ export default function AdminProductsPage() {
     await fetch(`/api/admin/products/${product.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tier: nextTier }),
+      body: JSON.stringify({ tier: nextTier, intent: ['monitoring'] }),
     })
     setProducts((prev) =>
       prev.map((p) => p.id === product.id ? { ...p, tier: nextTier } : p)
@@ -85,7 +85,7 @@ export default function AdminProductsPage() {
     await fetch(`/api/admin/products/${product.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ browse_visibility: nextVisibility }),
+      body: JSON.stringify({ browse_visibility: nextVisibility, intent: ['visibility'] }),
     })
     setProducts((prev) =>
       prev.map((p) => p.id === product.id ? { ...p, browse_visibility: nextVisibility } : p)

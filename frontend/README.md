@@ -2,7 +2,15 @@
 
 > Kup efter kup – det er Klup
 
-Klup overvåger dba.dk for dig. Opret en overvågning med et søgeord, og få en email, når der dukker nye annoncer op.
+Klup er en kurateret overvågnings- og sammenligningstjeneste for brugt
+musikudstyr og studieudstyr. Kanoniske produktsider er kerneoplevelsen; søgning
+navigerer inden for et understøttet katalog.
+
+Kilder: DBA.dk, Reverb, Kleinanzeigen.de, Finn.no og Blocket.se.
+
+> Denne README dækker kun frontend-opsætning. Produktkontrakt, livscyklus og
+> aktivering: se [`../docs/klup-foundation-handover.md`](../docs/klup-foundation-handover.md)
+> og [`../CLAUDE.md`](../CLAUDE.md).
 
 ## Stack
 

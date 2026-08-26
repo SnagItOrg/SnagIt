@@ -1,3 +1,16 @@
+> **STATUS: HISTORICAL SNAPSHOT — accurate for 2026-04-27, not current instructions.**
+>
+> Both bugs it diagnoses have since been fixed: the `dba.dk` source-allowlist
+> mismatch (now `frontend/lib/matching/sources.ts`) and parts/accessory pollution
+> (now the listing-intent guard). The ranking observation informed the current
+> price-statistics design.
+>
+> Current authority: [`klup-foundation-handover.md`](klup-foundation-handover.md)
+> and [`klup-documentation-index.md`](klup-documentation-index.md).
+> Preserved unedited as evidence.
+
+---
+
 # Investigation: why product pages show Reverb listings only
 
 **Date:** 2026-04-27

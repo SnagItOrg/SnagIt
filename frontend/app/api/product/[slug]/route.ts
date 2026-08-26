@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { hasPlausibleListingPrice } from '@/lib/listing-price-integrity'
 
 export type PricePoint = {
   sold_at:   string
@@ -96,6 +97,13 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
   const listings = (matchesRes.data ?? [])
     .map((m) => ({ score: m.score as number ?? 0, listing: m.listings as unknown as ListingRow | null }))
     .filter(({ listing }) => listing != null && listing.is_active !== false)
+    // Drop legacy Kleinanzeigen rows whose raw price violates the scraper's own
+    // impossible-value bound — they would render prices in the tens of millions
+    // of DKK on the product page. See lib/listing-price-integrity.ts.
+    .filter(({ listing }) => hasPlausibleListingPrice({
+      source: listing!.source as string | null,
+      price:  listing!.price as number | string | null,
+    }))
     .sort((a, b) => {
       const ta = new Date((a.listing?.scraped_at as string) ?? 0).getTime()
       const tb = new Date((b.listing?.scraped_at as string) ?? 0).getTime()

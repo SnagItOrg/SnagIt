@@ -38,6 +38,8 @@ import * as crypto from 'crypto'
 import { evaluateRun, startRun, finishRun, reportRun, type ListingSample } from './lib/scrape-health'
 import { stageListings, promoteRunAtomic, hasEstablishedScopeCoverage, GATE_VERSION, type StagedListing } from './lib/publish'
 import { resolveBaseline, baselineNotAttempted, cohortOf, type Baseline } from './lib/baseline'
+import { monitoredSlugs, assertResolved } from './lib/source-monitoring'
+import { matchScrapedBatch, reportBatchMatch, fetchBatchListingIds } from './lib/match-new-inflow'
 
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
 
@@ -163,11 +165,19 @@ function normalizeText(title: string): string {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 }
 
+/**
+ * Explicit marketplace-monitoring set for 'dba.dk', from
+ * data/klup-source-monitoring.json. This scraper no longer selects on
+ * kg_product.tier: tier is an EDITORIAL classification, and using it as a
+ * query selector meant an editorial promotion silently widened monitoring.
+ */
+const MONITORED_SLUGS = monitoredSlugs('dba.dk')
+
 async function loadProducts(): Promise<Array<{ id: string; canonical_name: string; brand_name: string; query: string }>> {
   const { data, error } = await supabase
     .from('kg_product')
-    .select('id, canonical_name, kg_brand!inner(name)')
-    .in('tier', TIERS)
+    .select('id, slug, canonical_name, kg_brand!inner(name)')
+    .in('slug', MONITORED_SLUGS)
     .eq('status', 'active')
     .order('canonical_name')
 
@@ -175,6 +185,10 @@ async function loadProducts(): Promise<Array<{ id: string; canonical_name: strin
     console.error(`❌ Failed to load kg_product: ${error.message}`)
     process.exit(1)
   }
+  // Fail loud: a configured product that no longer resolves would silently
+  // shrink 'dba.dk' coverage.
+  assertResolved('dba.dk', MONITORED_SLUGS, ((data ?? []) as Array<{ slug?: string }>).map(r => r.slug ?? ''))
+
 
   let products = ((data ?? []) as ProductRow[])
     .map((product) => {
@@ -562,6 +576,17 @@ async function main() {
       } else {
         console.log('   Lifecycle: SKIPPED (bootstrap — establishing coverage universe; misses start next complete run)')
       }
+
+      // ── Bounded new-inflow matching ────────────────────────────────────
+      // promote_scrape_run() stamps ingestion_batch_id = p_run_id on INSERT
+      // only (migration 055); the trigger preserves the original identity on
+      // every conflict refresh. So rows carrying THIS run id are exactly the
+      // listings this run introduced — refreshed historical rows are excluded
+      // by the database, not by inference. A null lookup means 0 writes.
+      const insertedDba = await fetchBatchListingIds(supabase, 'dba.dk', String(runId))
+      reportBatchMatch(insertedDba === null
+        ? { source: 'dba.dk', considered: 0, matched: 0, rejected: 0, deferred: 0, skipped: 'batch_identity_lookup_failed' }
+        : await matchScrapedBatch(supabase, 'dba.dk', insertedDba))
     }
   } else if (!DRY_RUN) {
     console.log(`   NOT PUBLISHED — ${stagedCount} rows held in staging under run_id ${runId}.`)

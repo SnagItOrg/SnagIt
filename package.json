@@ -4,12 +4,14 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "test": "tsx --test scripts/lib/baseline.test.ts",
+    "test": "tsx --test scripts/lib/baseline.test.ts scripts/lib/matcher-integrity.test.ts",
+    "test:baseline": "tsx --test scripts/lib/baseline.test.ts",
+    "test:matcher": "tsx --test scripts/lib/matcher-integrity.test.ts",
+    "report-match-backlog": "tsx scripts/report-match-backlog.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "import-kg": "tsx scripts/import-knowledge-graph.ts",
     "export-kg": "tsx scripts/export-knowledge-graph.ts",
-    "match-listings": "tsx scripts/match-listings.ts",
-    "match-listings:backfill": "tsx scripts/match-listings.ts --backfill",
+    "match-listings:historical-dry-run": "tsx scripts/match-listings.ts --historical-backfill",
     "scrape-reverb": "tsx scripts/scrape-reverb.ts",
     "expand-kg": "tsx scripts/expand-knowledge-graph.ts",
     "scrape-vse": "tsx scripts/scrape-vintagesynth.ts",
@@ -29,7 +31,12 @@
     "upload-images": "tsx scripts/upload-product-images.ts",
     "upload-csp-images": "tsx scripts/upload-csp-images.ts",
     "flag-dirty-products": "tsx scripts/flag-dirty-products.ts",
-    "populate-cleanup-queue": "tsx scripts/populate-cleanup-queue.ts"
+    "populate-cleanup-queue": "tsx scripts/populate-cleanup-queue.ts",
+    "build-product-artefacts": "tsx scripts/build-product-lifecycle-artefacts.ts",
+    "validate-product-artefacts": "tsx scripts/build-product-lifecycle-artefacts.ts --validate",
+    "validate-disposition": "tsx scripts/build-candidate-disposition.ts --validate",
+    "validate-activation-migration": "tsx scripts/emit-activation-migration.ts --validate",
+    "validate-activation": "npm run validate-product-artefacts && npm run validate-disposition && npm run validate-activation-migration"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.79.0",

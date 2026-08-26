@@ -132,7 +132,6 @@ async function main() {
     // clearly indicate a brand (e.g., "Effects Pedals").
     // We'll prioritize brands that are clearly specified in the hierarchy.
     // Example: "Amps / Guitar Amps / Guitar Combos" → extract "Guitar Amps" or "Amps"
-    .
     // A better approach is to have a dedicated brand mapping or use the brands API if it works.
 
     // For now, just process categories and assume we can map them later.

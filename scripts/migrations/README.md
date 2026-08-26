@@ -13,10 +13,11 @@ These are raw `.sql` files applied manually via the Supabase Studio SQL editor
 
 [studio]: https://supabase.com/dashboard/project/_/sql/new
 
-## Active queue
+## 030–035 — Reverb-anchor cleanup (2026-04-27) — HISTORICAL
 
-These four were authored 2026-04-27 as part of the Reverb-anchor cleanup. Apply
-in order; some have backfill steps that need a script run between them.
+> **These are applied. This section is a record, not a queue.** It was headed
+> "Active queue" until 2026-08-13; the heading was wrong and is corrected here.
+> The current pending queue is **053–056** (see the end of this file).
 
 | File | Action | Notes |
 |---|---|---|
@@ -172,3 +173,47 @@ two missing, full identity → proceeds; `listings` unchanged throughout.
 141 duplicate-row cleanup, and `DROP TABLE price_snapshots_old`). Those were
 one-off data operations, not schema contract — see CLAUDE.md → Reliability
 fixes for what they did and why.
+
+---
+
+## 053–056 — PENDING. This is the current queue. (2026-08-13)
+
+**None of these has been applied.** All four are `PRE`. They are the reviewed
+activation package and must be applied **strictly in order**, only after the
+operator prerequisites in
+[`../../docs/klup-foundation-handover.md`](../../docs/klup-foundation-handover.md)
+are met.
+
+| # | File | Rollback | Scope |
+|---|---|---|---|
+| 053 | `053_kg_duplicate_product_consolidation.sql` | `053_rollback.sql` | 14 duplicate `(brand, model_name)` groups / 29 rows; archives into `kg_arch_*_053` |
+| 054 | `054_identifier_curation.sql` | `054_rollback.sql` | removes unsafe identifiers `PAUL`, `TOM`, `335`; makes `Les Paul` / `ES-335` symmetric |
+| 055 | `055_listing_ingestion_identity.sql` | `055_rollback.sql` | `listings.ingestion_batch_id` / `ingested_at`, trigger-enforced write-once |
+| 056 | `056_activation_package.sql` | `056_rollback.sql` | **atomic**: `kg_product.support_state` + 34 brands + 142 products + exactly 48 support promotions + pre-commit assertions |
+
+**Every file has PRE / POST / DRIFT handling**: PRE applies, POST is an explicit
+successful no-op, DRIFT raises before any mutation.
+
+**056 is generated.** Do not hand-edit it — run
+`npx tsx scripts/emit-activation-migration.ts` and review the diff.
+`npm run validate-activation-migration` proves it still reproduces exactly.
+
+**056 is one transaction.** Schema, additive data, promotion and the final
+assertions share a single `BEGIN`/`COMMIT`, so there is no committable
+intermediate state in which the matcher has zero supported products. An earlier
+split (056 schema + 057 data + a psql wrapper) was **retired before deployment**
+for exactly that reason; `057_*.sql` and `056_057_release.sql` no longer exist.
+
+**Rollbacks refuse destructive reversal by default.** 055 refuses while any row
+carries an ingestion identity (`keep_columns` / `drop_with_evidence` escapes);
+056 refuses while additive identities carry references (`keep_identities` /
+`full` escapes).
+
+**`npm run import-kg` is NOT the production path for these changes.** Migration
+056 is the additive, identity-preserving upgrade. The importer full-replaces
+identifiers, relations and synonyms and is valid only for seeding a fresh
+database — see the superseded notice in
+[`../../DEPLOYMENT_GUIDE.md`](../../DEPLOYMENT_GUIDE.md).
+
+Verify the whole package against a disposable local cluster with
+`bash scripts/verify-migrations-isolated.sh` (60 PASS + 1 documented BOUNDARY).

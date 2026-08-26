@@ -22,6 +22,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import dotenv from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
+import { filterIdentifiers } from './lib/identifier-safety'
 
 // ── Env loading ───────────────────────────────────────────────────────────────
 for (const p of [
@@ -154,11 +155,40 @@ async function insertBatch(table: string, rows: AnyRow[], batchSize = 100) {
   }
 }
 
-async function fetchIdMap(table: string): Promise<Record<string, string>> {
-  const { data, error } = await supabase.from(table).select('id, slug')
-  if (error) throw new Error(`Fetch ${table}: ${error.message}`)
+/** slug -> current status, so an import never resurrects a retired product. */
+async function fetchStatusMap(table: string): Promise<Record<string, string>> {
   const map: Record<string, string> = {}
-  for (const row of (data as Array<{ id: string; slug: string }>) ?? []) map[row.slug] = row.id
+  let offset = 0
+  for (;;) {
+    // PostgREST caps every request at 1000 rows; kg_product is ~3,900.
+    const { data, error } = await supabase
+      .from(table).select('slug, status').order('slug').range(offset, offset + 999)
+    if (error) throw new Error(`Fetch ${table} status: ${error.message}`)
+    if (!data?.length) break
+    for (const row of data as Array<{ slug: string; status: string }>) map[row.slug] = row.status
+    if (data.length < 1000) break
+    offset += 1000
+  }
+  return map
+}
+
+async function fetchIdMap(table: string): Promise<Record<string, string>> {
+  // PostgREST caps every request at 1000 rows regardless of .limit(). kg_product
+  // is ~3,900 rows, so the unpaginated version returned only the first 1000 and
+  // the identifier loop then silently skipped ~74% of products via
+  // `if (!productId) continue`. A clean rebuild could not reproduce the
+  // identifier set at all. Documented repo-wide gotcha; see CLAUDE.md.
+  const map: Record<string, string> = {}
+  let offset = 0
+  for (;;) {
+    const { data, error } = await supabase
+      .from(table).select('id, slug').order('slug').range(offset, offset + 999)
+    if (error) throw new Error(`Fetch ${table}: ${error.message}`)
+    if (!data?.length) break
+    for (const row of data as Array<{ id: string; slug: string }>) map[row.slug] = row.id
+    if (data.length < 1000) break
+    offset += 1000
+  }
   return map
 }
 
@@ -232,24 +262,54 @@ async function main() {
     }
   }
 
+  // PRESERVE EXISTING STATUS. The seed carries no status field, so every row
+  // was previously upserted as status='active' — which silently REACTIVATES
+  // anything an operator or a migration has retired. Migration 053 retires 14
+  // duplicate products plus the two out-of-vertical HP Z8 rows, and 10 of those
+  // slugs are still present in the seed; a clean import would have undone that
+  // and resurrected the duplicate-product conflicts.
+  //
+  // New products still default to 'active'. Only rows that already exist keep
+  // whatever status they currently have.
+  const existingStatus = await fetchStatusMap('kg_product')
+  for (const row of productRows) {
+    const current = existingStatus[row.slug]
+    if (current) row.status = current
+  }
+  const reactivationsPrevented = productRows.filter(r => r.status !== 'active').length
   await upsert('kg_product', productRows, 'slug')
   const productMap = await fetchIdMap('kg_product')
   log(`  ✓  ${productRows.length} products`)
+  if (reactivationsPrevented > 0) {
+    log(`  ✓  ${reactivationsPrevented} existing non-active product(s) kept retired (not reactivated)`)
+  }
 
   // ── 4. Identifiers ─────────────────────────────────────────────────────────
   log('\n── Identifiers ──')
   await deleteAll('kg_identifier')
 
   const identRows: IdentifierRow[] = []
+  const rejectedIdents: Array<{ slug: string; type: string; value: string; reason: string }> = []
   for (const [slug, idents] of Object.entries(identifiersBySlug)) {
     const productId = productMap[slug]
     if (!productId) continue
-    for (const { type, value } of idents) {
+    // kg_identifier hits score 95 — the matcher's exclusive-evidence tier. The
+    // seed file contains values that are ordinary words ("PAUL", "TOM") or bare
+    // model fragments ("335"); migration 054 removes them from the database, and
+    // this filter stops the next import from putting them straight back.
+    // See scripts/lib/identifier-safety.ts.
+    const { safe, rejected } = filterIdentifiers(idents)
+    for (const r of rejected) rejectedIdents.push({ slug, type: r.type, value: r.value, reason: r.reason })
+    for (const { type, value } of safe) {
       identRows.push({ product_id: productId, type, value, confidence: 80, source: 'seed' })
     }
   }
   if (identRows.length > 0) await insertBatch('kg_identifier', identRows)
   log(`  ✓  ${identRows.length} identifiers`)
+  if (rejectedIdents.length > 0) {
+    log(`  ⚠  ${rejectedIdents.length} unsafe identifier(s) rejected (would have scored 95):`)
+    for (const r of rejectedIdents) log(`       ${r.slug}: ${r.type} "${r.value}" — ${r.reason}`)
+  }
 
   // ── 5. Relations ───────────────────────────────────────────────────────────
   log('\n── Relations ──')

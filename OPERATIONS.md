@@ -1,3 +1,26 @@
+> ## ⚠️ PARTIALLY SUPERSEDED — verify against the handover before acting
+>
+> **Status:** reviewed 2026-08-13 (Prompt H1). The **curation craft** below is
+> still good guidance: how to name a product, what a bad match looks like, how
+> to add synonyms, what never to add. The **operational claims are stale.**
+>
+> Corrected in this notice rather than rewritten, so the original workflow
+> reasoning is preserved:
+>
+> | Claim below | Current truth |
+> |---|---|
+> | `match-listings` runs hourly via PM2 | **It does not.** PM2 no longer schedules it. Matching is bounded to each scrape run's own new inflow. The unbounded CLI is gated behind `--historical-backfill` and is not authorised. |
+> | Scrapers select products by `tier` | **No.** `tier` is editorial only. Monitoring is the explicit product set in `data/klup-source-monitoring.json` (DBA 30, Finn/Blocket/Kleinanzeigen 28). |
+> | `scrape-reverb` searches "all KG products" | Reverb sweeps the active music-gear catalogue; it is not a per-product query list and is **not** driven by the monitoring config. |
+> | Adding a product makes it matchable | **No.** Matcher eligibility is `status='active' AND support_state='supported'`. A new product defaults to `known` and matches nothing. |
+> | `/intel` is "your arbitrage dashboard" and Part 5's arbitrage workflow | `/intel` is a **private founder tool**, not the product. Klup is a monitoring and comparison service, not an arbitrage or trading operation. |
+> | Tier definitions in Part 1 | Tier is editorial prominence only. It no longer affects what is scraped. |
+>
+> Authoritative: [`docs/klup-foundation-handover.md`](docs/klup-foundation-handover.md)
+> and [`docs/klup-product-lifecycle-guide.md`](docs/klup-product-lifecycle-guide.md).
+
+---
+
 # Klup.dk — Operations Manual
 ## Data Curation & Product Management
 

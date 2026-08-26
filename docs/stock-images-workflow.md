@@ -1,3 +1,16 @@
+> **STATUS: HISTORICAL SNAPSHOT — accurate for 2026-04-27, not current instructions.**
+>
+> The image strategy it proposes has since shipped: `kg_product.image_url` /
+> `hero_image_url`, Supabase Storage webp, and the `set-category-images` /
+> `upload-csp-images` scripts. Retained as the asset inventory and the reasoning
+> behind the current approach.
+>
+> Current authority: [`klup-foundation-handover.md`](klup-foundation-handover.md)
+> and [`klup-documentation-index.md`](klup-documentation-index.md).
+> Preserved unedited as evidence.
+
+---
+
 # Stock images workflow — current state + three proposals
 
 **Date:** 2026-04-27

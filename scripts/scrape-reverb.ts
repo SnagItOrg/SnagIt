@@ -18,7 +18,11 @@
 
 import * as path from 'path'
 import * as fs from 'fs'
-import { createClient } from '@supabase/supabase-js'
+// Uses the frontend copy of supabase-js, the documented pattern for scripts/
+// (CLAUDE.md "Module resolution pattern"). Required so the shared matcher
+// handoff below type-checks against the same SupabaseClient identity.
+import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
+const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
 
 // ── Load env ─────────────────────────────────────────────────────────────────
 const envPaths = [
@@ -261,6 +265,7 @@ async function main() {
   }
   console.log(`Loaded ${terms.length} search terms from knowledge graph.\n`)
 
+  const ingestionBatchId = newIngestionBatchId()
   let totalUpserted = 0
   let totalSkipped = 0
 
@@ -293,7 +298,7 @@ async function main() {
     // Upsert — on conflict(external_id): only update price, currency, scraped_at, is_active
     const { data, error } = await supabase
       .from('listings')
-      .upsert(rows, {
+      .upsert(rows.map(r => ({ ...r, ingestion_batch_id: ingestionBatchId })), {
         onConflict: 'external_id,source',
         ignoreDuplicates: false,
       })
@@ -310,6 +315,13 @@ async function main() {
 
     console.log()
   }
+
+  // Bounded new-inflow matching: only the ids this run just wrote. Runs after
+  // the writes complete and never changes this script's exit status.
+  const insertedReverb = await fetchBatchListingIds(supabase, 'reverb', ingestionBatchId)
+  reportBatchMatch(insertedReverb === null
+    ? { source: 'reverb', considered: 0, matched: 0, rejected: 0, deferred: 0, skipped: 'batch_identity_lookup_failed' }
+    : await matchScrapedBatch(supabase, 'reverb', insertedReverb))
 
   // Mark stale Reverb listings as inactive (not seen in 48h)
   console.log('Marking stale Reverb listings as inactive…')

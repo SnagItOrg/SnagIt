@@ -21,6 +21,9 @@ import * as fs from 'fs'
 import type { SupabaseClient } from '../frontend/node_modules/@supabase/supabase-js'
 import { scrapeFinn } from '../frontend/lib/scrapers/finn'
 
+import { monitoredSlugs, assertResolved } from './lib/source-monitoring'
+import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
+
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
 
 const envPaths = [
@@ -86,11 +89,19 @@ function normalizeText(title: string): string {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 }
 
+/**
+ * Explicit marketplace-monitoring set for 'finn', from
+ * data/klup-source-monitoring.json. This scraper no longer selects on
+ * kg_product.tier: tier is an EDITORIAL classification, and using it as a
+ * query selector meant an editorial promotion silently widened monitoring.
+ */
+const MONITORED_SLUGS = monitoredSlugs('finn')
+
 async function loadProducts(): Promise<Array<{ id: string; canonical_name: string; brand_name: string; query: string }>> {
   const { data, error } = await supabase
     .from('kg_product')
-    .select('id, canonical_name, kg_brand!inner(name)')
-    .eq('tier', 'legendary')
+    .select('id, slug, canonical_name, kg_brand!inner(name)')
+    .in('slug', MONITORED_SLUGS)
     .eq('status', 'active')
     .order('canonical_name')
 
@@ -98,6 +109,10 @@ async function loadProducts(): Promise<Array<{ id: string; canonical_name: strin
     console.error(`❌ Failed to load kg_product: ${error.message}`)
     process.exit(1)
   }
+  // Fail loud: a configured product that no longer resolves would silently
+  // shrink 'finn' coverage.
+  assertResolved('finn', MONITORED_SLUGS, ((data ?? []) as Array<{ slug?: string }>).map(r => r.slug ?? ''))
+
 
   let products = ((data ?? []) as ProductRow[])
     .map((product) => {
@@ -159,6 +174,8 @@ async function main() {
 
   console.log(`Loaded ${products.length} legendary products from knowledge graph.\n`)
 
+  // One immutable identity for this execution, generated before any write.
+  const ingestionBatchId = newIngestionBatchId()
   let scrapedProducts = 0
   let totalListings = 0
 
@@ -170,9 +187,12 @@ async function main() {
     const rows = buildRows(listings)
 
     if (rows.length > 0) {
+      // Every INSERT carries this run's identity. On conflict the database
+      // trigger preserves the row's ORIGINAL identity, so a refreshed
+      // historical row keeps its old (or NULL) value and is not new inflow.
       const { error } = await supabase
         .from('listings')
-        .upsert(rows, {
+        .upsert(rows.map(r => ({ ...r, ingestion_batch_id: ingestionBatchId })), {
           onConflict: 'external_id,source',
           ignoreDuplicates: false,
         })
@@ -181,6 +201,7 @@ async function main() {
         console.error(`[scrape-finn] ${product.canonical_name}: upsert failed (${error.message})`)
         continue
       }
+
     }
 
     scrapedProducts += 1
@@ -189,6 +210,14 @@ async function main() {
   }
 
   console.log(`[scrape-finn] Done. ${scrapedProducts} products scraped, ${totalListings} listings total.`)
+
+  // Bounded new-inflow matching: only the ids this run just wrote. Runs after
+  // the writes complete and never changes this script's exit status.
+  // Only rows the DATABASE says this run inserted. A null lookup => 0 writes.
+  const inserted = await fetchBatchListingIds(supabase, 'finn', ingestionBatchId)
+  reportBatchMatch(inserted === null
+    ? { source: 'finn', considered: 0, matched: 0, rejected: 0, deferred: 0, skipped: 'batch_identity_lookup_failed' }
+    : await matchScrapedBatch(supabase, 'finn', inserted))
 }
 
 main().catch((error) => {
