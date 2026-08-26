@@ -2,6 +2,22 @@
 
 **The map. Read this before trusting any other document in the repository.**
 
+> **UPDATED 2026-08-26 — the catalogue is ACTIVATED in production.**
+> Migrations **053–057 are all POST**. The launch catalogue is live: 48 supported
+> products (14 public, 34 private), 28 public products in total, monitoring
+> 30/28/28/28. Deployed commit `c7bd481`.
+>
+> Two release defects were found and fixed — a stale `promote_scrape_run`
+> contract in migration 055, and world-writable archive tables closed by 057.
+> Both are documented in
+> [`klup-foundation-handover.md`](klup-foundation-handover.md) →
+> *Migration and rollback package*, together with a **P0 warning about
+> schema-wide default privileges** that applies to every future migration.
+>
+> **The Vercel cron `/api/cron/scrape` is deliberately DISABLED** — it duplicates
+> dba.dk ingestion and can race the PM2 promotion path. See the handover's
+> *Vercel cron conflict*.
+
 Created 2026-08-13 (Prompt H1) after the music-vertical pivot and the completion
 of Prompts 02→04B. Its job is to tell a fresh agent which documents are safe to
 act on, which are history, and which would be dangerous to follow.
@@ -144,8 +160,27 @@ behind a status notice, or listed here with justification.
 ## 8. What the next agent should do
 
 1. Read [`../CLAUDE.md`](../CLAUDE.md).
-2. Read [`klup-foundation-handover.md`](klup-foundation-handover.md).
+2. Read [`klup-foundation-handover.md`](klup-foundation-handover.md), especially
+   *Activation record — 2026-08-26* and the **P0** default-privilege warning.
 3. Proceed to **experience specification** (Stage 3).
 
-**Do not** reopen foundation, matcher, KG or product-data work, and **do not**
-execute activation without the four operator prerequisites.
+**Activation is DONE.** Do not re-run it, do not re-apply migrations (all five are
+idempotent no-ops but there is no reason to touch them), and do not reopen
+foundation, matcher, KG or product-data work.
+
+### Immediate product-operations follow-ups (not engineering branches)
+
+| # | Item | Why it matters |
+|---|---|---|
+| 1 | **P0: schema-wide default privileges** grant ALL on new `public` tables to `anon`/`authenticated` | any future migration creating a `public` table is born world-readable and world-writable. 057 fixed only the nine tables that existed |
+| 2 | **Monitoring/support overlap is only 14** | monitored sets resolve 30/28/28/28, but just 14 of those products are among the supported 48, so roughly half of each source's monitored products collect listings that cannot auto-match |
+| 3 | **Vercel cron conflict** | `/api/cron/scrape` duplicates dba.dk ingestion; disabled until the ingestion path is unified |
+| 4 | **Deferred, non-live:** `report-match-backlog` order-dependence | affects its forced-supported ~3,697-product projection only; the live 48 are deterministic. Investigate before any historical backfill |
+
+### Operational state a fresh agent should assume
+
+- PM2 holds exactly 8 cron-scheduled jobs; `match-listings` is retired and purged
+  from the saved dump. **Never run `pm2 resurrect`** — start jobs with
+  `pm2 start ecosystem.config.js --only <name>`.
+- Backups from the release are retained in `~/klup-release-2026-08-26/`
+  (database dump restore-verified, plus all 1,314 Storage objects).

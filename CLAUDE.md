@@ -36,7 +36,7 @@ Never infer one from another.
 | Concern | Field | Values |
 |---|---|---|
 | **Identity** | `kg_product.status` | `active` · `inactive` |
-| **Support** | `kg_product.support_state` *(migration 056, PRE)* | `known` · `reserve` · `supported` |
+| **Support** | `kg_product.support_state` *(migration 056, POST)* | `known` · `reserve` · `supported` |
 | **Visibility** | `kg_product.browse_visibility` | `public` · `qa_only` · `hidden` |
 | **Editorial tier** | `kg_product.tier` | `legendary` · `classic` · `standard` |
 | **Monitoring** | [`data/klup-source-monitoring.json`](data/klup-source-monitoring.json) | explicit per-source product sets |
@@ -102,7 +102,7 @@ parallel promotion tool. Coverage across the frozen 48: 3 articles, 29 images,
 
 ## 5. Migrations
 
-**053, 054, 055 and 056 are all `PRE` — none applied.**
+**053, 054, 055, 056 and 057 are all `POST` — applied to production 2026-08-26.**
 
 | # | File | Scope |
 |---|---|---|
@@ -132,10 +132,9 @@ bash scripts/verify-migrations-isolated.sh   # 81 PASS, disposable local cluster
 npm run validate-activation                  # artefacts + disposition + migration reproduce exactly
 ```
 
-**`npm run report-match-backlog` fails against PRE-056 production** with
-`column kg_product.support_state does not exist`. That is expected: it is a
-**post-056 verification command, not a preflight**. Do not "fix" it by making
-the column optional.
+**`npm run report-match-backlog` now succeeds** — 056 is applied. Its
+order-independence probe covers the forced-supported ~3,697-product projection,
+not the live path; the live 48 are deterministic.
 
 The seven root type-check errors are pre-existing and deliberately unfixed:
 `schibsted.ts` TS2353 · `scripts/lib/baseline.ts` TS2352 · `scripts/match-listings.ts`

@@ -1,11 +1,16 @@
 # Klup fresh-session handover
 
-**Current through Prompt 04B. Self-contained — a fresh agent can continue from this
-document without conversation history.**
+**Current through the 2026-08-26 production activation. Self-contained — a fresh
+agent can continue from this document without conversation history.**
 
-**Status:** all work below is **uncommitted** in the local working tree. Nothing
-has been committed, pushed, deployed or applied to production. Production is
-untouched and every access has been `SELECT`-only.
+> **STATUS CHANGED 2026-08-26. The catalogue is ACTIVATED in production.**
+> Migrations **053, 054, 055 and 057 are POST**, and **056 is POST** — the launch
+> catalogue is live with 48 supported products. The release is committed, pushed
+> and deployed. Sections below that describe the pre-activation state have been
+> updated; see *Activation record (2026-08-26)* for what actually happened.
+>
+> **The Vercel cron `/api/cron/scrape` is deliberately DISABLED** and must not be
+> re-enabled without resolving the conflict recorded in the activation record.
 
 Read [`CLAUDE.md`](../CLAUDE.md) first for operating rules, and
 [`klup-documentation-index.md`](klup-documentation-index.md) for which documents
@@ -190,14 +195,62 @@ surface may mutate it.
 
 ## Migration and rollback package
 
-**Final files are 053–056 only.** All four are `PRE`; none applied.
+**Files are 053–057. All five are `POST` — applied to production 2026-08-26.**
 
-| # | File | Rollback | Scope |
-|---|---|---|---|
-| 053 | `053_kg_duplicate_product_consolidation.sql` | `053_rollback.sql` | 14 duplicate `(brand, model_name)` groups / 29 rows |
-| 054 | `054_identifier_curation.sql` | `054_rollback.sql` | removes unsafe `PAUL`, `TOM`, `335`; symmetric `Les Paul` / `ES-335` |
-| 055 | `055_listing_ingestion_identity.sql` | `055_rollback.sql` | ingestion identity columns + write-once trigger |
-| 056 | `056_activation_package.sql` | `056_rollback.sql` | **atomic**: support schema + 34 brands + 142 products + exactly 48 promotions + assertions |
+| # | File | Rollback | Scope | Applied (UTC) |
+|---|---|---|---|---|
+| 053 | `053_kg_duplicate_product_consolidation.sql` | `053_rollback.sql` | 14 duplicate `(brand, model_name)` groups / 29 rows | 14:47:40–42 |
+| 054 | `054_identifier_curation.sql` | `054_rollback.sql` | removes unsafe `PAUL`, `TOM`, `335`; symmetric `Les Paul` / `ES-335` | 14:48:12–13 |
+| 055 | `055_listing_ingestion_identity.sql` | `055_rollback.sql` | ingestion identity columns + write-once trigger + promotion stamp | 14:48:44–46 |
+| 056 | `056_activation_package.sql` | `056_rollback.sql` | **atomic**: support schema + 34 brands + 142 products + exactly 48 promotions + assertions | 14:49:15–16 |
+| 057 | `057_restrict_release_archive_tables.sql` | `057_rollback.sql` | locks down the nine 053/054 archive tables; pins trigger `search_path` | 15:53:56–57 |
+
+SHA-256 of the applied files:
+
+```
+053  782b03a82dbd264b677f52549e6e6d67393ddab501a2a17fd59b69c4b7f49ae5
+054  710bb0da7611ec0ed0f5723525f09aca5165ec1f0ed54cbd1f2a712de0f28d5f
+055  4ac0e2242ed9083b118f5dddb7139b80d431c3bb7708966133bb69c081b1a782
+056  b68558ef1898553dfb58aa16f6b5dc39d5cc465d0df97416448aeab1d1c60bfe
+057  78ffa81b66ee1e763189d41002091b716ba3b77005f9e17e1944f484686d671f
+```
+
+### Two defects found during the release — both fixed, both worth remembering
+
+**1. Migration 055 would have failed in production.** As originally written, 055
+and `055_rollback` redefined `promote_scrape_run` as a **`RETURNS TABLE`**
+function built on a pre-051 body. Production carries the migration-052
+**`RETURNS jsonb`** function, so `CREATE OR REPLACE` fails with *"cannot change
+return type of existing function"*. The error's own `DROP FUNCTION` hint was a
+trap: forcing it through would have reverted the **051 six-field cohort-identity
+guard** and broken `scripts/lib/publish.ts`, which reads the RPC result as a
+single jsonb object (`r.skipped`) — a `TABLE` return arrives through PostgREST as
+an *array of rows*, so a refused run would have been recorded as a successful
+publish. Fixed in commit `a7fab3a`.
+
+**Why the 60-check harness missed it:** `scripts/fixtures/kg_migration_fixture.sql`
+contained no `promote_scrape_run` at all, so 055 created it from nothing and
+passed. The fixture now carries the production-era `scrape_run`,
+`listing_staging`, `listing_coverage_scopes` and the 052 function, and harness
+section **11b** pins the contract (22 assertions). Harness is now **81 PASS**.
+**Lesson: a synthetic fixture cannot validate a migration against production shape.
+Rehearse on a restored snapshot.**
+
+**2. The 053/054 archive tables were world-writable.** They live in `public`,
+which PostgREST serves, and this project grants ALL on public tables to
+`anon`/`authenticated`. Anonymous callers could read *and `DELETE`* the rollback
+evidence. Confirmed live before the fix. Closed by 057 in commit `c7bd481`.
+
+### P0 — read this before any future migration creates a table in `public`
+
+> **The root cause of defect 2 is NOT fixed.** A schema-wide default privilege
+> grants ALL on new `public` tables to `anon` and `authenticated`. **Any future
+> migration that creates a table in `public` will be born world-readable and
+> world-writable.** 057 fixed only the nine tables that existed.
+>
+> Until the default privileges are corrected, every new migration MUST either
+> create its tables outside `public` or enable RLS and revoke anon/authenticated
+> grants in the same transaction. Treat this as a prerequisite, not a nicety.
 
 Apply strictly in order. Each has PRE / POST / DRIFT: PRE applies, POST is an
 explicit successful no-op, DRIFT raises before any mutation.
@@ -244,20 +297,127 @@ The importer remains the clean-import path for a fresh database.
 
 ---
 
+## Activation record — 2026-08-26
+
+The catalogue was activated in production on 2026-08-26 from the Mac Mini
+(`panter`) over a direct PostgreSQL connection, with every writer frozen.
+
+### Release identity
+
+| | |
+|---|---|
+| Original HEAD | `273d0d4a43ac11f696287c2524c7b150069417e7` |
+| Release commit | `8298677711b571e9daafed5d0640b5c886b31f18` |
+| 055 contract fix | `a7fab3ac2a96aeecdbd3092eefb554ddf19520dd` |
+| Archive lockdown | `c7bd48112d3940002848ba170189cbcfd4b97264` |
+| Deployed | Vercel production Ready; Mac Mini runtime on the same commit |
+
+### Sequence actually followed
+
+1. Froze every writer: PM2 daemon killed with 0 registered apps, Vercel Cron Jobs
+   disabled at project level. **Quiescence proved over 51 minutes** — five write
+   counters flat across ten `*/5` and five `*/10` windows.
+2. Logical backup with `pg_dump --format=custom`, **restore-verified** into a
+   disposable cluster (26/26 tables, exact row counts, four matching digests)
+   plus a separate export of all 1,314 Storage objects.
+3. Applied 053 → 054 → 055 → 056, then 057, each `psql -X -v ON_ERROR_STOP=1 -f`.
+4. Deployed, smoke-tested, then resumed writers one class at a time with
+   `pm2 start ecosystem.config.js --only <name>`, observing a full cycle between
+   each and re-checking every stop condition.
+
+### Post-activation production state (SELECT, 2026-08-26 18:59 UTC)
+
+| Measure | Value |
+|---|--:|
+| `kg_product` | **4,004** (+142 additive) |
+| `kg_brand` | **274** (+24, within the ≤34 ceiling) |
+| `support_state='supported'` | **48** |
+| matchable (`active` + `supported`) | **48** |
+| supported / public | **14** |
+| supported / `qa_only` | **34** |
+| `browse_visibility='public'` | **28 — unchanged** |
+| `listings` | **96,887** |
+| listings with ingestion identity | **9,524** |
+| legacy listings (NULL identity) | **87,363 — frozen throughout** |
+| `listing_product_match` | **31,482** |
+
+### First controlled inflow — 8 writer classes, all green
+
+| Job | New listings | Batch outcome |
+|---|--:|---|
+| `process-price-queue` | 0 | queue empty |
+| `scrape-dba` | 7 | 7 considered → 0 matched |
+| `scrape-finn` | 180 | 14 matched, 1 deferred |
+| `scrape-blocket` | 177 | 18 matched, 2 rejected, 1 deferred |
+| `scrape-kleinanzeigen` | 450 | 59 matched, 1 rejected, 6 deferred |
+| `scrape-reverb` | 8,710 | 537 matched, 57 rejected, 44 deferred |
+| `fetch-reverb-prices` | 0 | no listing writes |
+| `fetch-thomann-prices` | 0 | no listing writes |
+
+**688 new `listing_product_match` rows = 628 matched (`is_valid IS NULL`) + 60
+hard brand-collision rejections (`is_valid = false`).** Every one is on a listing
+belonging to one of the five controlled ingestion batches. **Zero** on an
+unsupported product; **zero** on a legacy row. Content digests for the 3,862
+pre-existing products are byte-identical to the pre-migration baseline.
+
+### Ingestion identity worked exactly as designed
+
+Each source wrote under a single immutable batch id, and the counts correspond
+exactly (`+N listings` ⇔ `+N identities`). The DBA run published 611 listings but
+created only **7** identities — the other 604 were conflict refreshes, which
+preserve the original (NULL) identity and are therefore correctly ineligible for
+automatic matching. **Rescraping is freshness, not population**, demonstrated in
+production.
+
+### Final writer state
+
+PM2 holds exactly 8 jobs, all cron-scheduled, `match-listings` **absent** and
+purged from `~/.pm2/dump.pm2` by `pm2 save`. **The Vercel cron remains
+DISABLED** — see *Vercel cron conflict* below.
+
+### Backups retained
+
+`~/klup-release-2026-08-26/` — `klup-prod-20260826.dump`
+(`b0cdbb6c…`, 23,399,888 bytes, restore-verified), `storage-manifest.csv`
+(`3078c53f…`, 1,314 rows), 1,313 storage files (229,340,362 bytes; one
+case-folded pair with identical bytes, see `STORAGE-NOTES.md`), and the
+pre-release PM2 dump. No rollback was used.
+
+---
+
+## Vercel cron conflict — `/api/cron/scrape` is disabled
+
+It iterates 123 active user watchlists and calls `scrapeDba`, so it ingests the
+**same dba.dk source** as the PM2 `scrape-dba` job, through a **different
+conflict target on a shared unique index**:
+
+```
+PM2    -> ON CONFLICT (external_id, source)   [listings_external_id_source_unique — NOT partial]
+Vercel -> ON CONFLICT (url, watchlist_id)     [listings_url_watchlist_unique — partial]
+```
+
+772 rows already carry both `watchlist_id` and `external_id`, all `dba.dk`. A
+cron insert whose `(external_id, source)` already exists under a different
+watchlist raises a unique violation instead of upserting. Re-enabling it requires
+deciding whether watchlist ingestion should route through the same
+staging/promotion path — a design decision, not an operational toggle.
+
+---
+
 ## Current production and repository state
 
 | Measure | Value | Source |
 |---|--:|---|
-| `kg_product` | 3,862 (3,569 active) | SELECT, 2026-08-13 |
-| `kg_brand` | 250 | SELECT, 2026-08-13 |
-| `listings` | 87,185 | SELECT, 2026-08-13 |
-| `listing_product_match` | 30,794 | SELECT, 2026-08-13 |
-| Monitored set (DBA / others) | 30 / 28 | SELECT, 2026-08-13 |
-| `browse_visibility='public'` | 28 | SELECT, 2026-08-13 |
-| Migrations 053 / 054 / 055 / 056 | all `PRE` | SELECT, 2026-08-13 |
-| New brands (Tokai, Greco, Burny, PRS, Rickenbacker…) | **0 in database** — seed/migration only | SELECT, 2026-08-13 |
+| `kg_product` | 4,004 | SELECT, 2026-08-26 |
+| `kg_brand` | 274 | SELECT, 2026-08-26 |
+| `listings` | 96,887 | SELECT, 2026-08-26 |
+| `listing_product_match` | 31,482 | SELECT, 2026-08-26 |
+| Monitored set (DBA / others) | 30 / 28 | SELECT, 2026-08-26 |
+| `browse_visibility='public'` | 28 | SELECT, 2026-08-26 |
+| Migrations 053 / 054 / 055 / 056 / 057 | all **POST** | SELECT, 2026-08-26 |
+| New brands (Tokai, Greco, Burny, PRS, Rickenbacker…) | **present** — added by 056 | SELECT, 2026-08-26 |
 
-`HEAD = 273d0d4a43ac11f696287c2524c7b150069417e7`, branch `main`, index **empty**.
+`HEAD = c7bd48112d3940002848ba170189cbcfd4b97264`, branch `main`, pushed to `origin/main`.
 
 **Working-tree ownership.** The tree is intentionally dirty and carries all
 accepted Prompt 02→04B work, largely untracked. **Pre-existing, never modify or
@@ -290,12 +450,15 @@ socket, `listen_addresses=''`) and destroys it on exit. It never touches product
 
 ## Known compatibility and operational constraints
 
-- **`npm run report-match-backlog` fails against PRE-056 production**
-  (`column kg_product.support_state does not exist`). It is a **post-056
-  verification command, not a preflight**. Do not make the column optional.
-- **Deploy order matters:** the matcher code reads `support_state`. Deploying the
-  application before migration 056 would break `matchListings` in production.
-  Apply 056 *before or with* the deploy that carries the matcher change.
+- **`npm run report-match-backlog` now succeeds** (056 is POST). Note its
+  order-independence probe forces every product `supported` and covers ~3,697
+  active products — that is NOT the live path. The live 48-product universe was
+  tested separately and is fully deterministic (36,316/36,316 identical
+  decisions forward vs reversed). Investigate the broad probe before any
+  historical backfill.
+- **Deploy order mattered and was respected:** 056 was applied BEFORE the deploy
+  carrying the matcher change, so `matchListings` never ran against a database
+  without `support_state`.
 - After 056 the matcher target set narrows from 3,569 active products to **48**.
   That is intended; existing matches are untouched.
 - Historical population remains blocked: `--historical-backfill` accepts only
