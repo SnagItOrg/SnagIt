@@ -204,6 +204,30 @@ intermediate state in which the matcher has zero supported products. An earlier
 split (056 schema + 057 data + a psql wrapper) was **retired before deployment**
 for exactly that reason; `057_*.sql` and `056_057_release.sql` no longer exist.
 
+### 055 promotion-contract correction (2026-08-26)
+
+`055_listing_ingestion_identity.sql` and `055_rollback.sql` originally redefined
+`promote_scrape_run` as a **`RETURNS TABLE`** function built on a pre-051 body.
+Production carries the migration-052 **`RETURNS jsonb`** function, so
+`CREATE OR REPLACE` failed with *"cannot change return type of existing
+function"*. The error's own HINT (`DROP FUNCTION ... first`) was a trap: forcing
+it through would have reverted the **051 six-field cohort-identity guard** and
+broken `scripts/lib/publish.ts`, which reads the RPC result as a single jsonb
+object (`r.skipped`) — a `TABLE` return arrives as an array of rows, so a refused
+run would have been read as a successful publish.
+
+Both files now carry migration 052's exact function, preserving the five-argument
+identity, `RETURNS jsonb`, the six-field guard and the `GROUP BY l.id`
+de-duplication. 055 adds only `listings.ingestion_batch_id = p_run_id` on first
+insert; the rollback restores plain 052. Neither uses `DROP FUNCTION`.
+
+**Why it was not caught earlier:** `scripts/fixtures/kg_migration_fixture.sql`
+contained no `promote_scrape_run` at all, so the harness created it from nothing
+and passed. The fixture now carries the production-era `scrape_run`,
+`listing_staging`, `listing_coverage_scopes` and the 052 function, and harness
+section **11b** pins the contract. Verified: the old 055 now fails against the
+fixture and the corrected 055 passes.
+
 **Rollbacks refuse destructive reversal by default.** 055 refuses while any row
 carries an ingestion identity (`keep_columns` / `drop_with_evidence` escapes);
 056 refuses while additive identities carry references (`keep_identities` /
@@ -216,4 +240,4 @@ database — see the superseded notice in
 [`../../DEPLOYMENT_GUIDE.md`](../../DEPLOYMENT_GUIDE.md).
 
 Verify the whole package against a disposable local cluster with
-`bash scripts/verify-migrations-isolated.sh` (60 PASS + 1 documented BOUNDARY).
+`bash scripts/verify-migrations-isolated.sh` (81 PASS + 1 documented BOUNDARY).

@@ -173,53 +173,95 @@ CREATE OR REPLACE FUNCTION promote_scrape_run(
   p_lifecycle_enabled     boolean DEFAULT false,
   p_fail_after_listings   boolean DEFAULT false
 )
-RETURNS TABLE (
-  published int, new_listings int, price_changes int, unchanged int,
-  missed int, delisted int, lifecycle_applied boolean
-)
+RETURNS jsonb
 LANGUAGE plpgsql
-AS $promote$
+SECURITY INVOKER
+SET search_path = public
+AS $$
 DECLARE
-  v_now       timestamptz := now();
-  v_source    text;
-  v_scope     text;
-  v_status    text;
-  v_promoted  timestamptz;
-  v_digest    text;
-  v_live      text;
-  v_published int := 0;
-  v_new       int := 0;
-  v_changed   int := 0;
-  v_unchanged int := 0;
-  v_missed    int := 0;
-  v_delisted  int := 0;
-  v_lifecycle boolean := false;
+  v_source        text;
+  v_status        text;
+  v_promoted_at   timestamptz;
+  v_scope         text;
+  v_expected_dig  text;
+  v_actual_dig    text;
+  v_cov_version   text;
+  v_scraper_ver   text;
+  v_parser_ver    text;
+  v_pagination    text;
+  v_run_scope     text;
+  v_missing       text[];
+  v_now           timestamptz := now();
+  v_published     int := 0;
+  v_first_seen    int := 0;
+  v_delisted      int := 0;
+  v_missed        int := 0;
+  v_lifecycle_ok  boolean := false;
 BEGIN
-  SELECT source, coverage_scope_hash, status, promoted_at, staging_digest
-    INTO v_source, v_scope, v_status, v_promoted, v_digest
-  FROM scrape_run WHERE id = p_run_id FOR UPDATE;
+  SELECT source, status, promoted_at, coverage_scope_hash, staging_digest,
+         coverage_version, scraper_version, parser_version, pagination_strategy, run_scope
+    INTO v_source, v_status, v_promoted_at, v_scope, v_expected_dig,
+         v_cov_version, v_scraper_ver, v_parser_ver, v_pagination, v_run_scope
+  FROM scrape_run WHERE id = p_run_id
+  FOR UPDATE;
 
-  IF NOT FOUND THEN RAISE EXCEPTION 'promote_scrape_run: unknown run %', p_run_id; END IF;
-  IF v_status IS DISTINCT FROM 'passed' THEN
-    RAISE EXCEPTION 'promote_scrape_run: run % has status %, refusing to publish', p_run_id, v_status;
+  IF NOT FOUND THEN RAISE EXCEPTION 'scrape_run % not found', p_run_id; END IF;
+  IF v_status <> 'passed' THEN
+    RETURN jsonb_build_object('skipped', true, 'reason', 'status_not_passed', 'status', v_status);
   END IF;
-  IF v_promoted IS NOT NULL THEN
-    RAISE EXCEPTION 'promote_scrape_run: run % already promoted at %', p_run_id, v_promoted;
-  END IF;
-  IF v_scope IS NULL THEN
-    RAISE EXCEPTION 'promote_scrape_run: run % has no coverage_scope_hash', p_run_id;
+  IF v_promoted_at IS NOT NULL THEN
+    RETURN jsonb_build_object('skipped', true, 'reason', 'already_promoted', 'promoted_at', v_promoted_at);
   END IF;
 
-  SELECT md5(string_agg(external_id || '|' || coalesce(price::text,'') , E'\n' ORDER BY external_id))
-    INTO v_live FROM listing_staging WHERE run_id = p_run_id;
-  IF v_digest IS DISTINCT FROM v_live THEN
-    RAISE EXCEPTION 'promote_scrape_run: staging digest mismatch for run % (staging mutated after the gate)', p_run_id;
+  v_missing := ARRAY(SELECT f FROM (VALUES
+      ('coverage_scope_hash', v_scope),
+      ('coverage_version',    v_cov_version),
+      ('scraper_version',     v_scraper_ver),
+      ('parser_version',      v_parser_ver),
+      ('pagination_strategy', v_pagination),
+      ('run_scope',           v_run_scope)
+    ) AS t(f, v) WHERE v IS NULL OR v = '');
+  IF array_length(v_missing, 1) > 0 THEN
+    RETURN jsonb_build_object('skipped', true, 'reason', 'cohort_identity_missing',
+                              'missing', to_jsonb(v_missing));
+  END IF;
+
+  IF v_expected_dig IS NOT NULL THEN
+    v_actual_dig := compute_staging_digest(p_run_id);
+    IF v_actual_dig IS DISTINCT FROM v_expected_dig THEN
+      RETURN jsonb_build_object('skipped', true, 'reason', 'staging_mutated',
+                                'expected', v_expected_dig, 'actual', v_actual_dig);
+    END IF;
   END IF;
 
   WITH staged AS (
-    SELECT DISTINCT ON (external_id) *
-    FROM listing_staging WHERE run_id = p_run_id AND external_id IS NOT NULL
-    ORDER BY external_id, id
+    SELECT DISTINCT ON (external_id)
+           external_id, source, country, price, currency, price_dkk, url, title
+    FROM listing_staging
+    WHERE run_id = p_run_id AND external_id IS NOT NULL AND price_dkk IS NOT NULL
+    ORDER BY external_id, source_query NULLS LAST, id
+  ),
+  latest AS (
+    SELECT DISTINCT ON (o.external_id) o.external_id, o.price_dkk
+    FROM market_price_observations o
+    WHERE o.source = v_source AND o.price_type = 'asking'
+      AND o.external_id IN (SELECT external_id FROM staged)
+    ORDER BY o.external_id, o.observed_at DESC
+  )
+  INSERT INTO market_price_observations
+    (kg_product_id, source, country, price_type, price_raw, currency,
+     price_dkk, listing_url, listing_title, external_id, observed_at)
+  SELECT NULL, s.source, COALESCE(s.country,'DK'), 'asking', s.price,
+         COALESCE(s.currency,'DKK'), s.price_dkk, s.url, s.title, s.external_id, v_now
+  FROM staged s LEFT JOIN latest l USING (external_id)
+  WHERE l.price_dkk IS NULL OR l.price_dkk <> s.price_dkk
+  ON CONFLICT DO NOTHING;
+  GET DIAGNOSTICS v_first_seen = ROW_COUNT;
+
+  WITH staged AS (
+    SELECT DISTINCT ON (external_id) * FROM listing_staging
+    WHERE run_id = p_run_id AND external_id IS NOT NULL
+    ORDER BY external_id, source_query NULLS LAST, id
   )
   INSERT INTO listings
     (title, price, currency, price_dkk, url, image_url, location, source,
@@ -230,7 +272,7 @@ BEGIN
   SELECT title, price, currency, price_dkk, url, image_url, location, source,
          country, normalized_text, platform, external_id, v_now, v_now, v_now,
          true, 0, NULL, NULL, v_scope, source_query,
-         p_run_id                       -- first-ingestion identity
+         p_run_id                       -- first-ingestion identity (migration 055)
   FROM staged
   ON CONFLICT (external_id, source) DO UPDATE SET
     title=EXCLUDED.title, price=EXCLUDED.price, currency=EXCLUDED.currency,
@@ -242,9 +284,15 @@ BEGIN
     is_active=true, consecutive_misses=0, last_miss_run_id=NULL, delisted_at=NULL,
     coverage_scope_hash=EXCLUDED.coverage_scope_hash,
     source_query=EXCLUDED.source_query;
-    -- ingestion_batch_id / ingested_at intentionally NOT updated here.
+    -- ingestion_batch_id / ingested_at are deliberately ABSENT from DO UPDATE:
+    -- a conflict refresh must never re-stamp identity. trg_listings_ingestion_identity
+    -- enforces this regardless; listing it here makes the intent explicit.
   GET DIAGNOSTICS v_published = ROW_COUNT;
 
+  -- THE FIX. GROUP BY collapses cross-query duplicates to exactly one row per
+  -- listing before the upsert sees them. scope_hash, source, run id and
+  -- timestamp are plpgsql variables (constant for the whole statement), so
+  -- grouping by l.id alone guarantees one row per (listing_id, scope_hash).
   INSERT INTO listing_coverage_scopes
     (listing_id, scope_hash, source, source_query, first_seen_run_id, last_seen_run_id, last_seen_at)
   SELECT l.id, v_scope, v_source, min(st.source_query), p_run_id, p_run_id, v_now
@@ -257,36 +305,49 @@ BEGIN
         last_seen_at     = EXCLUDED.last_seen_at;
 
   IF p_fail_after_listings THEN
-    RAISE EXCEPTION 'promote_scrape_run: simulated crash after listings upsert';
+    RAISE EXCEPTION 'injected failure after listings upsert (rollback test)';
   END IF;
 
-  SELECT count(*) FILTER (WHERE o.kind='first_seen'),
-         count(*) FILTER (WHERE o.kind='price_change'),
-         count(*) FILTER (WHERE o.kind='unchanged')
-    INTO v_new, v_changed, v_unchanged
-  FROM record_price_observations(p_run_id) o;
+  v_lifecycle_ok := p_coverage_complete AND p_lifecycle_enabled
+                    AND run_has_lifecycle_coverage(p_run_id);
 
-  IF p_coverage_complete AND p_lifecycle_enabled THEN
-    v_lifecycle := true;
-    UPDATE listings l
-       SET consecutive_misses = l.consecutive_misses + 1, last_miss_run_id = p_run_id
-     WHERE l.source = v_source AND l.is_active
-       AND coalesce(l.last_miss_run_id, '00000000-0000-0000-0000-000000000000') <> p_run_id
-       AND EXISTS (SELECT 1 FROM listing_coverage_scopes lcs
-                    WHERE lcs.listing_id = l.id AND lcs.scope_hash = v_scope)
-       AND NOT EXISTS (SELECT 1 FROM listing_staging st
-                        WHERE st.run_id = p_run_id AND st.external_id = l.external_id);
-    GET DIAGNOSTICS v_missed = ROW_COUNT;
-
-    UPDATE listings SET is_active = false, delisted_at = v_now
-     WHERE source = v_source AND is_active AND consecutive_misses >= p_delist_threshold;
-    GET DIAGNOSTICS v_delisted = ROW_COUNT;
+  IF v_lifecycle_ok AND v_scope IS NOT NULL THEN
+    WITH seen AS (
+      SELECT DISTINCT external_id FROM listing_staging
+      WHERE run_id = p_run_id AND external_id IS NOT NULL
+    ),
+    missing AS (
+      SELECT l.id, COALESCE(l.consecutive_misses,0) + 1 AS misses
+      FROM listings l
+      JOIN listing_coverage_scopes lcs
+        ON lcs.listing_id = l.id AND lcs.scope_hash = v_scope
+      WHERE l.source = v_source
+        AND l.is_active IS DISTINCT FROM false
+        AND l.external_id IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM seen s WHERE s.external_id = l.external_id)
+        AND l.last_miss_run_id IS DISTINCT FROM p_run_id
+    ),
+    upd AS (
+      UPDATE listings l SET
+        consecutive_misses = m.misses, last_miss_run_id = p_run_id,
+        is_active   = CASE WHEN m.misses >= p_delist_threshold THEN false ELSE l.is_active END,
+        delisted_at = CASE WHEN m.misses >= p_delist_threshold THEN v_now ELSE l.delisted_at END
+      FROM missing m WHERE l.id = m.id
+      RETURNING m.misses
+    )
+    SELECT count(*), count(*) FILTER (WHERE misses >= p_delist_threshold)
+      INTO v_missed, v_delisted FROM upd;
   END IF;
 
-  UPDATE scrape_run SET promoted_at = v_now, published_count = v_published WHERE id = p_run_id;
+  UPDATE scrape_run SET published_count = v_published, promoted_at = v_now
+   WHERE id = p_run_id;
 
-  RETURN QUERY SELECT v_published, v_new, v_changed, v_unchanged, v_missed, v_delisted, v_lifecycle;
-END;
-$promote$;
+  RETURN jsonb_build_object('skipped', false, 'published', v_published,
+    'first_seen', v_first_seen, 'missed', v_missed, 'delisted', v_delisted,
+    'lifecycle_applied', v_lifecycle_ok);
+END $$;
+
+COMMENT ON FUNCTION promote_scrape_run IS
+  'Atomic fail-closed promotion of a staged scrape run. Refuses: status <> passed, already promoted, missing cohort identity (all six fields), staging_digest mismatch. Cross-query duplicates in staging are collapsed deterministically (one row per external_id for listings, one row per (listing_id, scope_hash) for coverage scopes, source_query aggregated with min()); staging itself is never de-duplicated. Migration 055 additionally stamps listings.ingestion_batch_id = p_run_id on FIRST insert only; a conflict refresh never re-stamps it. Returns jsonb.';
 
 COMMIT;

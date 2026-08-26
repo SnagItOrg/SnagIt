@@ -26,7 +26,7 @@ product database. Non-music verticals are already inactive in the KG.
 | Layer | Size | Meaning |
 |---|--:|---|
 | Verified KG identity universe | 221 brands / 3,440 products | identity + collision protection |
-| **Frozen launch catalogue** | **48** | supported, private, matcher-eligible |
+| **Frozen launch catalogue** | **48** | supported and matcher-eligible; 34 private, 14 already public |
 | Monitoring | DBA 30 · Finn/Blocket/Kleinanzeigen 28 | explicit per-source product sets |
 
 **Milestone status:** foundation (02→02G-A), product selection (03→03B) and
@@ -209,6 +209,15 @@ never sets `browse_visibility`, `tier`, `status`, `attributes` or `image_url`.
 Its conflict semantics are identity-equivalence: a slug held by a *different*
 entity aborts as DRIFT rather than overwriting product-owned data.
 
+**Support and visibility are independent — the 48 are not all private.** Verified
+by rehearsal against a restored production snapshot (2026-08-26): after 056 the
+cohort is **14 `supported`/`public` and 34 `supported`/`qa_only`**. The 14 were
+already public canonical pages before activation; 056 publishes nothing, adds no
+public row, and leaves **`browse_visibility='public'` at 28 in total**, exactly
+as before. 056's own `NOTICE` says "48 supported/private" — that wording is
+imprecise and is not a post-condition; the assertions it actually enforces are
+the 48-count and the additive-row constraints.
+
 Rollbacks refuse destructive reversal by default: 053/054 archive into
 `kg_arch_*` tables; 055 refuses while any row carries an identity (`keep_columns`
 / `drop_with_evidence` escapes); 056 refuses while additive identities carry
@@ -269,7 +278,7 @@ npm test                                     # 148 tests, 148 pass, 0 fail
 npx tsc --noEmit -p frontend/tsconfig.json   # 0 errors
 cd frontend && npm run lint                  # 4 pre-existing warnings (app/layout.tsx)
 npm run typecheck                            # EXACTLY 7 pre-existing errors
-bash scripts/verify-migrations-isolated.sh   # 60 PASS + 1 documented BOUNDARY
+bash scripts/verify-migrations-isolated.sh   # 81 PASS + 1 documented BOUNDARY
 npm run validate-activation                  # artefacts + disposition + migration reproduce exactly
 npm run build-product-artefacts              # regenerate derived data files
 ```

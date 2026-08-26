@@ -128,7 +128,7 @@ npm test                                     # 148 tests, 148 pass, 0 fail
 npx tsc --noEmit -p frontend/tsconfig.json   # 0 errors
 cd frontend && npm run lint                  # 4 pre-existing warnings (app/layout.tsx)
 npm run typecheck                            # EXACTLY 7 pre-existing errors — any 8th is yours
-bash scripts/verify-migrations-isolated.sh   # 60 PASS, disposable local cluster
+bash scripts/verify-migrations-isolated.sh   # 81 PASS, disposable local cluster
 npm run validate-activation                  # artefacts + disposition + migration reproduce exactly
 ```
 

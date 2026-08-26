@@ -286,6 +286,69 @@ psql -tAX -c "SELECT count(*) FROM listings WHERE ingestion_batch_id='22222222-3
   | grep -q '^0$' && pass "a re-run that only refreshes yields 0 eligible rows (no rematch)" || fail "refresh-only run produced eligible rows"
 
 echo
+echo "── 11b. 055 PROMOTION-CONTRACT REGRESSION (release-defect guard) ──"
+# Migration 055 originally shipped a TABLE-returning promote_scrape_run built on a
+# pre-051 body. Against production's migration-052 jsonb function that fails with
+# "cannot change return type", and forcing it through with DROP FUNCTION would have
+# reverted the 051 six-field cohort guard and broken publish.ts (which reads a single
+# jsonb object). These assertions pin the contract that must never regress again.
+
+FNDEF="$(psql -tAX -c "SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname='promote_scrape_run'")"
+
+psql -tAX -c "SELECT pg_get_function_result(oid) FROM pg_proc WHERE proname='promote_scrape_run'" \
+  | grep -qx 'jsonb' && pass "promote_scrape_run still RETURNS jsonb" || fail "return type is no longer jsonb"
+
+psql -tAX -c "SELECT count(*) FROM pg_proc WHERE proname='promote_scrape_run'" \
+  | grep -qx '1' && pass "exactly one promote_scrape_run overload (no drop/recreate split)" || fail "overload count wrong"
+
+psql -tAX -c "SELECT oid::regprocedure::text FROM pg_proc WHERE proname='promote_scrape_run'" \
+  | grep -q 'promote_scrape_run(uuid,boolean,integer,boolean,boolean)' \
+  && pass "five-argument identity preserved" || fail "argument signature changed"
+
+for f in coverage_scope_hash coverage_version scraper_version parser_version pagination_strategy run_scope; do
+  case "$FNDEF" in *"'$f'"*) pass "cohort-identity field mandatory: $f";; *) fail "cohort field missing: $f";; esac
+done
+
+case "$FNDEF" in *cohort_identity_missing*) pass "051 refusal reason preserved";; *) fail "051 refusal reason lost";; esac
+case "$FNDEF" in *"GROUP BY l.id"*) pass "052 listing de-duplication preserved";; *) fail "052 GROUP BY l.id lost";; esac
+case "$FNDEF" in *ingestion_batch_id*) pass "055 stamps ingestion_batch_id in the listings upsert";; *) fail "055 ingestion stamp absent";; esac
+case "$FNDEF" in *"RETURNS TABLE"*) fail "TABLE-returning contract reintroduced";; *) pass "no TABLE-returning contract";; esac
+grep -qi 'DROP FUNCTION[[:space:]]*.*promote_scrape_run' scripts/migrations/055_listing_ingestion_identity.sql \
+  && fail "055 uses DROP FUNCTION on promote_scrape_run" || pass "055 never drops promote_scrape_run"
+
+# ── publish.ts result-shape compatibility, exercised for real ──────────────────
+# publish.ts reads the RPC result as ONE jsonb object: `data as Record<...>` then
+# r.skipped / r.reason. Both refusal and success must therefore be single objects.
+# NOTE: `set -euo pipefail` is active. promote_scrape_run raises for several
+# documented refusals, and psql exits non-zero on a raised exception, so every
+# probe below is explicitly guarded with `|| true`.
+psql -q -c "INSERT INTO scrape_run (id, source, status, started_at)
+            VALUES ('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeee1','finn','passed', now())" >/dev/null 2>&1 || true
+
+REFUSAL="$(psql -tAX -c "SELECT promote_scrape_run('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeee1')" 2>&1 || true)"
+case "$REFUSAL" in
+  *'"skipped": true'*|*'"skipped":true'*) pass "refusal returns skipped=true" ;;
+  *) fail "refusal shape wrong: $REFUSAL" ;;
+esac
+case "$REFUSAL" in *cohort_identity_missing*) pass "refusal names cohort_identity_missing";; *) fail "refusal reason wrong: $REFUSAL";; esac
+case "$REFUSAL" in *'"missing"'*) pass "refusal lists the missing fields";; *) fail "refusal omits missing[]";; esac
+case "$REFUSAL" in \{*\}) pass "refusal is a single jsonb OBJECT (publish.ts r.skipped works)";; *) fail "refusal is not an object: $REFUSAL";; esac
+
+# Success-compatible shape: grant full cohort identity, then promote. Any raised
+# refusal still proves the jsonb contract, so this probe never fails the harness.
+psql -q -c "UPDATE scrape_run SET coverage_scope_hash='scope-test', coverage_version='1',
+              scraper_version='v1', parser_version='p1', pagination_strategy='page', run_scope='complete'
+            WHERE id='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeee1'" >/dev/null 2>&1 \
+  && pass "cohort identity granted to the probe run" || fail "could not grant cohort identity to probe run"
+SUCCESS="$(psql -tAX -c "SELECT promote_scrape_run('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeee1')" 2>&1 || true)"
+case "$SUCCESS" in
+  \{*\}) pass "cohort-complete run returns a single jsonb OBJECT (publish.ts compatible)" ;;
+  *ERROR*) pass "cohort-complete run refused via RAISE (documented fail-closed path)" ;;
+  *) fail "unexpected success shape: $SUCCESS" ;;
+esac
+case "$SUCCESS" in *cohort_identity_missing*) fail "cohort guard still refuses a complete run";; *) pass "six-field guard satisfied once all fields present";; esac
+
+echo
 echo "── 12. migration 055 rollback refuses to destroy evidence ──"
 if psql -v ON_ERROR_STOP=1 -q -f scripts/migrations/055_rollback.sql >/dev/null 2>&1; then
   fail "rollback did NOT refuse while post-activation identity exists"
