@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { isCurrentUserAdmin } from '@/lib/admin-auth'
 import { hasPlausibleListingPrice } from '@/lib/listing-price-integrity'
+import { isFamilySlug } from '@/lib/families'
+import {
+  CatalogueUnavailableError,
+  isAdminOnly,
+  isCanonical,
+  isCatalogueUnavailable,
+  resolveSlugRole,
+  type CatalogueStateRow,
+} from '@/lib/catalogue'
+import {
+  PUBLIC_LISTING_SELECT,
+  PUBLIC_PRODUCT_SELECT,
+  PUBLIC_RELATED_SELECT,
+  toPublicListing,
+  toPublicProduct,
+  toPublicRelatedProduct,
+  type PublicProduct,
+  type PublicRelatedProduct,
+} from '@/lib/public-product'
 
 export type PricePoint = {
   sold_at:   string
@@ -16,11 +36,18 @@ export type PriceRange = {
   count:  number
 }
 
-export type RelatedProduct = {
-  slug:       string
-  name:       string
-  image_url:  string | null
-}
+/** Public shape of a related product. Re-exported for the client. */
+export type RelatedProduct = PublicRelatedProduct
+
+/**
+ * Explicit embed. `listings(*)` shipped watchlist_id, ingestion_batch_id,
+ * coverage_scope_hash and source_query to anonymous callers.
+ *
+ * Typed as `string` deliberately: the Supabase client parses select() string
+ * LITERALS to type the result, and an interpolated literal defeats that parser.
+ * The shape is asserted by the contract test instead.
+ */
+const MATCH_WITH_LISTING_SELECT: string = `score, listings(${PUBLIC_LISTING_SELECT})`
 
 function iqrFilter(prices: number[]): number[] {
   if (prices.length < 4) return prices
@@ -39,31 +66,140 @@ function median(prices: number[]): number {
   return s.length % 2 === 0 ? (s[m - 1] + s[m]) / 2 : s[m]
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { slug: string } }) {
+/**
+ * Identical 404 for every ineligible outcome.
+ *
+ * The body must not distinguish "no such slug" from "exists but is not
+ * published": an unpublished product's existence is catalogue state, and the
+ * public has no business learning it from a status body.
+ */
+function notFound() {
+  return NextResponse.json(
+    { error: 'not_found' },
+    { status: 404, headers: { 'Cache-Control': 'no-store' } },
+  )
+}
+
+/**
+ * Eligibility could not be ESTABLISHED — as distinct from "the row is absent".
+ *
+ * Collapsing both into 404 told a monitor, a crawler and an operator that a
+ * product does not exist when the database was merely unreachable, and invited
+ * that 404 to be cached. Absence is 404; unavailability is 503 and never
+ * cached. Carries no database detail: the query error is logged server-side on
+ * the operational channel and never serialised.
+ */
+function catalogueUnavailable() {
+  return NextResponse.json(
+    { error: 'catalogue_unavailable' },
+    { status: 503, headers: { 'Cache-Control': 'no-store', 'Retry-After': '30' } },
+  )
+}
+
+export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
+  try {
+    return await handle(req, params.slug)
+  } catch (error) {
+    if (isCatalogueUnavailable(error)) {
+      console.error('[operational] product eligibility unavailable', {
+        route: '/api/product/[slug]',
+        stage: error.stage,
+      })
+      return catalogueUnavailable()
+    }
+    throw error
+  }
+}
+
+async function handle(req: NextRequest, slug: string) {
   const admin = getSupabaseAdmin()
 
-  const { data: product, error } = await admin
-    .from('kg_product')
-    .select('*, kg_brand(name, slug)')
-    .eq('slug', params.slug)
-    .single()
-
-  if (error || !product) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  // -------------------------------------------------------------------
+  // ELIGIBILITY GATE — Stage 3 WP-1.
+  //
+  // This runs BEFORE any product data is assembled and is the reason
+  // /product and /api/product could be added to PUBLIC_PREFIXES in the same
+  // commit. Without it, all 4,004 kg_product slugs render a canonical page —
+  // including 307 inactive non-music rows (a MacBook, a Wegner chair, a
+  // mountain bike) and 3,669 known/reserve rows that were never meant to have
+  // a page. See docs/stage-3-v1-decision-and-build-plan.md §3.1.
+  //
+  // Family labels resolve FIRST: they are public-but-unsupported rows that
+  // must redirect, not 404. WP-2 fills lib/families.ts; until then the list is
+  // empty and those six slugs correctly 404.
+  // -------------------------------------------------------------------
+  if (isFamilySlug(slug)) {
+    return NextResponse.redirect(new URL(`/family/${slug}`, req.url), 308)
   }
 
-  const canonicalName = (product as unknown as Record<string, unknown>).canonical_name as string
+  // A transport-level throw (DNS failure, connection refused, TLS error) never
+  // reaches the `{ data, error }` shape at all — it rejects. Both failure modes
+  // must land on 503, so the await itself is wrapped.
+  const [productRes, projectionRes] = await Promise.all([
+    admin
+      .from('kg_product')
+      .select(PUBLIC_PRODUCT_SELECT)
+      .eq('slug', slug)
+      .maybeSingle(),
+    // The music axis lives on the projection, not on kg_product. The four
+    // supported rows with no subcategory still resolve browse_domain='music'
+    // via the view's COALESCE, so this guard costs no canonical product.
+    admin
+      .from('browse_product_projection')
+      .select('slug, browse_domain')
+      .eq('slug', slug)
+      .maybeSingle(),
+  ]).catch(() => {
+    throw new CatalogueUnavailableError('product_transport')
+  })
 
-  // Resolve related product slugs from attributes
-  type AttrShape = { related_products?: Array<{ slug: string }> } | null
-  const attrs = (product as unknown as Record<string, unknown>).attributes as AttrShape
-  const relatedSlugs: string[] = (attrs?.related_products ?? []).map((r) => r.slug).slice(0, 6)
+  // A query ERROR is not an absent row. maybeSingle() gives data:null with
+  // error:null for "no such slug", and a populated error for anything else.
+  if (productRes.error) throw new CatalogueUnavailableError('product_lookup')
+  if (projectionRes.error) throw new CatalogueUnavailableError('projection_lookup')
 
-  const [matchesRes, reverbRes, auctionetRes, relatedRes] = await Promise.all([
+  const productRow = productRes.data as Record<string, unknown> | null
+  if (!productRow) return notFound()
+
+  const state: CatalogueStateRow = {
+    status: productRow.status as string | null,
+    support_state: productRow.support_state as string | null,
+    browse_visibility: productRow.browse_visibility as string | null,
+    browse_domain:
+      (projectionRes.data as { browse_domain?: string | null } | null)?.browse_domain ?? null,
+  }
+
+  // Admin state is resolved server-side from user_preferences.is_admin, and
+  // only when it could change the outcome — an anonymous request for a
+  // canonical product must not pay for a session lookup.
+  const canonical = isCanonical(state)
+  const isAdmin = canonical ? false : isAdminOnly(state) ? await isCurrentUserAdmin() : false
+
+  const role = resolveSlugRole({ row: state, isFamilySlug: false, isAdmin })
+  if (role !== 'canonical' && role !== 'admin_only') {
+    return notFound()
+  }
+
+  const adminPreview = role === 'admin_only'
+
+  // THE PUBLIC DTO. Constructed field by field from an explicit SELECT; the
+  // eligibility axes and the internal id above are inputs and stop here.
+  const product: PublicProduct | null = toPublicProduct(productRow)
+  if (!product) throw new CatalogueUnavailableError('product_shape')
+
+  const canonicalName = product.canonical_name
+  /** Join key only — never a response field. */
+  const productId = productRow.id as string
+
+  const relatedSlugs: string[] = (product.attributes?.related_products ?? [])
+    .map((r) => r.slug)
+    .slice(0, 6)
+
+  const [matchesRes, reverbRes, auctionetRes, relatedRes, relatedDomainRes] = await Promise.all([
     admin
       .from('listing_product_match')
-      .select('score, listings(*)')
-      .eq('product_id', product.id)
+      .select(MATCH_WITH_LISTING_SELECT)
+      .eq('product_id', productId)
       .order('score', { ascending: false })
       .limit(50),
     // Reverb price history: deterministic FK join (mig 031 added the column,
@@ -72,7 +208,7 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
     admin
       .from('reverb_price_history')
       .select('price, sold_at, condition')
-      .eq('kg_product_id', product.id)
+      .eq('kg_product_id', productId)
       .not('sold_at', 'is', null)
       .order('sold_at', { ascending: true })
       .limit(500),
@@ -85,17 +221,44 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
       .not('sold_at', 'is', null)
       .order('sold_at', { ascending: true })
       .limit(500),
+    // Related products are resolved through the SAME eligibility predicate as
+    // the page itself. Measured on production 2026-08-27: 10 of the 15 related
+    // links authored on canonical pages point at products that are not
+    // canonical (roland-alpha-juno-1, roland-jp-8, sequential-prophet-6,
+    // oberheim-dmx, roland-jp-6). Rendering them once /product is public would
+    // put links to guaranteed 404s on the three best pages Klup has.
+    relatedSlugs.length > 0
+      ? admin.from('kg_product').select(PUBLIC_RELATED_SELECT).in('slug', relatedSlugs)
+      : Promise.resolve({ data: [] as unknown[], error: null }),
+    // ...and the FOURTH axis, browse_domain, from the projection for the same
+    // slugs. Without this the related gate would be three axes plus an
+    // assumption while claiming to be the four-axis contract.
     relatedSlugs.length > 0
       ? admin
-          .from('kg_product')
-          .select('slug, canonical_name, image_url')
+          .from('browse_product_projection')
+          .select('slug, browse_domain')
           .in('slug', relatedSlugs)
-      : Promise.resolve({ data: [] as { slug: string; canonical_name: string; image_url: string | null }[] }),
-  ])
+      : Promise.resolve({ data: [] as unknown[], error: null }),
+  ]).catch(() => {
+    throw new CatalogueUnavailableError('detail_transport')
+  })
+
+  if (relatedRes.error || relatedDomainRes.error) {
+    throw new CatalogueUnavailableError('related_lookup')
+  }
+
+  if (matchesRes.error) throw new CatalogueUnavailableError('listing_lookup')
 
   type ListingRow = Record<string, unknown>
-  const listings = (matchesRes.data ?? [])
-    .map((m) => ({ score: m.score as number ?? 0, listing: m.listings as unknown as ListingRow | null }))
+  // The typed select() parser cannot see through an interpolated select
+  // string, so the row shape is asserted here and covered by the contract test.
+  const matchRows = (matchesRes.data ?? []) as unknown as Array<{
+    score: number | null
+    listings: ListingRow | null
+  }>
+
+  const listings = matchRows
+    .map((m) => ({ score: m.score ?? 0, listing: m.listings }))
     .filter(({ listing }) => listing != null && listing.is_active !== false)
     // Drop legacy Kleinanzeigen rows whose raw price violates the scraper's own
     // impossible-value bound — they would render prices in the tens of millions
@@ -109,7 +272,8 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
       const tb = new Date((b.listing?.scraped_at as string) ?? 0).getTime()
       return tb - ta
     })
-    .map(({ listing }) => listing)
+    .map(({ listing }) => toPublicListing(listing))
+    .filter((l): l is NonNullable<typeof l> => l !== null)
     .slice(0, 50)
 
   // Build price history time-series
@@ -135,14 +299,35 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
     ? { low: Math.min(...filtered), high: Math.max(...filtered), median: Math.round(median(filtered)), count: filtered.length }
     : null
 
-  type RelatedRow = { slug: string; canonical_name: string; image_url: string | null }
-  const relatedProducts: RelatedProduct[] = ((relatedRes.data ?? []) as RelatedRow[]).map((r) => ({
-    slug:      r.slug,
-    name:      r.canonical_name,
-    image_url: r.image_url,
-  }))
+  const relatedDomains = new Map<string, string | null>(
+    ((relatedDomainRes.data ?? []) as Array<Record<string, unknown>>)
+      .filter((r) => typeof r.slug === 'string')
+      .map((r) => [r.slug as string, (r.browse_domain as string | null) ?? null]),
+  )
 
-  return NextResponse.json({ product, listings, priceHistory, priceRange, relatedProducts }, {
-    headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30' },
-  })
+  const relatedProducts: RelatedProduct[] = ((relatedRes.data ?? []) as Array<Record<string, unknown>>)
+    .filter((r) =>
+      isCanonical({
+        status: r.status as string | null,
+        support_state: r.support_state as string | null,
+        browse_visibility: r.browse_visibility as string | null,
+        browse_domain: relatedDomains.get(r.slug as string) ?? null,
+      }),
+    )
+    .map((r) => toPublicRelatedProduct(r))
+    .filter((r): r is RelatedProduct => r !== null)
+
+  return NextResponse.json(
+    { product, listings, priceHistory, priceRange, relatedProducts, adminPreview },
+    {
+      headers: adminPreview
+        // An unpublished product must never enter a shared cache.
+        ? { 'Cache-Control': 'private, no-store' }
+        // Eligibility is a correctness boundary, so a canonical response is not
+        // handed to a shared cache either: a 60-second s-maxage meant a
+        // depublished product could still be served from the CDN after the
+        // origin had started refusing it. Same reasoning as /api/discover.
+        : { 'Cache-Control': 'no-store' },
+    },
+  )
 }

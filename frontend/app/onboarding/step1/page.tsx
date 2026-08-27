@@ -1,160 +1,21 @@
-'use client'
+import { permanentRedirect } from 'next/navigation'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { saveOnboarding, categoryImageUrl, fireEvent } from '@/lib/onboarding'
-import { useLocale } from '@/components/LocaleProvider'
-import { OnboardingHeader } from '@/components/OnboardingHeader'
-
-const CATEGORIES = [
-  { id: 'photography', label: 'Fotografi',    sub: 'Objektiver & Kameraer',     icon: 'photo_camera' },
-  { id: 'music-gear',      label: 'Musikudstyr',  sub: 'Studieudstyr & Instrumenter', icon: 'piano' },
-  { id: 'danish-modern',  label: 'Dansk Design', sub: 'Møbeldesign',                icon: 'chair' },
-  { id: 'fashion',     label: 'Mode',         sub: 'Vintage & Streetwear',       icon: 'apparel'     },
-  { id: 'tech',        label: 'Teknologi',    sub: 'Mobil & Computer',           icon: 'devices'     },
-]
-
-export default function Step1() {
-  const router = useRouter()
-  const { t } = useLocale()
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-
-  function toggle(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  function handleContinue() {
-    const categories = Array.from(selected)
-    saveOnboarding({ categories })
-    fireEvent('onboarding_step1', { categories })
-    router.push('/onboarding/step2')
-  }
-
-  return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
-      <OnboardingHeader currentStep={1} showSkip />
-
-      {/* Main */}
-      <main className="flex-1 max-w-[1400px] mx-auto px-6 lg:px-10 py-12 w-full flex flex-col items-center">
-        <div className="text-center mb-16 max-w-2xl">
-          <h1
-            className="text-5xl lg:text-6xl font-black tracking-tight mb-6"
-            style={{
-              background: 'linear-gradient(to bottom, var(--foreground), var(--muted-foreground))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            Vælg dine jagtmarker.
-          </h1>
-          <p className="text-lg font-medium" style={{ color: 'var(--muted-foreground)' }}>
-            Vælg de kategorier, du er mest interesseret i. Vi scanner danske
-            markedspladser for de bedste tilbud tilpasset din smag.
-          </p>
-        </div>
-
-        {/* Category tiles */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 w-full mb-20">
-          {CATEGORIES.map((cat) => {
-            const isSelected = selected.has(cat.id)
-            return (
-              <button
-                key={cat.id}
-                onClick={() => toggle(cat.id)}
-                className={`group relative rounded-2xl overflow-hidden transition-all duration-200 ease-in-out text-left border ${
-                  isSelected
-                    ? 'border-border'
-                    : 'border-border hover:border-border/80'
-                }`}
-                style={{
-                  aspectRatio: '4/5',
-                  backgroundColor: 'var(--card)',
-                }}
-              >
-                {/* Background image from Supabase Storage */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={categoryImageUrl(cat.id)}
-                  alt={cat.label}
-                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-200 ease-in-out group-hover:scale-105 ${
-                    isSelected ? 'opacity-100' : 'opacity-50 group-hover:opacity-75'
-                  }`}
-                />
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
-                {/* Content */}
-                <div className="absolute bottom-6 left-6 right-6">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 transition-colors"
-                    style={{
-                      backgroundColor: isSelected ? 'var(--secondary)' : 'var(--secondary)',
-                      backdropFilter: 'blur(12px)',
-                    }}
-                  >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ color: isSelected ? 'var(--secondary-foreground)' : 'var(--foreground)' }}
-                    >
-                      {cat.icon}
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-bold text-foreground">{cat.label}</h3>
-                  <p className="text-xs mt-1 uppercase tracking-widest font-bold text-muted-foreground">
-                    {cat.sub}
-                  </p>
-                </div>
-                {/* Selection indicator */}
-                <span
-                  className="material-symbols-outlined absolute top-3 right-3 transition-all duration-200"
-                  style={{
-                    fontSize: '22px',
-                    color: isSelected ? 'var(--foreground)' : 'var(--muted-foreground)',
-                    fontVariationSettings: isSelected ? "'FILL' 1" : "'FILL' 0",
-                  }}
-                >
-                  {isSelected ? 'check_circle' : 'radio_button_unchecked'}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* CTA */}
-        <div className="w-full max-w-md flex flex-col items-center">
-          <button
-            onClick={handleContinue}
-            className="w-full py-4 rounded-xl font-black text-lg transition-all flex items-center justify-center gap-2 group"
-            style={{
-              backgroundColor: 'var(--primary)',
-              color: 'var(--primary-foreground)',
-            }}
-          >
-            {t.continueToStep2}
-            <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
-              arrow_forward
-            </span>
-          </button>
-          <p className="mt-6 text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>
-            Du kan ændre kategorier eller tilføje flere senere.
-          </p>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="py-10 text-center">
-        <div className="inline-flex items-center gap-2" style={{ color: 'var(--muted-foreground)' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>security</span>
-          <span className="text-[10px] font-bold uppercase tracking-widest">
-            {t.securityNote}
-          </span>
-        </div>
-      </footer>
-    </div>
-  )
+/**
+ * Retired. Stage 3 WP-1.
+ *
+ * This step selected verticals (Fotografi, Dansk Design, Mode, Teknologi),
+ * starred brands from the full 274-brand KG, or built a free-text watchlist
+ * with a price slider. All three contradict a frozen 48-product music
+ * catalogue, and four of the five verticals are already inactive in the KG —
+ * this was the single most explicit contradiction left in the live product.
+ *
+ * The ROUTE FILE IS KEPT deliberately (build plan §19, D12): the
+ * `onboarding-assets` storage bucket still serves the browse category images,
+ * and deleting the segment would invite deleting the bucket with it.
+ * Step 4 already redirected before Stage 3 and is untouched.
+ *
+ * 308, not 307: this is permanent, and any inbound link should be rewritten.
+ */
+export default function OnboardingStep1() {
+  permanentRedirect('/')
 }

@@ -29,6 +29,10 @@ checkpointed. Each is binding and supersedes the text it replaces.
 | 2 | **The family contract is tightened.** Empty family routes render **no** children — not as links, not greyed — and are absent from the homepage, browse, navigation, sitemap and search index. They may carry restrained explanatory copy and unsupported-demand capture only, and become indexable and navigable only once at least one canonical child is public | §2.2 D4, **§4.2**, §5, §13.1, §16.3, §17 (R3), §19.14, §20 Q-D5, WP-2 |
 | 3 | **All work-package ownership paths are exact.** Globs, brace expansions and shorthand (`page.tsx`, `browse/**`, `cards/nav`, "PostHog components") are replaced by repository-relative file lists, with a contention register naming a single owner for every shared file | **§15** (15.1–15.7), WP-1 … WP-5 |
 | 4 | **R0 now requires an operator proof that the deployed Vercel cron is disabled.** The repository declaration asserts the opposite, and this document's behavioural inference is explicitly insufficient | §0, **§25.2** |
+| 8 | **Review fixes H1, H2, M1, D and E applied.** Public eligibility is never prerendered or memoised; `/api/product/[slug]` returns an explicit DTO instead of `kg_product.*`; an independent security reference detects posture downgrades; infrastructure failure is 503, never 404; audit counters are labelled; the fourth axis is asserted; route groups normalise identically at runtime and on disk | §7.7, **§7.8**, §12.4, **§15.1**, §15.6–15.7, **§15.10**, §16.2 |
+| 9 | **Ownership fully reconciled.** Every WP-1-owned file is listed, root `package.json` is an authorised supporting file, the three test files are authorised in `scripts/lib/`, and the blanket `scripts/**` ban that contradicted them is replaced by a precise rule | §15.1, §15.6, §15.7 |
+| 6 | **The product segment gate is formalised.** `frontend/app/product/[slug]/layout.tsx` becomes WP-1-owned: it provides the server-side canonical eligibility gate and the real HTTP 404 that a client-rendered page cannot. WP-3 may replace it only as a bounded hand-off under seven conditions, including re-running the WP-1 route/API eligibility suite | §15.1, §15.3, **§15.8**, WP-3 |
+| 7 | **Route posture is mechanically complete.** The pass-through default is accepted only with a guard: `frontend/lib/route-access.ts` becomes the single authority consumed by both middleware and tests, and `scripts/lib/wp1-route-access.test.ts` fails if any routable file is unclassified or if a declared protection is not effective | §7.1, **§7.7**, §15.1, **§15.9**, §16.2 |
 | 5 | **WP-1 and WP-5 no longer share a writable file.** `frontend/app/layout.tsx` — where all four trackers are mounted — is now owned exclusively by WP-5; WP-1's site metadata moved to `frontend/lib/site-metadata.ts`. WP-5 consequently runs **after** WP-1 rather than beside it, and joins the critical path | §15.7, §22, §23, §24, WP-1, WP-5 |
 
 ---
@@ -514,8 +518,11 @@ surface can link to a page that 404s.
 
 | Change | Detail |
 |---|---|
-| **Add** to `PUBLIC_PREFIXES` | `/product`, `/api/product`, `/api/discover`, `/family`, `/api/family`, `/om-data`, `/privatliv` |
-| **Remove** from `PUBLIC_PREFIXES` | `/api/scrape` (§13.3), `/onboarding` special case (there is no `app/onboarding/page.tsx`; it 404s) |
+| **Posture source** | `frontend/lib/route-access.ts` (§7.7). The `PUBLIC_PREFIXES` / `PROTECTED_PREFIXES` arrays are **replaced** by one classification per routable file; `requiresAuth()` is derived from it, so middleware holds no independent list |
+| **Newly public** | `/product/[slug]` and `/api/product/[slug]` (both **data-gated**), `/api/discover`; `/family`, `/om-data`, `/privatliv` are forward-declared `planned` for WP-2/3/5 |
+| **Newly protected** | `/api/admin/**` and `/watchlists/[id]/edit` — both were denied by the old deny-by-default rule and had to be classified explicitly once the default flipped |
+| **`/api/scrape`** | stays `public_api` in WP-1; WP-4 reclassifies it to `protected_api` (§13.3, §15.9) |
+| **`/onboarding` (bare)** | no `app/onboarding/page.tsx` exists, so it is not a route and now returns a real 404 instead of `307 → /login` |
 | **Retain** | the `/api/scrape` per-IP rate limiter (`middleware.ts:10-36`) — it now guards an admin-only route, which is strictly safer |
 | **Retain** | `/api/browse`, `/api/brands`, `/api/price-observations`, `/api/cron/`, `/api/webhooks/`, `/login`, `/signup`, `/auth/`, `/browse`, `/search`, `/`, `/watchlists`, `/saved` |
 | **Add** | six-entry 308 redirect map `/product/<family-slug>` → `/family/<family-slug>`, sourced from `lib/families.ts` |
@@ -595,6 +602,112 @@ deploy.
 `/api/notification-preferences` · `/api/preferences` · `/api/brands` ·
 `/api/price-history` · `/api/webhooks/auth` · `/auth/*`.
 
+
+### 7.7 Route posture: explicit classification, pass-through default, mechanical guard
+
+#### Why the default flipped
+
+The middleware matcher runs **before** routing, so it cannot distinguish an
+unknown path from a protected one. The original rule — *deny unless
+allow-listed* — therefore answered `307 → /login` for every unmatched path. A
+mistyped URL read as a permissions problem, `/sitemap.xml` was treated as a
+protected page, and crawlers were handed a redirect where the truthful answer
+was "this does not exist".
+
+V1 inverts it: **denial is an explicit classification, and everything else
+passes through to Next.js routing.** Nothing is exposed that was not already
+routable — Next serves only routes that exist, an unmatched path reaches
+`app/not-found.tsx` and returns a real `404`, and every route serving catalogue
+data applies its own in-route predicate (§14.2: the posture is not the only
+control).
+
+**The hazard this creates is real and is named here rather than discovered
+later: a newly added route is publicly reachable unless someone classifies it.**
+Relying on reviewers to remember that is not a control. Hence the guard.
+
+#### The shared authority
+
+`frontend/lib/route-access.ts` holds **one classification per routable file**
+and is imported by `frontend/middleware.ts` *and* by the completeness guard.
+There is no second list. It is dependency-free — no `next/server`, no Supabase,
+no DOM — so the Edge runtime and a plain Node test can both consume it.
+
+| Class | Anonymous | Examples |
+|---|---|---|
+| `public_page` | reachable | `/`, `/browse`, `/browse/[root]`, `/search`, `/login`, `/watchlists`, `/saved` |
+| `public_page_data_gated` | reachable, **content decided by §3.1** | `/product/[slug]`, later `/family/[slug]` |
+| `protected_page` | `307 → /login` | `/profile`, `/watchlists/[id]/edit` |
+| `admin_page` | `307`, then `is_admin` re-checked | `/admin/**`, `/intel` |
+| `public_api` | reachable | `/api/browse`, `/api/discover`, `/api/brands`, `/api/price-observations`, `/api/scrape` *(until WP-4)* |
+| `public_api_data_gated` | reachable, **rows decided by §3.1** | `/api/product/[slug]` |
+| `protected_api` | `307`/`401` | `/api/watchlists`, `/api/saved-listings`, `/api/preferences`, `/api/notification-preferences`, `/api/price-history`, `/api/market-price` |
+| `admin_api` | denied at the edge **and** in-route | `/api/admin/**` |
+| `machine_api` | own credential, no session | `/api/cron/*` (`CRON_SECRET`), `/api/webhooks/*` |
+| `framework_metadata` | reachable | `/sitemap.xml`, `/robots.txt` — WP-3 |
+
+`requiresAuth(pathname)` is derived from the classification, so the middleware
+has no independent notion of what is protected.
+
+#### The completeness guard
+
+`scripts/lib/wp1-route-access.test.ts` inventories the filesystem and asserts
+the authority is complete. It is deterministic and derives everything from the
+tree — **no expected route count is hardcoded anywhere**, because a count
+passes as soon as one route is added and another deleted.
+
+| # | Assertion |
+|--:|---|
+| G1 | Every routable file under `frontend/app` — `**/page.tsx`, `**/route.ts`, and the metadata routes `sitemap.ts`, `robots.ts`, `manifest.ts`, `icon.*`, `apple-icon.*`, `opengraph-image.*`, `twitter-image.*` — resolves to exactly one classification. **An unclassified route fails the test**, naming the file and the classes available |
+| G2 | Route groups `(group)`, dynamic `[slug]`, catch-all `[...slug]` and optional catch-all `[[...slug]]` are normalised before matching |
+| G3 | Every `protected_page`, `protected_api`, `admin_page` and `admin_api` entry resolves, through a concrete example URL, to `requiresAuth === true` — the classification must be *effective*, not merely declared |
+| G4 | Every public class resolves to `requiresAuth === false` |
+| G5 | A classification with no route file on disk must be marked `planned: true`, so forward declarations for later packages stay visible and honest |
+| G6 | Filesystem-nonexistent URLs classify as `null` and pass through, so Next.js returns a real 404 rather than a redirect |
+| G7 | Named invariants that must never regress: every `/api/admin/**` route is `admin_api`; `/watchlists/[id]/edit` is `protected_page` while `/watchlists` stays public; `/product/[slug]` and `/api/product/[slug]` are publicly reachable **and** data-gated |
+| G8 | Route-level authentication remains defence in depth: the guard asserts the posture, and never that a route may therefore skip its own check |
+
+**Origin.** WP-1's inversion silently opened 34 routes — all of
+`/api/admin/**` plus `/watchlists/[id]/edit`. No data was exposed, because every
+admin route independently returns `401`/`403`, but the edge layer had lapsed. It
+was found by diffing the pre- and post-change posture across every route in
+`app/`, not by inspection. This guard makes that diff a permanent, automated
+part of the suite.
+
+### 7.8 The independent security reference
+
+`frontend/lib/route-posture-reference.json` — WP-1 owned, human-reviewed, and
+deliberately duplicated.
+
+**Why duplication is correct here.** The §7.7 guard proves the implementation
+agrees with *itself*: it reads `ROUTE_ACCESS`, asks `requiresAuth()`, and
+`requiresAuth()` reads `ROUTE_ACCESS` through `AUTHENTICATED_CLASSES`. Flip
+`/api/admin/users` from `admin_api` to `public_api` and every assertion still
+passes, because both sides moved together. Empty `AUTHENTICATED_CLASSES` and the
+same is true. A self-consistency check cannot detect a posture downgrade.
+
+The reference pins the **expected class, as a literal string**, for every
+security-sensitive route, and the test compares it to the class the
+implementation resolves — never routing that comparison through `requiresAuth()`
+or `AUTHENTICATED_CLASSES`. A downgrade must therefore be made in two places,
+one of which exists only to be read carefully in review.
+
+| Assertion | Effect |
+|---|---|
+| Reference class == resolved class, per route | any downgrade fails, naming the route, the expected class and the actual class |
+| Reference class == class resolved through the live matcher | catches a classification that is present but unreachable |
+| Every discovered `/admin/**` and `/api/admin/**` route appears in the reference | catches downgrade-by-omission — deleting the entry instead of changing it |
+| Session/admin expectations asserted from the reference's own class lists | holds even if `AUTHENTICATED_CLASSES` is emptied |
+| Every reference route exists on disk or is explicitly `planned` | keeps the reference from rotting |
+
+**Proven by mutation.** Each of the following was applied, observed to fail, and
+reverted: `/profile` → public · `/api/price-history` → public ·
+`/api/market-price` → public · `/watchlists/[id]/edit` → public ·
+`/api/admin/users` → `protected_api` · `/api/admin/products` → `public_api` ·
+`/api/saved-listings` → `public_api` · `AUTHENTICATED_CLASSES` emptied.
+
+**Adding a route does not require an entry** — the §7.7 completeness guard
+already forces classification. The reference covers *downgrades*, which
+completeness cannot see.
 ---
 
 ## 8. Browse and restricted-search contract
@@ -1234,21 +1347,47 @@ as an exclusive-ownership row and the rule is stated in the package definition.
 
 ### 15.1 WP-1 — eligibility spine
 
+**Complete and reconciled.** Every file WP-1 writes appears here; nothing WP-1
+writes appears in §15.6.
+
 | File | Kind | Change |
 |---|:-:|---|
-| `frontend/lib/catalogue.ts` | N | eligibility predicate, slug-role resolver, canonical/supported slug loaders |
+| `frontend/lib/catalogue.ts` | N | four-axis predicate, slug-role resolver, uncached slug loaders, `CatalogueUnavailableError`, `assertSupportedCohortIsMusic` |
+| `frontend/lib/public-product.ts` | N | the public DTO: allow-lists, explicit SELECTs, field-by-field construction for product, related product and listing |
+| `frontend/lib/route-access.ts` | N | the shared route-access authority (§7.7), consumed by middleware and the guard |
+| `frontend/lib/route-posture-reference.json` | N | the independently reviewed security reference (§7.8) |
 | `frontend/lib/category-labels.ts` | N | reviewed Danish display map for taxonomy roots |
 | `frontend/lib/families.ts` | N | **shape and empty export only** (WP-2 fills it) |
-| `frontend/lib/site-metadata.ts` | N | `metadataBase`, OG/Twitter defaults, music-specific title and description, exported for `app/layout.tsx` to consume |
+| `frontend/lib/site-metadata.ts` | N | `metadataBase`, OG/Twitter, music-specific title and description, for `app/layout.tsx` (WP-5) to consume |
 | `frontend/app/not-found.tsx` | N | branded 404 |
-| `frontend/middleware.ts` | C | allow-list add/remove (incl. `/privatliv`), `/` redirect removal, sitemap/robots matcher exclusion |
-| `frontend/app/api/product/[slug]/route.ts` | C | eligibility gate + 404 + admin `qa_only` branch |
-| `frontend/lib/browse.ts` | C | SQL `is_public` + supported intersect, `.order()` + `.range()`, SQL counts, split audit query |
-| `frontend/lib/i18n.ts` | C | complete V1 key set (DA **and** EN) for **all five packages**, including consent, privacy and family-empty-state copy; all pre-pivot strings removed |
-| `frontend/app/api/discover/route.ts` | C | cache headers only |
+| `frontend/app/product/[slug]/layout.tsx` | N | server-side eligibility gate and real HTTP 404 (§15.8) |
+| `frontend/middleware.ts` | C | posture derived from `lib/route-access.ts`; `/` redirect removal; sitemap/robots matcher exclusion |
+| `frontend/app/api/product/[slug]/route.ts` | C | eligibility gate, public DTO, four-axis related gate, 404-vs-503 failure model |
+| `frontend/lib/browse.ts` | C | SQL filtering, deterministic ordering, `.range()` pagination, split audit query, music assertion, failure-vs-absence separation, relabelled audit counters |
+| `frontend/app/api/browse/route.ts` | C | `force-dynamic`, `no-store`, 503-on-unavailable, no error-message echo |
+| `frontend/app/api/browse/[root]/route.ts` | C | as above. **WP-3 keeps its bounded `?sub=`/`?page=` edit** |
+| `frontend/app/api/discover/route.ts` | C | `force-dynamic`, `revalidate = 0`, `no-store`, 503-on-unavailable |
+| `frontend/lib/i18n.ts` | C | complete V1 key set (DA **and** EN) for all five packages; all pre-pivot strings removed |
 | `frontend/app/onboarding/step1/page.tsx` | C | 308 → `/` |
 | `frontend/app/onboarding/step2/page.tsx` | C | 308 → `/` |
 | `frontend/app/onboarding/step3/page.tsx` | C | 308 → `/` |
+
+**Allowed supporting files**
+
+| File | Why |
+|---|---|
+| `package.json` (repository root) | the only place `npm test` is defined. WP-1 appends its three test files to the `test` script and changes nothing else — no dependency, no other script. `frontend/package.json` is WP-5's and is untouched |
+| `scripts/lib/wp1-catalogue.test.ts` | N — eligibility spine |
+| `scripts/lib/wp1-route-access.test.ts` | N — route-posture completeness guard and security reference |
+| `scripts/lib/wp1-public-contract.test.ts` | N — public DTO, eligibility freshness, failure model |
+
+> **Test location.** WP-1's original brief said "new test files under
+> `frontend/__tests__/`". There is no frontend test runner: `npm test` is
+> `tsx --test` over `scripts/lib/*.test.ts`, and tests placed under
+> `frontend/__tests__/` would never execute. The three files above therefore
+> live in `scripts/lib/` alongside `baseline.test.ts` and
+> `matcher-integrity.test.ts`, and are **formally authorised there**. This
+> supersedes the earlier location.
 
 ### 15.2 WP-2 — families, non-canonical isolation, operator copy
 
@@ -1267,12 +1406,13 @@ as an exclusive-ownership row and the rule is stated in the package definition.
 | File | Kind | Change |
 |---|:-:|---|
 | `frontend/app/product/[slug]/page.tsx` | C | server shell, `generateMetadata`, block order, JSON-LD |
+| `frontend/app/product/[slug]/layout.tsx` | **B** | **bounded hand-off from WP-1 only** — may be replaced or deleted solely by folding the gate into the server shell, under every condition in §15.8 |
 | `frontend/app/product/[slug]/error.tsx` | N | error separated from not-found |
 | `frontend/app/product/[slug]/loading.tsx` | N | route-level skeleton |
 | `frontend/app/product/[slug]/ProductPageClient.tsx` | N | client island: save, alert modal, listing pagination |
 | `frontend/app/product/[slug]/PriceHistoryChart.tsx` | N | client island: the Recharts sold-history chart |
 | `frontend/lib/price-band.ts` | N | pure asking-band computation, render gates, per-listing verdict |
-| `frontend/app/sitemap.ts` | N | canonical 14 + `/browse` + browse roots + `/om-data` + `/privatliv` + `/` |
+| `frontend/app/sitemap.ts` | N | canonical 14 + `/browse` + browse roots + `/om-data` + `/privatliv` + `/`. Adding it requires a `framework_metadata` classification in `lib/route-access.ts` (bounded edit) or the §7.7 guard fails |
 | `frontend/app/om-data/page.tsx` | N | what Klup covers, which sources, what the numbers mean |
 | `frontend/app/page.tsx` | C | promise, lookup field, categories, *Fulgt lige nu*, *Nye annoncer* |
 | `frontend/app/browse/page.tsx` | C | tile images, Danish labels, first-run strip, URL page state |
@@ -1325,7 +1465,8 @@ as an exclusive-ownership row and the rule is stated in the package definition.
 | `frontend/app/api/cron/scrape/route.ts` | dormant writer; frozen |
 | `frontend/lib/scrapers/**` | scraper code is out of scope |
 | `frontend/lib/matching/**` | matcher contract is frozen |
-| `scripts/**`, `scripts/migrations/**` | no migration, importer, harness or scraper change |
+| `scripts/migrations/**` | no migration change, ever |
+| `scripts/*.ts` (importers, scrapers, matcher CLIs, harness) | frozen. **Exception, explicit:** `scripts/lib/*.test.ts` is the repository's only test location and each package MAY add its own `wp<N>-*.test.ts` there. No package may modify `scripts/lib/baseline.test.ts`, `scripts/lib/matcher-integrity.test.ts` or any non-test file under `scripts/` |
 | `data/klup-source-monitoring.json` | monitoring is reviewed code and is not widened |
 | `data/klup-clean-product-candidates.csv`, `data/klup-music-vertical-candidate-additions.csv` | immutable sources |
 | `.agents/`, `.mcp.json`, `skills-lock.json` | pre-existing; never modified, never committed |
@@ -1343,6 +1484,13 @@ as an exclusive-ownership row and the rule is stated in the package definition.
 | `frontend/lib/onboarding.ts` | **WP-5** | holds the GA4 sender, while WP-1 retires the onboarding pages | WP-1 redirects `step1..3/page.tsx` only and does not open this file. WP-5 removes the `gtag` path as part of the tracker inventory |
 | `frontend/lib/analytics.ts` | **WP-5** | WP-1/2/3/4 emit events | WP-5 is the only writer. Other packages import `track()` and add call sites **inside files they own** |
 | `frontend/package.json` | **WP-5** | dependency removal for tracker 3 | only WP-5 changes dependencies in V1 |
+| `package.json` (repository root) | **WP-1** | every package wants to register its test file | WP-1 owns the `test` script. Later packages append their own `wp<N>-*.test.ts` to it as a one-line bounded edit, scheduled in their own release. No other field may be touched |
+| `frontend/app/api/browse/route.ts` | **WP-1** | fix H1 required `force-dynamic` + `no-store` + a 503 path | WP-1 owns it outright; no later package has a claim |
+| `frontend/app/api/browse/[root]/route.ts` | **WP-1** | same, and WP-3 needs `?sub=`/`?page=` | WP-1 owns it. WP-3 keeps one bounded edit for the two query parameters, at R4 |
+| `frontend/app/product/[slug]/layout.tsx` | **WP-1** | WP-3 owns the rest of the directory | WP-1 owns this file (§15.8). WP-3 may replace it only under the seven hand-off conditions |
+| `frontend/lib/route-access.ts` | **WP-1** | every package adds routes | WP-1 owns it. WP-2/3/4/5 make classification-only bounded edits (§15.9) |
+| `frontend/lib/route-posture-reference.json` | **WP-1** | security reference | WP-1 owns it. Any change is a security decision and must be justified in the PR (§7.8) |
+| `frontend/lib/public-product.ts` | **WP-1** | WP-3 adds the price band to the response | WP-1 owns the DTO. WP-3 adds `askingBand` as a bounded edit at R4, and may not widen the product allow-list |
 
 **Computed pairwise intersections of §15.1–15.5 (owned ∪ bounded):**
 
@@ -1369,6 +1517,89 @@ WP-5 writes `frontend/app/layout.tsx`. WP-1 writes
 `frontend/lib/onboarding.ts`. WP-1 writes `frontend/lib/i18n.ts`; WP-5 only
 reads it.
 
+
+### 15.8 The product segment gate — WP-1 owned, WP-3 hand-off only
+
+**`frontend/app/product/[slug]/layout.tsx` is owned by WP-1.**
+
+**What it is.** A server component on the `/product/[slug]` route segment that
+resolves the §3.1 four-axis predicate before the page renders, and calls
+`notFound()` when it fails.
+
+**Why WP-1 owns it.** `app/product/[slug]/page.tsx` is a client component: it
+fetches `/api/product/[slug]` after mount and, on a 404, renders "Produkt ikke
+fundet" **with an HTTP status of 200**. WP-1 is the package that puts `/product`
+in the public route posture, so WP-1 is the package that must make the status
+code true. Without this file the gate is only half-effective — no data leaks,
+because the API refuses ineligible slugs, but all 3,976 ineligible slugs answer
+`200` and a crawler will index them as real pages. A soft 404 on the core
+surface is the precise harm the eligibility gate exists to prevent.
+
+**What it provides, and what must never regress:**
+
+1. the server-side canonical eligibility gate, using the **same** predicate as
+   `/api/product/[slug]`, imported from `lib/catalogue.ts` and never restated;
+2. a **real HTTP 404** for every ineligible slug, rendered by
+   `app/not-found.tsx`;
+3. the admin-only branch for `active + supported + qa_only`, resolved server-side
+   from `user_preferences.is_admin`;
+4. the family 308, once `lib/families.ts` carries entries.
+
+#### The WP-3 hand-off — bounded, and conditional
+
+WP-3 converts `page.tsx` into a server shell with `generateMetadata`. At that
+point the gate belongs in the shell, and this file becomes redundant. WP-3 may
+therefore replace or delete it — **as a bounded hand-off, not as ownership**,
+and only if every condition below holds:
+
+| # | Condition |
+|--:|---|
+| H1 | The replacement enforces the **exact four-axis predicate** — `status='active'`, `support_state='supported'`, `browse_visibility='public'`, `browse_domain='music'` — by calling `isCanonical()` from `lib/catalogue.ts`. The predicate is never inlined, re-implemented or partially applied |
+| H2 | **Fail-closed** behaviour is preserved: a row missing any axis, a null row, and a failed lookup are all ineligible |
+| H3 | Ineligible slugs still return a **real HTTP 404** — `notFound()`, never an in-page state with a 200, and never a redirect |
+| H4 | The admin `qa_only` branch is preserved, still resolved server-side, and still `no-store` |
+| H5 | The family 308 is preserved and still evaluated **before** eligibility |
+| H6 | The gate still runs **before** any product data is assembled or any metadata is emitted, so an ineligible slug produces no title, no canonical link and no JSON-LD |
+| H7 | **WP-3 re-runs the WP-1 route/API eligibility suite after the replacement** — `scripts/lib/wp1-catalogue.test.ts`, `scripts/lib/wp1-route-access.test.ts`, `scripts/lib/wp1-public-contract.test.ts`, and the §16.3 anonymous route sweep across all 14 canonical slugs and the four ineligible cohorts — and attaches the results to its PR. A green unit suite alone does not discharge this condition; the route sweep is the evidence |
+| **M2** | **The 404 must be visibly a product 404.** `app/not-found.tsx` is generic. An ineligible product URL currently renders the site-wide not-found, which is correct in status but says nothing about the catalogue. WP-3 ships `app/product/[slug]/not-found.tsx` with segment-specific copy — Klup follows a curated catalogue, this product is not part of it, here is the catalogue — using the `notFound*` keys WP-1 landed in `lib/i18n.ts` |
+| **L7** | **No client-fetch soft-404 race after the replacement.** Once `page.tsx` is a server shell, the client island must not re-fetch `/api/product/[slug]` and render its own "Produkt ikke fundet" on a 404. Two gates that can disagree is one gate too many: the server decides, the client renders. WP-3 must show that an ineligible slug produces exactly one 404 — no 200-then-flash, no client-side not-found state — and that an eligible slug performs no duplicate product fetch on mount |
+
+If any condition cannot be met, **the layout stays** and WP-3's server shell
+renders beneath it. A duplicated gate is acceptable; a missing one is not.
+
+### 15.9 The route-access authority — `frontend/lib/route-access.ts`
+
+**WP-1 owned.** One classification per routable file, consumed by **both**
+`frontend/middleware.ts` and the §7.7 completeness guard, so the runtime posture
+and the test can never diverge into two lists that disagree.
+
+**Bounded edits by later packages**, each confined to changing or adding
+classifications and nothing else:
+
+| Package | Edit |
+|---|---|
+| WP-2 | classify `/family/[slug]` as `public_page` when the route file lands |
+| WP-3 | classify `/om-data` (`public_page`) and `/sitemap.xml` (`framework_metadata`) |
+| WP-4 | change `/api/scrape` from `public_api` to `protected_api`. **This supersedes the earlier wording "remove `/api/scrape` from `PUBLIC_PREFIXES`"** — the prefix lists no longer exist |
+| WP-5 | classify `/privatliv` as `public_page` |
+### 15.10 Pre-release security package — required before R6, not built in WP-1
+
+Three **pre-existing** defects, all outside WP-1's scope and none introduced by
+it. They are recorded here because R6 is the last gate before a publicly
+reachable product, and because "pre-existing" is not a disposition.
+
+| # | Finding | Requirement |
+|--:|---|---|
+| **S1** | Six `/api/admin/cleanup/**` routes do not call `requireAdminInRoute()`. They are denied at the edge by the `admin_api` classification, so they are not currently reachable — but the edge is one layer, and §14.2 is explicit that a route serving privileged data must apply its own check. A middleware regression would expose them. | Each of `/api/admin/cleanup`, `…/brands`, `…/inactivate`, `…/keep`, `…/merge`, `…/self-clean` calls `requireAdminInRoute()` before any read or write. Add a test that fails if an `/api/admin/**` route file omits the call |
+| **S2** | `/api/webhooks/auth` is classified `machine_api` and is therefore exempt from the session gate by design — but it must then authenticate its caller itself. | Verify a shared secret or a signature over the raw body, with a constant-time comparison, before acting; reject with 401 otherwise. Escape or strictly type every value echoed into a response or a log line |
+| **S3** | An unset `CRON_SECRET` must fail closed. A comparison against `undefined` can succeed when the caller also supplies nothing. | Assert the secret is configured and non-empty **before** comparing, and refuse the request if it is not. A missing secret is a 503, never an authorisation |
+
+**Ownership.** Not WP-1, not WP-2/3/4/5. A separate, bounded security package,
+scheduled before R6 and blocking it. It touches only
+`frontend/app/api/admin/cleanup/**`, `frontend/app/api/webhooks/auth/route.ts`
+and `frontend/app/api/cron/scrape/route.ts` — and, for S3, must not otherwise
+modify the dormant cron route or change its disabled state.
+
 ---
 
 ## 16. Test plan
@@ -1376,7 +1607,8 @@ reads it.
 ### 16.1 Baseline that must not regress
 
 ```bash
-npm test                                     # 148 tests, 148 pass, 0 fail
+npm test                                     # 148 pre-existing + the WP-1 suites
+                                             # (eligibility spine + §7.7 route guard)
 npx tsc --noEmit -p frontend/tsconfig.json   # 0 errors
 cd frontend && npm run lint                  # 4 pre-existing warnings (app/layout.tsx)
 npm run typecheck                            # EXACTLY 7 pre-existing errors — an 8th is yours
@@ -1396,6 +1628,7 @@ warnings are in `frontend/app/layout.tsx`, which **only WP-5** edits — the cou
 | `lib/families.ts` | all six slugs resolve; every child slug exists in `kg_product`; no child is also a family; no family slug is in the canonical 14; `neverAggregates` is structural |
 | `lib/search-resolver.ts` | `juno106` ≡ `juno-106` ≡ `juno 106` → Juno-106; every dangerous term → **never** `auto_navigated`; `Rhodes` → disambiguation across all four Rhodes identities; `Yamaha CS-80` → `unsupported` with nearest; `Squier Strat` → never a Fender page; `MS-20 Mini` → not `korg-ms-20`; family label → `/family/<slug>` |
 | `lib/browse.ts` | ordering is total (no duplicate/missing row across a page boundary); counts equal a SQL aggregate; the audit query is unfiltered while the public query is filtered |
+| `lib/route-access.ts` | the §7.7 completeness guard, G1–G8. Every routable file classified; classifications effective, not merely declared; unclassified route fails; no hardcoded route count. Proven by adding a temporary unclassified fixture route and observing the failure |
 | Search index | regenerated index equals live canonical state — **fails CI if a promotion is not accompanied by a regeneration** |
 
 ### 16.3 Integration / route tests
@@ -1644,7 +1877,7 @@ be filtered in the same release.
 |---|---|
 | **Files owned (exclusive, exact)** | `frontend/lib/catalogue.ts` (N) · `frontend/lib/category-labels.ts` (N) · `frontend/lib/families.ts` (N — shape and empty export only) · `frontend/lib/site-metadata.ts` (N) · `frontend/app/not-found.tsx` (N) · `frontend/middleware.ts` · `frontend/app/api/product/[slug]/route.ts` · `frontend/lib/browse.ts` · `frontend/lib/i18n.ts` · `frontend/app/api/discover/route.ts` · `frontend/app/onboarding/step1/page.tsx` · `frontend/app/onboarding/step2/page.tsx` · `frontend/app/onboarding/step3/page.tsx` |
 | **Allowed supporting** | new test files under `frontend/__tests__/` · `frontend/tsconfig.json` (path alias only, if genuinely required) |
-| **Forbidden (exact)** | `frontend/app/layout.tsx` (**WP-5 owns it**) · `frontend/lib/onboarding.ts` (**WP-5**) · `frontend/lib/analytics.ts` (**WP-5**) · `frontend/components/PostHogProvider.tsx` · `frontend/components/PostHogPageView.tsx` · `frontend/package.json` · `frontend/app/product/[slug]/page.tsx` · `frontend/app/page.tsx` · `frontend/app/browse/page.tsx` · `frontend/app/browse/[root]/page.tsx` · `frontend/app/api/browse/route.ts` · `frontend/app/api/browse/[root]/route.ts` · `frontend/app/search/page.tsx` · `frontend/app/api/scrape/route.ts` · `frontend/app/family/[slug]/page.tsx` · `frontend/components/ProductCard.tsx` · `frontend/components/SearchResultCard.tsx` · `frontend/components/SideNav.tsx` · `frontend/components/BottomNav.tsx` · `frontend/components/MobileSearchBar.tsx` · `frontend/lib/price-band.ts` · `frontend/lib/query-normalizer.ts` · `frontend/lib/synonyms.ts` · `frontend/lib/matching/**` · `frontend/lib/scrapers/**` · `frontend/vercel.json` · `scripts/**` · `data/**` · `.agents/` · `.mcp.json` · `skills-lock.json` |
+| **Forbidden (exact)** | `frontend/app/layout.tsx` (**WP-5 owns it**) · `frontend/lib/onboarding.ts` (**WP-5**) · `frontend/lib/analytics.ts` (**WP-5**) · `frontend/components/PostHogProvider.tsx` · `frontend/components/PostHogPageView.tsx` · `frontend/package.json` · `frontend/app/product/[slug]/page.tsx` · `frontend/app/page.tsx` · `frontend/app/browse/page.tsx` · `frontend/app/browse/[root]/page.tsx` · `frontend/app/search/page.tsx` · `frontend/app/api/scrape/route.ts` · `frontend/app/family/[slug]/page.tsx` · `frontend/components/ProductCard.tsx` · `frontend/components/SearchResultCard.tsx` · `frontend/components/SideNav.tsx` · `frontend/components/BottomNav.tsx` · `frontend/components/MobileSearchBar.tsx` · `frontend/lib/price-band.ts` · `frontend/lib/query-normalizer.ts` · `frontend/lib/synonyms.ts` · `frontend/lib/matching/**` · `frontend/lib/scrapers/**` · `frontend/vercel.json` · `scripts/` **except its own `scripts/lib/wp<N>-*.test.ts`** · `data/**` · `.agents/` · `.mcp.json` · `skills-lock.json` |
 | **Dependencies** | None. First. |
 | **Parallel?** | **No.** WP-5 was parallel in an earlier revision; §12.4 gives WP-5 exclusive ownership of `frontend/app/layout.tsx`, and R1 must be the first deploy, so WP-1 runs alone |
 | **Integration order** | 1st (R1) |
@@ -1710,7 +1943,7 @@ No production write, no migration, no schema change.
 |---|---|
 | **Files owned (exclusive, exact)** | `frontend/lib/families.ts` (content — WP-1 created the empty shape) · `frontend/app/family/[slug]/page.tsx` (N) · `frontend/app/family/[slug]/error.tsx` (N) |
 | **Allowed supporting (bounded, exact)** | `frontend/middleware.ts` — **only** the six-entry 308 map · `frontend/app/api/admin/products/[id]/route.ts` — **only** the prose at `:20-23,49-53` and the `consequence()` text at `:79-85` · `frontend/app/admin/products/page.tsx` — **only** line 73 · `frontend/vercel.json` — **only** an added `_comment` |
-| **Forbidden (exact)** | Any `frontend/middleware.ts` change beyond the 308 map · the admin route's axis mapping, validation, `intent` requirement, `dryRun` or manifest logic · **removing the `crons` block from `frontend/vercel.json`** · `frontend/app/layout.tsx` · `frontend/lib/i18n.ts` · `frontend/lib/analytics.ts` · `frontend/lib/catalogue.ts` · `frontend/lib/browse.ts` · `frontend/lib/price-band.ts` · `frontend/app/product/[slug]/page.tsx` · `frontend/app/page.tsx` · `frontend/app/browse/page.tsx` · `frontend/app/browse/[root]/page.tsx` · `frontend/app/search/page.tsx` · `frontend/components/**` · `data/klup-source-monitoring.json` · `scripts/**` · `.agents/` · `.mcp.json` · `skills-lock.json` |
+| **Forbidden (exact)** | Any `frontend/middleware.ts` change beyond the 308 map · the admin route's axis mapping, validation, `intent` requirement, `dryRun` or manifest logic · **removing the `crons` block from `frontend/vercel.json`** · `frontend/app/layout.tsx` · `frontend/lib/i18n.ts` · `frontend/lib/analytics.ts` · `frontend/lib/catalogue.ts` · `frontend/lib/browse.ts` · `frontend/lib/price-band.ts` · `frontend/app/product/[slug]/page.tsx` · `frontend/app/page.tsx` · `frontend/app/browse/page.tsx` · `frontend/app/browse/[root]/page.tsx` · `frontend/app/search/page.tsx` · `frontend/components/**` · `data/klup-source-monitoring.json` · `scripts/` **except its own `scripts/lib/wp<N>-*.test.ts`** · `.agents/` · `.mcp.json` · `skills-lock.json` |
 | **Dependencies** | WP-1 merged (needs `lib/families.ts` shape and `resolveSlugRole`) |
 | **Parallel?** | Yes — with WP-3, WP-4 and WP-5 |
 | **Integration order** | 3rd (R3) |
@@ -1761,9 +1994,9 @@ The largest package and the critical path after WP-1.
 
 | | |
 |---|---|
-| **Files owned (exclusive, exact)** | `frontend/app/product/[slug]/page.tsx` · `frontend/app/product/[slug]/error.tsx` (N) · `frontend/app/product/[slug]/loading.tsx` (N) · `frontend/app/product/[slug]/ProductPageClient.tsx` (N) · `frontend/app/product/[slug]/PriceHistoryChart.tsx` (N) · `frontend/lib/price-band.ts` (N) · `frontend/app/sitemap.ts` (N) · `frontend/app/om-data/page.tsx` (N) · `frontend/app/page.tsx` · `frontend/app/browse/page.tsx` · `frontend/app/browse/[root]/page.tsx` · `frontend/components/ProductCard.tsx` · `frontend/components/SearchResultCard.tsx` · `frontend/components/SideNav.tsx` · `frontend/components/BottomNav.tsx` · `frontend/components/MobileSearchBar.tsx`<br><br>WP-3 owns the `frontend/app/product/[slug]/` directory exclusively and may add further colocated client islands there; no other package may create a file in it |
-| **Allowed supporting (bounded)** | `frontend/app/api/product/[slug]/route.ts` — **only** replace the price block with `askingBand`, add `listingTotal` and `sources`, label sold history per source, filter `relatedProducts` by §3.1 · `frontend/app/api/browse/[root]/route.ts` — **only** the `?sub=` and `?page=` parameters |
-| **Forbidden (exact)** | The §3.1 gate itself · `frontend/lib/catalogue.ts` · `frontend/lib/browse.ts` · `frontend/lib/families.ts` · `frontend/lib/i18n.ts` · `frontend/lib/analytics.ts` · `frontend/middleware.ts` · `frontend/app/layout.tsx` · `frontend/app/search/page.tsx` · `frontend/app/api/search/resolve/route.ts` · `frontend/app/family/[slug]/page.tsx` · `frontend/components/PostHogProvider.tsx` · `frontend/components/PostHogPageView.tsx` · `frontend/components/ConsentBanner.tsx` · `frontend/components/AnalyticsRoot.tsx` · `frontend/package.json` · any `attributes`, image or article content · `frontend/lib/matching/**` · `scripts/**` · `data/**` · `.agents/` · `.mcp.json` · `skills-lock.json` |
+| **Files owned (exclusive, exact)** | `frontend/app/product/[slug]/page.tsx` · `frontend/app/product/[slug]/error.tsx` (N) · `frontend/app/product/[slug]/loading.tsx` (N) · `frontend/app/product/[slug]/ProductPageClient.tsx` (N) · `frontend/app/product/[slug]/PriceHistoryChart.tsx` (N) · `frontend/lib/price-band.ts` (N) · `frontend/app/sitemap.ts` (N) · `frontend/app/om-data/page.tsx` (N) · `frontend/app/page.tsx` · `frontend/app/browse/page.tsx` · `frontend/app/browse/[root]/page.tsx` · `frontend/components/ProductCard.tsx` · `frontend/components/SearchResultCard.tsx` · `frontend/components/SideNav.tsx` · `frontend/components/BottomNav.tsx` · `frontend/components/MobileSearchBar.tsx`<br><br>WP-3 may add further colocated client islands under `frontend/app/product/[slug]/`. It does **not** own `frontend/app/product/[slug]/layout.tsx`, which is WP-1's (§15.8), nor `frontend/lib/route-access.ts` (§7.7) |
+| **Allowed supporting (bounded)** | `frontend/app/api/product/[slug]/route.ts` — **only** replace the price block with `askingBand`, add `listingTotal` and `sources`, and label sold history per source (`relatedProducts` is already gated by WP-1) · `frontend/app/api/browse/[root]/route.ts` — **only** the `?sub=` and `?page=` parameters · `frontend/app/product/[slug]/layout.tsx` — **only** the §15.8 hand-off · `frontend/lib/route-access.ts` — **only** adding `framework_metadata` classifications for `app/sitemap.ts` and any other metadata route it introduces |
+| **Forbidden (exact)** | The §3.1 gate itself · `frontend/lib/route-access.ts` · `frontend/lib/route-posture-reference.json` · widening `PUBLIC_PRODUCT_FIELDS` in `frontend/lib/public-product.ts` · `frontend/lib/catalogue.ts` · `frontend/lib/browse.ts` · `frontend/lib/families.ts` · `frontend/lib/i18n.ts` · `frontend/lib/analytics.ts` · `frontend/middleware.ts` · `frontend/app/layout.tsx` · `frontend/app/search/page.tsx` · `frontend/app/api/search/resolve/route.ts` · `frontend/app/family/[slug]/page.tsx` · `frontend/components/PostHogProvider.tsx` · `frontend/components/PostHogPageView.tsx` · `frontend/components/ConsentBanner.tsx` · `frontend/components/AnalyticsRoot.tsx` · `frontend/package.json` · any `attributes`, image or article content · `frontend/lib/matching/**` · `scripts/` **except its own `scripts/lib/wp<N>-*.test.ts`** · `data/**` · `.agents/` · `.mcp.json` · `skills-lock.json` |
 | **Dependencies** | WP-1 merged. Reads `frontend/lib/families.ts` for the breadcrumb (tolerates it empty). Emits events through WP-5's `frontend/lib/analytics.ts`, so **R2 must deploy before R4** |
 | **Parallel?** | Yes — developed alongside WP-2, WP-4 and WP-5 |
 | **Integration order** | 4th (R4) |
@@ -1827,7 +2060,7 @@ No production write, no content change.
 |---|---|
 | **Files owned (exclusive, exact)** | `frontend/app/search/page.tsx` · `frontend/app/api/search/resolve/route.ts` (N) · `frontend/lib/search-resolver.ts` (N) · `frontend/lib/model-key.ts` (N) · `frontend/lib/search-index.ts` (N) · `frontend/lib/synonyms.ts` · `frontend/data/klup-search-index.json` (N) · `frontend/scripts/build-search-index.ts` (N) |
 | **Allowed supporting (bounded, exact)** | `frontend/middleware.ts` — **only** removing the `/api/scrape` entry from `PUBLIC_PREFIXES` · `frontend/app/api/scrape/route.ts` — **only** an added header comment |
-| **Forbidden (exact)** | `frontend/lib/query-normalizer.ts` (extend via `frontend/lib/model-key.ts`, never modify — `/api/scrape` and adjacent paths consume it) · deleting `frontend/app/api/scrape/route.ts` or anything in `frontend/lib/scrapers/**` · the rate limiter at `frontend/middleware.ts:10-36` · `frontend/lib/i18n.ts` · `frontend/lib/analytics.ts` · `frontend/lib/catalogue.ts` · `frontend/lib/price-band.ts` · `frontend/lib/families.ts` · `frontend/app/layout.tsx` · `frontend/app/product/[slug]/**` · `frontend/app/browse/**` · `frontend/app/family/**` · `frontend/components/**` · `data/klup-source-monitoring.json` · `frontend/lib/matching/**` · `scripts/**` · `.agents/` · `.mcp.json` · `skills-lock.json` |
+| **Forbidden (exact)** | `frontend/lib/query-normalizer.ts` (extend via `frontend/lib/model-key.ts`, never modify — `/api/scrape` and adjacent paths consume it) · deleting `frontend/app/api/scrape/route.ts` or anything in `frontend/lib/scrapers/**` · the rate limiter at `frontend/middleware.ts:10-36` · `frontend/lib/i18n.ts` · `frontend/lib/analytics.ts` · `frontend/lib/catalogue.ts` · `frontend/lib/price-band.ts` · `frontend/lib/families.ts` · `frontend/app/layout.tsx` · `frontend/app/product/[slug]/**` (WP-3's, except `layout.tsx` which is WP-1's) · `frontend/app/browse/**` · `frontend/app/family/**` · `frontend/components/**` · `data/klup-source-monitoring.json` · `frontend/lib/matching/**` · `scripts/` **except its own `scripts/lib/wp<N>-*.test.ts`** · `.agents/` · `.mcp.json` · `skills-lock.json` |
 | **Dependencies** | WP-1 (canonical slug loader), WP-2 (family entries for the index) and WP-5 (`track()` for the demand events) |
 | **Parallel?** | Yes — developed alongside WP-2, WP-3 and WP-5, but **deploys after WP-3** |
 | **Integration order** | 5th (R5) |
@@ -1888,7 +2121,7 @@ remove, gate or configure a tracker, and it is the only owner of
 |---|---|
 | **Files owned (exclusive, exact)** | `frontend/app/layout.tsx` · `frontend/lib/consent.ts` (N) · `frontend/components/ConsentProvider.tsx` (N) · `frontend/components/ConsentBanner.tsx` (N) · `frontend/components/ConsentFooterControl.tsx` (N) · `frontend/components/AnalyticsRoot.tsx` (N) · `frontend/components/PostHogProvider.tsx` · `frontend/components/PostHogPageView.tsx` · `frontend/lib/analytics.ts` (N) · `frontend/lib/onboarding.ts` · `frontend/app/privatliv/page.tsx` (N) · `frontend/package.json` |
 | **Allowed supporting** | new test files under `frontend/__tests__/` · `frontend/package-lock.json` (regenerated by the dependency removal only) |
-| **Forbidden (exact)** | `frontend/lib/i18n.ts` (**WP-1 owns it** — WP-5 consumes `t.key`; consent and privacy strings are landed by WP-1 at R1) · `frontend/lib/site-metadata.ts` (**WP-1** — WP-5 imports and re-exports it, never edits it) · `frontend/middleware.ts` · `frontend/lib/catalogue.ts` · `frontend/lib/browse.ts` · `frontend/lib/families.ts` · `frontend/lib/price-band.ts` · `frontend/lib/search-resolver.ts` · `frontend/app/api/product/[slug]/route.ts` · `frontend/app/product/[slug]/**` · `frontend/app/browse/**` · `frontend/app/family/**` · `frontend/app/search/page.tsx` · `frontend/app/page.tsx` · `frontend/components/{ProductCard,SearchResultCard,SideNav,BottomNav,MobileSearchBar}.tsx` · `frontend/app/onboarding/step1/page.tsx` · `frontend/app/onboarding/step2/page.tsx` · `frontend/app/onboarding/step3/page.tsx` · `scripts/**` · `data/**` · `.agents/` · `.mcp.json` · `skills-lock.json` |
+| **Forbidden (exact)** | `frontend/lib/i18n.ts` (**WP-1 owns it** — WP-5 consumes `t.key`; consent and privacy strings are landed by WP-1 at R1) · `frontend/lib/site-metadata.ts` (**WP-1** — WP-5 imports and re-exports it, never edits it) · `frontend/middleware.ts` · `frontend/lib/catalogue.ts` · `frontend/lib/browse.ts` · `frontend/lib/families.ts` · `frontend/lib/price-band.ts` · `frontend/lib/search-resolver.ts` · `frontend/app/api/product/[slug]/route.ts` · `frontend/app/product/[slug]/**` · `frontend/app/browse/**` · `frontend/app/family/**` · `frontend/app/search/page.tsx` · `frontend/app/page.tsx` · `frontend/components/{ProductCard,SearchResultCard,SideNav,BottomNav,MobileSearchBar}.tsx` · `frontend/app/onboarding/step1/page.tsx` · `frontend/app/onboarding/step2/page.tsx` · `frontend/app/onboarding/step3/page.tsx` · `scripts/` **except its own `scripts/lib/wp<N>-*.test.ts`** · `data/**` · `.agents/` · `.mcp.json` · `skills-lock.json` |
 | **Dependencies** | **WP-1 merged** — WP-5 imports `lib/site-metadata.ts` and the consent/privacy i18n keys, and `/privatliv` must already be in `PUBLIC_PREFIXES` |
 | **Parallel?** | **No with WP-1** (WP-1 must land first). **Yes with WP-2, WP-3 and WP-4** — no shared file with any of them |
 | **Integration order** | 2nd (R2), and **strictly before R4** |

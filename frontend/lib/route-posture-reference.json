@@ -1,0 +1,107 @@
+{
+  "$comment": [
+    "INDEPENDENT SECURITY REFERENCE — reviewed by a human, not derived from code.",
+    "",
+    "Stage 3 WP-1, review finding M1. See the build plan §7.8.",
+    "",
+    "WHY THIS DUPLICATES lib/route-access.ts ON PURPOSE. The completeness guard",
+    "proves the implementation agrees with itself: it reads ROUTE_ACCESS, asks",
+    "requiresAuth() (which reads the same table through AUTHENTICATED_CLASSES),",
+    "and confirms they match. Flip a classification from admin_api to public_api",
+    "and every one of those assertions still passes, because both sides moved",
+    "together. Remove a class from AUTHENTICATED_CLASSES and the same is true.",
+    "",
+    "This file is the second opinion. It pins the EXPECTED CLASS, as a literal",
+    "string, for every security-sensitive route, and the test compares it to the",
+    "class the implementation actually resolves — never routing that comparison",
+    "through requiresAuth() or AUTHENTICATED_CLASSES. A posture downgrade must",
+    "therefore be made in two places, one of which is this file, whose only",
+    "reason to exist is to be read carefully in review.",
+    "",
+    "CHANGING AN ENTRY HERE IS A SECURITY DECISION. A reviewer seeing this file",
+    "in a diff should ask what became less protected and why. Adding a NEW route",
+    "does not require an entry — the completeness guard already forces every",
+    "routable file to be classified — but any route that is protected, admin or",
+    "machine-authenticated must be pinned here."
+  ],
+
+  "expected": {
+    "/profile": "protected_page",
+    "/watchlists/[id]/edit": "protected_page",
+
+    "/api/watchlists": "protected_api",
+    "/api/watchlists/[id]": "protected_api",
+    "/api/watchlists/[id]/listings": "protected_api",
+    "/api/saved-listings": "protected_api",
+    "/api/notification-preferences": "protected_api",
+    "/api/preferences": "protected_api",
+    "/api/price-history": "protected_api",
+    "/api/market-price": "protected_api",
+
+    "/admin": "admin_page",
+    "/admin/cleanup": "admin_page",
+    "/admin/match": "admin_page",
+    "/admin/msrp": "admin_page",
+    "/admin/product/[slug]": "admin_page",
+    "/admin/product/new": "admin_page",
+    "/admin/products": "admin_page",
+    "/admin/suggestions": "admin_page",
+    "/admin/suggestions/bulk": "admin_page",
+    "/admin/users": "admin_page",
+    "/intel": "admin_page",
+
+    "/api/admin/me": "admin_api",
+    "/api/admin/msrp": "admin_api",
+    "/api/admin/products": "admin_api",
+    "/api/admin/products/[id]": "admin_api",
+    "/api/admin/users": "admin_api",
+    "/api/admin/users/[id]": "admin_api",
+    "/api/admin/suggestions": "admin_api",
+    "/api/admin/suggestions/[id]": "admin_api",
+    "/api/admin/suggestions/bulk/approve": "admin_api",
+    "/api/admin/suggestions/bulk/brands": "admin_api",
+    "/api/admin/suggestions/bulk/group": "admin_api",
+    "/api/admin/suggestions/bulk/merge": "admin_api",
+    "/api/admin/suggestions/bulk/reject": "admin_api",
+    "/api/admin/cleanup": "admin_api",
+    "/api/admin/cleanup/brands": "admin_api",
+    "/api/admin/cleanup/inactivate": "admin_api",
+    "/api/admin/cleanup/keep": "admin_api",
+    "/api/admin/cleanup/merge": "admin_api",
+    "/api/admin/cleanup/self-clean": "admin_api",
+    "/api/admin/match/approve": "admin_api",
+    "/api/admin/match/candidates": "admin_api",
+    "/api/admin/match/search": "admin_api",
+    "/api/admin/product/brands": "admin_api",
+    "/api/admin/product/new": "admin_api",
+    "/api/admin/product/subcategories": "admin_api",
+    "/api/admin/product/[slug]/reassign-match": "admin_api",
+    "/api/admin/product/[slug]/reject-match": "admin_api",
+    "/api/admin/product/[slug]/save-listing": "admin_api",
+    "/api/admin/product/[slug]/scrape-kleinanzeigen": "admin_api",
+    "/api/admin/product/[slug]/scrape-platform": "admin_api",
+    "/api/admin/product/[slug]/set-price": "admin_api",
+    "/api/admin/product/[slug]/synonym": "admin_api",
+    "/api/admin/product/[slug]/synonym/[id]": "admin_api",
+
+    "/api/cron/scrape": "machine_api",
+    "/api/webhooks/auth": "machine_api",
+
+    "/product/[slug]": "public_page_data_gated",
+    "/api/product/[slug]": "public_api_data_gated"
+  },
+
+  "mustRequireSession": [
+    "protected_page",
+    "protected_api",
+    "admin_page",
+    "admin_api"
+  ],
+
+  "mustRequireAdmin": [
+    "admin_page",
+    "admin_api"
+  ],
+
+  "adminPrefixes": ["/admin", "/api/admin"]
+}

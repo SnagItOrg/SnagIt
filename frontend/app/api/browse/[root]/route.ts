@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { isCurrentUserAdmin } from '@/lib/admin-auth'
+import { isCatalogueUnavailable } from '@/lib/catalogue'
 import { buildBrowseLeafResponse } from '@/lib/browse'
+
+/** Never prerendered — see app/api/discover/route.ts. */
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function GET(
   req: NextRequest,
@@ -39,10 +44,25 @@ export async function GET(
     return NextResponse.json(response, {
       headers: includeDebug
         ? { 'Cache-Control': 'private, no-store' }
-        : { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' },
+        : { 'Cache-Control': 'no-store' },
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to load browse category'
-    return NextResponse.json({ error: message }, { status: 500 })
+    // Absence is not unavailability, and a public body never carries the
+    // internal message — it used to echo error.message verbatim.
+    if (isCatalogueUnavailable(error)) {
+      console.error('[operational] browse eligibility unavailable', {
+        route: '/api/browse/[root]',
+        stage: error.stage,
+      })
+      return NextResponse.json({ error: 'catalogue_unavailable' }, {
+        status: 503,
+        headers: { 'Cache-Control': 'no-store', 'Retry-After': '30' },
+      })
+    }
+    console.error('[operational] browse request failed', error)
+    return NextResponse.json({ error: 'internal_error' }, {
+      status: 500,
+      headers: { 'Cache-Control': 'no-store' },
+    })
   }
 }

@@ -1,4 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import {
+  CANONICAL_STATUS,
+  CANONICAL_SUPPORT,
+  CATALOGUE_STATE_SELECT,
+  CatalogueUnavailableError,
+  assertSupportedCohortIsMusic,
+  loadSupportedSlugs,
+} from '@/lib/catalogue'
 
 export type BrowseProjectionRow = {
   id: string
@@ -53,8 +61,12 @@ type MusicGearImageRow = {
 type CountSummary = {
   direct_catalog_count: number
   subtree_catalog_count: number
-  direct_public_count: number
-  subtree_public_count: number
+  /** Support-BLIND `is_public` from the projection: 23 today. Audit only. */
+  direct_browse_eligible_support_blind_count: number
+  subtree_browse_eligible_support_blind_count: number
+  /** What the public catalogue actually serves: 10 today. */
+  direct_canonical_public_count: number
+  subtree_canonical_public_count: number
   direct_live_count: number
   subtree_live_count: number
 }
@@ -214,6 +226,7 @@ type ExclusionReason =
   | 'missing_root_mapping'
   | 'qa_only'
   | 'hidden'
+  | 'unsupported'
 
 function storageFallback(supabaseUrl: string, slug: string) {
   return `${supabaseUrl}/storage/v1/object/public/onboarding-assets/categories/${slug}.webp`
@@ -231,37 +244,63 @@ function compareProducts(a: BrowseProjectionRow, b: BrowseProjectionRow) {
   return a.canonical_name.localeCompare(b.canonical_name, 'en')
 }
 
-function summarizeRows(rows: BrowseProjectionRow[]) {
+/**
+ * Audit-only counters.
+ *
+ * `public_count` is the projection's SUPPORT-BLIND `is_public` — active +
+ * public + classified — which is 23 today. It is NOT the number of products
+ * the public catalogue serves, which is 10. Both numbers are legitimate and
+ * they answer different questions, so the audit payload now reports them side
+ * by side under names that say which is which. Presenting 23 as "public
+ * products" is how three surfaces came to disagree in the first place.
+ */
+function summarizeRows(rows: BrowseProjectionRow[], supportedSlugs?: Set<string>) {
   return {
     catalog_count: rows.filter((row) => row.taxonomy_state === 'classified').length,
-    public_count: rows.filter((row) => row.is_public).length,
+    browse_eligible_support_blind_count: rows.filter((row) => row.is_public).length,
+    canonical_public_count: supportedSlugs
+      ? rows.filter((row) => row.is_public && supportedSlugs.has(row.slug)).length
+      : 0,
     live_count: rows.filter((row) => row.taxonomy_state === 'classified' && row.supply_state === 'live').length,
   }
 }
 
-function buildCountSummary(directRows: BrowseProjectionRow[], subtreeRows: BrowseProjectionRow[]): CountSummary {
-  const direct = summarizeRows(directRows)
-  const subtree = summarizeRows(subtreeRows)
+function buildCountSummary(
+  directRows: BrowseProjectionRow[],
+  subtreeRows: BrowseProjectionRow[],
+  supportedSlugs?: Set<string>,
+): CountSummary {
+  const direct = summarizeRows(directRows, supportedSlugs)
+  const subtree = summarizeRows(subtreeRows, supportedSlugs)
   return {
     direct_catalog_count: direct.catalog_count,
     subtree_catalog_count: subtree.catalog_count,
-    direct_public_count: direct.public_count,
-    subtree_public_count: subtree.public_count,
+    direct_browse_eligible_support_blind_count: direct.browse_eligible_support_blind_count,
+    subtree_browse_eligible_support_blind_count: subtree.browse_eligible_support_blind_count,
+    direct_canonical_public_count: direct.canonical_public_count,
+    subtree_canonical_public_count: subtree.canonical_public_count,
     direct_live_count: direct.live_count,
     subtree_live_count: subtree.live_count,
   }
 }
 
-function getExclusionReason(row: BrowseProjectionRow): ExclusionReason | null {
+function getExclusionReason(
+  row: BrowseProjectionRow,
+  supportedSlugs?: Set<string>,
+): ExclusionReason | null {
   if (row.status !== 'active') return 'inactive'
   if (row.taxonomy_state === 'missing_subcategory') return 'missing_subcategory'
   if (row.taxonomy_state === 'missing_root_mapping') return 'missing_root_mapping'
   if (row.browse_visibility === 'qa_only') return 'qa_only'
   if (row.browse_visibility === 'hidden') return 'hidden'
+  // Public, active and classified, but outside the supported cohort: the
+  // matcher can never add a listing to it, so it leaves the public catalogue.
+  // The audit payload names it rather than silently dropping it.
+  if (supportedSlugs && !supportedSlugs.has(row.slug)) return 'unsupported'
   return null
 }
 
-function toDebugProduct(row: BrowseProjectionRow): DebugProduct {
+function toDebugProduct(row: BrowseProjectionRow, supportedSlugs?: Set<string>): DebugProduct {
   return {
     slug: row.slug,
     canonical_name: row.canonical_name,
@@ -273,7 +312,7 @@ function toDebugProduct(row: BrowseProjectionRow): DebugProduct {
     taxonomy_state: row.taxonomy_state,
     supply_state: row.supply_state,
     has_image: row.has_image,
-    exclusion_reason: getExclusionReason(row),
+    exclusion_reason: getExclusionReason(row, supportedSlugs),
   }
 }
 
@@ -330,10 +369,12 @@ async function fetchMusicTaxonomy(admin: SupabaseClient) {
       .select('image_url')
       .eq('slug', 'music-gear')
       .single(),
-  ])
+  ]).catch(() => {
+    throw new CatalogueUnavailableError('browse_taxonomy_transport')
+  })
 
   if (rootsRes.error || subcategoriesRes.error) {
-    throw new Error('Failed to load browse taxonomy.')
+    throw new CatalogueUnavailableError('browse_taxonomy')
   }
 
   return {
@@ -343,19 +384,151 @@ async function fetchMusicTaxonomy(admin: SupabaseClient) {
   }
 }
 
-async function fetchBrowseRows(admin: SupabaseClient, rootCategoryId?: string) {
-  let query = admin
-    .from('browse_product_projection')
-    .select(PROJECTION_SELECT)
-    .eq('browse_domain', 'music')
+/**
+ * The 48 matcher-eligible slugs (active + supported).
+ *
+ * `browse_product_projection` has NO support axis — `is_public` is
+ * `status='active' AND browse_visibility='public' AND taxonomy_state='classified'`
+ * (migration 036) — so support has to come from `kg_product` and be intersected
+ * here. Without it, browse would keep listing the 13 public-but-unsupported
+ * rows whose matches froze on activation day, and every one of their cards
+ * would link to a page that now 404s.
+ */
+async function fetchSupportedSlugs(admin: SupabaseClient): Promise<Set<string>> {
+  return loadSupportedSlugs(async () => {
+    // A transport rejection here is turned into the { data, error } shape the
+    // loader understands; the loader raises CatalogueUnavailableError either way.
+    const res = await admin
+      .from('kg_product')
+      .select(CATALOGUE_STATE_SELECT)
+      .eq('status', CANONICAL_STATUS)
+      .eq('support_state', CANONICAL_SUPPORT)
+      .then((r) => r, (err) => ({ data: null, error: err ?? new Error('transport') }))
+    return { data: res.data, error: res.error }
+  })
+}
 
-  if (rootCategoryId) {
-    query = query.eq('root_category_id', rootCategoryId)
+/** PostgREST refuses to return more than this in one unbounded request. */
+const PROJECTION_PAGE_SIZE = 1000
+/** 4,004 music rows today; the cap is a runaway guard, not a business limit. */
+const PROJECTION_MAX_PAGES = 20
+
+/**
+ * Fetch projection rows with an EXPLICIT bound and a total order.
+ *
+ * The previous implementation issued an unbounded `.select()` with no
+ * `.order()`. `browse_product_projection` holds 4,004 music rows and PostgREST
+ * caps an unbounded request at 1,000, so the function received an arbitrary
+ * prefix in physical heap order and then did all filtering, counting and
+ * pagination in JavaScript over that prefix. Ground truth was 23 browse-
+ * eligible products; production reported 19 on the root tiles and 22 summed
+ * across the leaves. `linn-electronics-linndrum` was fully public and
+ * unreachable. It was stable only because the heap order happened to be
+ * stable — a VACUUM FULL or bulk UPDATE would have changed the public
+ * catalogue with no deploy.
+ *
+ * `.order('slug')` makes paging total and deterministic; `slug` is unique, so
+ * no row can be duplicated or skipped across a page boundary.
+ */
+async function fetchProjectionPages(
+  admin: SupabaseClient,
+  build: (
+    q: ReturnType<ReturnType<SupabaseClient['from']>['select']>,
+  ) => ReturnType<ReturnType<SupabaseClient['from']>['select']>,
+): Promise<BrowseProjectionRow[]> {
+  const out: BrowseProjectionRow[] = []
+
+  for (let page = 0; page < PROJECTION_MAX_PAGES; page += 1) {
+    const from = page * PROJECTION_PAGE_SIZE
+    const to = from + PROJECTION_PAGE_SIZE - 1
+
+    const { data, error } = await build(
+      admin.from('browse_product_projection').select(PROJECTION_SELECT),
+    )
+      .order('slug', { ascending: true })
+      .range(from, to)
+      .then((r) => r, () => {
+        throw new CatalogueUnavailableError('browse_projection_transport')
+      })
+
+    // A query error is unavailability, not an empty catalogue. Returning []
+    // here would render "Klup follows nothing" as though it were true.
+    if (error) throw new CatalogueUnavailableError('browse_projection')
+
+    const rows = (data ?? []) as unknown as BrowseProjectionRow[]
+    out.push(...rows)
+    if (rows.length < PROJECTION_PAGE_SIZE) return out
   }
 
-  const { data, error } = await query
-  if (error) throw new Error('Failed to load browse projection.')
-  return (data ?? []) as unknown as BrowseProjectionRow[]
+  throw new Error('Browse projection exceeded the maximum page count.')
+}
+
+/**
+ * Rows eligible for the PUBLIC catalogue: music domain, `is_public`, and in the
+ * supported cohort. Bounded by construction — at most 48 slugs can match.
+ */
+async function fetchPublicBrowseRows(
+  admin: SupabaseClient,
+  rootCategoryId?: string,
+): Promise<BrowseProjectionRow[]> {
+  const supported = await fetchSupportedSlugs(admin)
+  if (supported.size === 0) return []
+
+  const slugs = Array.from(supported)
+
+  // THE FOURTH AXIS, ASSERTED RATHER THAN ASSUMED.
+  //
+  // kg_product has no domain column, so the set-based path can only read three
+  // axes. Filtering the row query by browse_domain='music' would hide a
+  // violation instead of reporting it — a non-music supported product would
+  // simply vanish from the result and nobody would learn of it. So the domain
+  // is read for the WHOLE supported cohort first, unfiltered, and asserted.
+  // 48 rows on an indexed predicate; the build plan is explicit that
+  // performance is not a concern at this size.
+  const domainRes = await admin
+    .from('browse_product_projection')
+    .select('slug, browse_domain')
+    .in('slug', slugs)
+    .then((r) => r, () => {
+      throw new CatalogueUnavailableError('supported_domain_transport')
+    })
+  if (domainRes.error) throw new CatalogueUnavailableError('supported_domain_probe')
+  assertSupportedCohortIsMusic(
+    supported,
+    (domainRes.data ?? []) as Array<{ slug?: string | null; browse_domain?: string | null }>,
+  )
+
+  return fetchProjectionPages(admin, (q) => {
+    let query = q
+      .eq('browse_domain', 'music')
+      .eq('is_public', true)
+      .in('slug', slugs)
+    if (rootCategoryId) {
+      query = query.eq('root_category_id', rootCategoryId)
+    }
+    return query
+  })
+}
+
+/**
+ * The ADMIN AUDIT row set: every music row, unfiltered, fully paged.
+ *
+ * Deliberately a separate query from the public one rather than the same query
+ * with a conditional filter — the debug payload needs the excluded rows and
+ * their exclusion reasons, and conflating the two is how the truncation bug
+ * stayed invisible.
+ */
+async function fetchAuditBrowseRows(
+  admin: SupabaseClient,
+  rootCategoryId?: string,
+): Promise<BrowseProjectionRow[]> {
+  return fetchProjectionPages(admin, (q) => {
+    let query = q.eq('browse_domain', 'music')
+    if (rootCategoryId) {
+      query = query.eq('root_category_id', rootCategoryId)
+    }
+    return query
+  })
 }
 
 function shapeLeafProduct(row: BrowseProjectionRow) {
@@ -373,7 +546,12 @@ function shapeLeafProduct(row: BrowseProjectionRow) {
   }
 }
 
-function buildRootDebugNodes(roots: RootCategoryRow[], subcategories: SubcategoryRow[], rows: BrowseProjectionRow[]) {
+function buildRootDebugNodes(
+  roots: RootCategoryRow[],
+  subcategories: SubcategoryRow[],
+  rows: BrowseProjectionRow[],
+  supportedSlugs: Set<string>,
+) {
   return roots.map((root) => {
     const rootRows = rows.filter((row) => row.root_category_id === root.id)
     const rootSubcategories = subcategories
@@ -381,20 +559,20 @@ function buildRootDebugNodes(roots: RootCategoryRow[], subcategories: Subcategor
       .map((sub) => {
         const subRows = rootRows.filter((row) => row.subcategory_id === sub.id)
         const publicProducts = subRows
-          .filter((row) => row.is_public)
+          .filter((row) => row.is_public && supportedSlugs.has(row.slug))
           .sort(compareProducts)
-          .map(toDebugProduct)
+          .map((row) => toDebugProduct(row, supportedSlugs))
         const excludedProducts = subRows
-          .filter((row) => !row.is_public)
+          .filter((row) => !(row.is_public && supportedSlugs.has(row.slug)))
           .sort(compareProducts)
-          .map(toDebugProduct)
+          .map((row) => toDebugProduct(row, supportedSlugs))
 
         return {
           id: sub.id,
           slug: sub.slug,
           name_da: sub.name_da,
           name_en: sub.name_en,
-          counts: buildCountSummary(subRows, subRows),
+          counts: buildCountSummary(subRows, subRows, supportedSlugs),
           brand_breakdown: buildBrandBreakdown(subRows),
           public_products: publicProducts,
           excluded_products: excludedProducts,
@@ -407,13 +585,13 @@ function buildRootDebugNodes(roots: RootCategoryRow[], subcategories: Subcategor
       slug: root.slug,
       name_da: root.name_da,
       name_en: root.name_en,
-      counts: buildCountSummary([], rootRows),
+      counts: buildCountSummary([], rootRows, supportedSlugs),
       subcategories: rootSubcategories,
     }
   })
 }
 
-function buildOrphanSummary(rows: BrowseProjectionRow[]) {
+function buildOrphanSummary(rows: BrowseProjectionRow[], supportedSlugs: Set<string>) {
   const groups: Record<'inactive' | 'missing_subcategory' | 'missing_root_mapping', DebugProduct[]> = {
     inactive: [],
     missing_subcategory: [],
@@ -421,10 +599,10 @@ function buildOrphanSummary(rows: BrowseProjectionRow[]) {
   }
 
   for (const row of rows) {
-    const reason = getExclusionReason(row)
+    const reason = getExclusionReason(row, supportedSlugs)
     if (!reason) continue
     if (reason === 'inactive' || reason === 'missing_subcategory' || reason === 'missing_root_mapping') {
-      groups[reason].push(toDebugProduct(row))
+      groups[reason].push(toDebugProduct(row, supportedSlugs))
     }
   }
 
@@ -450,15 +628,17 @@ export async function buildBrowseRootResponse(args: {
   includeDebug: boolean
 }): Promise<BrowseRootResponse> {
   const { admin, supabaseUrl, includeDebug } = args
-  const [{ roots, subcategories, musicGearImageUrl }, rows] = await Promise.all([
+  const [{ roots, subcategories, musicGearImageUrl }, publicRows] = await Promise.all([
     fetchMusicTaxonomy(admin),
-    fetchBrowseRows(admin),
+    fetchPublicBrowseRows(admin),
   ])
 
+  // The tile count is the count of the rows actually served. One number, one
+  // source: the root tile, the leaf page and the database can no longer
+  // disagree, because they are all derived from this same bounded set.
   const categories = roots
     .map((root) => {
-      const rootRows = rows.filter((row) => row.root_category_id === root.id)
-      const counts = buildCountSummary([], rootRows)
+      const rootRows = publicRows.filter((row) => row.root_category_id === root.id)
       const imageUrl =
         root.slug === 'keyboards-and-synths' && musicGearImageUrl
           ? musicGearImageUrl
@@ -469,7 +649,7 @@ export async function buildBrowseRootResponse(args: {
         slug: root.slug,
         name_da: root.name_da,
         name_en: root.name_en,
-        product_count: counts.subtree_public_count,
+        product_count: rootRows.length,
         image_url: imageUrl,
       }
     })
@@ -480,11 +660,16 @@ export async function buildBrowseRootResponse(args: {
     return { categories }
   }
 
+  const [auditRows, supportedSlugs] = await Promise.all([
+    fetchAuditBrowseRows(admin),
+    fetchSupportedSlugs(admin),
+  ])
+
   return {
     categories,
     debug: {
-      roots: buildRootDebugNodes(roots, subcategories, rows),
-      orphan_summary: buildOrphanSummary(rows),
+      roots: buildRootDebugNodes(roots, subcategories, auditRows, supportedSlugs),
+      orphan_summary: buildOrphanSummary(auditRows, supportedSlugs),
     },
   }
 }
@@ -504,34 +689,44 @@ export async function buildBrowseLeafResponse(args: {
     .eq('slug', rootSlug)
     .eq('domain', 'music')
     .is('parent_id', null)
-    .single()
+    .maybeSingle()
+    .then((r) => r, () => {
+      throw new CatalogueUnavailableError('root_category_transport')
+    })
 
-  if (rootErr || !rootCat) return null
+  // A DATABASE FAILURE IS NOT A MISSING CATEGORY. Returning null here made the
+  // route answer 404 "Category not found" whenever Supabase was unreachable —
+  // telling a visitor and a crawler that a category had been removed because
+  // the database was down. Absence still returns null (a real 404); failure
+  // now raises.
+  if (rootErr) throw new CatalogueUnavailableError('root_category_lookup')
+  if (!rootCat) return null
 
   const { data: subcatsRaw, error: subErr } = await admin
     .from('kg_category')
     .select('id, slug, name_da, name_en, parent_id')
     .eq('parent_id', rootCat.id)
     .order('name_en')
+    .then((r) => r, () => {
+      throw new CatalogueUnavailableError('subcategory_transport')
+    })
 
-  if (subErr) {
-    throw new Error('Failed to load browse subcategories.')
-  }
+  if (subErr) throw new CatalogueUnavailableError('subcategory_lookup')
 
   const subcategories = (subcatsRaw ?? []) as SubcategoryRow[]
-  const rows = await fetchBrowseRows(admin, rootCat.id)
-  const publicRows = rows.filter((row) => row.is_public).sort(compareProducts)
+
+  // `compareProducts` is (tier_rank DESC, active_listing_count DESC,
+  // canonical_name ASC). The set is bounded at 48 rows and every row is
+  // present, so slicing it is exact — this is a page over a complete ordered
+  // set, not a page over an arbitrary prefix.
+  const publicRows = (await fetchPublicBrowseRows(admin, rootCat.id)).sort(compareProducts)
   const start = (page - 1) * pageSize
   const pagedRows = publicRows.slice(start, start + pageSize)
-  const counts = buildCountSummary([], rows)
 
   const response: BrowseLeafResponse = {
     category: rootCat,
     subcategories: subcategories
-      .filter((sub) => {
-        const subRows = rows.filter((row) => row.subcategory_id === sub.id)
-        return buildCountSummary(subRows, subRows).direct_public_count > 0
-      })
+      .filter((sub) => publicRows.some((row) => row.subcategory_id === sub.id))
       .sort(compareByNameEn)
       .map((sub) => ({
         id: sub.id,
@@ -550,26 +745,31 @@ export async function buildBrowseLeafResponse(args: {
     return response
   }
 
+  const [auditRows, supportedSlugs] = await Promise.all([
+    fetchAuditBrowseRows(admin, rootCat.id),
+    fetchSupportedSlugs(admin),
+  ])
+
   response.debug = {
-    counts,
+    counts: buildCountSummary([], auditRows, supportedSlugs),
     subcategories: subcategories
       .map((sub) => {
-        const subRows = rows.filter((row) => row.subcategory_id === sub.id)
+        const subRows = auditRows.filter((row) => row.subcategory_id === sub.id)
         return {
           id: sub.id,
           slug: sub.slug,
           name_da: sub.name_da,
           name_en: sub.name_en,
-          counts: buildCountSummary(subRows, subRows),
+          counts: buildCountSummary(subRows, subRows, supportedSlugs),
           brand_breakdown: buildBrandBreakdown(subRows),
           public_products: subRows
-            .filter((row) => row.is_public)
+            .filter((row) => row.is_public && supportedSlugs.has(row.slug))
             .sort(compareProducts)
-            .map(toDebugProduct),
+            .map((row) => toDebugProduct(row, supportedSlugs)),
           excluded_products: subRows
-            .filter((row) => !row.is_public)
+            .filter((row) => !(row.is_public && supportedSlugs.has(row.slug)))
             .sort(compareProducts)
-            .map(toDebugProduct),
+            .map((row) => toDebugProduct(row, supportedSlugs)),
         }
       })
       .sort(compareByNameEn),
@@ -578,18 +778,23 @@ export async function buildBrowseLeafResponse(args: {
   return response
 }
 
+/**
+ * Homepage shelves.
+ *
+ * SELECTION IS ON SUPPORT, NOT ON TIER. `is_public` alone would put
+ * `arp-2600`, `oberheim-ob-x`, `sequential-prophet-5` and `gibson-les-paul` on
+ * the homepage — legendary-tier rows the matcher can never update again. Tier
+ * is an EDITORIAL axis (CLAUDE.md §2): it may order a shelf, it may never
+ * select one. This was the last place the tier/monitoring decoupling of Prompt
+ * 04B was still leaking into the UI.
+ *
+ * Consequence worth stating: all 14 canonical products are tier `legendary`
+ * today, so the `popular` shelf is empty and the homepage renders one shelf.
+ * The existing page gates each shelf on `length > 0`, so that degrades
+ * cleanly. WP-3 replaces both shelves with "Fulgt lige nu" and "Nye annoncer".
+ */
 export async function buildDiscoverResponse(admin: SupabaseClient): Promise<DiscoverResponse> {
-  const { data, error } = await admin
-    .from('browse_product_projection')
-    .select(PROJECTION_SELECT)
-    .eq('browse_domain', 'music')
-    .eq('is_public', true)
-
-  if (error) {
-    throw new Error('Failed to load discover projection.')
-  }
-
-  const publicRows = ((data ?? []) as unknown as BrowseProjectionRow[]).sort(compareProducts)
+  const publicRows = (await fetchPublicBrowseRows(admin)).sort(compareProducts)
 
   const legendary = publicRows
     .filter((row) => row.tier === 'legendary')

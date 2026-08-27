@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { isCurrentUserAdmin } from '@/lib/admin-auth'
+import { isCatalogueUnavailable } from '@/lib/catalogue'
 import { buildBrowseRootResponse } from '@/lib/browse'
+
+/**
+ * Never prerendered: the tile counts are catalogue eligibility, and a baked
+ * payload would keep advertising a withdrawn product until the next deploy.
+ * See app/api/discover/route.ts for the full reasoning.
+ */
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function GET(req: NextRequest) {
   const admin = getSupabaseAdmin()
@@ -24,11 +33,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(response, {
       headers: includeDebug
         ? { 'Cache-Control': 'private, no-store' }
-        : { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=300' },
+        : { 'Cache-Control': 'no-store' },
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to load categories'
-    console.error('Browse root API failed:', error)
-    return NextResponse.json({ error: message }, { status: 500 })
+    // Absence is not unavailability, and a public body never carries the
+    // internal message — it used to echo error.message verbatim.
+    if (isCatalogueUnavailable(error)) {
+      console.error('[operational] browse eligibility unavailable', {
+        route: '/api/browse',
+        stage: error.stage,
+      })
+      return NextResponse.json({ error: 'catalogue_unavailable' }, {
+        status: 503,
+        headers: { 'Cache-Control': 'no-store', 'Retry-After': '30' },
+      })
+    }
+    console.error('[operational] browse request failed', error)
+    return NextResponse.json({ error: 'internal_error' }, {
+      status: 500,
+      headers: { 'Cache-Control': 'no-store' },
+    })
   }
 }
