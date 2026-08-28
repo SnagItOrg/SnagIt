@@ -8,7 +8,6 @@ import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { getFamily } from '@/lib/families'
 import {
   demandSignalPayload,
   type DemandSignalPayload,
@@ -21,7 +20,7 @@ import {
   type SearchResolvedPayload,
   type SearchSubmittedPayload,
   type SearchUnsupportedPayload,
-} from '@/lib/search-resolver'
+} from '@/lib/search-contract'
 
 /**
  * Restricted catalogue search.
@@ -55,6 +54,27 @@ function isOutcome(value: ResolveResponse): value is SearchOutcome {
 const DEMAND_FAMILY_PREFIX = 'family:'
 
 /**
+ * The display term for a family-originated demand capture.
+ *
+ * WP-4a: this used to read `getFamily(slug).label` from `lib/families.ts`.
+ * That module is reviewed navigation config whose `children` arrays are the
+ * private supported slugs of unpublished products, so importing it here put a
+ * family child list into a public client chunk. It is not imported any more,
+ * and nothing about families is redeclared to replace it.
+ *
+ * The label does not need to be: WP-2's family route submits its demand form
+ * as `GET /search?q=<family label>&demand=family:<slug>`, so the label the
+ * server already rendered arrives in `q`. `?q=` therefore remains the source
+ * of the term, exactly as before — `initialQuery || familyPrefill` already
+ * preferred it. The slug transform below is the fallback for a hand-typed URL
+ * that omits `q`, which is the same fallback WP-4 already used for an unknown
+ * family slug.
+ */
+function familyTermFromSlug(familySlug: string): string {
+  return familySlug.replace(/-/g, ' ')
+}
+
+/**
  * Build the unsupported outcome for a family-originated demand capture.
  *
  * WP-2's family route renders no children while it has no canonical ones, and
@@ -64,14 +84,11 @@ const DEMAND_FAMILY_PREFIX = 'family:'
  * `/family/gibson-les-paul` and bounce the visitor between two pages. So the
  * outcome is constructed locally, never fetched, and carries no navigation.
  *
- * The label comes from `lib/families.ts` when the slug is a real family. An
- * unknown slug still produces a valid demand capture — a fabricated URL should
- * not be able to break the page — it simply has nothing nicer to display than
- * the slug itself.
+ * An unknown or fabricated slug still produces a valid demand capture — a
+ * hand-made URL should not be able to break the page.
  */
-function familyDemandOutcome(familySlug: string): SearchOutcome {
-  const family = getFamily(familySlug)
-  const term = family?.label ?? familySlug.replace(/-/g, ' ')
+function familyDemandOutcome(familySlug: string, displayTerm: string): SearchOutcome {
+  const term = displayTerm.trim().length > 0 ? displayTerm.trim() : familyTermFromSlug(familySlug)
   return {
     outcome: 'unsupported',
     resolution: 'unsupported',
@@ -144,7 +161,11 @@ function SearchPageInner() {
     ? demandParam.slice(DEMAND_FAMILY_PREFIX.length).trim()
     : ''
 
-  const familyPrefill = demandFamilySlug ? (getFamily(demandFamilySlug)?.label ?? '') : ''
+  // The family label arrives in `?q=` from WP-2's family form; the slug
+  // transform is the fallback for a URL that carries only `?demand=`.
+  const familyPrefill = demandFamilySlug
+    ? (initialQuery || familyTermFromSlug(demandFamilySlug))
+    : ''
   const [inputValue, setInputValue] = useState(
     // The field is pre-filled with the family term so the visitor can refine it
     // into a real search instead of retyping what they just clicked away from.
@@ -239,7 +260,7 @@ function SearchPageInner() {
   useEffect(() => {
     if (demandFamilySlug.length > 0) {
       prefillSeed.current = familyPrefill.trim()
-      const built = familyDemandOutcome(demandFamilySlug)
+      const built = familyDemandOutcome(demandFamilySlug, familyPrefill)
       setOutcome(built)
       const unsupported = searchUnsupportedPayload(built)
       if (unsupported) emit('search_unsupported', unsupported)
