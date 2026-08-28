@@ -53,7 +53,7 @@ if (typeof (globalThis as { window?: unknown }).window !== 'undefined') {
 }
 
 import rawIndex from '../data/klup-search-index.json'
-import { NAVIGATION_FAMILIES } from './families'
+import type { NavigationFamily } from './families'
 import { modelKey } from './model-key'
 
 export type SearchEntityKind = 'product' | 'family'
@@ -172,21 +172,44 @@ export function dedupeKeys(values: string[]): string[] {
   return Array.from(out).sort()
 }
 
-/** The family section, derived from reviewed code rather than the artefact. */
-export function liveFamilyEntities(): SearchEntity[] {
-  return NAVIGATION_FAMILIES.map(familyEntity)
+/**
+ * The family section, derived from reviewed code rather than the artefact.
+ *
+ * INTEGRATION: the families are now PASSED IN rather than imported here.
+ *
+ * This module used to `import { NAVIGATION_FAMILIES } from './families'` at
+ * module scope. `lib/search-resolver.ts` imports two constants from this file,
+ * `app/search/page.tsx` is a client component that imports the resolver, and
+ * `frontend/package.json` makes no `sideEffects` claim — so webpack could not
+ * drop `families.ts`, and every family's `children` array rode into the client
+ * bundle. That published ten `qa_only` product slugs to anonymous visitors of
+ * `/search`.
+ *
+ * Neither package could have had that defect alone: on WP-4's base
+ * `families.ts` was WP-1's empty export, and WP-2's family route is a server
+ * component. It appears only when the two are combined, which is what an
+ * integration pass is for.
+ *
+ * The dependency is now inverted and type-only. `import type` is erased, so
+ * there is no module edge left to follow, and the fix does not depend on a
+ * bundler successfully proving a const unused — the private data simply is not
+ * in this module's graph. Callers are the server resolve route and the test,
+ * both of which already hold `NAVIGATION_FAMILIES`.
+ */
+export function liveFamilyEntities(families: readonly NavigationFamily[]): SearchEntity[] {
+  return families.map(familyEntity)
 }
 
 /**
  * The index as the resolver sees it: products from the committed artefact,
- * families from `lib/families.ts`.
+ * families from the caller's `NAVIGATION_FAMILIES`.
  */
-export function loadSearchIndex(): SearchIndex {
+export function loadSearchIndex(families: readonly NavigationFamily[]): SearchIndex {
   const parsed = rawIndex as unknown as SearchIndex
   return {
     generatedFrom: parsed.generatedFrom,
     products: parsed.products ?? [],
-    families: liveFamilyEntities(),
+    families: liveFamilyEntities(families),
   }
 }
 

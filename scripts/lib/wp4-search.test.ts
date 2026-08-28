@@ -66,7 +66,7 @@ const readSource = (...parts: string[]) =>
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, '')
 
-const INDEX = loadSearchIndex()
+const INDEX = loadSearchIndex(NAVIGATION_FAMILIES)
 
 /** Every supported identity in the committed artefact — public AND private. */
 const INDEXED_SLUGS = INDEX.products.map((p) => p.slug).sort()
@@ -733,13 +733,26 @@ test('demand mode: NEVER navigates back to the originating family', () => {
 })
 
 test('demand mode: both events go through the useEmit() boundary', () => {
-  // WP-5 replaces the body of useEmit() with track(); nothing here may reach
-  // PostHog by another route, or consent would not gate it.
-  const captures = PAGE_SRC.match(/posthog\?\.capture\(/g) ?? []
-  assert.equal(captures.length, 1, 'exactly one capture call, inside useEmit()')
+  // SUPERSEDED AT INTEGRATION, in the stricter direction.
+  //
+  // Before WP-5 landed this asserted "exactly one `posthog?.capture(` call,
+  // and it is inside useEmit()" — one permitted direct use of the SDK. The
+  // seam now hands over WP-5's `track` itself, so the correct assertion is
+  // ZERO direct SDK access from this page, and exactly one reference to the
+  // analytics entry point, in the seam. Anything reaching PostHog by another
+  // route would bypass the consent gate that owns it.
+  assert.equal(PAGE_SRC.includes('posthog'), false, 'the page must not touch the SDK at all')
+  assert.equal(PAGE_SRC.includes('usePostHog'), false, 'the SDK hook must be gone')
+
+  const trackRefs = PAGE_SRC.match(/\btrack\b/g) ?? []
+  assert.equal(trackRefs.length, 2, 'track appears exactly twice: the import and the seam')
   assert.ok(
-    PAGE_SRC.indexOf('posthog?.capture(') > PAGE_SRC.indexOf('function useEmit'),
-    'the only capture call must live in the seam',
+    PAGE_SRC.includes("import { track } from '@/lib/analytics'"),
+    'the seam must consume WP-5 analytics directly',
+  )
+  assert.ok(
+    PAGE_SRC.indexOf('return track') > PAGE_SRC.indexOf('function useEmit'),
+    'the only analytics reference must live in the seam',
   )
 
   const mount = PAGE_SRC.slice(
@@ -768,9 +781,24 @@ test('demand mode: the submitted/thanks state is rendered', () => {
 })
 
 test('demand mode: the field is pre-filled with the family term', () => {
+  // SUPERSEDED AT INTEGRATION — the behaviour is unchanged, the source of the
+  // label moved. This asserted `getFamily(demandFamilySlug)?.label`, i.e. the
+  // client reading `lib/families.ts`. Once WP-2 filled that module with the
+  // families' `children` arrays, importing it from a client component shipped
+  // ten qa_only product slugs to every anonymous visitor of /search. The label
+  // now comes from `lib/family-labels.ts`, which holds no private data.
   assert.ok(
-    PAGE_SRC.includes('getFamily(demandFamilySlug)?.label'),
+    PAGE_SRC.includes('familyLabel(demandFamilySlug)'),
     'the family label should seed the input so the visitor can refine it',
+  )
+  assert.ok(
+    PAGE_SRC.includes("import { familyLabel } from '@/lib/family-labels'"),
+    'the label must come from the client-safe module',
+  )
+  assert.equal(
+    /from '@\/lib\/families'/.test(PAGE_SRC),
+    false,
+    'a client component must not import the module holding private child slugs',
   )
 })
 
@@ -1651,13 +1679,53 @@ test('the page can emit only the four declared events, with no escape hatch', ()
     [...new Set(emitted)].sort(),
     ['demand_signal_submitted', 'search_resolved', 'search_submitted', 'search_unsupported'],
   )
-  // The seam is generic over an event map, exactly like WP-5's track().
-  assert.ok(src.includes('type SearchEventMap = {'), 'the seam must be typed')
-  assert.ok(src.includes('<E extends keyof SearchEventMap>'), 'the seam must be generic')
+  // SUPERSEDED AT INTEGRATION. WP-4 shipped a local `SearchEventMap` shaped
+  // like WP-5's taxonomy so that landing WP-5 would be a substitution. It is
+  // now the substitution: `emit` IS `track`, so the generic in force is WP-5's
+  // own `<E extends KlupEventName>(event: E, properties: KlupEventMap[E])` and
+  // a local map would be a SECOND declaration of the same taxonomy.
+  assert.ok(src.includes('function useEmit() {\n  return track\n}'), 'the seam must be track itself')
+  assert.equal(
+    src.includes('type SearchEventMap'),
+    false,
+    'the interim local event map must not survive integration as a duplicate taxonomy',
+  )
   assert.equal(src.includes('Record<string, unknown>'), false, 'no untyped payload escape')
   for (const escape of ['as never', 'as any', '@ts-ignore', '@ts-expect-error']) {
     assert.equal(src.includes(escape), false, `"${escape}" is not permitted`)
   }
+})
+
+test('integration: the payload shapes are WP-5 taxonomy, not a copy of it', () => {
+  // The registered integration point. WP-4 could not import WP-5's types
+  // before WP-5 existed, so it restated five unions and four payload shapes
+  // and kept them in step with comments. Integration replaced every one with a
+  // derivation, so the taxonomy is declared exactly once and drift is a
+  // compile error rather than a review burden.
+  const src = readSource('lib', 'search-resolver.ts')
+  assert.ok(
+    src.includes("import type { KlupEventMap } from './analytics'"),
+    'the resolver must derive its payloads from the single taxonomy',
+  )
+  for (const derived of [
+    "export type SearchSubmittedPayload = KlupEventMap['search_submitted']",
+    "export type SearchResolvedPayload = KlupEventMap['search_resolved']",
+    "export type SearchUnsupportedPayload = KlupEventMap['search_unsupported']",
+    "export type DemandSignalPayload = KlupEventMap['demand_signal_submitted']",
+    "export type SearchEntrySurface = KlupEventMap['search_submitted']['entry_surface']",
+    "export type SearchInputMethod = KlupEventMap['search_submitted']['input_method']",
+    "export type TaxonomyResolution = KlupEventMap['search_resolved']['resolution']",
+    "export type TaxonomyResolutionClass = KlupEventMap['search_unsupported']['resolution_class']",
+    "export type DemandCaptureMethod = KlupEventMap['demand_signal_submitted']['capture_method']",
+  ]) {
+    assert.ok(src.includes(derived), `not derived from the taxonomy: ${derived}`)
+  }
+  // A restated shape would reintroduce the drift this replaced.
+  assert.equal(
+    /export interface Search(Submitted|Resolved|Unsupported)Payload \{/.test(src),
+    false,
+    'a hand-written payload interface survives alongside the derivation',
+  )
 })
 
 test('no cast or suppression is used in the analytics builders', () => {

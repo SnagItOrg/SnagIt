@@ -638,7 +638,7 @@ no DOM — so the Edge runtime and a plain Node test can both consume it.
 | Class | Anonymous | Examples |
 |---|---|---|
 | `public_page` | reachable | `/`, `/browse`, `/browse/[root]`, `/search`, `/login`, `/watchlists`, `/saved` |
-| `public_page_data_gated` | reachable, **content decided by §3.1** | `/product/[slug]`, later `/family/[slug]` |
+| `public_page_data_gated` | reachable, **content decided by §3.1** | `/product/[slug]`, `/family/[slug]`, `/api/search/resolve` |
 | `protected_page` | `307 → /login` | `/profile`, `/watchlists/[id]/edit` |
 | `admin_page` | `307`, then `is_admin` re-checked | `/admin/**`, `/intel` |
 | `public_api` | reachable | `/api/browse`, `/api/discover`, `/api/brands`, `/api/price-observations`, `/api/scrape` *(until WP-4)* |
@@ -1600,9 +1600,9 @@ classifications and nothing else:
 
 | Package | Edit |
 |---|---|
-| WP-2 | classify `/family/[slug]` as `public_page` when the route file lands |
+| WP-2 | drop `planned: true` from `/family/[slug]`, which is **`public_page_data_gated`**, not `public_page`. **Corrected at integration.** The route is reachable anonymously, but WHAT it renders is decided by §3.1: it lists only canonical-eligible children and is unlisted while it has none. That is the definition of the data-gated class, and it is what WP-1 already classified and WP-2 shipped — this row said `public_page`, which would have described a route whose content does not depend on catalogue state |
 | WP-3 | classify `/om-data` (`public_page`) and `/sitemap.xml` (`framework_metadata`) |
-| WP-4 | change `/api/scrape` from `public_api` to `protected_api`. **This supersedes the earlier wording "remove `/api/scrape` from `PUBLIC_PREFIXES`"** — the prefix lists no longer exist |
+| WP-4 | **remove** the `/api/scrape` classification. **Corrected at integration.** This row said "change from `public_api` to `protected_api`", and the earlier wording it superseded said "remove it from `PUBLIC_PREFIXES`". Neither describes what shipped: reviewed WP-4 **deleted the route**, because once search became a resolver it had no caller, and keeping an unauthenticated-write path behind generic authenticated access would still have let any signed-in visitor drive four live marketplace scrapes from free text. A deleted route carries no classification, and the §7.7 completeness guard requires its absence rather than a class |
 | WP-5 | classify `/privatliv` as `public_page` |
 ### 15.10 Pre-release security package — required before R6, not built in WP-1
 

@@ -23,6 +23,8 @@
  * smuggle a blocked term into an auto-navigation.
  */
 
+import type { KlupEventMap } from './analytics'
+
 import {
   DANGEROUS_TERM_KEYS,
   SHADOW_BRAND_KEYS,
@@ -533,26 +535,21 @@ export function applyEligibility(
  * replaces with `track()`.
  */
 
-/** WP-5 `KlupEventMap['search_submitted']['entry_surface']`. */
-export type SearchEntrySurface = 'landing' | 'search' | 'mobile_bar' | 'nav'
-/** WP-5 `KlupEventMap['search_submitted']['input_method']`. */
-export type SearchInputMethod = 'typed' | 'suggestion' | 'url_param'
-/** WP-5 `KlupEventMap['search_resolved']['resolution']`. */
-export type TaxonomyResolution =
-  | 'canonical_exact'
-  | 'accepted_alias'
-  | 'disambiguation'
-  | 'dangerous_alias_blocked'
-  | 'unsupported'
-  | 'error'
-/** WP-5 `KlupEventMap['search_unsupported']['resolution_class']`. */
-export type TaxonomyResolutionClass =
-  | 'unsupported'
-  | 'ambiguous'
-  | 'dangerous_alias_blocked'
-  | 'zero_results_supported'
-/** WP-5 `KlupEventMap['demand_signal_submitted']['capture_method']`. */
-export type DemandCaptureMethod = 'inline_email' | 'notify_button'
+/**
+ * INTEGRATION (registered point 4): every one of these was an independent
+ * restatement of a WP-5 union, kept in step by a comment. They are now DERIVED
+ * from `KlupEventMap`, so the taxonomy exists in exactly one place and drift is
+ * a compile error at the point of construction rather than a silent divergence
+ * a reviewer has to notice. The names are unchanged, so no call site moved.
+ *
+ * `import type` is erased, so this adds no runtime dependency: the resolver
+ * still loads no analytics code on the server or in the bundle.
+ */
+export type SearchEntrySurface = KlupEventMap['search_submitted']['entry_surface']
+export type SearchInputMethod = KlupEventMap['search_submitted']['input_method']
+export type TaxonomyResolution = KlupEventMap['search_resolved']['resolution']
+export type TaxonomyResolutionClass = KlupEventMap['search_unsupported']['resolution_class']
+export type DemandCaptureMethod = KlupEventMap['demand_signal_submitted']['capture_method']
 
 /**
  * Resolver outcome -> `search_unsupported.resolution_class`.
@@ -580,38 +577,19 @@ export const UNSUPPORTED_CLASS_BY_OUTCOME: Record<
   no_result: 'zero_results_supported',
 }
 
-export interface SearchSubmittedPayload {
-  query_norm: string
-  query_length: number
-  token_count: number
-  entry_surface: SearchEntrySurface
-  input_method: SearchInputMethod
-}
-
-export interface SearchResolvedPayload {
-  query_norm: string
-  resolution: TaxonomyResolution
-  candidate_count: number
-  product_slug: string | null
-  auto_navigated: boolean
-  latency_ms: number
-}
-
-export interface SearchUnsupportedPayload {
-  query_norm: string
-  resolution_class: TaxonomyResolutionClass
-  raw_token_count: number
-  suggested_slugs: string[]
-  suggested_count: number
-  nearest_distance: number | null
-}
-
-export interface DemandSignalPayload {
-  query_norm: string
-  capture_method: DemandCaptureMethod
-  has_email: boolean
-  suggested_shown: number
-}
+/**
+ * The four event payloads this module builds.
+ *
+ * INTEGRATION (registered point 4): these were four hand-written interfaces
+ * mirroring `KlupEventMap`. Aliasing them removes the duplicate taxonomy
+ * outright — a property added, renamed or retyped in WP-5 now fails to compile
+ * in the builder below, which is the whole reason the shapes were mirrored in
+ * the first place.
+ */
+export type SearchSubmittedPayload = KlupEventMap['search_submitted']
+export type SearchResolvedPayload = KlupEventMap['search_resolved']
+export type SearchUnsupportedPayload = KlupEventMap['search_unsupported']
+export type DemandSignalPayload = KlupEventMap['demand_signal_submitted']
 
 /**
  * `search_submitted` — intent, split from outcome.

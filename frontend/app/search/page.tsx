@@ -3,24 +3,20 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { usePostHog } from 'posthog-js/react'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { getFamily } from '@/lib/families'
+import { familyLabel } from '@/lib/family-labels'
+import { track } from '@/lib/analytics'
 import {
   demandSignalPayload,
-  type DemandSignalPayload,
   searchResolvedPayload,
   searchSubmittedPayload,
   searchUnsupportedPayload,
   type SearchCandidate,
   type SearchInputMethod,
   type SearchOutcome,
-  type SearchResolvedPayload,
-  type SearchSubmittedPayload,
-  type SearchUnsupportedPayload,
 } from '@/lib/search-resolver'
 
 /**
@@ -64,14 +60,14 @@ const DEMAND_FAMILY_PREFIX = 'family:'
  * `/family/gibson-les-paul` and bounce the visitor between two pages. So the
  * outcome is constructed locally, never fetched, and carries no navigation.
  *
- * The label comes from `lib/families.ts` when the slug is a real family. An
+ * The label comes from `lib/family-labels.ts` when the slug is a real family — the
+ * client-safe slice, so no private child slug reaches the bundle. An
  * unknown slug still produces a valid demand capture — a fabricated URL should
  * not be able to break the page — it simply has nothing nicer to display than
  * the slug itself.
  */
 function familyDemandOutcome(familySlug: string): SearchOutcome {
-  const family = getFamily(familySlug)
-  const term = family?.label ?? familySlug.replace(/-/g, ' ')
+  const term = familyLabel(familySlug) ?? familySlug.replace(/-/g, ' ')
   return {
     outcome: 'unsupported',
     resolution: 'unsupported',
@@ -89,45 +85,28 @@ function familyDemandOutcome(familySlug: string): SearchOutcome {
 }
 
 /**
- * The analytics seam.
+ * The analytics seam — connected.
  *
- * WP-5 owns `lib/analytics.ts`, the consent gate and the tracker mounting, and
- * WP-4 may not write those files. Until WP-5 lands, events go through the
- * PostHog client the app already provides — which WP-5's provider will gate, so
- * consent is honoured without WP-4 owning any of it.
+ * INTEGRATION (registered point 4). WP-4 shipped this as a `usePostHog()`
+ * wrapper behind a deliberately WP-5-shaped generic, so that landing WP-5 would
+ * be a substitution rather than a migration. It is now the substitution: `emit`
+ * IS WP-5's `track`, handed over with its own signature
+ * `<E extends KlupEventName>(event: E, properties: KlupEventMap[E])` intact.
  *
- * INTEGRATION (bounded, one function body): replace the call below with
- * `track(event, props)` from `@/lib/analytics`. Nothing else on this page
- * changes, because every payload is built by a typed helper in
- * `lib/search-resolver.ts` against WP-5's `KlupEventMap` shapes — so the swap
- * is a substitution, not a migration, and no call site ever passes an email
- * address.
+ * NO CAST, NO WRAPPER, NO SECOND TAXONOMY. An `as never`, an `as any` or a
+ * `Record<string, unknown>` parameter would each have compiled — and each would
+ * have destroyed the only thing this seam is for. The compile-time link between
+ * a payload built in `lib/search-resolver.ts` and the shape WP-5 declares is
+ * what caught taxonomy drift during review; a cast turns that check off while
+ * leaving the code looking identical. Returning the real function keeps every
+ * property on every call site checked against one declaration.
+ *
+ * Consent is not this page's concern and never was. `track()` is inert until
+ * WP-5's gate has a client, so an event emitted here under undecided or
+ * rejected consent reaches nothing, is queued nowhere, and writes no storage.
  */
-/**
- * The four WP-5 events this page is allowed to emit, with their exact payloads.
- *
- * Deliberately shaped like WP-5's own `track<E extends KlupEventName>(event: E,
- * properties: KlupEventMap[E])`, so the integration is a substitution rather
- * than a migration — and so this page CANNOT emit an event outside the
- * taxonomy or an event with the wrong payload. There is no `Record<string,
- * unknown>` escape hatch and no cast: an undeclared property is a compile
- * error here exactly as it will be after the swap.
- */
-type SearchEventMap = {
-  search_submitted: SearchSubmittedPayload
-  search_resolved: SearchResolvedPayload
-  search_unsupported: SearchUnsupportedPayload
-  demand_signal_submitted: DemandSignalPayload
-}
-
 function useEmit() {
-  const posthog = usePostHog()
-  return useCallback(
-    <E extends keyof SearchEventMap>(event: E, properties: SearchEventMap[E]) => {
-      posthog?.capture(event, properties)
-    },
-    [posthog],
-  )
+  return track
 }
 
 function SearchPageInner() {
@@ -144,7 +123,7 @@ function SearchPageInner() {
     ? demandParam.slice(DEMAND_FAMILY_PREFIX.length).trim()
     : ''
 
-  const familyPrefill = demandFamilySlug ? (getFamily(demandFamilySlug)?.label ?? '') : ''
+  const familyPrefill = demandFamilySlug ? (familyLabel(demandFamilySlug) ?? '') : ''
   const [inputValue, setInputValue] = useState(
     // The field is pre-filled with the family term so the visitor can refine it
     // into a real search instead of retyping what they just clicked away from.

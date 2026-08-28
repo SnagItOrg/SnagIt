@@ -492,5 +492,72 @@
       ]
     }
   ],
-  "families": []
+  "families": [
+    {
+      "kind": "family",
+      "slug": "gibson-les-paul",
+      "label": "Gibson Les Paul",
+      "brand": "Gibson",
+      "aliasKeys": [
+        "gibsonlespaul",
+        "lespaul"
+      ]
+    },
+    {
+      "kind": "family",
+      "slug": "fender-stratocaster",
+      "label": "Fender Stratocaster",
+      "brand": "Fender",
+      "aliasKeys": [
+        "fenderstrat",
+        "fenderstratocaster",
+        "strat",
+        "stratocaster"
+      ]
+    },
+    {
+      "kind": "family",
+      "slug": "fender-telecaster",
+      "label": "Fender Telecaster",
+      "brand": "Fender",
+      "aliasKeys": [
+        "fendertele",
+        "fendertelecaster",
+        "tele",
+        "telecaster"
+      ]
+    },
+    {
+      "kind": "family",
+      "slug": "gibson-es-335",
+      "label": "Gibson ES-335",
+      "brand": "Gibson",
+      "aliasKeys": [
+        "es335",
+        "gibsones335"
+      ]
+    },
+    {
+      "kind": "family",
+      "slug": "fender-jazz-bass",
+      "label": "Fender Jazz Bass",
+      "brand": "Fender",
+      "aliasKeys": [
+        "fenderjazzbass",
+        "jazzbass",
+        "jbass"
+      ]
+    },
+    {
+      "kind": "family",
+      "slug": "fender-precision-bass",
+      "label": "Fender Precision Bass",
+      "brand": "Fender",
+      "aliasKeys": [
+        "fenderprecisionbass",
+        "pbass",
+        "precisionbass"
+      ]
+    }
+  ]
 }

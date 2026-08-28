@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
     return noStore({ error: 'query_too_long' }, 400)
   }
 
-  const index = loadSearchIndex()
+  const index = loadSearchIndex(NAVIGATION_FAMILIES)
   const resolved = resolveQuery(raw, index)
 
   try {
