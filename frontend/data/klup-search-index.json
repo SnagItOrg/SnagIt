@@ -1,0 +1,496 @@
+{
+  "generatedFrom": "kg_product WHERE status=active AND support_state=supported, intersected with browse_product_projection.browse_domain=music. Visibility is NOT applied here — the runtime four-axis gate decides it per request.",
+  "products": [
+    {
+      "kind": "product",
+      "slug": "emu-sp-1200",
+      "label": "E-mu SP-1200 (1987)",
+      "brand": "E Mu",
+      "aliasKeys": [
+        "emusp1200",
+        "sp1200"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "fender-american-professional-ii-stratocaster",
+      "label": "Fender American Professional II Stratocaster",
+      "brand": "Fender",
+      "aliasKeys": [
+        "americanprofessionaliistratocaster",
+        "fenderamericanprofessionaliistratocaster"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "fender-american-vintage-52-telecaster",
+      "label": "Fender American Vintage '52 Telecaster",
+      "brand": "Fender",
+      "aliasKeys": [
+        "americanvintage52telecaster",
+        "fenderamericanvintage52telecaster"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "fender-mustang-bass",
+      "label": "Fender Mustang Bass",
+      "brand": "Fender",
+      "aliasKeys": [
+        "fendermustangbass",
+        "mustangbass"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "fender-telecaster-custom",
+      "label": "Fender Telecaster Custom",
+      "brand": "Fender",
+      "aliasKeys": [
+        "fendertelecastercustom",
+        "telecastercustom"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "fender-telecaster-thinline",
+      "label": "Fender Telecaster Thinline",
+      "brand": "Fender",
+      "aliasKeys": [
+        "fendertelecasterthinline",
+        "telecasterthinline"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "gibson-es-335-dot",
+      "label": "Gibson ES-335 Dot",
+      "brand": "Gibson",
+      "aliasKeys": [
+        "es335dot",
+        "gibsones335dot"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "gibson-hummingbird",
+      "label": "Gibson Hummingbird",
+      "brand": "Gibson",
+      "aliasKeys": [
+        "gibsonhummingbird",
+        "hummingbird"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "gibson-j-45",
+      "label": "Gibson J-45",
+      "brand": "Gibson",
+      "aliasKeys": [
+        "gibsonj45",
+        "j45"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "gibson-les-paul-custom",
+      "label": "Gibson Les Paul Custom",
+      "brand": "Gibson",
+      "aliasKeys": [
+        "gibsonlespaulcustom",
+        "lespaulcustom"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "gibson-les-paul-special",
+      "label": "Gibson Les Paul Special",
+      "brand": "Gibson",
+      "aliasKeys": [
+        "gibsonlespaulspecial",
+        "lespaulspecial"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "gibson-les-paul-standard-50s",
+      "label": "Gibson Les Paul Standard '50s",
+      "brand": "Gibson",
+      "aliasKeys": [
+        "gibsonlespaulstandard50s",
+        "lespaulstandard50s"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "gibson-les-paul-standard-60s",
+      "label": "Gibson Les Paul Standard '60s",
+      "brand": "Gibson",
+      "aliasKeys": [
+        "gibsonlespaulstandard60s",
+        "lespaulstandard60s"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "gibson-les-paul-studio",
+      "label": "Gibson Les Paul Studio",
+      "brand": "Gibson",
+      "aliasKeys": [
+        "gibsonlespaulstudio",
+        "lespaulstudio"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "gibson-sg-standard-large-guard-with-maestro-vibrola",
+      "label": "Gibson SG Standard \"Large Guard\" with Maestro Vibrola",
+      "brand": "Gibson",
+      "aliasKeys": [
+        "gibsonsgstandardlargeguardwithmaestrovibrola",
+        "sgstandardlargeguardwithmaestrovibrola"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "gibson-sj-200-original",
+      "label": "Gibson SJ-200 Original",
+      "brand": "Gibson",
+      "aliasKeys": [
+        "gibsonsj200original",
+        "sj200original"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "korg-mono-poly",
+      "label": "Korg MONO/POLY",
+      "brand": "Korg",
+      "aliasKeys": [
+        "korgmonopoly",
+        "monopoly"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "korg-ms-20",
+      "label": "Korg MS-20",
+      "brand": "Korg",
+      "aliasKeys": [
+        "korgms20",
+        "ms20"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "korg-polysix",
+      "label": "Korg PolySix",
+      "brand": "Korg",
+      "aliasKeys": [
+        "korgpolysix",
+        "polysix"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "manley-voxbox",
+      "label": "Manley VOXBOX (1990s-)",
+      "brand": "Manley",
+      "aliasKeys": [
+        "manleyvoxbox",
+        "voxbox"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "martin-d-28",
+      "label": "Martin D-28",
+      "brand": "Martin",
+      "aliasKeys": [
+        "d28",
+        "martind28"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "moog-minimoog",
+      "label": "Moog Minimoog (1972-1981)",
+      "brand": "Moog",
+      "aliasKeys": [
+        "minimoog",
+        "moogminimoog"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "moog-model-d",
+      "label": "Moog Model D",
+      "brand": "Moog",
+      "aliasKeys": [
+        "modeld",
+        "moogmodeld"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "moog-source",
+      "label": "Moog Source",
+      "brand": "Moog",
+      "aliasKeys": [
+        "moogsource",
+        "source"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "neumann-u87ai",
+      "label": "Neumann U 87 Ai (1967-)",
+      "brand": "Neumann",
+      "aliasKeys": [
+        "neumannu87ai",
+        "u87ai"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "neve-portico-ii-master-buss-processor",
+      "label": "Neve Portico II Master Buss Processor",
+      "brand": "Neve",
+      "aliasKeys": [
+        "neveporticoiimasterbussprocessor",
+        "porticoiimasterbussprocessor"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "rhodes-mark-i-stage-73",
+      "label": "Rhodes Mark I Stage 73 (1970)",
+      "brand": "Rhodes",
+      "aliasKeys": [
+        "markistage73",
+        "rhodesmarkistage73"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "rhodes-mark-i-suitcase-73",
+      "label": "Rhodes Mark I Suitcase 73 (1970)",
+      "brand": "Rhodes",
+      "aliasKeys": [
+        "markisuitcase73",
+        "rhodesmarkisuitcase73"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "rhodes-mark-ii-stage-73",
+      "label": "Rhodes Mark II Stage 73 (1980)",
+      "brand": "Rhodes",
+      "aliasKeys": [
+        "markiistage73",
+        "rhodesmarkiistage73"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-juno-106",
+      "label": "Roland Juno-106 (1984-1985)",
+      "brand": "Roland",
+      "aliasKeys": [
+        "juno106",
+        "rolandjuno106"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-juno-6",
+      "label": "Roland Juno-6",
+      "brand": "Roland",
+      "aliasKeys": [
+        "juno6",
+        "rolandjuno6"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-juno-60",
+      "label": "Roland Juno-60 (1982-1984)",
+      "brand": "Roland",
+      "aliasKeys": [
+        "juno60",
+        "rolandjuno60"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-jupiter-4",
+      "label": "Roland Jupiter-4",
+      "brand": "Roland",
+      "aliasKeys": [
+        "jupiter4",
+        "rolandjupiter4"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-jupiter-8",
+      "label": "Roland Jupiter-8",
+      "brand": "Roland",
+      "aliasKeys": [
+        "jupiter8",
+        "rolandjupiter8"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-re-201",
+      "label": "Roland RE-201 (Space Echo)",
+      "brand": "Roland",
+      "aliasKeys": [
+        "re201",
+        "rolandre201",
+        "rolandre201spaceecho",
+        "rolandspaceecho",
+        "spaceecho"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-re-501",
+      "label": "Roland RE-501 (Chorus Echo)",
+      "brand": "Roland",
+      "aliasKeys": [
+        "chorusecho",
+        "re501",
+        "rolandchorusecho",
+        "rolandre501",
+        "rolandre501chorusecho"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-sh-101",
+      "label": "Roland SH-101 (1982-1986)",
+      "brand": "Roland",
+      "aliasKeys": [
+        "rolandsh101",
+        "sh101"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-system-100",
+      "label": "Roland System 100",
+      "brand": "Roland",
+      "aliasKeys": [
+        "rolandsystem100",
+        "system100"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-tr-606",
+      "label": "Roland TR-606 (1981-1984)",
+      "brand": "Roland",
+      "aliasKeys": [
+        "rolandtr606",
+        "tr606"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-tr-707",
+      "label": "Roland TR-707 (1984-1986)",
+      "brand": "Roland",
+      "aliasKeys": [
+        "rolandtr707",
+        "tr707"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-tr-808",
+      "label": "Roland TR-808 (Rhythm Composer)",
+      "brand": "Roland",
+      "aliasKeys": [
+        "rhythmcomposer",
+        "rolandrhythmcomposer",
+        "rolandtr808",
+        "rolandtr808rhythmcomposer",
+        "tr808"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-tr-909",
+      "label": "Roland TR-909 (1983-1984)",
+      "brand": "Roland",
+      "aliasKeys": [
+        "rolandtr909",
+        "tr909"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "sequential-prophet-10",
+      "label": "Sequential Prophet-10",
+      "brand": "Sequential",
+      "aliasKeys": [
+        "prophet10",
+        "sequentialprophet10"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "tube-tech-cl1b",
+      "label": "Tube-Tech CL 1B (1990s-)",
+      "brand": "Tube-Tech",
+      "aliasKeys": [
+        "cl1b",
+        "tubetechcl1b"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "tube-tech-lca-2b",
+      "label": "Tube-Tech LCA 2B",
+      "brand": "Tube-Tech",
+      "aliasKeys": [
+        "lca2b",
+        "tubetechlca2b"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "ua-1176ln",
+      "label": "Universal Audio 1176LN (1960s-)",
+      "brand": "Universal Audio",
+      "aliasKeys": [
+        "1176ln",
+        "ua1176ln",
+        "universalaudio1176ln"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "wurlitzer-200a",
+      "label": "Wurlitzer 200A (1972)",
+      "brand": "Wurlitzer",
+      "aliasKeys": [
+        "200a",
+        "wurlitzer200a"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "yamaha-dx7",
+      "label": "Yamaha DX7 (1983)",
+      "brand": "Yamaha",
+      "aliasKeys": [
+        "dx7",
+        "yamahadx7"
+      ]
+    }
+  ],
+  "families": []
+}

@@ -134,12 +134,19 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   { route: '/api/brands', access: 'public_api' },
   { route: '/api/price-observations', access: 'public_api' },
   {
-    route: '/api/scrape',
-    access: 'public_api',
-    note: 'WP-4 reclassifies to protected_api (§13.3). Rate-limited per IP in middleware.',
+    route: '/api/search/resolve',
+    access: 'public_api_data_gated',
+    note: 'reachable by anyone; returns only entities passing §3.1, re-checked live per request',
   },
 
-  /* ---------------- protected APIs ---------------- */
+  /* ---------------- protected APIs ----------------
+   * `/api/scrape` used to sit here. WP-4 DELETED the route: it ran four live
+   * marketplace scrapes and upserted into `listings`, its only caller was
+   * `/search`, and once search became a resolver it had none. Retaining it
+   * behind generic authenticated access would have left any signed-in visitor
+   * able to drive scraper and database load with free text. Admin curation is
+   * unaffected — it calls /api/admin/product/[slug]/scrape-platform and
+   * .../scrape-kleinanzeigen, which are separate routes and remain admin_api. */
   { route: '/api/watchlists', access: 'protected_api' },
   { route: '/api/watchlists/[id]', access: 'protected_api' },
   { route: '/api/watchlists/[id]/listings', access: 'protected_api' },
