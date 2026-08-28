@@ -98,7 +98,6 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   {
     route: '/family/[slug]',
     access: 'public_page_data_gated',
-    planned: true,
     note: 'WP-2. noindex and unlisted while it has zero canonical children (§4.2)',
   },
 

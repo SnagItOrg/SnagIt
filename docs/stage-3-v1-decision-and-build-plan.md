@@ -18,10 +18,12 @@ wins**. Those three remain the evidence base and are preserved unchanged.
 
 ---
 
-## Amendment record — 2026-08-27
+## Amendment record — 2026-08-27, extended 2026-08-28
 
-Five corrections applied to the first revision of this document, before it was
-checkpointed. Each is binding and supersedes the text it replaces.
+Corrections applied to this document. Each is binding and supersedes the text it
+replaces. Amendments 1–9 predate the R1 checkpoint; **amendment 10 was raised by
+cross-package review after WP-2 was implemented** and corrects instructions that
+were found to be wrong when executed.
 
 | # | Amendment | Where |
 |--:|---|---|
@@ -34,6 +36,7 @@ checkpointed. Each is binding and supersedes the text it replaces.
 | 6 | **The product segment gate is formalised.** `frontend/app/product/[slug]/layout.tsx` becomes WP-1-owned: it provides the server-side canonical eligibility gate and the real HTTP 404 that a client-rendered page cannot. WP-3 may replace it only as a bounded hand-off under seven conditions, including re-running the WP-1 route/API eligibility suite | §15.1, §15.3, **§15.8**, WP-3 |
 | 7 | **Route posture is mechanically complete.** The pass-through default is accepted only with a guard: `frontend/lib/route-access.ts` becomes the single authority consumed by both middleware and tests, and `scripts/lib/wp1-route-access.test.ts` fails if any routable file is unclassified or if a declared protection is not effective | §7.1, **§7.7**, §15.1, **§15.9**, §16.2 |
 | 5 | **WP-1 and WP-5 no longer share a writable file.** `frontend/app/layout.tsx` — where all four trackers are mounted — is now owned exclusively by WP-5; WP-1's site metadata moved to `frontend/lib/site-metadata.ts`. WP-5 consequently runs **after** WP-1 rather than beside it, and joins the critical path | §15.7, §22, §23, §24, WP-1, WP-5 |
+| 10 | **Cross-package review of WP-2 — three corrections.** (a) The instruction to change `intent:['monitoring']` to `['metadata']` is **withdrawn**: `FIELD_AXIS.tier` is `'monitoring'` and `mustDeclare` requires it, so that edit alone refuses every tier PATCH with `400 undeclared_axis`, and the axis mapping is forbidden to WP-2. The token stays; the correction is **copy only**, and the copy must state plainly that tier does not control scraper monitoring — `data/klup-source-monitoring.json` does. (b) `frontend/vercel.json` is **not** a WP-2 file: adding a `_comment` is still a change to a deployment input, and the file must stay byte-identical to base. (c) The WP-1 and WP-5 "allowed supporting" rows still named `frontend/__tests__/`, which §15.1 superseded (finding N6) | **§14.9**, §15.1, §15.2, WP-1, **WP-2**, WP-5 |
 
 ---
 
@@ -1327,11 +1330,31 @@ rate-limited, battle-tested code path and removal earns nothing in V1.
    scrapers use"* and emits *"MONITORING EXPANDS: … this product joins those
    query sets on their next run."* That coupling was removed in 04B — all four
    scrapers resolve through `monitoredSlugs()`/`assertResolved()` against
-   `data/klup-source-monitoring.json`. `frontend/app/admin/products/page.tsx:73`
-   compounds it by sending `intent:['monitoring']` for a purely editorial tier change.
-   **Wrong operator guidance on a write path is worse than none**: it is
-   corrected in WP-2 as copy plus the `intent` array — the axis mapping, the
-   validation and the manifest are correct and are not touched.
+   `data/klup-source-monitoring.json`, which is the **only** control over
+   marketplace monitoring. **Wrong operator guidance on a write path is worse
+   than none**: WP-2 corrects it as **copy only**. The axis mapping, the
+   validation, the `intent` requirement, `dryRun` and the manifest are correct
+   and are not touched.
+
+   **The `intent` token stays `monitoring` — corrected 2026-08-28.** An earlier
+   revision also instructed WP-2 to change `frontend/app/admin/products/page.tsx:73`
+   from `intent:['monitoring']` to `intent:['metadata']`. **That instruction is
+   withdrawn: it was incorrect and, applied on its own, breaks the admin tier
+   control.** The route maps `FIELD_AXIS.tier -> 'monitoring'` and requires
+   `mustDeclare = ['visibility', 'monitoring']`, so a tier PATCH declaring only
+   `metadata` is refused with `400 undeclared_axis` and the tier button stops
+   working. The two edits are one change or neither, and the axis mapping is
+   explicitly forbidden to WP-2.
+
+   So: **while `FIELD_AXIS.tier` is `'monitoring'` and `mustDeclare` contains
+   `'monitoring'`, the caller MUST send `intent:['monitoring']`.** It is a
+   declaration token for the tier axis and a historical name — it asserts no
+   monitoring effect, and the operator-facing copy must say so explicitly at the
+   call site and in every string the route returns. Renaming the axis to
+   `metadata` on both sides is a single coherent follow-up for a package
+   authorised to touch the axis mapping; note it would also drop tier out of
+   `mustDeclare`, which loosens a write-path guard and is therefore a decision,
+   not a tidy-up.
 
 ---
 
@@ -1397,9 +1420,8 @@ writes appears in §15.6.
 | `frontend/app/family/[slug]/page.tsx` | N | family route — SSR, `noindex,follow`, unlisted while childless, canonical-eligible children only, demand control |
 | `frontend/app/family/[slug]/error.tsx` | N | route error boundary |
 | `frontend/middleware.ts` | B | **only** the six-entry 308 map |
-| `frontend/app/api/admin/products/[id]/route.ts` | B | **only** the stale tier/monitoring prose at `:20-23,49-53` and the `consequence()` text at `:79-85` |
-| `frontend/app/admin/products/page.tsx` | B | **only** line 73: `intent:['monitoring']` → `intent:['metadata']` |
-| `frontend/vercel.json` | B | **only** an added `_comment` warning; the `crons` block is **not** removed |
+| `frontend/app/api/admin/products/[id]/route.ts` | B | **only** the stale tier/monitoring prose at `:20-23,49-53`, the `consequence()` text at `:79-85` and the `axis_semantics.tier` description string. Manifest **keys** and every branch of the write path are unchanged |
+| `frontend/app/admin/products/page.tsx` | B | **only** the operator-facing copy: the page description, the tier-button `title`, and a comment at the `intent` call site recording that `monitoring` is the tier axis's declaration token and carries no monitoring effect. **The `intent` value itself is NOT changed** (§14.9) |
 
 ### 15.3 WP-3 — canonical page, price evidence, SEO
 
@@ -1876,7 +1898,7 @@ be filtered in the same release.
 | | |
 |---|---|
 | **Files owned (exclusive, exact)** | `frontend/lib/catalogue.ts` (N) · `frontend/lib/category-labels.ts` (N) · `frontend/lib/families.ts` (N — shape and empty export only) · `frontend/lib/site-metadata.ts` (N) · `frontend/app/not-found.tsx` (N) · `frontend/middleware.ts` · `frontend/app/api/product/[slug]/route.ts` · `frontend/lib/browse.ts` · `frontend/lib/i18n.ts` · `frontend/app/api/discover/route.ts` · `frontend/app/onboarding/step1/page.tsx` · `frontend/app/onboarding/step2/page.tsx` · `frontend/app/onboarding/step3/page.tsx` |
-| **Allowed supporting** | new test files under `frontend/__tests__/` · `frontend/tsconfig.json` (path alias only, if genuinely required) |
+| **Allowed supporting** | `scripts/lib/wp1-catalogue.test.ts`, `scripts/lib/wp1-route-access.test.ts`, `scripts/lib/wp1-public-contract.test.ts` (N) · `package.json` (repository root) — **only** appending those three files to the `test` script · `frontend/tsconfig.json` (path alias only, if genuinely required). **Corrected 2026-08-28:** this row said "new test files under `frontend/__tests__/`", which §15.1 supersedes — `npm test` is `tsx --test` over `scripts/lib/*.test.ts` and nothing under `frontend/__tests__/` would ever execute |
 | **Forbidden (exact)** | `frontend/app/layout.tsx` (**WP-5 owns it**) · `frontend/lib/onboarding.ts` (**WP-5**) · `frontend/lib/analytics.ts` (**WP-5**) · `frontend/components/PostHogProvider.tsx` · `frontend/components/PostHogPageView.tsx` · `frontend/package.json` · `frontend/app/product/[slug]/page.tsx` · `frontend/app/page.tsx` · `frontend/app/browse/page.tsx` · `frontend/app/browse/[root]/page.tsx` · `frontend/app/search/page.tsx` · `frontend/app/api/scrape/route.ts` · `frontend/app/family/[slug]/page.tsx` · `frontend/components/ProductCard.tsx` · `frontend/components/SearchResultCard.tsx` · `frontend/components/SideNav.tsx` · `frontend/components/BottomNav.tsx` · `frontend/components/MobileSearchBar.tsx` · `frontend/lib/price-band.ts` · `frontend/lib/query-normalizer.ts` · `frontend/lib/synonyms.ts` · `frontend/lib/matching/**` · `frontend/lib/scrapers/**` · `frontend/vercel.json` · `scripts/` **except its own `scripts/lib/wp<N>-*.test.ts`** · `data/**` · `.agents/` · `.mcp.json` · `skills-lock.json` |
 | **Dependencies** | None. First. |
 | **Parallel?** | **No.** WP-5 was parallel in an earlier revision; §12.4 gives WP-5 exclusive ownership of `frontend/app/layout.tsx`, and R1 must be the first deploy, so WP-1 runs alone |
@@ -1942,8 +1964,8 @@ No production write, no migration, no schema change.
 | | |
 |---|---|
 | **Files owned (exclusive, exact)** | `frontend/lib/families.ts` (content — WP-1 created the empty shape) · `frontend/app/family/[slug]/page.tsx` (N) · `frontend/app/family/[slug]/error.tsx` (N) |
-| **Allowed supporting (bounded, exact)** | `frontend/middleware.ts` — **only** the six-entry 308 map · `frontend/app/api/admin/products/[id]/route.ts` — **only** the prose at `:20-23,49-53` and the `consequence()` text at `:79-85` · `frontend/app/admin/products/page.tsx` — **only** line 73 · `frontend/vercel.json` — **only** an added `_comment` |
-| **Forbidden (exact)** | Any `frontend/middleware.ts` change beyond the 308 map · the admin route's axis mapping, validation, `intent` requirement, `dryRun` or manifest logic · **removing the `crons` block from `frontend/vercel.json`** · `frontend/app/layout.tsx` · `frontend/lib/i18n.ts` · `frontend/lib/analytics.ts` · `frontend/lib/catalogue.ts` · `frontend/lib/browse.ts` · `frontend/lib/price-band.ts` · `frontend/app/product/[slug]/page.tsx` · `frontend/app/page.tsx` · `frontend/app/browse/page.tsx` · `frontend/app/browse/[root]/page.tsx` · `frontend/app/search/page.tsx` · `frontend/components/**` · `data/klup-source-monitoring.json` · `scripts/` **except its own `scripts/lib/wp<N>-*.test.ts`** · `.agents/` · `.mcp.json` · `skills-lock.json` |
+| **Allowed supporting (bounded, exact)** | `frontend/middleware.ts` — **only** the six-entry 308 map · `frontend/lib/route-access.ts` — **only** dropping `planned: true` from the `/family/[slug]` classification once the route file exists (§15.9; the §7.7 guard fails otherwise) · `frontend/app/api/admin/products/[id]/route.ts` — **only** the prose at `:20-23,49-53`, the `consequence()` text at `:79-85` and the `axis_semantics.tier` description string · `frontend/app/admin/products/page.tsx` — **only** operator-facing copy, **not** the `intent` value (§14.9) · `package.json` (repository root) — **only** appending `scripts/lib/wp2-families.test.ts` to the `test` script · `scripts/lib/wp2-families.test.ts` (N) · `scripts/lib/wp1-catalogue.test.ts` — **only** the `families:` block that pinned `NAVIGATION_FAMILIES.length === 0`, an R1→R3 intermediate state that WP-2 ends by definition |
+| **Forbidden (exact)** | Any `frontend/middleware.ts` change beyond the 308 map · the admin route's axis mapping, validation, `intent` requirement, `dryRun` or manifest logic · **the `intent` value at `frontend/app/admin/products/page.tsx:73`** (§14.9) · **`frontend/vercel.json` entirely** — it is a deployment input and Stage 3 changes none; the `crons` block is not removed and no property is added · `frontend/app/layout.tsx` · `frontend/lib/i18n.ts` · `frontend/lib/analytics.ts` · `frontend/lib/catalogue.ts` · `frontend/lib/browse.ts` · `frontend/lib/price-band.ts` · `frontend/app/product/[slug]/page.tsx` · `frontend/app/page.tsx` · `frontend/app/browse/page.tsx` · `frontend/app/browse/[root]/page.tsx` · `frontend/app/search/page.tsx` · `frontend/components/**` · `data/klup-source-monitoring.json` · `scripts/` **except its own `scripts/lib/wp<N>-*.test.ts`** · `.agents/` · `.mcp.json` · `skills-lock.json` |
 | **Dependencies** | WP-1 merged (needs `lib/families.ts` shape and `resolveSlugRole`) |
 | **Parallel?** | Yes — with WP-3, WP-4 and WP-5 |
 | **Integration order** | 3rd (R3) |
@@ -1954,8 +1976,8 @@ category, the "why this is not one price" sentence, children as links **iff**
 §3.1 passes and **omitted entirely otherwise** (no greyed cards, no child
 names), `noindex,follow` plus absence from homepage, browse, navigation,
 sitemap and search index while zero children are canonical-eligible, and the
-§8.5 demand control on the empty state · the six 308s · correcting the admin monitoring copy (§14.9) · the
-`vercel.json` warning comment.
+§8.5 demand control on the empty state · the six 308s · correcting the admin
+monitoring copy (§14.9), as copy only.
 
 **Acceptance tests.**
 1. `GET /product/gibson-les-paul` → 308 → `/family/gibson-les-paul`; same for the other five.
@@ -1963,8 +1985,9 @@ sitemap and search index while zero children are canonical-eligible, and the
 3. `/family/fender-jazz-bass` renders the "no supported variants yet" state.
 4. Unit test: every child slug in `families.ts` exists in `kg_product`; no child is a family; no family slug is in the canonical 14.
 5. Publishing a child in a **test fixture** turns it into a link and lifts `noindex` — with no code change.
-6. `grep -n "implicit selector\|MONITORING EXPANDS" frontend/app/api/admin/products/\[id\]/route.ts` is empty; `dryRun`, `intent` validation and the manifest are byte-identical apart from the corrected strings.
-7. `frontend/vercel.json` still contains the `crons` block.
+6. `grep -n "implicit selector\|MONITORING EXPANDS" frontend/app/api/admin/products/\[id\]/route.ts` is empty; `FIELD_AXIS`, `mustDeclare`, `dryRun`, `intent` validation and the manifest keys are byte-identical apart from the corrected strings.
+7. `frontend/vercel.json` is **byte-identical to the integration base**: the `crons` block is present and no property has been added.
+8. `/admin/products` still changes a tier successfully — the PATCH declares `intent:['monitoring']` and is not refused with `undeclared_axis` (§14.9).
 
 **Commit message**
 ```
@@ -2120,7 +2143,7 @@ remove, gate or configure a tracker, and it is the only owner of
 | | |
 |---|---|
 | **Files owned (exclusive, exact)** | `frontend/app/layout.tsx` · `frontend/lib/consent.ts` (N) · `frontend/components/ConsentProvider.tsx` (N) · `frontend/components/ConsentBanner.tsx` (N) · `frontend/components/ConsentFooterControl.tsx` (N) · `frontend/components/AnalyticsRoot.tsx` (N) · `frontend/components/PostHogProvider.tsx` · `frontend/components/PostHogPageView.tsx` · `frontend/lib/analytics.ts` (N) · `frontend/lib/onboarding.ts` · `frontend/app/privatliv/page.tsx` (N) · `frontend/package.json` |
-| **Allowed supporting** | new test files under `frontend/__tests__/` · `frontend/package-lock.json` (regenerated by the dependency removal only) |
+| **Allowed supporting** | `scripts/lib/wp5-*.test.ts` (N) · `package.json` (repository root) — **only** appending its own test file to the `test` script · `frontend/package-lock.json` (regenerated by the dependency removal only). **Corrected 2026-08-28:** this row said "new test files under `frontend/__tests__/`", which §15.1 supersedes — there is no frontend test runner |
 | **Forbidden (exact)** | `frontend/lib/i18n.ts` (**WP-1 owns it** — WP-5 consumes `t.key`; consent and privacy strings are landed by WP-1 at R1) · `frontend/lib/site-metadata.ts` (**WP-1** — WP-5 imports and re-exports it, never edits it) · `frontend/middleware.ts` · `frontend/lib/catalogue.ts` · `frontend/lib/browse.ts` · `frontend/lib/families.ts` · `frontend/lib/price-band.ts` · `frontend/lib/search-resolver.ts` · `frontend/app/api/product/[slug]/route.ts` · `frontend/app/product/[slug]/**` · `frontend/app/browse/**` · `frontend/app/family/**` · `frontend/app/search/page.tsx` · `frontend/app/page.tsx` · `frontend/components/{ProductCard,SearchResultCard,SideNav,BottomNav,MobileSearchBar}.tsx` · `frontend/app/onboarding/step1/page.tsx` · `frontend/app/onboarding/step2/page.tsx` · `frontend/app/onboarding/step3/page.tsx` · `scripts/` **except its own `scripts/lib/wp<N>-*.test.ts`** · `data/**` · `.agents/` · `.mcp.json` · `skills-lock.json` |
 | **Dependencies** | **WP-1 merged** — WP-5 imports `lib/site-metadata.ts` and the consent/privacy i18n keys, and `/privatliv` must already be in `PUBLIC_PREFIXES` |
 | **Parallel?** | **No with WP-1** (WP-1 must land first). **Yes with WP-2, WP-3 and WP-4** — no shared file with any of them |

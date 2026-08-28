@@ -249,17 +249,39 @@ test('supported and canonical resolve independently from the same rows', async (
 })
 
 /* ------------------------------------------------------------------ *
- * lib/families.ts — shape only in WP-1
+ * lib/families.ts — the shape WP-1 owns; the entries are WP-2's
  * ------------------------------------------------------------------ */
 
-test('families: WP-1 ships the shape and no entries', () => {
-  // WP-2 fills this. While it is empty the six legacy /product URLs 404, which
-  // is the safe intermediate state — a 308 to a route that does not exist yet
-  // would be worse than a 404.
-  assert.equal(NAVIGATION_FAMILIES.length, 0)
-  assert.equal(isFamilySlug('gibson-les-paul'), false)
-  assert.equal(getFamily('gibson-les-paul'), null)
-  assert.equal(allFamilyChildSlugs().size, 0)
+test('families: the shape is intact and every entry is well formed', () => {
+  // SUPERSEDED BY WP-2, bounded edit to this block only.
+  //
+  // This test previously asserted `NAVIGATION_FAMILIES.length === 0`, pinning
+  // the R1-to-R3 intermediate state in which the six legacy /product URLs 404
+  // because their family routes do not exist yet. That state ended when WP-2
+  // landed app/family/[slug] and filled the config, so the assertion was
+  // pinning a fact with an expiry date rather than an invariant.
+  //
+  // Nothing is weakened: the shape checks below are unchanged, the three
+  // structural invariants in the tests that follow are unchanged, and WP-2
+  // re-asserts all of them more strongly in scripts/lib/wp2-families.test.ts
+  // (exact membership, redirect map, child filtering, indexability).
+  for (const family of NAVIGATION_FAMILIES) {
+    assert.equal(typeof family.slug, 'string')
+    assert.equal(typeof family.label, 'string')
+    assert.equal(typeof family.brand, 'string')
+    assert.equal(typeof family.categoryRoot, 'string')
+    assert.equal(Array.isArray(family.children), true)
+    assert.equal(Array.isArray(family.aliases), true)
+    assert.equal(isFamilySlug(family.slug), true)
+    assert.equal(getFamily(family.slug)?.slug, family.slug)
+  }
+
+  // A slug that is not configured is not a family, whatever the config holds.
+  assert.equal(isFamilySlug('roland-juno-106'), false)
+  assert.equal(getFamily('roland-juno-106'), null)
+
+  const children = allFamilyChildSlugs()
+  assert.equal(children.size, NAVIGATION_FAMILIES.flatMap((f) => f.children).length)
 })
 
 test('families: no slug may be both a family and a family child', () => {
