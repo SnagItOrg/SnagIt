@@ -1,481 +1,614 @@
 'use client'
 
-import { useState, useEffect, useRef, Suspense } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import type { Listing } from '@/lib/supabase'
-import { SearchResultCard } from '@/components/SearchResultCard'
-import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
+import Link from 'next/link'
+import { usePostHog } from 'posthog-js/react'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
-import { platformList } from '@/lib/platforms'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { usePostHog } from 'posthog-js/react'
-import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
+import { getFamily } from '@/lib/families'
+import {
+  demandSignalPayload,
+  type DemandSignalPayload,
+  searchResolvedPayload,
+  searchSubmittedPayload,
+  searchUnsupportedPayload,
+  type SearchCandidate,
+  type SearchInputMethod,
+  type SearchOutcome,
+  type SearchResolvedPayload,
+  type SearchSubmittedPayload,
+  type SearchUnsupportedPayload,
+} from '@/lib/search-resolver'
 
-type SortKey = 'relevance' | 'newest' | 'oldest' | 'price_asc' | 'price_desc'
+/**
+ * Restricted catalogue search.
+ *
+ * Stage 3 WP-4. See docs/stage-3-v1-decision-and-build-plan.md §8.2.
+ *
+ * SEARCH IS A RESOLVER, NOT A RESULT PAGE. This page asks "which Klup entity do
+ * you mean?" and renders exactly one of the resolver's outcomes. What it no
+ * longer does, deliberately:
+ *
+ *   - call `/api/scrape`. Every submitted query used to run four live
+ *     marketplace scrapes through an unauthenticated write endpoint;
+ *   - render a listing grid — mobile list and desktop 4-column;
+ *   - offer five source-toggle chips or a five-way sort control, both of which
+ *     only make sense for a generic SERP;
+ *   - offer a free-text "Opret overvågning" button, which created a watchlist
+ *     from whatever the visitor happened to type;
+ *   - claim "Vi søger på {platforms} samtidig".
+ *
+ * None of that is compatible with a curated catalogue, and the last two
+ * actively misdescribed what Klup does.
+ */
 
-const ALL_SOURCES = ['dba', 'finn', 'blocket', 'reverb', 'thomann'] as const
-type SourceKey = typeof ALL_SOURCES[number]
-const SOURCE_LABEL: Record<SourceKey, string> = {
-  dba: 'DBA',
-  finn: 'Finn',
-  blocket: 'Blocket',
-  reverb: 'Reverb',
-  thomann: 'Thomann',
+type ResolveResponse = SearchOutcome | { error: string }
+
+function isOutcome(value: ResolveResponse): value is SearchOutcome {
+  return typeof (value as SearchOutcome).outcome === 'string'
 }
 
-function sortListings(listings: Listing[], sort: SortKey): Listing[] {
-  const copy = [...listings]
-  if (sort === 'relevance') return copy // preserve server interleave order
-  if (sort === 'price_asc') {
-    return copy.sort((a, b) => {
-      if (a.price == null && b.price == null) return 0
-      if (a.price == null) return 1
-      if (b.price == null) return -1
-      return a.price - b.price
-    })
+/** `?demand=family:<slug>` — the only form of the parameter that is honoured. */
+const DEMAND_FAMILY_PREFIX = 'family:'
+
+/**
+ * Build the unsupported outcome for a family-originated demand capture.
+ *
+ * WP-2's family route renders no children while it has no canonical ones, and
+ * sends the visitor here to register that they wanted it. The interesting
+ * property is what this must NOT do: it must not resolve the family term,
+ * because resolving `Gibson Les Paul` would navigate straight back to
+ * `/family/gibson-les-paul` and bounce the visitor between two pages. So the
+ * outcome is constructed locally, never fetched, and carries no navigation.
+ *
+ * The label comes from `lib/families.ts` when the slug is a real family. An
+ * unknown slug still produces a valid demand capture — a fabricated URL should
+ * not be able to break the page — it simply has nothing nicer to display than
+ * the slug itself.
+ */
+function familyDemandOutcome(familySlug: string): SearchOutcome {
+  const family = getFamily(familySlug)
+  const term = family?.label ?? familySlug.replace(/-/g, ' ')
+  return {
+    outcome: 'unsupported',
+    resolution: 'unsupported',
+    resolutionClass: 'unsupported',
+    queryNorm: term.toLowerCase(),
+    rawTokenCount: term.split(/\s+/).filter(Boolean).length,
+    navigateTo: null,
+    navigateKind: null,
+    navigateSlug: null,
+    autoNavigated: false,
+    candidates: [],
+    suggestions: [],
+    viaSynonym: false,
   }
-  if (sort === 'price_desc') {
-    return copy.sort((a, b) => {
-      if (a.price == null && b.price == null) return 0
-      if (a.price == null) return 1
-      if (b.price == null) return -1
-      return b.price - a.price
-    })
-  }
-  if (sort === 'oldest') {
-    return copy.sort((a, b) => new Date(a.scraped_at).getTime() - new Date(b.scraped_at).getTime())
-  }
-  return copy.sort((a, b) => new Date(b.scraped_at).getTime() - new Date(a.scraped_at).getTime())
+}
+
+/**
+ * The analytics seam.
+ *
+ * WP-5 owns `lib/analytics.ts`, the consent gate and the tracker mounting, and
+ * WP-4 may not write those files. Until WP-5 lands, events go through the
+ * PostHog client the app already provides — which WP-5's provider will gate, so
+ * consent is honoured without WP-4 owning any of it.
+ *
+ * INTEGRATION (bounded, one function body): replace the call below with
+ * `track(event, props)` from `@/lib/analytics`. Nothing else on this page
+ * changes, because every payload is built by a typed helper in
+ * `lib/search-resolver.ts` against WP-5's `KlupEventMap` shapes — so the swap
+ * is a substitution, not a migration, and no call site ever passes an email
+ * address.
+ */
+/**
+ * The four WP-5 events this page is allowed to emit, with their exact payloads.
+ *
+ * Deliberately shaped like WP-5's own `track<E extends KlupEventName>(event: E,
+ * properties: KlupEventMap[E])`, so the integration is a substitution rather
+ * than a migration — and so this page CANNOT emit an event outside the
+ * taxonomy or an event with the wrong payload. There is no `Record<string,
+ * unknown>` escape hatch and no cast: an undeclared property is a compile
+ * error here exactly as it will be after the swap.
+ */
+type SearchEventMap = {
+  search_submitted: SearchSubmittedPayload
+  search_resolved: SearchResolvedPayload
+  search_unsupported: SearchUnsupportedPayload
+  demand_signal_submitted: DemandSignalPayload
+}
+
+function useEmit() {
+  const posthog = usePostHog()
+  return useCallback(
+    <E extends keyof SearchEventMap>(event: E, properties: SearchEventMap[E]) => {
+      posthog?.capture(event, properties)
+    },
+    [posthog],
+  )
 }
 
 function SearchPageInner() {
   const router = useRouter()
   const params = useSearchParams()
-  const { t, locale } = useLocale()
-  const posthog = usePostHog()
+  const { t } = useLocale()
+  const emit = useEmit()
 
-  const [inputValue,   setInputValue]   = useState(() => params.get('q') ?? '')
-  const [sort,         setSort]         = useState<SortKey>('relevance')
-  const [listings,     setListings]     = useState<Listing[]>([])
-  const [loading,      setLoading]      = useState(false)
-  const [error,        setError]        = useState<string | null>(null)
-  const [searched,     setSearched]     = useState(false)
-  const [creating,             setCreating]             = useState(false)
-  const [toast,                setToast]                = useState<string | null>(null)
-  const [showWatchlistModal,   setShowWatchlistModal]   = useState(false)
-  const [watchlistModalQuery,  setWatchlistModalQuery]  = useState('')
-  const [enabledSources,   setEnabledSources]   = useState<Set<SourceKey>>(() => new Set(ALL_SOURCES))
-  const [showFilters,      setShowFilters]      = useState(false)
-  const [savedListingIds,  setSavedListingIds]  = useState<Set<string>>(new Set())
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const initialQuery = params.get('q') ?? ''
 
-  function showToast(msg: string) {
-    setToast(msg)
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setToast(null), 3000)
-  }
+  // `?demand=family:<slug>` arrives from an empty WP-2 family route.
+  const demandParam = params.get('demand') ?? ''
+  const demandFamilySlug = demandParam.startsWith(DEMAND_FAMILY_PREFIX)
+    ? demandParam.slice(DEMAND_FAMILY_PREFIX.length).trim()
+    : ''
 
-  async function runSearch(query: string, sources: Set<SourceKey>) {
-    const q = query.trim()
-    if (!q) return
-    if (sources.size === 0) {
-      setListings([])
-      setSearched(true)
+  const familyPrefill = demandFamilySlug ? (getFamily(demandFamilySlug)?.label ?? '') : ''
+  const [inputValue, setInputValue] = useState(
+    // The field is pre-filled with the family term so the visitor can refine it
+    // into a real search instead of retyping what they just clicked away from.
+    initialQuery || familyPrefill,
+  )
+  const [outcome, setOutcome] = useState<SearchOutcome | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [activeIndex, setActiveIndex] = useState(-1)
+
+  const inputRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  /** The family term the field was seeded with, so an unedited submit is honest. */
+  const prefillSeed = useRef<string>('')
+  /** Guards against a stale response overwriting a newer one. */
+  const requestSeq = useRef(0)
+
+  /**
+   * Everything the visitor may click, in render order, so the keyboard and the
+   * pointer traverse exactly the same set.
+   */
+  const options: SearchCandidate[] = useMemo(() => {
+    if (!outcome) return []
+    return outcome.candidates.length > 0 ? outcome.candidates : outcome.suggestions
+  }, [outcome])
+
+  const runSearch = useCallback(
+    async (rawQuery: string, inputMethod: SearchInputMethod) => {
+      const q = rawQuery.trim()
+      if (q.length === 0) return
+
+      const seq = ++requestSeq.current
+      setLoading(true)
+      setError(null)
+      setActiveIndex(-1)
+
+      // `entry_surface` is 'search' because this page IS the search surface;
+      // the landing field and the mobile bar route here and are WP-3's to
+      // instrument with their own surface value.
+      emit('search_submitted', searchSubmittedPayload(q, 'search', inputMethod))
+
+      const startedAt = Date.now()
+      try {
+        const res = await fetch(`/api/search/resolve?q=${encodeURIComponent(q)}`, {
+          cache: 'no-store',
+        })
+        const latencyMs = Date.now() - startedAt
+        const data = (await res.json()) as ResolveResponse
+        if (seq !== requestSeq.current) return
+
+        if (!res.ok || !isOutcome(data)) {
+          setOutcome(null)
+          setError(t.searchFailed)
+          return
+        }
+
+        setOutcome(data)
+
+        // A family hit is an `accepted_alias` whose `product_slug` is null: it
+        // resolved to a navigation concept, not to a priced identity.
+        emit('search_resolved', searchResolvedPayload(data, latencyMs))
+
+        // Emitted for every non-resolving outcome — unsupported, no-result and
+        // dangerous-blocked alike — with the declared `resolution_class` telling
+        // them apart. The builder returns null for the two outcomes that did
+        // resolve, which is how this knows not to emit.
+        const unsupported = searchUnsupportedPayload(data)
+        if (unsupported) emit('search_unsupported', unsupported)
+
+        // Exact and accepted-alias hits navigate. Nothing else ever does: a
+        // dangerous term and an ambiguous term both land on the candidate set,
+        // which is guardrail G1.
+        if (data.navigateTo) {
+          router.push(data.navigateTo)
+        }
+      } catch {
+        if (seq !== requestSeq.current) return
+        setOutcome(null)
+        setError(t.unknownError)
+      } finally {
+        if (seq === requestSeq.current) setLoading(false)
+      }
+    },
+    [emit, router, t.searchFailed, t.unknownError],
+  )
+
+  // Resolve on mount when the URL already carries ?q=, so a shared or
+  // bookmarked search link behaves the same as a typed one.
+  //
+  // Demand mode takes precedence and does NOT resolve. Resolving the family
+  // term would navigate straight back to the family the visitor just left.
+  useEffect(() => {
+    if (demandFamilySlug.length > 0) {
+      prefillSeed.current = familyPrefill.trim()
+      const built = familyDemandOutcome(demandFamilySlug)
+      setOutcome(built)
+      const unsupported = searchUnsupportedPayload(built)
+      if (unsupported) emit('search_unsupported', unsupported)
       return
     }
-    setLoading(true)
-    setError(null)
-    setSearched(true)
-
-    try {
-      const sourcesParam = Array.from(sources).join(',')
-      const res = await fetch(`/api/scrape?q=${encodeURIComponent(q)}&sources=${sourcesParam}`)
-      if (!res.ok) {
-        setError(t.searchFailed)
-        setListings([])
-      } else {
-        const data = await res.json()
-        const results: Listing[] = data.listings ?? []
-        setListings(results)
-        posthog?.capture('search_performed', {
-          query: q,
-          result_count: results.length,
-          sources: sourcesParam,
-        })
-      }
-    } catch {
-      setError(t.unknownError)
-      setListings([])
-    }
-    setLoading(false)
-  }
-
-  function toggleSource(key: SourceKey) {
-    setEnabledSources((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  }
-
-  // Fire on mount: search if ?q= present + load saved listing ids
-  useEffect(() => {
-    const q = params.get('q')
-    if (q) void runSearch(q, enabledSources)
-
-    fetch('/api/saved-listings')
-      .then((r) => r.ok ? r.json() : [])
-      .then((rows: { listing_id: string }[]) => {
-        setSavedListingIds(new Set(rows.map((r) => r.listing_id)))
-      })
-      .catch(() => {})
+    // Arrived with ?q= already set, so the query came from the URL, not from
+    // this visitor's keyboard.
+    if (initialQuery.trim().length > 0) void runSearch(initialQuery, 'url_param')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault()
     const q = inputValue.trim()
-    if (!q) return
+    if (q.length === 0) return
     router.replace(`/search?q=${encodeURIComponent(q)}`)
-    void runSearch(q, enabledSources)
+    // A family-prefilled term submitted UNCHANGED came from the URL, so it is
+    // reported as `url_param`. The moment the visitor edits it, it is theirs
+    // and becomes `typed`. Calling the untouched prefill "typed" would inflate
+    // manual search intent with clicks that happened on a family page.
+    const method: SearchInputMethod = q === prefillSeed.current ? 'url_param' : 'typed'
+    void runSearch(q, method)
   }
 
-  async function handleCreateWatchlist(listingTitle?: string) {
-    const supabase = createSupabaseBrowserClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/login')
-      return
-    }
+  /**
+   * Keyboard traversal over the candidate set.
+   *
+   * ArrowDown/ArrowUp move, Enter opens the highlighted option or submits when
+   * nothing is highlighted, Escape clears the highlight. Without this the
+   * disambiguation screen — the one outcome that deliberately refuses to choose
+   * for the visitor — would be reachable only with a pointer.
+   */
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (options.length === 0) return
 
-    let q: string
-    if (listingTitle) {
-      q = listingTitle.length > 60
-        ? (listingTitle.lastIndexOf(' ', 60) > 0
-            ? listingTitle.slice(0, listingTitle.lastIndexOf(' ', 60))
-            : listingTitle.slice(0, 60))
-        : listingTitle
-    } else {
-      q = inputValue.trim() || (params.get('q') ?? '')
-    }
-    setWatchlistModalQuery(q)
-    setShowWatchlistModal(true)
-  }
-
-  async function handleModalConfirm(query: string, modalMaxPrice?: number) {
-    setCreating(true)
-    const body: Record<string, unknown> = { query }
-    if (modalMaxPrice != null && modalMaxPrice > 0) body.max_price = modalMaxPrice
-
-    const res = await fetch('/api/watchlists', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-
-    if (res.ok) {
-      setShowWatchlistModal(false)
-      showToast(t.watchlistCreated)
-      posthog?.capture('watchlist_created', { query })
-    } else {
-      const data = await res.json()
-      showToast(data.error ?? t.addWatchlistError)
-    }
-    setCreating(false)
-  }
-
-  async function handleToggleSave(listing: Listing) {
-    const alreadySaved = savedListingIds.has(listing.id)
-    const prev = new Set(savedListingIds)
-
-    if (alreadySaved) {
-      setSavedListingIds(new Set(Array.from(savedListingIds).filter((id) => id !== listing.id)))
-      const res = await fetch('/api/saved-listings', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listing_id: listing.id }),
-      })
-      if (!res.ok) { setSavedListingIds(prev); return }
-      showToast(t.listingUnsaved)
-    } else {
-      setSavedListingIds(new Set(Array.from(savedListingIds).concat(listing.id)))
-      try {
-        const res = await fetch('/api/saved-listings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ listing_id: listing.id, listing_data: listing }),
-        })
-        if (!res.ok) { setSavedListingIds(prev); return }
-        showToast(t.listingSaved)
-      } catch {
-        setSavedListingIds(prev)
-      }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveIndex((i) => (i + 1) % options.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveIndex((i) => (i <= 0 ? options.length - 1 : i - 1))
+    } else if (e.key === 'Enter' && activeIndex >= 0) {
+      e.preventDefault()
+      router.push(options[activeIndex].href)
+    } else if (e.key === 'Escape') {
+      setActiveIndex(-1)
     }
   }
 
-  function listingSourceKey(l: Listing): SourceKey | null {
-    const s = l.source
-    if (s === 'dba.dk') return 'dba'
-    if (s === 'finn' || s === 'blocket' || s === 'reverb' || s === 'thomann') return s
-    return null
-  }
+  useEffect(() => {
+    if (activeIndex < 0 || !listRef.current) return
+    const el = listRef.current.children[activeIndex] as HTMLElement | undefined
+    el?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex])
 
-  // Client-side filter: hide listings whose source is toggled off, so toggles
-  // give instant visual feedback without re-scraping.
-  const visible = listings.filter((l) => {
-    const key = listingSourceKey(l)
-    return key === null || enabledSources.has(key)
-  })
-  const filtered = sortListings(visible, sort)
-
-  const currentQuery = params.get('q') ?? inputValue
+  const showCandidates = outcome !== null && outcome.candidates.length > 0
+  const showUnsupported =
+    outcome !== null && (outcome.outcome === 'unsupported' || outcome.outcome === 'no_result')
 
   return (
     <div className="min-h-screen bg-bg md:flex">
-      <SideNav active={'soeg'} onChange={() => {}} />
+      <SideNav active="soeg" onChange={() => {}} />
 
       <div className="flex-1 min-w-0 flex flex-col md:ml-60">
-        {/* Page header */}
         <div className="px-4 pt-6 pb-2 md:px-8">
           <h1 className="text-xl font-black text-foreground">{t.searchPageHeading}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t.searchPageSubtext.replace('{platforms}', platformList(locale))}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t.searchPageSubtext}</p>
         </div>
 
-        {/* Sticky search bar */}
         <div className="sticky top-0 z-30 w-full bg-bg border-b border-border px-4 py-3 md:px-8">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-            {/* Row 1: search input + filter toggle */}
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <span
-                  className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ fontSize: '18px', color: 'var(--muted-foreground)' }}
-                >
-                  search
-                </span>
-                <input
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder={t.searchInputPlaceholder}
-                  className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none transition-all placeholder:opacity-40"
-                  style={{
-                    backgroundColor: 'var(--input-background)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--foreground)',
-                  }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
-                  onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowFilters((v) => !v)}
-                className="flex items-center justify-center w-10 h-10 rounded-xl transition-colors flex-shrink-0"
-                style={showFilters
-                  ? { backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--foreground)' }
-                  : { backgroundColor: 'transparent', border: '1px solid var(--border)', color: 'var(--muted-foreground)' }
-                }
-                aria-label="Filtre"
+          <form onSubmit={handleSubmit} role="search">
+            <label htmlFor="klup-search" className="sr-only">
+              {t.searchPageHeading}
+            </label>
+            <div className="relative">
+              <span
+                aria-hidden="true"
+                className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ fontSize: '18px', color: 'var(--muted-foreground)' }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>tune</span>
-              </button>
+                search
+              </span>
+              <input
+                id="klup-search"
+                ref={inputRef}
+                type="search"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={t.searchInputPlaceholder}
+                enterKeyHint="search"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                role="combobox"
+                aria-expanded={options.length > 0}
+                aria-controls="klup-search-options"
+                aria-activedescendant={
+                  activeIndex >= 0 ? `klup-search-option-${activeIndex}` : undefined
+                }
+                // 16px minimum (text-base): anything smaller makes iOS Safari
+                // zoom the viewport on focus and the visitor loses the page.
+                className="w-full rounded-xl pl-9 pr-4 py-3 text-base font-medium outline-none transition-all placeholder:opacity-50"
+                style={{
+                  backgroundColor: 'var(--input-background)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--foreground)',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--ring)'
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border)'
+                }}
+              />
             </div>
-
-            {/* Expanded filter panel */}
-            {showFilters && (
-              <div className="flex flex-col gap-2 mt-1">
-                {/* Source toggles — control which sites we search */}
-                <div className="flex gap-1.5 flex-wrap">
-                  {ALL_SOURCES.map((key) => {
-                    const active = enabledSources.has(key)
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => toggleSource(key)}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
-                        style={active
-                          ? { backgroundColor: 'var(--foreground)', color: 'var(--background)', border: '1px solid var(--foreground)' }
-                          : { backgroundColor: 'transparent', color: 'var(--muted-foreground)', border: '1px solid var(--border)' }
-                        }
-                        aria-pressed={active}
-                      >
-                        {SOURCE_LABEL[key]}
-                      </button>
-                    )
-                  })}
-                </div>
-
-                {/* Sort select */}
-                <div className="flex gap-2 flex-wrap">
-                <div className="relative inline-flex items-center">
-                  <select
-                    value={sort}
-                    onChange={(e) => setSort(e.target.value as SortKey)}
-                    className="appearance-none rounded-xl px-3 py-2 pr-8 text-sm outline-none cursor-pointer min-w-[140px]"
-                    style={{
-                      backgroundColor: 'var(--card)',
-                      border: '1px solid var(--border)',
-                      color: 'var(--foreground)',
-                    }}
-                  >
-                    <option value="relevance">Relevans</option>
-                    <option value="newest">{t.sortNewest}</option>
-                    <option value="oldest">Ældste først</option>
-                    <option value="price_asc">{t.sortPriceLow}</option>
-                    <option value="price_desc">{t.sortPriceHigh}</option>
-                  </select>
-                  <span
-                    className="material-symbols-outlined absolute right-2 pointer-events-none"
-                    style={{ fontSize: '18px', color: 'var(--muted-foreground)' }}
-                  >
-                    expand_more
-                  </span>
-                </div>
-                </div>
-              </div>
-            )}
+            <button
+              type="submit"
+              className="mt-2 w-full min-h-[44px] rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90 md:w-auto md:px-6"
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            >
+              {t.search}
+            </button>
           </form>
         </div>
 
-        {/* Main content */}
-        <main className="flex-1 px-4 pt-5 pb-10 md:px-8">
-          {loading ? (
-            <>
-              <div className="h-4 w-40 rounded bg-muted animate-pulse mb-4" />
-              <div className="flex flex-col gap-3">
-                {[...Array(3)].map((_, i) => (
+        <main className="flex-1 px-4 pt-5 pb-24 md:px-8 md:pb-10">
+          <div aria-live="polite" aria-atomic="true">
+            {loading ? (
+              <div className="flex flex-col gap-3 max-w-2xl">
+                {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className="flex gap-3 p-3 rounded-2xl bg-card border border-border animate-pulse"
-                    style={{ height: '104px' }}
-                  >
-                    <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-muted" />
-                    <div className="flex-1 flex flex-col gap-2 py-1">
-                      <div className="h-3 w-3/4 rounded bg-muted" />
-                      <div className="h-4 w-1/3 rounded bg-muted" />
-                      <div className="h-3 w-1/2 rounded bg-muted" />
-                    </div>
-                  </div>
+                    className="h-16 rounded-2xl bg-card border border-border animate-pulse"
+                  />
                 ))}
               </div>
-            </>
-          ) : error ? (
-            <div
-              className="rounded-xl px-4 py-3 text-sm text-red-400 mt-4"
-              style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}
-            >
-              {error}
-            </div>
-          ) : searched && filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: '48px', color: 'var(--muted-foreground)', opacity: 0.4 }}
+            ) : error ? (
+              <div
+                className="rounded-xl px-4 py-3 text-sm max-w-2xl"
+                style={{
+                  backgroundColor: 'rgba(239,68,68,0.1)',
+                  border: '1px solid rgba(239,68,68,0.2)',
+                  color: 'var(--foreground)',
+                }}
               >
-                search_off
-              </span>
-              <p className="text-sm text-muted-foreground">
-                {t.noResults}
-              </p>
-            </div>
-          ) : searched ? (
-            <>
-              {/* Result count + watchlist CTA */}
-              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                <p className="text-sm text-muted-foreground">
-                  {filtered.length} {t.resultsFor}{' '}
-                  <span className="font-semibold" style={{ color: 'var(--foreground)' }}>
-                    &ldquo;{currentQuery}&rdquo;
-                  </span>
-                </p>
-                <button
-                  onClick={() => handleCreateWatchlist()}
-                  disabled={creating}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
+                {error}
+              </div>
+            ) : showCandidates ? (
+              <section className="max-w-2xl">
+                <h2 className="text-base font-semibold text-foreground mb-3">
+                  {t.searchAmbiguousHeading}
+                </h2>
+                <CandidateList
+                  id="klup-search-options"
+                  listRef={listRef}
+                  options={outcome!.candidates}
+                  activeIndex={activeIndex}
+                />
+              </section>
+            ) : showUnsupported ? (
+              <UnsupportedPanel outcome={outcome!} listRef={listRef} activeIndex={activeIndex} />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 gap-3 text-center max-w-sm mx-auto">
+                <span
+                  aria-hidden="true"
+                  className="material-symbols-outlined"
+                  style={{ fontSize: '48px', color: 'var(--muted-foreground)', opacity: 0.4 }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>notifications</span>
-                  {t.createWatchlist}
-                </button>
+                  manage_search
+                </span>
+                <p className="text-base font-semibold text-foreground">{t.searchEmptyHeading}</p>
+                <p className="text-sm text-muted-foreground">{t.searchEmptySubtext}</p>
               </div>
-
-              {/* Mobile: list */}
-              <div className="flex flex-col gap-3 md:hidden">
-                {filtered.map((listing) => (
-                  <ListingErrorBoundary key={listing.id} listingId={listing.id}>
-                    <SearchResultCard
-                      listing={listing}
-                      onCreateWatchlist={handleCreateWatchlist}
-                      creating={creating}
-
-                      variant="list"
-                      isSaved={savedListingIds.has(listing.id)}
-                      onToggleSave={handleToggleSave}
-
-                    />
-                  </ListingErrorBoundary>
-                ))}
-              </div>
-
-              {/* Desktop: 4-col grid */}
-              <div className="hidden md:grid md:grid-cols-4 md:gap-4">
-                {filtered.map((listing) => (
-                  <ListingErrorBoundary key={listing.id} listingId={listing.id}>
-                    <SearchResultCard
-                      listing={listing}
-                      onCreateWatchlist={handleCreateWatchlist}
-                      creating={creating}
-
-                      variant="grid"
-                      isSaved={savedListingIds.has(listing.id)}
-                      onToggleSave={handleToggleSave}
-
-                    />
-                  </ListingErrorBoundary>
-                ))}
-              </div>
-            </>
-          ) : (
-            // Initial state: no search yet
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center max-w-sm mx-auto">
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: '48px', color: 'var(--muted-foreground)', opacity: 0.4 }}
-              >
-                manage_search
-              </span>
-              <p className="text-base font-semibold text-foreground">{t.searchEmptyHeading}</p>
-              <p className="text-sm text-muted-foreground">{t.searchEmptySubtext.replace('{platforms}', platformList(locale))}</p>
-            </div>
-          )}
+            )}
+          </div>
         </main>
       </div>
 
       <BottomNav />
+    </div>
+  )
+}
 
-      <CreateWatchlistModal
-        isOpen={showWatchlistModal}
-        onClose={() => setShowWatchlistModal(false)}
-        onConfirm={handleModalConfirm}
-        initialQuery={watchlistModalQuery}
-        creating={creating}
-      />
-
-      {/* Toast */}
-      {toast && (
-        <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl text-sm font-semibold shadow-xl z-50 transition-all"
-          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+/**
+ * NO CLICK EVENT IS EMITTED HERE, DELIBERATELY.
+ *
+ * The only declared card-click event is `discovery_product_clicked`, whose
+ * `shelf` union is `followed | recent | browse_grid | related`. A search
+ * disambiguation is none of those. Labelling it `browse_grid` or `related`
+ * would put search clicks into browse and product-page reports and quietly
+ * corrupt every shelf metric derived from them — a measurement gap is
+ * recoverable, a poisoned taxonomy is not.
+ *
+ * V1 therefore accepts the gap. Direct and automatic resolution is still fully
+ * measured by `search_resolved` (`auto_navigated`, `resolution`,
+ * `candidate_count`), and adding a search shelf value is WP-5's decision, not
+ * WP-4's to take by inventing an enum member.
+ */
+function CandidateList({
+  id,
+  options,
+  activeIndex,
+  listRef,
+}: {
+  id: string
+  options: SearchCandidate[]
+  activeIndex: number
+  listRef: React.RefObject<HTMLUListElement>
+}) {
+  return (
+    <ul id={id} ref={listRef} role="listbox" className="flex flex-col gap-2">
+      {options.map((option, i) => (
+        <li
+          key={option.href}
+          id={`klup-search-option-${i}`}
+          role="option"
+          aria-selected={i === activeIndex}
         >
-          {toast}
+          <Link
+            href={option.href}
+            className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 min-h-[56px] transition-colors hover:bg-secondary"
+            style={{
+              background: i === activeIndex ? 'var(--secondary)' : 'var(--card)',
+              borderColor: i === activeIndex ? 'var(--ring)' : 'var(--border)',
+            }}
+          >
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-foreground truncate">
+                {option.label}
+              </span>
+              <span className="block text-xs text-muted-foreground truncate">{option.brand}</span>
+            </span>
+            <span
+              aria-hidden="true"
+              className="material-symbols-outlined shrink-0"
+              style={{ fontSize: 18, color: 'var(--muted-foreground)' }}
+            >
+              chevron_right
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/**
+ * The unsupported screen.
+ *
+ * Three things, in order: an honest statement that Klup does not follow this,
+ * the nearest products it does follow, and a single control to register that
+ * someone wanted it. No empty SERP and no generic listing list, ever.
+ */
+function UnsupportedPanel({
+  outcome,
+  listRef,
+  activeIndex,
+}: {
+  outcome: SearchOutcome
+  listRef: React.RefObject<HTMLUListElement>
+  activeIndex: number
+}) {
+  const { t } = useLocale()
+  const emit = useEmit()
+  const [open, setOpen] = useState(false)
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  async function submitDemand(e: React.FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    const address = email.trim()
+
+    // The e-mail address goes to Supabase through the existing magic-link path
+    // — a user-initiated service request — and NEVER to PostHog. The analytics
+    // payload carries a boolean (build plan §8.5, §12.2).
+    if (address.length > 0) {
+      try {
+        const supabase = createSupabaseBrowserClient()
+        await supabase.auth.signInWithOtp({
+          email: address,
+          options: {
+            shouldCreateUser: true,
+            emailRedirectTo: `${window.location.origin}/auth/confirm`,
+          },
+        })
+      } catch {
+        // A failed send must not lose the demand signal; it is still recorded.
+      }
+    }
+
+    emit('demand_signal_submitted', demandSignalPayload(outcome, address))
+
+    setBusy(false)
+    setSent(true)
+  }
+
+  return (
+    <section className="max-w-2xl flex flex-col gap-6">
+      <div>
+        <h2 className="text-base font-semibold text-foreground">{t.searchNotFollowedHeading}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t.searchNotFollowedBody}</p>
+      </div>
+
+      {outcome.suggestions.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-3">{t.searchNearestHeading}</h3>
+          <CandidateList
+            id="klup-search-options"
+            listRef={listRef}
+            options={outcome.suggestions}
+            activeIndex={activeIndex}
+          />
         </div>
       )}
-    </div>
+
+      <div
+        className="rounded-2xl border p-4"
+        style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+      >
+        {sent ? (
+          <p className="text-sm font-semibold text-foreground">{t.demandThanks}</p>
+        ) : open ? (
+          <form onSubmit={submitDemand} className="flex flex-col gap-2">
+            <label htmlFor="klup-demand-email" className="text-sm font-semibold text-foreground">
+              {t.demandCta}
+            </label>
+            <input
+              id="klup-demand-email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t.emailPlaceholder}
+              className="w-full rounded-xl px-3 py-3 text-base outline-none"
+              style={{
+                backgroundColor: 'var(--input-background)',
+                border: '1px solid var(--border)',
+                color: 'var(--foreground)',
+              }}
+            />
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full min-h-[44px] rounded-xl text-sm font-semibold transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            >
+              {t.sendLoginLink}
+            </button>
+            <p className="text-[11px] text-center text-muted-foreground">{t.noPasswordNeeded}</p>
+          </form>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="flex items-center gap-2 min-h-[44px] text-sm font-semibold text-foreground"
+          >
+            <span aria-hidden="true" className="material-symbols-outlined" style={{ fontSize: 18 }}>
+              notifications
+            </span>
+            {t.demandCta}
+          </button>
+        )}
+      </div>
+    </section>
   )
 }
 
