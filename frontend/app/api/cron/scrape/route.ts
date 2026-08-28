@@ -34,8 +34,34 @@ import { newIngestionBatchId, matchRunInflow, reportBatchMatch } from '@/lib/mat
 import { fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 
 export async function GET(req: NextRequest) {
+  // S3. CONFIGURATION IS CHECKED BEFORE AUTHORISATION, AND BEFORE ANY WORK.
+  //
+  // This read `authHeader !== \`Bearer ${process.env.CRON_SECRET}\``. With the
+  // variable unset the template produced the literal string "Bearer undefined",
+  // so a caller sending exactly that header passed the guard and started the
+  // scraper: live marketplace fetches and `listings` writes, from the public
+  // internet. Measured, not theorised — `Bearer undefined` was admitted while
+  // an absent header and a wrong token were both refused.
+  //
+  // A missing secret is a misconfiguration, never an authorisation. It answers
+  // 503 and returns before the Supabase client is constructed, so no scraper
+  // and no database work can run in that state. The reason code names the
+  // variable; the value is never read into a message, a log line or a response.
+  const cronSecret = process.env.CRON_SECRET
+  if (typeof cronSecret !== 'string' || cronSecret.length === 0) {
+    console.error(
+      JSON.stringify({
+        channel: 'operational',
+        component: 'cron',
+        event: 'cron_secret_not_configured',
+        detail: 'CRON_SECRET is unset or empty; the scrape cron refuses to run',
+      }),
+    )
+    return NextResponse.json({ error: 'cron_not_configured' }, { status: 503 })
+  }
+
   const authHeader = req.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

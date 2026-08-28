@@ -21,7 +21,7 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readdirSync, existsSync } from 'node:fs'
+import { readdirSync, existsSync, readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 
 import {
@@ -320,8 +320,9 @@ test('G7: the server-side product gate exists', () => {
 })
 
 test('G7: machine APIs are not put behind the session gate', () => {
-  // /api/cron/* and /api/webhooks/* have no user session by construction.
-  for (const url of ['/api/cron/scrape', '/api/webhooks/auth']) {
+  // /api/cron/* has no user session by construction. `/api/webhooks/auth` was
+  // the other machine API; S2 deleted it rather than give it a credential.
+  for (const url of ['/api/cron/scrape']) {
     assert.equal(requiresAuth(url), false, `${url} authenticates with its own credential`)
   }
 })
@@ -347,6 +348,71 @@ test('G8: admin routes keep their own in-route authorisation', () => {
   // is the route layer. Neither is allowed to be the only one.
   const helper = join(__dirname, '..', '..', 'frontend', 'lib', 'admin-auth.ts')
   assert.ok(existsSync(helper), 'lib/admin-auth.ts must exist')
+
+  // S1. This test used to stop at "the helper exists", which is exactly the
+  // gap that let six /api/admin/cleanup/** routes ship with a check for A
+  // SESSION and no check for `is_admin` — any signed-in visitor satisfied
+  // them, and they inactivate, merge and insert kg_product rows. The edge
+  // denied them, so nothing was reachable; the route layer was simply absent.
+  // Every admin_api route file must now call the helper itself.
+  const adminRoutes = DISCOVERED.filter(
+    (d) => d.kind === 'route' && d.route.startsWith('/api/admin/'),
+  )
+  assert.ok(adminRoutes.length >= 30, 'admin route discovery looks wrong')
+
+  // The remaining admin routes that still rely on the edge alone. This patch's
+  // scope was the six cleanup routes the security review named; these thirteen
+  // are a pre-existing, separately-scheduled gap. They are PINNED rather than
+  // ignored: the list may shrink, and a fourteenth fails here immediately, so
+  // a newly added admin route cannot join them silently.
+  const KNOWN_EDGE_ONLY = [
+    '/api/admin/match/approve',
+    '/api/admin/match/candidates',
+    '/api/admin/match/search',
+    '/api/admin/msrp',
+    '/api/admin/suggestions',
+    '/api/admin/suggestions/[id]',
+    '/api/admin/suggestions/bulk/approve',
+    '/api/admin/suggestions/bulk/brands',
+    '/api/admin/suggestions/bulk/group',
+    '/api/admin/suggestions/bulk/merge',
+    '/api/admin/suggestions/bulk/reject',
+    '/api/admin/users',
+    '/api/admin/users/[id]',
+  ]
+  const unguarded = adminRoutes
+    .filter((d) => !/requireAdminInRoute\(\)|getCurrentAdminState\(\)/.test(readFileSync(d.file, 'utf8')))
+    .map((d) => d.route)
+    .sort()
+  const unexpected = unguarded.filter((r) => !KNOWN_EDGE_ONLY.includes(r))
+  assert.deepEqual(unexpected, [], 'admin route with no in-route authorisation')
+  assert.ok(
+    unguarded.length <= KNOWN_EDGE_ONLY.length,
+    'the edge-only admin set may shrink, never grow',
+  )
+
+  // The six the security review named, pinned by name so a regression on any
+  // one of them fails with its own path rather than as a count.
+  for (const route of [
+    '/api/admin/cleanup',
+    '/api/admin/cleanup/brands',
+    '/api/admin/cleanup/inactivate',
+    '/api/admin/cleanup/keep',
+    '/api/admin/cleanup/merge',
+    '/api/admin/cleanup/self-clean',
+  ]) {
+    const found = adminRoutes.find((d) => d.route === route)
+    assert.ok(found, `${route} must exist and be discovered`)
+    const src = readFileSync(found!.file, 'utf8')
+    assert.match(src, /requireAdminInRoute\(\)/, `${route} must call requireAdminInRoute()`)
+    // Authorisation before body parsing, before a client, before any work.
+    const guardAt = src.indexOf('await requireAdminInRoute()')
+    for (const later of ['await req.json()', 'getSupabaseAdmin()']) {
+      const at = src.indexOf(later)
+      if (at === -1) continue
+      assert.ok(guardAt < at, `${route}: authorisation must run before ${later}`)
+    }
+  }
 })
 
 test('G8: data-gated routes are gated by the catalogue predicate, not by posture', () => {

@@ -199,7 +199,15 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
    * their own credential in-route: CRON_SECRET, and the Supabase webhook
    * signature. Putting them behind the session gate would break them. */
   { route: '/api/cron/scrape', access: 'machine_api', note: 'dormant; the Vercel cron feature is disabled' },
-  { route: '/api/webhooks/auth', access: 'machine_api' },
+  // S2. `/api/webhooks/auth` used to sit here. It was `machine_api`, so the
+  // edge exempted it from the session gate by design — and it then
+  // authenticated nothing, so any caller could make Klup send an email from
+  // notifications@klup.dk with attacker-controlled text interpolated
+  // unescaped into the HTML, without limit, and have the posted body written
+  // to the platform log. The route is DELETED rather than given a secret: its
+  // only purpose was a signup notification, and this release does not
+  // introduce a replacement webhook protocol. A deleted route carries no
+  // classification, and the §7.7 completeness guard requires its absence.
 ]
 
 /**

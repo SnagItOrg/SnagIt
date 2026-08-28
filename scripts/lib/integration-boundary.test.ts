@@ -93,6 +93,81 @@ test('integration: the three packages\' route classifications all survived', () 
   assert.equal(classifyPath('/api/scrape'), null, '/api/scrape must classify as unknown')
 })
 
+/* ── Production security patch: S2 and S3 ───────────────────────────────── */
+
+/**
+ * Strip comments before asserting on code.
+ *
+ * These files DESCRIBE the escape hatches they refuse to use — "an `as any`
+ * would have compiled, and would have destroyed the only thing this seam is
+ * for" — so a naive substring scan reports the explanation as the violation.
+ */
+function code(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+}
+
+test('security: the unauthenticated auth webhook is gone, not merely gated', () => {
+  // S2. `/api/webhooks/auth` was classified `machine_api`, so the edge exempted
+  // it from the session gate by design — and it then authenticated nothing.
+  // Any caller could make Klup send mail from notifications@klup.dk with
+  // attacker-controlled text interpolated unescaped into the HTML, without
+  // limit, and have the posted body written to the platform log. It is deleted
+  // rather than given a credential; no replacement protocol ships in this
+  // release. With no route file and no classification the path falls through to
+  // Next.js, which answers 404.
+  assert.equal(
+    existsSync(join(FRONTEND, 'app', 'api', 'webhooks')),
+    false,
+    'the webhooks route segment must not exist',
+  )
+  assert.equal(
+    ROUTE_ACCESS.some((r) => r.route.startsWith('/api/webhooks')),
+    false,
+    'a deleted route must carry no classification',
+  )
+  assert.equal(
+    classifyPath('/api/webhooks/auth'),
+    null,
+    'the path must classify as unknown, which is what produces the 404',
+  )
+  // The independently reviewed security reference must not pin a dead route.
+  const reference = readFileSync(join(FRONTEND, 'lib', 'route-posture-reference.json'), 'utf8')
+  assert.equal(reference.includes('/api/webhooks'), false, 'stale entry in the posture reference')
+})
+
+test('security: the cron secret fails closed before any work', () => {
+  // S3. The guard read `authHeader !== \`Bearer ${process.env.CRON_SECRET}\``.
+  // Unset, the template produced the literal "Bearer undefined", so that exact
+  // header passed and started the scraper. Measured: `Bearer undefined` was
+  // admitted while an absent header and a wrong token were both refused.
+  const src = readFileSync(join(FRONTEND, 'app', 'api', 'cron', 'scrape', 'route.ts'), 'utf8')
+
+  const configCheck = src.indexOf("typeof cronSecret !== 'string' || cronSecret.length === 0")
+  const unavailable = src.indexOf("status: 503")
+  const compare = src.indexOf('authHeader !== `Bearer ${cronSecret}`')
+  const firstWork = src.indexOf('getSupabaseAdmin()')
+
+  assert.ok(configCheck > -1, 'the secret must be checked for presence, not just compared')
+  assert.ok(unavailable > -1, 'an unset secret must answer 503')
+  assert.ok(compare > -1, 'the comparison must read the validated local, not process.env')
+  assert.ok(configCheck < compare, 'configuration is checked before authorisation')
+  assert.ok(configCheck < firstWork, 'the refusal happens before any database work')
+  assert.ok(unavailable < firstWork, 'the 503 returns before the Supabase client is constructed')
+
+  // The interpolation that produced "Bearer undefined" must be gone, and the
+  // secret must never reach a log line or a response body. Comments are
+  // stripped first: the guard documents the defect it replaced, quoting the
+  // old expression verbatim, and a raw scan reports that as the violation.
+  assert.equal(
+    code(src).includes('Bearer ${process.env.CRON_SECRET}'),
+    false,
+    'the unset variable must not be interpolated into the expected header',
+  )
+  const logged = src.slice(configCheck, firstWork)
+  assert.equal(logged.includes('cronSecret,'), false, 'the secret value must never be logged')
+  assert.match(logged, /cron_secret_not_configured/)
+})
+
 /* ── Point 3: the regenerated index ──────────────────────────────────────── */
 
 test('integration: the index covers 48 supported identities and 6 families', () => {
@@ -200,17 +275,6 @@ test('integration: the client search page cannot reach the family children', () 
 })
 
 /* ── Point 4: one taxonomy, connected through the real generic ───────────── */
-
-/**
- * Strip comments before asserting on code.
- *
- * These files DESCRIBE the escape hatches they refuse to use — "an `as any`
- * would have compiled, and would have destroyed the only thing this seam is
- * for" — so a naive substring scan reports the explanation as the violation.
- */
-function code(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
-}
 
 test('integration: the analytics seam is WP-5 track(), with no second taxonomy', () => {
   const page = readFileSync(join(FRONTEND, 'app', 'search', 'page.tsx'), 'utf8')

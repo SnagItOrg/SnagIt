@@ -1,13 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
-
-async function requireAuth() {
-  const supabase = createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  return user
-}
+import { requireAdminInRoute } from '@/lib/admin-auth'
 
 type Row = {
   brand_id: string | null
@@ -17,8 +10,18 @@ type Row = {
 // GET /api/admin/cleanup/brands
 // Returns distinct brands with pending product counts
 export async function GET() {
-  const user = await requireAuth()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // S1. Admin authorisation runs FIRST — before the body is parsed, before a
+  // Supabase client is constructed and before any read or write. The edge
+  // classification in lib/route-access.ts already denies non-admins, and it
+  // stays; this is the second layer, so a middleware regression cannot turn a
+  // catalogue-mutating route into an open one.
+  //
+  // It replaces a local `requireAuth()` that checked only for A SESSION. Any
+  // signed-in visitor satisfied it, and these routes inactivate, merge and
+  // insert `kg_product` rows. requireAdminInRoute() is the repository's
+  // existing helper: 401 without a session, 403 without `is_admin`.
+  const denied = await requireAdminInRoute()
+  if (denied) return denied
 
   const admin = getSupabaseAdmin()
   const { data, error } = await admin

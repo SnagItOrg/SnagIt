@@ -85,7 +85,6 @@
     "/api/admin/product/[slug]/synonym/[id]": "admin_api",
 
     "/api/cron/scrape": "machine_api",
-    "/api/webhooks/auth": "machine_api",
 
     "/product/[slug]": "public_page_data_gated",
     "/api/product/[slug]": "public_api_data_gated"

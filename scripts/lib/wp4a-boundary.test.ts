@@ -596,9 +596,26 @@ test('drift: a credential-less CI run of the WP-4 suite FAILS, it does not skip'
  * ------------------------------------------------------------------ */
 
 test('production invariant: WP-4a touches no writer, migration or config', () => {
-  // Tracked changes AND untracked additions: `git diff` alone would not see a
-  // new file, which is exactly how a forbidden path could be added unnoticed.
-  const tracked = execFileSync('git', ['diff', '--name-only', WP4_TIP], { encoding: 'utf8', cwd: ROOT })
+  // SCOPE, CORRECTED AT INTEGRATION. This diffed everything since WP-4's tip,
+  // which is what WP-4a's own branch contained and nothing more. On the
+  // integration branch, later authorised commits land on top of it, so the
+  // same expression reports THEIR files as WP-4a's — it stopped measuring
+  // "what the boundary split touched" and started measuring "what happened
+  // after WP-4". The production security patch legitimately edits
+  // app/api/cron/scrape/route.ts for S3, and this failed on it.
+  //
+  // The invariant itself is worth keeping, so it is scoped to the commit that
+  // performed the split, found by subject because the cherry-pick renumbered
+  // it. Untracked files are still swept: a forbidden path could otherwise be
+  // added without ever entering a commit.
+  const sha = execFileSync(
+    'git',
+    ['log', '--format=%H', '-1', '--grep=^fix: separate search client and server boundaries$'],
+    { encoding: 'utf8', cwd: ROOT },
+  ).trim()
+  const tracked = sha
+    ? execFileSync('git', ['diff', '--name-only', `${sha}^`, sha], { encoding: 'utf8', cwd: ROOT })
+    : execFileSync('git', ['diff', '--name-only', WP4_TIP], { encoding: 'utf8', cwd: ROOT })
   const untracked = execFileSync(
     'git',
     ['ls-files', '--others', '--exclude-standard'],
