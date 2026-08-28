@@ -104,7 +104,7 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
 
   /* ---------------- planned public pages ---------------- */
   { route: '/om-data', access: 'public_page', planned: true, note: 'WP-3' },
-  { route: '/privatliv', access: 'public_page', planned: true, note: 'WP-5 (§12.4.5)' },
+  { route: '/privatliv', access: 'public_page', note: 'WP-5 privacy route (§12.4.5); public in every consent state' },
   { route: '/sitemap.xml', access: 'framework_metadata', planned: true, note: 'WP-3 adds app/sitemap.ts' },
 
   /* ---------------- protected pages ---------------- */
