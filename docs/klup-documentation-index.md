@@ -2,6 +2,14 @@
 
 **The map. Read this before trusting any other document in the repository.**
 
+> **UPDATED 2026-08-28 — Stage 3 V1 is LIVE.** Verdict
+> `STAGE3_V1_LIVE_CRON_HELD`, production `14ee6f8`, rollback `703a117`, tag
+> `klup-stage3-v1-2026-08-28`. **Read
+> [`stage-3-v1-release-record.md`](stage-3-v1-release-record.md) first** — it is
+> the authority on what shipped, what did not (WP-3), the S1–S3 security
+> closure, the still-enabled Supabase auth webhook, and the known non-blockers.
+> The Vercel cron remains **Disabled**.
+
 > **UPDATED 2026-08-26 — the catalogue is ACTIVATED in production.**
 > Migrations **053–057 are all POST**. The launch catalogue is live: 48 supported
 > products (14 public, 34 private), 28 public products in total, monitoring
@@ -46,6 +54,7 @@ against code.
 
 | I need… | Read |
 |---|---|
+| **What is live in production, and what is not** | **[`stage-3-v1-release-record.md`](stage-3-v1-release-record.md)** — Stage 3 V1 closure record |
 | Product thesis and roadmap | [`../CLAUDE.md`](../CLAUDE.md) §1, §9 |
 | Fresh-session technical handover | [`klup-foundation-handover.md`](klup-foundation-handover.md) |
 | Activation runbook | [`klup-foundation-handover.md`](klup-foundation-handover.md) → *Controlled activation sequence* |
@@ -158,6 +167,14 @@ behind a status notice, or listed here with justification.
 ---
 
 ## 8. What the next agent should do
+
+**Start with [`stage-3-v1-release-record.md`](stage-3-v1-release-record.md).**
+Stage 3 V1 is live and closed; the record states the production and rollback
+SHAs, the final catalogue counts, the security closure, the unresolved operator
+actions, and the only next approved work (`visual-foundation-v1`). It also
+records that no further foundation, matcher, migration or product-architecture
+work is authorised.
+
 
 1. Read [`../CLAUDE.md`](../CLAUDE.md).
 2. Read [`klup-foundation-handover.md`](klup-foundation-handover.md), especially
