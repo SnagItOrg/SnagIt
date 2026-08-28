@@ -202,3 +202,199 @@ This document records findings. It changes no application code, no
 configuration, no migration, no database state, no PM2 process and no Vercel
 setting. The Vercel scrape cron remains disabled, and no production deployment
 was created by the branch and worktree setup.
+
+---
+
+# Stage 3 parallel-integration checkpoint — 2026-08-28
+
+**Status: three reviewed package branches pushed and frozen. Integration NOT
+performed.** The next fresh context integrates them and then stops at a product
+-architecture checkpoint before WP-3.
+
+| | |
+|---|---|
+| Shared base | `8e04ffd6c7ec1550b699b7d88f184aa1723c33cf` |
+| `stage3/v1-integration` | `8e04ffd` — **unchanged**, still the shared reviewed base |
+| `main` | `703a117b37e38b8fb68c4d3a9606ce4f4ba126ef` — **unchanged** |
+| WP-2 `stage3/wp2-families` | `75574f8efec641df3beafe33a17a6fcf8983f75b` |
+| WP-4 `stage3/wp4-restricted-search` | `6980129e7fdd8e5c8cf05892ca325fe0aa1991fc` |
+| WP-5 `stage3/wp5-consent-analytics` | `d76a25b673574150931664e5b049ac61f5723a4c` |
+
+Each package branch is exactly one commit on the shared base, clean, pushed
+without force, and reviewed. WP-3 does not exist yet, by design.
+
+---
+
+## 1. PRODUCT-OWNER DECISION — the four-axis gate is the V1 *live-market*
+## boundary, not the permanent public-content boundary
+
+**This is the most important item in this document. Read it before planning WP-3.**
+
+WP-1's four-axis canonical gate — `status='active' AND support_state='supported'
+AND browse_visibility='public' AND browse_domain='music'` — is correct and stays.
+It is what makes it safe for anonymous visitors to read product pages: it
+guarantees that anything presented as a **live market surface** is a product Klup
+actually monitors and can price honestly.
+
+**It was never a statement that the other catalogue entities have no public
+value, and it must not harden into one.**
+
+The evidence is already in production. The Roland Juno-60 page carries a written
+product history, specifications, a sourced image, external references and curated
+related-product relationships. Every one of those is worth reading, and **none of
+them depends on current matcher support**. A visitor researching a Juno-60 is
+served by that page whether or not Klup can quote a price today. Treating "not
+matcher-eligible" as "must not exist publicly" throws away real editorial value
+that has already been paid for.
+
+### The decision
+
+**After integration and before WP-3, stop at a product-architecture checkpoint
+that defines four page modes.** WP-3 must not begin until these are agreed,
+because they determine what a product page *is*.
+
+| Mode | Contains | Must NOT contain |
+|---|---|---|
+| **1. Live canonical** | editorial content · validated price context · eligible listings · watchlist/alert CTA | — |
+| **2. Editorial reference** | reviewed product content (history, specs, images, external references) · approved related-product navigation | **no live-price claim · no listing count · no listings · no monitoring promise** |
+| **3. Family** | navigation only, per §4.2 | never aggregates listings or prices |
+| **4. Hidden** | not publicly reachable | — |
+
+### Binding constraints on that checkpoint
+
+- **The 14 supported+public products remain the live market surface.** Mode 2
+  never acquires a price band, a listing feed, a listing count or an alert CTA.
+  The honesty guarantee is that a price claim implies live monitoring; that link
+  is not negotiable.
+- **A reviewed subset** of additional music products may later become editorial
+  reference pages. Reviewed means a named human approved that specific page's
+  content — not a query, not a tier, not a heuristic.
+- **Do not delete catalogue entities.** The current gate returns 404 for
+  ineligible slugs; that is a routing decision, not a licence to remove rows.
+- **Do not automatically expose all 4,004 rows.** Mode 2 is an allow-list, and
+  the 307 inactive non-music rows are never candidates.
+- **Do not reopen WP-1 or alter the current package commits** to achieve this.
+  The extension is later, controlled, and additive.
+
+### Recorded consequence: related-product breadth is temporarily reduced
+
+WP-1 filters `attributes.related_products` through the full canonical predicate.
+Measured on production 2026-08-27: **10 of the 15 related links authored on
+canonical pages point at products that are not canonical** —
+`roland-alpha-juno-1`, `roland-alpha-juno-2`, `roland-jp-8`, `roland-jp-6`,
+`sequential-prophet-6`, `oberheim-dmx`. Juno-106 keeps 1 of 5 related links;
+Juno-60 keeps 1 of 5; Jupiter-8 keeps 2 of 5.
+
+That filtering is **correct today**: without it those links would 404, which is
+worse than absence. But it is a *symptom* of the missing mode, not a desired end
+state — those six are exactly the kind of product that should become an editorial
+reference page.
+
+**A later controlled eligibility extension may admit approved editorial reference
+pages as related-product targets without weakening live market eligibility.** The
+mechanism must keep the two questions separate:
+
+- *may this page be linked and read?* → canonical **or** approved editorial reference;
+- *may this page make a price claim?* → canonical only.
+
+One predicate answering both is what created the coupling; the extension must not
+recreate it.
+
+---
+
+## 2. Observed product-page defects — WP-3 and matcher-quality requirements
+
+Observed on the live Juno-60 page. Recorded here so they are scheduled rather
+than rediscovered.
+
+### Trust and correctness
+
+| # | Requirement |
+|--:|---|
+| **P1** | **Accessory and spare-part listings must not contaminate primary product listings, listing counts or price bands.** Accessory and parts listings are currently appearing as Juno-60 listings. This is the "parts pollution" class the Reverb FK join was migrated away from, reappearing through the matcher. It corrupts three things at once — the feed a visitor reads, the count shown on browse cards, and the band computed from those rows — so it is a trust defect first and a data defect second. Matcher-quality work, coordinated with WP-3's band. |
+| **P2** | **Asking-price context replaces the excessively broad sold-price range.** The displayed range is too wide to support a decision. This is already the V1 design (§9): asking-price band from Klup's own matched listings, `n ≥ 8`, IQR-trimmed, p25–p75, with a 10× width gate. P1 is a precondition — a band computed over polluted rows will stay too broad however it is calculated. |
+| **P3** | **Price charts require meaningful axes and explanation.** The chart currently has no legible axes and no statement of what it plots. An unlabelled chart of international sold prices next to a Danish asking-price band invites exactly the wrong reading. Axes, units, source and sample size, or the chart does not render. |
+
+### Presentation
+
+| # | Requirement |
+|--:|---|
+| **P4** | **Broken related-product images require fallback handling.** A related-product image is broken today. The product page already has a fallback chain (`hero_image_url ?? image_url ?? neutral asset`); related-product cards need the same, plus an `onError` fallback for a URL that resolves but fails to load. |
+| **P5** | **Product and browse layouts require intrinsic responsive grids.** Desktop composition leaves roughly half the viewport unused. Related-product and content sections must use `auto-fit` / `minmax()` and container queries rather than fixed column counts and fixed breakpoints, so a section fills the space it is given instead of the space it was designed for. |
+
+### Design references
+
+| # | Requirement |
+|--:|---|
+| **P6** | **Factory is the design reference for `/intel`.** Dense, operator-facing, information-first. `/intel` stays admin-only and out of navigation. |
+| **P7** | **Linear informs shared design-system discipline** — spacing scale, type scale, restraint, consistent interactive states. Discipline, not visual imitation. |
+| **P8** | **Public product and browse pages retain a distinct editorial identity.** DM Serif Display headlines, Inter body, the sparse green accent rule. The catalogue is the argument; it must not read as a generic SaaS dashboard. |
+
+---
+
+## 3. Integration instruction for the next fresh context
+
+**Integrate in this order, linearly, no merge commits:**
+
+1. **WP-5** `d76a25b` — consent boundary first; WP-2 and WP-4 both consume `track()`.
+2. **WP-2** `75574f8`
+3. **WP-4** `6980129`
+
+**Then STOP at the product-architecture checkpoint in §1. Do not start WP-3.**
+
+### Registered integration points
+
+| # | Point | Resolution |
+|--:|---|---|
+| 1 | Root `package.json` | Union every required test file exactly once; preserve all 33 scripts. Conflicts on each of WP-2 and WP-4. |
+| 2 | `frontend/lib/route-access.ts` | Merges cleanly (verified). Retain `/privatliv`, `/family/[slug]`, `/api/search/resolve`; `/api/scrape` must remain **absent**. |
+| 3 | Search index | Regenerate **after** WP-2 and WP-4 are both present: `frontend/scripts/build-search-index.ts`. Expected: **48 supported identities + 6 families**. Runtime eligibility stays authoritative; no private result may reach the client. |
+| 4 | WP-4 analytics seam | Replace `useEmit()`'s body with WP-5 `track()`. **Keep the generic signature** `<E extends KlupEventName>(event: E, props: KlupEventMap[E])`. A cast — `as never`, `as any`, or a `Record<string, unknown>` wrapper — silently defeats the check that caught the taxonomy drift. |
+| 5 | Family demand flow | Already implemented in WP-4. Verify: `demand=family:<slug>` renders confirmation, emits `search_unsupported` + `demand_signal_submitted` under granted consent, emits nothing under undecided/rejected, and never redirects to the originating family. |
+| 6 | Tests | Supersede only documented pre-WP-2 assumptions. Do not weaken WP-1 eligibility or posture guards. |
+| 7 | Authority | Correct §15.9: `/family/[slug]` is **`public_page_data_gated`**, not `public_page`. Record the final integration order and bounded resolutions. Retain the pre-release security package as R6-blocking. |
+
+### Verified during the trial integration (not committed)
+
+Cherry-picks applied cleanly in this order; only `package.json` conflicted.
+`route-access.ts` merged with no conflict across all three. After index
+regeneration the combined suite was **406/406 passing, 0 skipped**, frontend
+`tsc` 0 errors, root typecheck 7 (baseline), lint 4 (baseline), production build
+OK, and the full anonymous route sweep passed with 0 mismatches. The trial was
+discarded; the integration itself is unperformed.
+
+---
+
+## 4. Remaining work after integration
+
+1. **Product-architecture checkpoint** (§1) — four page modes. Blocks WP-3.
+2. **WP-3** — server shell, `generateMetadata`, asking-price band, SEO, plus the
+   mandatory conditions in build plan §15.8 (**M2** branded product-segment 404,
+   **L7** no client-fetch soft-404 race) and defects **P1–P8** above.
+3. **Pre-release security package** — R6-blocking, not built by any current
+   package:
+   - **S1** six `/api/admin/cleanup/**` routes must enforce admin in-route;
+   - **S2** `/api/webhooks/auth` needs signature/secret verification with a
+     constant-time comparison and safe output escaping;
+   - **S3** an unset `CRON_SECRET` must fail closed **before** string comparison.
+4. **Four `@r6-confirm` human confirmations** (build plan §12.4.5, §16.6 H) —
+   each removed from the product if it cannot be confirmed:
+   - `privatliv@klup.dk` actually receives mail;
+   - PostHog EU project retention really is 12 months;
+   - the Supabase project region is inside the EU;
+   - the Vercel project region is inside the EU.
+5. **N1–N4, N6** from §Status summary above — still non-blocking.
+
+---
+
+## 5. Operational state at this checkpoint
+
+- `main` and `origin/main`: `703a117`. Not merged into, not deployed.
+- `stage3/v1-integration` and its remote: `8e04ffd`. Unmoved.
+- **The Vercel scrape cron remains DISABLED** at project level.
+  `frontend/vercel.json` is byte-identical across `main` and every stage3 branch
+  — WP-2's `_comment` was withdrawn after review, because a `vercel.json`
+  property is a deployment input and Stage 3 changes none.
+- No production deployment was created. Branch pushes may produce previews;
+  none was promoted or aliased.
+- Every production database access in this checkpoint was a `SELECT`.
