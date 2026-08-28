@@ -1,21 +1,36 @@
 /**
- * The restricted-catalogue resolver.
+ * The restricted-catalogue resolver — SERVER ONLY.
  *
- * Stage 3 WP-4. Implements the supported-search contract in
- * docs/klup-launch-catalogue-selection.md §11, adopted verbatim by the build
- * plan §8.2.
+ * Stage 3 WP-4, boundary corrected in WP-4a. Implements the supported-search
+ * contract in docs/klup-launch-catalogue-selection.md §11, adopted verbatim by
+ * the build plan §8.2.
  *
  * SEARCH IS A RESOLVER, NOT A RESULT PAGE. It answers "which Klup entity do
- * you mean?" and produces exactly one of the outcomes below. It never produces
- * a listing list, never calls a marketplace scraper, and never writes anything
- * (decision 8; build plan §13.3). The previous `/search` ran four live
- * marketplace scrapes per keystroke-submitted query through an unauthenticated
- * write endpoint; none of that survives.
+ * you mean?" and produces exactly one of the outcomes in `./search-contract`.
+ * It never produces a listing list, never calls a marketplace scraper, and
+ * never writes anything (decision 8; build plan §13.3). The previous `/search`
+ * ran four live marketplace scrapes per keystroke-submitted query through an
+ * unauthenticated write endpoint; none of that survives.
  *
- * THIS MODULE IS PURE. It takes a query and an index and returns an outcome.
- * It performs no I/O, so every branch below is unit-testable without a
- * database, and the eligibility re-check that follows it is a separate,
- * explicitly injected step (`filterEligibleSlugs`).
+ * WHY THIS MODULE IS SERVER-ONLY, AND SAYS SO ITSELF.
+ *
+ * It resolves against `./search-index`, which carries all 48 supported
+ * identities — 34 of them UNPUBLISHED. Resolution therefore reads private
+ * catalogue state by construction: it must be able to RECOGNISE a private
+ * product in order to decline it. That is exactly why the answer, not the
+ * index, is what may cross to the browser.
+ *
+ * WP-4 left the client importing this module for its payload builders, and the
+ * value edge to `./search-index` came with it — blanking `/search` on the
+ * server-only guard and putting private slugs in a public chunk. WP-4a moves
+ * the client-safe half to `./search-contract` and adds the guard below, so the
+ * boundary is enforced by this module rather than inherited from its imports.
+ * The guard is defence in depth: `./search-index` keeps its own.
+ *
+ * THIS MODULE IS OTHERWISE PURE. `resolveQuery` takes a query and an index and
+ * returns an outcome; it performs no I/O, so every branch is unit-testable
+ * without a database, and the eligibility re-check is a separate, explicitly
+ * injected step (`filterEligibleSlugs`).
  *
  * ORDER OF RESOLUTION IS THE CONTRACT. Shadow brands are refused before
  * anything else, dangerous terms are refused before synonyms are consulted,
@@ -23,7 +38,13 @@
  * smuggle a blocked term into an auto-navigation.
  */
 
-import type { KlupEventMap } from './analytics'
+// SERVER-ONLY, AND FIRST. ES modules evaluate imports before the importing
+// module's body, so a guard written here would run after ./search-index had
+// already been evaluated — unreachable code that reads like protection. The
+// side-effect import below runs before every import beneath it, so this module
+// refuses a browser on its own terms rather than by inheritance. See
+// ./search-server-only.
+import './search-server-only'
 
 import {
   DANGEROUS_TERM_KEYS,
@@ -39,75 +60,40 @@ import {
   CatalogueUnavailableError,
   loadCanonicalSlugs,
 } from './catalogue'
+import type { SearchCandidate, SearchOutcome } from './search-contract'
 
 /**
- * Six outcomes. Five are the contract's; `no_result` is the contract's
- * `unsupported` with nothing to suggest, split out so the interface can tell a
- * visitor "we do not follow this, here is what we do follow" apart from "we do
- * not follow this, and we have nothing close to offer".
+ * The contract half is DEFINED in ./search-contract and re-exported here.
+ *
+ * Not duplicated: one declaration, two import paths. Server callers and the
+ * WP-4 suite keep importing outcome types and payload builders from this
+ * module; the client imports the same declarations from ./search-contract and
+ * never reaches the index through them.
  */
-export type SearchOutcomeKind =
-  | 'canonical_exact'
-  | 'accepted_alias'
-  | 'disambiguation'
-  | 'dangerous_alias_blocked'
-  | 'unsupported'
-  | 'no_result'
+export {
+  UNSUPPORTED_CLASS_BY_OUTCOME,
+  demandSignalPayload,
+  searchResolvedPayload,
+  searchSubmittedPayload,
+  searchUnsupportedPayload,
+} from './search-contract'
+export type {
+  DemandCaptureMethod,
+  DemandSignalPayload,
+  ResolutionClass,
+  SearchCandidate,
+  SearchEntrySurface,
+  SearchInputMethod,
+  SearchOutcome,
+  SearchOutcomeKind,
+  SearchResolution,
+  SearchResolvedPayload,
+  SearchSubmittedPayload,
+  SearchUnsupportedPayload,
+  TaxonomyResolution,
+  TaxonomyResolutionClass,
+} from './search-contract'
 
-/** The vocabulary `search_resolved.resolution` may carry (build plan §8.2). */
-export type SearchResolution =
-  | 'canonical_exact'
-  | 'accepted_alias'
-  | 'disambiguation'
-  | 'dangerous_alias_blocked'
-  | 'unsupported'
-
-/** `search_unsupported.resolution_class` (measurement spec §10). */
-export type ResolutionClass =
-  | 'unsupported'
-  | 'ambiguous'
-  | 'dangerous_alias_blocked'
-  | 'zero_results_supported'
-
-export interface SearchCandidate {
-  kind: 'product' | 'family'
-  slug: string
-  label: string
-  brand: string
-  /** `/product/<slug>` or `/family/<slug>`. Never anything else. */
-  href: string
-}
-
-export interface SearchOutcome {
-  outcome: SearchOutcomeKind
-  /** The contract vocabulary, for `search_resolved`. */
-  resolution: SearchResolution
-  /** Present only on the unsupported/no-result branches. */
-  resolutionClass: ResolutionClass | null
-  /** Contract-normalised query. The only form that may reach analytics. */
-  queryNorm: string
-  rawTokenCount: number
-  /** Set only when the outcome navigates. Null on every other outcome. */
-  navigateTo: string | null
-  /**
-   * What the navigation target IS, so analytics can name it correctly.
-   *
-   * `search_resolved` must carry `product_slug` for a product and leave it null
-   * for a family (build plan §8.2), with the family named by its own property.
-   * Deriving that from the URL string at the call site invites exactly the
-   * mistake the contract calls out, so the resolver states it.
-   */
-  navigateKind: 'product' | 'family' | null
-  navigateSlug: string | null
-  /** True only when `navigateTo` is set. Guardrail G1 reads this. */
-  autoNavigated: boolean
-  /** Disambiguation set. Empty unless the outcome lists candidates. */
-  candidates: SearchCandidate[]
-  /** Nearest followed products on the unsupported branch. */
-  suggestions: SearchCandidate[]
-  /** True when a reviewed synonym rewrote the term. */
-  viaSynonym: boolean
-}
 
 function href(entity: SearchEntity): string {
   return entity.kind === 'family' ? `/family/${entity.slug}` : `/product/${entity.slug}`
@@ -514,174 +500,3 @@ export function applyEligibility(
   return { ...outcome, candidates, suggestions, navigateTo }
 }
 
-/* ------------------------------------------------------------------ *
- * Analytics payloads — built here, against WP-5's taxonomy
- * ------------------------------------------------------------------ */
-
-/**
- * WHY THE PAYLOADS ARE BUILT IN THIS MODULE AND NOT IN THE PAGE.
- *
- * WP-5 owns `lib/analytics.ts` and its `KlupEventMap` is the whole contract:
- * every property is declared, every enum is a literal union, and `track()` is
- * generic over the map, so an undeclared property or an invented enum value is
- * a compile error rather than a silent taxonomy corruption. WP-4 may not touch
- * that file, and until WP-5 lands it does not exist on this branch — so the
- * only way to be certain WP-4's payloads fit it is to build them somewhere
- * that a plain Node test can import and type-check against a fixture copied
- * verbatim from the WP-5 commit. A React page cannot be imported that way.
- *
- * Nothing here emits. These are pure functions from a resolver outcome to a
- * payload; the page passes the result to the `useEmit()` seam, which WP-5
- * replaces with `track()`.
- */
-
-/**
- * INTEGRATION (registered point 4): every one of these was an independent
- * restatement of a WP-5 union, kept in step by a comment. They are now DERIVED
- * from `KlupEventMap`, so the taxonomy exists in exactly one place and drift is
- * a compile error at the point of construction rather than a silent divergence
- * a reviewer has to notice. The names are unchanged, so no call site moved.
- *
- * `import type` is erased, so this adds no runtime dependency: the resolver
- * still loads no analytics code on the server or in the bundle.
- */
-export type SearchEntrySurface = KlupEventMap['search_submitted']['entry_surface']
-export type SearchInputMethod = KlupEventMap['search_submitted']['input_method']
-export type TaxonomyResolution = KlupEventMap['search_resolved']['resolution']
-export type TaxonomyResolutionClass = KlupEventMap['search_unsupported']['resolution_class']
-export type DemandCaptureMethod = KlupEventMap['demand_signal_submitted']['capture_method']
-
-/**
- * Resolver outcome -> `search_unsupported.resolution_class`.
- *
- * A `Record` over the outcome union rather than a `switch`, because a Record is
- * exhaustive BY CONSTRUCTION: adding a seventh `SearchOutcomeKind` without
- * classifying it here is a compile error, not a value that quietly arrives as
- * null. `resolution_class` is the property the demand log is grouped by, and a
- * null in it would silently drop that demand from every report.
- *
- * The two resolving outcomes map to `null` — they are not misses and never emit
- * this event. `searchUnsupportedPayload` returns null for them, which is how
- * the caller knows not to emit, and TypeScript narrows the survivors so the
- * emitted property can never be null.
- */
-export const UNSUPPORTED_CLASS_BY_OUTCOME: Record<
-  SearchOutcomeKind,
-  TaxonomyResolutionClass | null
-> = {
-  canonical_exact: null,
-  accepted_alias: null,
-  disambiguation: 'ambiguous',
-  dangerous_alias_blocked: 'dangerous_alias_blocked',
-  unsupported: 'unsupported',
-  no_result: 'zero_results_supported',
-}
-
-/**
- * The four event payloads this module builds.
- *
- * INTEGRATION (registered point 4): these were four hand-written interfaces
- * mirroring `KlupEventMap`. Aliasing them removes the duplicate taxonomy
- * outright — a property added, renamed or retyped in WP-5 now fails to compile
- * in the builder below, which is the whole reason the shapes were mirrored in
- * the first place.
- */
-export type SearchSubmittedPayload = KlupEventMap['search_submitted']
-export type SearchResolvedPayload = KlupEventMap['search_resolved']
-export type SearchUnsupportedPayload = KlupEventMap['search_unsupported']
-export type DemandSignalPayload = KlupEventMap['demand_signal_submitted']
-
-/**
- * `search_submitted` — intent, split from outcome.
- *
- * Lengths are derived from the NORMALISED query, not the raw input, so
- * `  TR-808  ` and `tr-808` report the same length and token count. Reporting
- * the raw string would make the metric a measure of typing habits.
- */
-export function searchSubmittedPayload(
-  rawQuery: string,
-  entrySurface: SearchEntrySurface,
-  inputMethod: SearchInputMethod,
-): SearchSubmittedPayload {
-  const norm = queryNorm(rawQuery)
-  return {
-    query_norm: norm,
-    query_length: norm.length,
-    token_count: queryTokens(rawQuery).length,
-    entry_surface: entrySurface,
-    input_method: inputMethod,
-  }
-}
-
-/**
- * `search_resolved` — exactly one per query.
- *
- * PRODUCT AND FAMILY STAY SEPARATE. The taxonomy declares `product_slug` and
- * nothing else, so a family navigation reports `product_slug: null`: a family
- * is a navigation concept with no listings and no price, and counting one as a
- * product view would overstate product engagement with rows that can never
- * carry a price. The finer-grained resolver outcome is not smuggled in as an
- * extra property — `search_unsupported.resolution_class` is the declared place
- * for it, and `via_synonym` is simply dropped because the taxonomy has no
- * field for it.
- */
-export function searchResolvedPayload(
-  outcome: SearchOutcome,
-  latencyMs: number,
-): SearchResolvedPayload {
-  return {
-    query_norm: outcome.queryNorm,
-    resolution: outcome.resolution,
-    candidate_count: outcome.candidates.length,
-    product_slug: outcome.navigateKind === 'product' ? outcome.navigateSlug : null,
-    auto_navigated: outcome.autoNavigated,
-    latency_ms: Math.max(0, Math.round(latencyMs)),
-  }
-}
-
-/**
- * `search_unsupported` — the only demand record V1 has.
- *
- * Returns null for the two resolving outcomes, which do not emit. Every other
- * outcome yields a non-null `resolution_class` by construction.
- *
- * `nearest_distance` is declared nullable and is reported as null: WP-4 ranks
- * candidates by a relevance score, not by a distance metric, and inventing a
- * number that looks like a distance would be worse than admitting there is
- * none.
- */
-export function searchUnsupportedPayload(
-  outcome: SearchOutcome,
-): SearchUnsupportedPayload | null {
-  const resolutionClass = UNSUPPORTED_CLASS_BY_OUTCOME[outcome.outcome]
-  if (resolutionClass === null) return null
-  return {
-    query_norm: outcome.queryNorm,
-    resolution_class: resolutionClass,
-    raw_token_count: outcome.rawTokenCount,
-    suggested_slugs: outcome.suggestions.map((s) => s.slug),
-    suggested_count: outcome.suggestions.length,
-    nearest_distance: null,
-  }
-}
-
-/**
- * `demand_signal_submitted` — intensity.
- *
- * `inline_email` when an address was left in the inline field, `notify_button`
- * when the control was used without one. The address itself never appears:
- * `has_email` is a boolean and the address goes to Supabase through the
- * magic-link path (§8.5, §12.2).
- */
-export function demandSignalPayload(
-  outcome: SearchOutcome,
-  emailAddress: string,
-): DemandSignalPayload {
-  const hasEmail = emailAddress.trim().length > 0
-  return {
-    query_norm: outcome.queryNorm,
-    capture_method: hasEmail ? 'inline_email' : 'notify_button',
-    has_email: hasEmail,
-    suggested_shown: outcome.suggestions.length,
-  }
-}

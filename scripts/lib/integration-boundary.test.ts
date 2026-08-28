@@ -15,7 +15,6 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { NAVIGATION_FAMILIES } from '../../frontend/lib/families'
-import { FAMILY_LABELS, familyLabel } from '../../frontend/lib/family-labels'
 import { ROUTE_ACCESS, classifyPath } from '../../frontend/lib/route-access'
 
 const REPO = join(__dirname, '..', '..')
@@ -40,6 +39,7 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/wp1-route-access.test.ts',
       'scripts/lib/wp2-families.test.ts',
       'scripts/lib/wp4-search.test.ts',
+      'scripts/lib/wp4a-boundary.test.ts',
       'scripts/lib/wp5-consent-analytics.test.ts',
     ],
     'a package suite was dropped or duplicated by a merge resolution',
@@ -155,7 +155,7 @@ test('integration: no private catalogue slug reaches a client bundle', (t) => {
     leaked,
     [],
     'private supported slugs are readable from a client bundle. `lib/families.ts` ' +
-      'must not be reachable at runtime from a client component — see lib/family-labels.ts',
+      'must not be reachable at runtime from a client component — see lib/search-contract.ts',
   )
 
   // The artefact itself carries all 48 supported slugs and is server-only.
@@ -174,7 +174,19 @@ test('integration: the client search page cannot reach the family children', () 
     false,
     'a client component must not import the module holding private child slugs',
   )
-  assert.match(page, /from '@\/lib\/family-labels'/)
+  // WP-4a removed the need for a label module entirely: WP-2's family form
+  // already submits `?q=<family label>`, so the term arrives in the URL.
+  assert.equal(
+    existsSync(join(FRONTEND, 'lib', 'family-labels.ts')),
+    false,
+    'the interim label module is redundant once ?q= carries the term',
+  )
+  assert.equal(
+    /from '@\/lib\/search-resolver'/.test(page),
+    false,
+    'the client must import only the client-safe contract',
+  )
+  assert.match(page, /from '@\/lib\/search-contract'/)
 
   // The indirect edge is what actually leaked: search-resolver -> search-index
   // -> families. It must stay type-only, which is erased at build time.
@@ -185,23 +197,6 @@ test('integration: the client search page cannot reach the family children', () 
     false,
     'search-index.ts must not import family values at runtime',
   )
-})
-
-test('integration: the client-safe labels equal the reviewed family labels', () => {
-  // lib/family-labels.ts exists so a client component never loads the private
-  // children. It must not become a second, drifting source of truth.
-  assert.deepEqual(
-    Object.keys(FAMILY_LABELS).sort(),
-    NAVIGATION_FAMILIES.map((f) => f.slug).sort(),
-  )
-  for (const family of NAVIGATION_FAMILIES) {
-    assert.equal(familyLabel(family.slug), family.label, `label drift: ${family.slug}`)
-  }
-  assert.equal(familyLabel('not-a-family'), null)
-  const source = readFileSync(join(FRONTEND, 'lib', 'family-labels.ts'), 'utf8')
-  for (const child of FAMILY_CHILD_SLUGS) {
-    assert.equal(source.includes(child), false, `a child slug leaked into the label map: ${child}`)
-  }
 })
 
 /* ── Point 4: one taxonomy, connected through the real generic ───────────── */
@@ -227,8 +222,9 @@ test('integration: the analytics seam is WP-5 track(), with no second taxonomy',
   assert.equal(pageCode.includes('posthog'), false, 'the page must not touch the SDK')
   assert.equal(pageCode.includes('SearchEventMap'), false, 'a second event map survives')
 
+  const contract = readFileSync(join(FRONTEND, 'lib', 'search-contract.ts'), 'utf8')
+  assert.match(contract, /import type \{ KlupEventMap \} from '\.\/analytics'/)
   const resolver = readFileSync(join(FRONTEND, 'lib', 'search-resolver.ts'), 'utf8')
-  assert.match(resolver, /import type \{ KlupEventMap \} from '\.\/analytics'/)
 
   // No cast or suppression anywhere in the seam, and no untyped payload in the
   // page. The resolver's own Supabase row cast is server-side and unrelated,
@@ -239,12 +235,20 @@ test('integration: the analytics seam is WP-5 track(), with no second taxonomy',
   }
   assert.equal(pageCode.includes('Record<string, unknown>'), false, 'no untyped payload escape')
 
-  const payloadSection = code(resolver).slice(code(resolver).indexOf('SearchSubmittedPayload'))
-  assert.equal(
-    payloadSection.includes('Record<string, unknown>'),
-    false,
-    'a payload builder fell back to a loose record',
-  )
+  for (const escape of ['as never', 'as any', '@ts-ignore', '@ts-expect-error', 'Record<string, unknown>']) {
+    assert.equal(code(contract).includes(escape), false, `"${escape}" is not permitted in the contract`)
+  }
+  // One taxonomy: the contract derives, it does not restate.
+  for (const derived of [
+    "export type SearchSubmittedPayload = KlupEventMap['search_submitted']",
+    "export type SearchResolvedPayload = KlupEventMap['search_resolved']",
+    "export type SearchUnsupportedPayload = KlupEventMap['search_unsupported']",
+    "export type DemandSignalPayload = KlupEventMap['demand_signal_submitted']",
+    "export type SearchEntrySurface = KlupEventMap['search_submitted']['entry_surface']",
+    "export type TaxonomyResolution = KlupEventMap['search_resolved']['resolution']",
+  ]) {
+    assert.ok(contract.includes(derived), `not derived from the taxonomy: ${derived}`)
+  }
 })
 
 /* ── Point 5: the family demand marker survives both packages ────────────── */

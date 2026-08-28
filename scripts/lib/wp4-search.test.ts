@@ -781,19 +781,21 @@ test('demand mode: the submitted/thanks state is rendered', () => {
 })
 
 test('demand mode: the field is pre-filled with the family term', () => {
-  // SUPERSEDED AT INTEGRATION — the behaviour is unchanged, the source of the
-  // label moved. This asserted `getFamily(demandFamilySlug)?.label`, i.e. the
-  // client reading `lib/families.ts`. Once WP-2 filled that module with the
-  // families' `children` arrays, importing it from a client component shipped
-  // ten qa_only product slugs to every anonymous visitor of /search. The label
-  // now comes from `lib/family-labels.ts`, which holds no private data.
+  // AMENDED BY WP-4a. This asserted `getFamily(demandFamilySlug)?.label`, which
+  // pinned the very import that broke the page: `lib/families.ts` carries the
+  // private child slugs of unpublished products, so reading it from a client
+  // component put a family child list in a public chunk. The BEHAVIOUR is
+  // unchanged and is what is asserted now — WP-2's family form already submits
+  // `?q=<family label>`, so the label still seeds the field, and `?q=` was
+  // already preferred over the config lookup before the split.
+  assert.equal(PAGE_SRC.includes('getFamily('), false, 'the client must not read family config')
   assert.ok(
-    PAGE_SRC.includes('familyLabel(demandFamilySlug)'),
-    'the family label should seed the input so the visitor can refine it',
+    PAGE_SRC.includes('initialQuery || familyTermFromSlug(demandFamilySlug)'),
+    'the family term should seed the input so the visitor can refine it',
   )
   assert.ok(
-    PAGE_SRC.includes("import { familyLabel } from '@/lib/family-labels'"),
-    'the label must come from the client-safe module',
+    PAGE_SRC.includes('initialQuery || familyPrefill'),
+    '?q= remains the source of the seeded term',
   )
   assert.equal(
     /from '@\/lib\/families'/.test(PAGE_SRC),
@@ -804,10 +806,15 @@ test('demand mode: the field is pre-filled with the family term', () => {
 
 test('demand mode: an unknown family slug still captures demand safely', () => {
   const builder = PAGE_SRC.slice(
-    PAGE_SRC.indexOf('function familyDemandOutcome'),
+    PAGE_SRC.indexOf('function familyTermFromSlug'),
     PAGE_SRC.indexOf('function useEmit'),
   )
-  assert.ok(builder.includes('?? familySlug.replace'), 'a fabricated slug must not break the page')
+  // AMENDED BY WP-4a: same guarantee, expressed without the config lookup.
+  assert.ok(builder.includes("familySlug.replace(/-/g, ' ')"), 'a fabricated slug must not break the page')
+  assert.ok(
+    builder.includes('displayTerm.trim().length > 0 ? displayTerm.trim() : familyTermFromSlug'),
+    'a missing display term must still yield a usable capture',
+  )
 })
 
 /* ------------------------------------------------------------------ *
