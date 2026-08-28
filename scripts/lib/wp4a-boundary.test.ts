@@ -180,6 +180,14 @@ test('boundary: /search reaches only client-safe modules of our own', () => {
     'lib/query-normalizer.ts',
     'lib/supabase-browser.ts',
     'lib/i18n.ts',
+    // INTEGRATION: WP-5's analytics entry point and the two pure modules it
+    // reads. `/search` reaches them through `track()`, which is the whole point
+    // of the seam. None touches the catalogue: `consent.ts` is a preference
+    // store and `route-access.ts` is the classification table the middleware
+    // already ships. WP-4a could not list them — WP-5 did not exist on its base.
+    'lib/analytics.ts',
+    'lib/consent.ts',
+    'lib/route-access.ts',
     'components/SideNav.tsx',
     'components/BottomNav.tsx',
     'components/LocaleProvider.tsx',
@@ -197,7 +205,16 @@ test('boundary: the client imports the contract, and the contract imports no cat
 
   const contract = readFileSync(join(FRONTEND, 'lib', 'search-contract.ts'), 'utf8')
   const { value } = importEdges(contract)
-  assert.deepEqual(value, ['./model-key'], 'the contract may depend on normalisation and nothing else')
+  // INTEGRATION: `./analytics` joins the list as a TYPE-ONLY import, which is
+  // erased at build time, so the contract still pulls no runtime module beyond
+  // normalisation. It is what makes the payload types derived rather than a
+  // second copy of WP-5's taxonomy.
+  assert.deepEqual(
+    value,
+    ['./analytics', './model-key'],
+    'the contract may depend on normalisation and the WP-5 taxonomy, and nothing else',
+  )
+  assert.match(contract, /import type \{ KlupEventMap \} from '\.\/analytics'/)
 })
 
 /* ------------------------------------------------------------------ *
@@ -305,17 +322,47 @@ test('no duplication: the WP-5 analytics taxonomy is referenced, never redefined
     const hits = [...contract.matchAll(new RegExp(`export type ${name} =`, 'g'))]
     assert.equal(hits.length, 1, `${name} must be declared exactly once`)
   }
-  assert.equal(contract.includes("from './analytics'"), false, 'WP-5 owns lib/analytics.ts')
+  // INTEGRATION: WP-4a asserted the contract must NOT import './analytics',
+  // because on its base WP-5 did not exist and any mention would have been a
+  // copy. WP-5 is present now, so the same intent — one taxonomy, owned by
+  // WP-5 — is asserted the stronger way: every union is DERIVED from
+  // `KlupEventMap`, so a literal restatement cannot survive.
+  assert.match(contract, /import type \{ KlupEventMap \} from '\.\/analytics'/)
+  for (const derived of [
+    "export type SearchEntrySurface = KlupEventMap['search_submitted']['entry_surface']",
+    "export type SearchInputMethod = KlupEventMap['search_submitted']['input_method']",
+    "export type TaxonomyResolution = KlupEventMap['search_resolved']['resolution']",
+    "export type TaxonomyResolutionClass = KlupEventMap['search_unsupported']['resolution_class']",
+    "export type DemandCaptureMethod = KlupEventMap['demand_signal_submitted']['capture_method']",
+    "export type SearchSubmittedPayload = KlupEventMap['search_submitted']",
+    "export type SearchResolvedPayload = KlupEventMap['search_resolved']",
+    "export type SearchUnsupportedPayload = KlupEventMap['search_unsupported']",
+    "export type DemandSignalPayload = KlupEventMap['demand_signal_submitted']",
+  ]) {
+    assert.ok(contract.includes(derived), `not derived from WP-5's taxonomy: ${derived}`)
+  }
+  assert.equal(
+    /export type (SearchEntrySurface|SearchInputMethod|DemandCaptureMethod) = '/.test(contract),
+    false,
+    'a literal union survives alongside the derivation',
+  )
 })
 
 test('typed analytics boundary: no cast or suppression survives the split', () => {
+  // INTEGRATION: comments are stripped first. WP-5's seam on /search explains
+  // that an `as never` or an `as any` would have compiled and would have
+  // destroyed the check the seam exists for, so a raw substring scan reports
+  // the explanation as the violation.
+  const stripComments = (src: string) =>
+    src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+
   for (const mod of ['lib/search-contract.ts', 'lib/search-resolver.ts']) {
-    const src = readFileSync(join(FRONTEND, mod), 'utf8')
+    const src = stripComments(readFileSync(join(FRONTEND, mod), 'utf8'))
     for (const escape of ['as never', 'as any', '@ts-ignore', '@ts-expect-error']) {
       assert.equal(src.includes(escape), false, `"${escape}" is not permitted in ${mod}`)
     }
   }
-  const page = readFileSync(join(FRONTEND, 'app', 'search', 'page.tsx'), 'utf8')
+  const page = stripComments(readFileSync(join(FRONTEND, 'app', 'search', 'page.tsx'), 'utf8'))
   for (const escape of ['as never', 'as any', '@ts-ignore', '@ts-expect-error']) {
     assert.equal(page.includes(escape), false, `"${escape}" is not permitted on /search`)
   }

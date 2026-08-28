@@ -16,9 +16,6 @@ import {
   type SearchCandidate,
   type SearchInputMethod,
   type SearchOutcome,
-  type SearchResolvedPayload,
-  type SearchSubmittedPayload,
-  type SearchUnsupportedPayload,
 } from '@/lib/search-contract'
 
 /**

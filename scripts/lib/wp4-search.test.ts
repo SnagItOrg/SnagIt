@@ -1709,10 +1709,12 @@ test('integration: the payload shapes are WP-5 taxonomy, not a copy of it', () =
   // and kept them in step with comments. Integration replaced every one with a
   // derivation, so the taxonomy is declared exactly once and drift is a
   // compile error rather than a review burden.
-  const src = readSource('lib', 'search-resolver.ts')
+  // WP-4a moved the payload builders to lib/search-contract.ts, the
+  // client-safe half of the split. The derivation moved with them.
+  const src = readSource('lib', 'search-contract.ts')
   assert.ok(
     src.includes("import type { KlupEventMap } from './analytics'"),
-    'the resolver must derive its payloads from the single taxonomy',
+    'the contract must derive its payloads from the single taxonomy',
   )
   for (const derived of [
     "export type SearchSubmittedPayload = KlupEventMap['search_submitted']",
