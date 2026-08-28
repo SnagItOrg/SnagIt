@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { requiresAdmin, requiresAuth } from '@/lib/route-access'
+import { familyRedirectTarget } from '@/lib/families'
 
 // Per-IP rate limit for /api/scrape only. The route is unauthenticated and
 // performs DB writes, so any caller can otherwise drive scraper + DB load by
@@ -61,6 +62,23 @@ export async function middleware(request: NextRequest) {
         { status: 429, headers: { 'Retry-After': '60' } },
       )
     }
+  }
+
+  // Stage 3 WP-2 (bounded edit): the six legacy family-label rows 308 to their
+  // navigation route. They are public kg_product rows that behave as priced
+  // products today, aggregating listings across variants whose markets differ
+  // by more than 3x. They are not canonical products, so without this they
+  // would 404 at the eligibility gate.
+  //
+  // Ahead of the auth client on purpose: a permanent redirect is not a
+  // permissions decision and must not depend on a session lookup.
+  //
+  // The map is derived from lib/families.ts, never restated here, so it cannot
+  // drift from the routes it points at. app/product/[slug]/layout.tsx applies
+  // the same rule from the same module as defence in depth.
+  const familyTarget = familyRedirectTarget(request.nextUrl.pathname)
+  if (familyTarget) {
+    return NextResponse.redirect(new URL(familyTarget, request.url), 308)
   }
 
   let supabaseResponse = NextResponse.next({ request })

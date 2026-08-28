@@ -70,6 +70,14 @@ export default function AdminProductsPage() {
     await fetch(`/api/admin/products/${product.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
+      // `monitoring` is the PATCH route's declaration token for the tier axis —
+      // a historical name kept because FIELD_AXIS is that route's axis mapping,
+      // which Stage 3 WP-2 may not change (build plan §15.2). Declaring it does
+      // NOT change marketplace monitoring: tier stopped being a scraper selector
+      // in 04B, and the query sets live in data/klup-source-monitoring.json.
+      // Sending ['metadata'] here today would be rejected as `undeclared_axis`.
+      // Renaming the axis on both sides is the bounded follow-up recorded in the
+      // WP-2 hand-off.
       body: JSON.stringify({ tier: nextTier, intent: ['monitoring'] }),
     })
     setProducts((prev) =>
@@ -125,6 +133,7 @@ export default function AdminProductsPage() {
       </div>
       <p className="text-sm mb-6" style={{ color: 'var(--muted-foreground)' }}>
         Sæt tier, browse visibility og årstal. Tom søgning viser legendary-produkter.
+        Tier er redaktionelt og ændrer ikke overvågning.
       </p>
 
       <div className="flex gap-3 mb-6">
@@ -170,7 +179,7 @@ export default function AdminProductsPage() {
                 disabled={saving === p.id}
                 className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-opacity disabled:opacity-50 flex items-center gap-1"
                 style={TIER_STYLE[p.tier]}
-                title="Klik for at skifte tier"
+                title="Klik for at skifte tier (redaktionelt — ændrer ikke overvågning)"
               >
                 {p.tier === 'legendary' && (
                   <span className="material-symbols-outlined" style={{ fontSize: 11 }}>workspace_premium</span>

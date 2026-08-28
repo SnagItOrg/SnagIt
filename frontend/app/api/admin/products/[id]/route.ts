@@ -17,16 +17,23 @@ import { getCurrentAdminState } from '@/lib/admin-auth'
  *   editorial   kg_product.tier              legendary | classic | standard
  *
  * `tier` is an EDITORIAL classification (migration 031) — carousel, badges,
- * browse ranking, /intel filter. It is ALSO, today, the implicit selector four
- * scrapers use to decide what to query, so an editorial change silently changes
- * marketplace monitoring. Those two consequences are reported separately here;
- * the query sets themselves are documented in data/klup-source-monitoring.json.
+ * browse ranking, /intel filter. That is ALL it is. It is NOT a scraper
+ * selector: the tier/monitoring coupling was removed in Prompt 04B, and all
+ * four scrapers now resolve their query sets through monitoredSlugs() /
+ * assertResolved() against data/klup-source-monitoring.json — reviewed code
+ * that no runtime surface, including this route, may widen.
+ *
+ * CHANGING TIER HERE CHANGES NO MARKETPLACE MONITORING. This comment and the
+ * consequence text below said the opposite until Stage 3 WP-2. Wrong operator
+ * guidance on a write path is worse than none.
  *
  * The contract now enforced here:
  *   - every request must name the axes it intends to change (`intent`);
- *   - changing monitoring (`tier`) or visibility (`browse_visibility`) requires
- *     that axis to be named explicitly, so neither can ride along with a
- *     support promotion;
+ *   - changing tier or visibility (`browse_visibility`) requires that axis to be
+ *     named explicitly, so neither can ride along with a support promotion. The
+ *     axis token for `tier` is still `monitoring` — a historical name, kept
+ *     because renaming it is an axis-mapping change this package may not make.
+ *     It gates declaration only; it asserts no monitoring effect;
  *   - `?dryRun=1` returns the same decision and the same before/after manifest
  *     WITHOUT writing, so a change can be previewed;
  *   - every applied change returns a before/after manifest naming the affected
@@ -43,17 +50,14 @@ const TIERS          = ['legendary', 'classic', 'standard'] as const
 /**
  * `tier` is an EDITORIAL classification (migration 031): it drives the homepage
  * "Legendarisk gear" carousel, the product-page and admin badges, browse
- * ranking and the /intel filter. That is its established meaning.
+ * ranking and the /intel filter. That is its whole meaning.
  *
- * SEPARATELY, four scrapers currently use it as an implicit query selector, so
- * an editorial change today also changes marketplace monitoring. Those sets are
- * documented explicitly in `data/klup-source-monitoring.json`. Until a
- * separately authorised task migrates the scrapers to read that manifest, this
- * route reports the two consequences as DISTINCT axes so an editorial promotion
- * can never look monitoring-neutral when it is not.
+ * The two constants that used to live here — a set of "selector tiers" and a
+ * list of sources said to select on tier — encoded a coupling that no longer
+ * exists and are deleted rather than kept as commentary. Marketplace monitoring
+ * is controlled by THIS file only:
  */
-const MONITORING_SELECTOR_TIERS = new Set(['legendary', 'classic'])
-const SOURCES_SELECTING_ON_TIER = 'dba.dk, finn, blocket, kleinanzeigen'
+const MONITORING_BOUNDARY = 'data/klup-source-monitoring.json'
 
 type Axis = 'support' | 'visibility' | 'monitoring' | 'metadata'
 
@@ -77,12 +81,14 @@ function consequence(axis: Axis, from: unknown, to: unknown): string {
         ? 'Product page becomes publicly visible in browse. Matcher eligibility and marketplace monitoring are unchanged.'
         : 'Product page leaves public browse. Matcher eligibility and marketplace monitoring are unchanged.'
     case 'monitoring': {
-      // Two independent consequences, always reported separately.
-      const editorial = `EDITORIAL: tier '${String(from)}' -> '${String(to)}' changes carousel, badge and browse ranking.`
-      const was = MONITORING_SELECTOR_TIERS.has(String(from)), now = MONITORING_SELECTOR_TIERS.has(String(to))
-      if (!was && now) return `${editorial} MONITORING EXPANDS: because ${SOURCES_SELECTING_ON_TIER} currently select on tier, this product joins those query sets on their next run.`
-      if (was && !now) return `${editorial} MONITORING SHRINKS: this product leaves the ${SOURCES_SELECTING_ON_TIER} query sets.`
-      return `${editorial} MONITORING UNCHANGED: both tiers fall on the same side of the scraper selectors.`
+      // One consequence, because tier now has exactly one. No scraper reads
+      // tier: the coupling was removed in 04B and every source resolves its
+      // query set from the monitoring boundary instead.
+      return (
+        `EDITORIAL: tier '${String(from)}' -> '${String(to)}' changes carousel, badge and browse ranking. ` +
+        `MONITORING UNCHANGED: tier is not a scraper selector. Marketplace monitoring is controlled ` +
+        `by ${MONITORING_BOUNDARY} and is not changed by this request.`
+      )
     }
     default:
       return 'Metadata only. No matcher, visibility or monitoring effect.'
@@ -179,11 +185,11 @@ export async function PATCH(
     dry_run: dryRun,
     axes_touched: Array.from(touched),
     changes,
-    // Editorial classification and source monitoring are reported separately
-    // even though one field currently drives both.
+    // Editorial classification and source monitoring are separate concerns and
+    // separate mechanisms. Shape unchanged; only the description was false.
     axis_semantics: {
-      tier: 'editorial classification (migration 031); ALSO an implicit scraper selector today',
-      monitoring_boundary: 'data/klup-source-monitoring.json',
+      tier: 'editorial classification (migration 031) only; NOT a scraper selector since 04B',
+      monitoring_boundary: MONITORING_BOUNDARY,
     },
     unchanged_axes: {
       identity:   before.status,
