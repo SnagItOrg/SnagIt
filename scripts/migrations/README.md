@@ -17,7 +17,8 @@ These are raw `.sql` files applied manually via the Supabase Studio SQL editor
 
 > **These are applied. This section is a record, not a queue.** It was headed
 > "Active queue" until 2026-08-13; the heading was wrong and is corrected here.
-> The current pending queue is **053–056** (see the end of this file).
+> **There is no pending queue.** Everything through 057 is applied — see the
+> 053–056 and 057 sections at the end of this file.
 
 | File | Action | Notes |
 |---|---|---|
@@ -176,13 +177,16 @@ fixes for what they did and why.
 
 ---
 
-## 053–056 — PENDING. This is the current queue. (2026-08-13)
+## 053–056 — APPLIED in production 2026-08-26. Record, not a queue.
 
-**None of these has been applied.** All four are `PRE`. They are the reviewed
-activation package and must be applied **strictly in order**, only after the
-operator prerequisites in
+**All four are `POST`.** They were applied strictly in order on 2026-08-26,
+under the operator prerequisites recorded in
 [`../../docs/klup-foundation-handover.md`](../../docs/klup-foundation-handover.md)
-are met.
+→ *Activation record — 2026-08-26*. Verified post-activation counts are in
+[`../../docs/stage-3-v1-release-record.md`](../../docs/stage-3-v1-release-record.md) §4.
+
+This section is the authoring and rollback record. Re-applying any of these is
+an explicit `POST` no-op, but there is no reason to touch these files.
 
 | # | File | Rollback | Scope |
 |---|---|---|---|
@@ -202,10 +206,12 @@ successful no-op, DRIFT raises before any mutation.
 assertions share a single `BEGIN`/`COMMIT`, so there is no committable
 intermediate state in which the matcher has zero supported products. An earlier
 split (056 schema + 057 data + a psql wrapper) was **retired before deployment**
-for exactly that reason; `057_*.sql` and `056_057_release.sql` no longer exist.
+for exactly that reason; that split's `057_*.sql` and `056_057_release.sql` no
+longer exist. The number 057 was later reused by an unrelated migration — see
+*057* below.
 
 
-## 057 — release-security correction (2026-08-26). APPLIED? NO — pending.
+## 057 — release-security correction. APPLIED in production 2026-08-26 — `POST`.
 
 `057_restrict_release_archive_tables.sql` closes an exposure created by 053/054
 themselves. Their nine archive / mapping tables live in `public`, which is served

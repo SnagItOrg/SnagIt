@@ -110,9 +110,13 @@ parallel promotion tool. Coverage across the frozen 48: 3 articles, 29 images,
 | 054 | `054_identifier_curation.sql` | unsafe identifier removal |
 | 055 | `055_listing_ingestion_identity.sql` | immutable ingestion identity |
 | 056 | `056_activation_package.sql` | **atomic**: support schema + 34 brands + 142 products + exactly 48 promotions + assertions |
+| 057 | `057_restrict_release_archive_tables.sql` | deny-all RLS on the nine 053/054 archive tables |
 
 Each has a rollback and PRE/POST/DRIFT handling. **056 is one transaction** —
 there is no intermediate state with zero supported products.
+[`scripts/migrations/README.md`](scripts/migrations/README.md) is the per-file
+record; [`docs/stage-3-v1-release-record.md`](docs/stage-3-v1-release-record.md)
+§4 carries the verified post-activation counts.
 
 **No migration or import runs casually.** Applying anything requires the
 operator prerequisites in §8 and an explicit product-owner decision.
@@ -124,22 +128,25 @@ is. The importer remains the clean-import path for a fresh database only.
 ## 6. Safe verification commands and current baseline
 
 ```bash
-npm test                                     # 148 tests, 148 pass, 0 fail
-npx tsc --noEmit -p frontend/tsconfig.json   # 0 errors
-cd frontend && npm run lint                  # 4 pre-existing warnings (app/layout.tsx)
-npm run typecheck                            # EXACTLY 7 pre-existing errors — any 8th is yours
-bash scripts/verify-migrations-isolated.sh   # 81 PASS, disposable local cluster
+npm test                                     # root suite
+npx tsc --noEmit -p frontend/tsconfig.json   # frontend types
+cd frontend && npm run lint                  # frontend lint
+npm run typecheck                            # root types — a pre-existing error baseline
+bash scripts/verify-migrations-isolated.sh   # migrations, disposable local cluster
 npm run validate-activation                  # artefacts + disposition + migration reproduce exactly
 ```
 
-**`npm run report-match-backlog` now succeeds** — 056 is applied. Its
-order-independence probe covers the forced-supported ~3,697-product projection,
-not the live path; the live 48 are deterministic.
+**Run the commands; do not trust a written total.** Pass/fail counts belong to
+the run, not to this file — the numbers previously recorded here went stale
+across three releases. The last verified pre-deploy gate is recorded in
+[`docs/stage-3-v1-release-record.md`](docs/stage-3-v1-release-record.md) §3.
 
-The seven root type-check errors are pre-existing and deliberately unfixed:
-`schibsted.ts` TS2353 · `scripts/lib/baseline.ts` TS2352 · `scripts/match-listings.ts`
-TS2345 (dual `@supabase/supabase-js` install) · `scripts/process-reverb-data.ts` ×3 ·
-`scripts/scrape-vintagesynth.ts` TS2304.
+These need dependencies installed (`npm install` at the root and in `frontend/`).
+A fresh worktree has none, so `npm run typecheck` reports `tsc: command not
+found` and a few root tests fail on a missing `node_modules/.bin/tsx` — those
+are environment failures, not regressions. The root type-check carries a
+pre-existing error baseline that is deliberately unfixed; establish it before
+you change anything and compare against your own run.
 
 ---
 
@@ -147,9 +154,13 @@ TS2345 (dual `@supabase/supabase-js` install) · `scripts/process-reverb-data.ts
 
 **Production is SELECT-only by default.** Any write needs explicit authorisation.
 
-**The working tree is intentionally dirty** and carries all accepted Prompt
-02→04B work, mostly untracked. Preserve it. `.agents/`, `.mcp.json` and
-`skills-lock.json` are pre-existing and must never be modified or committed.
+**Ten worktrees share this repository.** Check `git worktree list` and stay in
+the one you were given. The stash stack is shared — never bare `git stash` /
+`git stash pop`; prefer a WIP commit.
+
+`.agents/`, `.mcp.json` and `skills-lock.json` exist **only in the main checkout**
+(`/Users/panter/Workspace/SnagIt`), untracked and never committed. They are not
+present in the worktrees. Leave them alone and do not add them to git.
 
 **Never, without explicit authorisation:**
 - commit, push or deploy;
@@ -188,8 +199,13 @@ The sequence lives in the handover, not here. Do not attempt it from a coding se
 
 ## 9. What comes next
 
-**Stage 3: experience specification.** Canonical product pages, navigation
-families and restricted search over the frozen 48.
+**Stage 3 V1 is closed.** It shipped to production on 2026-08-28 at release
+`14ee6f8` (verdict `STAGE3_V1_LIVE_CRON_HELD`); see
+[`docs/stage-3-v1-release-record.md`](docs/stage-3-v1-release-record.md).
+Current work happens on **`visual-foundation-v1`**, beginning with semantic
+colour, elevation and typography tokens.
+
+The taxonomy Stage 3 established, which still holds:
 
 - Product families (`Fender Stratocaster`) are **navigation concepts** — they
   group children but never aggregate listings or prices.
@@ -201,7 +217,8 @@ families and restricted search over the frozen 48.
 
 **No further foundation, matcher, KG or product-data implementation branch is
 authorised.** Historical population is later, product-scoped, dry-run-first and
-separately authorised.
+separately authorised. WP-3 and the P1–P8 backlog remain unauthorised until a
+product owner schedules them — release record §10 and §11.
 
 > **Scope gate.** Before opening any new foundation work, state in writing:
 > (1) which measured defect it fixes, with evidence; (2) what it costs in delay
