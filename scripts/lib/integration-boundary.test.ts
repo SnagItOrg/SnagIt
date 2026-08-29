@@ -34,6 +34,7 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/baseline.test.ts',
       'scripts/lib/data-presentation.test.ts',
       'scripts/lib/integration-boundary.test.ts',
+      'scripts/lib/intel-overview.test.ts',
       // Added by the Kleinanzeigen price recovery: the shared card-price
       // extractor is the only thing standing between a discounted ad and a
       // listing with no price, so it carries its own suite.

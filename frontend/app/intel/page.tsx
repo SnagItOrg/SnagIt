@@ -8,11 +8,19 @@ import {
   type IntelProduct,
   type Market,
   type MarketStats,
+  type Trend,
+  type TrendPoint,
 } from './types'
 
 export const dynamic = 'force-dynamic'
 
 type ProductRow = { id: string; canonical_name: string }
+
+type SoldCompRow = {
+  kg_product_id: string | null
+  price: number | string | null
+  sold_at: string | null
+}
 
 type MatchWithListing = {
   product_id: string
@@ -102,6 +110,40 @@ async function loadIntelData(): Promise<IntelData> {
     throw new Error(`Failed to load matched listings: ${matchesError.message}`)
   }
 
+  // The one dated per-product price series that exists.
+  //
+  // The correct basis for a historical market level is market_price_daily
+  // (migration 041, layer 3). It is EMPTY in production and nothing in this
+  // repository writes to it, so there is no 30-day market-level series to
+  // draw — see the Trend type. reverb_price_history is real, dated, already
+  // normalised to DKK and already trusted by the public product page, so it is
+  // what the trend slot shows, labelled for exactly what it is: US sold comps.
+  //
+  // Deliberately NOT aggregated into a median here. market_price_observations
+  // is an event log that over-weights listings which changed price, and the
+  // same objection applies to any median taken outside layer 3.
+  const { data: soldComps, error: soldCompsError } = await admin
+    .from('reverb_price_history')
+    .select('kg_product_id, price, sold_at')
+    .in('kg_product_id', productIds)
+    .not('sold_at', 'is', null)
+    .order('sold_at', { ascending: true })
+    .limit(2000)
+
+  if (soldCompsError) {
+    throw new Error(`Failed to load sold comps: ${soldCompsError.message}`)
+  }
+
+  const trends = new Map<string, TrendPoint[]>()
+  for (const row of (soldComps ?? []) as SoldCompRow[]) {
+    if (!row.kg_product_id || !row.sold_at) continue
+    const price = toNumber(row.price)
+    if (price == null || price <= 0) continue
+    const list = trends.get(row.kg_product_id)
+    if (list) list.push({ at: row.sold_at, price_dkk: price })
+    else trends.set(row.kg_product_id, [{ at: row.sold_at, price_dkk: price }])
+  }
+
   const matchRows = (matches ?? []) as unknown as MatchWithListing[]
 
   const grouped = new Map<string, IntelListing[]>()
@@ -157,9 +199,16 @@ async function loadIntelData(): Promise<IntelData> {
     const cheapestForeign = foreignMedians.length > 0 ? Math.min(...foreignMedians) : null
     const best_delta = dk != null && cheapestForeign != null ? dk - cheapestForeign : null
 
+    const trendPoints = trends.get(p.id) ?? []
+    const trend: Trend | null =
+      trendPoints.length > 0
+        ? { points: trendPoints, source: 'reverb', priceType: 'sold', market: 'US' }
+        : null
+
     return {
       id: p.id,
       canonical_name: p.canonical_name,
+      trend,
       markets,
       listings,
       delta_dk_de: delta(markets.DE.median),
