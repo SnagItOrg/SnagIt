@@ -409,13 +409,20 @@
     overflow-wrap: anywhere;
     word-break: normal;
   }
+
+  /* A grid item defaults to min-width:auto, so it refuses to shrink below its
+     content and pushes the track past the container the min() floor was meant
+     to respect. This is the actual fix the page-level overflow guard was
+     hiding. Scoped to these five utilities — not a global rule. */
+  .grid-hero > *,
+  .grid-bento > *,
+  .grid-fluid > *,
+  .grid-fluid-sm > *,
+  .grid-fluid-lg > * {
+    min-width: 0;
+  }
 }
 
-/* Nothing may scroll the page sideways. */
-html,
-body {
-  overflow-x: hidden;
-}
 
 @layer utilities {
   /* Was a symmetric glow. Now a real downward cast. */

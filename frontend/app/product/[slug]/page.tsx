@@ -300,7 +300,7 @@ export default function ProductPage() {
                     <span className="material-symbols-outlined" style={{ fontSize: 12 }}>open_in_new</span>
                     Prisdata fra Reverb
                   </a>
-                  <div className="h-28 w-full">
+                  <div className="h-28 w-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={priceHistory} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
                         <defs>
@@ -364,9 +364,9 @@ export default function ProductPage() {
                           {Object.entries(product.attributes!.specs!)
                             .filter(([k, v]) => k !== '_source' && v !== '' && v !== null && v !== undefined)
                             .map(([key, value]) => (
-                              <div key={key} className="flex justify-between gap-4 py-2.5">
-                                <dt className="text-sm text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</dt>
-                                <dd className="text-sm text-foreground text-right">
+                              <div key={key} className="flex justify-between gap-4 py-2.5 min-w-0">
+                                <dt className="text-sm text-muted-foreground capitalize min-w-0">{key.replace(/_/g, ' ')}</dt>
+                                <dd className="text-sm text-foreground text-right min-w-0 wrap-anywhere">
                                   {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
                                 </dd>
                               </div>
@@ -393,9 +393,9 @@ export default function ProductPage() {
                                   <div className="w-px flex-1 bg-border my-1" />
                                 )}
                               </div>
-                              <div className="pb-5 pt-1.5">
-                                <p className="text-sm font-semibold text-foreground leading-tight">{milestone.title}</p>
-                                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{milestone.body}</p>
+                              <div className="pb-5 pt-1.5 min-w-0">
+                                <p className="text-sm font-semibold text-foreground leading-tight wrap-anywhere">{milestone.title}</p>
+                                <p className="text-sm text-muted-foreground mt-1 leading-relaxed wrap-anywhere">{milestone.body}</p>
                               </div>
                             </div>
                           ))}
