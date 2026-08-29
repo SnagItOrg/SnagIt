@@ -21,9 +21,36 @@ export type MarketStats = {
   max: number | null
 }
 
+/**
+ * One real, dated price observation. There is no synthesised point in here:
+ * if a product has no rows, the series is empty and the UI says so.
+ */
+export type TrendPoint = {
+  at: string
+  price_dkk: number
+}
+
+/**
+ * What the trend series actually is, stated rather than implied.
+ *
+ * `market_price_daily` (migration 041) is the only correct basis for "the
+ * market level on date X", and it holds zero rows in production — nothing in
+ * this repository writes to it. So the one dated per-product price series that
+ * exists is Reverb's sold comps, already normalised to DKK and already trusted
+ * by the public product page. It is US sold-comp evidence spanning years, NOT
+ * a 30-day DK market level, and every label on it says so.
+ */
+export type Trend = {
+  points: TrendPoint[]
+  source: 'reverb'
+  priceType: 'sold'
+  market: Market
+}
+
 export type IntelProduct = {
   id: string
   canonical_name: string
+  trend: Trend | null
   markets: Record<Market, MarketStats>
   listings: IntelListing[]
   delta_dk_de: number | null
