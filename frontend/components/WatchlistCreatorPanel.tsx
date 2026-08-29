@@ -47,7 +47,7 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
         className="flex items-center justify-between px-8 py-5 border-b"
         style={{ borderColor: 'var(--border)' }}
       >
-        <h2 className="text-xl font-black tracking-tight">Ny overvågning</h2>
+        <h2 className="type-heading">Ny overvågning</h2>
         <button
           onClick={onClose}
           className="flex items-center justify-center w-9 h-9 rounded-xl transition-colors hover:bg-secondary"
@@ -113,7 +113,7 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
                   >
                     Maksimalpris
                   </label>
-                  <div className="text-2xl font-black">
+                  <div className="text-2xl font-semibold tabular-nums">
                     <span style={{ color: 'var(--foreground)' }}>
                       {maxPrice === MAX_WATCHLIST_PRICE
                         ? `${maxPrice.toLocaleString('da-DK')}+`
@@ -160,7 +160,7 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
               <button
                 onClick={handleSave}
                 disabled={saving || !query.trim()}
-                className="w-full py-4 rounded-2xl font-black text-lg tracking-tight transition-all flex items-center justify-center gap-2 group disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full py-4 rounded-2xl font-semibold text-base transition-all flex items-center justify-center gap-2 group disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   backgroundColor: 'var(--primary)',
                   color:           'var(--primary-foreground)',

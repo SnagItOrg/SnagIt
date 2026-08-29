@@ -138,11 +138,11 @@ export default async function FamilyPage({ params }: { params: { slug: string } 
       style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
     >
       <div className="mx-auto flex w-full max-w-2xl flex-col">
-        <p className="text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="type-label">
           {family.brand}
         </p>
 
-        <h1 className="mt-2 text-3xl md:text-4xl" style={{ fontFamily: '"DM Serif Display", serif' }}>
+        <h1 className="type-title mt-2">
           {family.label}
         </h1>
 

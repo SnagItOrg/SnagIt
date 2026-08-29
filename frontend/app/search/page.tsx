@@ -305,8 +305,8 @@ function SearchPageInner() {
 
       <div className="flex-1 min-w-0 flex flex-col md:ml-60">
         <div className="px-4 pt-6 pb-2 md:px-8">
-          <h1 className="text-xl font-black text-foreground">{t.searchPageHeading}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t.searchPageSubtext}</p>
+          <h1 className="type-heading">{t.searchPageHeading}</h1>
+          <p className="type-meta mt-1">{t.searchPageSubtext}</p>
         </div>
 
         <div className="sticky top-0 z-30 w-full bg-bg border-b border-border px-4 py-3 md:px-8">

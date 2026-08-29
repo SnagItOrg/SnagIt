@@ -238,7 +238,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
           <div className="flex justify-between items-start gap-2">
             <p className="text-sm font-semibold text-foreground flex-1 line-clamp-2 min-h-[2.5rem]">{listing.title}</p>
             <div className="flex flex-col items-end flex-shrink-0">
-              <p className="text-sm font-black text-foreground">{priceFormatted}</p>
+              <p className="text-sm font-semibold text-foreground tabular-nums">{priceFormatted}</p>
               {dkkApprox && (
                 <p className="text-[10px] text-muted-foreground leading-tight">{dkkApprox}</p>
               )}
@@ -294,7 +294,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
         <div className="flex-1 min-w-0 flex flex-col gap-1">
           <p className="text-sm font-semibold text-foreground truncate">{listing.title}</p>
           <div className="flex items-baseline gap-2 min-w-0">
-            <p className="text-base font-black truncate" style={{ color: 'var(--foreground)' }}>
+            <p className="text-base font-semibold truncate tabular-nums" style={{ color: 'var(--foreground)' }}>
               {priceFormatted}
             </p>
             {dkkApprox && (

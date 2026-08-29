@@ -28,7 +28,7 @@ export default function NotFound() {
     >
       <h1
         className="text-3xl md:text-4xl"
-        style={{ fontFamily: '"DM Serif Display", serif' }}
+        style={{ fontFamily: 'var(--font-dm-serif), "DM Serif Display", serif' }}
       >
         {t.notFoundHeading}
       </h1>

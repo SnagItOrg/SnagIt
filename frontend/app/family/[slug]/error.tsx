@@ -39,7 +39,7 @@ export default function FamilyError({
       className="min-h-screen flex flex-col items-center justify-center px-6 text-center"
       style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
     >
-      <h1 className="text-3xl md:text-4xl" style={{ fontFamily: '"DM Serif Display", serif' }}>
+      <h1 className="type-title">
         {t.errorHeading}
       </h1>
 

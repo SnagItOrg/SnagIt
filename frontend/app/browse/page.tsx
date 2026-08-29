@@ -76,13 +76,10 @@ function BrowsePageInner() {
 
         <div className="px-4 pt-6 pb-4 md:px-8 md:pt-8 flex items-start justify-between gap-4">
           <div>
-            <h1
-              className="text-3xl md:text-4xl font-semibold"
-              style={{ fontFamily: '"DM Serif Display", serif', color: 'var(--foreground)' }}
-            >
+            <h1 className="type-title">
               {t.browseHeading}
             </h1>
-            <p className="mt-1 text-sm" style={{ color: 'var(--muted-foreground)' }}>
+            <p className="mt-1 type-meta">
               {t.browseSubtext}
             </p>
           </div>
@@ -145,10 +142,7 @@ function BrowsePageInner() {
                 />
                 {/* Text */}
                 <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <p
-                    className="text-lg font-semibold leading-tight text-white"
-                    style={{ fontFamily: '"DM Serif Display", serif' }}
-                  >
+                  <p className="type-card-title text-lg text-white">
                     {locale === 'da' ? cat.name_da : cat.name_en}
                   </p>
                 </div>

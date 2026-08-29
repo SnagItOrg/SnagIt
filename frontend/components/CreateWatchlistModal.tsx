@@ -79,7 +79,7 @@ export function CreateWatchlistModal({ isOpen, onClose, onConfirm, initialQuery 
               <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 Maksimum pris
               </label>
-              <span className="text-lg font-black text-foreground">
+              <span className="type-heading">
                 {atMax
                   ? <>100K+ <span className="text-sm font-bold text-muted-foreground">DKK</span></>
                   : <>{maxPrice.toLocaleString('da-DK')} <span className="text-sm font-bold text-muted-foreground">DKK</span></>
@@ -109,7 +109,7 @@ export function CreateWatchlistModal({ isOpen, onClose, onConfirm, initialQuery 
           <button
             onClick={handleConfirm}
             disabled={!query.trim() || creating}
-            className="w-full py-4 rounded-2xl font-black text-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full py-4 rounded-2xl font-semibold text-base transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
           >
             {creating ? '…' : 'Start jagten ⚡'}

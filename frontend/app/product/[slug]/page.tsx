@@ -206,7 +206,7 @@ export default function ProductPage() {
                       </p>
                     )}
                     <div className="flex items-start gap-2 flex-wrap">
-                      <h1 className="text-2xl font-bold leading-tight text-foreground">
+                      <h1 className="type-title text-[1.75rem] md:text-[2.125rem] leading-tight">
                         {product.canonical_name}
                       </h1>
                       {product.tier && product.tier !== 'standard' && (

@@ -104,7 +104,7 @@ export function SideNav({ active, onChange }: Props) {
           <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
           </div>
-          <span className="text-xl font-black tracking-tight">Klup.dk</span>
+          <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
         </div>
       </div>
 

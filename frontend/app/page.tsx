@@ -47,7 +47,7 @@ export default function LandingPage() {
           >
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
           </div>
-          <span className="text-xl font-black tracking-tight">Klup.dk</span>
+          <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
         </div>
       </header>
 
@@ -55,7 +55,7 @@ export default function LandingPage() {
         {/* Search section */}
         <div className="flex flex-col items-center text-center px-6 pt-12 pb-10">
           <div className="w-full max-w-2xl flex flex-col items-center">
-            <h1 className="font-black text-5xl md:text-7xl text-foreground tracking-tight">
+            <h1 className="type-display">
               {t.headline}
             </h1>
             <p className="text-lg mt-3 text-muted-foreground">
@@ -86,7 +86,7 @@ export default function LandingPage() {
               </div>
               <button
                 type="submit"
-                className="w-full mt-3 rounded-2xl px-8 py-4 text-lg font-black transition-opacity hover:opacity-90 active:opacity-100"
+                className="w-full mt-3 rounded-2xl px-8 py-4 text-base font-semibold transition-opacity hover:opacity-90 active:opacity-100"
                 style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
               >
                 {t.search}
@@ -99,13 +99,10 @@ export default function LandingPage() {
         {legendary.length > 0 && (
           <section className="mb-10">
             <div className="px-6 mb-4 flex items-baseline gap-3">
-              <h2
-                className="text-xl font-semibold"
-                style={{ fontFamily: '"DM Serif Display", serif', color: 'var(--foreground)' }}
-              >
+              <h2 className="type-card-title text-xl">
                 {t.discoverLegendaryHeading}
               </h2>
-              <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+              <span className="type-meta">
                 {t.discoverLegendarySubtext}
               </span>
             </div>
@@ -131,13 +128,10 @@ export default function LandingPage() {
         {popular.length > 0 && (
           <section className="mb-10">
             <div className="px-6 mb-4 flex items-baseline gap-3">
-              <h2
-                className="text-xl font-semibold"
-                style={{ fontFamily: '"DM Serif Display", serif', color: 'var(--foreground)' }}
-              >
+              <h2 className="type-card-title text-xl">
                 {t.discoverPopularHeading}
               </h2>
-              <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+              <span className="type-meta">
                 {t.discoverPopularSubtext}
               </span>
             </div>

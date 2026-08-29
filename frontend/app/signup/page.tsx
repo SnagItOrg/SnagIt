@@ -81,7 +81,7 @@ export default function SignupPage() {
                 mark_email_read
               </span>
               <div>
-                <h1 className="text-3xl font-black tracking-tight mb-2">
+                <h1 className="type-title mb-2">
                   {t.checkInbox}
                 </h1>
                 <p style={{ color: 'var(--muted-foreground)' }}>
@@ -96,7 +96,7 @@ export default function SignupPage() {
             <>
               {/* Heading */}
               <div className="text-center mb-10">
-                <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-3">
+                <h1 className="type-display mb-3">
                   {t.createAccount}
                 </h1>
                 <p className="text-base" style={{ color: 'var(--muted-foreground)' }}>
@@ -169,7 +169,7 @@ export default function SignupPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-5 rounded-2xl font-black text-xl tracking-tight transition-all flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-5 rounded-2xl font-semibold text-lg transition-all flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                       backgroundColor: 'var(--primary)',
                       color: 'var(--primary-foreground)',

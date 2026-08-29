@@ -36,12 +36,11 @@ export function ProductCard({
       >
         <div className="min-w-0">
           <p
-            className="text-sm font-semibold truncate"
-            style={{ fontFamily: 'var(--font-dm-serif, "DM Serif Display", serif)', color: 'var(--foreground)' }}
+            className="type-card-title truncate"
           >
             {canonicalName}
           </p>
-          <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--muted-foreground)' }}>
+          <p className="type-meta mt-0.5 truncate">
             {subcategoryName}
           </p>
         </div>
@@ -103,12 +102,11 @@ export function ProductCard({
       {/* Text area */}
       <div className="p-3 flex flex-col gap-0.5">
         <p
-          className="text-sm font-semibold leading-snug"
-          style={{ fontFamily: '"DM Serif Display", serif', color: 'var(--foreground)' }}
+          className="type-card-title"
         >
           {canonicalName}
         </p>
-        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="type-meta">
           {brandName}
         </p>
       </div>

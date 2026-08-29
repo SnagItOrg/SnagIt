@@ -105,9 +105,9 @@ export default function LoginPage() {
         <div className="flex flex-col gap-2 text-center">
           <div className="flex items-center justify-center gap-2">
             <span className="text-2xl">🎯</span>
-            <span className="text-xl font-black">Klup.dk</span>
+            <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
           </div>
-          <h1 className="text-2xl font-bold">{t.welcomeBack}</h1>
+          <h1 className="type-title text-[1.75rem]">{t.welcomeBack}</h1>
           <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
             {t.loginSubheading}
           </p>
@@ -211,7 +211,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl text-sm font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
               {loading ? t.loginLoading : t.loginButton}
@@ -274,7 +274,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl text-sm font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
               {loading ? t.loginLoading : t.sendLoginLink}

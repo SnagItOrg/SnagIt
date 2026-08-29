@@ -135,10 +135,7 @@ const RETENTION: Array<{ what: string; how_long: string }> = [
 function Section({ heading, children }: { heading: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2
-        className="text-xl"
-        style={{ fontFamily: '"DM Serif Display", serif', color: 'var(--foreground)' }}
-      >
+      <h2 className="type-card-title text-xl">
         {heading}
       </h2>
       {children}
@@ -162,17 +159,14 @@ export default function PrivacyPage() {
 
   return (
     <main
-      className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10 md:px-8"
+      className="mx-auto flex w-full max-w-[68ch] flex-col gap-10 px-4 py-10 md:px-8"
       style={{ color: 'var(--foreground)' }}
     >
       <header className="flex flex-col gap-3">
-        <h1
-          className="text-3xl md:text-4xl"
-          style={{ fontFamily: '"DM Serif Display", serif' }}
-        >
+        <h1 className="type-title">
           {t.privacyTitle}
         </h1>
-        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="type-body-secondary">
           Klup følger brugte instrumenter og studieudstyr på fem markedspladser og viser, hvad
           de faktisk koster. Denne side siger konkret, hvem der behandler hvilke data, hvorfor,
           hvor længe og hvor. Den er den samme, uanset om du har sagt ja eller nej til måling.
@@ -185,7 +179,7 @@ export default function PrivacyPage() {
           {PROCESSORS.map((processor) => (
             <div key={processor.name} className="flex flex-col gap-1 py-3">
               <p className="text-sm font-semibold">{processor.name}</p>
-              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+              <p className="type-body-secondary">
                 {processor.role}
               </p>
               <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
@@ -197,7 +191,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section heading={t.privacyPurposeHeading}>
-        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="type-body-secondary">
           De fem første behandlere ovenfor er nødvendige for at levere tjenesten: uden dem er der
           ingen side, intet login og ingen mail. De to måleværktøjer har ét formål —
           produktforbedring — og de kører kun, hvis du siger ja. De to ting er ikke bundtet:
@@ -226,7 +220,7 @@ export default function PrivacyPage() {
           {RETENTION.map((row) => (
             <div key={row.what} className="flex flex-col gap-1 py-3">
               <p className="text-sm font-semibold">{row.what}</p>
-              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+              <p className="type-body-secondary">
                 {row.how_long}
               </p>
             </div>
@@ -235,7 +229,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section heading="Hvor data ligger">
-        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="type-body-secondary">
           PostHog kører på EU-hosting. Det er ikke en hensigt, men en regel i koden: Klup
           accepterer kun en EU-vært, og hvis den mangler eller peger et andet sted hen, starter
           målingen slet ikke. Der findes ingen amerikansk reserve — en manglende indstilling kan
@@ -244,7 +238,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section heading={t.privacyRightsHeading}>
-        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="type-body-secondary">
           Du kan skifte mening når som helst, her på siden eller nederst på enhver side.
         </p>
 
@@ -309,7 +303,7 @@ export default function PrivacyPage() {
           </div>
         </div>
 
-        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="type-body-secondary">
           Vil du have din konto og alt indhold slettet, eller vil du vide hvilke data der ligger
           om dig, så skriv til{' '}
           <a
@@ -324,7 +318,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section heading="Hvad Klup ikke er">
-        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="type-body-secondary">
           Klup sælger ingenting, formidler ingen handler og tager ikke imod betaling. Der er
           ingen annoncer på Klup, og der bliver ikke delt data med de markedspladser, Klup
           følger. Klup køber ikke data om dig og sælger ikke data om dig.
@@ -332,7 +326,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section heading={t.privacyContactHeading}>
-        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+        <p className="type-body-secondary">
           <a
             href={`mailto:${PRIVACY_CONTACT_EMAIL}`}
             className="underline underline-offset-2"
