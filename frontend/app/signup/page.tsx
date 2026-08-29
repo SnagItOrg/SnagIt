@@ -163,7 +163,7 @@ export default function SignupPage() {
 
                   {error && (
                     <div
-                      className="rounded-xl px-4 py-3 text-sm text-red-400"
+                      className="rounded-xl px-4 py-3 text-sm text-destructive-text"
                       style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}
                     >
                       {error}

@@ -178,7 +178,7 @@ export default function LoginPage() {
 
             {error && (
               <div className="flex flex-col gap-0">
-                <p className="text-sm text-red-500">{error}</p>
+                <p className="text-sm text-destructive-text">{error}</p>
                 {passwordLoginFailed && (
                   <div
                     className="rounded-xl p-3 mt-2 flex flex-col gap-2"

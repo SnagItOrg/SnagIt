@@ -164,7 +164,7 @@ export default function EditWatchlistPage() {
 
                   {error && (
                     <div
-                      className="rounded-xl px-4 py-3 text-sm text-red-400"
+                      className="rounded-xl px-4 py-3 text-sm text-destructive-text"
                       style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}
                     >
                       {error}
@@ -194,7 +194,7 @@ export default function EditWatchlistPage() {
                   {/* Delete */}
                   <button
                     onClick={handleDeleteWatchlist}
-                    className="w-full py-3 rounded-xl text-sm font-medium transition-colors border border-red-500/30 text-red-400 hover:border-red-500/60"
+                    className="w-full py-3 rounded-xl text-sm font-medium transition-colors border border-destructive-border text-destructive-text hover:border-destructive"
                   >
                     Slet overvågning
                   </button>

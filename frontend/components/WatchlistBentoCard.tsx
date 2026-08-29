@@ -80,7 +80,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
       onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
       className={`relative flex flex-col rounded-2xl border bg-card cursor-pointer transition-all duration-200 ${
         confirming
-          ? 'border-red-500/40'
+          ? 'border-destructive-border'
           : 'border-border/60 hover:border-border active:border-border'
       }`}
       style={{ aspectRatio: '4/3' }}
@@ -108,7 +108,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
 
         {/* Red overlay in confirm state */}
         {confirming && (
-          <div className="absolute inset-0 bg-red-500/10 pointer-events-none" />
+          <div className="absolute inset-0 bg-destructive-subtle pointer-events-none" />
         )}
       </div>
 
@@ -123,7 +123,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
                   e.stopPropagation()
                   onDelete(watchlist.id)
                 }}
-                className="flex-1 py-1.5 min-h-[44px] rounded-lg bg-red-500/80 hover:bg-red-500 text-white text-sm font-bold transition-colors"
+                className="flex-1 py-1.5 min-h-[44px] rounded-lg bg-destructive hover:bg-destructive-hover text-destructive-foreground text-sm font-bold transition-colors"
               >
                 Ja, slet
               </button>
@@ -184,7 +184,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
                   setMenuOpen(false)
                   setConfirming(true)
                 }}
-                className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-red-400 hover:bg-secondary transition-colors"
+                className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-destructive-text hover:bg-secondary transition-colors"
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
                 Slet

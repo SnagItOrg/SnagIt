@@ -10,6 +10,46 @@
 - Follow the sparse accent rule: `var(--accent)` only for Kup-rating and Aktiv badge
 - Reference design.panter.media for component patterns
 
+### Tokens — `app/globals.css`
+
+Literal colours are written **once**, in the `--ramp-*` block. Everything else
+is an alias. Add a semantic alias; never add a second literal.
+
+| Group | Tokens |
+|---|---|
+| Canvas / surfaces | `--canvas` · `--surface-1` · `--surface-2` · `--surface-3` · `--surface-raised` |
+| Borders | `--border-subtle` · `--border-strong` |
+| Text | `--text-primary` · `--text-secondary` · `--text-muted` |
+| Accent | `--accent` · `--accent-hover` · `--accent-text` · `--accent-subtle` · `--accent-border` · `--accent-foreground` |
+| Destructive | `--destructive` · `--destructive-hover` · `--destructive-text` · `--destructive-subtle` · `--destructive-border` · `--destructive-foreground` |
+| Focus | `--ring` · `--ring-width` · `--ring-offset-width` |
+| Elevation | `--rim` · `--shadow-1..3` · `--elevation-card` / `-raised` / `-overlay` |
+
+Tailwind exposes these as `bg-canvas`, `bg-surface-1..3`, `bg-surface-raised`,
+`border-line` / `border-line-strong`, `text-ink` / `-secondary` / `-muted`,
+`text-accent-text`, `bg-destructive-subtle`, and `shadow-card` / `-raised` /
+`-overlay`. Legacy names (`--background`, `--card`, `--muted-foreground`, …)
+are aliases onto the same ramp and keep working.
+
+**Neutrals are cool, not grey.** The ramp is blue/violet-biased (B runs 7–20
+above R). Do not introduce an achromatic `#1a1a1a`-style neutral.
+
+**Elevation is downward.** `--rim` (the illuminated top edge) composes first,
+then a tight contact shadow and a wider cast. No symmetric glow, no
+glassmorphism, no decorative gradient.
+
+**Green is damped in dark mode** (`#16d96b`, not `#13ec6d`) because the brand
+green halates against the dark canvas. Both are the Aktiv/Kup-rating colour;
+the light theme keeps the brand value.
+
+**Focus is a floor.** `:focus-visible` sets `outline` with `!important` in
+`globals.css` so a `focus:outline-none` utility can never suppress the keyboard
+ring. Components may add their own box-shadow ring on top.
+
+**Destructive states use the destructive tokens.** No raw `red-*` utilities.
+(The saved/favourite heart in `SearchResultCard` is a saved-state signal, not a
+destructive action, and is deliberately not a destructive token.)
+
 ## Design rules — non-negotiable
 
 **Green accent `#13ec6d`:** ONLY on Kup-rating stars and "Aktiv" badges.

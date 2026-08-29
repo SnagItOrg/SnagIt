@@ -2,48 +2,170 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Klup visual foundation — colour, contrast and elevation tokens
+   --------------------------------------------------------------------------
+   Two layers:
+     1. RAMP     — the only place a literal colour is written.
+     2. SEMANTIC — everything the product consumes. Legacy names are kept and
+                   aliased onto the ramp so existing components inherit the new
+                   foundation without being rewritten.
+
+   The neutral ramp is intentionally blue/violet-biased (B channel runs 7-20
+   above R) rather than achromatic, so surfaces read as cool material instead
+   of flat concrete. Every body-text pair below meets WCAG AA.
+   ========================================================================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #111111;
-  --card: #ffffff;
-  --card-foreground: #111111;
-  --card-border: #e5e5e5;
-  --primary: #111111;
-  --primary-foreground: #ffffff;
-  --secondary: #f5f5f5;
-  --secondary-foreground: #111111;
-  --muted: #f5f5f5;
-  --muted-foreground: #737373;
-  --accent: #13ec6d;
-  --accent-foreground: #062912;
-  --border: #e5e5e5;
-  --input-background: #f5f5f5;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --ring: #111111;
+  /* --- ramp: light ------------------------------------------------------ */
+  --ramp-canvas:    #f2f5f9;
+  --ramp-1:         #ffffff;
+  --ramp-2:         #eaeef5;
+  --ramp-3:         #dfe5ee;
+  --ramp-raised:    #ffffff;
+
+  --ramp-line:      #e1e6ef;
+  --ramp-line-str:  #848da0;
+
+  --ramp-ink:       #0d1017;
+  --ramp-ink-2:     #3e4757;
+  --ramp-ink-3:     #5a6377;
+
+  --ramp-green:     #13ec6d;
+  --ramp-green-hi:  #0bd25e;
+  --ramp-green-ink: #0a7c41;
+  --ramp-green-on:  #062912;
+
+  --ramp-red:       #dc2626;
+  --ramp-red-hi:    #b91c1c;
+  --ramp-red-ink:   #c81e1e;
+  --ramp-red-on:    #ffffff;
+
+  --ramp-focus:     #1f6feb;
+
+  /* shadow ink — cool, not neutral black */
+  --shadow-ink:     15 23 42;
+
+  /* --- semantic: surfaces ---------------------------------------------- */
+  --canvas:          var(--ramp-canvas);
+  --surface-1:       var(--ramp-1);
+  --surface-2:       var(--ramp-2);
+  --surface-3:       var(--ramp-3);
+  --surface-raised:  var(--ramp-raised);
+
+  /* --- semantic: borders ------------------------------------------------ */
+  --border-subtle:   var(--ramp-line);
+  --border-strong:   var(--ramp-line-str);
+
+  /* --- semantic: text --------------------------------------------------- */
+  --text-primary:    var(--ramp-ink);
+  --text-secondary:  var(--ramp-ink-2);
+  --text-muted:      var(--ramp-ink-3);
+
+  /* --- semantic: accent (sparse — signals and actions only) ------------- */
+  --accent-hover:      var(--ramp-green-hi);
+  --accent-text:       var(--ramp-green-ink);
+  --accent-subtle:     rgb(19 236 109 / 0.10);
+  --accent-border:     rgb(19 236 109 / 0.32);
+
+  /* --- semantic: destructive -------------------------------------------- */
+  --destructive-hover: var(--ramp-red-hi);
+  --destructive-text:  var(--ramp-red-ink);
+  --destructive-subtle: rgb(220 38 38 / 0.09);
+  --destructive-border: rgb(220 38 38 / 0.30);
+
+  /* --- semantic: focus --------------------------------------------------- */
+  --ring:            var(--ramp-focus);
+  --ring-offset:     var(--canvas);
+  --ring-width:      2px;
+  --ring-offset-width: 2px;
+
+  /* --- elevation --------------------------------------------------------
+     Downward and physically plausible: a tight contact shadow plus a wider,
+     softer cast. Never a symmetric glow. `--rim` is the illuminated top edge
+     of a raised surface and is always composed first. */
+  --rim:       inset 0 1px 0 0 rgb(255 255 255 / 0.75);
+  --shadow-1:  0 1px 2px -1px rgb(var(--shadow-ink) / 0.10),
+               0 1px 3px 0    rgb(var(--shadow-ink) / 0.07);
+  --shadow-2:  0 2px 4px -2px rgb(var(--shadow-ink) / 0.12),
+               0 8px 16px -6px rgb(var(--shadow-ink) / 0.12);
+  --shadow-3:  0 6px 12px -4px rgb(var(--shadow-ink) / 0.14),
+               0 24px 44px -16px rgb(var(--shadow-ink) / 0.20);
+
+  --elevation-card:    var(--rim), var(--shadow-1);
+  --elevation-raised:  var(--rim), var(--shadow-2);
+  --elevation-overlay: var(--rim), var(--shadow-3);
+
+  /* --- legacy aliases — kept so components need no rewrite -------------- */
+  --background:            var(--canvas);
+  --foreground:            var(--text-primary);
+  --card:                  var(--surface-1);
+  --card-foreground:       var(--text-primary);
+  --card-border:           var(--border-subtle);
+  --primary:               var(--ramp-ink);
+  --primary-foreground:    var(--ramp-1);
+  --secondary:             var(--surface-2);
+  --secondary-foreground:  var(--text-primary);
+  --muted:                 var(--surface-2);
+  --muted-foreground:      var(--text-muted);
+  --accent:                var(--ramp-green);
+  --accent-foreground:     var(--ramp-green-on);
+  --border:                var(--border-subtle);
+  --input-background:      var(--surface-3);
+  --destructive:           var(--ramp-red);
+  --destructive-foreground: var(--ramp-red-on);
   --radius: 0.625rem;
 }
 
 .dark {
-  --background: #1a1a1a;
-  --foreground: #f5f5f5;
-  --card: #242424;
-  --card-foreground: #f5f5f5;
-  --card-border: #333333;
-  --primary: #f5f5f5;
-  --primary-foreground: #1a1a1a;
-  --secondary: #2e2e2e;
-  --secondary-foreground: #f5f5f5;
-  --muted: #2e2e2e;
-  --muted-foreground: #a3a3a3;
-  --accent: #13ec6d;
-  --accent-foreground: #062912;
-  --border: #333333;
-  --input-background: #2e2e2e;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --ring: #f5f5f5;
-  --radius: 0.625rem;
+  /* --- ramp: dark ------------------------------------------------------- */
+  --ramp-canvas:    #090b10;
+  --ramp-1:         #14171f;
+  --ramp-2:         #1b1f2a;
+  --ramp-3:         #232834;
+  --ramp-raised:    #2a303e;
+
+  --ramp-line:      #242a36;
+  --ramp-line-str:  #5b6478;
+
+  --ramp-ink:       #eef0f6;
+  --ramp-ink-2:     #b4bbcb;
+  --ramp-ink-3:     #8b93a6;
+
+  /* Damped one step from the brand green: full #13ec6d halates against a
+     canvas this dark. Badge fills stay unmistakably Klup green; the bloom
+     goes. */
+  --ramp-green:     #16d96b;
+  --ramp-green-hi:  #2ae67c;
+  --ramp-green-ink: #3fe68c;
+  --ramp-green-on:  #05230f;
+
+  --ramp-red:       #f87171;
+  --ramp-red-hi:    #fca5a5;
+  --ramp-red-ink:   #ff8a82;
+  --ramp-red-on:    #05120b;
+
+  --ramp-focus:     #5b9dff;
+
+  --shadow-ink:     0 0 0;
+
+  --accent-subtle:      rgb(22 217 107 / 0.13);
+  --accent-border:      rgb(22 217 107 / 0.34);
+  --destructive-subtle: rgb(248 113 113 / 0.13);
+  --destructive-border: rgb(248 113 113 / 0.32);
+
+  /* Elevation in dark is carried by the rim and by depth of cast, not by
+     lightening the surface — the ramp already separates the levels. */
+  --rim:       inset 0 1px 0 0 rgb(255 255 255 / 0.055);
+  --shadow-1:  0 1px 2px -1px rgb(var(--shadow-ink) / 0.55),
+               0 1px 3px 0    rgb(var(--shadow-ink) / 0.38);
+  --shadow-2:  0 2px 4px -2px rgb(var(--shadow-ink) / 0.55),
+               0 10px 20px -8px rgb(var(--shadow-ink) / 0.55);
+  --shadow-3:  0 8px 16px -6px rgb(var(--shadow-ink) / 0.60),
+               0 28px 52px -20px rgb(var(--shadow-ink) / 0.72);
+
+  --primary:            var(--ramp-ink);
+  --primary-foreground: var(--ramp-canvas);
 }
 
 @layer base {
@@ -55,6 +177,11 @@
 
   html {
     -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   body {
@@ -72,12 +199,49 @@
   textarea {
     font-family: inherit;
   }
+
+  /* Hierarchy through colour and tracking, not weight. Display headings are
+     set in DM Serif Display by the type scale in layout; here they only get
+     the optical tightening a large serif needs. */
+  h1, h2, h3 {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
 }
 
 @layer utilities {
+  /* Was a symmetric glow. Now a real downward cast. */
   .glow-primary {
-    box-shadow: 0 0 20px -5px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--shadow-2);
   }
+
+  .elevation-card    { box-shadow: var(--elevation-card); }
+  .elevation-raised  { box-shadow: var(--elevation-raised); }
+  .elevation-overlay { box-shadow: var(--elevation-overlay); }
+}
+
+/* --------------------------------------------------------------------------
+   Focus floor.
+
+   38 call sites already carry `focus:outline-none`, which Tailwind compiles to
+   an `outline: 2px solid transparent` rule at higher specificity than a plain
+   `:focus-visible` selector — which is why the ring was invisible on inputs and
+   tab controls. Repeating the pseudo-class to win on specificity does not
+   survive minification (the optimiser collapses it), so the floor is declared
+   important instead. It is deliberate: keyboard focus must never be
+   suppressible by a utility class.
+
+   Only `outline` is forced. Components that draw their own ring with
+   box-shadow keep it and simply render both.
+   -------------------------------------------------------------------------- */
+:focus-visible {
+  outline: var(--ring-width) solid var(--ring) !important;
+  outline-offset: var(--ring-offset-width) !important;
+}
+
+/* Pointer interaction must not paint the ring. */
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* Marquee scroll-and-return for overflowing watchlist titles */
@@ -90,6 +254,12 @@
 .animate-marquee {
   animation: marquee-scroll 7s ease-in-out infinite;
   animation-delay: 0.8s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
 }
 
 /* Material Symbols Outlined */
@@ -123,7 +293,7 @@ input[type='range']::-webkit-slider-thumb {
   cursor: pointer;
   border-radius: 50%;
   border: 4px solid var(--background);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-1);
 }
 
 input[type='range']::-moz-range-thumb {
@@ -133,5 +303,5 @@ input[type='range']::-moz-range-thumb {
   cursor: pointer;
   border-radius: 50%;
   border: 4px solid var(--background);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-1);
 }
