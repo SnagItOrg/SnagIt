@@ -212,6 +212,73 @@
   }
 }
 
+/* ==========================================================================
+   Surfaces — three elevation levels, no more.
+
+     .surface-card       resting content. Sits on the canvas.
+     .surface-interactive resting, and lifts one level while hovered.
+     .surface-overlay    modals, sheets, dropdowns, toasts. Above everything.
+
+   Nested content uses .surface-nested, which is deliberately FLAT: a card
+   inside a card reads as subordinate through its surface value, never by
+   stacking a second shadow. Applied per component, never globally to every
+   bordered element.
+   ========================================================================== */
+@layer components {
+  .surface-card {
+    background-color: var(--surface-1);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--elevation-card);
+  }
+
+  .surface-interactive {
+    background-color: var(--surface-1);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--elevation-card);
+    transition:
+      box-shadow 160ms ease,
+      border-color 160ms ease,
+      transform 160ms ease;
+  }
+
+  /* A precise lift, not a bloom: one elevation level and one pixel. */
+  @media (hover: hover) {
+    .surface-interactive:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--elevation-raised);
+      transform: translateY(-1px);
+    }
+  }
+
+  .surface-interactive:active {
+    box-shadow: var(--elevation-card);
+    transform: translateY(0);
+    transition-duration: 60ms;
+  }
+
+  /* Subordinate: inherits the level below its parent and casts nothing. */
+  .surface-nested {
+    background-color: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    box-shadow: none;
+  }
+
+  .surface-overlay {
+    background-color: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--elevation-overlay);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .surface-interactive,
+    .surface-interactive:hover,
+    .surface-interactive:active {
+      transition: none;
+      transform: none;
+    }
+  }
+}
+
 @layer utilities {
   /* Was a symmetric glow. Now a real downward cast. */
   .glow-primary {

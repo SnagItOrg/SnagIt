@@ -106,12 +106,7 @@ export default function SignupPage() {
 
               {/* Card */}
               <div
-                className="p-8 rounded-3xl"
-                style={{
-                  backgroundColor: 'var(--card)',
-                  border: '1px solid var(--border)',
-                  boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)',
-                }}
+                className="surface-card p-8 rounded-3xl"
               >
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                   {/* Email */}

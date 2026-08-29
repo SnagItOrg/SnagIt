@@ -60,8 +60,7 @@ export function ProductCard({
   return (
     <Link
       href={`/product/${slug}`}
-      className="flex flex-col rounded-xl border overflow-hidden transition-colors hover:bg-secondary"
-      style={{ background: 'var(--card)', borderColor: 'var(--card-border)' }}
+      className="surface-interactive flex flex-col rounded-xl overflow-hidden"
     >
       {/* Image area */}
       <div className="relative w-full aspect-[4/3] overflow-hidden" style={{ background: 'var(--secondary)' }}>

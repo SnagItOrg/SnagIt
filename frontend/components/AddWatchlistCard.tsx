@@ -12,7 +12,7 @@ export function AddWatchlistCard({ onOpen }: Props) {
   return (
     <button
       onClick={onOpen}
-      className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-card border border-dashed border-border/60 hover:border-primary/50 active:border-primary text-center p-6 opacity-60 hover:opacity-90 active:opacity-100 transition-all duration-200 cursor-pointer"
+      className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-surface-2 border border-dashed border-line hover:border-line-strong active:border-line-strong text-center p-6 opacity-70 hover:opacity-100 transition-all duration-200 cursor-pointer"
       style={{ aspectRatio: '4/3' }}
     >
       <span

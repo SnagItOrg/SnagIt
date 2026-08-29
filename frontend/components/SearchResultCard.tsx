@@ -92,7 +92,7 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
   const platform = listing.platform ?? listing.source
 
   if (absolute) {
-    const base = 'absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm'
+    const base = 'absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full'
     if (platform === 'reverb')                         return <span className={`${base} text-white`} style={{ backgroundColor: '#EC5A2C' }}>Reverb</span>
     if (platform === 'facebook' || platform === 'fb') return <span className={`${base} bg-blue-500 text-white`}>FB</span>
     if (platform === 'thomann')                       return <span className={`${base} text-white`} style={{ backgroundColor: '#002D4C' }}>Thomann</span>
@@ -187,7 +187,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
         href={listing.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="group flex flex-col rounded-2xl bg-card border border-card-border overflow-hidden hover:shadow-md transition-shadow duration-300"
+        className="surface-interactive group flex flex-col rounded-2xl overflow-hidden"
         onClick={() => posthog?.capture('listing_clicked', { listing_id: listing.id, source: listing.source, price: listing.price ?? 0 })}
       >
         {/* Image area */}
@@ -214,7 +214,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
 
           {/* Discount badge */}
           {hasDiscount && (
-            <span className="absolute bottom-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full bg-green-500 text-white">
+            <span className="absolute bottom-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
               -{discountPct}%
             </span>
           )}
@@ -222,10 +222,10 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
           {/* Heart — save listing */}
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleHeartClick() }}
-            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center transition-opacity hover:opacity-90"
+            className="surface-overlay absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-surface-3"
             aria-label="Gem annonce"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isSaved ? 'text-red-500' : 'text-gray-800'}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isSaved ? 'text-red-500' : 'text-ink-muted'}>
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </button>
@@ -263,7 +263,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
 
   // ─── List variant (default) ─────────────────────────────────────────────────
   return (
-    <div className="rounded-2xl bg-card border border-border hover:border-border/80 transition-colors overflow-hidden">
+    <div className="surface-card rounded-2xl overflow-hidden transition-colors hover:border-line-strong">
       {/* Clickable area: thumbnail + title/price/meta */}
       <a
         href={listing.url}

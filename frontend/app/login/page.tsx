@@ -99,8 +99,7 @@ export default function LoginPage() {
 
       {/* Card */}
       <div
-        className="w-full max-w-md flex flex-col gap-6 p-8 rounded-2xl"
-        style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+        className="surface-card w-full max-w-md flex flex-col gap-6 p-8 rounded-2xl"
       >
         {/* Header */}
         <div className="flex flex-col gap-2 text-center">

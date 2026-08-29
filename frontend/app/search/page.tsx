@@ -462,11 +462,12 @@ function CandidateList({
         >
           <Link
             href={option.href}
-            className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 min-h-[56px] transition-colors hover:bg-secondary"
-            style={{
-              background: i === activeIndex ? 'var(--secondary)' : 'var(--card)',
-              borderColor: i === activeIndex ? 'var(--ring)' : 'var(--border)',
-            }}
+            className="surface-card flex items-center justify-between gap-3 rounded-2xl px-4 py-3 min-h-[56px] transition-colors hover:border-line-strong"
+            style={
+              i === activeIndex
+                ? { background: 'var(--surface-2)', borderColor: 'var(--ring)' }
+                : undefined
+            }
           >
             <span className="min-w-0">
               <span className="block text-sm font-semibold text-foreground truncate">
@@ -560,8 +561,7 @@ function UnsupportedPanel({
       )}
 
       <div
-        className="rounded-2xl border p-4"
-        style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+        className="surface-card rounded-2xl p-4"
       >
         {sent ? (
           <p className="text-sm font-semibold text-foreground">{t.demandThanks}</p>

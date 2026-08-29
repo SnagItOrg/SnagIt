@@ -166,7 +166,7 @@ export default function AdminMatchPage() {
           </span>
         )}
         {suggestions.length > 0 && (
-          <div className="absolute top-full mt-1 left-0 right-0 bg-card border border-border rounded-xl shadow-lg z-10 overflow-hidden">
+          <div className="surface-overlay absolute top-full mt-1 left-0 right-0 rounded-xl z-10 overflow-hidden">
             {suggestions.map((p) => (
               <button
                 key={p.id}

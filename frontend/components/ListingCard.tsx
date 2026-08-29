@@ -12,7 +12,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
       href={listing.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex gap-3 rounded-2xl bg-card border border-border p-3 hover:border-primary/40 transition-all active:scale-[0.98]"
+      className="surface-card flex gap-3 rounded-2xl p-3 transition-colors hover:border-line-strong active:scale-[0.99]"
     >
       <div className="w-[72px] h-[72px] flex-shrink-0 rounded-xl bg-muted overflow-hidden">
         {listing.image_url ? (

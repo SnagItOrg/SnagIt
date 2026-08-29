@@ -77,16 +77,14 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
       onClick={handleCardClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
-      className={`relative flex flex-col rounded-2xl border bg-card cursor-pointer transition-all duration-200 ${
-        confirming
-          ? 'border-destructive-border'
-          : 'border-border/60 hover:border-border active:border-border'
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCardClick() } }}
+      className={`surface-interactive relative flex flex-col rounded-2xl cursor-pointer ${
+        confirming ? 'border-destructive-border' : ''
       }`}
       style={{ aspectRatio: '4/3' }}
     >
       {/* Image — top 65% */}
-      <div className="relative flex-1 overflow-hidden rounded-t-2xl bg-card/50">
+      <div className="relative flex-1 overflow-hidden rounded-t-2xl bg-surface-2">
         {watchlist.preview_image_url ? (
           <Image
             src={watchlist.preview_image_url}
@@ -160,13 +158,13 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
         <div ref={menuRef} className="absolute top-2 right-2 z-50">
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
-            className="bg-card/70 backdrop-blur-sm rounded-full p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+            className="surface-card rounded-full p-1.5 text-muted-foreground hover:text-foreground transition-colors"
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>more_vert</span>
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-xl shadow-lg overflow-hidden min-w-[140px]">
+            <div className="surface-overlay absolute right-0 top-full mt-1 rounded-xl overflow-hidden min-w-[140px]">
               <button
                 onClick={(e) => {
                   e.stopPropagation()

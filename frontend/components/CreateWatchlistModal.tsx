@@ -42,7 +42,7 @@ export function CreateWatchlistModal({ isOpen, onClose, onConfirm, initialQuery 
       {/* Sheet / modal */}
       <div className="fixed bottom-0 left-0 right-0 md:inset-0 md:flex md:items-center md:justify-center z-50 pointer-events-none">
         <div
-          className="pointer-events-auto w-full md:max-w-lg bg-card border border-border rounded-t-2xl md:rounded-2xl p-6 flex flex-col gap-5"
+          className="surface-overlay pointer-events-auto w-full md:max-w-lg rounded-t-2xl md:rounded-2xl p-6 flex flex-col gap-5"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Drag handle — mobile only */}
