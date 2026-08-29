@@ -13,7 +13,7 @@ import type { AnyNode } from 'domhandler'
 import type { Listing } from '../supabase'
 import { toDkkApprox } from '../currency'
 import { normalizeQuery } from '../query-normalizer'
-import { KLEINANZEIGEN_MAX_PRICE_EUR } from '../listing-price-integrity'
+import { extractCardPrice } from './kleinanzeigen-price'
 
 type ScrapedListing = Omit<Listing, 'id' | 'scraped_at'>
 
@@ -23,15 +23,6 @@ function buildKleinanzeigenUrl(normalizedQ: string, page: number): string {
   const q = normalizedQ.replace(/ /g, '+')
   const baseUrl = `https://www.kleinanzeigen.de/s-musikinstrumente/${q}/k0c74`
   return page > 1 ? `${baseUrl}?pageNum=${page}` : baseUrl
-}
-
-// The impossible-value bound is shared with the read side — see
-// lib/listing-price-integrity.ts. Rows written before this guard existed are
-// still in the database and must be filtered on read.
-function parsePrice(raw: string): number | null {
-  const cleaned = raw.replace(/VB|€|\./g, '').trim()
-  const n = parseInt(cleaned.replace(/[^0-9]/g, ''), 10)
-  return isNaN(n) || n === 0 || n > KLEINANZEIGEN_MAX_PRICE_EUR ? null : n
 }
 
 function absolutizeUrl(url: string | undefined): string | null {
@@ -99,8 +90,10 @@ async function fetchKleinanzeigenPage(
 
       if (!title || !resolvedUrl) return null
 
-      const rawPrice = article.find('[class*="price"]').first().text().trim()
-      const price = rawPrice ? parsePrice(rawPrice) : null
+      // Precedence and number parsing live in ./kleinanzeigen-price, shared
+      // verbatim with the PM2 writer in scripts/scrape-kleinanzeigen.ts. The
+      // card's own HTML is handed over so both paths see the same bytes.
+      const price = extractCardPrice($.html(article))
 
       return {
         title,

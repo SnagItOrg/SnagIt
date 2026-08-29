@@ -33,6 +33,10 @@ test('integration: every package suite is registered exactly once', () => {
     [
       'scripts/lib/baseline.test.ts',
       'scripts/lib/integration-boundary.test.ts',
+      // Added by the Kleinanzeigen price recovery: the shared card-price
+      // extractor is the only thing standing between a discounted ad and a
+      // listing with no price, so it carries its own suite.
+      'scripts/lib/kleinanzeigen-price.test.ts',
       'scripts/lib/matcher-integrity.test.ts',
       'scripts/lib/wp1-catalogue.test.ts',
       'scripts/lib/wp1-public-contract.test.ts',

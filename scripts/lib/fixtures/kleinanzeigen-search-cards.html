@@ -1,0 +1,121 @@
+<!--
+  Minimal SANITISED Kleinanzeigen search-card fixture.
+
+  Hand-authored from the structure observed on live markup 2026-08-29. It is
+  NOT a copied marketplace page: no real ad ids, no seller names, no images, no
+  descriptions, no tracking attributes — only the elements the price extractor
+  reads, with neutral values.
+
+  Card 1 is the shape that caused the production defect: the struck-through old
+  price is nested INSIDE the current price element. That nesting is invalid
+  HTML and is reproduced deliberately, because it is the whole bug — a parser
+  that reads the wrapper's text sees "800 € 900 €" and welds it into 800900.
+
+  When Kleinanzeigen's markup changes again, update THIS file and the expected
+  values in scripts/lib/kleinanzeigen-price.test.ts.
+-->
+<div id="srchrslt-adtable">
+
+  <!-- 1. discounted ad: current price + struck-through old price (the defect) -->
+  <article class="aditem" data-adid="1000000001">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-a/1000000001-74-2811">Synth A</a></h2>
+      <div class="aditem-main--middle--price-shipping">
+        <p class="aditem-main--middle--price-shipping--price">
+          800 €
+          <p class="aditem-main--middle--price-shipping--old-price">900 €</p>
+        </p>
+      </div>
+    </div>
+  </article>
+
+  <!-- 2. plain price, no discount -->
+  <article class="aditem" data-adid="1000000002">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-b/1000000002-74-2811">Synth B</a></h2>
+      <div class="aditem-main--middle--price-shipping">
+        <p class="aditem-main--middle--price-shipping--price">450 €</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- 3. negotiable suffix on a real asking price, with thousands separator -->
+  <article class="aditem" data-adid="1000000003">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-c/1000000003-74-2811">Synth C</a></h2>
+      <div class="aditem-main--middle--price-shipping">
+        <p class="aditem-main--middle--price-shipping--price">1.200 € VB</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- 4. decimal comma -->
+  <article class="aditem" data-adid="1000000004">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-d/1000000004-74-2811">Synth D</a></h2>
+      <div class="aditem-main--middle--price-shipping">
+        <p class="aditem-main--middle--price-shipping--price">1.200,00 €</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- 5. giveaway: free, but not expressible as a price -->
+  <article class="aditem" data-adid="1000000005">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-e/1000000005-74-2811">Synth E</a></h2>
+      <div class="aditem-main--middle--price-shipping">
+        <p class="aditem-main--middle--price-shipping--price">Zu verschenken</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- 6. price on request -->
+  <article class="aditem" data-adid="1000000006">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-f/1000000006-74-2811">Synth F</a></h2>
+      <div class="aditem-main--middle--price-shipping">
+        <p class="aditem-main--middle--price-shipping--price">Preis auf Anfrage</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- 7. negotiation marker with no number at all -->
+  <article class="aditem" data-adid="1000000007">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-g/1000000007-74-2811">Synth G</a></h2>
+      <div class="aditem-main--middle--price-shipping">
+        <p class="aditem-main--middle--price-shipping--price">VB</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- 8. no price block at all -->
+  <article class="aditem" data-adid="1000000008">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-h/1000000008-74-2811">Synth H</a></h2>
+    </div>
+  </article>
+
+  <!-- 9. tier 2: price metadata present (hypothetical future markup) -->
+  <article class="aditem" data-adid="1000000009">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-i/1000000009-74-2811">Synth I</a></h2>
+      <meta itemprop="price" content="640.00">
+      <div class="aditem-main--middle--price-shipping">
+        <p class="aditem-main--middle--price-shipping--price">999 €</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- 10. tier 1: structured offer data outranks the visible element -->
+  <article class="aditem" data-adid="1000000010">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-j/1000000010-74-2811">Synth J</a></h2>
+      <script type="application/ld+json">{"@type":"Product","offers":{"@type":"Offer","price":"1750.00","priceCurrency":"EUR"}}</script>
+      <div class="aditem-main--middle--price-shipping">
+        <p class="aditem-main--middle--price-shipping--price">1.999 €</p>
+      </div>
+    </div>
+  </article>
+
+</div>
