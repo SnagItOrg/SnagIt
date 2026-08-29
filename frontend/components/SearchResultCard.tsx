@@ -292,7 +292,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
 
         {/* Title + price + meta */}
         <div className="flex-1 min-w-0 flex flex-col gap-1">
-          <p className="text-sm font-semibold text-foreground truncate">{listing.title}</p>
+          <p className="text-sm font-semibold text-foreground line-clamp-2 wrap-anywhere">{listing.title}</p>
           <div className="flex items-baseline gap-2 min-w-0">
             <p className="text-base font-semibold truncate tabular-nums" style={{ color: 'var(--foreground)' }}>
               {priceFormatted}

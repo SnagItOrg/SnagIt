@@ -98,7 +98,7 @@ function BrowsePageInner() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-8">
+          <div className="grid-fluid gap-3 px-4 md:px-8">
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
@@ -117,7 +117,7 @@ function BrowsePageInner() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-8">
+          <div className="grid-fluid gap-3 px-4 md:px-8">
             {data.categories.map((cat) => (
               <Link
                 key={cat.id}

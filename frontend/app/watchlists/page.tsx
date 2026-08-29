@@ -148,7 +148,7 @@ export default function WatchlistsPage() {
 
             {loading ? (
               /* Skeleton — shown while auth resolves and while watchlists load */
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid-fluid-lg gap-4">
                 {[...Array(3)].map((_, i) => (
                   <div
                     key={i}
@@ -185,7 +185,7 @@ export default function WatchlistsPage() {
               </div>
             ) : watchlists.length === 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+                <div className="grid-fluid-lg gap-4 mb-10">
                   <AddWatchlistCard onOpen={() => setShowCreator(true)} />
                 </div>
                 <div className="flex flex-col items-center gap-3 text-center py-8 max-w-sm mx-auto">
@@ -211,7 +211,7 @@ export default function WatchlistsPage() {
                 </div>
               </>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid-fluid-lg gap-4">
                 <AddWatchlistCard onOpen={() => setShowCreator(true)} />
                 {watchlists.map((w) => (
                   <WatchlistBentoCard key={w.id} watchlist={w} onDelete={handleDelete} />

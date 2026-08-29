@@ -140,11 +140,11 @@ export default function ProductPage() {
       <main className="flex-1 md:pl-60 flex flex-col pb-24 md:pb-10">
         <MobileSearchBar />
 
-        <div className="flex flex-col px-4 pt-4 md:px-8 md:pt-8 max-w-4xl w-full">
+        <div className="flex flex-col px-4 pt-4 md:px-8 md:pt-8 w-full max-w-[min(80rem,100%)]">
 
           {/* ── Loading skeleton ──────────────────────────────── */}
           {loading ? (
-            <div className="grid lg:grid-cols-2 gap-8">
+            <div className="grid-hero gap-8">
               <div className="aspect-square rounded-2xl bg-muted animate-pulse" />
               <div className="flex flex-col gap-4 pt-2">
                 <div className="h-3 w-24 rounded bg-muted animate-pulse" />
@@ -170,7 +170,7 @@ export default function ProductPage() {
           ) : (
             <>
               {/* ── Hero: image + info ────────────────────────── */}
-              <div className="grid lg:grid-cols-2 gap-8 mb-10">
+              <div className="grid-hero gap-8 mb-10">
 
                 {/* Left — product image */}
                 <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted flex-shrink-0">
@@ -196,7 +196,7 @@ export default function ProductPage() {
                 </div>
 
                 {/* Right — product info */}
-                <div className="flex flex-col gap-5 lg:justify-center">
+                <div className="flex flex-col gap-5 self-start max-w-[38rem]">
 
                   {/* Brand + name + era */}
                   <div className="flex flex-col gap-1">
@@ -230,7 +230,7 @@ export default function ProductPage() {
                       <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         Typisk brugtpris
                       </p>
-                      <p className="text-3xl font-bold tracking-tight text-foreground">
+                      <p className="text-[clamp(1.5rem,1.1rem+1.6vw,2rem)] font-semibold tracking-tight text-foreground tabular-nums wrap-anywhere">
                         {priceRange.low.toLocaleString('da-DK')}
                         <span className="text-muted-foreground font-normal mx-2">–</span>
                         {priceRange.high.toLocaleString('da-DK')} kr
@@ -342,7 +342,7 @@ export default function ProductPage() {
 
               {/* ── Description ───────────────────────────────── */}
               {product.attributes?.description && (
-                <p className="text-foreground/80 leading-relaxed mb-10">
+                <p className="type-body type-measure text-foreground/80 mb-10">
                   {product.attributes.description}
                 </p>
               )}
@@ -354,7 +354,7 @@ export default function ProductPage() {
                 const hasHistory = !!(product.attributes?.history && product.attributes.history.length > 0)
                 if (!hasSpecs && !hasHistory) return null
                 return (
-                  <div className={`grid gap-6 mb-10 items-start${hasSpecs && hasHistory ? ' lg:grid-cols-2' : ''}`}>
+                  <div className="grid-bento gap-6 mb-10 items-start">
 
                     {/* Specs card */}
                     {hasSpecs && (
@@ -434,7 +434,7 @@ export default function ProductPage() {
               {relatedProducts.length > 0 && (
                 <div className="flex flex-col gap-3 mb-10">
                   <p className="text-sm font-medium text-foreground">Related gear</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="grid-fluid-sm gap-3">
                     {relatedProducts.map((rel) => (
                       <a
                         key={rel.slug}
@@ -442,26 +442,26 @@ export default function ProductPage() {
                         className="flex flex-col gap-2 rounded-xl border border-border overflow-hidden hover:border-foreground/30 transition-colors"
                       >
                         <div className="aspect-square bg-muted relative">
-                          {rel.image_url ? (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: 32, color: 'var(--muted-foreground)' }}
+                            >
+                              piano
+                            </span>
+                          </div>
+                          {rel.image_url && (
                             <Image
                               src={rel.image_url}
                               alt={rel.name}
                               fill
                               className="object-cover"
-                              sizes="(max-width: 640px) 50vw, 33vw"
+                              sizes="(max-width: 640px) 50vw, 200px"
+                              onError={(e) => { e.currentTarget.style.visibility = 'hidden' }}
                             />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <span
-                                className="material-symbols-outlined"
-                                style={{ fontSize: 32, color: 'var(--muted-foreground)' }}
-                              >
-                                piano
-                              </span>
-                            </div>
                           )}
                         </div>
-                        <p className="text-xs font-medium text-foreground px-3 pb-3 leading-snug">{rel.name}</p>
+                        <p className="type-meta text-foreground wrap-anywhere px-3 pb-3">{rel.name}</p>
                       </a>
                     ))}
                   </div>
@@ -474,6 +474,7 @@ export default function ProductPage() {
                   <p className="text-sm font-medium text-foreground">
                     {listings.length} {listings.length === 1 ? 'annonce' : 'annoncer'}
                   </p>
+                  <div className="grid-bento gap-3">
                   {listings.map((listing) => (
                     <ListingErrorBoundary key={listing.id} listingId={listing.id}>
                       <SearchResultCard
@@ -487,6 +488,7 @@ export default function ProductPage() {
                       />
                     </ListingErrorBoundary>
                   ))}
+                  </div>
                 </div>
               )}
 

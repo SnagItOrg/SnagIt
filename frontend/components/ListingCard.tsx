@@ -14,13 +14,13 @@ export function ListingCard({ listing }: { listing: Listing }) {
       rel="noopener noreferrer"
       className="surface-card flex gap-3 rounded-2xl p-3 transition-colors hover:border-line-strong active:scale-[0.99]"
     >
-      <div className="w-[72px] h-[72px] flex-shrink-0 rounded-xl bg-muted overflow-hidden">
+      <div className="w-[clamp(3.5rem,17vw,5.5rem)] aspect-square flex-shrink-0 rounded-xl bg-muted overflow-hidden">
         {listing.image_url ? (
           <Image
             src={listing.image_url}
             alt={listing.title}
-            width={72}
-            height={72}
+            width={96}
+            height={96}
             className="w-full h-full object-cover"
           />
         ) : (
@@ -42,18 +42,18 @@ export function ListingCard({ listing }: { listing: Listing }) {
       </div>
 
       <div className="flex flex-col justify-center min-w-0 flex-1">
-        <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
+        <p className="text-sm font-medium text-foreground leading-snug line-clamp-2 wrap-anywhere">
           {listing.title}
         </p>
         {listing.price != null ? (
-          <p className="text-sm font-semibold text-primary mt-1">
+          <p className="text-sm font-semibold text-primary mt-1 tabular-nums">
             {listing.price.toLocaleString('da-DK')} {listing.currency}
           </p>
         ) : (
           <p className="text-sm text-muted-foreground mt-1">{t.priceNotListed}</p>
         )}
         {listing.location && (
-          <p className="text-xs text-muted-foreground mt-0.5">{listing.location}</p>
+          <p className="type-meta mt-0.5 wrap-anywhere">{listing.location}</p>
         )}
       </div>
     </a>

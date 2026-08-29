@@ -365,6 +365,58 @@
   }
 }
 
+/* ==========================================================================
+   Fluid layout.
+
+   Tracks are sized by available width, not by a device guess. Every minmax
+   floor is wrapped in min(…, 100%) so a track can never be wider than its
+   container — that single guard is what keeps 320px from overflowing.
+
+   auto-FILL for card grids: a lone product card should stay card-sized, not
+   stretch across 1440px. auto-FIT only where a single block filling the row
+   is the intent (the specification/history bento).
+   ========================================================================== */
+@layer components {
+  .grid-fluid-sm {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(9.5rem, 100%), 1fr));
+  }
+
+  .grid-fluid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(11.5rem, 100%), 1fr));
+  }
+
+  .grid-fluid-lg {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr));
+  }
+
+  .grid-bento {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(21rem, 100%), 1fr));
+  }
+
+  /* Hero: stacks until there is genuinely room for two columns. */
+  .grid-hero {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  }
+
+  /* Long Danish product titles, marketplace names and prices must wrap
+     rather than push the page sideways. */
+  .wrap-anywhere {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+}
+
+/* Nothing may scroll the page sideways. */
+html,
+body {
+  overflow-x: hidden;
+}
+
 @layer utilities {
   /* Was a symmetric glow. Now a real downward cast. */
   .glow-primary {

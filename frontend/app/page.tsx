@@ -108,7 +108,7 @@ export default function LandingPage() {
             </div>
             <div className="flex gap-3 overflow-x-auto px-6 pb-2 scrollbar-none">
               {legendary.map((p) => (
-                <div key={p.slug} className="flex-shrink-0 w-44">
+                <div key={p.slug} className="flex-shrink-0 w-[clamp(9.5rem,38vw,12rem)]">
                   <ProductCard
                     slug={p.slug}
                     canonicalName={p.canonical_name}
@@ -137,7 +137,7 @@ export default function LandingPage() {
             </div>
             <div className="flex gap-3 overflow-x-auto px-6 pb-2 scrollbar-none">
               {popular.map((p) => (
-                <div key={p.slug} className="flex-shrink-0 w-44">
+                <div key={p.slug} className="flex-shrink-0 w-[clamp(9.5rem,38vw,12rem)]">
                   <ProductCard
                     slug={p.slug}
                     canonicalName={p.canonical_name}
