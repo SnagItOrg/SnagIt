@@ -23,6 +23,11 @@ import type { SupabaseClient } from '../frontend/node_modules/@supabase/supabase
 // Resolve Supabase from the frontend workspace because that is where the
 // installed dependency lives on this machine.
 import { monitoredSlugs, assertResolved } from './lib/source-monitoring'
+// Price extraction is shared verbatim with frontend/lib/scrapers/kleinanzeigen.ts.
+// This script is the PM2 writer, so a parser fix that lands only in the frontend
+// module changes no stored row — which is exactly how the concatenation defect
+// survived its own 2026-05 diagnosis.
+import { extractCardPrice } from '../frontend/lib/scrapers/kleinanzeigen-price'
 import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
 
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
@@ -118,12 +123,6 @@ function buildKleinanzeigenUrl(normalizedQ: string, page: number): string {
   return page > 1 ? `${baseUrl}?pageNum=${page}` : baseUrl
 }
 
-function parsePrice(raw: string): number | null {
-  const cleaned = raw.replace(/VB|€|\./g, '').trim()
-  const n = parseInt(cleaned.replace(/[^0-9]/g, ''), 10)
-  return isNaN(n) || n === 0 || n > 500_000 ? null : n
-}
-
 function absolutizeUrl(url: string | undefined): string | null {
   if (!url) return null
   if (url.startsWith('http://') || url.startsWith('https://')) return url
@@ -189,9 +188,6 @@ function parseArticle(articleHtml: string): ScrapedListing | null {
 
   if (!title || !url) return null
 
-  const rawPrice = extractFirst(articleHtml, [
-    /<[^>]*class=["'][^"']*price[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/i,
-  ]) ?? ''
 
   const imageUrl = extractAttr(articleHtml, /<img\b[^>]*src=["']([^"']+)["'][^>]*>/i)
   const location = extractFirst(articleHtml, [
@@ -199,7 +195,7 @@ function parseArticle(articleHtml: string): ScrapedListing | null {
     /<[^>]*class=["'][^"']*aditem-main--top--left[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/i,
   ])
 
-  const price = rawPrice ? parsePrice(rawPrice) : null
+  const price = extractCardPrice(articleHtml)
 
   return {
     title,
