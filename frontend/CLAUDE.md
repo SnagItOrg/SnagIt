@@ -31,8 +31,11 @@ Tailwind exposes these as `bg-canvas`, `bg-surface-1..3`, `bg-surface-raised`,
 `-overlay`. Legacy names (`--background`, `--card`, `--muted-foreground`, …)
 are aliases onto the same ramp and keep working.
 
-**Neutrals are cool, not grey.** The ramp is blue/violet-biased (B runs 7–20
-above R). Do not introduce an achromatic `#1a1a1a`-style neutral.
+**Neutrals are near-neutral with a slight cool bias**, calibrated against
+Linear's ramp: B runs only 2–7 above R on surfaces and 9–13 on text and
+borders. Do not introduce an achromatic `#1a1a1a`-style neutral, and do not
+push the bias back up — green is the only pigment in the system, and a blue
+cast reads as a second brand colour.
 
 **Elevation is downward.** `--rim` (the illuminated top edge) composes first,
 then a tight contact shadow and a wider cast. No symmetric glow, no

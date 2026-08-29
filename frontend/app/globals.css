@@ -11,25 +11,28 @@
                    aliased onto the ramp so existing components inherit the new
                    foundation without being rewritten.
 
-   The neutral ramp is intentionally blue/violet-biased (B channel runs 7-20
-   above R) rather than achromatic, so surfaces read as cool material instead
-   of flat concrete. Every body-text pair below meets WCAG AA.
+   The neutral ramp carries a slight cool bias (B channel runs 2-7 above R on
+   surfaces, 9-13 on text and borders) so it does not read as flat concrete —
+   but it stays neutral. Calibrated against Linear's neutrals, whose surfaces
+   sit at b-r 2 and whose muted text sits at 14. Green is the only pigment in
+   the system; blue appears only under the focus ring, during interaction.
+   Every body-text pair below meets WCAG AA.
    ========================================================================== */
 
 :root {
   /* --- ramp: light ------------------------------------------------------ */
-  --ramp-canvas:    #f2f5f9;
+  --ramp-canvas:    #f3f4f6;
   --ramp-1:         #ffffff;
-  --ramp-2:         #eaeef5;
-  --ramp-3:         #dfe5ee;
+  --ramp-2:         #ecedf0;
+  --ramp-3:         #e1e3e7;
   --ramp-raised:    #ffffff;
 
-  --ramp-line:      #e1e6ef;
-  --ramp-line-str:  #848da0;
+  --ramp-line:      #e3e4e8;
+  --ramp-line-str:  #8a8d94;
 
-  --ramp-ink:       #0d1017;
-  --ramp-ink-2:     #3e4757;
-  --ramp-ink-3:     #5a6377;
+  --ramp-ink:       #131417;
+  --ramp-ink-2:     #454951;
+  --ramp-ink-3:     #5f636b;
 
   --ramp-green:     #13ec6d;
   --ramp-green-hi:  #0bd25e;
@@ -41,10 +44,10 @@
   --ramp-red-ink:   #c81e1e;
   --ramp-red-on:    #ffffff;
 
-  --ramp-focus:     #1f6feb;
+  --ramp-focus:     #3b6fa8;
 
-  /* shadow ink — cool, not neutral black */
-  --shadow-ink:     15 23 42;
+  /* shadow ink — a hair cool, not a blue slate */
+  --shadow-ink:     16 17 20;
 
   /* --- semantic: surfaces ---------------------------------------------- */
   --canvas:          var(--ramp-canvas);
@@ -119,18 +122,18 @@
 
 .dark {
   /* --- ramp: dark ------------------------------------------------------- */
-  --ramp-canvas:    #090b10;
-  --ramp-1:         #14171f;
-  --ramp-2:         #1b1f2a;
-  --ramp-3:         #232834;
-  --ramp-raised:    #2a303e;
+  --ramp-canvas:    #0a0a0c;
+  --ramp-1:         #151618;
+  --ramp-2:         #1c1e21;
+  --ramp-3:         #25272b;
+  --ramp-raised:    #2d3034;
 
-  --ramp-line:      #242a36;
-  --ramp-line-str:  #5b6478;
+  --ramp-line:      #26282c;
+  --ramp-line-str:  #62666f;
 
-  --ramp-ink:       #eef0f6;
-  --ramp-ink-2:     #b4bbcb;
-  --ramp-ink-3:     #8b93a6;
+  --ramp-ink:       #edeef0;
+  --ramp-ink-2:     #b6b9bf;
+  --ramp-ink-3:     #8b8f97;
 
   /* Damped one step from the brand green: full #13ec6d halates against a
      canvas this dark. Badge fills stay unmistakably Klup green; the bloom
@@ -145,7 +148,7 @@
   --ramp-red-ink:   #ff8a82;
   --ramp-red-on:    #05120b;
 
-  --ramp-focus:     #5b9dff;
+  --ramp-focus:     #6c8cb5;
 
   --shadow-ink:     0 0 0;
 
