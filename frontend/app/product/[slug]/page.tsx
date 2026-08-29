@@ -10,8 +10,20 @@ import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts'
+import { ChartFrame, DataLegend } from '@/components/data-display'
+import { formatDateRange, formatDkkAmount } from '@/lib/chart-format'
+import { seriesColor } from '@/lib/chart-palette'
 import type { Listing } from '@/lib/supabase'
 import type { PricePoint, PriceRange, RelatedProduct } from '@/app/api/product/[slug]/route'
+
+/**
+ * The entity key for the sold-price series.
+ *
+ * One combined line, so one legend entry. The contributing marketplaces are
+ * named in the frame's source line instead of being split into series we do
+ * not actually draw separately.
+ */
+const SOLD_SERIES = 'sold-price'
 
 type ProductAttributes = {
   description?:     string
@@ -285,60 +297,105 @@ export default function ProductPage() {
               </div>
 
               {/* ── Price history ─────────────────────────────── */}
-              {priceHistory.length >= 5 && (
-                <div className="flex flex-col gap-3 mb-10 p-5 rounded-2xl border border-border">
-                  <div className="flex items-baseline justify-between">
-                    <p className="text-sm font-medium text-foreground">Prishistorik</p>
-                    <p className="text-xs text-muted-foreground">{priceHistory.length} salg registreret</p>
-                  </div>
-                  <a
-                    href="https://reverb.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 self-start"
+              {(() => {
+                // The threshold is unchanged: fewer than five sold prices is
+                // not a trend. What changed is what happens below it — the
+                // section used to disappear, which reads as "this product has
+                // no history" when the truth is "we have three observations".
+                const MIN_POINTS = 5
+                const sources = Array.from(
+                  priceHistory.reduce((acc, point) => {
+                    acc.set(point.source, (acc.get(point.source) ?? 0) + 1)
+                    return acc
+                  }, new Map<string, number>()),
+                )
+                const period = formatDateRange(
+                  priceHistory[0]?.sold_at,
+                  priceHistory[priceHistory.length - 1]?.sold_at,
+                )
+                const enough = priceHistory.length >= MIN_POINTS
+
+                return (
+                  <ChartFrame
+                    className="mb-10"
+                    title="Prishistorik"
+                    description="Registrerede salgspriser — ikke udbudspriser."
+                    locale="da"
+                    headingLevel="h2"
+                    state={enough ? 'ready' : 'empty'}
+                    emptyReason={
+                      priceHistory.length === 0 ? 'no-observations' : 'insufficient-observations'
+                    }
+                    emptyDetail={
+                      priceHistory.length === 0
+                        ? undefined
+                        : `Vi har ${priceHistory.length} registreret${priceHistory.length === 1 ? '' : 'e'} salg for dette produkt. Der skal ${MIN_POINTS} til, f\u00f8r vi viser en kurve.`
+                    }
+                    legend={
+                      enough ? (
+                        <DataLegend items={[{ key: SOLD_SERIES, label: 'Solgt', count: priceHistory.length }]} />
+                      ) : undefined
+                    }
+                    source={
+                      sources.length > 0
+                        ? sources.map(([name, count]) => `${name} (${count})`).join(' \u00b7 ')
+                        : undefined
+                    }
+                    period={period ?? undefined}
+                    sample={
+                      priceHistory.length > 0 ? `${priceHistory.length} salg` : undefined
+                    }
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 12 }}>open_in_new</span>
-                    Prisdata fra Reverb
-                  </a>
-                  <div className="h-28 w-full min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={priceHistory} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.12} />
-                            <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <XAxis dataKey="sold_at" hide />
-                        <YAxis hide domain={['auto', 'auto']} />
-                        <Tooltip
-                          contentStyle={{
-                            background: 'var(--background)',
-                            border: '1px solid var(--border)',
-                            borderRadius: 8,
-                            fontSize: 12,
-                          }}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          formatter={(v: any) => [`${Number(v).toLocaleString('da-DK')} kr`, 'Pris']}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          labelFormatter={(l: any) =>
-                            new Date(String(l)).toLocaleDateString('da-DK', { month: 'short', year: 'numeric' })
-                          }
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="price"
-                          stroke="var(--foreground)"
-                          strokeWidth={1.5}
-                          fill="url(#priceGrad)"
-                          dot={false}
-                          activeDot={{ r: 3 }}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
+                    {/* One value axis, hidden. Never a second scale: two axes
+                        over one chart let the reader pick the story. */}
+                    <div className="h-28 w-full min-w-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={priceHistory} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={seriesColor(SOLD_SERIES)} stopOpacity={0.18} />
+                              <stop offset="95%" stopColor={seriesColor(SOLD_SERIES)} stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <XAxis dataKey="sold_at" hide />
+                          <YAxis hide domain={['auto', 'auto']} />
+                          <Tooltip
+                            contentStyle={{
+                              background: 'var(--surface-1)',
+                              border: '1px solid var(--border-subtle)',
+                              borderRadius: 8,
+                              fontSize: 12,
+                              color: 'var(--text-primary)',
+                            }}
+                            formatter={(v: unknown) => [formatDkkAmount(Number(v)) ?? '\u2014', 'Pris']}
+                            labelFormatter={(l: unknown) =>
+                              new Date(String(l)).toLocaleDateString('da-DK', { month: 'short', year: 'numeric' })
+                            }
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="price"
+                            stroke={seriesColor(SOLD_SERIES)}
+                            strokeWidth={1.5}
+                            fill="url(#priceGrad)"
+                            dot={false}
+                            activeDot={{ r: 3 }}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <a
+                      href="https://reverb.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 flex items-center gap-1 self-start text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 12 }}>open_in_new</span>
+                      Prisdata fra Reverb
+                    </a>
+                  </ChartFrame>
+                )
+              })()}
 
               {/* ── Description ───────────────────────────────── */}
               {product.attributes?.description && (

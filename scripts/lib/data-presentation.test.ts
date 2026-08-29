@@ -18,6 +18,7 @@ import {
   CHART_SERIES_COLORS,
   DIRECTION_GLYPH,
   MARKET_SLOTS,
+  NAMED_SERIES_SLOTS,
   directionOf,
   directionTone,
   isKnownMarket,
@@ -77,6 +78,15 @@ test('palette: an unknown key is stable, case-insensitive and inside the sequenc
   assert.ok(CHART_SERIES_COLORS.includes(a as (typeof CHART_SERIES_COLORS)[number]))
   assert.ok(seriesSlot('reverb-sold') >= 0)
   assert.ok(seriesSlot('reverb-sold') < CHART_SERIES_COLORS.length)
+})
+
+test('palette: a named series takes its chosen slot, not the hash', () => {
+  // The public product page draws one sold-price series. Leaving its hue to
+  // the hash once landed it on the red end of the sequence, which reads as a
+  // negative signal in a system where red is the destructive token.
+  assert.equal(seriesSlot('sold-price'), NAMED_SERIES_SLOTS['SOLD-PRICE'])
+  assert.equal(seriesColor('sold-price'), CHART_SERIES_COLORS[NAMED_SERIES_SLOTS['SOLD-PRICE']])
+  assert.equal(seriesColor('sold-price'), seriesColor('SOLD-PRICE'))
 })
 
 test('palette: every key also gets a non-colour channel', () => {
