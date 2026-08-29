@@ -63,6 +63,20 @@ export const MARKET_SLOTS: Readonly<Record<string, number>> = Object.freeze({
  * two series when colour is unavailable — print, monochrome, or a reader who
  * cannot distinguish the pair.
  */
+/**
+ * Non-market series that still deserve a stable, chosen hue rather than
+ * whatever the hash lands on. The hash is correct for an open-ended key space;
+ * it is the wrong tool for the handful of series the product draws on purpose.
+ *
+ * `SOLD-PRICE` shares slot 0 with DK. That is intentional and safe: it is the
+ * lone series on the public product page, and a market series is never drawn
+ * in the same chart as it. If that ever stops being true, this registry is the
+ * one place that has to change.
+ */
+export const NAMED_SERIES_SLOTS: Readonly<Record<string, number>> = Object.freeze({
+  'SOLD-PRICE': 0,
+})
+
 export const CHART_SERIES_SHAPES = ['circle', 'square', 'triangle', 'diamond'] as const
 export type ChartSeriesShape = (typeof CHART_SERIES_SHAPES)[number]
 
@@ -88,8 +102,10 @@ function normalize(key: string): string {
  */
 export function seriesSlot(key: string): number {
   const normalized = normalize(key)
-  const known = MARKET_SLOTS[normalized]
-  if (known !== undefined) return known
+  const market = MARKET_SLOTS[normalized]
+  if (market !== undefined) return market
+  const named = NAMED_SERIES_SLOTS[normalized]
+  if (named !== undefined) return named
   return hashKey(normalized) % CHART_SERIES_COLORS.length
 }
 
