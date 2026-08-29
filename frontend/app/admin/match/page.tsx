@@ -2,6 +2,11 @@
 
 import { useState, useRef, useCallback } from 'react'
 import type { Candidate } from '@/app/api/admin/match/candidates/route'
+import {
+  ALL_SOURCE_KEYS,
+  MATCH_SOURCES,
+  sourceForStored,
+} from '@/lib/admin-match-sources'
 
 type KgProduct = {
   id:             string
@@ -10,20 +15,13 @@ type KgProduct = {
   kg_brand:       { name: string } | null
 }
 
-const SOURCE_CONFIG = [
-  { key: 'dba',     label: 'DBA',     color: '#00098A' },
-  { key: 'finn',    label: 'Finn.no', color: '#06bffc' },
-  { key: 'blocket', label: 'Blocket', color: '#F71414' },
-  { key: 'reverb',  label: 'Reverb',  color: '#EC5A2C' },
-] as const
-
 export default function AdminMatchPage() {
   const [query, setQuery]           = useState('')
   const [suggestions, setSuggestions] = useState<KgProduct[]>([])
   const [searching, setSearching]   = useState(false)
   const [product, setProduct]       = useState<KgProduct | null>(null)
 
-  const [sources, setSources]       = useState<Set<string>>(new Set(['dba', 'finn', 'blocket', 'reverb']))
+  const [sources, setSources]       = useState<Set<string>>(new Set(ALL_SOURCE_KEYS))
   const [loading, setLoading]       = useState(false)
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [approved, setApproved]     = useState<Set<string>>(new Set())
@@ -113,19 +111,25 @@ export default function AdminMatchPage() {
     }
   }
 
-  async function saveApproved() {
-    if (!product || approved.size === 0) return
+  // Both verdicts travel together: a rejection is a stored label, not a
+  // dismissal, so leaving it in the browser would lose the operator's work.
+  async function saveDecisions() {
+    if (!product || (approved.size === 0 && rejected.size === 0)) return
     setSaving(true)
     try {
       const res = await fetch('/api/admin/match/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_id: product.id, listing_ids: Array.from(approved) }),
+        body: JSON.stringify({
+          product_id: product.id,
+          listing_ids: Array.from(approved),
+          rejected_listing_ids: Array.from(rejected),
+        }),
       })
-      const data = await res.json() as { approved?: number; error?: string }
+      const data = await res.json() as { approved?: number; rejected?: number; error?: string }
       if (data.error) { showToast(`Fejl: ${data.error}`); return }
-      showToast(`✅ ${data.approved} annoncer godkendt`)
-      // Remove approved + rejected from list
+      showToast(`✅ ${data.approved ?? 0} godkendt · ${data.rejected ?? 0} afvist`)
+      // Both verdicts are now stored, so neither returns to the queue.
       setCandidates((prev) => prev.filter((c) => !approved.has(c.id) && !rejected.has(c.id)))
       setApproved(new Set())
       setRejected(new Set())
@@ -140,7 +144,10 @@ export default function AdminMatchPage() {
     no:    { label: 'Ikke relevant', color: '#dc2626', icon: 'cancel' },
   }
 
-  const visible = candidates.filter((c) => !rejected.has(c.id))
+  // Queued rejections stay visible and muted rather than vanishing on click.
+  // The cross now writes a durable label, so the operator has to be able to see
+  // what they are about to store — and take it back before saving.
+  const visible = candidates
 
   return (
     <div className="flex flex-col gap-6">
@@ -206,7 +213,7 @@ export default function AdminMatchPage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Kilder:</span>
-            {SOURCE_CONFIG.map(({ key, label, color }) => {
+            {MATCH_SOURCES.map(({ key, label, color }) => {
               const active = sources.has(key)
               return (
                 <button
@@ -242,31 +249,49 @@ export default function AdminMatchPage() {
         <>
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              {visible.length} kandidater · {approved.size} valgt
+              {visible.length} kandidater · {approved.size} godkendt · {rejected.size} afvist
             </p>
             <button
-              onClick={saveApproved}
-              disabled={approved.size === 0 || saving}
+              onClick={saveDecisions}
+              disabled={(approved.size === 0 && rejected.size === 0) || saving}
               className="px-4 py-2 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-40"
               style={{ backgroundColor: '#16a34a' }}
             >
-              {saving ? 'Gemmer…' : `Godkend ${approved.size > 0 ? approved.size : ''}`}
+              {saving ? 'Gemmer…' : `Gem ${approved.size + rejected.size > 0 ? approved.size + rejected.size : ''}`}
             </button>
           </div>
 
           <div className="flex flex-col gap-2">
             {visible.map((c) => {
               const isApproved = approved.has(c.id)
+              const isRejected = rejected.has(c.id)
               const s = scoreLabel[c.score]
+              const sourceMeta = sourceForStored(c.source)
               return (
                 <div
                   key={c.id}
                   className="flex items-start gap-3 p-3 rounded-xl border transition-colors"
                   style={{
-                    borderColor: isApproved ? '#16a34a' : 'var(--border)',
-                    backgroundColor: isApproved ? '#16a34a12' : 'var(--card)',
+                    borderColor: isApproved ? '#16a34a' : isRejected ? '#dc2626' : 'var(--border)',
+                    backgroundColor: isApproved ? '#16a34a12' : isRejected ? '#dc262610' : 'var(--card)',
+                    opacity: isRejected ? 0.6 : 1,
                   }}
                 >
+                  {/* Thumbnail, when the source stored one */}
+                  {c.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={c.image_url}
+                      alt=""
+                      className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-muted"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg flex-shrink-0 bg-muted flex items-center justify-center">
+                      <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--muted-foreground)' }}>
+                        image_not_supported
+                      </span>
+                    </div>
+                  )}
                   {/* Haiku score */}
                   <div className="flex flex-col items-center gap-0.5 pt-0.5 min-w-[52px]">
                     <span className="material-symbols-outlined" style={{ fontSize: 18, color: s.color }}>
@@ -290,16 +315,41 @@ export default function AdminMatchPage() {
                       <span
                         className="text-xs font-semibold px-1.5 py-0.5 rounded"
                         style={{
-                          backgroundColor: SOURCE_CONFIG.find((s) => s.key === c.source)?.color ?? 'var(--muted)',
+                          backgroundColor: sourceMeta?.color ?? 'var(--muted)',
                           color: '#fff',
                         }}
                       >
-                        {c.source}
+                        {sourceMeta?.label ?? c.source}
                       </span>
-                      {c.price != null && (
+
+                      {/*
+                        The asking price in the currency it was actually listed
+                        in. Kleinanzeigen quotes EUR, so rendering the raw number
+                        with a "kr" suffix — as this card used to — turned a
+                        450 EUR synth into a 450 kr one.
+                      */}
+                      {c.price != null ? (
                         <span className="text-xs font-medium text-foreground">
-                          {c.price.toLocaleString('da-DK')} kr
+                          {c.price.toLocaleString('da-DK')} {c.currency ?? 'DKK'}
+                          {c.price_dkk != null && c.currency !== 'DKK' && (
+                            <span className="text-muted-foreground font-normal">
+                              {' '}≈ {Math.round(c.price_dkk).toLocaleString('da-DK')} kr
+                            </span>
+                          )}
                         </span>
+                      ) : (
+                        /* Absence is shown, not filtered: 265 of ~2,141 active
+                           Kleinanzeigen rows have no price, and they are still
+                           real listings that may belong to this product. */
+                        <span className="text-xs font-medium" style={{ color: '#d97706' }}>
+                          Ingen pris
+                        </span>
+                      )}
+
+                      {c.location ? (
+                        <span className="text-xs text-muted-foreground truncate">{c.location}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Ingen lokation</span>
                       )}
                     </div>
                   </div>
@@ -318,9 +368,9 @@ export default function AdminMatchPage() {
                     <button
                       onClick={() => toggle(c.id, 'reject')}
                       className="p-1.5 rounded-lg transition-colors hover:bg-secondary"
-                      title="Afvis"
+                      title="Afvis — gemmes som varigt nej"
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--muted-foreground)' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 18, color: isRejected ? '#dc2626' : 'var(--muted-foreground)' }}>
                         close
                       </span>
                     </button>
