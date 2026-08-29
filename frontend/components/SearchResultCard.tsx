@@ -322,7 +322,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
             href={thomannUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-white/50 hover:text-white/70 transition-colors"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Ny hos Thomann: {thomannPriceDkk.toLocaleString('da-DK')} kr →
           </a>

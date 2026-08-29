@@ -33,15 +33,16 @@ function Toggle({ on, onToggle, disabled }: { on: boolean; onToggle: () => void;
       style={{
         width: '44px',
         height: '26px',
-        backgroundColor: on ? 'var(--primary)' : 'var(--border)',
+        backgroundColor: on ? 'var(--primary)' : 'var(--border-strong)',
       }}
     >
       <span
-        className="absolute top-[3px] rounded-full bg-white shadow transition-all duration-200"
+        className="absolute top-[3px] rounded-full shadow transition-all duration-200"
         style={{
           width: '20px',
           height: '20px',
           left: on ? '21px' : '3px',
+          backgroundColor: on ? 'var(--primary-foreground)' : 'var(--surface-1)',
         }}
       />
     </button>
