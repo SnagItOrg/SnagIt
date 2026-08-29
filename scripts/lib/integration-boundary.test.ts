@@ -33,6 +33,7 @@ test('integration: every package suite is registered exactly once', () => {
     [
       'scripts/lib/admin-match-kleinanzeigen.test.ts',
       'scripts/lib/baseline.test.ts',
+      'scripts/lib/data-presentation.test.ts',
       'scripts/lib/integration-boundary.test.ts',
       // Added by the Kleinanzeigen price recovery: the shared card-price
       // extractor is the only thing standing between a discounted ad and a

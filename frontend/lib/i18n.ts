@@ -243,6 +243,32 @@ export const translations = {
 
     // Music only. The four non-music verticals are inactive in the KG and are
     // removed from the public journey entirely (build plan §19, decision 17).
+
+    // Data-presentation primitives (components/data-display). Absence has four
+    // distinct causes and the reader needs to know which one they are looking
+    // at — "no data yet" and "we could not load it" are not the same fact.
+    dataDisplay: {
+      noObservations: 'Ingen observationer',
+      noObservationsDetail: 'Vi har ikke registreret prisdata for dette endnu.',
+      insufficientObservations: 'For f\u00e5 observationer',
+      insufficientObservationsDetail: 'Der er data, men ikke nok til at vise en udvikling, vi vil st\u00e5 inde for.',
+      sourceUnavailable: 'Kilden leverer ikke data',
+      sourceUnavailableDetail: 'Datakilden findes, men indeholder ingen r\u00e6kker endnu.',
+      loadFailed: 'Data kunne ikke hentes',
+      loadFailedDetail: 'Genindl\u00e6s siden for at pr\u00f8ve igen.',
+      loading: 'Henter data\u2026',
+      noData: 'ingen data',
+      observations: 'observationer',
+      observation: 'observation',
+      source: 'Kilde',
+      period: 'Periode',
+      sample: 'Datagrundlag',
+      currentValue: 'Nuv\u00e6rende',
+      rising: 'stigende',
+      falling: 'faldende',
+      flat: 'uforandret',
+    },
+
     categoryNames: {
       'music-gear': 'Musikudstyr',
     },
@@ -475,6 +501,29 @@ export const translations = {
     privacyRightsHeading: 'Your options',
     privacyContactHeading: 'Contact',
     privacyNoRawSearch: 'We never send your raw search text or your email address to our analytics tool.',
+
+
+    dataDisplay: {
+      noObservations: 'No observations',
+      noObservationsDetail: 'Nothing has been recorded here yet.',
+      insufficientObservations: 'Too few observations',
+      insufficientObservationsDetail: 'There is data, but not enough to show a trend we would stand behind.',
+      sourceUnavailable: 'Source returns no data',
+      sourceUnavailableDetail: 'The source exists but holds no rows yet.',
+      loadFailed: 'Could not load data',
+      loadFailedDetail: 'Reload the page to try again.',
+      loading: 'Loading data\u2026',
+      noData: 'no data',
+      observations: 'observations',
+      observation: 'observation',
+      source: 'Source',
+      period: 'Period',
+      sample: 'Sample',
+      currentValue: 'Current',
+      rising: 'rising',
+      falling: 'falling',
+      flat: 'unchanged',
+    },
 
     categoryNames: {
       'music-gear': 'Music gear',
