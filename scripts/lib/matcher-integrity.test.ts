@@ -614,6 +614,182 @@ test('intent tokens are word-boundary anchored and cannot fire on substrings', (
   assert.equal(detectNonProductIntent('Suche Fender Telecaster')?.intent, 'wanted_or_non_sale')
 })
 
+// ── accessory-noise guard (2026-08-29) ────────────────────────────────────
+//
+// Sanitised from the real titles measured on the 14 canonical public products.
+// The rejections and the protections come from the same measurement pass, so
+// each protection is a listing that actually exists and actually renders.
+
+test('accessory head-nouns are rejected when they are the thing being sold', () => {
+  for (const title of [
+    // The named Juno-60 / Juno-106 / Jupiter cases.
+    'Slider Cap Roland Juno-6, Juno-60, Jupiter 8...',
+    'NEW Roland Slider Cap (016H004) for Juno-60, Juno-6, Jupiter-8, RS-09, EP-09',
+    'Slide Potentiometer (Slider) - Roland Juno-6 / Juno-60 (A10K/A50K/B100K)',
+    'Roland Bender SH-1, SH-2, SH-7, SH-09, Juno-6, Juno-60, Jupiter 4, Jupiter 8',
+    // Covers, the largest residual class.
+    'Roland SH-101 cover',
+    'Roland JUPITER-8 cover (special edition)',
+    'Korg MS-20 Mini keyboard cover',
+    // Exact model name PLUS explicit replacement-part wording.
+    'Korg MS-20 MINI replacement keys 2000',
+    'ORIGINAL Roland Juno-60 Replacement HPF Slider Switch (13159505) for Juno-60',
+    // Documentation and data carriers sold alone.
+    'Yamaha DX7 original operators manual og performance notes',
+    'Yamaha DX7 Data ROM Cartridge',
+    'Roland TR-909 OS 4.0 EPROM Firmware Upgrade Kit',
+    'Modgrip till Roland SH-101 grå original',
+  ]) {
+    const hit = detectNonProductIntent(title.toLowerCase())
+    assert.equal(hit?.intent, 'part_or_accessory', `must reject: ${title}`)
+  }
+})
+
+test('a legitimate bargain is never rejected for being cheap', () => {
+  // The measured SH-101 at 7,500 DKK against a ~15,000 DKK band — an
+  // unusually cheap but entirely genuine instrument, and exactly the listing
+  // Klup exists to surface. It survives BECAUSE `inkl` precedes `Manual`.
+  const bargain = 'SJÆLDEN BLÅ Roland SH-101 – Nyserviceret & inkl. Original Manual'
+  assert.equal(detectNonProductIntent(bargain.toLowerCase()), null)
+
+  // Price is not an input to the guard at all: the same title is judged
+  // identically however cheap the listing is. Nothing here reads a price.
+  assert.equal(detectNonProductIntent('Roland SH-101 monosynth'.toLowerCase()), null)
+  assert.equal(detectNonProductIntent('Roland SH-101'.toLowerCase()), null)
+})
+
+test('a complete instrument bundled with accessories stays eligible', () => {
+  for (const title of [
+    'SJÆLDEN BLÅ Roland SH-101 – Nyserviceret & inkl. Original Manual',
+    'Yamaha DX7 – Komplett med original Flightcase, 5 ROM-kassetter och manual',
+    'Tausche Yamaha DX7 inkl Case, Cover, Cartridges und Patchbook',
+    'Roland SH-101 with Original Soft Case',
+    'Roland Juno-60 with Travel Hardcase',
+    'Roland TR-606 Drumatix plus Roland Silver Case & PSU',
+    'Original BLACK Emu SP1200 Sampling Drum SP-1200 reissue vintage Big Knobs w/case',
+    'Roland Juno 60 + midi adapter +psu',
+    'Roland SH-101 RED + Modulation Grip - RED',
+    'Roland RE-501 Chorus Echo - Spare Tapes - Pro Serviced - Warranty',
+  ]) {
+    assert.equal(detectNonProductIntent(title.toLowerCase()), null, `must stay eligible: ${title}`)
+  }
+})
+
+test('an inclusion marker only rescues an accessory that FOLLOWS it', () => {
+  // Position is the whole rule. Here the EPROM is the head noun and `with`
+  // merely lists what it is compatible with, so it must still be rejected.
+  assert.equal(
+    detectNonProductIntent('Casio RZ-1 SOUND KIT EPROM with Sp12 - DMX - TR-808 Sounds'.toLowerCase())?.intent,
+    'part_or_accessory',
+  )
+  // ...whereas the same noun after the marker is an included extra.
+  assert.equal(
+    detectNonProductIntent('Yamaha DX7 inkl. EPROM upgrade'.toLowerCase()),
+    null,
+  )
+})
+
+test('ordinary full-product listings across canonical products stay eligible', () => {
+  for (const title of [
+    'Roland Juno-60 61-Key Polyphonic Synthesizer 1982 - 1984 - Black',
+    'Roland Juno-106 Vintage Analog Synthesizer',
+    'Roland Jupiter-8 Polyphonic Analog Synthesizer in Good condition',
+    'Roland TR-808 Rhythm Composer Vintage Drum Machine',
+    'Roland RE-201 Space Echo Tape Delay 1970s - Black',
+    'Korg MS-20 Vintage Analog Synthesizer – mk1',
+    'Yamaha DX7 Digital Programmable Algorithm Synthesizer',
+    'Wurlitzer 200A 64-Key Electric Piano 1974 - 1983 - Black',
+    'Fender Rhodes Mark II 73 - Klassiker in gutem Zustand',
+    'Roland Juno-60 – Legendary Polyphonic Analog Synth with MIDI, Needs Service',
+    'Roland Juno-60 - serviced - very good condition',
+  ]) {
+    assert.equal(detectNonProductIntent(title.toLowerCase()), null, `must stay eligible: ${title}`)
+  }
+})
+
+test('`pickup` in its shipping sense is not a part', () => {
+  // Found by this change's dry run: 48 active listings mean collection in
+  // person, including complete instruments up to 119,406 DKK.
+  for (const title of [
+    'Roland TR-909 tr909 Rhythm Composer Drum Machine 1984 - Local Pickup Only',
+    'Moog Model 345A Memorymoog Plus Polyphonic Synthesizer Keyboard - Local Pickup Only',
+    'Rhodes Mark II 73 1980\'s - Black Local Pickup only',
+    'Fender 1964 Deluxe Reverb Combo, Vintage - Pre Owned *Pickup Only*',
+  ]) {
+    assert.equal(detectNonProductIntent(title.toLowerCase()), null, `must stay eligible: ${title}`)
+  }
+  // The part sense is untouched — 363 of the 409 `pickup` titles.
+  assert.equal(
+    detectNonProductIntent('Guitar Pickup, Fender 1978 Stratocaster'.toLowerCase())?.intent,
+    'part_or_accessory',
+  )
+  assert.equal(
+    detectNonProductIntent('Fender Jazz Bass pickups'.toLowerCase())?.intent,
+    'part_or_accessory',
+  )
+})
+
+test('German accessory vocabulary is deliberately NOT adopted', () => {
+  // Re-measured 2026-08-29: zero hits on the canonical cohort, which is 98%
+  // Reverb and lists in English. An unexercised token is a latent false
+  // rejection, so these stay out until the data demonstrates them. This test
+  // records the decision so a future reader does not "fix" the omission.
+  for (const title of [
+    'Roland Juno-60 Regler defekt',
+    'Roland Juno-60 Abdeckung',
+    'Yamaha DX7 Ersatzteil',
+  ]) {
+    assert.equal(detectNonProductIntent(title.toLowerCase()), null, `not yet adopted: ${title}`)
+  }
+  // `netzteil` IS adopted — it was measured in the original derivation.
+  assert.equal(
+    detectNonProductIntent('Roland Juno-60 Netzteil'.toLowerCase())?.intent,
+    'part_or_accessory',
+  )
+})
+
+test('accessory words that belong to a model identity are not rejection rules', () => {
+  // No supported product name contains an accessory token — verified by SELECT
+  // over the 48-product cohort. These guard the boundary behaviour anyway.
+  assert.equal(detectNonProductIntent('Roland JX-3P Coverage demo'.toLowerCase()), null)
+  assert.equal(detectNonProductIntent('Moog Manualis prototype'.toLowerCase()), null)
+  assert.equal(detectNonProductIntent('Korg Slidermatic 400'.toLowerCase()), null)
+})
+
+test('the public product page does not render an adjudicated rejection', () => {
+  // `is_valid = false` is a written verdict — from the matcher's hard
+  // brand-collision branch, the AI validation pass, or an admin. The product
+  // listing query discarded it, so 87 of 309 rendered rows on the canonical
+  // cohort were matches something had already ruled out. Asserted at the query
+  // because that is where the defect was: no amount of matcher correctness
+  // helps if the read ignores the answer.
+  const repoRoot = path.resolve(__dirname, '../..')
+  const route = fs.readFileSync(
+    path.join(repoRoot, 'frontend/app/api/product/[slug]/route.ts'), 'utf8',
+  )
+  const q = route.slice(route.indexOf("from('listing_product_match')"))
+  const query = q.slice(0, q.indexOf('.limit(50)'))
+  assert.ok(
+    query.includes(".not('is_valid', 'is', false)"),
+    'the product listing query must exclude explicitly rejected matches',
+  )
+  // NULL is the normal state of an automatic match and must survive.
+  assert.ok(
+    !/\.eq\('is_valid'/.test(query),
+    'filtering to is_valid=true would hide every unreviewed automatic match',
+  )
+})
+
+test('the accessory guard rejects the association, never the price', () => {
+  // A hard rejection must be explainable by a token, and that token must be a
+  // word in the title — never a threshold. Same title, absurd prices, same
+  // verdict, because no price is passed in.
+  const accessory = 'roland sh-101 cover'
+  const product = 'roland sh-101 monosynth'
+  assert.equal(detectNonProductIntent(accessory)?.token, 'cover')
+  assert.equal(detectNonProductIntent(product), null)
+})
+
 // ── duplicate KG rows (Prompt 02B) ────────────────────────────────────────
 
 test('identical canonical duplicate rows fail closed with an auditable outcome', () => {

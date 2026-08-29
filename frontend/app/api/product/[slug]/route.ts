@@ -196,10 +196,27 @@ async function handle(req: NextRequest, slug: string) {
     .slice(0, 6)
 
   const [matchesRes, reverbRes, auctionetRes, relatedRes, relatedDomainRes] = await Promise.all([
+    // A REJECTED MATCH IS NOT EVIDENCE. `is_valid = false` is an explicit
+    // verdict — written by the matcher's hard brand-collision branch, by the
+    // AI validation pass, or by an admin through /admin/product/[slug] — and
+    // this query discarded it, so every adjudicated wrong match still rendered
+    // on the public page.
+    //
+    // Measured 2026-08-29 across the 14 canonical products: 87 of the 309
+    // rendered rows (28.2%) were already marked `is_valid = false`, on 10 of
+    // the 14 products, peaking at 68.6% on `roland-jupiter-8`. They are slider
+    // caps, potentiometers, benders, EPROMs, service schematics and Voyager
+    // variants — each carrying a written `rejected_reason` explaining why it is
+    // not this product, sitting in the price evidence for it.
+    //
+    // `.not('is_valid','is',false)` keeps NULL and true, and drops only the
+    // explicit rejection. NULL must stay: it is the normal state of an
+    // automatic match, and the matcher's contract treats it as trusted.
     admin
       .from('listing_product_match')
       .select(MATCH_WITH_LISTING_SELECT)
       .eq('product_id', productId)
+      .not('is_valid', 'is', false)
       .order('score', { ascending: false })
       .limit(50),
     // Reverb price history: deterministic FK join (mig 031 added the column,
