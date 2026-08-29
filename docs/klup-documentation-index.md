@@ -1,6 +1,7 @@
 # Klup documentation index
 
-**The map. Read this before trusting any other document in the repository.**
+**The map.** A lookup for whether a document is safe to act on — not
+pre-reading, and not a gate on starting work.
 
 > **UPDATED 2026-08-28 — Stage 3 V1 is LIVE.** Verdict
 > `STAGE3_V1_LIVE_CRON_HELD`, production `14ee6f8`, rollback `703a117`, tag
@@ -36,17 +37,27 @@ This index links to authoritative documents; it does not duplicate them.
 
 ## 1. Authority hierarchy
 
-1. **[`CLAUDE.md`](../CLAUDE.md)** — how to work safely *now*. Operating rules,
-   product-state model, safe commands, prohibited actions. Read first.
-2. **[`klup-foundation-handover.md`](klup-foundation-handover.md)** — the full
-   technical handover, self-contained through Prompt 04B.
-3. **This index** — which other documents are current.
+1. **[`CLAUDE.md`](../CLAUDE.md)** — prohibitions, production boundaries and
+   routing. It loads automatically; you do not need to open it, and it does not
+   send you here before you start work.
+2. **Code** — for product eligibility, `frontend/lib/catalogue.ts` and
+   `frontend/lib/matching/match-listings.ts` are the authority. Prose explains
+   them; it never competes with them.
+3. **[`stage-3-v1-release-record.md`](stage-3-v1-release-record.md)** — release
+   SHAs, catalogue counts, deployment evidence, open operator actions.
 4. **Specialised current references** — the `current_supporting` documents below.
 5. **Everything else** — historical or superseded. Do not act on it.
 
-**Rule:** if a document is not listed as `authoritative_current` or
-`current_supporting` in §3, treat its instructions as unsafe until verified
-against code.
+**This index is a lookup, not pre-reading.** Come here when you need to know
+whether a document is safe to act on. If a document is not listed as
+`authoritative_current` or `current_supporting` in §3, treat its instructions as
+unsafe until verified against code.
+
+> `klup-foundation-handover.md` is **historical** as of the Stage 3 V1 release.
+> It remains accurate for the 2026-08-26 activation it records, and its P0
+> default-privilege warning now also lives in
+> [`../scripts/CLAUDE.md`](../scripts/CLAUDE.md), which loads automatically when
+> working under `scripts/`.
 
 ---
 
@@ -55,22 +66,28 @@ against code.
 | I need… | Read |
 |---|---|
 | **What is live in production, and what is not** | **[`stage-3-v1-release-record.md`](stage-3-v1-release-record.md)** — Stage 3 V1 closure record |
-| Product thesis and roadmap | [`../CLAUDE.md`](../CLAUDE.md) §1, §9 |
-| Fresh-session technical handover | [`klup-foundation-handover.md`](klup-foundation-handover.md) |
-| Activation runbook | [`klup-foundation-handover.md`](klup-foundation-handover.md) → *Controlled activation sequence* |
-| Matcher / KG / ingestion contracts | [`klup-foundation-handover.md`](klup-foundation-handover.md) → *Matcher and ingestion contract* |
+| Product thesis and current work | [`../CLAUDE.md`](../CLAUDE.md) §1 |
+| The 2026-08-26 activation, as it happened | [`klup-foundation-handover.md`](klup-foundation-handover.md) *(historical)* |
+| Activation runbook *(spent — activation is done)* | [`klup-foundation-handover.md`](klup-foundation-handover.md) → *Controlled activation sequence* |
+| Matcher / KG / ingestion contracts | `frontend/lib/matching/match-listings.ts` is the authority; [`klup-foundation-handover.md`](klup-foundation-handover.md) → *Matcher and ingestion contract* explains it |
 | Product selection and the frozen 48 | [`klup-launch-catalogue-selection.md`](klup-launch-catalogue-selection.md) · `data/klup-launch-cohort-frozen.csv` |
 | Candidate provenance | `data/klup-product-candidate-registry.csv` · `data/klup-candidate-disposition.csv` |
 | Lifecycle / promotion authoring | [`klup-product-lifecycle-guide.md`](klup-product-lifecycle-guide.md) |
-| Migration queue and order | [`../scripts/migrations/README.md`](../scripts/migrations/README.md) → *053–056* |
+| Migration record, order and rollbacks | [`../scripts/migrations/README.md`](../scripts/migrations/README.md) |
 | Read-only SQL | [`../scripts/queries/README.md`](../scripts/queries/README.md) |
 | Frontend design rules | [`../frontend/CLAUDE.md`](../frontend/CLAUDE.md) |
-| Experience-specification inputs | This index → §2 rows above, plus `data/klup-frozen-cohort-asset-inventory.csv` |
+| Scraper, PM2 and migration authoring rules | [`../scripts/CLAUDE.md`](../scripts/CLAUDE.md) |
 | Engineering history / past defects | [`klup-engineering-history.md`](klup-engineering-history.md) *(history only)* |
 
 ---
 
-## 3. Complete audit — all 12 repo-owned Markdown files
+## 3. Markdown audit — the 2026-08-13 (H1) pass
+
+> **Dated record, not a live inventory.** This table covers the 14 files that
+> existed at the H1 pass. The six Stage 3 documents written since are not in it;
+> all of them are historical records of Stage 3, and
+> [`stage-3-v1-release-record.md`](stage-3-v1-release-record.md) is the current
+> authority on that work.
 
 | Path | State | Authoritative replacement | Action taken (H1) | Risk if followed incorrectly |
 |---|---|---|---|---|
@@ -101,7 +118,7 @@ pretend it described a later state.
 | All `*.md` (case-insensitive) under the repository root | **936** |
 | — excluded: `./node_modules/**` | 48 |
 | — excluded: `./frontend/node_modules/**` | 836 |
-| — excluded: `./.agents/**` (pre-existing, must not be modified) | 40 |
+| — excluded: `./.agents/**` (main checkout only, untracked, absent from every worktree) | 40 |
 | — excluded: `./.git/**`, `./frontend/.next/**`, `./.claude/**` | 0 |
 | **Repo-owned Markdown audited** | **12** *(13 after `klup-engineering-history.md` and this index were created)* |
 
@@ -132,13 +149,13 @@ in §3.
 
 | When this changes… | Update these |
 |---|---|
-| Schema (a new migration) | `scripts/migrations/README.md`, handover → *Migration and rollback package*, `CLAUDE.md` §5 |
-| Lifecycle axes or matcher eligibility | `klup-product-lifecycle-guide.md`, handover → *Data and lifecycle contract* + *Matcher and ingestion contract*, `CLAUDE.md` §2 |
-| The frozen cohort (any entry/exit) | `data/klup-launch-cohort-frozen.csv` (regenerate — never hand-edit), `klup-launch-catalogue-selection.md`, handover → *Product thesis and current milestone* |
-| Source monitoring sets | `data/klup-source-monitoring.json`, handover → *Explicit monitoring boundary*, `CLAUDE.md` §3 |
-| Activation state (a migration is applied) | handover → *Current production and repository state* + *Controlled activation sequence*, `CLAUDE.md` §5 |
-| Test/type/lint/harness totals | handover → *Verification baseline*, `CLAUDE.md` §6 |
-| Product thesis or roadmap stage | `CLAUDE.md` §1 and §9, handover → *Product thesis and current milestone*, this index |
+| Schema (a new migration) | `scripts/migrations/README.md`, `scripts/CLAUDE.md` → *Migrations* |
+| Lifecycle axes or matcher eligibility | `frontend/lib/catalogue.ts` and `frontend/lib/matching/match-listings.ts` first — they are the authority — then `klup-product-lifecycle-guide.md` |
+| The frozen cohort (any entry/exit) | `data/klup-launch-cohort-frozen.csv` (regenerate — never hand-edit), `klup-launch-catalogue-selection.md` |
+| Source monitoring sets | `data/klup-source-monitoring.json`, `scripts/CLAUDE.md` → *Scrapers* |
+| Activation state (a migration is applied) | `scripts/migrations/README.md`, and a release record |
+| Test/type/lint/harness totals | **Nowhere.** Counts belong to the run, and to the pre-deploy gate recorded in a release record |
+| Product thesis or current work | `CLAUDE.md` §1, and this index |
 
 **Derived data files are never hand-edited.** Regenerate with
 `npm run build-product-artefacts` and review the diff.
@@ -156,10 +173,10 @@ behind a status notice, or listed here with justification.
 | Generic marketplace / arbitrage / storefront positioning | Corrected in `CLAUDE.md`, `frontend/README.md`; quoted as history behind notices in `OPERATIONS.md` and `klup-engineering-history.md` |
 | Full-KG monitoring | Corrected; explicit sets documented everywhere current |
 | `tier` as the monitoring axis | Corrected in `CLAUDE.md`, handover, `OPERATIONS.md` notice. Historical occurrences remain inside `klup-engineering-history.md` behind its notice |
-| Pre-056 migration order / 057 files | Corrected — 057 and the release wrapper no longer exist; `scripts/migrations/README.md` states the 053–056 queue |
+| Pre-056 migration order / 057 files | Corrected. The *retired* 056/057 activation split and its release wrapper no longer exist; the number 057 was later reused by `057_restrict_release_archive_tables.sql`, which is applied. `scripts/migrations/README.md` carries the per-file state |
 | Old test totals presented as current | Corrected to 148 tests / 60 harness passes / 7 root errors in `CLAUDE.md` and handover. Older totals survive only inside dated history |
 | Broad seed importer as the production activation path | Neutralised with a prominent warning on `DEPLOYMENT_GUIDE.md`; corrected in `CLAUDE.md`, handover and `scripts/migrations/README.md` |
-| `report-match-backlog` as a PRE-056 preflight | Explicitly corrected in `CLAUDE.md` §6 and handover → *Known compatibility and operational constraints* |
+| `report-match-backlog` as a PRE-056 preflight | Corrected in handover → *Known compatibility and operational constraints*. 056 is applied, so it now succeeds |
 | Unbounded historical matcher instructions | `OPERATIONS.md` Part 7 suggested `npx tsx scripts/match-listings.ts`; corrected in its notice. The CLI itself refuses without `--historical-backfill --sources= --max=` |
 | Product selection "not started" | Corrected — the cohort is frozen at 48 |
 | Claims that product pages / images / promotion do not exist | Corrected — handover → *What exists already* inventories all of them |
@@ -168,22 +185,20 @@ behind a status notice, or listed here with justification.
 
 ## 8. What the next agent should do
 
-**Start with [`stage-3-v1-release-record.md`](stage-3-v1-release-record.md).**
-Stage 3 V1 is live and closed; the record states the production and rollback
-SHAs, the final catalogue counts, the security closure, the unresolved operator
-actions, and the only next approved work (`visual-foundation-v1`). It also
-records that no further foundation, matcher, migration or product-architecture
-work is authorised.
+**Stage 3 V1 is closed** at release `14ee6f8`. Current work is
+**`visual-foundation-v1`** — semantic colour, elevation and typography tokens.
 
+There is no mandatory reading order. `CLAUDE.md` and the scoped `CLAUDE.md`
+files load on their own; start the work and open a document here when you need
+a specific fact. The one document worth reading in full before touching
+anything product-facing is
+[`stage-3-v1-release-record.md`](stage-3-v1-release-record.md), which states
+what shipped, what deliberately did not (WP-3), the security closure, the
+unresolved operator actions and the P1–P8 backlog.
 
-1. Read [`../CLAUDE.md`](../CLAUDE.md).
-2. Read [`klup-foundation-handover.md`](klup-foundation-handover.md), especially
-   *Activation record — 2026-08-26* and the **P0** default-privilege warning.
-3. Proceed to **experience specification** (Stage 3).
-
-**Activation is DONE.** Do not re-run it, do not re-apply migrations (all five are
-idempotent no-ops but there is no reason to touch them), and do not reopen
-foundation, matcher, KG or product-data work.
+**Activation is DONE.** Migrations 053–057 are all `POST`. Do not re-run the
+activation, do not re-apply a migration, and do not reopen foundation, matcher,
+KG or product-data work.
 
 ### Immediate product-operations follow-ups (not engineering branches)
 
