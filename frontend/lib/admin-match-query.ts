@@ -57,8 +57,17 @@ export type ProductFacts = {
 export type QueryVariant = {
   /** Stable identifier, used in diagnostics. Never free text. */
   id: string
-  /** ILIKE terms, AND-ed together within this variant. */
-  terms: string[]
+  /**
+   * Complete ILIKE patterns, wildcards included, AND-ed within this variant.
+   *
+   * Patterns rather than bare substrings because the wildcard placement is
+   * load-bearing. `%re 201%` and `% re 201%` are not the same search: the first
+   * matched 17 live listings of which only 2 were a Space Echo — the rest were
+   * word-boundary accidents, 'Ra(re 201)0', 'Signatu(re 201)4',
+   * 'Gita(rre 201)3', 'P(re 201)0s'. The leading space is the whole fix, and a
+   * caller that only got a substring could not express it.
+   */
+  patterns: string[]
 }
 
 /** Hard ceiling on alternatives per product. */
@@ -150,14 +159,54 @@ export function modelTokenForms(modelName: string): string[] {
   const compact = normalizeText(modelName).replace(/ /g, '')
   const letters = compact.replace(/[0-9]+$/, '')
   const digits = compact.slice(letters.length)
-  const forms = new Set<string>()
-  forms.add(normalizeText(modelName).replace(/ /g, '-'))
+  const forms: string[] = []
   if (letters && digits) {
-    forms.add(`${letters}-${digits}`)
-    forms.add(`${letters} ${digits}`)
-    forms.add(`${letters}${digits}`)
+    // Hyphenated: the highest-recall spelling. 61 live hits across 4 sources.
+    forms.push(`%${letters}-${digits}%`)
+    /**
+     * Spaced, and bounded on the left by a space.
+     *
+     * An unbounded `%re 201%` is not a model identifier, it is any string
+     * ending in 're' followed by anything starting '201' — which is how
+     * 'Fender ... E-Gitarre 2013' and 'Fender ... Signature 2014' reached the
+     * RE-201 queue on Preview. Measured: unbounded returns 17 rows, 2 of them
+     * genuine; bounded returns exactly those 2 and nothing else.
+     *
+     * Known, measured limitation: a title BEGINNING 'RE 201 ...' has no
+     * preceding space and is missed here. Zero live listings are in that shape,
+     * and such a seller is still reached by the hyphenated and joined forms.
+     * ILIKE has no word-boundary operator, and reaching for a regex operator to
+     * get one would introduce exactly the untested filter grammar this slice is
+     * already blocked on.
+     */
+    forms.push(`% ${letters} ${digits}%`)
+    // Joined. Rare — 2 live hits — but a seller who writes 'RE201' is
+    // otherwise invisible.
+    forms.push(`%${letters}${digits}%`)
+  } else {
+    forms.push(`%${normalizeText(modelName).replace(/ /g, '-')}%`)
   }
-  return Array.from(forms).filter((f) => f.length >= MIN_TOKEN)
+  return Array.from(new Set(forms))
+}
+
+/** The alphabetic content of a pattern, wildcards and digits removed. */
+function alphaOf(pattern: string): string {
+  return pattern.replace(/[^a-z]/g, '')
+}
+
+/**
+ * A variant must never be a bare alphabetic stub.
+ *
+ * `re` on its own is two letters and matches a third of the marketplace. A
+ * single-pattern variant therefore has to carry a digit, and any pattern whose
+ * alphabetic content is shorter than three characters is only admissible when
+ * it also carries digits — i.e. when it is a complete model identifier.
+ */
+export function isAdmissiblePattern(pattern: string): boolean {
+  const alpha = alphaOf(pattern)
+  const hasDigit = /[0-9]/.test(pattern)
+  if (alpha.length < 3 && !hasDigit) return false
+  return pattern.replace(/[%\s-]/g, '').length >= MIN_TOKEN
 }
 
 /**
@@ -203,13 +252,15 @@ export type RetrievalPlan = {
  */
 export function planRetrieval(facts: ProductFacts): RetrievalPlan {
   const variants: QueryVariant[] = []
-  const push = (id: string, terms: string[]) => {
-    const cleaned = terms.map((t) => sanitizeTerm(t)).filter((t) => t.length >= MIN_TOKEN)
+  const push = (id: string, patterns: string[]) => {
+    const cleaned = patterns.filter((p) => isAdmissiblePattern(p))
     if (cleaned.length === 0) return
     const key = cleaned.join('|')
-    if (variants.some((v) => v.terms.join('|') === key)) return
-    variants.push({ id, terms: cleaned })
+    if (variants.some((v) => v.patterns.join('|') === key)) return
+    variants.push({ id, patterns: cleaned })
   }
+  /** A plain token becomes a substring pattern. */
+  const sub = (token: string) => `%${sanitizeTerm(token)}%`
 
   const model = facts.modelName?.trim() ?? ''
   const distinctive = model.length > 0 && isDistinctiveModelToken(model)
@@ -218,21 +269,21 @@ export function planRetrieval(facts: ProductFacts): RetrievalPlan {
   if (distinctive) {
     const forms = modelTokenForms(model)
     // Brand + model first: the sharpest thing we can ask for.
-    if (brand.length >= MIN_TOKEN && forms[0]) push('brand+model', [brand, forms[0]])
+    if (brand.length >= MIN_TOKEN && forms[0]) push('brand+model', [sub(brand), forms[0]])
     forms.forEach((form, i) => push(i === 0 ? 'model' : `model-form-${i}`, [form]))
   }
 
   // The canonical name, punctuation-stripped. For a product with no model token
   // this is the only variant, which is the previous behaviour minus the
   // punctuation bug.
-  push('canonical', canonicalTerms(facts.canonicalName))
+  push('canonical', canonicalTerms(facts.canonicalName).map(sub))
 
   let aliasesAdmitted = 0
   const aliases = facts.aliases ?? []
   for (const alias of aliases) {
     if (!isAdmissibleAlias(alias, facts.canonicalName)) continue
     aliasesAdmitted++
-    push(`alias-${aliasesAdmitted}`, canonicalTerms(alias))
+    push(`alias-${aliasesAdmitted}`, canonicalTerms(alias).map(sub))
   }
 
   const capped = Math.max(0, variants.length - MAX_VARIANTS)
@@ -257,7 +308,25 @@ export function planRetrieval(facts: ProductFacts): RetrievalPlan {
  */
 export function variantMatches(variant: QueryVariant, title: string): boolean {
   const haystack = title.toLowerCase()
-  return variant.terms.every((term) => haystack.includes(term))
+  return variant.patterns.every((pattern) => ilikeMatches(pattern, haystack))
+}
+
+/**
+ * Evaluate one ILIKE pattern locally, with the SAME semantics as Postgres.
+ *
+ * Local attribution used a bare `String.includes`, which silently disagreed
+ * with the database once patterns carried their own wildcards — and a
+ * diagnostic that disagrees with the query it describes is worse than none.
+ * Only `%` is used by this module; `_` is escaped rather than supported, so a
+ * future pattern cannot acquire a meaning here that Postgres would not give it.
+ */
+export function ilikeMatches(pattern: string, lowercasedTitle: string): boolean {
+  const escaped = pattern
+    .toLowerCase()
+    .split('%')
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('.*')
+  return new RegExp(`^${escaped}$`).test(lowercasedTitle)
 }
 
 /**
@@ -273,7 +342,7 @@ export function variantMatches(variant: QueryVariant, title: string): boolean {
  */
 export function buildOrFilter(variants: readonly QueryVariant[]): string {
   const groups = variants.map((variant) => {
-    const clauses = variant.terms.map((t) => `title.ilike.%${t}%`)
+    const clauses = variant.patterns.map((p) => `title.ilike.${p}`)
     return clauses.length === 1 ? clauses[0] : `and(${clauses.join(',')})`
   })
   return groups.join(',')

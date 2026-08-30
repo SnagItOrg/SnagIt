@@ -39,6 +39,8 @@ import {
   buildOrFilter,
   canonicalTerms,
   isAdmissibleAlias,
+  ilikeMatches,
+  isAdmissiblePattern,
   isDistinctiveModelToken,
   modelTokenForms,
   planRetrieval,
@@ -79,9 +81,9 @@ const RHYTHMATE: ProductFacts = {
 }
 
 const ids = (f: ProductFacts) => planRetrieval(f).variants.map((v) => v.id)
-const termsFor = (f: ProductFacts, id: string) =>
-  planRetrieval(f).variants.find((v) => v.id === id)?.terms ?? []
-const allTerms = (f: ProductFacts) => planRetrieval(f).variants.flatMap((v) => v.terms)
+const patternsFor = (f: ProductFacts, id: string) =>
+  planRetrieval(f).variants.find((v) => v.id === id)?.patterns ?? []
+const allPatterns = (f: ProductFacts) => planRetrieval(f).variants.flatMap((v) => v.patterns)
 
 /* ------------------------------------------------------------------ *
  * 1. The clean RE-201 generates useful model-token variants
@@ -108,8 +110,8 @@ test('the clean RE-201 gets model-token variants, not just its canonical name', 
 test('the model token is drawn from the stored model_name, not parsed from the name', () => {
   // model_name is curated. Parsing it back out of 'Roland RE-201 (Space Echo)'
   // is what the old code effectively attempted, and it is why it failed.
-  assert.deepEqual(termsFor(RE201, 'model'), ['re-201'])
-  assert.deepEqual(termsFor(RE201, 'brand+model'), ['roland', 're-201'])
+  assert.deepEqual(patternsFor(RE201, 'model'), ['%re-201%'])
+  assert.deepEqual(patternsFor(RE201, 'brand+model'), ['%roland%', '%re-201%'])
 })
 
 /* ------------------------------------------------------------------ *
@@ -118,9 +120,8 @@ test('the model token is drawn from the stored model_name, not parsed from the n
 
 test('all three punctuation forms of a model are searched', () => {
   const forms = modelTokenForms('RE-201')
-  for (const form of ['re-201', 're 201', 're201']) {
-    assert.ok(forms.includes(form), `retrieval must cover the ${form} spelling`)
-  }
+  // The spaced form is bounded on the left: see the boundary regression below.
+  assert.deepEqual(forms, ['%re-201%', '% re 201%', '%re201%'])
 })
 
 test('the three forms reach the plan as distinct terms', () => {
@@ -128,9 +129,9 @@ test('the three forms reach the plan as distinct terms', () => {
   // 're-201' into 're 201', silently discarding the highest-recall variant —
   // 61 live hits against 17. ILIKE is a substring match; they are not the same
   // search.
-  const terms = allTerms(RE201)
-  for (const form of ['re-201', 're 201', 're201']) {
-    assert.ok(terms.includes(form), `the ${form} spelling was folded away`)
+  const patterns = allPatterns(RE201)
+  for (const form of ['%re-201%', '% re 201%', '%re201%']) {
+    assert.ok(patterns.includes(form), `the ${form} spelling was folded away`)
   }
 })
 
@@ -147,7 +148,7 @@ test('the hyphen survives sanitisation, and filter grammar does not', () => {
 test('a spelling variant is reached whichever way the model is stored', () => {
   for (const stored of ['RE-201', 're 201', 'RE201']) {
     const forms = modelTokenForms(stored)
-    assert.ok(forms.includes('re-201') && forms.includes('re201'), `stored as ${stored}`)
+    assert.ok(forms.includes('%re-201%') && forms.includes('%re201%'), `stored as ${stored}`)
   }
 })
 
@@ -164,10 +165,11 @@ test('no year, colour or marketing word is ever a SYNTHESISED required term', ()
   for (const facts of [RE201, SH101, RHYTHMATE, POLLUTED]) {
     for (const variant of planRetrieval(facts).variants) {
       if (variant.id === 'canonical') continue
-      for (const term of variant.terms) {
-        assert.ok(!/^(19|20)\d{2}$/.test(term), `a year became a required term: ${term}`)
+      for (const pattern of variant.patterns) {
+        const bare = pattern.replace(/%/g, '').trim()
+        assert.ok(!/^(19|20)\d{2}$/.test(bare), `a year became a required term: ${bare}`)
         for (const dirty of ['black', 'white', 'mint', 'vintage', 'serviced', 'boxed']) {
-          assert.ok(term !== dirty, `a condition/colour word became required: ${term}`)
+          assert.ok(bare !== dirty, `a condition/colour word became required: ${bare}`)
         }
       }
     }
@@ -180,13 +182,13 @@ test('a dirty canonical name never contaminates the model-token variants', () =>
   const synthesised = withModel.variants.filter((v) => v.id !== 'canonical')
   assert.ok(synthesised.length > 0)
   for (const v of synthesised) {
-    assert.ok(!v.terms.some((t) => /1974|1988|black|reverb/.test(t)), `contaminated: ${v.terms}`)
+    assert.ok(!v.patterns.some((p) => /1974|1988|black|reverb/.test(p)), `contaminated: ${v.patterns}`)
   }
 })
 
 test('recall for RE-201 comes from the model token alone', () => {
   // The variant that carries the recall requires nothing but the model.
-  assert.deepEqual(termsFor(RE201, 'model'), ['re-201'])
+  assert.deepEqual(patternsFor(RE201, 'model'), ['%re-201%'])
 })
 
 test('stored aliases that are raw marketplace titles are refused', () => {
@@ -239,6 +241,7 @@ test('variants are OR alternatives, never extra AND requirements', () => {
   // which is PostgREST's OR.
   assert.ok(filter.includes('and(title.ilike.%roland%,title.ilike.%re-201%)'))
   assert.ok(filter.includes('title.ilike.%re201%'))
+  assert.ok(filter.includes('title.ilike.% re 201%'), 'the spaced form must stay bounded')
   assert.ok(!/^and\(/.test(filter) || filter.split('),').length > 1)
   assert.ok(/\.or\(orFilter\)/.test(CANDIDATES_ROUTE), 'the route must OR the variants')
   assert.ok(
@@ -279,10 +282,10 @@ test('the plan is per product, not per source, so no source gets a wider query',
 test('SH-101 retrieval is not widened — its canonical variant is unchanged', () => {
   // Measured 175 -> 176 unique. The extra variants are model-token queries,
   // which are strictly NARROWER than the old `roland AND 101`.
-  assert.deepEqual(termsFor(SH101, 'canonical'), ['roland', '101'])
+  assert.deepEqual(patternsFor(SH101, 'canonical'), ['%roland%', '%101%'])
   for (const id of ['model', 'model-form-1', 'model-form-2']) {
-    const terms = termsFor(SH101, id)
-    assert.ok(terms.every((t) => t.includes('sh')), `${id} must carry the model letters`)
+    const patterns = patternsFor(SH101, id)
+    assert.ok(patterns.every((p) => p.includes('sh')), `${id} must carry the model letters`)
   }
 })
 
@@ -291,10 +294,10 @@ test('a bare brand can never become a query', () => {
   // retrieval, it is the entire marketplace.
   for (const facts of [RE201, SH101, POLLUTED]) {
     for (const variant of planRetrieval(facts).variants) {
-      assert.notDeepEqual(variant.terms, ['roland'], 'Roland RE-201 was broadened to bare Roland')
+      assert.notDeepEqual(variant.patterns, ['%roland%'], 'Roland RE-201 was broadened to bare Roland')
       assert.ok(
-        variant.terms.length > 1 || isDistinctiveModelToken(variant.terms[0]),
-        `a single non-distinctive term became a query: ${variant.terms}`,
+        variant.patterns.length > 1 || isDistinctiveModelToken(variant.patterns[0]),
+        `a single non-distinctive pattern became a query: ${variant.patterns}`,
       )
     }
   }
@@ -321,8 +324,7 @@ test('a digitless or too-short model name yields no standalone variant', () => {
 
 test('Chamberlin Rhythmate keeps a two-term conjunction, not a brand sweep', () => {
   assert.deepEqual(ids(RHYTHMATE), ['canonical'])
-  assert.deepEqual(termsFor(RHYTHMATE, 'canonical'), ['chamberlin', 'rhythmate'])
-  assert.ok(!allTerms(RHYTHMATE).includes('chamberlin') || termsFor(RHYTHMATE, 'canonical').length > 1)
+  assert.deepEqual(patternsFor(RHYTHMATE, 'canonical'), ['%chamberlin%', '%rhythmate%'])
 })
 
 test('no family variant is emitted, because retrieval is not where a family lives', () => {
@@ -352,9 +354,9 @@ test('a product with no model_name retrieves exactly as before, minus the bug', 
 test('the polluted duplicate is not repaired by this change, and must not be', () => {
   // It has no model_name, so it keeps its ten-term conjunction. Cleaning it up
   // is a taxonomy job — explicitly out of scope for a retrieval fix.
-  const terms = termsFor(POLLUTED, 'canonical')
-  assert.equal(terms.length, 10)
-  assert.ok(terms.includes('1974') && terms.includes('black'))
+  const patterns = patternsFor(POLLUTED, 'canonical')
+  assert.equal(patterns.length, 10)
+  assert.ok(patterns.includes('%1974%') && patterns.includes('%black%'))
 })
 
 /* ------------------------------------------------------------------ *
@@ -377,7 +379,8 @@ test('the most specific variants survive the cap', () => {
 
 test('the four distinguishable retrieval outcomes are all logged, with counts only', () => {
   for (const field of [
-    'per_source_raw', 'unique_after_dedup', 'dropped_duplicate', 'scored_out',
+    'per_source_fetched', 'per_variant_in_fetched_batch', 'unique_after_dedup',
+    'dropped_duplicate', 'scored_out',
     'variants', 'variant_count', 'variants_capped', 'aliases_admitted',
   ]) {
     assert.ok(CANDIDATES_ROUTE.includes(field), `diagnostics missing ${field}`)
@@ -425,7 +428,7 @@ test('a rejected source query surfaces as an error, never as zero candidates', (
 })
 
 test('per-variant recall is observable per source, without extra queries', () => {
-  assert.ok(/per_variant_raw/.test(CANDIDATES_CODE))
+  assert.ok(/per_variant_in_fetched_batch/.test(CANDIDATES_CODE))
   assert.ok(/variantMatches\(variant, row\.title/.test(CANDIDATES_CODE))
   // Attribution is local: one query per source stays one query per source.
   assert.equal((CANDIDATES_CODE.match(/await q\.limit/g) ?? []).length, 1)
@@ -434,7 +437,7 @@ test('per-variant recall is observable per source, without extra queries', () =>
 test('variant attribution uses the same conjunction semantics as the query', () => {
   const [brandModel] = planRetrieval(RE201).variants
   assert.equal(variantMatches(brandModel, 'Roland RE-201 Space Echo'), true)
-  assert.equal(variantMatches(brandModel, 'RE-201 Space Echo'), false, 'every term must be present')
+  assert.equal(variantMatches(brandModel, 'RE-201 Space Echo'), false, 'every pattern must match')
   assert.equal(variantMatches(brandModel, 'roland re-201'), true, 'matching is case-insensitive')
 })
 
@@ -454,4 +457,151 @@ test('no listing title or provider payload reaches any log line', () => {
       assert.ok(!log.includes(leak), `a log line leaked ${leak}`)
     }
   }
+})
+
+/* ------------------------------------------------------------------ *
+ * 11. The word-boundary defect found on authenticated Preview
+ *
+ * The spaced model form was emitted as the unbounded pattern `%re 201%`. That
+ * is not a model identifier — it is "anything ending in 're' followed by
+ * anything starting '201'", which is how guitars reached the RE-201 queue:
+ *
+ *   'Fender ... E-Gita(rre 201)3'      'Fender ... Signatu(re 201)4'
+ *   'Ernie Ball ... Ra(re 201)0'       'Manley ... P(re 201)0s'
+ *
+ * Measured live: `%re 201%` returned 17 rows of which 2 were a Space Echo.
+ * `% re 201%` returns exactly those 2. Unique candidates for roland-re-201 go
+ * 81 -> 66 across the same 4 sources: the 15 removed are all boundary
+ * accidents.
+ * ------------------------------------------------------------------ */
+
+/** The exact titles observed on Preview, verbatim from the listings table. */
+const PREVIEW_FALSE_POSITIVES = [
+  'Fender Standard Stratocaster (Mexico) E-Gitarre 2013',
+  'Fender American Jazzmaster Jim Root Signature 2014 - Black',
+  'Ibanez JEM777-SK Limited Edition 30th Anniversary Steve Vai Signature 2017 - Shocking Pink',
+  'Ibanez JEM777-DY 30th Anniversary Steve Vai Signature 2017 - Desert Sun Yellow',
+  'Ernie Ball Classic Stingray 4 Series USA Rare 2010 Music Man Olympic White Bass W/Case',
+  'Manley Labs SLAM! Stereo Limiter & Mic Pre 2010s - Purple',
+  'Solid State Logic Alpha VHD Four Channel Mic Pre 2016 - Silver',
+]
+
+test('every genuine RE-201 spelling still matches', () => {
+  const plan = planRetrieval(RE201)
+  for (const title of [
+    'Roland RE-201 Space Echo',
+    'Roland RE 201 Space Echo',
+    'Roland RE201',
+    'Roland Space Echo RE 201',
+    'ROLAND RE-201 SPACE ECHO TAPE DELAY',
+  ]) {
+    assert.ok(
+      plan.variants.some((v) => variantMatches(v, title)),
+      `recall lost for a genuine spelling: ${title}`,
+    )
+  }
+})
+
+test('none of the Preview false positives matches any RE-201 variant', () => {
+  const plan = planRetrieval(RE201)
+  for (const title of PREVIEW_FALSE_POSITIVES) {
+    const hits = plan.variants.filter((v) => variantMatches(v, title)).map((v) => v.id)
+    assert.deepEqual(hits, [], `${title} still matches via ${hits}`)
+  }
+})
+
+test('the spaced model form is bounded, never a bare substring', () => {
+  const spaced = modelTokenForms('RE-201').find((f) => f.includes(' '))
+  assert.equal(spaced, '% re 201%')
+  assert.ok(spaced!.startsWith('% '), 'the leading space is the whole fix')
+  assert.ok(
+    !modelTokenForms('RE-201').includes('%re 201%'),
+    'the unbounded spaced form is what matched Gitarre 2013',
+  )
+})
+
+test('each punctuation form is one contiguous phrase, never split into tokens', () => {
+  for (const variant of planRetrieval(RE201).variants) {
+    if (variant.id === 'canonical' || variant.id === 'brand+model') continue
+    assert.equal(variant.patterns.length, 1, `${variant.id} must be a single phrase`)
+    const bare = variant.patterns[0].replace(/%/g, '').trim()
+    assert.ok(/[a-z]/.test(bare) && /[0-9]/.test(bare), `${bare} must be a complete identifier`)
+  }
+})
+
+test('brand+model may be a conjunction, but its model half stays whole', () => {
+  const patterns = patternsFor(RE201, 'brand+model')
+  assert.deepEqual(patterns, ['%roland%', '%re-201%'])
+  assert.ok(!patterns.includes('%re%'), 'the model must never be split off its digits')
+  assert.ok(!patterns.includes('%201%'), 'nor its digits split off the model')
+})
+
+test('no standalone alphabetic fragment shorter than three characters is emitted', () => {
+  for (const facts of [RE201, SH101, RHYTHMATE, POLLUTED]) {
+    for (const variant of planRetrieval(facts).variants) {
+      for (const pattern of variant.patterns) {
+        const alpha = pattern.replace(/[^a-z]/g, '')
+        if (alpha.length < 3) {
+          assert.ok(/[0-9]/.test(pattern), `bare alphabetic stub emitted: ${pattern}`)
+        }
+      }
+    }
+  }
+  assert.equal(isAdmissiblePattern('%re%'), false, 'a two-letter stub must be refused')
+  assert.equal(isAdmissiblePattern('%re-201%'), true, 'a complete identifier is fine')
+})
+
+test('SH-101 punctuation variants survive the boundary fix', () => {
+  assert.deepEqual(modelTokenForms('SH-101'), ['%sh-101%', '% sh 101%', '%sh101%'])
+  const plan = planRetrieval(SH101)
+  for (const title of ['Roland SH-101 Synthesizer', 'Roland SH 101', 'Roland SH101 grey']) {
+    assert.ok(plan.variants.some((v) => variantMatches(v, title)), `SH-101 lost: ${title}`)
+  }
+  // …and the same boundary accident cannot occur here either.
+  assert.ok(!plan.variants.some((v) => variantMatches(v, 'Fender Signature 2014 flightcase 101')))
+})
+
+test('Chamberlin is untouched by the boundary fix', () => {
+  assert.deepEqual(ids(RHYTHMATE), ['canonical'])
+  assert.deepEqual(patternsFor(RHYTHMATE, 'canonical'), ['%chamberlin%', '%rhythmate%'])
+  const plan = planRetrieval(RHYTHMATE)
+  assert.ok(plan.variants.some((v) => variantMatches(v, 'Chamberlin Rhythmate 40')))
+  assert.ok(!plan.variants.some((v) => variantMatches(v, 'Mellotron Mk II')))
+})
+
+test('local attribution uses Postgres ILIKE semantics, not String.includes', () => {
+  // A diagnostic that disagrees with the query it describes is worse than none.
+  assert.equal(ilikeMatches('% re 201%', 'roland re 201 space echo'), true)
+  assert.equal(ilikeMatches('% re 201%', 'fender e-gitarre 2013'), false)
+  assert.equal(ilikeMatches('%re-201%', 'roland re-201'), true)
+  assert.equal(ilikeMatches('%re201%', 'roland re201'), true)
+})
+
+/* ------------------------------------------------------------------ *
+ * 12. Observability names describe what is actually counted
+ * ------------------------------------------------------------------ */
+
+test('the fetched-batch counters are named for what they measure', () => {
+  assert.ok(/per_source_fetched/.test(CANDIDATES_CODE))
+  assert.ok(/per_variant_in_fetched_batch/.test(CANDIDATES_CODE))
+  assert.ok(!/per_source_raw/.test(CANDIDATES_CODE), 'the "raw" claim was false')
+  assert.ok(!/per_variant_raw/.test(CANDIDATES_CODE))
+})
+
+test('the source explicitly disclaims that a zero proves absence', () => {
+  // These counts are bounded by the per-source cap. A zero means "nothing in
+  // the rows we fetched", which is not "nothing in the database".
+  assert.ok(
+    /not raw source counts|NOT complete source counts|not\s+the same as the variant having/i.test(CANDIDATES_ROUTE),
+    'the cap caveat must be written down where the counters are built',
+  )
+})
+
+test('source balancing, dedup and the classifier caps are unchanged by this fix', () => {
+  assert.ok(/perSourceQuota\(limit, requestedKeys\.length\)/.test(CANDIDATES_CODE))
+  assert.ok(/\.limit\(quota \* 3\)/.test(CANDIDATES_CODE))
+  assert.ok(/SCORING_BATCH/.test(CANDIDATES_CODE))
+  assert.ok(/if \(seen\.has\(row\.id\)\)/.test(CANDIDATES_CODE))
+  assert.ok(/\.slice\(0, limit\)/.test(CANDIDATES_CODE))
+  assert.ok(/\.filter\(\(c\) => c\.score !== 'no'\)/.test(CANDIDATES_CODE))
 })

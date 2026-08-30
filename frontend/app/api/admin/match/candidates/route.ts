@@ -244,28 +244,34 @@ export async function GET(req: NextRequest) {
    *
    * Counts and variant ids only — no titles, no urls, no prices. The four
    * outcomes an operator has to be able to tell apart are all derivable here:
-   * a source that returned nothing (`per_source_raw`), a plan that could not be
-   * built (`variants`), candidates removed as duplicates (`dropped_duplicate`),
-   * and candidates removed by the classifier (`scored_out`, logged below).
+   * a source that contributed nothing to this batch (`per_source_fetched`), a
+   * plan that could not be built (`variants`), candidates removed as duplicates
+   * (`dropped_duplicate`), and candidates removed by the classifier
+   * (`scored_out`, logged below). Every count is bounded by the per-source cap.
    */
-  const perSourceRaw: Record<string, number> = {}
-  requestedKeys.forEach((key, i) => { perSourceRaw[key] = perSource[i].length })
+  const perSourceFetched: Record<string, number> = {}
+  requestedKeys.forEach((key, i) => { perSourceFetched[key] = perSource[i].length })
 
   /**
-   * Which variant could have found each row, per source.
+   * Which variant could have found each row, WITHIN THE FETCHED BATCH.
    *
-   * Computed from the titles already in memory, so observing per-variant recall
-   * costs no extra round trip. A variant with 0 everywhere is a variant worth
-   * removing; a source with 0 across every variant is a coverage gap, not a
-   * query bug — and the two are otherwise impossible to tell apart.
+   * These are not raw source counts and must not be read as any. Each source
+   * query is capped at `quota * 3`, so a count here is bounded by that cap and
+   * by whatever order the planner returned; a zero means the variant matched
+   * nothing IN THE ROWS WE FETCHED, which is not the same as the variant having
+   * no hits in the database. Proving that requires an uncapped count this route
+   * deliberately does not issue.
+   *
+   * Computed from titles already in memory, so it costs no extra round trip and
+   * one query per source stays one query per source.
    */
-  const perVariantRaw: Record<string, Record<string, number>> = {}
+  const perVariantInFetchedBatch: Record<string, Record<string, number>> = {}
   for (const variant of plan.variants) {
     const bySource: Record<string, number> = {}
     requestedKeys.forEach((key, i) => {
       bySource[key] = perSource[i].filter((row) => variantMatches(variant, row.title ?? '')).length
     })
-    perVariantRaw[variant.id] = bySource
+    perVariantInFetchedBatch[variant.id] = bySource
   }
   const retrievalLog = {
     channel: 'operational',
@@ -278,8 +284,10 @@ export async function GET(req: NextRequest) {
     aliases_considered: plan.diagnostics.aliasesConsidered,
     aliases_admitted: plan.diagnostics.aliasesAdmitted,
     variants_capped: plan.diagnostics.variantsCapped,
-    per_source_raw: perSourceRaw,
-    per_variant_raw: perVariantRaw,
+    // Capped fetched rows, NOT complete source counts. A zero does not prove
+    // the source or variant has no database hits.
+    per_source_fetched: perSourceFetched,
+    per_variant_in_fetched_batch: perVariantInFetchedBatch,
     unique_after_dedup: pool.length,
     dropped_decided: droppedAsDecided,
     dropped_duplicate: droppedAsDuplicate,
