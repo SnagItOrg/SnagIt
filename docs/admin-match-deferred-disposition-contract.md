@@ -181,7 +181,57 @@ listing decision — never a product-to-product relation.
 
 ---
 
-## 5. Until then
+## 5. Rewriting an already-persisted match needs a transactional writer
+
+A sixth deferred capability, discovered during the first release rather than
+designed: **reassigning a listing that already holds a match.**
+
+The shipped assignment is safe because of an invariant, not because of a
+transaction. `/api/admin/match/candidates` excludes any listing that already
+holds a `listing_product_match` row for the reviewed product, whatever its
+verdict, so a candidate reaching the UI has no row on that product. Assigning it
+to another product is therefore a single insert with nothing left behind, and
+the writer emits exactly one row per decision.
+
+The moment the listing *does* hold a match on the reviewed product, the
+operation changes shape. It becomes two facts that are only jointly correct:
+
+1. the new product gains a positive match;
+2. the old product loses its positive match.
+
+Apply the first alone and the listing is price evidence for two products at
+once. Apply the second alone and it is evidence for neither. Neither halfway
+state is a state the operator asked for, and neither is self-correcting.
+
+An earlier draft planned both rows and relied on them landing together. They did
+— the route issues one multi-row upsert, which is a single
+`INSERT ... ON CONFLICT` statement and therefore atomic in Postgres — but
+nothing in the code stated it, no test pinned it, and the guarantee rested on an
+implicit property of PostgREST rather than on anything this repository asserts.
+A safety property that holds by accident is one refactor from not holding.
+
+So the first release **refuses** the case with `409` and writes nothing. What it
+needs to stop refusing:
+
+- a writer that moves both rows in one explicit transaction — a Postgres
+  function invoked through `rpc()`, since PostgREST offers no multi-statement
+  transaction over the REST interface, and a migration to define it;
+- a decision about what a demoted source row should say. `is_valid = false` with
+  a `moved_to_other_product` reason is the obvious encoding, but it records a
+  rejection the operator never made — they said "it belongs there", not "it is
+  wrong here". Under §2 this is properly `price_evidence_eligible = false` with
+  the disposition retained, which is another reason the two changes belong
+  together;
+- a concurrency answer. Two operators reassigning the same listing must not
+  interleave into two positive matches; the unique index prevents duplicates per
+  pair but not a contradictory pair of pairs.
+
+Until all three exist, correcting a persisted match belongs on the product page
+that owns it, and this surface says so instead of guessing.
+
+---
+
+## 6. Until then
 
 The shipped release offers six actions, and every one of them resolves to an
 exact product or writes nothing:
@@ -189,7 +239,7 @@ exact product or writes nothing:
 | Action | Persisted |
 |---|---|
 | Exact match on selected product | `is_valid = true` on the selected product |
-| Move to another existing product | `is_valid = true` on the named target; any positive row left on the source is demoted |
+| Match med andet produkt | `is_valid = true` on the named target, and nothing else. Refused with `409` if the listing already holds a match on the reviewed product — see §5 |
 | Accessory/part | `is_valid = false`, structured reason |
 | Wanted ad | `is_valid = false`, structured reason |
 | Wrong/irrelevant | `is_valid = false`, structured reason |

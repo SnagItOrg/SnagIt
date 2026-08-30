@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { getCurrentAdminState, requireAdminInRoute } from '@/lib/admin-auth'
 import {
   PERSISTS,
-  planDecisionWrites,
+  planWrites,
   requiresTargetProduct,
   validateDecision,
   type DecisionInput,
@@ -204,7 +204,7 @@ export async function POST(req: NextRequest) {
 
   const decidedAt = new Date().toISOString()
 
-  const rows: DecisionRow[] = planDecisionWrites({
+  const plan = planWrites({
     decisions: writable,
     reviewedProductId,
     priorByKey: Object.fromEntries(existing),
@@ -215,8 +215,34 @@ export async function POST(req: NextRequest) {
     rejectedReasonConstant: REJECTION_REASON,
   })
 
-  // lpm_listing_product_unique (listing_id, product_id) makes this idempotent:
-  // repeating a decision converges on one row, and changing one updates it.
+  /**
+   * Refused before anything is written.
+   *
+   * Reassigning a candidate that already holds a match on the reviewed product
+   * would need two rows to move together — the new match and the old one — and
+   * this route issues one statement and makes no transactional claim. The
+   * candidate query means this should not arise; when it does, the operator is
+   * told to fix the existing match where that operation belongs.
+   */
+  if (plan.outcome === 'conflict') {
+    return NextResponse.json(
+      { error: plan.message, conflicts: plan.conflicts },
+      { status: 409 },
+    )
+  }
+
+  if (plan.outcome === 'noop') {
+    return NextResponse.json({ saved: 0, rows_written: 0, skipped, saved_listing_ids: [], failed: [] })
+  }
+
+  const rows: DecisionRow[] = plan.rows
+
+  // THE ONLY MUTATION IN THIS ROUTE. One statement, one row per decision.
+  //
+  // lpm_listing_product_unique (listing_id, product_id) makes it idempotent:
+  // repeating a decision converges on that one row, and changing a decision
+  // updates it rather than adding a second. No other product's matches are
+  // touched, because no other product appears in `rows`.
   const { error } = await admin
     .from('listing_product_match')
     .upsert(rows, { onConflict: 'listing_id,product_id' })
@@ -226,8 +252,6 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({
-    // Operator decisions written. A move may also demote the row it left
-    // behind, which is a consequence of one decision rather than a second one.
     saved: writable.length,
     rows_written: rows.length,
     skipped,

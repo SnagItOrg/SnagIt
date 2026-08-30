@@ -28,12 +28,13 @@ import { join } from 'node:path'
 
 import {
   IS_VALID_FOR,
-  MOVED_AWAY_REASON,
   PERSISTS,
   REJECTION_REASON_FOR,
   isApproval,
   isRejection,
+  SOURCE_MATCH_CONFLICT,
   planDecisionWrites,
+  planWrites,
   requiresTargetProduct,
   targetProductId,
   validateDecision,
@@ -111,8 +112,8 @@ const decision = (
   listing_id: string, disposition: Disposition, target_product_id: string | null = null,
 ): DecisionInput => ({ listing_id, disposition, target_product_id })
 
-function plan(decisions: DecisionInput[], priorByKey: Record<string, PriorRow> = {}) {
-  return planDecisionWrites({
+function planArgs(decisions: DecisionInput[], priorByKey: Record<string, PriorRow> = {}) {
+  return {
     decisions,
     reviewedProductId: REVIEWED,
     priorByKey,
@@ -121,7 +122,11 @@ function plan(decisions: DecisionInput[], priorByKey: Record<string, PriorRow> =
     manualMethod: 'FUZZY',
     manualScore: 1,
     rejectedReasonConstant: 'admin_rejected',
-  })
+  }
+}
+
+function plan(decisions: DecisionInput[], priorByKey: Record<string, PriorRow> = {}) {
+  return planDecisionWrites(planArgs(decisions, priorByKey))
 }
 
 /* ------------------------------------------------------------------ *
@@ -255,9 +260,9 @@ test('a move with no prior row writes exactly one row, on the target', () => {
   assert.equal(rows[0].product_id, OTHER)
   assert.equal(rows[0].is_valid, true)
   assert.equal(
-    (rows[0].explain.admin_decision as Record<string, unknown>).moved_from_product_id,
+    (rows[0].explain.admin_decision as Record<string, unknown>).reviewed_product_id,
     REVIEWED,
-    'the move is recorded, so the row is not mistaken for an ordinary approval',
+    'the row records which product was under review, so it is not mistaken for an ordinary approval',
   )
 })
 
@@ -313,60 +318,125 @@ test('a move without a target is refused by the reducer', () => {
 })
 
 /* ------------------------------------------------------------------ *
- * 6. The reviewed product keeps no positive match after a move
+ * 6. A reassignment is one write, and the two-write case is refused
  * ------------------------------------------------------------------ */
 
-test('an existing positive match on the reviewed product is demoted by a move', () => {
-  const rows = plan(
-    [decision('l', 'move_to_existing_product', OTHER)],
-    { [`l:${REVIEWED}`]: { method: 'MODEL', score: 95, isValid: true, explain: {} } },
-  )
-  const left = rows.find((r) => r.product_id === REVIEWED)
-  assert.ok(left, 'the row left behind must be rewritten, not ignored')
-  assert.equal(left!.is_valid, false, 'it would otherwise stay price evidence for both products')
+const PRIOR: PriorRow = { method: 'MODEL', score: 95, isValid: true, explain: {} }
+
+test('a normal reassignment plans exactly one row', () => {
+  // The candidate query guarantees no row on the reviewed product, so this is
+  // a single insert with nothing left behind.
+  const p = planWrites(planArgs([decision('l', 'move_to_existing_product', OTHER)]))
+  assert.equal(p.outcome, 'write')
+  assert.equal(p.outcome === 'write' && p.rows.length, 1, 'one decision, one row')
+  assert.equal(p.outcome === 'write' && p.rows[0].product_id, OTHER)
+})
+
+test('no row is planned against the reviewed product on a reassignment', () => {
+  const p = planWrites(planArgs([decision('l', 'move_to_existing_product', OTHER)]))
+  assert.ok(p.outcome === 'write')
   assert.equal(
-    (left!.explain.admin_decision as Record<string, unknown>).rejection_reason,
-    MOVED_AWAY_REASON,
+    p.rows.filter((r) => r.product_id === REVIEWED).length, 0,
+    'the source product must be neither inserted, updated nor demoted',
   )
 })
 
-test('an unreviewed automatic match on the reviewed product is also demoted', () => {
-  // NULL is publicly visible, so leaving it would keep the listing on the page.
-  const rows = plan(
-    [decision('l', 'move_to_existing_product', OTHER)],
-    { [`l:${REVIEWED}`]: { method: 'FUZZY', score: 70, isValid: null, explain: {} } },
-  )
-  assert.equal(rows.find((r) => r.product_id === REVIEWED)?.is_valid, false)
-})
-
-test('no row is invented on the reviewed product where none existed', () => {
-  const rows = plan([decision('l', 'move_to_existing_product', OTHER)])
-  assert.equal(rows.filter((r) => r.product_id === REVIEWED).length, 0,
-    'absence already means "not evidence" — inventing a rejection claims more')
-})
-
-test('an already-rejected source row is left alone', () => {
-  const rows = plan(
-    [decision('l', 'move_to_existing_product', OTHER)],
-    { [`l:${REVIEWED}`]: { method: 'FUZZY', score: 1, isValid: false, explain: {} } },
-  )
-  assert.equal(rows.filter((r) => r.product_id === REVIEWED).length, 0, 'nothing to change')
-})
-
-test('after any move, no positive row remains on the reviewed product', () => {
-  for (const prior of [
-    undefined,
-    { method: 'MODEL', score: 95, isValid: true as boolean | null, explain: {} },
-    { method: 'FUZZY', score: 70, isValid: null as boolean | null, explain: {} },
-    { method: 'FUZZY', score: 1, isValid: false as boolean | null, explain: {} },
-  ]) {
-    const rows = plan(
+test('an existing source row refuses the whole submission before any write', () => {
+  for (const isValid of [true, false, null] as (boolean | null)[]) {
+    const p = planWrites(planArgs(
       [decision('l', 'move_to_existing_product', OTHER)],
-      prior ? { [`l:${REVIEWED}`]: prior as PriorRow } : {},
-    )
-    const positiveOnSource = rows.some((r) => r.product_id === REVIEWED && r.is_valid === true)
-    assert.equal(positiveOnSource, false, 'a move must never leave the source positive')
+      { [`l:${REVIEWED}`]: { ...PRIOR, isValid } },
+    ))
+    assert.equal(p.outcome, 'conflict', `a source row with is_valid=${String(isValid)} must refuse`)
+    assert.deepEqual(p.outcome === 'conflict' && p.conflicts, ['l'])
+    assert.equal(p.outcome === 'conflict' && p.message, SOURCE_MATCH_CONFLICT)
   }
+})
+
+test('a refusal writes nothing at all, including the other decisions', () => {
+  // Partial application is the failure mode being removed; a refused submission
+  // must not half-apply the decisions that were fine.
+  const p = planWrites(planArgs(
+    [
+      decision('good', 'exact'),
+      decision('l', 'move_to_existing_product', OTHER),
+      decision('bad', 'accessory'),
+    ],
+    { [`l:${REVIEWED}`]: PRIOR },
+  ))
+  assert.equal(p.outcome, 'conflict')
+  assert.ok(!('rows' in p), 'no rows may be produced alongside a refusal')
+})
+
+test('the refusal message is static and carries no listing data', () => {
+  assert.ok(!/\$\{/.test(SOURCE_MATCH_CONFLICT))
+  assert.ok(SOURCE_MATCH_CONFLICT.length > 0)
+  const p = planWrites(planArgs(
+    [decision('listing-secret', 'move_to_existing_product', OTHER)],
+    { [`listing-secret:${REVIEWED}`]: PRIOR },
+  ))
+  assert.ok(p.outcome === 'conflict')
+  assert.ok(!p.message.includes('listing-secret'), 'the message must not embed the id')
+})
+
+test('there is no compensation logic anywhere in the writer', () => {
+  // The prose explains why compensation is absent; only executable lines are
+  // checked, or the explanation would trip the assertion it exists to support.
+  for (const [name, src] of [['dispositions', DISPOSITIONS], ['route', DECISION_ROUTE]] as const) {
+    const executable = src
+      .split('\n')
+      .filter((l) => {
+        const t = l.trim()
+        return !t.startsWith('*') && !t.startsWith('//') && !t.startsWith('/*')
+      })
+      .join('\n')
+      .toLowerCase()
+    for (const term of ['rollback', 'compensat', 'retrywrite', 'undowrite']) {
+      assert.ok(!executable.includes(term), `${name} must not ${term}`)
+    }
+  }
+})
+
+test('an existing target row is updated idempotently, not duplicated', () => {
+  const p = planWrites(planArgs(
+    [decision('l', 'move_to_existing_product', OTHER)],
+    { [`l:${OTHER}`]: { method: 'MODEL', score: 95, isValid: true, explain: { matcher: 'x' } } },
+  ))
+  assert.ok(p.outcome === 'write')
+  assert.equal(p.rows.length, 1, 'the unique index takes one row per pair')
+  assert.equal(p.rows[0].product_id, OTHER)
+  assert.equal(p.rows[0].method, 'MODEL', 'matcher provenance survives')
+  assert.equal(p.rows[0].explain.matcher, 'x', 'the matcher explain payload is merged')
+  // Planning it twice produces the identical row.
+  const again = planWrites(planArgs(
+    [decision('l', 'move_to_existing_product', OTHER)],
+    { [`l:${OTHER}`]: { method: 'MODEL', score: 95, isValid: true, explain: { matcher: 'x' } } },
+  ))
+  assert.deepEqual(again, p, 'repeating the decision converges on the same single row')
+})
+
+test('matches for unrelated products are never planned', () => {
+  const p = planWrites(planArgs(
+    [decision('l', 'move_to_existing_product', OTHER)],
+    {
+      'l:prod-unrelated': { method: 'MODEL', score: 90, isValid: true, explain: {} },
+      'other-listing:prod-unrelated': { method: 'MODEL', score: 90, isValid: true, explain: {} },
+    },
+  ))
+  assert.ok(p.outcome === 'write')
+  assert.deepEqual(p.rows.map((r) => r.product_id), [OTHER])
+  assert.deepEqual(p.rows.map((r) => r.listing_id), ['l'])
+})
+
+test('every planned row belongs to a listing that was decided', () => {
+  const p = planWrites(planArgs([
+    decision('a', 'exact'),
+    decision('b', 'move_to_existing_product', OTHER),
+    decision('c', 'accessory'),
+  ]))
+  assert.ok(p.outcome === 'write')
+  assert.deepEqual(p.rows.map((r) => r.listing_id).sort(), ['a', 'b', 'c'])
+  assert.equal(p.rows.length, 3, 'one row per decision — never more')
 })
 
 /* ------------------------------------------------------------------ *
@@ -572,10 +642,14 @@ test('the reason is reachable without standing in front of approve or reject', (
     'a rejection must not be gated behind a modal confirmation')
 })
 
-test('the move control is not described as a childnode or a relationship', () => {
-  assert.ok(/Flyt til andet produkt/.test(MATCH_PAGE))
-  for (const misleading of ['underknude', 'childnode', 'child node', 'forælder']) {
-    assert.ok(!MATCH_PAGE.includes(misleading), `"${misleading}" implies a relationship that is never created`)
+test('the control names the operation it actually performs', () => {
+  // The candidate is unmatched, so nothing is moved and nothing is related.
+  assert.ok(/Match med andet produkt/.test(MATCH_PAGE))
+  for (const misleading of ['underknude', 'childnode', 'child node', 'forælder', 'Flyt']) {
+    assert.ok(
+      !MATCH_PAGE.includes(misleading),
+      `"${misleading}" describes an operation this release does not perform`,
+    )
   }
 })
 
@@ -594,4 +668,77 @@ test('the shared mapping is imported, not duplicated', () => {
     'the route must read the same mapping the reducer uses')
   assert.ok(/from '\.\/dispositions'/.test(MATCH_STATE))
   assert.ok(!/IS_VALID_FOR\s*[:=]\s*\{/.test(DECISION_ROUTE), 'the mapping must exist once')
+})
+
+/* ------------------------------------------------------------------ *
+ * The route's write-count contract
+ *
+ * The safety of this release is "one statement per submission", so the count
+ * itself is the thing to pin. These read the route source deliberately: the
+ * property is "how many mutation call sites exist and what must precede them",
+ * which is a property of the code, not of one execution of it.
+ * ------------------------------------------------------------------ */
+
+/** Every Supabase call that can change data. */
+const MUTATION_CALL = /\.(upsert|insert|update|delete|rpc)\s*\(/g
+
+test('the route contains exactly one mutation call site', () => {
+  const calls = [...DECISION_ROUTE.matchAll(MUTATION_CALL)].map((m) => m[1])
+  assert.deepEqual(calls, ['upsert'],
+    'a second mutation would reintroduce the partial-failure window this release removes')
+})
+
+test('the one mutation is a single batched statement, not a loop', () => {
+  const upsertAt = DECISION_ROUTE.indexOf('.upsert(')
+  const before = DECISION_ROUTE.slice(0, upsertAt)
+  const lastFor = Math.max(before.lastIndexOf('for ('), before.lastIndexOf('.map('), before.lastIndexOf('forEach'))
+  const lastClose = before.lastIndexOf('}')
+  assert.ok(lastClose > lastFor, 'the upsert must not sit inside an iteration')
+  assert.ok(/\.upsert\(rows,/.test(DECISION_ROUTE), 'all rows go in one call')
+})
+
+test('the refusal returns before the mutation is reached', () => {
+  const conflictAt = DECISION_ROUTE.indexOf("plan.outcome === 'conflict'")
+  const status409 = DECISION_ROUTE.indexOf('status: 409')
+  const upsertAt = DECISION_ROUTE.indexOf('.upsert(')
+  assert.ok(conflictAt > -1 && status409 > -1, 'the route must refuse with 409')
+  assert.ok(conflictAt < upsertAt && status409 < upsertAt, 'no write may precede the refusal')
+})
+
+test('target validation returns before the mutation is reached', () => {
+  const verifyAt = DECISION_ROUTE.indexOf("from('kg_product')")
+  const rejectAt = DECISION_ROUTE.indexOf('unknown or inactive target product')
+  const upsertAt = DECISION_ROUTE.indexOf('.upsert(')
+  assert.ok(verifyAt < upsertAt && rejectAt < upsertAt,
+    'an unverifiable target must cost zero mutations')
+})
+
+test('a submission with nothing to write performs no mutation', () => {
+  assert.ok(/plan\.outcome === 'noop'/.test(DECISION_ROUTE))
+  const noopAt = DECISION_ROUTE.indexOf("plan.outcome === 'noop'")
+  assert.ok(noopAt < DECISION_ROUTE.indexOf('.upsert('))
+  assert.equal(planWrites(planArgs([decision('l', 'skipped')])).outcome, 'noop')
+})
+
+test('no RPC, migration or transaction is introduced or claimed', () => {
+  for (const [name, src] of [
+    ['route', DECISION_ROUTE], ['dispositions', DISPOSITIONS], ['page', MATCH_PAGE],
+  ] as const) {
+    assert.ok(!/\.rpc\s*\(/.test(src), `${name} must not call an RPC`)
+    assert.ok(!/\bBEGIN\b|\bCOMMIT\b|\bROLLBACK\b/i.test(src), `${name} must not issue transaction control`)
+    assert.ok(!/ALTER TABLE|CREATE TABLE|CREATE FUNCTION|ADD COLUMN/i.test(src),
+      `${name} must not contain DDL`)
+  }
+  // And no claim of atomicity is made in prose either — the release refuses the
+  // case that would need one instead of asserting it has one.
+  assert.ok(!/is atomic\b|atomically/i.test(DECISION_ROUTE),
+    'the route must not claim a transactional guarantee it does not implement')
+})
+
+test('the writer reads only what it needs to decide, before deciding', () => {
+  // The prior-row read has to cover BOTH ends, or the refusal cannot see the
+  // source row it exists to detect.
+  assert.ok(/touchedProductIds/.test(DECISION_ROUTE))
+  assert.ok(/new Set\(\[reviewedProductId, \.\.\.moveTargets\]\)/.test(DECISION_ROUTE),
+    'the reviewed product must always be read, or a conflict would go unseen')
 })
