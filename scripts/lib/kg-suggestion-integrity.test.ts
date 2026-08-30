@@ -82,6 +82,7 @@ const DOMAINS = new Map<string, string>([
   [MUSIC_CATEGORY, 'music'],
   [CYCLING_CATEGORY, 'other'],
   [TECH_CATEGORY, 'other'],
+  ['099b4c01-c3df-47f1-af1f-f4f31b735717', 'other'], // photography
 ])
 
 const EHX: BrandRow = {
@@ -99,6 +100,19 @@ const APPLE: BrandRow = {
   name: 'Apple',
   category_id: TECH_CATEGORY,
 }
+/**
+ * Sony as stored TODAY (photography) and as the prepared data change would
+ * store it (music-gear). Same row id: only `category_id` moves.
+ * See docs/kg-brand-vertical-classification.md.
+ */
+const PHOTOGRAPHY_CATEGORY = '099b4c01-c3df-47f1-af1f-f4f31b735717' // domain 'other'
+const SONY_TODAY: BrandRow = {
+  id: '76242652-0d8b-45c2-bc1f-b1147c14009e',
+  name: 'Sony',
+  category_id: PHOTOGRAPHY_CATEGORY,
+}
+const SONY_RECLASSIFIED: BrandRow = { ...SONY_TODAY, category_id: MUSIC_CATEGORY }
+
 const ROLAND: BrandRow = { id: 'b-roland', name: 'Roland', category_id: MUSIC_CATEGORY }
 const BOSS: BrandRow = { id: 'b-boss', name: 'Boss', category_id: MUSIC_CATEGORY }
 const SEQUENTIAL: BrandRow = { id: 'b-seq', name: 'Sequential', category_id: MUSIC_CATEGORY }
@@ -428,4 +442,82 @@ test('remediation: this branch mutates no existing suggestion or brand row', () 
   assert.ok(!code.includes("status: 'rejected'"))
   assert.ok(!code.includes("from('kg_brand')\n      .update"))
   assert.ok(code.includes("from('kg_product_suggestions')"))
+})
+
+/* ═══ 4. Operator context — eligibility moves by data, not by code ═══════════ */
+
+test('4. operator: Sony becomes eligible by reclassification alone', () => {
+  // The prepared change moves ONE column on ONE row. No code path names Sony.
+  assert.equal(isActiveMusicBrand(SONY_TODAY, DOMAINS), false)
+  assert.equal(isActiveMusicBrand(SONY_RECLASSIFIED, DOMAINS), true)
+  // Same id, same name, same matcher — only the stored vertical differs.
+  assert.equal(SONY_TODAY.id, SONY_RECLASSIFIED.id)
+
+  const title = 'Sony C-800G Vacuum Tube Condenser Microphone w/ Power Supply'
+  assert.equal(matchBrandInTitle(title, selectActiveMusicBrands([SONY_TODAY], DOMAINS)), null)
+  assert.equal(
+    matchBrandInTitle(title, selectActiveMusicBrands([SONY_RECLASSIFIED], DOMAINS))?.brand.id,
+    SONY_TODAY.id,
+  )
+})
+
+test('4. operator: Apple stays out of the music vertical', () => {
+  assert.equal(isActiveMusicBrand(APPLE, DOMAINS), false)
+  // Reclassifying Sony must not drag any other legacy brand in with it.
+  const pool = selectActiveMusicBrands([SONY_RECLASSIFIED, APPLE, CANYON], DOMAINS)
+  assert.deepEqual(pool.map((b) => b.name), ['Sony'])
+  assert.equal(matchBrandInTitle('Apple Mac Mini 2018', pool), null)
+})
+
+test('4. operator: no runtime file names Canyon, Sony or Apple', () => {
+  // The whole point of the provenance rule: a brand-name list in the runtime
+  // would make every future reclassification a code change and a deploy.
+  const runtime = [
+    ['brand-identity', stripComments(read('frontend', 'lib', 'kg', 'brand-identity.ts'))],
+    ['expand-script', EXPAND_SCRIPT],
+  ] as const
+  for (const [name, code] of runtime) {
+    for (const brand of ['canyon', 'sony', 'apple']) {
+      assert.ok(
+        !new RegExp(`\\b${brand}\\b`, 'i').test(code),
+        `${name} names the brand "${brand}" — eligibility must come from stored provenance`,
+      )
+    }
+  }
+})
+
+test('4. operator: the expansion script cannot create or alter a KG node', () => {
+  // Electro Harmonix Canyon was created and merged by hand. Nothing here may
+  // re-create it, change it or roll it back.
+  assert.ok(!/from\('kg_product'\)[\s\S]{0,80}\.(insert|update|upsert|delete)\(/.test(EXPAND_SCRIPT))
+  assert.ok(!/from\('kg_brand'\)[\s\S]{0,80}\.(insert|update|upsert|delete)\(/.test(EXPAND_SCRIPT))
+  // The only write it performs is a suggestion upsert.
+  const writes = EXPAND_SCRIPT.match(/\.(insert|update|upsert|delete)\(/g) ?? []
+  assert.deepEqual(writes, ['.upsert('])
+  assert.ok(EXPAND_SCRIPT.includes('existingProducts.has(canonicalName.toLowerCase())'))
+})
+
+test('4. operator: historical design-vertical data is untouched by this branch', () => {
+  // Herman Miller / Le Klint / Mac Pro matches are historical records outside
+  // the MVP. No file in this change deletes, migrates or reassigns them.
+  for (const code of [EXPAND_SCRIPT, SUGGESTION_ROUTE, BULK_MERGE, BULK_APPROVE]) {
+    assert.ok(!/\.delete\(/.test(code))
+    assert.ok(!code.includes('listing_product_match'))
+  }
+})
+
+test('4. operator: the prepared Sony change is documented and idempotent', () => {
+  const doc = read('docs', 'kg-brand-vertical-classification.md')
+  // Guarded on the current category, so re-running is a no-op.
+  assert.ok(doc.includes("AND  b.category_id = '099b4c01-c3df-47f1-af1f-f4f31b735717'"))
+  assert.ok(doc.includes("WHERE slug = 'music-gear' AND domain = 'music'"))
+  // Exactly one write, on the brand row, assigning exactly one column.
+  // (The doc also contains a verification SELECT that READS
+  // browse_visibility — assert on the write statements, not on the prose.)
+  const writes = doc.match(/^\s*(UPDATE|INSERT|DELETE)\b.*$/gim) ?? []
+  assert.deepEqual(writes.map((w) => w.trim()), ['UPDATE kg_brand b'])
+  const setClauses = doc.match(/^SET\s+.*$/gim) ?? []
+  assert.equal(setClauses.length, 1)
+  assert.ok(setClauses[0].includes('category_id ='))
+  assert.ok(!/support_state|browse_visibility|\bstatus\b/.test(setClauses[0]))
 })
