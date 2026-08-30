@@ -2028,12 +2028,14 @@ test('a plausible Kleinanzeigen price is included', () => {
   assert.ok(hasPlausibleListingPrice({ source: 'kleinanzeigen', price: KLEINANZEIGEN_MAX_PRICE_EUR }))
 })
 
-test('a concatenated impossible Kleinanzeigen price is excluded', () => {
-  // Real production values: "1.249 €" + "1.299 €" and "2.650" + "2.750".
-  assert.ok(!hasPlausibleListingPrice({ source: 'kleinanzeigen', price: 12491299 }))
-  assert.ok(!hasPlausibleListingPrice({ source: 'kleinanzeigen', price: 26502750 }))
+test('a welded Kleinanzeigen discount pair is kept and recovered', () => {
+  // Real production values: "1.249 €" struck through from "1.299 €", and
+  // "2.650" from "2.750". Both are discounted ads, not corrupt numbers, so the
+  // row stays and the current price is what every boundary reports.
+  assert.ok(hasPlausibleListingPrice({ source: 'kleinanzeigen', price: 12491299 }))
+  assert.ok(hasPlausibleListingPrice({ source: 'kleinanzeigen', price: 26502750 }))
   // Postgres numeric arrives over PostgREST as a string.
-  assert.ok(!hasPlausibleListingPrice({ source: 'kleinanzeigen', price: '12491299' }))
+  assert.ok(hasPlausibleListingPrice({ source: 'kleinanzeigen', price: '12491299' }))
 })
 
 test('the predicate is NOT a global price ceiling', () => {

@@ -25,10 +25,13 @@ import type { SupabaseClient } from '../frontend/node_modules/@supabase/supabase
 import { monitoredSlugs, assertResolved } from './lib/source-monitoring'
 // Price extraction is shared verbatim with frontend/lib/scrapers/kleinanzeigen.ts.
 // This script is the PM2 writer, so a parser fix that lands only in the frontend
-// module changes no stored row — which is exactly how the concatenation defect
+// module changes no stored row — which is exactly how the welded-pair shape
 // survived its own 2026-05 diagnosis.
 import { extractCardPriceOutcome } from '../frontend/lib/scrapers/kleinanzeigen-price'
-import { classifyKleinanzeigenPrice } from '../frontend/lib/listing-price-integrity'
+import {
+  classifyKleinanzeigenPrice,
+  recoverKleinanzeigenPrice,
+} from '../frontend/lib/listing-price-integrity'
 import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
 
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
@@ -383,8 +386,11 @@ async function loadProducts(): Promise<Array<{ id: string; canonical_name: strin
 /** Refuse an implausible price at the write boundary; never alter identity. */
 function guardedPrice(price: number | null, url: string): number | null {
   if (price == null) return null
-  const verdict = classifyKleinanzeigenPrice(price)
-  if (verdict.ok) return price
+  // Defence in depth: the parser already separates a discount pair, but this
+  // boundary must reach the same answer on its own or the two could diverge.
+  const recovered = recoverKleinanzeigenPrice(price)
+  const verdict = classifyKleinanzeigenPrice(recovered.value)
+  if (verdict.ok) return recovered.value
   console.warn(
     JSON.stringify({
       channel: 'operational',

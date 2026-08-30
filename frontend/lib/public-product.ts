@@ -24,6 +24,8 @@
  * lib/catalogue.ts and never copied into the response.
  */
 
+import { sanitizeListingPrice } from './listing-price-integrity'
+
 /** Editorial keys inside `attributes` that may reach the public. */
 export const PUBLIC_ATTRIBUTE_KEYS = [
   'description',
@@ -343,12 +345,26 @@ export function toPublicListing(raw: unknown): PublicListing | null {
   const url = asString(row.url)
   if (!id || !title || !url) return null
 
+  /**
+   * Normalise a legacy Kleinanzeigen discount pair before it is published.
+   *
+   * 235240 is 235 EUR now, down from 240 — two real prices welded together by
+   * an old parser reading the wrapper element, not a corrupt value. The current
+   * price is recovered and `price_dkk` rescaled by the same ratio, so the two
+   * never disagree on the page.
+   */
+  const safe = sanitizeListingPrice({
+    source:    asString(row.source),
+    price:     asNumber(row.price),
+    price_dkk: asNumber(row.price_dkk),
+  })
+
   return {
     id,
     title,
-    price: asNumber(row.price),
+    price: safe.price,
     currency: asString(row.currency),
-    price_dkk: asNumber(row.price_dkk),
+    price_dkk: safe.price_dkk,
     url,
     image_url: asString(row.image_url),
     location: asString(row.location),

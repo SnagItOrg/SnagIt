@@ -39,13 +39,24 @@
 import {
   KLEINANZEIGEN_MAX_PRICE_EUR,
   classifyKleinanzeigenPrice,
+  recoverKleinanzeigenPrice,
   type PriceRejectionReason,
 } from '../listing-price-integrity'
 
 /** Why a price was refused. Static codes — never free text, never markup. */
 export type PriceReason = PriceRejectionReason | 'no_price_stated' | 'shipping_only' | 'no_number'
 
-export type PriceOutcome = { value: number | null; reason: PriceReason | null }
+export type PriceOutcome = {
+  value: number | null
+  reason: PriceReason | null
+  /**
+   * The struck-through former price, when a discount pair was separated.
+   *
+   * Exposed for callers that can use it; no schema field is added for it in
+   * this hotfix, so writers that have nowhere to put it simply ignore it.
+   */
+  previous?: number | null
+}
 
 /**
  * A price element that states only a shipping surcharge.
@@ -140,21 +151,29 @@ export function parseGermanPriceOutcome(raw: string | null | undefined): PriceOu
   const euros = Math.round(value)
 
   /**
-   * Plausibility, not a ceiling.
+   * Separate a discount pair, then check plausibility.
    *
    * `220.250 €` is syntactically a perfectly good German price — two hundred
-   * twenty thousand two hundred fifty euros — and it is ALSO exactly what two
-   * concatenated ads look like once a dot lands between them. Syntax cannot
-   * separate the two readings, so the shape test does: 220 and 250 are both
-   * ordinary asking prices and the second is the larger, which is a discount,
-   * not a synthesiser worth a quarter of a million euros. Ambiguous fails
-   * closed, because a wrong price is worse than a missing one — it enters the
-   * price band and is believed.
+   * twenty thousand two hundred fifty euros — and it is ALSO exactly what a
+   * discounted card looks like once its two prices are welded and a dot lands
+   * between them. Syntax cannot separate the readings, so the shape does: 220
+   * and 250 are both ordinary asking prices and the second is the larger, which
+   * is a discount, not a synthesiser worth a quarter of a million euros.
+   *
+   * The earlier release refused the ambiguous value on the grounds that a wrong
+   * price is worse than a missing one. That reasoning was sound and the premise
+   * was not: the value is not wrong, it is two right values adjacent, and the
+   * markup fixes their order — the current price is nested before the
+   * struck-through one, so the left half is what the seller is asking today.
+   * Discarding it threw away a real price rather than protecting anyone from a
+   * false one.
    */
-  const verdict = classifyKleinanzeigenPrice(euros)
+  const recovered = recoverKleinanzeigenPrice(euros)
+
+  const verdict = classifyKleinanzeigenPrice(recovered.value)
   if (!verdict.ok) return { value: null, reason: verdict.reason ?? 'above_impossible_bound' }
 
-  return { value: euros, reason: null }
+  return { value: recovered.value, reason: null, previous: recovered.previous }
 }
 
 /** Remove struck-through old prices before any text is read from a fragment. */

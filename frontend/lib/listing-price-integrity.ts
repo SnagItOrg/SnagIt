@@ -1,28 +1,41 @@
 /**
- * Read-side defence against the legacy Kleinanzeigen price-parser defect.
+ * The one normalisation authority for a Kleinanzeigen price.
  *
- * WHAT HAPPENED: the Kleinanzeigen card parser reads the first element whose
- * class contains "price". On some cards that element yielded two prices
- * concatenated — "1.249 €" followed by "1.299 €" became the integer 12491299.
- * Thirteen such rows were written between 2026-05-03 and 2026-05-06 and are
- * still `is_active`, with `price_dkk` values up to 197,445,488 DKK. They
- * corrupt any statistic computed over Kleinanzeigen rows: the p75 for Korg
- * MS-20, Rhodes Mark I Stage 73 and Rhodes Mark II Stage 73 all read in the
- * tens of millions.
+ * WHAT HAPPENED: the Kleinanzeigen card parser read the first element whose
+ * class contains "price". On a DISCOUNTED card that element is the wrapper, and
+ * its text holds two prices — the current one and the struck-through former one
+ * — so "1.249 EUR" followed by "1.299 EUR" was welded into the integer
+ * 12491299. Rows in that shape were written before the parser was fixed and are
+ * still `is_active`, with `price_dkk` scaled from the welded number.
  *
- * WHY A READ-SIDE PREDICATE: `parsePrice` in `lib/scrapers/kleinanzeigen.ts`
- * already rejects values above KLEINANZEIGEN_MAX_PRICE_EUR, so no NEW bad row
- * can be written — that guard was added in commit fe65a84, after these rows
- * landed. The stored rows predate it. Cleaning them is a data migration and is
- * deliberately out of scope here; until then every reader must apply the same
- * bound the writer already applies.
+ * WHAT THAT VALUE IS. It is not corrupt and it is not one impossible price. It
+ * is two real prices adjacent, in an order the markup fixes: a discounted card
+ * nests the old price INSIDE the current-price element, so the current value
+ * always comes first in text order.
  *
- * SCOPE — deliberately NOT a global price ceiling. High-end gear is
- * legitimately expensive: a Roland Jupiter-8 has an observed active median of
- * ~162,000 DKK, and vintage instruments run higher still. This predicate
- * therefore only reproduces the Kleinanzeigen parser's own impossible-value
- * bound, on Kleinanzeigen rows, against the RAW EUR `price` the parser
- * produced — never against `price_dkk`, and never against another source.
+ *     <div class="aditem-main--middle--price-shipping">        <- wrapper
+ *       <p class="aditem-main--middle--price-shipping--price"> <- CURRENT
+ *         220 EUR
+ *         <p class="...--old-price">250 EUR</p>                <- PREVIOUS
+ *       </p>
+ *     </div>
+ *
+ * So 220250 is an ad asking 220 EUR today, reduced from 250. The left half is
+ * the price Klup must store and show. An earlier release read the same shape,
+ * concluded the row was corrupt and blanked it — which threw away a real asking
+ * price instead of protecting anyone from a false one. This module recovers it.
+ *
+ * WHY ONE SHARED MODULE: the parser, the scraper's write boundary, every read
+ * boundary and snapshot eligibility all consult these functions. A value one
+ * layer recovers must not be a value another layer discards — that divergence
+ * is exactly how a welded number reached a product page in the first place.
+ *
+ * SCOPE — deliberately NOT a global price ceiling, and deliberately narrow
+ * about what it will split. High-end gear is legitimately expensive: a Roland
+ * Jupiter-8 has an observed active median of ~162,000 DKK. Recovery requires an
+ * even digit count of six or more, equal halves, no leading zero, both halves
+ * plausible asking prices, and the second larger than the first — an ordered
+ * discount. An ordinary four- or five-figure price can never satisfy that.
  */
 
 /**
@@ -58,25 +71,45 @@ export const KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR = 25_000
 const MIN_PLAUSIBLE_HALF_EUR = 20
 
 export type PriceRejectionReason =
-  | 'concatenated_pair'
   | 'above_impossible_bound'
 
 /**
- * Does this number look like two asking prices welded together?
+ * Does this number carry a current price and its struck-through previous price?
  *
- * The defect's signature is exact and repeats across every bad row measured:
- * a current price immediately followed by the struck-through old price, both
- * with the same digit count, the old one the larger.
+ * THE CORRECTION THIS FILE EXISTS FOR. An earlier release read this shape and
+ * concluded the row was corrupt, discarding the value. It is not corrupt: it is
+ * a DISCOUNTED AD, and both halves are real prices the marketplace published.
+ * The left half is the money the seller is asking today.
+ *
+ * The markup says so unambiguously. A discounted card nests the old price
+ * INSIDE the current-price element, so the current value always comes first in
+ * text order and the struck-through one second:
+ *
+ *     <div class="aditem-main--middle--price-shipping">        <- wrapper
+ *       <p class="aditem-main--middle--price-shipping--price"> <- CURRENT
+ *         800 EUR
+ *         <p class="...--old-price">900 EUR</p>                <- PREVIOUS
+ *       </p>
+ *     </div>
+ *
+ * A parser that reads the WRAPPER's text sees "800 EUR 900 EUR" and, stripping
+ * non-digits, welds it into 800900. Nothing was invented and nothing was lost —
+ * the two numbers are simply adjacent, in a known order.
+ *
+ * The signature is exact and repeats across every measured row: equal digit
+ * counts, the previous price the larger.
  *
  *   220250 -> 220 | 250      235240 -> 235 | 240
  *   490600 -> 490 | 600    12491299 -> 1249 | 1299
  * 62006800 -> 6200 | 6800  41504950 -> 4150 | 4950
  *
- * Only an even digit count of six or more is considered, split down the middle.
- * A genuine large round price survives because its second half is all zeros and
- * therefore carries a leading zero: 150000 -> 150 | 000 is not a pair of
- * prices. This is deliberately narrow — it is a shape test, not a ceiling, so
- * it cannot reject an odd-length or round-numbered legitimate price.
+ * Deliberately narrow, because an over-eager split would destroy real prices.
+ * Only an even digit count of six or more is considered. A genuine large round
+ * price survives because its second half carries a leading zero:
+ * 150000 -> 150 | 000 is not a pair. An odd-length price is never touched, so
+ * 16500 stays 16500, and a four-digit price like 1200 -> 12 | 00 is refused on
+ * the same leading-zero rule. Six digits is the floor precisely so that an
+ * ordinary four-digit asking price can never be halved.
  */
 export function looksLikeConcatenatedPair(
   value: number,
@@ -116,9 +149,9 @@ export function classifyKleinanzeigenPrice(
   value: number,
 ): { ok: boolean; reason?: PriceRejectionReason } {
   if (value <= KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR) return { ok: true }
-  if (looksLikeConcatenatedPair(value).suspect) {
-    return { ok: false, reason: 'concatenated_pair' }
-  }
+  // A discount pair is recoverable data, not a rejection. Callers normalise it
+  // through `recoverKleinanzeigenPrice`; nothing is discarded on this account.
+  if (looksLikeConcatenatedPair(value).suspect) return { ok: true }
   if (value > KLEINANZEIGEN_MAX_PRICE_EUR) {
     return { ok: false, reason: 'above_impossible_bound' }
   }
@@ -126,13 +159,63 @@ export function classifyKleinanzeigenPrice(
 }
 
 /**
- * False for a Kleinanzeigen row whose raw price cannot be believed.
+ * THE ONE NORMALISATION AUTHORITY for a Kleinanzeigen price.
  *
- * Previously this was only the 500,000 EUR bound, which is far too high to
- * catch the common case: two three-digit prices concatenate to a six-digit
- * number, and 220250 and 235240 both sailed through it into the admin queue,
- * the product page and the price band. Every other row — a null price, or an
- * expensive row from any other source — still passes untouched.
+ * Applied identically by the parser, the scraper before it writes, every read
+ * boundary and snapshot eligibility. A single function so a value one layer
+ * recovers cannot be a value another layer discards — divergence between those
+ * two answers is what put 235240 on a product page in the first place.
+ *
+ * `previous` is returned for callers that can use it and ignored by those that
+ * cannot. No schema field is invented for it in this hotfix.
+ */
+export type RecoveredPrice = {
+  /** The price to store and display. */
+  value: number
+  /** The struck-through former price, when the shape evidenced one. */
+  previous: number | null
+  /** True when a current+previous pair was separated. */
+  recovered: boolean
+}
+
+export function recoverKleinanzeigenPrice(value: number): RecoveredPrice {
+  const pair = looksLikeConcatenatedPair(value)
+  if (pair.suspect && pair.parts) {
+    const [current, previous] = pair.parts
+    return { value: current, previous, recovered: true }
+  }
+  return { value, previous: null, recovered: false }
+}
+
+/**
+ * Rescale a stored `price_dkk` onto a recovered price.
+ *
+ * `price_dkk` was computed from the welded number, so it is wrong by exactly
+ * the ratio between the welded value and the recovered one. Rescaling preserves
+ * whatever conversion rate was actually applied at write time, which re-deriving
+ * from today's rate would silently change.
+ */
+export function rescalePriceDkk(
+  storedDkk: number | string | null | undefined,
+  storedPrice: number,
+  recoveredPrice: number,
+): number | null {
+  if (storedDkk == null) return null
+  const dkk = typeof storedDkk === 'string' ? Number(storedDkk) : storedDkk
+  if (!Number.isFinite(dkk) || storedPrice <= 0) return null
+  if (recoveredPrice === storedPrice) return dkk
+  return Math.round((dkk * recoveredPrice) / storedPrice)
+}
+
+/**
+ * False for a Kleinanzeigen row whose raw price cannot be believed even after
+ * recovery.
+ *
+ * A welded discount pair IS believable — it carries a real current price — so
+ * this returns true for 220250 and 235240 and the caller normalises them. What
+ * still fails is a value that is beyond the impossible bound and shows no pair
+ * shape. Every other row — a null price, or an expensive row from any other
+ * source — passes untouched.
  */
 export function hasPlausibleListingPrice(listing: PriceIntegrityInput): boolean {
   if (listing.source !== KLEINANZEIGEN_SOURCE) return true
@@ -143,21 +226,20 @@ export function hasPlausibleListingPrice(listing: PriceIntegrityInput): boolean 
 }
 
 /**
- * Neutralise an implausible price at a READ boundary, keeping the listing.
+ * Normalise a stored price at a READ boundary, keeping the listing.
  *
- * Some readers must not drop the row. `/admin/match` is the clearest case: an
- * operator still has to see the ad in order to approve or reject the match, and
- * hiding it would remove the only surface where the bad row can be dealt with.
- * What must not survive is the NUMBER — 235240 rendered as "235.240 EUR" is a
- * claim the page is making, and it is false.
+ * THE CORRECTION. This previously returned `{null, null}` for a discount pair,
+ * on the belief that 235240 was a corrupt number that must not be rendered. It
+ * is not corrupt — it is 235 EUR now, down from 240 — and blanking it threw
+ * away a real asking price the operator and the page both need.
  *
- * Readers that legitimately drop the whole row — the public product page's
- * price band, `/intel` — keep using `hasPlausibleListingPrice` and are
- * unaffected by this.
+ * So the number is recovered rather than removed, and `price_dkk` is rescaled
+ * to match. The two travel together because a converted DKK figure that no
+ * longer corresponds to its source price is the same false claim in another
+ * currency — which is how a million-krone number would otherwise survive.
  *
- * Returns `price` and `price_dkk` together, because nulling one without the
- * other leaves a converted DKK figure with no source price behind it, which is
- * how a million-krone number would survive the fix that was meant to remove it.
+ * A value that is genuinely beyond belief and shows no pair shape is still
+ * nulled: `hasPlausibleListingPrice` remains the authority for that.
  */
 export function sanitizeListingPrice(listing: {
   source?: string | null
@@ -172,7 +254,20 @@ export function sanitizeListingPrice(listing: {
   const price = rawPrice != null && Number.isFinite(rawPrice) ? rawPrice : null
   const priceDkk = rawDkk != null && Number.isFinite(rawDkk) ? rawDkk : null
 
-  if (!hasPlausibleListingPrice({ source: listing.source, price: listing.price })) {
+  // Only Kleinanzeigen carries this shape; every other source passes through.
+  if (listing.source !== KLEINANZEIGEN_SOURCE || price == null) {
+    return { price, price_dkk: priceDkk }
+  }
+
+  const recovered = recoverKleinanzeigenPrice(price)
+  if (recovered.recovered) {
+    return {
+      price: recovered.value,
+      price_dkk: rescalePriceDkk(priceDkk, price, recovered.value),
+    }
+  }
+
+  if (!hasPlausibleListingPrice({ source: listing.source, price })) {
     return { price: null, price_dkk: null }
   }
   return { price, price_dkk: priceDkk }

@@ -118,4 +118,58 @@
     </div>
   </article>
 
+  <!-- 11. OBSERVED PRODUCTION SHAPE: 220 € now, struck through from 250 €.
+       Stored as 220250 by the old wrapper-reading parser. The current price is
+       nested BEFORE the old one, which is what fixes their order. -->
+  <article class="aditem" data-adid="1000000011">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-k/1000000011-74-2811">Synth K</a></h2>
+      <div class="aditem-main--middle--price-shipping">
+        <p class="aditem-main--middle--price-shipping--price">
+          220 €
+          <p class="aditem-main--middle--price-shipping--old-price">250 €</p>
+        </p>
+      </div>
+    </div>
+  </article>
+
+  <!-- 12. OBSERVED PRODUCTION SHAPE: 235 € now, struck through from 240 €.
+       Stored as 235240. -->
+  <article class="aditem" data-adid="1000000012">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-l/1000000012-74-2811">Synth L</a></h2>
+      <div class="aditem-main--middle--price-shipping">
+        <p class="aditem-main--middle--price-shipping--price">
+          235 €
+          <p class="aditem-main--middle--price-shipping--old-price">240 €</p>
+        </p>
+      </div>
+    </div>
+  </article>
+
+  <!-- 13. OBSERVED PRODUCTION SHAPE, four-digit halves: 1.249 € from 1.299 €.
+       Stored as 12491299. -->
+  <article class="aditem" data-adid="1000000013">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-m/1000000013-74-2811">Synth M</a></h2>
+      <div class="aditem-main--middle--price-shipping">
+        <p class="aditem-main--middle--price-shipping--price">
+          1.249 €
+          <p class="aditem-main--middle--price-shipping--old-price">1.299 €</p>
+        </p>
+      </div>
+    </div>
+  </article>
+
+  <!-- 14. A genuine five-figure price with no discount. Must never be split:
+       16.500 € has an odd digit count and no old-price element. -->
+  <article class="aditem" data-adid="1000000014">
+    <div class="aditem-main--middle">
+      <h2 class="text-module-begin"><a class="ellipsis" href="/s-anzeige/synth-n/1000000014-74-2811">Synth N</a></h2>
+      <div class="aditem-main--middle--price-shipping">
+        <p class="aditem-main--middle--price-shipping--price">16.500 €</p>
+      </div>
+    </div>
+  </article>
+
 </div>

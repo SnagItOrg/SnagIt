@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { isCurrentUserAdmin } from '@/lib/admin-auth'
-import { hasPlausibleListingPrice } from '@/lib/listing-price-integrity'
+import { hasPlausibleListingPrice, sanitizeListingPrice } from '@/lib/listing-price-integrity'
 import { isFamilySlug } from '@/lib/families'
 import {
   CatalogueUnavailableError,
@@ -277,12 +277,19 @@ async function handle(req: NextRequest, slug: string) {
   const listings = matchRows
     .map((m) => ({ score: m.score ?? 0, listing: m.listings }))
     .filter(({ listing }) => listing != null && listing.is_active !== false)
-    // Drop legacy Kleinanzeigen rows whose raw price violates the scraper's own
-    // impossible-value bound — they would render prices in the tens of millions
-    // of DKK on the product page. See lib/listing-price-integrity.ts.
+    // Normalise a legacy Kleinanzeigen discount pair before anything renders
+    // it. 235240 is 235 EUR now, down from 240 — two real prices welded by an
+    // old parser, not a corrupt number — so the current price is recovered and
+    // its DKK figure rescaled to match. See lib/listing-price-integrity.ts.
+    // Only a value that is still beyond belief AFTER recovery is dropped; the
+    // recovery itself happens in `toPublicListing`, the one place the public
+    // price is built.
     .filter(({ listing }) => hasPlausibleListingPrice({
-      source: listing!.source as string | null,
-      price:  listing!.price as number | string | null,
+      source: (listing as { source?: string | null } | null)?.source ?? null,
+      price:  sanitizeListingPrice({
+        source: (listing as { source?: string | null } | null)?.source ?? null,
+        price:  (listing as { price?: number | string | null } | null)?.price ?? null,
+      }).price,
     }))
     .sort((a, b) => {
       const ta = new Date((a.listing?.scraped_at as string) ?? 0).getTime()

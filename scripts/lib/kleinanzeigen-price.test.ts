@@ -23,6 +23,7 @@ import {
 import {
   KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR,
   hasPlausibleListingPrice,
+  recoverKleinanzeigenPrice,
   looksLikeConcatenatedPair,
   sanitizeListingPrice,
 } from '../../frontend/lib/listing-price-integrity'
@@ -173,8 +174,14 @@ test('an ImageObject ld+json block is not mistaken for an offer', () => {
  * ------------------------------------------------------------------ */
 
 test('an impossible price is still refused', () => {
+  // 600000 halves to 600 | 000: the leading zero means it was never a pair of
+  // prices, so it stays a single implausible value and is refused.
   assert.equal(parseGermanPrice('600.000 €'), null)
-  assert.equal(parseGermanPrice('12491299'), null)
+})
+
+test('a welded discount pair is recovered, not refused', () => {
+  // 12491299 is "1.249 €" struck through from "1.299 €" — two real prices.
+  assert.equal(parseGermanPrice('12491299'), 1249)
 })
 
 test('the bound is not what recovers the SH-101 case', () => {
@@ -244,12 +251,20 @@ test('neither scraper keeps a private price parser', () => {
  * prices. So the bad value was stored, displayed and believed.
  * ══════════════════════════════════════════════════════════════════════════ */
 
-test('the two observed production values are refused, not stored', () => {
-  for (const [text, welded] of [['220.250 €', 220250], ['235.240 €', 235240]] as const) {
+test('the two observed production values are recovered to their current price', () => {
+  // THE CORRECTION. These were read as corrupt and discarded. They are
+  // discounted ads: 220 EUR now (was 250), 235 EUR now (was 240). The markup
+  // nests the struck-through price inside the current one, so the current
+  // price always comes first and the left half is what the seller is asking.
+  for (const [text, welded, current, previous] of [
+    ['220.250 €', 220250, 220, 250],
+    ['235.240 €', 235240, 235, 240],
+  ] as const) {
     const outcome = parseGermanPriceOutcome(text)
     assert.notEqual(outcome.value, welded, `${text} still yields ${welded}`)
-    assert.equal(outcome.value, null, 'an ambiguous price must fail closed')
-    assert.equal(outcome.reason, 'concatenated_pair')
+    assert.equal(outcome.value, current, `${text} must yield the current price`)
+    assert.equal(outcome.reason, null, 'a recoverable pair is not a rejection')
+    assert.equal(outcome.previous, previous, 'the former price is available internally')
   }
 })
 
@@ -328,7 +343,13 @@ test('the concatenation shape is recognised on every observed production value',
     const verdict = looksLikeConcatenatedPair(welded)
     assert.equal(verdict.suspect, true, `${welded} not recognised`)
     assert.deepEqual(verdict.parts, [current, previous])
-    assert.equal(hasPlausibleListingPrice({ source: 'kleinanzeigen', price: welded }), false)
+
+    // Recoverable, therefore believable — the row carries a real asking price.
+    assert.equal(hasPlausibleListingPrice({ source: 'kleinanzeigen', price: welded }), true)
+    const recovered = recoverKleinanzeigenPrice(welded)
+    assert.equal(recovered.value, current, `${welded} must recover ${current}`)
+    assert.equal(recovered.previous, previous)
+    assert.equal(recovered.recovered, true)
   }
 })
 
@@ -386,7 +407,9 @@ test('rejection reasons are static codes, never markup or free text', () => {
   for (const r of reasons) {
     assert.match(r, /^[a-z_]+$/, `reason ${r} is not a static code`)
   }
-  assert.ok(reasons.has('concatenated_pair'))
+  // `concatenated_pair` is deliberately absent: that shape is recovered now,
+  // and a recovery is not a rejection reason.
+  assert.ok(!reasons.has('concatenated_pair'))
   assert.ok(reasons.has('no_price_stated'))
 })
 
@@ -439,24 +462,30 @@ const STORED_BAD_ROWS = [
   },
 ] as const
 
-test('the two stored rows are refused by the shared plausibility authority', () => {
+test('the two stored rows are believable once the pair is separated', () => {
   for (const row of STORED_BAD_ROWS) {
     assert.equal(
-      hasPlausibleListingPrice({ source: row.source, price: row.price }), false,
-      `${row.what} at ${row.price} must not be believed`,
+      hasPlausibleListingPrice({ source: row.source, price: row.price }), true,
+      `${row.what} carries a real current price and must not be discarded`,
     )
   }
 })
 
-test('sanitising keeps the ad and drops the number, in both currencies', () => {
+test('sanitising recovers the current price and rescales its DKK figure', () => {
   for (const row of STORED_BAD_ROWS) {
     const safe = sanitizeListingPrice(row)
-    assert.deepEqual(safe, { price: null, price_dkk: null }, row.what)
+    const expected = recoverKleinanzeigenPrice(row.price).value
+    assert.equal(safe.price, expected, row.what)
+    assert.ok(safe.price != null && safe.price > 0, 'the ad keeps a real price')
   }
-  // Nulling only one field would leave a million-krone figure with no source
-  // price behind it — the same false claim in another currency.
-  const partial = sanitizeListingPrice({ source: 'kleinanzeigen', price: 235240, price_dkk: 1752538 })
-  assert.equal(partial.price_dkk, null)
+
+  // The DKK figure was computed from the welded number, so it is wrong by
+  // exactly the same ratio and is rescaled rather than dropped. Leaving it
+  // would publish a million-krone figure with no source price behind it.
+  const safe = sanitizeListingPrice({ source: 'kleinanzeigen', price: 235240, price_dkk: 1752538 })
+  assert.equal(safe.price, 235)
+  assert.equal(safe.price_dkk, Math.round((1752538 * 235) / 235240))
+  assert.ok(safe.price_dkk! < 2000, 'the rescaled figure is an ordinary DKK price')
 })
 
 test('a genuine expensive Kleinanzeigen row keeps both prices', () => {
@@ -518,5 +547,45 @@ test('every listings reader either excludes or sanitises — none renders raw', 
     const guarded =
       src.includes('hasPlausibleListingPrice') || src.includes('sanitizeListingPrice')
     assert.ok(guarded, `${path} (${mode}) reads listing prices without any guard`)
+  }
+})
+
+/* ------------------------------------------------------------------ *
+ * Regression fixtures for the observed discounted cards
+ *
+ * These are the shapes that produced the stored values the earlier release
+ * discarded. They are in the fixture as MARKUP, so the whole path is exercised:
+ * the old price is nested inside the current one, the wrapper text welds them,
+ * and the extractor must still return the price the seller is asking today.
+ * ------------------------------------------------------------------ */
+
+test('an observed 220-from-250 card yields the current price', () => {
+  assert.equal(extractCardPrice(CARDS.get('1000000011')!), 220)
+})
+
+test('an observed 235-from-240 card yields the current price', () => {
+  assert.equal(extractCardPrice(CARDS.get('1000000012')!), 235)
+})
+
+test('an observed four-digit 1249-from-1299 card yields the current price', () => {
+  assert.equal(extractCardPrice(CARDS.get('1000000013')!), 1249)
+})
+
+test('a genuine 16.500 € card is never split', () => {
+  // Odd digit count and no old-price element: nothing to recover, and the
+  // recovery must not invent a pair out of a real five-figure instrument.
+  assert.equal(extractCardPrice(CARDS.get('1000000014')!), 16500)
+})
+
+test('the welded form of each observed card recovers to the same price', () => {
+  // Belt and braces: whichever path a row arrived by — live markup today, or a
+  // legacy integer stored by the old parser — both must agree.
+  for (const [adid, welded, current] of [
+    ['1000000011', 220250, 220],
+    ['1000000012', 235240, 235],
+    ['1000000013', 12491299, 1249],
+  ] as const) {
+    assert.equal(extractCardPrice(CARDS.get(adid)!), current, `card ${adid}`)
+    assert.equal(recoverKleinanzeigenPrice(welded).value, current, `stored ${welded}`)
   }
 })
