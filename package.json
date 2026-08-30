@@ -4,7 +4,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "test": "tsx --test scripts/lib/baseline.test.ts scripts/lib/kleinanzeigen-price.test.ts scripts/lib/admin-match-kleinanzeigen.test.ts scripts/lib/integration-boundary.test.ts scripts/lib/matcher-integrity.test.ts scripts/lib/wp1-catalogue.test.ts scripts/lib/wp1-route-access.test.ts scripts/lib/wp1-public-contract.test.ts scripts/lib/wp2-families.test.ts scripts/lib/wp4-search.test.ts scripts/lib/wp4a-boundary.test.ts scripts/lib/wp5-consent-analytics.test.ts scripts/lib/data-presentation.test.ts scripts/lib/intel-overview.test.ts",
+    "test": "tsx --test scripts/lib/baseline.test.ts scripts/lib/kleinanzeigen-price.test.ts scripts/lib/admin-match-kleinanzeigen.test.ts scripts/lib/admin-match-retrieval.test.ts scripts/lib/integration-boundary.test.ts scripts/lib/matcher-integrity.test.ts scripts/lib/wp1-catalogue.test.ts scripts/lib/wp1-route-access.test.ts scripts/lib/wp1-public-contract.test.ts scripts/lib/wp2-families.test.ts scripts/lib/wp4-search.test.ts scripts/lib/wp4a-boundary.test.ts scripts/lib/wp5-consent-analytics.test.ts scripts/lib/data-presentation.test.ts scripts/lib/intel-overview.test.ts",
     "test:baseline": "tsx --test scripts/lib/baseline.test.ts",
     "test:matcher": "tsx --test scripts/lib/matcher-integrity.test.ts",
     "report-match-backlog": "tsx scripts/report-match-backlog.ts",

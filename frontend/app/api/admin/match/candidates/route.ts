@@ -7,6 +7,7 @@ import {
   perSourceQuota,
   storedSourcesFor,
 } from '@/lib/admin-match-sources'
+import { buildOrFilter, planRetrieval, type ProductFacts } from '@/lib/admin-match-query'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -91,9 +92,33 @@ export async function GET(req: NextRequest) {
   }
   const excludeIds = Array.from(decided.keys())
 
-  // Normalize product name: replace hyphens with spaces so "Juno-106" matches "Juno 106"
-  const normalizedName = productName.replace(/-/g, ' ').toLowerCase()
-  const words = normalizedName.split(/\s+/).filter((w) => w.length > 2)
+  /**
+   * Retrieval facts come from the STORED product, not from the display name the
+   * client happened to send.
+   *
+   * `model_name` is the curated model token ('RE-201', 'SH-101'). It is the
+   * difference between a query that can find a listing and one that cannot, and
+   * it is not derivable from the canonical name — 'Roland RE-201 (Space Echo)'
+   * tokenises to `(space` and `echo)` under the old rule and matches nothing.
+   */
+  const { data: productRow } = await admin
+    .from('kg_product')
+    .select('canonical_name, model_name, kg_brand(name)')
+    .eq('id', productId)
+    .maybeSingle()
+
+  const brandRel = (productRow as { kg_brand?: { name?: string } | Array<{ name?: string }> } | null)
+    ?.kg_brand
+  const brandName = Array.isArray(brandRel) ? brandRel[0]?.name ?? null : brandRel?.name ?? null
+
+  const facts: ProductFacts = {
+    canonicalName: (productRow?.canonical_name as string | undefined) ?? productName,
+    modelName: (productRow?.model_name as string | null | undefined) ?? null,
+    brandName,
+  }
+
+  const plan = planRetrieval(facts)
+  const orFilter = buildOrFilter(plan.variants)
 
   // Requested sources, restricted to keys this route actually knows.
   const sourcesParam = searchParams.get('sources')
@@ -124,8 +149,21 @@ export async function GET(req: NextRequest) {
         .not('title', 'is', null)
         .in('source', storedSourcesFor([key]))
 
-      for (const w of words) {
-        q = (q as typeof q).ilike('title', `%${w}%`)
+      /**
+       * The variants are ALTERNATIVES, joined by OR.
+       *
+       * This is the whole repair. The previous loop AND-ed every token of the
+       * canonical name onto one query, so a single unmatchable token — a word
+       * carrying a stray parenthesis — reduced the result to zero with no
+       * signal that it had. Widening now happens by adding an alternative,
+       * never by dropping a required term from one, so each variant stays as
+       * strict as it was.
+       *
+       * Still one query per source, so source balancing and the sweep's cost
+       * are unchanged.
+       */
+      if (orFilter.length > 0) {
+        q = (q as typeof q).or(orFilter)
       }
 
       // A volume reducer only. `not.in` is bounded by URL length, so it cannot
@@ -150,15 +188,50 @@ export async function GET(req: NextRequest) {
    */
   const seen = new Set<string>()
   const pool: RawListing[] = []
+  let droppedAsDecided = 0
+  let droppedAsDuplicate = 0
   for (const rows of perSource) {
     for (const row of rows) {
-      if (decided.has(row.id) || seen.has(row.id)) continue
+      if (decided.has(row.id)) { droppedAsDecided++; continue }
+      // Deduplicated on listings.id — the stable marketplace identity the rest
+      // of this route already keys on. Several variants matching one listing is
+      // the expected case, not an anomaly, and it must cost one Haiku slot.
+      if (seen.has(row.id)) { droppedAsDuplicate++; continue }
       seen.add(row.id)
       pool.push(row)
     }
   }
 
+  /**
+   * Server-side retrieval diagnostics.
+   *
+   * Counts and variant ids only — no titles, no urls, no prices. The four
+   * outcomes an operator has to be able to tell apart are all derivable here:
+   * a source that returned nothing (`per_source_raw`), a plan that could not be
+   * built (`variants`), candidates removed as duplicates (`dropped_duplicate`),
+   * and candidates removed by the classifier (`scored_out`, logged below).
+   */
+  const perSourceRaw: Record<string, number> = {}
+  requestedKeys.forEach((key, i) => { perSourceRaw[key] = perSource[i].length })
+  const retrievalLog = {
+    channel: 'operational',
+    component: 'admin-match',
+    event: 'candidate_retrieval',
+    product_id: productId,
+    variants: plan.variants.map((v) => v.id),
+    variant_count: plan.variants.length,
+    model_distinctive: plan.diagnostics.modelDistinctive,
+    aliases_considered: plan.diagnostics.aliasesConsidered,
+    aliases_admitted: plan.diagnostics.aliasesAdmitted,
+    variants_capped: plan.diagnostics.variantsCapped,
+    per_source_raw: perSourceRaw,
+    unique_after_dedup: pool.length,
+    dropped_decided: droppedAsDecided,
+    dropped_duplicate: droppedAsDuplicate,
+  }
+
   if (pool.length === 0) {
+    console.info(JSON.stringify({ ...retrievalLog, scored_out: 0, returned: 0 }))
     return NextResponse.json({ candidates: [] })
   }
 
@@ -242,6 +315,15 @@ export async function GET(req: NextRequest) {
       return order[a.score] - order[b.score]
     })
     .slice(0, limit)
+
+  console.info(
+    JSON.stringify({
+      ...retrievalLog,
+      sent_to_classifier: batch.length,
+      scored_out: batch.length - candidates.length,
+      returned: candidates.length,
+    }),
+  )
 
   return NextResponse.json({ candidates, sources: MATCH_SOURCES.map((s) => s.key) })
 }
