@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { sanitizeListingPrice } from '@/lib/listing-price-integrity'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdminInRoute } from '@/lib/admin-auth'
 
@@ -68,9 +69,10 @@ export async function POST(
     external_id: listing.url,
     source: listing.source,
     country: derivedCountry,
-    price_dkk: listing.price_dkk ?? null,
+    price_dkk: sanitizeListingPrice(listing).price_dkk,
     currency: listing.currency ?? null,
-    price: listing.price ?? null,
+    // Never copy an implausible source price onto a product record.
+    price: sanitizeListingPrice(listing).price,
     title: listing.title,
     url: listing.url,
     image_url: listing.image_url ?? null,

@@ -24,6 +24,7 @@ import {
   KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR,
   hasPlausibleListingPrice,
   looksLikeConcatenatedPair,
+  sanitizeListingPrice,
 } from '../../frontend/lib/listing-price-integrity'
 
 const ROOT = join(__dirname, '..', '..')
@@ -414,4 +415,108 @@ test('price snapshots apply the same guard as the writer', () => {
     src.includes('hasPlausibleListingPrice'),
     'a bad price must not become a permanent price event',
   )
+})
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * READ BOUNDARY — the 77 rows already stored
+ *
+ * The parser guard stops new bad rows. It does nothing for rows written before
+ * it, and those are what an operator actually sees. Three readers already
+ * applied `hasPlausibleListingPrice` and therefore inherited the tightened
+ * bound for free; `/admin/match` did not, which is why 235.240 EUR was still
+ * on screen after the parser was fixed.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/** The two rows exactly as production stores them today. */
+const STORED_BAD_ROWS = [
+  {
+    what: 'Boss RE-20 Space Echo Reverb Pedal Effekt Tape 201 Roland Vintage',
+    source: 'kleinanzeigen', price: 235240, price_dkk: 1752538,
+  },
+  {
+    what: 'Behringer MS-1-BK/ Klon des legendären Roland SH-101',
+    source: 'kleinanzeigen', price: 220250, price_dkk: 1640862,
+  },
+] as const
+
+test('the two stored rows are refused by the shared plausibility authority', () => {
+  for (const row of STORED_BAD_ROWS) {
+    assert.equal(
+      hasPlausibleListingPrice({ source: row.source, price: row.price }), false,
+      `${row.what} at ${row.price} must not be believed`,
+    )
+  }
+})
+
+test('sanitising keeps the ad and drops the number, in both currencies', () => {
+  for (const row of STORED_BAD_ROWS) {
+    const safe = sanitizeListingPrice(row)
+    assert.deepEqual(safe, { price: null, price_dkk: null }, row.what)
+  }
+  // Nulling only one field would leave a million-krone figure with no source
+  // price behind it — the same false claim in another currency.
+  const partial = sanitizeListingPrice({ source: 'kleinanzeigen', price: 235240, price_dkk: 1752538 })
+  assert.equal(partial.price_dkk, null)
+})
+
+test('a genuine expensive Kleinanzeigen row keeps both prices', () => {
+  assert.deepEqual(
+    sanitizeListingPrice({ source: 'kleinanzeigen', price: 16500, price_dkk: 122925 }),
+    { price: 16500, price_dkk: 122925 },
+    'the Kraftwerk MS-20 is real and must still show its price',
+  )
+})
+
+test('sanitising is source-specific', () => {
+  assert.deepEqual(
+    sanitizeListingPrice({ source: 'reverb', price: 235240, price_dkk: 1752538 }),
+    { price: 235240, price_dkk: 1752538 },
+  )
+})
+
+test('/admin/match sanitises at the read boundary and keeps the listing', () => {
+  const src = readFileSync(
+    join(ROOT, 'frontend', 'app', 'api', 'admin', 'match', 'candidates', 'route.ts'), 'utf8')
+  assert.ok(src.includes('sanitizeListingPrice'), 'the admin queue must sanitise')
+  assert.ok(/price:\s+safe\.price/.test(src), 'the rendered price must be the sanitised one')
+  assert.ok(/price_dkk:\s+safe\.price_dkk/.test(src), 'and so must the DKK figure')
+  // The ad itself is NOT dropped — the queue is where a bad row gets disposed of.
+  assert.ok(
+    !/hasPlausibleListingPrice[\s\S]{0,80}continue/.test(src),
+    'the candidate must survive; only its price is neutralised',
+  )
+})
+
+test('an admin writer cannot copy an implausible price onto a product', () => {
+  const src = readFileSync(
+    join(ROOT, 'frontend', 'app', 'api', 'admin', 'product', '[slug]', 'save-listing', 'route.ts'),
+    'utf8')
+  assert.ok(src.includes('sanitizeListingPrice'), 'save-listing must sanitise before writing')
+  assert.ok(/price:\s*sanitizeListingPrice\(listing\)\.price/.test(src))
+  assert.ok(/price_dkk:\s*sanitizeListingPrice\(listing\)\.price_dkk/.test(src))
+})
+
+test('the price band and Intel still drop the row entirely', () => {
+  // These readers legitimately exclude, rather than sanitise: a band computed
+  // from a false price is worse than a band with one fewer observation.
+  const product = readFileSync(
+    join(ROOT, 'frontend', 'app', 'api', 'product', '[slug]', 'route.ts'), 'utf8')
+  assert.ok(/hasPlausibleListingPrice\(\{/.test(product), 'the price band must exclude')
+  const intel = readFileSync(join(ROOT, 'frontend', 'app', 'intel', 'page.tsx'), 'utf8')
+  assert.ok(/if \(!hasPlausibleListingPrice\(l\)\) continue/.test(intel), 'Intel must exclude')
+})
+
+test('every listings reader either excludes or sanitises — none renders raw', () => {
+  const readers = [
+    ['frontend/app/api/product/[slug]/route.ts', 'excludes'],
+    ['frontend/app/intel/page.tsx', 'excludes'],
+    ['frontend/app/api/admin/match/candidates/route.ts', 'sanitises'],
+    ['frontend/app/api/admin/product/[slug]/save-listing/route.ts', 'sanitises'],
+  ] as const
+  for (const [path, mode] of readers) {
+    const src = readFileSync(join(ROOT, ...path.split('/')), 'utf8')
+    const guarded =
+      src.includes('hasPlausibleListingPrice') || src.includes('sanitizeListingPrice')
+    assert.ok(guarded, `${path} (${mode}) reads listing prices without any guard`)
+  }
 })

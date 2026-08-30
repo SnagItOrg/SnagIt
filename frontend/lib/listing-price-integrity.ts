@@ -141,3 +141,39 @@ export function hasPlausibleListingPrice(listing: PriceIntegrityInput): boolean 
   if (!Number.isFinite(raw)) return true
   return classifyKleinanzeigenPrice(raw).ok
 }
+
+/**
+ * Neutralise an implausible price at a READ boundary, keeping the listing.
+ *
+ * Some readers must not drop the row. `/admin/match` is the clearest case: an
+ * operator still has to see the ad in order to approve or reject the match, and
+ * hiding it would remove the only surface where the bad row can be dealt with.
+ * What must not survive is the NUMBER — 235240 rendered as "235.240 EUR" is a
+ * claim the page is making, and it is false.
+ *
+ * Readers that legitimately drop the whole row — the public product page's
+ * price band, `/intel` — keep using `hasPlausibleListingPrice` and are
+ * unaffected by this.
+ *
+ * Returns `price` and `price_dkk` together, because nulling one without the
+ * other leaves a converted DKK figure with no source price behind it, which is
+ * how a million-krone number would survive the fix that was meant to remove it.
+ */
+export function sanitizeListingPrice(listing: {
+  source?: string | null
+  price?: number | string | null
+  price_dkk?: number | string | null
+}): { price: number | null; price_dkk: number | null } {
+  const rawPrice = listing.price == null ? null
+    : typeof listing.price === 'string' ? Number(listing.price) : listing.price
+  const rawDkk = listing.price_dkk == null ? null
+    : typeof listing.price_dkk === 'string' ? Number(listing.price_dkk) : listing.price_dkk
+
+  const price = rawPrice != null && Number.isFinite(rawPrice) ? rawPrice : null
+  const priceDkk = rawDkk != null && Number.isFinite(rawDkk) ? rawDkk : null
+
+  if (!hasPlausibleListingPrice({ source: listing.source, price: listing.price })) {
+    return { price: null, price_dkk: null }
+  }
+  return { price, price_dkk: priceDkk }
+}
