@@ -22,7 +22,9 @@ import {
 } from '../../frontend/lib/scrapers/kleinanzeigen-price'
 import {
   KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR,
+  classifyKleinanzeigenPrice,
   hasPlausibleListingPrice,
+  MAX_DISCOUNT_RATIO,
   recoverKleinanzeigenPrice,
   looksLikeConcatenatedPair,
   sanitizeListingPrice,
@@ -588,4 +590,121 @@ test('the welded form of each observed card recovers to the same price', () => {
     assert.equal(extractCardPrice(CARDS.get(adid)!), current, `card ${adid}`)
     assert.equal(recoverKleinanzeigenPrice(welded).value, current, `stored ${welded}`)
   }
+})
+
+/* ------------------------------------------------------------------ *
+ * The discount-ratio bound
+ *
+ * Structure alone cannot tell a discount from a placeholder. Two production
+ * ads carried `123456` in the price field, and their titles say plainly that
+ * neither is selling anything — one begins `Tausche` (a swap), the other
+ * `[Suche]` (wanted). 123 | 456 satisfies every structural check, so without a
+ * ratio bound the recovery would invent a 123 EUR asking price for an ad with
+ * no price at all.
+ *
+ * Measured: every confirmed pair among the 77 production rows lands between
+ * 1.02 and 1.933; the placeholders sit alone at 3.707.
+ * ------------------------------------------------------------------ */
+
+test('the bound sits above every observed discount and below the placeholder', () => {
+  assert.equal(MAX_DISCOUNT_RATIO, 2.0)
+  // The widest real discount measured in production.
+  assert.equal(recoverKleinanzeigenPrice(150290).value, 150, 'ratio 1.933 is a real discount')
+  // The placeholder.
+  assert.equal(recoverKleinanzeigenPrice(123456).recovered, false, 'ratio 3.707 is not')
+})
+
+test('a placeholder price is left unsplit and refused, not turned into 123', () => {
+  const r = recoverKleinanzeigenPrice(123456)
+  assert.equal(r.recovered, false)
+  assert.equal(r.value, 123456, 'the value is not split')
+  assert.notEqual(r.value, 123, 'and must never become the left half')
+  assert.equal(classifyKleinanzeigenPrice(123456).reason, 'ambiguous_pair')
+  // Fails closed at the read boundary: neither reading is supported, so the
+  // page shows no price rather than 123 EUR or 123,456 EUR.
+  assert.deepEqual(
+    sanitizeListingPrice({ source: 'kleinanzeigen', price: 123456, price_dkk: 919747 }),
+    { price: null, price_dkk: null },
+  )
+})
+
+test('the boundary is inclusive at exactly 2.0', () => {
+  // A halving is steep but real, and the comparison is `previous <= current * 2`.
+  assert.equal(recoverKleinanzeigenPrice(100200).value, 100, '200/100 = 2.0 exactly')
+  assert.equal(recoverKleinanzeigenPrice(100200).previous, 200)
+  // One euro past it is not a discount we can vouch for.
+  assert.equal(recoverKleinanzeigenPrice(100201).recovered, false, '201/100 = 2.01')
+  assert.equal(recoverKleinanzeigenPrice(100201).value, 100201)
+  assert.equal(classifyKleinanzeigenPrice(100201).reason, 'ambiguous_pair')
+})
+
+test('an ambiguous value is distinguishable from "no pair here"', () => {
+  // If ambiguity were reported as "not a pair", the raw value would fall
+  // through as an ordinary price and 123456 would render as 123,456 EUR.
+  assert.equal(looksLikeConcatenatedPair(123456).suspect, false)
+  assert.equal(looksLikeConcatenatedPair(123456).ambiguous, true)
+  // A genuinely non-pair value carries no ambiguity flag at all.
+  assert.equal(looksLikeConcatenatedPair(16500).suspect, false)
+  assert.equal(looksLikeConcatenatedPair(16500).ambiguous, undefined)
+  assert.equal(looksLikeConcatenatedPair(150000).ambiguous, undefined, 'leading zero, not a pair')
+})
+
+test('the confirmed production pairs still recover unchanged', () => {
+  for (const [welded, current] of [
+    [220250, 220], [235240, 235], [12491299, 1249], [62006800, 6200],
+    [41504950, 4150], [26502750, 2650], [490600, 490], [489579, 489], [466500, 466],
+  ] as const) {
+    assert.equal(recoverKleinanzeigenPrice(welded).value, current, `${welded}`)
+  }
+})
+
+test('ordinary prices are untouched by the ratio rule', () => {
+  for (const v of [1200, 16500, 150000, 2345, 17934, 800, 220, 235]) {
+    const r = recoverKleinanzeigenPrice(v)
+    assert.equal(r.value, v, `${v} must pass through`)
+    assert.equal(r.recovered, false)
+  }
+})
+
+test('price_dkk is rescaled only when recovery succeeded', () => {
+  // Recovered: rescaled by the same ratio.
+  assert.deepEqual(
+    sanitizeListingPrice({ source: 'kleinanzeigen', price: 235240, price_dkk: 1752538 }),
+    { price: 235, price_dkk: Math.round((1752538 * 235) / 235240) },
+  )
+  // Ambiguous: nothing is written, in either currency.
+  assert.deepEqual(
+    sanitizeListingPrice({ source: 'kleinanzeigen', price: 100201, price_dkk: 746497 }),
+    { price: null, price_dkk: null },
+  )
+  // Already normalised by the remediation: left exactly as stored.
+  assert.deepEqual(
+    sanitizeListingPrice({ source: 'kleinanzeigen', price: 235, price_dkk: 1751 }),
+    { price: 235, price_dkk: 1751 },
+  )
+})
+
+test('the threshold lives once, in the shared authority', () => {
+  const shared = readFileSync(
+    join(__dirname, '..', '..', 'frontend', 'lib', 'listing-price-integrity.ts'), 'utf8')
+  assert.ok(/export const MAX_DISCOUNT_RATIO = 2\.0/.test(shared))
+  for (const rel of [
+    ['frontend', 'lib', 'scrapers', 'kleinanzeigen-price.ts'],
+    ['frontend', 'app', 'api', 'admin', 'match', 'candidates', 'route.ts'],
+    ['frontend', 'app', 'api', 'product', '[slug]', 'route.ts'],
+    ['frontend', 'lib', 'public-product.ts'],
+    ['scripts', 'scrape-kleinanzeigen.ts'],
+    ['scripts', 'lib', 'price-observations.ts'],
+  ]) {
+    const src = readFileSync(join(__dirname, '..', '..', ...rel), 'utf8')
+    assert.ok(!/2\.0\s*;|ratio\s*[<>]=?\s*2/.test(src),
+      `${rel.join('/')} must not carry its own copy of the threshold`)
+  }
+})
+
+test('the ambiguous reason is a static code carrying no listing content', () => {
+  const reason = parseGermanPriceOutcome('123456').reason!
+  assert.match(reason, /^[a-z_]+$/)
+  assert.equal(reason, 'ambiguous_pair')
+  assert.ok(!reason.includes('123456'), 'the value must not travel in the code')
 })

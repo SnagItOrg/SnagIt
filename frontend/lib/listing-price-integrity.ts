@@ -70,8 +70,36 @@ export const KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR = 25_000
 /** The least a real ad ever asks; below this a "half" is not a price. */
 const MIN_PLAUSIBLE_HALF_EUR = 20
 
+/**
+ * The most a struck-through former price may exceed the current one.
+ *
+ * Chosen from the 77 measured production rows, not from taste. Every confirmed
+ * pair lands between 1.02 and 1.933 — a marketplace discount, which is what the
+ * struck-through price means. The only rows above 2.0 were two ads whose price
+ * field held the placeholder `123456`, and their titles say plainly that
+ * neither has a price at all: one begins `Tausche` (a swap) and the other
+ * `[Suche]` (wanted). Splitting those to 123 EUR would invent an asking price
+ * for an ad that is not selling anything.
+ *
+ * 2.0 sits above every observed discount and far below the placeholder at
+ * 3.707, so the bound separates the two populations with room on both sides
+ * rather than trimming close to real data.
+ *
+ * The comparison is `previous <= current * RATIO`, so exactly 2.0 is allowed:
+ * 100 | 200 is a halving, which is a steep but real discount. 100 | 201 is not.
+ */
+export const MAX_DISCOUNT_RATIO = 2.0
+
 export type PriceRejectionReason =
   | 'above_impossible_bound'
+  /**
+   * Pair-shaped, but the two halves are too far apart to be a discount.
+   *
+   * Not a confirmed pair and not a believable single price — the value is left
+   * unsplit and refused, because inventing either reading would be a claim the
+   * evidence does not support.
+   */
+  | 'ambiguous_pair'
 
 /**
  * Does this number carry a current price and its struck-through previous price?
@@ -113,7 +141,7 @@ export type PriceRejectionReason =
  */
 export function looksLikeConcatenatedPair(
   value: number,
-): { suspect: boolean; parts?: [number, number] } {
+): { suspect: boolean; parts?: [number, number]; ambiguous?: boolean } {
   if (!Number.isInteger(value) || value <= 0) return { suspect: false }
   const digits = String(value)
   if (digits.length < 6 || digits.length % 2 !== 0) return { suspect: false }
@@ -134,6 +162,18 @@ export function looksLikeConcatenatedPair(
   // A discount: the struck-through price is the higher one.
   if (previous < current) return { suspect: false }
 
+  /**
+   * Too far apart to be a discount.
+   *
+   * The structure still looks like a pair, so this is NOT reported as "no pair
+   * here" — that would let the raw value through as an ordinary price and a
+   * placeholder `123456` would render as 123,456 EUR. It is reported as
+   * ambiguous, which fails closed.
+   */
+  if (previous > current * MAX_DISCOUNT_RATIO) {
+    return { suspect: false, ambiguous: true }
+  }
+
   return { suspect: true, parts: [current, previous] }
 }
 
@@ -149,9 +189,13 @@ export function classifyKleinanzeigenPrice(
   value: number,
 ): { ok: boolean; reason?: PriceRejectionReason } {
   if (value <= KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR) return { ok: true }
-  // A discount pair is recoverable data, not a rejection. Callers normalise it
-  // through `recoverKleinanzeigenPrice`; nothing is discarded on this account.
-  if (looksLikeConcatenatedPair(value).suspect) return { ok: true }
+  const shape = looksLikeConcatenatedPair(value)
+  // A confirmed discount pair is recoverable data, not a rejection. Callers
+  // normalise it through `recoverKleinanzeigenPrice`; nothing is discarded.
+  if (shape.suspect) return { ok: true }
+  // Pair-shaped but outside the discount bound. Neither reading is supported by
+  // the evidence, so the value is refused rather than guessed at.
+  if (shape.ambiguous) return { ok: false, reason: 'ambiguous_pair' }
   if (value > KLEINANZEIGEN_MAX_PRICE_EUR) {
     return { ok: false, reason: 'above_impossible_bound' }
   }

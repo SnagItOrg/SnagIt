@@ -1,6 +1,11 @@
 # Kleinanzeigen discount pairs — correction and remediation
 
-**Status: the code fix is deployed. The data remediation below is NOT RUN.**
+**Status: code fix deployed; remediation EXECUTED 2026-08-30; ratio guard added.**
+
+The remediation below was run on 2026-08-30 and updated **75** of the 77
+candidate rows. Two were deliberately excluded and one was handled specially —
+see *Deviations* at the end, which is also why the shipped code now carries a
+discount-ratio bound (`MAX_DISCOUNT_RATIO = 2.0`).
 
 ## What the value actually is
 
@@ -135,3 +140,51 @@ any row without the pair shape. It creates nothing and deletes nothing.
 
 **The previously prepared `SET price = NULL` remediation is withdrawn.** It
 would have destroyed all 77 recoverable prices.
+
+
+---
+
+## Deviations found at execution, and the guard they produced
+
+The statement above was **not** run verbatim. Two pre-flight findings changed it:
+
+**1. `123456` is a placeholder, not a discount pair.** Two rows carried it, and
+their titles say neither ad has a price: `Tausche Fender Limited Color Jazz
+Bass …` (a swap) and `[Suche] defekten Oberheim OB-X` (wanted). `123 | 456`
+passes every structural check, so the statement would have invented a 123 EUR
+asking price for an ad that is not selling anything.
+
+The 77 rows separate cleanly by discount ratio: every confirmed pair lands
+between **1.02 and 1.933**; the two placeholders sit alone at **3.707**. A bound
+of `previous <= current * 2.0` sits above every real discount and far below the
+placeholders. It is now enforced in code — `MAX_DISCOUNT_RATIO` in
+`lib/listing-price-integrity.ts`, the same authority as the structural checks —
+so the parser, the scraper, both read boundaries and snapshot eligibility all
+apply it. A value that is pair-shaped but past the bound is classified
+`ambiguous_pair` and **refused**, not split and not rendered: neither reading is
+supported by the evidence, so the page shows no price rather than 123 EUR or
+123,456 EUR.
+
+**2. One row's `price_dkk` was already correct.** The Wurlitzer 200a held
+`price 41504950` with `price_dkk 31011` — already right for 4,150 EUR.
+Rescaling would have divided it by the welded value a second time, giving
+**3 DKK**. The rescale is therefore conditional on `price_dkk / price` falling
+in a real EUR→DKK band (6.5–8.5); 74 rows qualified, that one kept its figure.
+
+**Executed result:** 75 rows updated, 2 placeholders untouched, 0 remaining
+recoverable, Kleinanzeigen `price_dkk` sum 2,234,728,488 → 35,898,070. Re-running
+the statement affects zero rows. With the 2.0 bound in force the remediation now
+selects **0** rows, so no further write is pending.
+
+**Rollback**, exact because every touched row had `notes`/`reviewed_at` NULL and
+`price_dkk` derived from the welded value — the 77-row `VALUES` restore
+statement was captured before the write and is preserved in the deployment
+record for that task.
+
+## Residual, out of scope
+
+Two rows carry implausible odd-length prices that no pair rule can address —
+a Squier Telecaster at 70,100 EUR and Precision Bass pickups at 70,129 EUR —
+and one legacy row (`915ef3c0…`, Wurlitzer 207) has `price_dkk = price`, i.e. a
+currency that was never converted. All three predate this work, are untouched by
+it, and need their own authorisation.
