@@ -7,12 +7,13 @@ async function verifyAdmin(): Promise<{ ok: true; userId: string } | { ok: false
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false }
   const admin = getSupabaseAdmin()
-  const { data: prefs } = await admin
+  const { data: prefs, error } = await admin
     .from('user_preferences')
     .select('is_admin')
     .eq('user_id', user.id)
     .single()
-  if (!prefs?.is_admin) return { ok: false }
+  // Fail closed: an unreadable admin flag is not an admin flag.
+  if (error || !prefs?.is_admin) return { ok: false }
   return { ok: true, userId: user.id }
 }
 
