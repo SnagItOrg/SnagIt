@@ -483,3 +483,53 @@ test('a pending source change is not reported while nothing is loaded', () => {
   assert.equal(sourcesDiffer(start()), false)
   assert.equal(sourcesDiffer(run(start(), { type: 'product_selected', product: JUNO60 })), false)
 })
+
+/* ------------------------------------------------------------------ *
+ * 9. Cross-slice: retrieval failures reaching the redesigned page
+ *
+ * These properties exist only once the state slice and the retrieval slice are
+ * integrated. Neither branch could assert them alone: the route learned to
+ * answer 502 on a failed sweep in one branch, and the page learned to
+ * distinguish an error from an empty queue in the other.
+ * ------------------------------------------------------------------ */
+
+const CANDIDATES_ROUTE_SRC = read('frontend', 'app', 'api', 'admin', 'match', 'candidates', 'route.ts')
+
+test('a failed sweep reaches the operator as an error, never as "no candidates"', () => {
+  // The route refuses to answer 200-with-[] on a query failure...
+  assert.ok(/status: 502/.test(CANDIDATES_ROUTE_SRC), 'the route must answer 502 on a failed sweep')
+  // ...and the page turns any non-ok response into an error state.
+  assert.ok(/if \(!res\.ok\) \{[\s\S]{0,400}candidates_failed/.test(MATCH_PAGE))
+
+  // The state machine keeps the two outcomes apart.
+  const failing = run(start(), { type: 'product_selected', product: JUNO60 })
+  const failed = run(failing, {
+    type: 'candidates_failed',
+    requestId: failing.candidateRequest.id, productId: JUNO60.id, message: 'Kandidatsøgningen fejlede.',
+  })
+  assert.equal(failed.candidateRequest.status, 'error')
+  assert.notEqual(failed.error, null)
+
+  const empty = run(withLoaded(JUNO60, []), {})
+  assert.equal(empty.candidateRequest.status, 'ready')
+  assert.equal(empty.error, null)
+  assert.notEqual(failed.candidateRequest.status, empty.candidateRequest.status)
+})
+
+test('the empty-queue message is suppressed while an error is showing', () => {
+  // Rendering "Ingen kandidater tilbage" after a failed query would restate the
+  // exact ambiguity the 502 exists to remove.
+  assert.ok(
+    /!state\.error && selectedProduct && candidates\.length === 0/.test(MATCH_PAGE),
+    'the empty message must be gated on there being no error',
+  )
+  assert.ok(/candidateRequest\.status === 'ready'/.test(MATCH_PAGE), 'and on a settled sweep')
+})
+
+test('a reload sends exactly the sources currently selected', () => {
+  assert.ok(/sourceSelection\.join\(','\)/.test(MATCH_PAGE))
+  assert.ok(/sources=\$\{sourcesParam\}/.test(MATCH_PAGE))
+  // The sweep effect re-reads sourcesParam, so a reload after a chip change
+  // cannot send the previous selection.
+  assert.ok(/\}, \[requestId, requestProductId, productName, sourcesParam/.test(MATCH_PAGE))
+})
