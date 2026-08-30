@@ -36,7 +36,26 @@
  * testable from the root runner where `cheerio` is not resolvable.
  */
 
-import { KLEINANZEIGEN_MAX_PRICE_EUR } from '../listing-price-integrity'
+import {
+  KLEINANZEIGEN_MAX_PRICE_EUR,
+  classifyKleinanzeigenPrice,
+  type PriceRejectionReason,
+} from '../listing-price-integrity'
+
+/** Why a price was refused. Static codes — never free text, never markup. */
+export type PriceReason = PriceRejectionReason | 'no_price_stated' | 'shipping_only' | 'no_number'
+
+export type PriceOutcome = { value: number | null; reason: PriceReason | null }
+
+/**
+ * A price element that states only a shipping surcharge.
+ *
+ * `+ Versand ab 5,49 €` is a delivery cost, not an asking price, and reading
+ * its first number would post a 5 EUR vintage synth. Checked before any digit,
+ * and only when the text leads with the shipping wording — an ad that says
+ * `450 € · Versand möglich` still yields 450.
+ */
+const SHIPPING_ONLY_PATTERN = /^[+\s]*(?:versand|zzgl\.?\s*versand|lieferung)\b/i
 
 /**
  * Text that states there is no asking price.
@@ -75,16 +94,26 @@ const NO_PRICE_PATTERNS: readonly RegExp[] = [
  * must never be concatenated into this one.
  */
 export function parseGermanPrice(raw: string | null | undefined): number | null {
-  if (!raw) return null
+  return parseGermanPriceOutcome(raw).value
+}
+
+/**
+ * The reasoned form. Same parse, plus WHY a value was refused, so the caller can
+ * emit one static operational event instead of silently writing a null.
+ */
+export function parseGermanPriceOutcome(raw: string | null | undefined): PriceOutcome {
+  if (!raw) return { value: null, reason: 'no_number' }
   const text = raw.replace(/\s+/g, ' ').trim()
-  if (!text) return null
+  if (!text) return { value: null, reason: 'no_number' }
+
+  if (SHIPPING_ONLY_PATTERN.test(text)) return { value: null, reason: 'shipping_only' }
 
   for (const pattern of NO_PRICE_PATTERNS) {
-    if (pattern.test(text)) return null
+    if (pattern.test(text)) return { value: null, reason: 'no_price_stated' }
   }
 
   const match = text.match(/\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?/)
-  if (!match) return null
+  if (!match) return { value: null, reason: 'no_number' }
 
   const token = match[0]
   const hasDot = token.includes('.')
@@ -105,16 +134,27 @@ export function parseGermanPrice(raw: string | null | undefined): number | null 
   }
 
   const value = Number(normalised)
-  if (!Number.isFinite(value) || value <= 0) return null
+  if (!Number.isFinite(value) || value <= 0) return { value: null, reason: 'no_number' }
 
   // `listings.price` is an integer column.
   const euros = Math.round(value)
 
-  // Kept as a last defence, but no longer load-bearing: it used to be the only
-  // thing between a concatenated pair and a stored price of 800900.
-  if (euros > KLEINANZEIGEN_MAX_PRICE_EUR) return null
+  /**
+   * Plausibility, not a ceiling.
+   *
+   * `220.250 €` is syntactically a perfectly good German price — two hundred
+   * twenty thousand two hundred fifty euros — and it is ALSO exactly what two
+   * concatenated ads look like once a dot lands between them. Syntax cannot
+   * separate the two readings, so the shape test does: 220 and 250 are both
+   * ordinary asking prices and the second is the larger, which is a discount,
+   * not a synthesiser worth a quarter of a million euros. Ambiguous fails
+   * closed, because a wrong price is worse than a missing one — it enters the
+   * price band and is believed.
+   */
+  const verdict = classifyKleinanzeigenPrice(euros)
+  if (!verdict.ok) return { value: null, reason: verdict.reason ?? 'above_impossible_bound' }
 
-  return euros
+  return { value: euros, reason: null }
 }
 
 /** Remove struck-through old prices before any text is read from a fragment. */
@@ -167,11 +207,16 @@ function textOfElementWithClass(html: string, classPattern: string): string | nu
  * The old price is stripped up front, so NO tier can reproduce the defect.
  */
 export function extractCardPrice(cardHtml: string): number | null {
-  if (!cardHtml) return null
+  return extractCardPriceOutcome(cardHtml).value
+}
+
+/** The reasoned form, for callers that log why a card produced no price. */
+export function extractCardPriceOutcome(cardHtml: string): PriceOutcome {
+  if (!cardHtml) return { value: null, reason: 'no_number' }
 
   // 1. structured offer data
   const fromJsonLd = extractOfferPriceFromJsonLd(cardHtml)
-  if (fromJsonLd != null) return fromJsonLd
+  if (fromJsonLd != null) return { value: fromJsonLd, reason: null }
 
   // 2. price metadata
   const metaMatch = cardHtml.match(
@@ -180,8 +225,8 @@ export function extractCardPrice(cardHtml: string): number | null {
     /<meta\b[^>]*content=["']([^"']+)["'][^>]*itemprop=["']price["'][^>]*>/i,
   )
   if (metaMatch) {
-    const fromMeta = parseGermanPrice(metaMatch[1])
-    if (fromMeta != null) return fromMeta
+    const fromMeta = parseGermanPriceOutcome(metaMatch[1])
+    if (fromMeta.value != null) return fromMeta
   }
 
   const withoutOldPrice = stripOldPrice(cardHtml)
@@ -189,15 +234,16 @@ export function extractCardPrice(cardHtml: string): number | null {
   // 3. the dedicated price element
   const dedicated = textOfElementWithClass(withoutOldPrice, '--price')
   if (dedicated) {
-    const fromDedicated = parseGermanPrice(dedicated)
-    if (fromDedicated != null) return fromDedicated
+    const fromDedicated = parseGermanPriceOutcome(dedicated)
+    if (fromDedicated.value != null) return fromDedicated
+    if (fromDedicated.reason !== 'no_number') return fromDedicated
   }
 
   // 4. the wrapper, as a fallback
   const wrapper = textOfElementWithClass(withoutOldPrice, 'price')
-  if (wrapper) return parseGermanPrice(wrapper)
+  if (wrapper) return parseGermanPriceOutcome(wrapper)
 
-  return null
+  return { value: null, reason: 'no_number' }
 }
 
 /** Tier 1: a JSON-LD `Offer` or `Product.offers` carried inside the card. */

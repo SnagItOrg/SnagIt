@@ -35,6 +35,8 @@
 import type { SupabaseClient } from '../../frontend/node_modules/@supabase/supabase-js'
 
 export type PriceType = 'asking' | 'sold' | 'retail'
+import { hasPlausibleListingPrice } from '../../frontend/lib/listing-price-integrity'
+
 export type ObservationEvent = 'first_seen' | 'price_change'
 
 export interface ObservationInput {
@@ -66,7 +68,15 @@ export async function appendPriceObservations(
   observations: ObservationInput[],
 ): Promise<AppendResult> {
   const candidates = observations.filter(
-    o => o.price_dkk != null && o.price_raw != null && o.external_id,
+    o =>
+      o.price_dkk != null &&
+      o.price_raw != null &&
+      o.external_id &&
+      // Source-specific plausibility, applied at snapshot eligibility as well
+      // as at parse and upsert. A concatenated Kleinanzeigen price that reached
+      // `listings` from an older run must not also become a permanent price
+      // event: the listings row can be corrected, an event log cannot.
+      hasPlausibleListingPrice({ source: o.source, price: o.price_raw }),
   )
   if (candidates.length === 0) {
     return { firstSeen: 0, priceChanges: 0, unchanged: 0, error: null }
