@@ -249,6 +249,18 @@ export function planRetrieval(facts: ProductFacts): RetrievalPlan {
 }
 
 /**
+ * Does this listing title satisfy this variant?
+ *
+ * Used to attribute a returned row back to the variant(s) that could have found
+ * it, so per-variant recall is observable without issuing one query per
+ * variant. The same conjunction semantics as the SQL: every term must appear.
+ */
+export function variantMatches(variant: QueryVariant, title: string): boolean {
+  const haystack = title.toLowerCase()
+  return variant.terms.every((term) => haystack.includes(term))
+}
+
+/**
  * Render the plan as one PostgREST `or=` filter.
  *
  * One query per source rather than one per (source × variant): the sweep keeps

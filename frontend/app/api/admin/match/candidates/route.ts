@@ -7,7 +7,12 @@ import {
   perSourceQuota,
   storedSourcesFor,
 } from '@/lib/admin-match-sources'
-import { buildOrFilter, planRetrieval, type ProductFacts } from '@/lib/admin-match-query'
+import {
+  buildOrFilter,
+  planRetrieval,
+  variantMatches,
+  type ProductFacts,
+} from '@/lib/admin-match-query'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -140,7 +145,7 @@ export async function GET(req: NextRequest) {
    * product name could return 50 Reverb rows and nothing else, and the operator
    * would never learn that anything had been crowded out.
    */
-  const perSource = await Promise.all(
+  const perSourceResults = await Promise.all(
     requestedKeys.map(async (key) => {
       let q = admin
         .from('listings')
@@ -172,10 +177,42 @@ export async function GET(req: NextRequest) {
         q = (q as typeof q).not('id', 'in', `(${excludeIds.slice(0, 100).join(',')})`)
       }
 
-      const { data } = await q.limit(quota * 3)
-      return (data ?? []) as RawListing[]
+      /**
+       * The error is NOT discarded.
+       *
+       * This used to be `const { data } = await q.limit(...)`, so a rejected
+       * query — a malformed filter, a transport failure — produced `null`,
+       * became `[]`, and reached the operator as "no candidates". That is
+       * indistinguishable from a genuinely empty queue, and it is exactly how
+       * a broken filter grammar would hide. A failed retrieval must read as a
+       * failure.
+       */
+      const { data, error: queryError } = await q.limit(quota * 3)
+      return { key, rows: (data ?? []) as RawListing[], queryError }
     }),
   )
+
+  const failedSources = perSourceResults.filter((r) => r.queryError)
+  if (failedSources.length > 0) {
+    console.error(
+      JSON.stringify({
+        channel: 'operational',
+        component: 'admin-match',
+        event: 'candidate_retrieval_query_failed',
+        product_id: productId,
+        sources: failedSources.map((r) => r.key),
+        variants: plan.variants.map((v) => v.id),
+        // Message only — the provider payload and every listing stay out.
+        detail: failedSources[0].queryError?.message ?? null,
+      }),
+    )
+    return NextResponse.json(
+      { error: 'Kandidatsøgningen fejlede. Ingen kandidater blev hentet — dette er ikke et tomt resultat.' },
+      { status: 502 },
+    )
+  }
+
+  const perSource = perSourceResults.map((r) => r.rows)
 
   /**
    * Drop every listing that already carries a decision.
@@ -213,6 +250,23 @@ export async function GET(req: NextRequest) {
    */
   const perSourceRaw: Record<string, number> = {}
   requestedKeys.forEach((key, i) => { perSourceRaw[key] = perSource[i].length })
+
+  /**
+   * Which variant could have found each row, per source.
+   *
+   * Computed from the titles already in memory, so observing per-variant recall
+   * costs no extra round trip. A variant with 0 everywhere is a variant worth
+   * removing; a source with 0 across every variant is a coverage gap, not a
+   * query bug — and the two are otherwise impossible to tell apart.
+   */
+  const perVariantRaw: Record<string, Record<string, number>> = {}
+  for (const variant of plan.variants) {
+    const bySource: Record<string, number> = {}
+    requestedKeys.forEach((key, i) => {
+      bySource[key] = perSource[i].filter((row) => variantMatches(variant, row.title ?? '')).length
+    })
+    perVariantRaw[variant.id] = bySource
+  }
   const retrievalLog = {
     channel: 'operational',
     component: 'admin-match',
@@ -225,6 +279,7 @@ export async function GET(req: NextRequest) {
     aliases_admitted: plan.diagnostics.aliasesAdmitted,
     variants_capped: plan.diagnostics.variantsCapped,
     per_source_raw: perSourceRaw,
+    per_variant_raw: perVariantRaw,
     unique_after_dedup: pool.length,
     dropped_decided: droppedAsDecided,
     dropped_duplicate: droppedAsDuplicate,
@@ -320,6 +375,9 @@ export async function GET(req: NextRequest) {
     JSON.stringify({
       ...retrievalLog,
       sent_to_classifier: batch.length,
+      scored_yes: batch.filter((l) => scores[l.id]?.score === 'yes').length,
+      scored_maybe: batch.filter((l) => (scores[l.id]?.score ?? 'maybe') === 'maybe').length,
+      scored_no: batch.filter((l) => scores[l.id]?.score === 'no').length,
       scored_out: batch.length - candidates.length,
       returned: candidates.length,
     }),

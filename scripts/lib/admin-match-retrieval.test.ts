@@ -43,12 +43,25 @@ import {
   modelTokenForms,
   planRetrieval,
   sanitizeTerm,
+  variantMatches,
   type ProductFacts,
 } from '../../frontend/lib/admin-match-query'
 
 const ROOT = join(__dirname, '..', '..')
 const read = (...p: string[]) => readFileSync(join(ROOT, ...p), 'utf8')
 const CANDIDATES_ROUTE = read('frontend', 'app', 'api', 'admin', 'match', 'candidates', 'route.ts')
+
+/**
+ * Assertions about CODE run against the comment-stripped source.
+ *
+ * The route's comments quote the defect verbatim — including the old
+ * `const { data } = await q.limit(...)` line — so matching raw source would let
+ * an explanation satisfy or break a test about behaviour.
+ */
+function stripComments(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+}
+const CANDIDATES_CODE = stripComments(CANDIDATES_ROUTE)
 
 /* Real rows, copied from production. */
 const RE201: ProductFacts = {
@@ -388,4 +401,57 @@ test('the strict classifier and approval semantics are untouched', () => {
 test('the public product page still refuses rejected matches', () => {
   const publicRoute = read('frontend', 'app', 'api', 'product', '[slug]', 'route.ts')
   assert.ok(/\.not\('is_valid', 'is', false\)/.test(publicRoute))
+})
+
+/* ------------------------------------------------------------------ *
+ * 10. Preview-gate requirements: a failed query is a failure
+ * ------------------------------------------------------------------ */
+
+test('a rejected source query surfaces as an error, never as zero candidates', () => {
+  // The gate case. `const { data } = await q.limit(...)` discarded the error,
+  // so a malformed filter became `null` -> `[]` -> "no candidates", which is
+  // indistinguishable from an empty queue. That is precisely how an untested
+  // PostgREST filter grammar would hide.
+  assert.ok(
+    !/const \{ data \} = await q\.limit/.test(CANDIDATES_CODE),
+    'the per-source query error must not be discarded',
+  )
+  assert.ok(/const \{ data, error: queryError \} = await q\.limit/.test(CANDIDATES_CODE))
+  assert.ok(/candidate_retrieval_query_failed/.test(CANDIDATES_CODE))
+  assert.ok(/status: 502/.test(CANDIDATES_CODE), 'a failed sweep must not return 200 with []')
+  const failAt = CANDIDATES_CODE.indexOf('failedSources.length > 0')
+  const poolAt = CANDIDATES_CODE.indexOf('const pool: RawListing[] = []')
+  assert.ok(failAt > -1 && poolAt > failAt, 'the failure must return before any pooling')
+})
+
+test('per-variant recall is observable per source, without extra queries', () => {
+  assert.ok(/per_variant_raw/.test(CANDIDATES_CODE))
+  assert.ok(/variantMatches\(variant, row\.title/.test(CANDIDATES_CODE))
+  // Attribution is local: one query per source stays one query per source.
+  assert.equal((CANDIDATES_CODE.match(/await q\.limit/g) ?? []).length, 1)
+})
+
+test('variant attribution uses the same conjunction semantics as the query', () => {
+  const [brandModel] = planRetrieval(RE201).variants
+  assert.equal(variantMatches(brandModel, 'Roland RE-201 Space Echo'), true)
+  assert.equal(variantMatches(brandModel, 'RE-201 Space Echo'), false, 'every term must be present')
+  assert.equal(variantMatches(brandModel, 'roland re-201'), true, 'matching is case-insensitive')
+})
+
+test('the classifier verdict split is logged', () => {
+  for (const field of ['scored_yes', 'scored_maybe', 'scored_no', 'sent_to_classifier']) {
+    assert.ok(CANDIDATES_CODE.includes(field), `the gate needs ${field}`)
+  }
+})
+
+test('no listing title or provider payload reaches any log line', () => {
+  // The logs carry counts, ids and variant identifiers. Titles are read for
+  // attribution and immediately discarded.
+  const logs = CANDIDATES_CODE.match(/JSON\.stringify\(\{[\s\S]*?\}\)/g) ?? []
+  assert.ok(logs.length >= 2, 'expected the retrieval and failure log lines')
+  for (const log of logs) {
+    for (const leak of ['row.title', 'l.title', '.url', 'price', 'listing_title']) {
+      assert.ok(!log.includes(leak), `a log line leaked ${leak}`)
+    }
+  }
 })
