@@ -43,6 +43,19 @@ import {
 } from '../../frontend/app/admin/match/match-state'
 import { ALL_SOURCE_KEYS } from '../../frontend/lib/admin-match-sources'
 
+/**
+ * The binary verdicts became dispositions.
+ *
+ * `decision_toggled` carried one bit; `disposition_set` carries the operator's
+ * actual judgement. `exact` and `wrong` are the two that the old check and cross
+ * meant, so every ordering invariant below is expressed with them and still
+ * pins exactly what it pinned before.
+ */
+const approve = (listingId: string) =>
+  ({ type: 'disposition_set', listingId, disposition: 'exact' }) as const
+const reject = (listingId: string) =>
+  ({ type: 'disposition_set', listingId, disposition: 'wrong' }) as const
+
 const ROOT = join(__dirname, '..', '..')
 const read = (...p: string[]) => readFileSync(join(ROOT, ...p), 'utf8')
 const MATCH_PAGE  = read('frontend', 'app', 'admin', 'match', 'page.tsx')
@@ -124,9 +137,7 @@ test('reload with nothing selected is inert', () => {
  * ------------------------------------------------------------------ */
 
 test('changing product clears candidates, decisions and error in the same transition', () => {
-  const loaded = run(withLoaded(JUNO60, ['a', 'b']), {
-    type: 'decision_toggled', listingId: 'a', verdict: 'approved',
-  })
+  const loaded = run(withLoaded(JUNO60, ['a', 'b']), approve('a'))
   assert.equal(loaded.candidates.length, 2)
   assert.equal(Object.keys(loaded.localDecisions).length, 1)
 
@@ -149,9 +160,7 @@ test('changing product replaces the query text and closes the suggestion list', 
 })
 
 test('clearing the product empties everything it owned', () => {
-  const loaded = run(withLoaded(JUNO60, ['a']), {
-    type: 'decision_toggled', listingId: 'a', verdict: 'rejected',
-  })
+  const loaded = run(withLoaded(JUNO60, ['a']), reject('a'))
   const cleared = run(loaded, { type: 'product_cleared' })
   assert.equal(cleared.selectedProduct, null)
   assert.deepEqual(cleared.candidates, [])
@@ -247,9 +256,7 @@ test('the page pairs an AbortController with the request identity', () => {
 test('a decision made on one product cannot be saved against another', () => {
   // The defect that mattered most: this would have written a durable, wrong
   // is_valid label onto a listing/product pair the operator never judged.
-  const onJuno60 = run(withLoaded(JUNO60, ['listing-1']), {
-    type: 'decision_toggled', listingId: 'listing-1', verdict: 'approved',
-  })
+  const onJuno60 = run(withLoaded(JUNO60, ['listing-1']), approve('listing-1'))
   const onJuno106 = withLoaded(JUNO106, ['listing-1'], onJuno60)
 
   assert.deepEqual(onJuno106.localDecisions, {}, 'the tick followed the operator to a new product')
@@ -258,19 +265,20 @@ test('a decision made on one product cannot be saved against another', () => {
 
 test('a save submits only the active product and only its visible candidates', () => {
   const s = run(withLoaded(JUNO60, ['a', 'b', 'c']),
-    { type: 'decision_toggled', listingId: 'a', verdict: 'approved' },
-    { type: 'decision_toggled', listingId: 'b', verdict: 'rejected' },
+    approve('a'),
+    reject('b'),
   )
   const payload = savePayload(s)
   assert.ok(payload)
   assert.equal(payload!.product_id, JUNO60.id)
-  assert.deepEqual(payload!.listing_ids, ['a'])
-  assert.deepEqual(payload!.rejected_listing_ids, ['b'])
+  assert.deepEqual(payload!.decisions.map((d) => d.listing_id), ['a', 'b'])
+  assert.deepEqual(payload!.decisions.map((d) => d.disposition), ['exact', 'wrong'])
+  assert.ok(payload!.decisions.every((d) => d.node_id === null))
 })
 
 test('a decision whose listing is no longer on screen cannot reach the payload', () => {
   const s = run(withLoaded(JUNO60, ['a', 'b']),
-    { type: 'decision_toggled', listingId: 'a', verdict: 'approved' },
+    approve('a'),
   )
   // The list is refreshed and 'a' is gone — it was decided elsewhere, say.
   const refreshed = run(s,
@@ -286,33 +294,35 @@ test('a decision whose listing is no longer on screen cannot reach the payload',
 
 test('a tick for a listing that is not a candidate is ignored', () => {
   const s = withLoaded(JUNO60, ['a'])
-  const after = run(s, { type: 'decision_toggled', listingId: 'not-here', verdict: 'approved' })
+  const after = run(s, approve('not-here'))
   assert.deepEqual(after.localDecisions, {})
 })
 
-test('toggling replaces the opposite verdict and a repeat clears it', () => {
+test('a new disposition replaces the previous one and a repeat clears it', () => {
   let s = withLoaded(JUNO60, ['a'])
-  s = run(s, { type: 'decision_toggled', listingId: 'a', verdict: 'approved' })
-  assert.equal(s.localDecisions.a, 'approved')
-  s = run(s, { type: 'decision_toggled', listingId: 'a', verdict: 'rejected' })
-  assert.equal(s.localDecisions.a, 'rejected', 'a listing cannot hold both verdicts')
-  s = run(s, { type: 'decision_toggled', listingId: 'a', verdict: 'rejected' })
-  assert.equal(s.localDecisions.a, undefined, 'clicking the same verdict twice takes it back')
+  s = run(s, approve('a'))
+  assert.equal(s.localDecisions.a.disposition, 'exact')
+  s = run(s, reject('a'))
+  assert.equal(s.localDecisions.a.disposition, 'wrong', 'a listing cannot hold two dispositions')
+  s = run(s, reject('a'))
+  assert.equal(s.localDecisions.a, undefined, 'repeating the same disposition takes it back')
 })
 
 test('counts describe the visible list only', () => {
   const s = run(withLoaded(JUNO60, ['a', 'b']),
-    { type: 'decision_toggled', listingId: 'a', verdict: 'approved' },
-    { type: 'decision_toggled', listingId: 'b', verdict: 'rejected' },
+    approve('a'),
+    reject('b'),
   )
-  assert.deepEqual(decisionCounts(s), { approved: 1, rejected: 1, total: 2 })
+  assert.deepEqual(decisionCounts(s),
+    { approved: 1, rejected: 1, unwritten: 0, total: 2, pending: 0 })
   const switched = run(s, { type: 'product_selected', product: JUNO106 })
-  assert.deepEqual(decisionCounts(switched), { approved: 0, rejected: 0, total: 0 })
+  assert.deepEqual(decisionCounts(switched),
+    { approved: 0, rejected: 0, unwritten: 0, total: 0, pending: 0 })
 })
 
 test('a saved listing leaves the queue with its decision', () => {
   const s = run(withLoaded(JUNO60, ['a', 'b']),
-    { type: 'decision_toggled', listingId: 'a', verdict: 'approved' },
+    approve('a'),
   )
   const saved = run(s, { type: 'save_started' }, { type: 'save_succeeded', savedIds: ['a'] })
   assert.deepEqual(saved.candidates.map((x) => x.id), ['b'])
@@ -338,7 +348,7 @@ test('save is refused with nothing selected, and with nothing decided', () => {
 
 test('save is refused while a save is already running', () => {
   const s = run(withLoaded(JUNO60, ['a']),
-    { type: 'decision_toggled', listingId: 'a', verdict: 'approved' },
+    approve('a'),
     { type: 'save_started' },
   )
   assert.equal(canSave(s), false, 'a double submit would write the same decision twice')
@@ -422,13 +432,16 @@ test('navigating back to a bare URL drops the selection', () => {
 test('the rewrite kept the shared source registry and the durable reject path', () => {
   assert.ok(MATCH_PAGE.includes("from '@/lib/admin-match-sources'"))
   assert.ok(!/const SOURCE_CONFIG/.test(MATCH_PAGE))
-  assert.ok(MATCH_PAGE.includes('rejected_listing_ids'), 'rejections must still reach the server')
+  // Rejections still reach the server; they now travel as dispositions rather
+  // than a parallel id array, and `savePayload` is what builds them.
+  assert.ok(MATCH_PAGE.includes('savePayload'), 'the save must go through the one payload authority')
   assert.ok(!MATCH_PAGE.includes('saveApproved'))
 })
 
 test('approve and reject remain the card actions, and no dead action was added', () => {
-  assert.ok(/verdict: 'approved'/.test(MATCH_PAGE))
-  assert.ok(/verdict: 'rejected'/.test(MATCH_PAGE))
+  // The primary pair still maps to a real write: exact confirms, wrong rejects.
+  assert.ok(/setDisposition\(c\.id, 'exact'\)/.test(MATCH_PAGE))
+  assert.ok(/setDisposition\(c\.id, 'wrong'\)/.test(MATCH_PAGE))
   for (const dead of ['Refine', 'Forfin', 'Relation', 'relationship']) {
     assert.ok(!MATCH_PAGE.includes(dead), `a non-functional "${dead}" action must not appear`)
   }
@@ -455,9 +468,20 @@ test('the match surfaces stay classified admin-only', () => {
   }
 })
 
-test('the state module stays dependency-free so it can be tested at all', () => {
+test('the state module pulls in nothing the plain-node harness cannot load', () => {
+  // The invariant is "runs under `tsx --test` with no React, no Next, no DOM",
+  // not "has zero imports". A relative sibling that is itself import-free costs
+  // the harness nothing, and sharing ./dispositions is what keeps ONE mapping
+  // from disposition to `is_valid` across the reducer and the route.
   const src = read('frontend', 'app', 'admin', 'match', 'match-state.ts')
-  assert.ok(!/^import /m.test(src), 'an import here would break the plain-node harness')
+  const imports = [...src.matchAll(/^import [^']*'([^']+)'/gm)].map((m) => m[1])
+  for (const spec of imports) {
+    assert.ok(spec.startsWith('./'), `${spec} is not a local sibling`)
+  }
+  assert.deepEqual(imports, ['./dispositions', './dispositions'])
+
+  const sibling = read('frontend', 'app', 'admin', 'match', 'dispositions.ts')
+  assert.ok(!/^import /m.test(sibling), 'the sibling must itself stay import-free')
 })
 
 test('a source toggle is visible before the next sweep, not silently pending', () => {

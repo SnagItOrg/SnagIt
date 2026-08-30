@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { getCurrentAdminState, requireAdminInRoute } from '@/lib/admin-auth'
+import {
+  IS_VALID_FOR,
+  PERSISTS,
+  REJECTION_REASON_FOR,
+  targetProductId,
+  validateDecision,
+  type DecisionInput,
+  type Disposition,
+} from '@/app/admin/match/dispositions'
 
 /**
  * Durable supervised feedback for /admin/match.
@@ -33,8 +42,30 @@ type DecisionRow = {
   explain: Record<string, unknown>
 }
 
+/**
+ * Accept the two legacy id arrays as dispositions.
+ *
+ * The page no longer sends this shape, but a tab left open across a deploy
+ * would, and silently dropping its save would lose the operator's work. The
+ * mapping is the honest one: the old check meant "this is the product" and the
+ * old cross meant "this is not".
+ */
+function fromLegacyArrays(approved: string[], rejected: string[]): DecisionInput[] {
+  return [
+    ...approved.map((id) => ({
+      listing_id: id, disposition: 'exact' as Disposition,
+      node_id: null, variant_observation: null,
+    })),
+    ...rejected.map((id) => ({
+      listing_id: id, disposition: 'wrong' as Disposition,
+      node_id: null, variant_observation: null,
+    })),
+  ]
+}
+
 // POST /api/admin/match/approve
-// Body: { product_id: string, listing_ids?: string[], rejected_listing_ids?: string[] }
+// Body: { product_id, decisions: DecisionInput[] }
+// Legacy body: { product_id, listing_ids?, rejected_listing_ids? }
 export async function POST(req: NextRequest) {
   const denied = await requireAdminInRoute()
   if (denied) return denied
@@ -43,51 +74,83 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json()) as {
     product_id?: string
+    decisions?: unknown
     listing_ids?: unknown
     rejected_listing_ids?: unknown
   }
 
-  const productId = body.product_id
-  const approvedIds = Array.isArray(body.listing_ids)
-    ? (body.listing_ids.filter((v) => typeof v === 'string') as string[])
-    : []
-  const rejectedIds = Array.isArray(body.rejected_listing_ids)
-    ? (body.rejected_listing_ids.filter((v) => typeof v === 'string') as string[])
-    : []
-
-  if (!productId) {
+  const reviewedProductId = body.product_id
+  if (!reviewedProductId) {
     return NextResponse.json({ error: 'product_id required' }, { status: 400 })
   }
-  if (approvedIds.length === 0 && rejectedIds.length === 0) {
-    return NextResponse.json({ approved: 0, rejected: 0 })
+
+  const decisions: DecisionInput[] = Array.isArray(body.decisions)
+    ? (body.decisions as DecisionInput[])
+    : fromLegacyArrays(
+        Array.isArray(body.listing_ids)
+          ? (body.listing_ids.filter((v) => typeof v === 'string') as string[])
+          : [],
+        Array.isArray(body.rejected_listing_ids)
+          ? (body.rejected_listing_ids.filter((v) => typeof v === 'string') as string[])
+          : [],
+      )
+
+  if (decisions.length === 0) {
+    return NextResponse.json({ saved: 0, skipped: 0, failed: [] })
   }
 
-  // One listing cannot be both confirmed and rejected in the same submission.
-  const conflicting = approvedIds.filter((id) => rejectedIds.includes(id))
-  if (conflicting.length > 0) {
-    return NextResponse.json(
-      { error: 'a listing cannot be both approved and rejected' },
-      { status: 400 },
-    )
+  // One listing may carry only one disposition per submission. Two would race
+  // on the same unique index and the winner would be decided by array order.
+  const seen = new Set<string>()
+  for (const d of decisions) {
+    if (seen.has(d.listing_id)) {
+      return NextResponse.json(
+        { error: `duplicate decision for listing ${d.listing_id}` },
+        { status: 400 },
+      )
+    }
+    seen.add(d.listing_id)
+  }
+
+  // The client is not the authority on what may be written.
+  for (const d of decisions) {
+    const check = validateDecision(d)
+    if (!check.ok) {
+      return NextResponse.json({ error: check.error }, { status: 400 })
+    }
+  }
+
+  /**
+   * `cannot_determine` and `skipped` are recorded outcomes that write nothing.
+   *
+   * A candidate reaching this route has no `listing_product_match` row — the
+   * candidate query excludes every listing that has one. So there is no
+   * `is_valid = NULL` to preserve; writing NULL would CREATE a row, and the
+   * public product route keeps NULL, which would publish a listing the operator
+   * explicitly could not resolve. Absence is the only safe encoding of "no
+   * verdict" that this schema offers without a migration.
+   */
+  const writable = decisions.filter((d) => PERSISTS[d.disposition])
+  const skipped = decisions.length - writable.length
+
+  if (writable.length === 0) {
+    return NextResponse.json({ saved: 0, skipped, failed: [] })
   }
 
   const admin = getSupabaseAdmin()
-  const touched = [...approvedIds, ...rejectedIds]
 
-  /**
-   * Read the rows we are about to write.
-   *
-   * The previous implementation upserted a flat `{method:'FUZZY', score:1}` over
-   * whatever was already there, so confirming a MODEL/95 match silently rewrote
-   * it as FUZZY/1 and discarded the matcher's evidence. Reversing a decision
-   * would have done it again. Existing provenance is preserved and only the
-   * decision fields move.
-   */
+  // `existing_child` writes against the child the operator picked, so a single
+  // submission can touch more than one product row.
+  const targets = writable.map((d) => ({
+    decision: d,
+    productId: targetProductId(d, reviewedProductId),
+  }))
+
   const { data: existingRows, error: readErr } = await admin
     .from('listing_product_match')
-    .select('listing_id, method, score, explain')
-    .eq('product_id', productId)
-    .in('listing_id', touched)
+    .select('listing_id, product_id, method, score, explain')
+    .in('product_id', Array.from(new Set(targets.map((t) => t.productId))))
+    .in('listing_id', writable.map((d) => d.listing_id))
 
   if (readErr) {
     return NextResponse.json({ error: readErr.message }, { status: 500 })
@@ -95,7 +158,7 @@ export async function POST(req: NextRequest) {
 
   const existing = new Map(
     (existingRows ?? []).map((r) => [
-      r.listing_id as string,
+      `${r.listing_id as string}:${r.product_id as string}`,
       {
         method: r.method as string,
         score: r.score as number,
@@ -106,39 +169,48 @@ export async function POST(req: NextRequest) {
 
   const decidedAt = new Date().toISOString()
 
-  function rowFor(listingId: string, isValid: boolean): DecisionRow {
-    const prior = existing.get(listingId)
+  const rows: DecisionRow[] = targets.map(({ decision, productId }) => {
+    const prior = existing.get(`${decision.listing_id}:${productId}`)
+    const isValid = IS_VALID_FOR[decision.disposition] === true
+    const retargeted = productId !== reviewedProductId
+
     return {
-      listing_id: listingId,
-      product_id: productId as string,
+      listing_id: decision.listing_id,
+      product_id: productId,
+      // Existing matcher provenance survives a human confirmation: overwriting
+      // a MODEL/95 row with FUZZY/1 would discard the evidence that produced it.
       method: prior?.method ?? MANUAL_METHOD,
       score: prior?.score ?? MANUAL_SCORE,
       is_valid: isValid,
-      // Cleared on approval so a reversed rejection leaves no stale reason behind.
+      // The column keeps its existing constant meaning; the structured reason
+      // lives in `explain`, because redefining a populated column is not part
+      // of this slice.
       rejected_reason: isValid ? null : REJECTION_REASON,
-      // `explain` is the only structured audit field on this table — there is no
-      // actor or updated_at column — so the decision record lives beside the
-      // matcher's own keys rather than replacing them.
       explain: {
         ...(prior?.explain ?? {}),
         admin_decision: {
           decision: isValid ? 'approved' : 'rejected',
+          disposition: decision.disposition,
           actor_user_id: userId,
           decided_at: decidedAt,
           decision_source: 'admin/match',
+          ...(retargeted ? { reviewed_product_id: reviewedProductId } : {}),
+          ...(decision.variant_observation
+            // An observed variant with no node. An audit string, never an
+            // identifier — nothing resolves it back to a node, and no node is
+            // created for it.
+            ? { variant_observation: decision.variant_observation }
+            : {}),
+          ...(REJECTION_REASON_FOR[decision.disposition]
+            ? { rejection_reason: REJECTION_REASON_FOR[decision.disposition] }
+            : {}),
         },
       },
     }
-  }
+  })
 
-  const rows: DecisionRow[] = [
-    ...approvedIds.map((id) => rowFor(id, true)),
-    ...rejectedIds.map((id) => rowFor(id, false)),
-  ]
-
-  // The unique index lpm_listing_product_unique (listing_id, product_id) makes
-  // this idempotent: repeating a decision converges on the same single row, and
-  // changing one updates that row instead of adding a second.
+  // lpm_listing_product_unique (listing_id, product_id) makes this idempotent:
+  // repeating a decision converges on one row, and changing one updates it.
   const { error } = await admin
     .from('listing_product_match')
     .upsert(rows, { onConflict: 'listing_id,product_id' })
@@ -147,5 +219,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ approved: approvedIds.length, rejected: rejectedIds.length })
+  return NextResponse.json({
+    saved: rows.length,
+    skipped,
+    saved_listing_ids: rows.map((r) => r.listing_id),
+    failed: [],
+  })
 }
