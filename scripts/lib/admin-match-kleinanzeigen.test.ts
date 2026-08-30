@@ -35,6 +35,10 @@ const read = (...p: string[]) => readFileSync(join(ROOT, ...p), 'utf8')
 
 const CANDIDATES_ROUTE = read('frontend', 'app', 'api', 'admin', 'match', 'candidates', 'route.ts')
 const DECISION_ROUTE   = read('frontend', 'app', 'api', 'admin', 'match', 'approve', 'route.ts')
+// The row-building moved into the pure planner in ./dispositions so the move
+// and demote rules could be tested as data rather than grepped. The assertions
+// that pin how a row is built follow it there.
+const WRITE_PLANNER   = read('frontend', 'app', 'admin', 'match', 'dispositions.ts')
 const MATCH_PAGE       = read('frontend', 'app', 'admin', 'match', 'page.tsx')
 const PUBLIC_ROUTE     = read('frontend', 'app', 'api', 'product', '[slug]', 'route.ts')
 
@@ -203,11 +207,11 @@ test('approval and rejection each write an explicit is_valid', () => {
   // disposition rather than a boolean argument, so the mapping is the thing to
   // pin. `admin-match-dispositions.test.ts` pins the mapping itself.
   assert.ok(
-    /is_valid: isValid/.test(DECISION_ROUTE),
+    /is_valid: isValid/.test(WRITE_PLANNER),
     'the verdict must be written, not left NULL as an unreviewed automatic match',
   )
   assert.ok(
-    /IS_VALID_FOR\[decision\.disposition\] === true/.test(DECISION_ROUTE),
+    /IS_VALID_FOR\[decision\.disposition\] === true/.test(WRITE_PLANNER),
     'the verdict must come from the approved disposition mapping',
   )
 })
@@ -249,15 +253,15 @@ test('confirming a match does not erase the matcher evidence that produced it', 
   // The old upsert wrote a flat {method:'FUZZY', score:1} over everything, so
   // confirming a MODEL/95 match rewrote it as FUZZY/1.
   assert.ok(
-    /prior\?\.method \?\? MANUAL_METHOD/.test(DECISION_ROUTE),
+    /prior\?\.method \?\? args\.manualMethod/.test(WRITE_PLANNER),
     'an existing method must be preserved',
   )
   assert.ok(
-    /prior\?\.score \?\? MANUAL_SCORE/.test(DECISION_ROUTE),
+    /prior\?\.score \?\? args\.manualScore/.test(WRITE_PLANNER),
     'an existing score must be preserved',
   )
   assert.ok(
-    /\.\.\.\(prior\?\.explain \?\? \{\}\)/.test(DECISION_ROUTE),
+    /\.\.\.\(prior\?\.explain \?\? \{\}\)/.test(WRITE_PLANNER),
     'the matcher explain payload must be merged, not overwritten',
   )
 })
@@ -273,7 +277,7 @@ test('the stored method stays inside the CHECK constraint', () => {
 
 test('the decision records who decided, when, and from where', () => {
   for (const field of ['actor_user_id', 'decided_at', 'decision_source']) {
-    assert.ok(DECISION_ROUTE.includes(field), `the audit payload must carry ${field}`)
+    assert.ok(WRITE_PLANNER.includes(field), `the audit payload must carry ${field}`)
   }
 })
 

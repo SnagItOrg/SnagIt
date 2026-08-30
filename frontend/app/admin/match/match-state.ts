@@ -22,7 +22,7 @@
  */
 
 import type { Disposition } from './dispositions'
-import { IS_VALID_FOR, PERSISTS, requiresChildNode } from './dispositions'
+import { IS_VALID_FOR, PERSISTS, requiresTargetProduct } from './dispositions'
 
 /** The only thing the reducer needs from a candidate: a stable identity. */
 export type CandidateRef = { id: string }
@@ -44,10 +44,8 @@ export type MatchProduct = {
   */
 export type DecisionRecord = {
   disposition: Disposition
-  /** Existing kg_product id — only ever set for `existing_child`. */
-  nodeId: string | null
-  /** A variant the operator read on the listing that has no node. Audit only. */
-  variantObservation: string | null
+  /** Existing kg_product id — only ever set for a move. */
+  targetProductId: string | null
 }
 
 /** Kept as the undo unit: what a listing looked like before the last change. */
@@ -123,10 +121,8 @@ export type MatchAction<C extends CandidateRef = CandidateRef> =
       type: 'disposition_set'
       listingId: string
       disposition: Disposition
-      nodeId?: string | null
-      variantObservation?: string | null
+      targetProductId?: string | null
     }
-  | { type: 'variant_observation_changed'; listingId: string; value: string }
   | { type: 'undo' }
   | { type: 'source_toggled';          key: string }
   | { type: 'save_started' }
@@ -331,9 +327,13 @@ export function matchReducer<C extends CandidateRef>(
       // A disposition only means something against a candidate on screen.
       if (!state.candidates.some((c) => c.id === action.listingId)) return state
 
-      // `existing_child` without a node would silently degrade into an approval
-      // on the reviewed product — the opposite of what the operator asked for.
-      if (requiresChildNode(action.disposition) && !action.nodeId) return state
+      // A move without a target would silently degrade into an approval on the
+      // reviewed product — the opposite of what the operator asked for. A move
+      // ONTO the reviewed product is the same mistake wearing a target.
+      if (requiresTargetProduct(action.disposition)) {
+        if (!action.targetProductId) return state
+        if (action.targetProductId === state.selectedProduct?.id) return state
+      }
 
       const previous = state.localDecisions[action.listingId] ?? null
       const next = { ...state.localDecisions }
@@ -343,7 +343,7 @@ export function matchReducer<C extends CandidateRef>(
       const repeats =
         previous != null &&
         previous.disposition === action.disposition &&
-        previous.nodeId === (action.nodeId ?? null)
+        previous.targetProductId === (action.targetProductId ?? null)
 
       if (repeats) {
         delete next[action.listingId]
@@ -359,13 +359,7 @@ export function matchReducer<C extends CandidateRef>(
 
       next[action.listingId] = {
         disposition: action.disposition,
-        nodeId: action.nodeId ?? null,
-        // A variant observation the operator already typed survives a change of
-        // disposition — it is something they read, not something they decided.
-        variantObservation:
-          action.variantObservation !== undefined
-            ? action.variantObservation
-            : (previous?.variantObservation ?? null),
+        targetProductId: action.targetProductId ?? null,
       }
 
       // Auto-advance is computed against the decisions AFTER this one lands, so
@@ -381,21 +375,6 @@ export function matchReducer<C extends CandidateRef>(
           { listingId: action.listingId, previous, previousSelectedId: state.selectedCandidateId },
         ],
       }
-    }
-
-    case 'variant_observation_changed': {
-      if (!state.candidates.some((c) => c.id === action.listingId)) return state
-      const previous = state.localDecisions[action.listingId]
-      const trimmed = action.value.trim()
-      const next = { ...state.localDecisions }
-      next[action.listingId] = {
-        disposition: previous?.disposition ?? 'family_level',
-        nodeId: previous?.nodeId ?? null,
-        variantObservation: trimmed.length > 0 ? trimmed : null,
-      }
-      // Typing an observation is not a decision, so it neither advances the
-      // selection nor pushes undo.
-      return { ...state, localDecisions: next }
     }
 
     case 'undo': {
@@ -488,8 +467,8 @@ export function sourcesDiffer(state: MatchState<CandidateRef>): boolean {
 export function decisionCounts(state: MatchState<CandidateRef>): {
   approved: number
   rejected: number
-  /** Reviewed but not written: cannot_determine and skipped. */
-  unwritten: number
+  /** Passed over — carries a disposition but writes nothing. */
+  skipped: number
   /** Decisions that will reach the database. */
   total: number
   /** Candidates carrying no disposition at all. */
@@ -497,17 +476,17 @@ export function decisionCounts(state: MatchState<CandidateRef>): {
 } {
   let approved = 0
   let rejected = 0
-  let unwritten = 0
+  let skipped = 0
   let pending = 0
   for (const c of state.candidates) {
     const record = state.localDecisions[c.id]
     if (!record) { pending++; continue }
     const eligibility = IS_VALID_FOR[record.disposition]
-    if (!PERSISTS[record.disposition]) unwritten++
+    if (!PERSISTS[record.disposition]) skipped++
     else if (eligibility === true) approved++
     else if (eligibility === false) rejected++
   }
-  return { approved, rejected, unwritten, total: approved + rejected, pending }
+  return { approved, rejected, skipped, total: approved + rejected, pending }
 }
 
 /** The disposition currently held against a listing, if any. */
@@ -524,10 +503,10 @@ export function canUndo(state: MatchState<CandidateRef>): boolean {
 
 /** One decision as it crosses the wire. Mirrors `DecisionInput` on the route. */
 export type SaveDecision = {
-  listing_id:          string
-  disposition:         Disposition
-  node_id:             string | null
-  variant_observation: string | null
+  listing_id:        string
+  disposition:       Disposition
+  /** Explicit in the payload — a move never relies on a server-side default. */
+  target_product_id: string | null
 }
 
 export type SavePayload = {
@@ -553,15 +532,13 @@ export function savePayload(state: MatchState<CandidateRef>): SavePayload | null
   for (const c of state.candidates) {
     const record = state.localDecisions[c.id]
     if (!record) continue
-    // `cannot_determine` and `skipped` are real operator outcomes that
-    // deliberately write nothing — see PERSISTS in ./dispositions for why
-    // creating a NULL row would publish the listing instead of parking it.
+    // A skip is the absence of a decision, and the schema already encodes that
+    // as the absence of a row. See PERSISTS in ./dispositions.
     if (!PERSISTS[record.disposition]) continue
     decisions.push({
-      listing_id:          c.id,
-      disposition:         record.disposition,
-      node_id:             record.nodeId,
-      variant_observation: record.variantObservation,
+      listing_id:        c.id,
+      disposition:       record.disposition,
+      target_product_id: record.targetProductId,
     })
   }
   if (decisions.length === 0) return null

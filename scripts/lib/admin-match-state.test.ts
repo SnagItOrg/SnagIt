@@ -273,7 +273,7 @@ test('a save submits only the active product and only its visible candidates', (
   assert.equal(payload!.product_id, JUNO60.id)
   assert.deepEqual(payload!.decisions.map((d) => d.listing_id), ['a', 'b'])
   assert.deepEqual(payload!.decisions.map((d) => d.disposition), ['exact', 'wrong'])
-  assert.ok(payload!.decisions.every((d) => d.node_id === null))
+  assert.ok(payload!.decisions.every((d) => d.target_product_id === null))
 })
 
 test('a decision whose listing is no longer on screen cannot reach the payload', () => {
@@ -314,10 +314,10 @@ test('counts describe the visible list only', () => {
     reject('b'),
   )
   assert.deepEqual(decisionCounts(s),
-    { approved: 1, rejected: 1, unwritten: 0, total: 2, pending: 0 })
+    { approved: 1, rejected: 1, skipped: 0, total: 2, pending: 0 })
   const switched = run(s, { type: 'product_selected', product: JUNO106 })
   assert.deepEqual(decisionCounts(switched),
-    { approved: 0, rejected: 0, unwritten: 0, total: 0, pending: 0 })
+    { approved: 0, rejected: 0, skipped: 0, total: 0, pending: 0 })
 })
 
 test('a saved listing leaves the queue with its decision', () => {

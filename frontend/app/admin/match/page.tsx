@@ -22,7 +22,7 @@ import {
   type MatchProduct,
   type MatchState,
 } from './match-state'
-import { isRejection, type Disposition } from './dispositions'
+import { isApproval, isRejection, type Disposition } from './dispositions'
 
 /**
  * Operator-facing labels for each disposition.
@@ -33,26 +33,22 @@ import { isRejection, type Disposition } from './dispositions'
  * this surface the odd one out rather than the compliant one.
  */
 const DISPOSITION_LABEL: Record<Disposition, string> = {
-  exact:            'Præcist match',
-  family_level:     'Familie/produktniveau — variant ukendt',
-  existing_child:   'Placér på eksisterende underknude',
-  accessory:        'Tilbehør/del',
-  wanted_ad:        'Søges-annonce',
-  wrong:            'Forkert/irrelevant',
-  cannot_determine: 'Kan ikke afgøres',
-  skipped:          'Sprunget over',
+  exact:                    'Præcist match',
+  move_to_existing_product: 'Flyt til andet produkt',
+  accessory:                'Tilbehør/del',
+  wanted_ad:                'Søges-annonce',
+  wrong:                    'Forkert/irrelevant',
+  skipped:                  'Sprunget over',
 }
 
 /** The short badge shown on a decided row. Colour is never the only signal. */
 const DISPOSITION_BADGE: Record<Disposition, string> = {
-  exact:            'GODKENDT',
-  family_level:     'GODKENDT · FAMILIE',
-  existing_child:   'GODKENDT · UNDERKNUDE',
-  accessory:        'AFVIST · TILBEHØR',
-  wanted_ad:        'AFVIST · SØGES',
-  wrong:            'AFVIST',
-  cannot_determine: 'KAN IKKE AFGØRES',
-  skipped:          'SPRUNGET OVER',
+  exact:                    'GODKENDT',
+  move_to_existing_product: 'FLYTTET',
+  accessory:                'AFVIST · TILBEHØR',
+  wanted_ad:                'AFVIST · SØGES',
+  wrong:                    'AFVIST',
+  skipped:                  'SPRUNGET OVER',
 }
 
 /**
@@ -62,13 +58,21 @@ const DISPOSITION_BADGE: Record<Disposition, string> = {
  * verdict without standing between the operator and it.
  */
 const SECONDARY_DISPOSITIONS: readonly Disposition[] = [
-  'family_level',
-  'existing_child',
+  'move_to_existing_product',
   'accessory',
   'wanted_ad',
-  'cannot_determine',
   'skipped',
 ]
+
+/**
+ * Deliberately absent: family-level, variant-cannot-be-determined, observed
+ * missing variant and cannot-determine.
+ *
+ * Each needs a durable home that this schema does not have — see
+ * `docs/admin-match-deferred-disposition-contract.md`. Offering them as
+ * session-only controls would be worse than omitting them: the operator would
+ * make the judgement, press Save, and lose it silently.
+ */
 
 type Reducer = (s: MatchState<Candidate>, a: MatchAction<Candidate>) => MatchState<Candidate>
 
@@ -288,18 +292,19 @@ function AdminMatchPageInner() {
 
   /* ── existing-child picker ────────────────────────────────────────────── */
 
-  // Which row has the node picker open. Never more than one.
+  // Which row has the move picker open. Never more than one.
   const [childPickerFor, setChildPickerFor] = useState<string | null>(null)
   const [childQuery, setChildQuery] = useState('')
   const [childResults, setChildResults] = useState<MatchProduct[]>([])
   const childDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   /**
-   * Resolve an existing node by search.
+   * Resolve an existing product by the authenticated admin search.
    *
-   * The operator picks a row that already exists in `kg_product`, and its real
-   * id is what gets written. Nothing here creates a node or invents an id — a
-   * variant with no node is recorded as an observation instead.
+   * This is a move to another product the operator named, not a hierarchy
+   * claim: the search cannot show that the target is a child or a variant of
+   * the reviewed product, only that it exists. The server re-verifies the id
+   * before writing, and no relation is created either way.
    */
   useEffect(() => {
     if (childPickerFor === null) return
@@ -326,9 +331,14 @@ function AdminMatchPageInner() {
   }, [selectedProduct?.id])
 
   const setDisposition = useCallback(
-    (listingId: string, disposition: Disposition, nodeId?: string | null) => {
-      dispatch({ type: 'disposition_set', listingId, disposition, nodeId: nodeId ?? null })
-      if (disposition !== 'existing_child') setChildPickerFor(null)
+    (listingId: string, disposition: Disposition, targetProductId?: string | null) => {
+      dispatch({
+        type: 'disposition_set',
+        listingId,
+        disposition,
+        targetProductId: targetProductId ?? null,
+      })
+      if (disposition !== 'move_to_existing_product') setChildPickerFor(null)
     },
     [],
   )
@@ -528,7 +538,7 @@ function AdminMatchPageInner() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-muted-foreground">
               {candidates.length} kandidater · {counts.approved} godkendt · {counts.rejected} afvist
-              {counts.unwritten > 0 && ` · ${counts.unwritten} uden registrering`}
+              {counts.skipped > 0 && ` · ${counts.skipped} sprunget over`}
               {counts.pending > 0 && ` · ${counts.pending} mangler`}
             </p>
             <button
@@ -554,10 +564,9 @@ function AdminMatchPageInner() {
             {candidates.map((c) => {
               const record = localDecisions[c.id]
               const disposition = record?.disposition ?? null
-              const isApproved = disposition != null && !isRejection(disposition)
-                && disposition !== 'cannot_determine' && disposition !== 'skipped'
+              const isApproved = disposition != null && isApproval(disposition)
               const isRejected = disposition != null && isRejection(disposition)
-              const isNeutral = disposition === 'cannot_determine' || disposition === 'skipped'
+              const isNeutral = disposition === 'skipped'
               const isSelected = selectedId === c.id
               const s = scoreLabel[c.score]
               const sourceMeta = sourceForStored(c.source)
@@ -697,7 +706,7 @@ function AdminMatchPageInner() {
                       <button
                         key={d}
                         onClick={() => {
-                          if (d === 'existing_child') {
+                          if (d === 'move_to_existing_product') {
                             setChildPickerFor(childPickerFor === c.id ? null : c.id)
                             return
                           }
@@ -733,53 +742,37 @@ function AdminMatchPageInner() {
                   )}
                 </div>
 
-                {/*
-                  A variant the operator can read on the listing but which has
-                  no node — Chamberlin Model 30/45 is the measured case. Recorded
-                  as an observation against the decision; no node is created.
-                */}
-                {(disposition === 'family_level' || disposition === 'cannot_determine') && (
-                  <input
-                    value={record?.variantObservation ?? ''}
-                    onChange={(e) =>
-                      dispatch({
-                        type: 'variant_observation_changed',
-                        listingId: c.id,
-                        value: e.target.value,
-                      })
-                    }
-                    placeholder="Observeret variant (fx «Model 45») — opretter ingen knude"
-                    className="w-full px-2 py-1 rounded-lg text-xs bg-surface-2 border border-line text-ink"
-                  />
-                )}
-
                 {childPickerFor === c.id && (
                   <div className="flex flex-col gap-1 p-2 rounded-lg bg-surface-2 border border-line">
                     <input
                       value={childQuery}
                       onChange={(e) => setChildQuery(e.target.value)}
-                      placeholder="Søg eksisterende knude…"
+                      placeholder="Søg efter det produkt annoncen hører til…"
                       className="px-2 py-1 rounded-lg text-xs bg-canvas border border-line text-ink"
                     />
                     {childResults.length === 0 && childQuery.trim().length >= 2 && (
                       <p className="text-[11px] text-muted-foreground">
-                        Ingen eksisterende knude matcher. Brug «Familie/produktniveau» i stedet.
+                        Intet eksisterende produkt matcher.
                       </p>
                     )}
-                    {childResults.map((n) => (
-                      <button
-                        key={n.id}
-                        onClick={() => {
-                          setDisposition(c.id, 'existing_child', n.id)
-                          setChildPickerFor(null)
-                          setChildQuery('')
-                        }}
-                        className="text-left px-2 py-1 rounded-lg text-xs hover:bg-secondary text-ink"
-                      >
-                        {n.canonical_name}
-                        <span className="text-muted-foreground"> · {n.slug}</span>
-                      </button>
-                    ))}
+                    {childResults
+                      // Moving onto the product being reviewed is not a move; it
+                      // is an approval, and it has its own button.
+                      .filter((n) => n.id !== selectedProduct?.id)
+                      .map((n) => (
+                        <button
+                          key={n.id}
+                          onClick={() => {
+                            setDisposition(c.id, 'move_to_existing_product', n.id)
+                            setChildPickerFor(null)
+                            setChildQuery('')
+                          }}
+                          className="text-left px-2 py-1 rounded-lg text-xs hover:bg-secondary text-ink"
+                        >
+                          {n.canonical_name}
+                          <span className="text-muted-foreground"> · {n.slug}</span>
+                        </button>
+                      ))}
                   </div>
                 )}
                 </div>
