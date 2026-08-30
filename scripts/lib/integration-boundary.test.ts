@@ -34,6 +34,7 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/admin-grouping-model.test.ts',
       'scripts/lib/admin-match-kleinanzeigen.test.ts',
       'scripts/lib/admin-match-retrieval.test.ts',
+      'scripts/lib/admin-match-state.test.ts',
       'scripts/lib/baseline.test.ts',
       'scripts/lib/data-presentation.test.ts',
       'scripts/lib/integration-boundary.test.ts',

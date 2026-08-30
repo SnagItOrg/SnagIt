@@ -1,153 +1,240 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { Candidate } from '@/app/api/admin/match/candidates/route'
 import {
   ALL_SOURCE_KEYS,
   MATCH_SOURCES,
   sourceForStored,
 } from '@/lib/admin-match-sources'
+import {
+  canSave,
+  createInitialState,
+  decisionCounts,
+  isLoadingCandidates,
+  isSelectionSettling,
+  matchReducer,
+  savePayload,
+  sourcesDiffer,
+  type MatchAction,
+  type MatchProduct,
+  type MatchState,
+} from './match-state'
 
-type KgProduct = {
-  id:             string
-  canonical_name: string
-  slug:           string
-  kg_brand:       { name: string } | null
-}
+type Reducer = (s: MatchState<Candidate>, a: MatchAction<Candidate>) => MatchState<Candidate>
 
-export default function AdminMatchPage() {
-  const [query, setQuery]           = useState('')
-  const [suggestions, setSuggestions] = useState<KgProduct[]>([])
-  const [searching, setSearching]   = useState(false)
-  const [product, setProduct]       = useState<KgProduct | null>(null)
+function AdminMatchPageInner() {
+  const router = useRouter()
+  const params = useSearchParams()
+  const productParam = params.get('product')
 
-  const [sources, setSources]       = useState<Set<string>>(new Set(ALL_SOURCE_KEYS))
-  const [loading, setLoading]       = useState(false)
-  const [candidates, setCandidates] = useState<Candidate[]>([])
-  const [approved, setApproved]     = useState<Set<string>>(new Set())
-  const [rejected, setRejected]     = useState<Set<string>>(new Set())
-  const [saving, setSaving]         = useState(false)
-  const [toast, setToast]           = useState<string | null>(null)
+  const [state, dispatch] = useReducer(
+    matchReducer as Reducer,
+    ALL_SOURCE_KEYS,
+    createInitialState<Candidate>,
+  )
 
-  function toggleSource(key: string) {
-    setSources((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) {
-        if (next.size > 1) next.delete(key)
-      } else {
-        next.add(key)
-      }
-      return next
-    })
-  }
+  const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /** Aborts the sweep that is no longer wanted. Paired with the request id. */
+  const inFlight = useRef<AbortController | null>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [toast, setToast] = useReducer(
+    (_: string | null, next: string | null) => next,
+    null as string | null,
+  )
 
-  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { selectedProduct, candidateRequest, candidates, localDecisions, sourceSelection } = state
+  const counts = decisionCounts(state)
+  const loading = isLoadingCandidates(state)
+  const settling = isSelectionSettling(state)
+  const sourcesPending = sourcesDiffer(state)
 
   function showToast(msg: string) {
     setToast(msg)
-    setTimeout(() => setToast(null), 3000)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(null), 3000)
   }
 
-  // KG product search
-  function handleQueryChange(val: string) {
-    setQuery(val)
-    setSuggestions([])
-    if (debounce.current) clearTimeout(debounce.current)
-    if (val.trim().length < 2) return
-    debounce.current = setTimeout(async () => {
-      setSearching(true)
+  /* ── product search ───────────────────────────────────────────────────── */
+
+  function handleQueryChange(value: string) {
+    dispatch({ type: 'search_input_changed', value })
+    if (searchDebounce.current) clearTimeout(searchDebounce.current)
+    if (value.trim().length < 2) return
+    searchDebounce.current = setTimeout(async () => {
+      dispatch({ type: 'search_started' })
       try {
-        const res = await fetch(`/api/admin/match/search?q=${encodeURIComponent(val)}`)
-        const data = await res.json() as { products: KgProduct[] }
-        setSuggestions(data.products ?? [])
-      } finally {
-        setSearching(false)
+        const res = await fetch(`/api/admin/match/search?q=${encodeURIComponent(value)}`)
+        if (!res.ok) {
+          dispatch({ type: 'search_failed', message: `Søgning fejlede (${res.status})` })
+          return
+        }
+        const data = (await res.json()) as { products: MatchProduct[] }
+        dispatch({ type: 'search_results_received', products: data.products ?? [] })
+      } catch {
+        dispatch({ type: 'search_failed', message: 'Søgning fejlede' })
       }
     }, 300)
   }
 
-  function selectProduct(p: KgProduct) {
-    setProduct(p)
-    setQuery(p.canonical_name)
-    setSuggestions([])
-    setCandidates([])
-    setApproved(new Set())
-    setRejected(new Set())
-  }
+  /**
+   * Selecting a product writes the slug to the URL and nothing else. The
+   * candidate sweep is driven by the effect below, keyed on the request id, so
+   * there is exactly one place that can start a request.
+   */
+  const selectProduct = useCallback(
+    (product: MatchProduct) => {
+      dispatch({ type: 'product_selected', product })
+      router.replace(`/admin/match?product=${encodeURIComponent(product.slug)}`, { scroll: false })
+    },
+    [router],
+  )
 
-  const loadCandidates = useCallback(async () => {
-    if (!product) return
-    setLoading(true)
-    setCandidates([])
-    try {
-      const sourcesParam = Array.from(sources).join(',')
-      const res = await fetch(
-        `/api/admin/match/candidates?product_id=${product.id}&product_name=${encodeURIComponent(product.canonical_name)}&sources=${sourcesParam}`
-      )
-      const data = await res.json() as { candidates: Candidate[] }
-      setCandidates(data.candidates ?? [])
-      setApproved(new Set())
-      setRejected(new Set())
-    } finally {
-      setLoading(false)
+  /**
+   * Restore the selection from `?product=<slug>` on load, reload and
+   * back/forward.
+   *
+   * Dispatching `product_selected` for a product that is already selected is a
+   * no-op on the request counter, so arriving here after a click cannot start a
+   * second sweep for the same product.
+   */
+  useEffect(() => {
+    if (!productParam) {
+      if (state.selectedProduct) dispatch({ type: 'product_cleared' })
+      return
     }
-  }, [product, sources])
+    if (state.selectedProduct?.slug === productParam) return
 
-  function toggle(id: string, action: 'approve' | 'reject') {
-    if (action === 'approve') {
-      setApproved((prev) => {
-        const next = new Set(prev)
-        if (next.has(id)) next.delete(id); else next.add(id)
-        return next
-      })
-      setRejected((prev) => { const next = new Set(prev); next.delete(id); return next })
-    } else {
-      setRejected((prev) => {
-        const next = new Set(prev)
-        if (next.has(id)) next.delete(id); else next.add(id)
-        return next
-      })
-      setApproved((prev) => { const next = new Set(prev); next.delete(id); return next })
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/admin/match/search?q=${encodeURIComponent(productParam)}`)
+        if (!res.ok) return
+        const data = (await res.json()) as { products: MatchProduct[] }
+        const hit = (data.products ?? []).find((p) => p.slug === productParam)
+        if (!cancelled && hit) dispatch({ type: 'product_selected', product: hit })
+      } catch {
+        /* a failed restore leaves the page in its empty state, which is honest */
+      }
+    })()
+    return () => {
+      cancelled = true
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productParam])
 
-  // Both verdicts travel together: a rejection is a stored label, not a
-  // dismissal, so leaving it in the browser would lose the operator's work.
+  /* ── candidate sweep ──────────────────────────────────────────────────── */
+
+  const requestId = candidateRequest.id
+  const requestProductId = candidateRequest.productId
+  const productName = selectedProduct?.canonical_name ?? null
+  const sourcesParam = sourceSelection.join(',')
+
+  useEffect(() => {
+    if (candidateRequest.status !== 'loading') return
+    if (!requestProductId || !productName) return
+
+    // Whatever was in flight belongs to a selection the operator has left.
+    inFlight.current?.abort()
+    const controller = new AbortController()
+    inFlight.current = controller
+
+    ;(async () => {
+      try {
+        const res = await fetch(
+          `/api/admin/match/candidates?product_id=${requestProductId}` +
+            `&product_name=${encodeURIComponent(productName)}` +
+            `&sources=${sourcesParam}`,
+          { signal: controller.signal },
+        )
+        if (!res.ok) {
+          dispatch({
+            type: 'candidates_failed',
+            requestId,
+            productId: requestProductId,
+            message:
+              res.status === 401 || res.status === 403
+                ? 'Ingen adgang — log ind som admin igen.'
+                : `Kunne ikke hente kandidater (${res.status})`,
+          })
+          return
+        }
+        const data = (await res.json()) as { candidates: Candidate[] }
+        // The reducer re-checks both the id and the product; this dispatch is
+        // inert if the operator has moved on.
+        dispatch({
+          type: 'candidates_received',
+          requestId,
+          productId: requestProductId,
+          candidates: data.candidates ?? [],
+        })
+      } catch (err) {
+        if ((err as { name?: string })?.name === 'AbortError') return
+        dispatch({
+          type: 'candidates_failed',
+          requestId,
+          productId: requestProductId,
+          message: 'Kunne ikke hente kandidater',
+        })
+      }
+    })()
+
+    return () => controller.abort()
+  }, [requestId, requestProductId, productName, sourcesParam, candidateRequest.status])
+
+  useEffect(() => {
+    return () => {
+      inFlight.current?.abort()
+      if (searchDebounce.current) clearTimeout(searchDebounce.current)
+      if (toastTimer.current) clearTimeout(toastTimer.current)
+    }
+  }, [])
+
+  /* ── save ─────────────────────────────────────────────────────────────── */
+
   async function saveDecisions() {
-    if (!product || (approved.size === 0 && rejected.size === 0)) return
-    setSaving(true)
+    const payload = savePayload(state)
+    if (!payload) return
+    const submitted = [...payload.listing_ids, ...payload.rejected_listing_ids]
+    dispatch({ type: 'save_started' })
     try {
       const res = await fetch('/api/admin/match/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          product_id: product.id,
-          listing_ids: Array.from(approved),
-          rejected_listing_ids: Array.from(rejected),
+          product_id: payload.product_id,
+          listing_ids: payload.listing_ids,
+          rejected_listing_ids: payload.rejected_listing_ids,
         }),
       })
-      const data = await res.json() as { approved?: number; rejected?: number; error?: string }
-      if (data.error) { showToast(`Fejl: ${data.error}`); return }
+      const data = (await res.json()) as { approved?: number; rejected?: number; error?: string }
+      if (!res.ok || data.error) {
+        dispatch({ type: 'save_failed', message: data.error ?? `Kunne ikke gemme (${res.status})` })
+        showToast(`Fejl: ${data.error ?? res.status}`)
+        return
+      }
+      dispatch({ type: 'save_succeeded', savedIds: submitted })
       showToast(`✅ ${data.approved ?? 0} godkendt · ${data.rejected ?? 0} afvist`)
-      // Both verdicts are now stored, so neither returns to the queue.
-      setCandidates((prev) => prev.filter((c) => !approved.has(c.id) && !rejected.has(c.id)))
-      setApproved(new Set())
-      setRejected(new Set())
-    } finally {
-      setSaving(false)
+    } catch {
+      dispatch({ type: 'save_failed', message: 'Kunne ikke gemme' })
+      showToast('Fejl: netværk')
     }
   }
 
   const scoreLabel: Record<Candidate['score'], { label: string; color: string; icon: string }> = {
-    yes:   { label: 'Relevant',  color: '#16a34a', icon: 'check_circle' },
-    maybe: { label: 'Måske',     color: '#d97706', icon: 'help' },
+    yes:   { label: 'Relevant',      color: '#16a34a', icon: 'check_circle' },
+    maybe: { label: 'Måske',         color: '#d97706', icon: 'help' },
     no:    { label: 'Ikke relevant', color: '#dc2626', icon: 'cancel' },
   }
 
-  // Queued rejections stay visible and muted rather than vanishing on click.
-  // The cross now writes a durable label, so the operator has to be able to see
-  // what they are about to store — and take it back before saving.
-  const visible = candidates
+  const saveEnabled = canSave(state) && !state.saving
+  const listboxId = 'admin-match-suggestions'
+
+  const brandFor = useMemo(
+    () => (p: MatchProduct) => (p.kg_brand ? p.kg_brand.name : null),
+    [],
+  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -160,65 +247,92 @@ export default function AdminMatchPage() {
 
       {/* Product search */}
       <div className="relative max-w-md">
+        <label htmlFor="admin-match-search" className="sr-only">
+          Søg produkt
+        </label>
         <input
+          id="admin-match-search"
           type="text"
-          value={query}
+          role="combobox"
+          aria-expanded={state.searchResults.length > 0}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          value={state.searchInput}
           onChange={(e) => handleQueryChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') dispatch({ type: 'search_dismissed' })
+          }}
           placeholder="Søg produkt, fx Roland Juno-106…"
           className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm outline-none focus:ring-2 focus:ring-primary/30"
         />
-        {searching && (
-          <span className="material-symbols-outlined absolute right-3 top-2.5 animate-spin text-muted-foreground" style={{ fontSize: 20 }}>
+        {state.searching && (
+          <span
+            className="material-symbols-outlined absolute right-3 top-2.5 animate-spin text-muted-foreground"
+            style={{ fontSize: 20 }}
+            aria-hidden="true"
+          >
             progress_activity
           </span>
         )}
-        {suggestions.length > 0 && (
-          <div className="surface-overlay absolute top-full mt-1 left-0 right-0 rounded-xl z-10 overflow-hidden">
-            {suggestions.map((p) => (
+        {state.searchResults.length > 0 && (
+          <div
+            id={listboxId}
+            role="listbox"
+            className="surface-overlay absolute top-full mt-1 left-0 right-0 rounded-xl z-10 overflow-hidden"
+          >
+            {state.searchResults.map((p) => (
               <button
                 key={p.id}
+                role="option"
+                aria-selected={selectedProduct?.id === p.id}
                 onClick={() => selectProduct(p)}
                 className="w-full text-left px-4 py-2.5 text-sm hover:bg-secondary transition-colors"
               >
                 <span className="font-medium text-foreground">{p.canonical_name}</span>
-                {p.kg_brand && <span className="text-muted-foreground ml-2">{p.kg_brand.name}</span>}
+                {brandFor(p) && <span className="text-muted-foreground ml-2">{brandFor(p)}</span>}
               </button>
             ))}
           </div>
         )}
       </div>
 
-      {product && (
+      {selectedProduct && (
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-foreground">{product.canonical_name}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col min-w-0">
+              {/* The target is stated twice on purpose: the name an operator
+                  recognises, and the slug the decision will actually be written
+                  against. */}
+              <span className="text-sm font-semibold text-foreground">
+                Matcher mod: {selectedProduct.canonical_name}
+              </span>
               <a
-                href={`/product/${product.slug}`}
+                href={`/product/${selectedProduct.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-muted-foreground hover:underline"
               >
-                /product/{product.slug} ↗
+                /product/{selectedProduct.slug} ↗
               </a>
             </div>
             <button
-              onClick={loadCandidates}
+              onClick={() => dispatch({ type: 'candidates_reload_requested' })}
               disabled={loading}
-              className="ml-auto px-4 py-2 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-              style={{ backgroundColor: '#002D4C' }}
+              className="ml-auto px-3 py-2 rounded-xl text-sm font-medium border text-foreground transition-opacity disabled:opacity-50 hover:bg-secondary"
+              style={{ borderColor: sourcesPending ? '#d97706' : 'var(--border)' }}
             >
-              {loading ? 'Henter…' : 'Find kandidater'}
+              {loading ? 'Henter…' : sourcesPending ? 'Genindlæs · kilder ændret' : 'Genindlæs'}
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-muted-foreground">Kilder:</span>
             {MATCH_SOURCES.map(({ key, label, color }) => {
-              const active = sources.has(key)
+              const active = sourceSelection.includes(key)
               return (
                 <button
                   key={key}
-                  onClick={() => toggleSource(key)}
+                  onClick={() => dispatch({ type: 'source_toggled', key })}
+                  aria-pressed={active}
                   className="px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all"
                   style={{
                     backgroundColor: active ? color : 'transparent',
@@ -237,34 +351,44 @@ export default function AdminMatchPage() {
 
       {/* Candidate list */}
       {loading && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3" aria-busy="true">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
           ))}
-          <p className="text-xs text-muted-foreground">Haiku vurderer relevans…</p>
+          <p className="text-xs text-muted-foreground" role="status">
+            Haiku vurderer relevans for {selectedProduct?.canonical_name}…
+          </p>
         </div>
+      )}
+
+      {state.error && !loading && (
+        <p className="text-sm" role="alert" style={{ color: 'var(--destructive-text)' }}>
+          {state.error}
+        </p>
       )}
 
       {!loading && candidates.length > 0 && (
         <>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-muted-foreground">
-              {visible.length} kandidater · {approved.size} godkendt · {rejected.size} afvist
+              {candidates.length} kandidater · {counts.approved} godkendt · {counts.rejected} afvist
             </p>
             <button
               onClick={saveDecisions}
-              disabled={(approved.size === 0 && rejected.size === 0) || saving}
+              disabled={!saveEnabled}
+              title={settling ? 'Vent til kandidater er hentet' : undefined}
               className="px-4 py-2 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-40"
               style={{ backgroundColor: '#16a34a' }}
             >
-              {saving ? 'Gemmer…' : `Gem ${approved.size + rejected.size > 0 ? approved.size + rejected.size : ''}`}
+              {state.saving ? 'Gemmer…' : `Gem ${counts.total > 0 ? counts.total : ''}`}
             </button>
           </div>
 
           <div className="flex flex-col gap-2">
-            {visible.map((c) => {
-              const isApproved = approved.has(c.id)
-              const isRejected = rejected.has(c.id)
+            {candidates.map((c) => {
+              const verdict = localDecisions[c.id]
+              const isApproved = verdict === 'approved'
+              const isRejected = verdict === 'rejected'
               const s = scoreLabel[c.score]
               const sourceMeta = sourceForStored(c.source)
               return (
@@ -354,10 +478,12 @@ export default function AdminMatchPage() {
                     </div>
                   </div>
 
-                  {/* Actions */}
+                  {/* Actions — approve and reject remain the primary card actions */}
                   <div className="flex gap-1 flex-shrink-0">
                     <button
-                      onClick={() => toggle(c.id, 'approve')}
+                      onClick={() => dispatch({ type: 'decision_toggled', listingId: c.id, verdict: 'approved' })}
+                      aria-pressed={isApproved}
+                      aria-label={`Godkend ${c.title}`}
                       className="p-1.5 rounded-lg transition-colors hover:bg-secondary"
                       title="Godkend"
                     >
@@ -366,7 +492,9 @@ export default function AdminMatchPage() {
                       </span>
                     </button>
                     <button
-                      onClick={() => toggle(c.id, 'reject')}
+                      onClick={() => dispatch({ type: 'decision_toggled', listingId: c.id, verdict: 'rejected' })}
+                      aria-pressed={isRejected}
+                      aria-label={`Afvis ${c.title}`}
                       className="p-1.5 rounded-lg transition-colors hover:bg-secondary"
                       title="Afvis — gemmes som varigt nej"
                     >
@@ -382,9 +510,10 @@ export default function AdminMatchPage() {
         </>
       )}
 
-      {!loading && product && candidates.length === 0 && (
+      {!loading && !state.error && selectedProduct && candidates.length === 0 &&
+        candidateRequest.status === 'ready' && (
         <p className="text-sm text-muted-foreground">
-          Ingen kandidater fundet. Prøv at klikke &quot;Find kandidater&quot;.
+          Ingen kandidater tilbage for {selectedProduct.canonical_name} med de valgte kilder.
         </p>
       )}
 
@@ -396,5 +525,13 @@ export default function AdminMatchPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function AdminMatchPage() {
+  return (
+    <Suspense>
+      <AdminMatchPageInner />
+    </Suspense>
   )
 }
