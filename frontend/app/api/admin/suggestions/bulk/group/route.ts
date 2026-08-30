@@ -2,8 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import Anthropic from '@anthropic-ai/sdk'
+import {
+  GROUPING_FAILURE_MESSAGE,
+  describeProviderFailure,
+  groupingFailureLogLine,
+  resolveGroupingModel,
+} from '@/lib/anthropic-model'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+/**
+ * The client is built inside the handler, AFTER the admin check.
+ *
+ * It used to be a module-level constant, so importing this route constructed an
+ * Anthropic client — reading the API key — before any caller had been
+ * authorized. Nothing leaked, but the ordering was wrong, and an unauthorized
+ * request should not cause provider setup of any kind.
+ */
 
 async function verifyAdmin(): Promise<boolean> {
   const supabase = createSupabaseServerClient()
@@ -77,10 +90,13 @@ export async function POST(req: NextRequest) {
 
   const nameList = (suggestions as SuggestionRow[]).map(s => s.canonical_name).join('\n')
 
+  const model = resolveGroupingModel()
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
   let aiGroups: AiGroup[] = []
   try {
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model,
       max_tokens: 4096,
       system:
         'You are a music gear expert helping clean up a product knowledge graph. ' +
@@ -104,7 +120,21 @@ export async function POST(req: NextRequest) {
     const parsed = JSON.parse(jsonStr) as { groups: AiGroup[] }
     aiGroups = parsed.groups ?? []
   } catch (e) {
-    return NextResponse.json({ error: `AI grouping failed: ${String(e)}` }, { status: 500 })
+    /**
+     * The provider failure never reaches the browser.
+     *
+     * This handler used to return `AI grouping failed: ${String(e)}`, which put
+     * the raw payload — `404 not_found_error ... model: <id>` — straight into
+     * an admin toast. The status and request id go to the operational log,
+     * where an operator can act on them; the client gets one static sentence.
+     *
+     * No retry and no substitute model. A 404 here means the configured id is
+     * wrong, and quietly succeeding on a more expensive model would hide that
+     * for exactly as long as it took someone to read the bill.
+     */
+    const failure = describeProviderFailure(e)
+    console.error(groupingFailureLogLine(failure, model))
+    return NextResponse.json({ error: GROUPING_FAILURE_MESSAGE }, { status: 502 })
   }
 
   // Map AI groups back to suggestion rows; annotate with KG existence
