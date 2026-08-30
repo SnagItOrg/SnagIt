@@ -27,7 +27,8 @@ import { monitoredSlugs, assertResolved } from './lib/source-monitoring'
 // This script is the PM2 writer, so a parser fix that lands only in the frontend
 // module changes no stored row — which is exactly how the concatenation defect
 // survived its own 2026-05 diagnosis.
-import { extractCardPrice } from '../frontend/lib/scrapers/kleinanzeigen-price'
+import { extractCardPriceOutcome } from '../frontend/lib/scrapers/kleinanzeigen-price'
+import { classifyKleinanzeigenPrice } from '../frontend/lib/listing-price-integrity'
 import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
 
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
@@ -195,7 +196,28 @@ function parseArticle(articleHtml: string): ScrapedListing | null {
     /<[^>]*class=["'][^"']*aditem-main--top--left[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/i,
   ])
 
-  const price = extractCardPrice(articleHtml)
+  /**
+   * Price, with the reason when there is none.
+   *
+   * A refusal is logged as a static event so a parser regression is visible in
+   * the run's own output instead of arriving weeks later as a wrong number on
+   * a product page. The listing URL is the identity — no markup, no card text,
+   * no credentials ever reach this line.
+   */
+  const priceOutcome = extractCardPriceOutcome(articleHtml)
+  const price = priceOutcome.value
+  if (price == null && priceOutcome.reason && priceOutcome.reason !== 'no_price_stated') {
+    console.warn(
+      JSON.stringify({
+        channel: 'operational',
+        component: 'scrape-kleinanzeigen',
+        event: 'price_rejected',
+        source: 'kleinanzeigen',
+        listing_url: url,
+        reason: priceOutcome.reason,
+      }),
+    )
+  }
 
   return {
     title,
@@ -358,17 +380,46 @@ async function loadProducts(): Promise<Array<{ id: string; canonical_name: strin
   return products
 }
 
+/** Refuse an implausible price at the write boundary; never alter identity. */
+function guardedPrice(price: number | null, url: string): number | null {
+  if (price == null) return null
+  const verdict = classifyKleinanzeigenPrice(price)
+  if (verdict.ok) return price
+  console.warn(
+    JSON.stringify({
+      channel: 'operational',
+      component: 'scrape-kleinanzeigen',
+      event: 'price_rejected_at_write',
+      source: 'kleinanzeigen',
+      listing_url: url,
+      reason: verdict.reason ?? 'above_impossible_bound',
+    }),
+  )
+  return null
+}
+
 function buildRows(listings: ScrapedListing[]) {
+  /**
+   * Last gate before the upsert.
+   *
+   * The parser already refuses an implausible value, but this row shape is also
+   * reachable from the detail-page path and from a future caller, and a wrong
+   * price is the one defect that is believed downstream: it enters the admin
+   * queue, the public band and the price history. The guard is applied at the
+   * write boundary as well as at the parse boundary, on purpose — identity,
+   * timestamps and the `external_id` conflict target are untouched, only the
+   * price field is neutralised.
+   */
   return listings.map((listing) => ({
     title: listing.title,
-    price: listing.price,
+    price: guardedPrice(listing.price, listing.url),
     currency: listing.currency,
     url: listing.url,
     image_url: listing.image_url,
     location: listing.location,
     source: listing.source,
     country: listing.country,
-    price_dkk: listing.price_dkk ?? null,
+    price_dkk: guardedPrice(listing.price, listing.url) != null ? listing.price_dkk ?? null : null,
     scraped_at: new Date().toISOString(),
     watchlist_id: null,
     normalized_text: normalizeText(listing.title),

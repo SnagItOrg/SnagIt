@@ -18,7 +18,15 @@ import { join } from 'node:path'
 import {
   extractCardPrice,
   parseGermanPrice,
+  parseGermanPriceOutcome,
 } from '../../frontend/lib/scrapers/kleinanzeigen-price'
+import {
+  KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR,
+  hasPlausibleListingPrice,
+  looksLikeConcatenatedPair,
+} from '../../frontend/lib/listing-price-integrity'
+
+const ROOT = join(__dirname, '..', '..')
 
 const FIXTURE = readFileSync(
   join(__dirname, 'fixtures', 'kleinanzeigen-search-cards.html'),
@@ -210,4 +218,200 @@ test('neither scraper keeps a private price parser', () => {
         'having a private copy is why the 2026-05 diagnosis never reached production',
     )
   }
+})
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * PRICE INTEGRITY — the inflated-price defect
+ *
+ * Two production rows, measured 2026-08-30:
+ *
+ *   "Boss RE-20 Space Echo Reverb Pedal Effekt Tape 201 Roland Vintage"
+ *     stored 235240, scraped 2026-08-28.  Real ask 235 EUR; 240 is the
+ *     struck-through old price.
+ *   "Behringer MS-1-BK/ Klon des legendären Roland SH-101"
+ *     stored 220250, scraped 2026-08-27.  Real ask 220 EUR; 250 is the old
+ *     price.
+ *
+ * The real values are established from the pair's own structure, not guessed:
+ * both decompose into equal-length halves where the second is the larger, which
+ * is what a discount looks like, and it is the same shape as every other bad
+ * row (12491299 = 1249|1299, 62006800 = 6200|6800).
+ *
+ * The HTML extraction was already fixed. What was NOT fixed is that a dotted
+ * value survives as a "valid" German price: `220.250 €` parses to 220250, and
+ * the write guard was 500,000 EUR — far too high to catch two three-digit
+ * prices. So the bad value was stored, displayed and believed.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+test('the two observed production values are refused, not stored', () => {
+  for (const [text, welded] of [['220.250 €', 220250], ['235.240 €', 235240]] as const) {
+    const outcome = parseGermanPriceOutcome(text)
+    assert.notEqual(outcome.value, welded, `${text} still yields ${welded}`)
+    assert.equal(outcome.value, null, 'an ambiguous price must fail closed')
+    assert.equal(outcome.reason, 'concatenated_pair')
+  }
+})
+
+test('the real prices behind those two listings survive untouched', () => {
+  assert.equal(parseGermanPrice('220 €'), 220)
+  assert.equal(parseGermanPrice('235 €'), 235)
+  assert.equal(parseGermanPrice('240 €'), 240)
+  assert.equal(parseGermanPrice('250 €'), 250)
+})
+
+test('the card markup behind them yields the current price, never the pair', () => {
+  const card = (now: string, was: string) =>
+    `<div class="aditem-main--middle--price-shipping">` +
+    `<p class="aditem-main--middle--price-shipping--price">${now}` +
+    `<p class="aditem-main--middle--price-shipping--old-price">${was}</p></p></div>`
+  assert.equal(extractCardPrice(card('220 €', '250 €')), 220)
+  assert.equal(extractCardPrice(card('235 €', '240 €')), 235)
+  // …and with no old-price class at all, only the first token is ever read.
+  assert.equal(
+    extractCardPrice('<p class="aditem-main--middle--price-shipping--price">220 € 250 €</p>'),
+    220,
+  )
+})
+
+test('every required German format parses', () => {
+  assert.equal(parseGermanPrice('800 € VB'), 800, 'VB is a suffix on a real ask')
+  assert.equal(parseGermanPrice('1.200 €'), 1200, 'a dot groups thousands')
+  assert.equal(parseGermanPrice('1.200,00 €'), 1200, 'a comma decimates')
+  assert.equal(parseGermanPrice('220 €'), 220)
+  assert.equal(parseGermanPrice('Zu verschenken'), null, 'free is not zero')
+  assert.equal(parseGermanPrice('VB'), null, 'VB with no number is absence')
+})
+
+test('free, wanted and price-on-request forms all become null', () => {
+  for (const text of [
+    'Zu verschenken', 'zu verschenken', 'Preis auf Anfrage', 'auf Anfrage',
+    'Gegen Gebot', 'Verschenken',
+  ]) {
+    assert.equal(parseGermanPrice(text), null, `${text} must not become a price`)
+  }
+  // Absence is stated, not silently swallowed.
+  assert.equal(parseGermanPriceOutcome('Zu verschenken').reason, 'no_price_stated')
+})
+
+test('a shipping surcharge can never become the asking price', () => {
+  assert.equal(parseGermanPrice('+ Versand ab 5,49 €'), null)
+  assert.equal(parseGermanPriceOutcome('+ Versand ab 5,49 €').reason, 'shipping_only')
+  assert.equal(parseGermanPrice('Versand möglich'), null)
+  // But a real price followed by a shipping note is still a real price.
+  assert.equal(parseGermanPrice('450 € Versand möglich'), 450)
+})
+
+test('title years and model numbers cannot reach the price', () => {
+  // The parser is never handed a title — it reads the price element only. This
+  // pins that: a card whose ONLY numbers live in the title yields nothing.
+  const card =
+    '<article class="aditem"><h2><a href="/s-anzeige/x/1">Korg MS-20 Vintage 1978 Seriennummer 146267</a></h2>' +
+    '<div class="aditem-main--middle--price-shipping">' +
+    '<p class="aditem-main--middle--price-shipping--price">Zu verschenken</p></div></article>'
+  assert.equal(extractCardPrice(card), null, 'a year or serial must not become a price')
+})
+
+test('separate numeric fragments are never concatenated', () => {
+  assert.equal(parseGermanPrice('800 € 900 €'), 800)
+  assert.equal(parseGermanPrice('1.249 € 1.299 €'), 1249)
+  assert.equal(parseGermanPrice('220 €250 €'), 220)
+})
+
+test('the concatenation shape is recognised on every observed production value', () => {
+  // Every one of these is a real stored row.
+  for (const [welded, current, previous] of [
+    [220250, 220, 250], [235240, 235, 240], [12491299, 1249, 1299],
+    [62006800, 6200, 6800], [41504950, 4150, 4950], [26502750, 2650, 2750],
+    [490600, 490, 600], [489579, 489, 579], [466500, 466, 500],
+  ] as const) {
+    const verdict = looksLikeConcatenatedPair(welded)
+    assert.equal(verdict.suspect, true, `${welded} not recognised`)
+    assert.deepEqual(verdict.parts, [current, previous])
+    assert.equal(hasPlausibleListingPrice({ source: 'kleinanzeigen', price: welded }), false)
+  }
+})
+
+test('legitimate high-value gear is preserved — no arbitrary low ceiling', () => {
+  // Real active rows, measured 2026-08-30.
+  for (const [price, what] of [
+    [8063, 'Gibson 1959 Les Paul Reissue'],
+    [12345, 'Gibson Les Paul bundle'],
+    [16500, 'Korg MS-20 Kraftwerk provenance'],
+    [17934, 'Wurlitzer 207'],
+    [24999, 'just under the unconditional floor'],
+  ] as const) {
+    assert.equal(
+      hasPlausibleListingPrice({ source: 'kleinanzeigen', price }), true,
+      `${what} at ${price} EUR must survive`,
+    )
+    assert.equal(looksLikeConcatenatedPair(price).suspect, false)
+  }
+})
+
+test('a genuine large round price is not mistaken for a pair', () => {
+  // Its second half carries a leading zero, so it was never two prices.
+  for (const price of [150000, 200000, 100000, 250000]) {
+    assert.equal(looksLikeConcatenatedPair(price).suspect, false, `${price} wrongly flagged`)
+  }
+  // Odd digit counts are out of scope for the shape test entirely.
+  for (const price of [45000, 32500, 9999]) {
+    assert.equal(looksLikeConcatenatedPair(price).suspect, false)
+  }
+})
+
+test('the shape test cannot fire below the unconditional floor', () => {
+  assert.equal(KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR, 25_000)
+  assert.equal(
+    hasPlausibleListingPrice({ source: 'kleinanzeigen', price: KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR }),
+    true,
+  )
+  // 220250 is above the floor AND pair-shaped; 220 is below it and safe.
+  assert.equal(hasPlausibleListingPrice({ source: 'kleinanzeigen', price: 220 }), true)
+})
+
+test('the guard is source-specific — other marketplaces are untouched', () => {
+  for (const source of ['reverb', 'dba.dk', 'finn', 'blocket']) {
+    assert.equal(hasPlausibleListingPrice({ source, price: 220250 }), true, source)
+    assert.equal(hasPlausibleListingPrice({ source, price: 12491299 }), true, source)
+  }
+})
+
+test('rejection reasons are static codes, never markup or free text', () => {
+  const reasons = new Set<string>()
+  for (const text of ['220.250 €', 'Zu verschenken', '+ Versand 5 €', 'kein Preis', '']) {
+    const r = parseGermanPriceOutcome(text).reason
+    if (r) reasons.add(r)
+  }
+  for (const r of reasons) {
+    assert.match(r, /^[a-z_]+$/, `reason ${r} is not a static code`)
+  }
+  assert.ok(reasons.has('concatenated_pair'))
+  assert.ok(reasons.has('no_price_stated'))
+})
+
+test('the scraper logs a rejection and guards again at the write boundary', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'scrape-kleinanzeigen.ts'), 'utf8')
+  assert.ok(src.includes("event: 'price_rejected'"), 'a parse rejection must be observable')
+  assert.ok(src.includes("event: 'price_rejected_at_write'"), 'and so must a write rejection')
+  assert.ok(src.includes('guardedPrice('), 'the write boundary must re-check')
+  assert.ok(src.includes('classifyKleinanzeigenPrice'), 'through the shared authority')
+  // Identity, timestamps and the conflict target must be untouched.
+  assert.ok(src.includes('external_id: listing.url'))
+  assert.ok(src.includes('scraped_at: new Date().toISOString()'))
+  // No markup, card text or credentials in any log line.
+  for (const leak of ['articleHtml', 'cardHtml', 'SERVICE_ROLE', 'apiKey', 'html)']) {
+    const escaped = leak.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    assert.ok(
+      !new RegExp(`event: 'price_rejected[\\s\\S]{0,300}${escaped}`).test(src),
+      `the rejection log leaked ${leak}`,
+    )
+  }
+})
+
+test('price snapshots apply the same guard as the writer', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'lib', 'price-observations.ts'), 'utf8')
+  assert.ok(
+    src.includes('hasPlausibleListingPrice'),
+    'a bad price must not become a permanent price event',
+  )
 })
