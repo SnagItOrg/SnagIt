@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { getCurrentAdminState, requireAdminInRoute } from '@/lib/admin-auth'
 import {
-  IS_VALID_FOR,
   PERSISTS,
-  REJECTION_REASON_FOR,
-  targetProductId,
+  planDecisionWrites,
+  requiresTargetProduct,
   validateDecision,
   type DecisionInput,
   type Disposition,
@@ -53,12 +52,10 @@ type DecisionRow = {
 function fromLegacyArrays(approved: string[], rejected: string[]): DecisionInput[] {
   return [
     ...approved.map((id) => ({
-      listing_id: id, disposition: 'exact' as Disposition,
-      node_id: null, variant_observation: null,
+      listing_id: id, disposition: 'exact' as Disposition, target_product_id: null,
     })),
     ...rejected.map((id) => ({
-      listing_id: id, disposition: 'wrong' as Disposition,
-      node_id: null, variant_observation: null,
+      listing_id: id, disposition: 'wrong' as Disposition, target_product_id: null,
     })),
   ]
 }
@@ -114,7 +111,7 @@ export async function POST(req: NextRequest) {
 
   // The client is not the authority on what may be written.
   for (const d of decisions) {
-    const check = validateDecision(d)
+    const check = validateDecision(d, reviewedProductId)
     if (!check.ok) {
       return NextResponse.json({ error: check.error }, { status: 400 })
     }
@@ -139,17 +136,54 @@ export async function POST(req: NextRequest) {
 
   const admin = getSupabaseAdmin()
 
-  // `existing_child` writes against the child the operator picked, so a single
-  // submission can touch more than one product row.
-  const targets = writable.map((d) => ({
-    decision: d,
-    productId: targetProductId(d, reviewedProductId),
-  }))
+  /**
+   * A move target is verified against the database before anything is written.
+   *
+   * The client sends an id it got from the admin product search, but the client
+   * is not the authority: an id that does not resolve to an active `kg_product`
+   * would otherwise be written into `listing_product_match.product_id`, whose
+   * foreign key would either reject the whole batch or — for a real but
+   * inactive row — quietly attach the listing to something unreviewable.
+   */
+  const moveTargets = Array.from(
+    new Set(
+      writable
+        .filter((d) => requiresTargetProduct(d.disposition))
+        .map((d) => d.target_product_id as string),
+    ),
+  )
+
+  if (moveTargets.length > 0) {
+    const { data: targetRows, error: targetErr } = await admin
+      .from('kg_product')
+      .select('id')
+      .eq('status', 'active')
+      .in('id', moveTargets)
+
+    if (targetErr) {
+      return NextResponse.json({ error: targetErr.message }, { status: 500 })
+    }
+    const found = new Set((targetRows ?? []).map((r) => r.id as string))
+    const missing = moveTargets.filter((id) => !found.has(id))
+    if (missing.length > 0) {
+      return NextResponse.json(
+        { error: `unknown or inactive target product: ${missing.join(', ')}` },
+        { status: 400 },
+      )
+    }
+  }
+
+  // A move writes against the product the operator named, so one submission can
+  // touch more than one product row. Both ends are read below, because a move
+  // has to see whether it is leaving a positive match behind.
+  const touchedProductIds = Array.from(new Set([reviewedProductId, ...moveTargets]))
 
   const { data: existingRows, error: readErr } = await admin
     .from('listing_product_match')
-    .select('listing_id, product_id, method, score, explain')
-    .in('product_id', Array.from(new Set(targets.map((t) => t.productId))))
+    .select('listing_id, product_id, method, score, is_valid, explain')
+    // The reviewed product is always included: a move has to be able to see
+    // whether a positive match is being left behind on it.
+    .in('product_id', touchedProductIds)
     .in('listing_id', writable.map((d) => d.listing_id))
 
   if (readErr) {
@@ -162,6 +196,7 @@ export async function POST(req: NextRequest) {
       {
         method: r.method as string,
         score: r.score as number,
+        isValid: (r.is_valid ?? null) as boolean | null,
         explain: (r.explain ?? {}) as Record<string, unknown>,
       },
     ]),
@@ -169,44 +204,15 @@ export async function POST(req: NextRequest) {
 
   const decidedAt = new Date().toISOString()
 
-  const rows: DecisionRow[] = targets.map(({ decision, productId }) => {
-    const prior = existing.get(`${decision.listing_id}:${productId}`)
-    const isValid = IS_VALID_FOR[decision.disposition] === true
-    const retargeted = productId !== reviewedProductId
-
-    return {
-      listing_id: decision.listing_id,
-      product_id: productId,
-      // Existing matcher provenance survives a human confirmation: overwriting
-      // a MODEL/95 row with FUZZY/1 would discard the evidence that produced it.
-      method: prior?.method ?? MANUAL_METHOD,
-      score: prior?.score ?? MANUAL_SCORE,
-      is_valid: isValid,
-      // The column keeps its existing constant meaning; the structured reason
-      // lives in `explain`, because redefining a populated column is not part
-      // of this slice.
-      rejected_reason: isValid ? null : REJECTION_REASON,
-      explain: {
-        ...(prior?.explain ?? {}),
-        admin_decision: {
-          decision: isValid ? 'approved' : 'rejected',
-          disposition: decision.disposition,
-          actor_user_id: userId,
-          decided_at: decidedAt,
-          decision_source: 'admin/match',
-          ...(retargeted ? { reviewed_product_id: reviewedProductId } : {}),
-          ...(decision.variant_observation
-            // An observed variant with no node. An audit string, never an
-            // identifier — nothing resolves it back to a node, and no node is
-            // created for it.
-            ? { variant_observation: decision.variant_observation }
-            : {}),
-          ...(REJECTION_REASON_FOR[decision.disposition]
-            ? { rejection_reason: REJECTION_REASON_FOR[decision.disposition] }
-            : {}),
-        },
-      },
-    }
+  const rows: DecisionRow[] = planDecisionWrites({
+    decisions: writable,
+    reviewedProductId,
+    priorByKey: Object.fromEntries(existing),
+    actorUserId: userId,
+    decidedAt,
+    manualMethod: MANUAL_METHOD,
+    manualScore: MANUAL_SCORE,
+    rejectedReasonConstant: REJECTION_REASON,
   })
 
   // lpm_listing_product_unique (listing_id, product_id) makes this idempotent:
@@ -220,9 +226,12 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({
-    saved: rows.length,
+    // Operator decisions written. A move may also demote the row it left
+    // behind, which is a consequence of one decision rather than a second one.
+    saved: writable.length,
+    rows_written: rows.length,
     skipped,
-    saved_listing_ids: rows.map((r) => r.listing_id),
+    saved_listing_ids: Array.from(new Set(rows.map((r) => r.listing_id))),
     failed: [],
   })
 }
