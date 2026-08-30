@@ -199,18 +199,29 @@ test('a foreign price is not relabelled as kroner', () => {
  * ------------------------------------------------------------------ */
 
 test('approval and rejection each write an explicit is_valid', () => {
+  // Still the same invariant; the verdict is now derived from the operator's
+  // disposition rather than a boolean argument, so the mapping is the thing to
+  // pin. `admin-match-dispositions.test.ts` pins the mapping itself.
   assert.ok(
     /is_valid: isValid/.test(DECISION_ROUTE),
     'the verdict must be written, not left NULL as an unreviewed automatic match',
   )
-  assert.ok(/rowFor\(id, true\)/.test(DECISION_ROUTE),  'approval must store true')
-  assert.ok(/rowFor\(id, false\)/.test(DECISION_ROUTE), 'rejection must store false')
+  assert.ok(
+    /IS_VALID_FOR\[decision\.disposition\] === true/.test(DECISION_ROUTE),
+    'the verdict must come from the approved disposition mapping',
+  )
 })
 
 test('the page submits rejections rather than dropping them in the browser', () => {
+  // The cross reaches the server as a `wrong` disposition inside the one save
+  // payload. What must never come back is a rejection that stays in the browser.
   assert.ok(
-    MATCH_PAGE.includes('rejected_listing_ids'),
-    'the cross must reach the server — it used to be local state only',
+    /setDisposition\(c\.id, 'wrong'\)/.test(MATCH_PAGE),
+    'the cross must record a rejecting disposition',
+  )
+  assert.ok(
+    MATCH_PAGE.includes('savePayload'),
+    'and it must travel through the one save authority',
   )
   assert.ok(
     !MATCH_PAGE.includes('saveApproved'),
@@ -229,7 +240,7 @@ test('repeating or reversing a decision converges on one row', () => {
 
 test('a listing cannot be approved and rejected in one submission', () => {
   assert.ok(
-    DECISION_ROUTE.includes('cannot be both approved and rejected'),
+    DECISION_ROUTE.includes('duplicate decision for listing'),
     'contradictory input must be refused, not resolved by row order',
   )
 })

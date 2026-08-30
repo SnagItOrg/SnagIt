@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { Candidate } from '@/app/api/admin/match/candidates/route'
 import {
@@ -10,6 +10,7 @@ import {
 } from '@/lib/admin-match-sources'
 import {
   canSave,
+  canUndo,
   createInitialState,
   decisionCounts,
   isLoadingCandidates,
@@ -21,6 +22,53 @@ import {
   type MatchProduct,
   type MatchState,
 } from './match-state'
+import { isRejection, type Disposition } from './dispositions'
+
+/**
+ * Operator-facing labels for each disposition.
+ *
+ * Danish only, matching every other `/admin/*` surface. The i18n rule in
+ * `frontend/CLAUDE.md` governs the public product; no admin page imports
+ * `lib/i18n.ts` today, and translating operator jargon for one page would make
+ * this surface the odd one out rather than the compliant one.
+ */
+const DISPOSITION_LABEL: Record<Disposition, string> = {
+  exact:            'Præcist match',
+  family_level:     'Familie/produktniveau — variant ukendt',
+  existing_child:   'Placér på eksisterende underknude',
+  accessory:        'Tilbehør/del',
+  wanted_ad:        'Søges-annonce',
+  wrong:            'Forkert/irrelevant',
+  cannot_determine: 'Kan ikke afgøres',
+  skipped:          'Sprunget over',
+}
+
+/** The short badge shown on a decided row. Colour is never the only signal. */
+const DISPOSITION_BADGE: Record<Disposition, string> = {
+  exact:            'GODKENDT',
+  family_level:     'GODKENDT · FAMILIE',
+  existing_child:   'GODKENDT · UNDERKNUDE',
+  accessory:        'AFVIST · TILBEHØR',
+  wanted_ad:        'AFVIST · SØGES',
+  wrong:            'AFVIST',
+  cannot_determine: 'KAN IKKE AFGØRES',
+  skipped:          'SPRUNGET OVER',
+}
+
+/**
+ * The dispositions offered beneath the primary buttons.
+ *
+ * Approve and reject stay the primary actions on the row; these enrich the
+ * verdict without standing between the operator and it.
+ */
+const SECONDARY_DISPOSITIONS: readonly Disposition[] = [
+  'family_level',
+  'existing_child',
+  'accessory',
+  'wanted_ad',
+  'cannot_determine',
+  'skipped',
+]
 
 type Reducer = (s: MatchState<Candidate>, a: MatchAction<Candidate>) => MatchState<Candidate>
 
@@ -194,28 +242,34 @@ function AdminMatchPageInner() {
   /* ── save ─────────────────────────────────────────────────────────────── */
 
   async function saveDecisions() {
+    // `savePayload` is the sole authority for what is submitted: it reads the
+    // candidates on screen, so a decision about a previous product cannot ride
+    // along, and non-persisting dispositions are already filtered out.
     const payload = savePayload(state)
     if (!payload) return
-    const submitted = [...payload.listing_ids, ...payload.rejected_listing_ids]
+    const submitted = payload.decisions.map((d) => d.listing_id)
     dispatch({ type: 'save_started' })
     try {
       const res = await fetch('/api/admin/match/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product_id: payload.product_id,
-          listing_ids: payload.listing_ids,
-          rejected_listing_ids: payload.rejected_listing_ids,
-        }),
+        body: JSON.stringify(payload),
       })
-      const data = (await res.json()) as { approved?: number; rejected?: number; error?: string }
+      const data = (await res.json()) as {
+        saved?: number
+        skipped?: number
+        saved_listing_ids?: string[]
+        error?: string
+      }
       if (!res.ok || data.error) {
         dispatch({ type: 'save_failed', message: data.error ?? `Kunne ikke gemme (${res.status})` })
         showToast(`Fejl: ${data.error ?? res.status}`)
         return
       }
-      dispatch({ type: 'save_succeeded', savedIds: submitted })
-      showToast(`✅ ${data.approved ?? 0} godkendt · ${data.rejected ?? 0} afvist`)
+      // Only rows the server confirms are removed. A decision that did not
+      // reach the database must never look decided.
+      dispatch({ type: 'save_succeeded', savedIds: data.saved_listing_ids ?? submitted })
+      showToast(`✅ ${data.saved ?? 0} gemt`)
     } catch {
       dispatch({ type: 'save_failed', message: 'Kunne ikke gemme' })
       showToast('Fejl: netværk')
@@ -229,7 +283,109 @@ function AdminMatchPageInner() {
   }
 
   const saveEnabled = canSave(state) && !state.saving
+  const undoEnabled = canUndo(state)
   const listboxId = 'admin-match-suggestions'
+
+  /* ── existing-child picker ────────────────────────────────────────────── */
+
+  // Which row has the node picker open. Never more than one.
+  const [childPickerFor, setChildPickerFor] = useState<string | null>(null)
+  const [childQuery, setChildQuery] = useState('')
+  const [childResults, setChildResults] = useState<MatchProduct[]>([])
+  const childDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  /**
+   * Resolve an existing node by search.
+   *
+   * The operator picks a row that already exists in `kg_product`, and its real
+   * id is what gets written. Nothing here creates a node or invents an id — a
+   * variant with no node is recorded as an observation instead.
+   */
+  useEffect(() => {
+    if (childPickerFor === null) return
+    if (childDebounce.current) clearTimeout(childDebounce.current)
+    const q = childQuery.trim()
+    if (q.length < 2) { setChildResults([]); return }
+    childDebounce.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/admin/match/search?q=${encodeURIComponent(q)}`)
+        const data = (await res.json()) as { products?: MatchProduct[] }
+        setChildResults(data.products ?? [])
+      } catch {
+        setChildResults([])
+      }
+    }, 250)
+    return () => { if (childDebounce.current) clearTimeout(childDebounce.current) }
+  }, [childQuery, childPickerFor])
+
+  // A product change closes the picker with everything else it clears.
+  useEffect(() => {
+    setChildPickerFor(null)
+    setChildQuery('')
+    setChildResults([])
+  }, [selectedProduct?.id])
+
+  const setDisposition = useCallback(
+    (listingId: string, disposition: Disposition, nodeId?: string | null) => {
+      dispatch({ type: 'disposition_set', listingId, disposition, nodeId: nodeId ?? null })
+      if (disposition !== 'existing_child') setChildPickerFor(null)
+    },
+    [],
+  )
+
+  /* ── keyboard ─────────────────────────────────────────────────────────── */
+
+  const selectedId = state.selectedCandidateId
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      // Shortcuts never fire while the operator is typing — the product search
+      // and the node picker are text inputs on the same screen.
+      const el = e.target as HTMLElement | null
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        dispatch({ type: 'undo' })
+        return
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+
+      const list = state.candidates
+      if (list.length === 0) return
+      const index = list.findIndex((c) => c.id === selectedId)
+
+      switch (e.key.toLowerCase()) {
+        case 'j':
+        case 'arrowdown': {
+          e.preventDefault()
+          const next = list[Math.min(list.length - 1, index + 1)] ?? list[0]
+          dispatch({ type: 'candidate_selected', listingId: next.id })
+          break
+        }
+        case 'k':
+        case 'arrowup': {
+          e.preventDefault()
+          const prev = list[Math.max(0, index - 1)] ?? list[0]
+          dispatch({ type: 'candidate_selected', listingId: prev.id })
+          break
+        }
+        case 'a':
+          if (selectedId) { e.preventDefault(); setDisposition(selectedId, 'exact') }
+          break
+        case 'r':
+          if (selectedId) { e.preventDefault(); setDisposition(selectedId, 'wrong') }
+          break
+        case 's':
+          if (selectedId) { e.preventDefault(); setDisposition(selectedId, 'skipped') }
+          break
+        default:
+          break
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [state.candidates, selectedId, setDisposition])
 
   const brandFor = useMemo(
     () => (p: MatchProduct) => (p.kg_brand ? p.kg_brand.name : null),
@@ -372,7 +528,17 @@ function AdminMatchPageInner() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-muted-foreground">
               {candidates.length} kandidater · {counts.approved} godkendt · {counts.rejected} afvist
+              {counts.unwritten > 0 && ` · ${counts.unwritten} uden registrering`}
+              {counts.pending > 0 && ` · ${counts.pending} mangler`}
             </p>
+            <button
+              onClick={() => dispatch({ type: 'undo' })}
+              disabled={!undoEnabled}
+              title="Fortryd seneste afgørelse (⌘Z)"
+              className="px-3 py-2 rounded-xl text-sm font-medium border border-line text-ink transition-opacity disabled:opacity-40"
+            >
+              Fortryd
+            </button>
             <button
               onClick={saveDecisions}
               disabled={!saveEnabled}
@@ -386,21 +552,35 @@ function AdminMatchPageInner() {
 
           <div className="flex flex-col gap-2">
             {candidates.map((c) => {
-              const verdict = localDecisions[c.id]
-              const isApproved = verdict === 'approved'
-              const isRejected = verdict === 'rejected'
+              const record = localDecisions[c.id]
+              const disposition = record?.disposition ?? null
+              const isApproved = disposition != null && !isRejection(disposition)
+                && disposition !== 'cannot_determine' && disposition !== 'skipped'
+              const isRejected = disposition != null && isRejection(disposition)
+              const isNeutral = disposition === 'cannot_determine' || disposition === 'skipped'
+              const isSelected = selectedId === c.id
               const s = scoreLabel[c.score]
               const sourceMeta = sourceForStored(c.source)
               return (
                 <div
                   key={c.id}
-                  className="flex items-start gap-3 p-3 rounded-xl border transition-colors"
+                  role="option"
+                  aria-selected={isSelected}
+                  tabIndex={-1}
+                  onClick={() => dispatch({ type: 'candidate_selected', listingId: c.id })}
+                  className="flex flex-col gap-2 p-3 rounded-xl border transition-colors"
                   style={{
-                    borderColor: isApproved ? '#16a34a' : isRejected ? '#dc2626' : 'var(--border)',
+                    borderColor: isSelected
+                      ? 'var(--border-strong)'
+                      : isApproved ? '#16a34a' : isRejected ? '#dc2626' : 'var(--border)',
                     backgroundColor: isApproved ? '#16a34a12' : isRejected ? '#dc262610' : 'var(--card)',
-                    opacity: isRejected ? 0.6 : 1,
+                    // A decided row keeps its place and stays readable — a
+                    // decision the operator can no longer see is one they
+                    // cannot check.
+                    opacity: isRejected || isNeutral ? 0.7 : 1,
                   }}
                 >
+                <div className="flex items-start gap-3">
                   {/* Thumbnail, when the source stored one */}
                   {c.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -478,31 +658,130 @@ function AdminMatchPageInner() {
                     </div>
                   </div>
 
-                  {/* Actions — approve and reject remain the primary card actions */}
+                  {/* Approve and reject stay the primary actions on the row */}
                   <div className="flex gap-1 flex-shrink-0">
                     <button
-                      onClick={() => dispatch({ type: 'decision_toggled', listingId: c.id, verdict: 'approved' })}
-                      aria-pressed={isApproved}
+                      onClick={() => setDisposition(c.id, 'exact')}
+                      aria-pressed={disposition === 'exact'}
                       aria-label={`Godkend ${c.title}`}
                       className="p-1.5 rounded-lg transition-colors hover:bg-secondary"
-                      title="Godkend"
+                      title="Godkend som præcist match (A)"
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 18, color: isApproved ? '#16a34a' : 'var(--muted-foreground)' }}>
                         check
                       </span>
                     </button>
                     <button
-                      onClick={() => dispatch({ type: 'decision_toggled', listingId: c.id, verdict: 'rejected' })}
-                      aria-pressed={isRejected}
+                      onClick={() => setDisposition(c.id, 'wrong')}
+                      aria-pressed={disposition === 'wrong'}
                       aria-label={`Afvis ${c.title}`}
                       className="p-1.5 rounded-lg transition-colors hover:bg-secondary"
-                      title="Afvis — gemmes som varigt nej"
+                      title="Afvis — gemmes som varigt nej (R)"
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 18, color: isRejected ? '#dc2626' : 'var(--muted-foreground)' }}>
                         close
                       </span>
                     </button>
                   </div>
+                </div>
+
+                {/*
+                  Secondary dispositions. They sit BELOW the primary pair rather
+                  than in front of it: a reason is immediately reachable, but it
+                  never stands between the operator and approve/reject.
+                */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {SECONDARY_DISPOSITIONS.map((d) => {
+                    const active = disposition === d
+                    return (
+                      <button
+                        key={d}
+                        onClick={() => {
+                          if (d === 'existing_child') {
+                            setChildPickerFor(childPickerFor === c.id ? null : c.id)
+                            return
+                          }
+                          setDisposition(c.id, d)
+                        }}
+                        aria-pressed={active}
+                        className="px-2 py-1 rounded-lg text-[11px] font-medium border transition-colors"
+                        style={{
+                          borderColor: active ? 'var(--border-strong)' : 'var(--border)',
+                          backgroundColor: active ? 'var(--surface-2)' : 'transparent',
+                          color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+                        }}
+                      >
+                        {DISPOSITION_LABEL[d]}
+                      </button>
+                    )
+                  })}
+
+                  {disposition && (
+                    <span
+                      className="ml-auto text-[10px] font-semibold tracking-wide px-1.5 py-0.5 rounded"
+                      style={{
+                        backgroundColor: isApproved
+                          ? '#16a34a22'
+                          : isRejected ? '#dc262622' : 'var(--surface-2)',
+                        color: isApproved
+                          ? '#16a34a'
+                          : isRejected ? '#dc2626' : 'var(--text-muted)',
+                      }}
+                    >
+                      {DISPOSITION_BADGE[disposition]}
+                    </span>
+                  )}
+                </div>
+
+                {/*
+                  A variant the operator can read on the listing but which has
+                  no node — Chamberlin Model 30/45 is the measured case. Recorded
+                  as an observation against the decision; no node is created.
+                */}
+                {(disposition === 'family_level' || disposition === 'cannot_determine') && (
+                  <input
+                    value={record?.variantObservation ?? ''}
+                    onChange={(e) =>
+                      dispatch({
+                        type: 'variant_observation_changed',
+                        listingId: c.id,
+                        value: e.target.value,
+                      })
+                    }
+                    placeholder="Observeret variant (fx «Model 45») — opretter ingen knude"
+                    className="w-full px-2 py-1 rounded-lg text-xs bg-surface-2 border border-line text-ink"
+                  />
+                )}
+
+                {childPickerFor === c.id && (
+                  <div className="flex flex-col gap-1 p-2 rounded-lg bg-surface-2 border border-line">
+                    <input
+                      value={childQuery}
+                      onChange={(e) => setChildQuery(e.target.value)}
+                      placeholder="Søg eksisterende knude…"
+                      className="px-2 py-1 rounded-lg text-xs bg-canvas border border-line text-ink"
+                    />
+                    {childResults.length === 0 && childQuery.trim().length >= 2 && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Ingen eksisterende knude matcher. Brug «Familie/produktniveau» i stedet.
+                      </p>
+                    )}
+                    {childResults.map((n) => (
+                      <button
+                        key={n.id}
+                        onClick={() => {
+                          setDisposition(c.id, 'existing_child', n.id)
+                          setChildPickerFor(null)
+                          setChildQuery('')
+                        }}
+                        className="text-left px-2 py-1 rounded-lg text-xs hover:bg-secondary text-ink"
+                      >
+                        {n.canonical_name}
+                        <span className="text-muted-foreground"> · {n.slug}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 </div>
               )
             })}

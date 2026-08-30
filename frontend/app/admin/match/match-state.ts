@@ -21,6 +21,9 @@
  * passed in rather than imported for exactly that reason.
  */
 
+import type { Disposition } from './dispositions'
+import { IS_VALID_FOR, PERSISTS, requiresChildNode } from './dispositions'
+
 /** The only thing the reducer needs from a candidate: a stable identity. */
 export type CandidateRef = { id: string }
 
@@ -31,7 +34,28 @@ export type MatchProduct = {
   kg_brand:       { name: string } | null
 }
 
-export type Verdict = 'approved' | 'rejected'
+/**
+  * One operator decision held locally, before any save.
+  *
+  * This used to be the string 'approved' | 'rejected'. A boolean could not carry
+  * *which node* the operator meant or *what they observed*, so a Model 45 and a
+  * Model 30 were the same decision. The record keeps both, and the disposition
+  * is what maps onto `is_valid`.
+  */
+export type DecisionRecord = {
+  disposition: Disposition
+  /** Existing kg_product id — only ever set for `existing_child`. */
+  nodeId: string | null
+  /** A variant the operator read on the listing that has no node. Audit only. */
+  variantObservation: string | null
+}
+
+/** Kept as the undo unit: what a listing looked like before the last change. */
+export type UndoEntry = {
+  listingId: string
+  previous: DecisionRecord | null
+  previousSelectedId: string | null
+}
 
 export type RequestStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -56,7 +80,19 @@ export type MatchState<C extends CandidateRef = CandidateRef> = {
   selectedProduct:  MatchProduct | null
   candidateRequest: CandidateRequest
   candidates:       C[]
-  localDecisions:   Record<string, Verdict>
+  localDecisions:   Record<string, DecisionRecord>
+  /**
+   * The candidate in the detail column. Auto-advance moves this, never DOM
+   * focus, so a keyboard operator is not thrown out of the control they just
+   * used.
+   */
+  selectedCandidateId: string | null
+  /**
+   * Session-long undo. Holds the decision AND the selection that preceded it,
+   * because restoring the verdict without restoring where the operator was
+   * leaves them looking at the wrong row.
+   */
+  undoStack:        UndoEntry[]
   sourceSelection:  string[]
   /**
    * The sources the candidates on screen were actually fetched with.
@@ -82,7 +118,16 @@ export type MatchAction<C extends CandidateRef = CandidateRef> =
   | { type: 'candidates_reload_requested' }
   | { type: 'candidates_received';     requestId: number; productId: string; candidates: C[] }
   | { type: 'candidates_failed';       requestId: number; productId: string; message: string }
-  | { type: 'decision_toggled';        listingId: string; verdict: Verdict }
+  | { type: 'candidate_selected';      listingId: string }
+  | {
+      type: 'disposition_set'
+      listingId: string
+      disposition: Disposition
+      nodeId?: string | null
+      variantObservation?: string | null
+    }
+  | { type: 'variant_observation_changed'; listingId: string; value: string }
+  | { type: 'undo' }
   | { type: 'source_toggled';          key: string }
   | { type: 'save_started' }
   | { type: 'save_succeeded';          savedIds: string[] }
@@ -97,8 +142,10 @@ export function createInitialState<C extends CandidateRef = CandidateRef>(
     searching:        false,
     selectedProduct:  null,
     candidateRequest: { id: 0, productId: null, status: 'idle' },
-    candidates:       [],
-    localDecisions:   {},
+    candidates:          [],
+    localDecisions:      {},
+    selectedCandidateId: null,
+    undoStack:           [],
     sourceSelection:  [...sourceKeys],
     appliedSources:   [],
     error:            null,
@@ -128,15 +175,37 @@ function isCurrentResponse(
 
 /** Drop any decision whose listing is not in the list actually on screen. */
 function pruneDecisions(
-  decisions: Record<string, Verdict>,
+  decisions: Record<string, DecisionRecord>,
   candidates: readonly CandidateRef[],
-): Record<string, Verdict> {
+): Record<string, DecisionRecord> {
   const present = new Set(candidates.map((c) => c.id))
-  const next: Record<string, Verdict> = {}
-  for (const [id, verdict] of Object.entries(decisions)) {
-    if (present.has(id)) next[id] = verdict
+  const next: Record<string, DecisionRecord> = {}
+  for (const [id, record] of Object.entries(decisions)) {
+    if (present.has(id)) next[id] = record
   }
   return next
+}
+
+/**
+ * The next candidate the operator has not yet ruled on.
+ *
+ * Searches forward from the decided row and then wraps, so finishing a decision
+ * in the middle of the list continues downward rather than jumping to the top.
+ * Returns null when every candidate carries a decision — the caller keeps the
+ * current selection rather than emptying the detail column.
+ */
+function nextUndecidedId(
+  candidates: readonly CandidateRef[],
+  decisions: Record<string, DecisionRecord>,
+  fromId: string,
+): string | null {
+  const start = candidates.findIndex((c) => c.id === fromId)
+  if (start < 0) return null
+  for (let step = 1; step <= candidates.length; step++) {
+    const c = candidates[(start + step) % candidates.length]
+    if (!decisions[c.id]) return c.id
+  }
+  return null
 }
 
 export function matchReducer<C extends CandidateRef>(
@@ -178,6 +247,11 @@ export function matchReducer<C extends CandidateRef>(
         // product's candidates or ticks are still readable.
         candidates:      [],
         localDecisions:  {},
+        // The undo stack and the detail selection belong to the product that is
+        // going away. Carrying either across would let an undo restore a
+        // decision about a listing the operator can no longer see.
+        selectedCandidateId: null,
+        undoStack:           [],
         error:           null,
         candidateRequest: {
           id:        state.candidateRequest.id + 1,
@@ -195,6 +269,8 @@ export function matchReducer<C extends CandidateRef>(
         selectedProduct:  null,
         candidates:       [],
         localDecisions:   {},
+        selectedCandidateId: null,
+        undoStack:           [],
         error:            null,
         searchResults:    [],
         candidateRequest: { id: state.candidateRequest.id + 1, productId: null, status: 'idle' },
@@ -219,10 +295,17 @@ export function matchReducer<C extends CandidateRef>(
 
     case 'candidates_received': {
       if (!isCurrentResponse(state, action.requestId, action.productId)) return state
+      const localDecisions = pruneDecisions(state.localDecisions, action.candidates)
+      // Keep the operator where they were if that row survived the refetch;
+      // otherwise fall to the first candidate rather than an empty detail pane.
+      const stillPresent = action.candidates.some((c) => c.id === state.selectedCandidateId)
       return {
         ...state,
         candidates:       action.candidates,
-        localDecisions:   pruneDecisions(state.localDecisions, action.candidates),
+        localDecisions,
+        selectedCandidateId: stillPresent
+          ? state.selectedCandidateId
+          : (action.candidates[0]?.id ?? null),
         appliedSources:   [...state.sourceSelection],
         error:            null,
         candidateRequest: { ...state.candidateRequest, status: 'ready' },
@@ -239,13 +322,96 @@ export function matchReducer<C extends CandidateRef>(
       }
     }
 
-    case 'decision_toggled': {
-      // A tick only means something against a candidate currently on screen.
+    case 'candidate_selected': {
       if (!state.candidates.some((c) => c.id === action.listingId)) return state
+      return { ...state, selectedCandidateId: action.listingId }
+    }
+
+    case 'disposition_set': {
+      // A disposition only means something against a candidate on screen.
+      if (!state.candidates.some((c) => c.id === action.listingId)) return state
+
+      // `existing_child` without a node would silently degrade into an approval
+      // on the reviewed product — the opposite of what the operator asked for.
+      if (requiresChildNode(action.disposition) && !action.nodeId) return state
+
+      const previous = state.localDecisions[action.listingId] ?? null
       const next = { ...state.localDecisions }
-      if (next[action.listingId] === action.verdict) delete next[action.listingId]
-      else next[action.listingId] = action.verdict
+
+      // Re-applying the disposition already on a row takes it back, so the
+      // primary buttons stay their own undo for the common single-click mistake.
+      const repeats =
+        previous != null &&
+        previous.disposition === action.disposition &&
+        previous.nodeId === (action.nodeId ?? null)
+
+      if (repeats) {
+        delete next[action.listingId]
+        return {
+          ...state,
+          localDecisions: next,
+          undoStack: [
+            ...state.undoStack,
+            { listingId: action.listingId, previous, previousSelectedId: state.selectedCandidateId },
+          ],
+        }
+      }
+
+      next[action.listingId] = {
+        disposition: action.disposition,
+        nodeId: action.nodeId ?? null,
+        // A variant observation the operator already typed survives a change of
+        // disposition — it is something they read, not something they decided.
+        variantObservation:
+          action.variantObservation !== undefined
+            ? action.variantObservation
+            : (previous?.variantObservation ?? null),
+      }
+
+      // Auto-advance is computed against the decisions AFTER this one lands, so
+      // the row just decided is never offered again as the next undecided one.
+      const advanceTo = nextUndecidedId(state.candidates, next, action.listingId)
+
+      return {
+        ...state,
+        localDecisions: next,
+        selectedCandidateId: advanceTo ?? state.selectedCandidateId,
+        undoStack: [
+          ...state.undoStack,
+          { listingId: action.listingId, previous, previousSelectedId: state.selectedCandidateId },
+        ],
+      }
+    }
+
+    case 'variant_observation_changed': {
+      if (!state.candidates.some((c) => c.id === action.listingId)) return state
+      const previous = state.localDecisions[action.listingId]
+      const trimmed = action.value.trim()
+      const next = { ...state.localDecisions }
+      next[action.listingId] = {
+        disposition: previous?.disposition ?? 'family_level',
+        nodeId: previous?.nodeId ?? null,
+        variantObservation: trimmed.length > 0 ? trimmed : null,
+      }
+      // Typing an observation is not a decision, so it neither advances the
+      // selection nor pushes undo.
       return { ...state, localDecisions: next }
+    }
+
+    case 'undo': {
+      const entry = state.undoStack[state.undoStack.length - 1]
+      if (!entry) return state
+      const next = { ...state.localDecisions }
+      if (entry.previous) next[entry.listingId] = entry.previous
+      else delete next[entry.listingId]
+      return {
+        ...state,
+        localDecisions: next,
+        // Restoring the verdict without the selection would leave the operator
+        // reading a different row than the one that just changed.
+        selectedCandidateId: entry.previousSelectedId ?? state.selectedCandidateId,
+        undoStack: state.undoStack.slice(0, -1),
+      }
     }
 
     case 'source_toggled': {
@@ -265,11 +431,17 @@ export function matchReducer<C extends CandidateRef>(
     case 'save_succeeded': {
       const saved = new Set(action.savedIds)
       const candidates = state.candidates.filter((c) => !saved.has(c.id))
+      const keptSelection = candidates.some((c) => c.id === state.selectedCandidateId)
       return {
         ...state,
         saving:         false,
         candidates,
         localDecisions: pruneDecisions(state.localDecisions, candidates),
+        selectedCandidateId: keptSelection
+          ? state.selectedCandidateId
+          : (candidates[0]?.id ?? null),
+        // Undo cannot reach across a successful save: those rows are written.
+        undoStack: [],
       }
     }
 
@@ -316,22 +488,51 @@ export function sourcesDiffer(state: MatchState<CandidateRef>): boolean {
 export function decisionCounts(state: MatchState<CandidateRef>): {
   approved: number
   rejected: number
+  /** Reviewed but not written: cannot_determine and skipped. */
+  unwritten: number
+  /** Decisions that will reach the database. */
   total: number
+  /** Candidates carrying no disposition at all. */
+  pending: number
 } {
   let approved = 0
   let rejected = 0
+  let unwritten = 0
+  let pending = 0
   for (const c of state.candidates) {
-    const verdict = state.localDecisions[c.id]
-    if (verdict === 'approved') approved++
-    else if (verdict === 'rejected') rejected++
+    const record = state.localDecisions[c.id]
+    if (!record) { pending++; continue }
+    const eligibility = IS_VALID_FOR[record.disposition]
+    if (!PERSISTS[record.disposition]) unwritten++
+    else if (eligibility === true) approved++
+    else if (eligibility === false) rejected++
   }
-  return { approved, rejected, total: approved + rejected }
+  return { approved, rejected, unwritten, total: approved + rejected, pending }
+}
+
+/** The disposition currently held against a listing, if any. */
+export function dispositionOf(
+  state: MatchState<CandidateRef>,
+  listingId: string,
+): Disposition | null {
+  return state.localDecisions[listingId]?.disposition ?? null
+}
+
+export function canUndo(state: MatchState<CandidateRef>): boolean {
+  return state.undoStack.length > 0
+}
+
+/** One decision as it crosses the wire. Mirrors `DecisionInput` on the route. */
+export type SaveDecision = {
+  listing_id:          string
+  disposition:         Disposition
+  node_id:             string | null
+  variant_observation: string | null
 }
 
 export type SavePayload = {
-  product_id:           string
-  listing_ids:          string[]
-  rejected_listing_ids: string[]
+  product_id: string
+  decisions:  SaveDecision[]
 }
 
 /**
@@ -348,16 +549,24 @@ export function savePayload(state: MatchState<CandidateRef>): SavePayload | null
   if (!product) return null
   if (isSelectionSettling(state) || state.saving) return null
 
-  const listing_ids: string[] = []
-  const rejected_listing_ids: string[] = []
+  const decisions: SaveDecision[] = []
   for (const c of state.candidates) {
-    const verdict = state.localDecisions[c.id]
-    if (verdict === 'approved') listing_ids.push(c.id)
-    else if (verdict === 'rejected') rejected_listing_ids.push(c.id)
+    const record = state.localDecisions[c.id]
+    if (!record) continue
+    // `cannot_determine` and `skipped` are real operator outcomes that
+    // deliberately write nothing — see PERSISTS in ./dispositions for why
+    // creating a NULL row would publish the listing instead of parking it.
+    if (!PERSISTS[record.disposition]) continue
+    decisions.push({
+      listing_id:          c.id,
+      disposition:         record.disposition,
+      node_id:             record.nodeId,
+      variant_observation: record.variantObservation,
+    })
   }
-  if (listing_ids.length === 0 && rejected_listing_ids.length === 0) return null
+  if (decisions.length === 0) return null
 
-  return { product_id: product.id, listing_ids, rejected_listing_ids }
+  return { product_id: product.id, decisions }
 }
 
 export function canSave(state: MatchState<CandidateRef>): boolean {
