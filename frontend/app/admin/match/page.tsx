@@ -34,7 +34,7 @@ import { isApproval, isRejection, type Disposition } from './dispositions'
  */
 const DISPOSITION_LABEL: Record<Disposition, string> = {
   exact:                    'Præcist match',
-  move_to_existing_product: 'Flyt til andet produkt',
+  move_to_existing_product: 'Match med andet produkt',
   accessory:                'Tilbehør/del',
   wanted_ad:                'Søges-annonce',
   wrong:                    'Forkert/irrelevant',
@@ -44,7 +44,7 @@ const DISPOSITION_LABEL: Record<Disposition, string> = {
 /** The short badge shown on a decided row. Colour is never the only signal. */
 const DISPOSITION_BADGE: Record<Disposition, string> = {
   exact:                    'GODKENDT',
-  move_to_existing_product: 'FLYTTET',
+  move_to_existing_product: 'MATCHET ANDETSTEDS',
   accessory:                'AFVIST · TILBEHØR',
   wanted_ad:                'AFVIST · SØGES',
   wrong:                    'AFVIST',
@@ -266,8 +266,11 @@ function AdminMatchPageInner() {
         error?: string
       }
       if (!res.ok || data.error) {
-        dispatch({ type: 'save_failed', message: data.error ?? `Kunne ikke gemme (${res.status})` })
-        showToast(`Fejl: ${data.error ?? res.status}`)
+        // 409 is a refusal, not a failure to write: nothing was written, and
+        // the decisions stay on screen so the operator can act on the message.
+        const message = data.error ?? `Kunne ikke gemme (${res.status})`
+        dispatch({ type: 'save_failed', message })
+        showToast(res.status === 409 ? message : `Fejl: ${data.error ?? res.status}`)
         return
       }
       // Only rows the server confirms are removed. A decision that did not
@@ -301,10 +304,12 @@ function AdminMatchPageInner() {
   /**
    * Resolve an existing product by the authenticated admin search.
    *
-   * This is a move to another product the operator named, not a hierarchy
-   * claim: the search cannot show that the target is a child or a variant of
-   * the reviewed product, only that it exists. The server re-verifies the id
-   * before writing, and no relation is created either way.
+   * The candidate is not matched to anything yet, so this assigns it to the
+   * product the operator named. It is not a hierarchy claim — the search cannot
+   * show that the target is a child or a variant of the reviewed product, only
+   * that it exists — and it is not a move, because there is no persisted match
+   * to move. The server re-verifies the id, and refuses with 409 if a match on
+   * the reviewed product turned up after the sweep.
    */
   useEffect(() => {
     if (childPickerFor === null) return

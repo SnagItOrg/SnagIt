@@ -117,12 +117,13 @@ export const REJECTION_REASON_FOR: Readonly<Partial<Record<Disposition, string>>
 }
 
 /**
- * Reason written against the REVIEWED product when a listing is moved away.
- *
- * Not an operator verdict about the target — a statement that the listing is
- * not evidence for the product being reviewed.
+ * Refusal returned when a candidate already holds a match on the reviewed
+ * product. Static, so it carries no listing data into an error surface.
  */
-export const MOVED_AWAY_REASON = 'moved_to_other_product'
+export const SOURCE_MATCH_CONFLICT =
+  'Denne annonce har allerede et match på det aktuelle produkt. ' +
+  'Ret matchet på produktsiden først — denne visning kan kun tildele ' +
+  'annoncer, der ikke er matchet endnu.'
 
 /** Does this disposition require the operator to have named a target product? */
 export function requiresTargetProduct(d: Disposition): boolean {
@@ -222,15 +223,34 @@ export type PlanArgs = {
 }
 
 /**
+ * The outcome of planning one submission.
+ *
+ * `conflict` is a refusal, not a partial success: no row is written at all, so
+ * a submission either happens completely or does not happen.
+ */
+export type WritePlan =
+  | { outcome: 'conflict'; conflicts: string[]; message: string }
+  | { outcome: 'write'; rows: PlannedRow[] }
+  | { outcome: 'noop' }
+
+/**
  * Turn operator decisions into the exact rows to write.
  *
- * Pure, and separated from the route on purpose: the two properties that keep
- * this surface honest — a move writes the target and leaves no positive match
- * on the source — are ordinary data transformations, and testing them through
- * a live PostgREST client would prove much less while costing much more.
+ * ONE ROW PER DECISION. An assignment writes the target and nothing else.
  *
- * Non-persisting dispositions must already have been filtered out by the
- * caller; anything still here writes.
+ * An earlier draft also demoted any positive match left on the reviewed
+ * product, so that a listing could not be price evidence for two products at
+ * once. That was correct as an intention and wrong as a first release: it made
+ * one operator decision into two row writes whose combined effect is only safe
+ * if they land together. They did land together — the route issues a single
+ * multi-row upsert, which is one `INSERT ... ON CONFLICT` statement and
+ * therefore atomic — but nothing in the code said so, no test pinned it, and
+ * the guarantee rested on an implicit property of PostgREST rather than on
+ * anything this repository asserts. A safety property that holds by accident is
+ * one refactor away from not holding.
+ *
+ * `planWrites` removes the question instead of answering it: the two-row case
+ * is refused up front, so the writer only ever emits one row per decision.
  */
 export function planDecisionWrites(args: PlanArgs): PlannedRow[] {
   const rows: PlannedRow[] = []
@@ -241,7 +261,7 @@ export function planDecisionWrites(args: PlanArgs): PlannedRow[] {
     const productId = targetProductId(decision, args.reviewedProductId)
     const prior = args.priorByKey[`${decision.listing_id}:${productId}`]
     const isValid = IS_VALID_FOR[decision.disposition] === true
-    const moved = productId !== args.reviewedProductId
+    const reassigned = productId !== args.reviewedProductId
 
     rows.push({
       listing_id: decision.listing_id,
@@ -260,52 +280,53 @@ export function planDecisionWrites(args: PlanArgs): PlannedRow[] {
           actor_user_id: args.actorUserId,
           decided_at: args.decidedAt,
           decision_source: 'admin/match',
-          ...(moved ? { moved_from_product_id: args.reviewedProductId } : {}),
+          // Which product the operator was reviewing when they assigned it
+          // elsewhere. Audit only — no row is written against that product.
+          ...(reassigned ? { reviewed_product_id: args.reviewedProductId } : {}),
           ...(REJECTION_REASON_FOR[decision.disposition]
             ? { rejection_reason: REJECTION_REASON_FOR[decision.disposition] }
             : {}),
         },
       },
     })
-
-    /**
-     * A move must not leave a positive match behind on the reviewed product.
-     *
-     * Today a candidate has no row on the reviewed product, so this usually
-     * adds nothing. It exists for the case that is not usually true: a listing
-     * already matched here, surfaced again, and moved elsewhere. Writing only
-     * the target would leave the old `is_valid = true` in place, and the
-     * listing would be price evidence for BOTH products at once.
-     *
-     * Nothing is created where nothing existed — an absent row already means
-     * "not evidence", and inventing a rejection the operator did not make would
-     * be a different claim from the one they made.
-     */
-    if (!moved) continue
-    const source = args.priorByKey[`${decision.listing_id}:${args.reviewedProductId}`]
-    if (!source || source.isValid === false) continue
-
-    rows.push({
-      listing_id: decision.listing_id,
-      product_id: args.reviewedProductId,
-      method: source.method,
-      score: source.score,
-      is_valid: false,
-      rejected_reason: args.rejectedReasonConstant,
-      explain: {
-        ...source.explain,
-        admin_decision: {
-          decision: 'rejected',
-          disposition: decision.disposition,
-          actor_user_id: args.actorUserId,
-          decided_at: args.decidedAt,
-          decision_source: 'admin/match',
-          rejection_reason: MOVED_AWAY_REASON,
-          moved_to_product_id: productId,
-        },
-      },
-    })
   }
 
   return rows
+}
+
+/**
+ * Plan a submission, refusing the case that would need more than one write.
+ *
+ * `/api/admin/match/candidates` excludes any listing that already holds a
+ * `listing_product_match` row for the reviewed product, whatever its verdict.
+ * So a candidate reaching this UI has no row on the reviewed product, and
+ * assigning it elsewhere is a single insert with nothing left behind.
+ *
+ * When that invariant does not hold — a stale tab, a concurrent operator, a
+ * row written between the sweep and the save — the submission is REFUSED. It is
+ * not compensated for, and it is not partially applied: rewriting a persisted
+ * match is a different operation, it needs both ends to move together, and the
+ * transactional writer it requires is specified in
+ * `docs/admin-match-deferred-disposition-contract.md` rather than approximated
+ * here.
+ */
+export function planWrites(args: PlanArgs): WritePlan {
+  const conflicts: string[] = []
+
+  for (const decision of args.decisions) {
+    if (!PERSISTS[decision.disposition]) continue
+    if (!requiresTargetProduct(decision.disposition)) continue
+    // Any row at all, whatever its verdict: changing a persisted match is the
+    // operation being refused, not just demoting a positive one.
+    if (args.priorByKey[`${decision.listing_id}:${args.reviewedProductId}`]) {
+      conflicts.push(decision.listing_id)
+    }
+  }
+
+  if (conflicts.length > 0) {
+    return { outcome: 'conflict', conflicts, message: SOURCE_MATCH_CONFLICT }
+  }
+
+  const rows = planDecisionWrites(args)
+  return rows.length === 0 ? { outcome: 'noop' } : { outcome: 'write', rows }
 }
