@@ -32,6 +32,10 @@ test('integration: every package suite is registered exactly once', () => {
     [...suites].sort(),
     [
       'scripts/lib/admin-grouping-model.test.ts',
+      // Added by the /admin/match classifier audit: reading the relevance
+      // reply is where an operational failure was being rendered as the
+      // semantic verdict `Måske`, so it carries its own suite.
+      'scripts/lib/admin-match-classifier.test.ts',
       'scripts/lib/admin-match-kleinanzeigen.test.ts',
       'scripts/lib/admin-match-retrieval.test.ts',
       'scripts/lib/admin-match-state.test.ts',

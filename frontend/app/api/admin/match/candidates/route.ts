@@ -13,6 +13,13 @@ import {
   variantMatches,
   type ProductFacts,
 } from '@/lib/admin-match-query'
+import {
+  classifierStatus,
+  interpretClassifierMessage,
+  providerFailure,
+  verdictFor,
+  type ClassifierOutcome,
+} from '@/lib/admin-match-classifier'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -44,6 +51,17 @@ export type Candidate = {
   match_state: 'none' | 'confirmed' | 'rejected' | 'unreviewed'
   score:      'yes' | 'maybe' | 'no'
   reason:     string
+  /**
+   * Did the classifier actually return a verdict for this listing?
+   *
+   * Additive and non-breaking: a client that ignores it behaves exactly as
+   * before. It exists because `score: 'maybe'` has two unrelated meanings —
+   * "the model is undecided" and "no verdict arrived" — and the deployed card
+   * renders both as `Måske`. `score` deliberately stays inside the existing
+   * three-value union, because widening it would break the client's lookup
+   * table; the honest label is a client contract change, documented separately.
+   */
+  scored:     boolean
 }
 
 type RawListing = {
@@ -319,8 +337,21 @@ export async function GET(req: NextRequest) {
   const batch = interleaved
   const lines = batch.map((l, i) => `${i + 1}. [${l.id}] ${l.title}`).join('\n')
 
-  const scores: Record<string, { score: 'yes' | 'maybe' | 'no'; reason: string }> = {}
-
+  /**
+   * The classifier round-trip, with the failure kept as a fact.
+   *
+   * This used to be a bare `catch {}` that assigned every listing in the batch
+   * `{ score: 'maybe', reason: 'Kunne ikke vurdere' }`. The card layer renders
+   * `maybe` as `Måske`, so an operator looking at an exact
+   * `Roland RE-201 Space Echo` was shown the badge that means "the model is
+   * undecided" when what had actually happened was that the model never
+   * answered. The exception was not even bound, so which failure it was could
+   * not be recovered from the deployed system.
+   *
+   * Nothing about the request changes here — same model, same prompt, same
+   * `max_tokens`, no retry. Only the reading of the reply changes.
+   */
+  let outcome: ClassifierOutcome
   try {
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -341,17 +372,32 @@ export async function GET(req: NextRequest) {
         },
       ],
     })
+    outcome = interpretClassifierMessage(msg, batch.map((l) => l.id))
+  } catch (error) {
+    outcome = providerFailure(error)
+  }
 
-    const raw = msg.content[0].type === 'text' ? msg.content[0].text : '{}'
-    const json = JSON.parse(raw.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()) as {
-      results: Array<{ id: string; score: 'yes' | 'maybe' | 'no'; reason: string }>
-    }
-    for (const r of json.results ?? []) {
-      scores[r.id] = { score: r.score, reason: r.reason }
-    }
-  } catch {
-    // Haiku failed — show all as 'maybe'
-    for (const l of batch) scores[l.id] = { score: 'maybe', reason: 'Kunne ikke vurdere' }
+  const classifier = classifierStatus(outcome, batch.length)
+
+  /**
+   * A degraded classifier is an operational event and is logged as one.
+   *
+   * `detail` carries the provider's message only — never the prompt, never a
+   * listing title, never a url. `failure` is the closed enum, so this line is
+   * greppable and countable without parsing free text.
+   */
+  if (outcome.status === 'degraded') {
+    console.error(
+      JSON.stringify({
+        channel: 'operational',
+        component: 'admin-match',
+        event: 'classifier_degraded',
+        product_id: productId,
+        failure: outcome.failure,
+        batch_size: batch.length,
+        detail: outcome.detail,
+      }),
+    )
   }
 
   const candidates: Candidate[] = batch
@@ -369,8 +415,7 @@ export async function GET(req: NextRequest) {
       // 'none' for every row here by construction — decided listings are filtered
       // out above. Read from the same map so the field cannot drift from truth.
       match_state: matchState(decided.get(l.id), decided.has(l.id)),
-      score:      scores[l.id]?.score ?? 'maybe',
-      reason:     scores[l.id]?.reason ?? '',
+      ...verdictFor(outcome, l.id),
     }))
     .filter((c) => c.score !== 'no')
     .sort((a, b) => {
@@ -383,13 +428,28 @@ export async function GET(req: NextRequest) {
     JSON.stringify({
       ...retrievalLog,
       sent_to_classifier: batch.length,
-      scored_yes: batch.filter((l) => scores[l.id]?.score === 'yes').length,
-      scored_maybe: batch.filter((l) => (scores[l.id]?.score ?? 'maybe') === 'maybe').length,
-      scored_no: batch.filter((l) => scores[l.id]?.score === 'no').length,
+      // Status first: every count below is meaningless when the classifier
+      // never answered, and reading them as verdicts is the mistake this
+      // route used to invite.
+      classifier_status: classifier.status,
+      classifier_failure: classifier.failure,
+      classifier_unscored: classifier.unscored,
+      scored_yes: batch.filter((l) => verdictFor(outcome, l.id).score === 'yes').length,
+      scored_maybe: batch.filter((l) => {
+        const v = verdictFor(outcome, l.id)
+        return v.scored && v.score === 'maybe'
+      }).length,
+      scored_no: batch.filter((l) => verdictFor(outcome, l.id).score === 'no').length,
       scored_out: batch.length - candidates.length,
       returned: candidates.length,
     }),
   )
 
-  return NextResponse.json({ candidates, sources: MATCH_SOURCES.map((s) => s.key) })
+  return NextResponse.json({
+    candidates,
+    sources: MATCH_SOURCES.map((s) => s.key),
+    // Additive. An existing client ignores it; see the client contract note in
+    // docs for what a future card is expected to do with `degraded`.
+    classifier,
+  })
 }
