@@ -45,6 +45,11 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/data-presentation.test.ts',
       'scripts/lib/integration-boundary.test.ts',
       'scripts/lib/intel-overview.test.ts',
+      // Added by the KG suggestion integrity fix: brand normalisation and the
+      // active-music-vertical guard decide which brands may receive
+      // suggestions at all, and the merge route must fail closed rather than
+      // report a success it did not perform.
+      'scripts/lib/kg-suggestion-integrity.test.ts',
       // Added by the Kleinanzeigen price recovery: the shared card-price
       // extractor is the only thing standing between a discounted ad and a
       // listing with no price, so it carries its own suite.
