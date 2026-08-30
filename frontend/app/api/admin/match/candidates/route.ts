@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdminInRoute } from '@/lib/admin-auth'
+import { sanitizeListingPrice } from '@/lib/listing-price-integrity'
 import {
   ALL_SOURCE_KEYS,
   MATCH_SOURCES,
@@ -401,22 +402,36 @@ export async function GET(req: NextRequest) {
   }
 
   const candidates: Candidate[] = batch
-    .map((l) => ({
-      id:         l.id,
-      title:      l.title,
-      price:      l.price,
-      currency:   l.currency,
-      price_dkk:  l.price_dkk,
-      url:        l.url,
-      image_url:  l.image_url,
-      location:   l.location,
-      source:     l.source,
-      scraped_at: l.scraped_at,
-      // 'none' for every row here by construction — decided listings are filtered
-      // out above. Read from the same map so the field cannot drift from truth.
-      match_state: matchState(decided.get(l.id), decided.has(l.id)),
-      ...verdictFor(outcome, l.id),
-    }))
+    .map((l) => {
+      /**
+       * Sanitise at the read boundary; keep the ad.
+       *
+       * The matching queue is where an operator disposes of a bad row, so
+       * dropping it would remove the only place it can be dealt with. But the
+       * NUMBER must not be rendered: a concatenated 235240 shown as
+       * "235.240 EUR" is a false claim, and the write-side guard does nothing
+       * for the rows already stored. Both fields are nulled together — a
+       * converted DKK figure with no source price behind it is the same lie in
+       * another currency.
+       */
+      const safe = sanitizeListingPrice(l)
+      return {
+        id:         l.id,
+        title:      l.title,
+        price:      safe.price,
+        currency:   l.currency,
+        price_dkk:  safe.price_dkk,
+        url:        l.url,
+        image_url:  l.image_url,
+        location:   l.location,
+        source:     l.source,
+        scraped_at: l.scraped_at,
+        // 'none' for every row here by construction — decided listings are
+        // filtered out above. Read from the same map so the field cannot drift.
+        match_state: matchState(decided.get(l.id), decided.has(l.id)),
+        ...verdictFor(outcome, l.id),
+      }
+    })
     .filter((c) => c.score !== 'no')
     .sort((a, b) => {
       const order = { yes: 0, maybe: 1, no: 2 }
