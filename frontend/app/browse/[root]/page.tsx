@@ -139,152 +139,152 @@ function BrowseCategoryPageInner() {
       <main className="md:ml-60 pb-24 md:pb-8">
         <MobileSearchBar />
 
-        {/* Breadcrumb */}
-        <div className="px-4 pt-4 md:px-8">
-          <Link
-            href="/browse"
-            className="text-sm"
-            style={{ color: 'var(--muted-foreground)' }}
-          >
-            {t.browseAllCategories}
-          </Link>
-          {!loading && data?.category && (
-            <span className="text-sm mx-1.5" style={{ color: 'var(--muted-foreground)' }}>/</span>
-          )}
-          {!loading && data?.category && (
-            <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-              {categoryName}
-            </span>
-          )}
-        </div>
+        <div className="shell-wall">
 
-        {/* Heading */}
-        <div className="px-4 pt-3 pb-4 md:px-8">
-          {loading ? (
-            <div className="h-9 w-48 rounded-lg animate-pulse" style={{ background: 'var(--card)' }} />
-          ) : (
-            <div className="flex items-center justify-between gap-4">
-              <h1
-                className="text-3xl md:text-4xl font-semibold"
-                style={{ fontFamily: '"DM Serif Display", serif', color: 'var(--foreground)' }}
-              >
-                {categoryName}
-              </h1>
-              {isAdmin && (
-                <button
-                  onClick={toggleDebug}
-                  className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full transition-colors"
-                  style={debugEnabled
-                    ? { background: 'var(--foreground)', color: 'var(--background)', border: '1px solid var(--border)' }
-                    : { background: 'var(--secondary)', color: 'var(--muted-foreground)', border: '1px solid var(--border)' }
-                  }
-                >
-                  Debug mode: {debugEnabled ? 'ON' : 'OFF'}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Subcategory filter chips */}
-        {!loading && (data?.subcategories ?? []).length > 0 && (
-          <div className="flex gap-2 overflow-x-auto px-4 pb-4 md:px-8 scrollbar-none">
-            <button
-              onClick={() => setActiveSubcat(null)}
-              className="shrink-0 text-sm font-medium px-3.5 py-1.5 rounded-full transition-colors"
-              style={{
-                background: activeSubcat === null ? 'var(--foreground)' : 'var(--card)',
-                color: activeSubcat === null ? 'var(--background)' : 'var(--foreground)',
-                border: '1px solid var(--border)',
-              }}
+          {/* Breadcrumb */}
+          <div className="pt-4">
+            <Link
+              href="/browse"
+              className="text-sm"
+              style={{ color: 'var(--muted-foreground)' }}
             >
-              Alle
-            </button>
-            {(data?.subcategories ?? []).map((s) => (
+              {t.browseAllCategories}
+            </Link>
+            {!loading && data?.category && (
+              <span className="text-sm mx-1.5" style={{ color: 'var(--muted-foreground)' }}>/</span>
+            )}
+            {!loading && data?.category && (
+              <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                {categoryName}
+              </span>
+            )}
+          </div>
+
+          {/* Heading */}
+          <div className="pt-3 pb-4">
+            {loading ? (
+              <div className="h-9 w-48 rounded-lg animate-pulse" style={{ background: 'var(--card)' }} />
+            ) : (
+              <div className="flex items-center justify-between gap-4">
+                <h1 className="type-title">
+                  {categoryName}
+                </h1>
+                {isAdmin && (
+                  <button
+                    onClick={toggleDebug}
+                    className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full transition-colors"
+                    style={debugEnabled
+                      ? { background: 'var(--foreground)', color: 'var(--background)', border: '1px solid var(--border)' }
+                      : { background: 'var(--secondary)', color: 'var(--muted-foreground)', border: '1px solid var(--border)' }
+                    }
+                  >
+                    Debug mode: {debugEnabled ? 'ON' : 'OFF'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Subcategory filter chips */}
+          {!loading && (data?.subcategories ?? []).length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none">
               <button
-                key={s.id}
-                onClick={() => setActiveSubcat(activeSubcat === s.slug ? null : s.slug)}
+                onClick={() => setActiveSubcat(null)}
                 className="shrink-0 text-sm font-medium px-3.5 py-1.5 rounded-full transition-colors"
                 style={{
-                  background: activeSubcat === s.slug ? 'var(--foreground)' : 'var(--card)',
-                  color: activeSubcat === s.slug ? 'var(--background)' : 'var(--foreground)',
+                  background: activeSubcat === null ? 'var(--foreground)' : 'var(--card)',
+                  color: activeSubcat === null ? 'var(--background)' : 'var(--foreground)',
                   border: '1px solid var(--border)',
                 }}
               >
-                {locale === 'da' ? s.name_da : s.name_en}
+                Alle
               </button>
-            ))}
-          </div>
-        )}
+              {(data?.subcategories ?? []).map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setActiveSubcat(activeSubcat === s.slug ? null : s.slug)}
+                  className="shrink-0 text-sm font-medium px-3.5 py-1.5 rounded-full transition-colors"
+                  style={{
+                    background: activeSubcat === s.slug ? 'var(--foreground)' : 'var(--card)',
+                    color: activeSubcat === s.slug ? 'var(--background)' : 'var(--foreground)',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  {locale === 'da' ? s.name_da : s.name_en}
+                </button>
+              ))}
+            </div>
+          )}
 
-        {/* Product grid */}
-        {loading ? (
-          <div className="grid-fluid gap-3 px-4 md:px-8">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-xl animate-pulse"
-                style={{ height: '120px', background: 'var(--card)' }}
-              />
-            ))}
-          </div>
-        ) : error ? (
-          <div className="px-4 md:px-8 py-16 text-center">
-            <p style={{ color: 'var(--muted-foreground)' }}>{error}</p>
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="px-4 md:px-8 py-16 text-center">
-            <p style={{ color: 'var(--muted-foreground)' }}>{t.noResults}</p>
-          </div>
-        ) : (
-          <div className="grid-fluid gap-3 px-4 md:px-8">
-            {filteredProducts.map((p) => (
-              <ProductCard
-                key={p.slug}
-                slug={p.slug}
-                canonicalName={p.canonical_name}
-                brandName={p.brand_name}
-                subcategoryName={locale === 'da' ? p.subcategory_name_da : p.subcategory_name_en}
-                activeListingCount={p.active_listing_count}
-                imageUrl={p.image_url}
-                tier={p.tier}
-              />
-            ))}
-          </div>
-        )}
+          {/* Product grid */}
+          {loading ? (
+            <div className="grid-wall">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl animate-pulse"
+                  style={{ height: '120px', background: 'var(--card)' }}
+                />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="py-16 text-center">
+              <p style={{ color: 'var(--muted-foreground)' }}>{error}</p>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="py-16 text-center">
+              <p style={{ color: 'var(--muted-foreground)' }}>{t.noResults}</p>
+            </div>
+          ) : (
+            <div className="grid-wall">
+              {filteredProducts.map((p) => (
+                <ProductCard
+                  key={p.slug}
+                  slug={p.slug}
+                  canonicalName={p.canonical_name}
+                  brandName={p.brand_name}
+                  subcategoryName={locale === 'da' ? p.subcategory_name_da : p.subcategory_name_en}
+                  activeListingCount={p.active_listing_count}
+                  imageUrl={p.image_url}
+                  tier={p.tier}
+                />
+              ))}
+            </div>
+          )}
 
-        {!loading && data?.has_more && (
-          <div className="px-4 md:px-8 pt-5">
-            <button
-              onClick={() => void handleLoadMore()}
-              disabled={loadingMore}
-              className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
-              style={{ background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
-            >
-              {loadingMore ? (locale === 'da' ? 'Henter…' : 'Loading…') : (locale === 'da' ? 'Vis flere' : 'Load more')}
-            </button>
-          </div>
-        )}
-
-        {!!data?.debug && (
-          <div className="px-4 md:px-8 pt-8">
-            <details
-              open
-              className="rounded-2xl border p-4"
-              style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
-            >
-              <summary className="cursor-pointer text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
-                Browse audit
-              </summary>
-              <pre
-                className="mt-4 text-xs overflow-x-auto whitespace-pre-wrap"
-                style={{ color: 'var(--muted-foreground)' }}
+          {!loading && data?.has_more && (
+            <div className="pt-5">
+              <button
+                onClick={() => void handleLoadMore()}
+                disabled={loadingMore}
+                className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
+                style={{ background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
               >
-                {JSON.stringify(data.debug, null, 2)}
-              </pre>
-            </details>
-          </div>
-        )}
+                {loadingMore ? (locale === 'da' ? 'Henter…' : 'Loading…') : (locale === 'da' ? 'Vis flere' : 'Load more')}
+              </button>
+            </div>
+          )}
+
+          {!!data?.debug && (
+            <div className="pt-8">
+              <details
+                open
+                className="rounded-2xl border p-4"
+                style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+              >
+                <summary className="cursor-pointer text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+                  Browse audit
+                </summary>
+                <pre
+                  className="mt-4 text-xs overflow-x-auto whitespace-pre-wrap"
+                  style={{ color: 'var(--muted-foreground)' }}
+                >
+                  {JSON.stringify(data.debug, null, 2)}
+                </pre>
+              </details>
+            </div>
+          )}
+        </div>
       </main>
 
       <BottomNav />

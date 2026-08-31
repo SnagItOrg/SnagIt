@@ -304,12 +304,13 @@ function SearchPageInner() {
       <SideNav active="soeg" onChange={() => {}} />
 
       <div className="flex-1 min-w-0 flex flex-col md:ml-60">
-        <div className="px-4 pt-6 pb-2 md:px-8">
+        <div className="shell-reading pt-6 pb-2">
           <h1 className="type-heading">{t.searchPageHeading}</h1>
           <p className="type-meta mt-1">{t.searchPageSubtext}</p>
         </div>
 
-        <div className="sticky top-0 z-30 w-full bg-bg border-b border-border px-4 py-3 md:px-8">
+        <div className="sticky top-0 z-30 w-full bg-bg border-b border-border py-3">
+          <div className="shell-reading">
           <form onSubmit={handleSubmit} role="search">
             <label htmlFor="klup-search" className="sr-only">
               {t.searchPageHeading}
@@ -365,9 +366,10 @@ function SearchPageInner() {
               {t.search}
             </button>
           </form>
+          </div>
         </div>
 
-        <main className="flex-1 px-4 pt-5 pb-24 md:px-8 md:pb-10">
+        <main className="shell-reading flex-1 pt-5 pb-24 md:pb-10">
           <div aria-live="polite" aria-atomic="true">
             {loading ? (
               <div className="flex flex-col gap-3 max-w-2xl">

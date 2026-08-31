@@ -118,6 +118,91 @@
   --destructive:           var(--ramp-red);
   --destructive-foreground: var(--ramp-red-on);
   --radius: 0.625rem;
+
+  /* --- radius scale -----------------------------------------------------
+     Steps are Tailwind's own, restated as tokens so a component stops
+     hardcoding a shape. `rounded-lg` / `rounded-xl` / `rounded-2xl` keep the
+     exact values they compile to today — adopting the scale is a refactor
+     with no visual diff, not a reskin. `--radius` above predates the scale,
+     is referenced nowhere, and is kept only so the 19 legacy names survive. */
+  --radius-sm:   0.125rem;
+  --radius-base: 0.25rem;
+  --radius-md:   0.375rem;
+  --radius-lg:   0.5rem;
+  --radius-xl:   0.75rem;
+  --radius-2xl:  1rem;
+  --radius-3xl:  1.5rem;
+  --radius-full: 9999px;
+
+  /* --- spacing scale ----------------------------------------------------
+     4px base. Tailwind's utility spacing is already this ramp, so these
+     tokens exist for the places a utility cannot reach: component CSS,
+     inline style objects and the `calc()` in the shell below. Deliberately
+     NOT wired into theme.extend.spacing — that would mint a second set of
+     `p-*` utilities that means the same thing as the first. */
+  --space-1:   0.25rem;
+  --space-2:   0.5rem;
+  --space-3:   0.75rem;
+  --space-4:   1rem;
+  --space-5:   1.25rem;
+  --space-6:   1.5rem;
+  --space-8:   2rem;
+  --space-10:  2.5rem;
+  --space-12:  3rem;
+  --space-16:  4rem;
+  --space-20:  5rem;
+
+  /* --- shell ------------------------------------------------------------
+     TWO container primitives, deliberately not one.
+
+     READING (`--shell-reading`, 80rem) caps a measure. It is the value
+     /product/[slug] already shipped inline as `max-w-[min(80rem,100%)]`;
+     naming it makes it one number instead of two.
+
+     WALL (`--shell-wall`) caps a *grid*, so it is derived rather than chosen.
+     A wall should keep gaining columns across the wide viewports, so the cap
+     is the width at which the wall reaches its column ceiling:
+
+         --shell-wall = card-min x cols + gap x (cols - 1) + gutter x 2
+                      = 14rem x 8 + 0.75rem x 7 + 2.5rem x 2
+                      = 112rem + 5.25rem + 5rem = 122.25rem = 1956px
+
+     The trailing gutter term is not cosmetic. `box-sizing: border-box` is set
+     globally, so the container's padding comes OUT of the track area; without
+     it the cap yields 7 columns, not the 8 it claims. Measured, not assumed.
+
+     Written as a calc() on purpose: change the card minimum or the column
+     ceiling and the cap follows, so the two can never drift apart. Deriving
+     it from a round number instead is what made the single 80rem cap wrong —
+     80rem chokes a wall at four columns and never recovers.
+
+     The sidebar is fixed at 15rem (`w-60`) and stays there. */
+  --shell-nav:      15rem;
+  --shell-reading:  80rem;
+
+  --wall-card-min:     14rem;  /* product tile — see .grid-wall */
+  --wall-card-min-lg:  21rem;  /* listing / watchlist card */
+  --wall-gap:          var(--space-3);
+  --wall-columns-max:  8;
+  --shell-wall: calc(
+    var(--wall-card-min) * var(--wall-columns-max) +
+    var(--wall-gap) * (var(--wall-columns-max) - 1) +
+    var(--shell-gutter) * 2
+  );
+
+  /* Gutter is the one place a structural breakpoint is expressed. Three
+     steps, matching the three states the chrome actually has: bottom nav /
+     sidebar+fluid / sidebar+capped. 1440 is provisional and approved as
+     such. Nothing else in the system keys off a width. */
+  --shell-gutter: var(--space-4);
+}
+
+@media (min-width: 48rem) {   /* 768 — sidebar appears */
+  :root { --shell-gutter: var(--space-8); }
+}
+
+@media (min-width: 90rem) {   /* 1440 — provisional third breakpoint */
+  :root { --shell-gutter: var(--space-10); }
 }
 
 .dark {
@@ -377,6 +462,45 @@
    is the intent (the specification/history bento).
    ========================================================================== */
 @layer components {
+  /* Containers cap by max-width, not by a media query, so they react to the
+     space the element actually has — which is what makes them survive the
+     sidebar appearing at 768px and taking 15rem away. Both own their gutter;
+     wrapped children must not repeat `px-4 md:px-8`. */
+  .shell-reading {
+    width: 100%;
+    max-width: var(--shell-reading);
+    margin-inline: auto;
+    padding-inline: var(--shell-gutter);
+  }
+
+  .shell-wall {
+    width: 100%;
+    max-width: var(--shell-wall);
+    margin-inline: auto;
+    padding-inline: var(--shell-gutter);
+  }
+
+  /* Wall grid. auto-FILL, never auto-fit: a wall with three cards must leave
+     the rest of the row empty rather than stretch three cards across 2256px.
+     That distinction is the whole reason the product listing wall looked
+     broken on a wide screen — it was on .grid-bento, which is auto-fit and
+     documented below as being for single blocks that SHOULD fill the row. */
+  .grid-wall {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(var(--wall-card-min), 100%), 1fr));
+    gap: var(--wall-gap);
+  }
+
+  /* Same grid, larger card floor — listing and watchlist cards carry a price,
+     a source badge and an action, so they need more room than a product tile. */
+  .grid-wall-lg {
+    --wall-card-min: var(--wall-card-min-lg);
+  }
+
+  .grid-wall > * {
+    min-width: 0;
+  }
+
   .grid-fluid-sm {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(9.5rem, 100%), 1fr));

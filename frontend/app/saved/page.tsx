@@ -106,7 +106,7 @@ export default function SavedPage() {
 
       <main className="flex-1 md:pl-60 flex flex-col pb-24 md:pb-6">
         <MobileSearchBar />
-        <div className="flex flex-col px-4 pt-2 md:px-8 md:pt-6 flex-1">
+        <div className="shell-wall flex flex-col pt-2 md:pt-6 flex-1">
         {authed === false ? (
           /* Teaser for unauthenticated visitors */
           <div className="flex flex-col items-center justify-center flex-1">
@@ -167,10 +167,11 @@ export default function SavedPage() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-3 max-w-2xl w-full">
+          <div className="flex flex-col gap-3 w-full">
             <p className="text-sm text-muted-foreground mb-1">
               {rows.length} {rows.length === 1 ? 'gemt annonce' : 'gemte annoncer'}
             </p>
+            <div className="grid-wall grid-wall-lg">
             {rows.map((row) => (
               <ListingErrorBoundary key={row.listing_id} listingId={row.listing_id}>
                 <SearchResultCard
@@ -187,6 +188,7 @@ export default function SavedPage() {
                 />
               </ListingErrorBoundary>
             ))}
+            </div>
           </div>
         )}
         </div>

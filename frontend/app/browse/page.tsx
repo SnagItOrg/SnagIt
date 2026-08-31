@@ -74,102 +74,105 @@ function BrowsePageInner() {
       <main className="md:ml-60 pb-24 md:pb-8">
         <MobileSearchBar />
 
-        <div className="px-4 pt-6 pb-4 md:px-8 md:pt-8 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="type-title">
-              {t.browseHeading}
-            </h1>
-            <p className="mt-1 type-meta">
-              {t.browseSubtext}
-            </p>
+        <div className="shell-wall">
+
+          <div className="pt-6 pb-4 md:pt-8 flex items-start justify-between gap-4">
+            <div>
+              <h1 className="type-title">
+                {t.browseHeading}
+              </h1>
+              <p className="mt-1 type-meta">
+                {t.browseSubtext}
+              </p>
+            </div>
+            {isAdmin && (
+              <button
+                onClick={toggleDebug}
+                className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full transition-colors"
+                style={debugEnabled
+                  ? { background: 'var(--foreground)', color: 'var(--background)', border: '1px solid var(--border)' }
+                  : { background: 'var(--secondary)', color: 'var(--muted-foreground)', border: '1px solid var(--border)' }
+                }
+              >
+                Debug mode: {debugEnabled ? 'ON' : 'OFF'}
+              </button>
+            )}
           </div>
-          {isAdmin && (
-            <button
-              onClick={toggleDebug}
-              className="shrink-0 text-xs font-medium px-2.5 py-1 rounded-full transition-colors"
-              style={debugEnabled
-                ? { background: 'var(--foreground)', color: 'var(--background)', border: '1px solid var(--border)' }
-                : { background: 'var(--secondary)', color: 'var(--muted-foreground)', border: '1px solid var(--border)' }
-              }
-            >
-              Debug mode: {debugEnabled ? 'ON' : 'OFF'}
-            </button>
+
+          {loading ? (
+            <div className="grid-wall">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl animate-pulse"
+                  style={{ height: '200px', background: 'var(--card)' }}
+                />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="py-12">
+              <div
+                className="rounded-2xl border p-4 text-sm"
+                style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+              >
+                {error}
+              </div>
+            </div>
+          ) : (
+            <div className="grid-wall">
+              {data.categories.map((cat) => (
+                <Link
+                  key={cat.id}
+                  href={`/browse/${cat.slug}${debugEnabled ? '?debug=1' : ''}`}
+                  className="relative rounded-xl overflow-hidden group"
+                  style={{ height: '200px', display: 'block' }}
+                >
+                  {/* Background image */}
+                  <div
+                    className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
+                    style={{
+                      backgroundImage: `url(${cat.image_url})`,
+                      background: `url(${cat.image_url}) center/cover, var(--card)`,
+                    }}
+                  />
+                  {/* Dark gradient overlay */}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)',
+                    }}
+                  />
+                  {/* Text */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="type-card-title text-lg text-white">
+                      {locale === 'da' ? cat.name_da : cat.name_en}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {data.debug && (
+            <div className="pt-8">
+              <details
+                open
+                className="rounded-2xl border p-4"
+                style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+              >
+                <summary className="cursor-pointer text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+                  Browse audit
+                </summary>
+                <pre
+                  className="mt-4 text-xs overflow-x-auto whitespace-pre-wrap"
+                  style={{ color: 'var(--muted-foreground)' }}
+                >
+                  {JSON.stringify(data.debug, null, 2)}
+                </pre>
+              </details>
+            </div>
           )}
         </div>
-
-        {loading ? (
-          <div className="grid-fluid gap-3 px-4 md:px-8">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-xl animate-pulse"
-                style={{ height: '200px', background: 'var(--card)' }}
-              />
-            ))}
-          </div>
-        ) : error ? (
-          <div className="px-4 md:px-8 py-12">
-            <div
-              className="rounded-2xl border p-4 text-sm"
-              style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-            >
-              {error}
-            </div>
-          </div>
-        ) : (
-          <div className="grid-fluid gap-3 px-4 md:px-8">
-            {data.categories.map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/browse/${cat.slug}${debugEnabled ? '?debug=1' : ''}`}
-                className="relative rounded-xl overflow-hidden group"
-                style={{ height: '200px', display: 'block' }}
-              >
-                {/* Background image */}
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
-                  style={{
-                    backgroundImage: `url(${cat.image_url})`,
-                    background: `url(${cat.image_url}) center/cover, var(--card)`,
-                  }}
-                />
-                {/* Dark gradient overlay */}
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)',
-                  }}
-                />
-                {/* Text */}
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <p className="type-card-title text-lg text-white">
-                    {locale === 'da' ? cat.name_da : cat.name_en}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {data.debug && (
-          <div className="px-4 md:px-8 pt-8">
-            <details
-              open
-              className="rounded-2xl border p-4"
-              style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
-            >
-              <summary className="cursor-pointer text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
-                Browse audit
-              </summary>
-              <pre
-                className="mt-4 text-xs overflow-x-auto whitespace-pre-wrap"
-                style={{ color: 'var(--muted-foreground)' }}
-              >
-                {JSON.stringify(data.debug, null, 2)}
-              </pre>
-            </details>
-          </div>
-        )}
       </main>
 
       <BottomNav />

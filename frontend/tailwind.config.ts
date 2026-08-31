@@ -80,6 +80,29 @@ const config: Config = {
       outlineColor: {
         ring: "var(--ring)",
       },
+      // Radius scale. Every key maps to the value Tailwind already compiled,
+      // so `rounded-lg` / `rounded-xl` / `rounded-2xl` are byte-identical in
+      // output and simply route through a token now.
+      borderRadius: {
+        sm: "var(--radius-sm)",
+        DEFAULT: "var(--radius-base)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
+        "2xl": "var(--radius-2xl)",
+        "3xl": "var(--radius-3xl)",
+        full: "var(--radius-full)",
+      },
+      // Two caps, not one: a measure for reading surfaces and a derived,
+      // much wider one for card walls. Applied via `.shell-reading` /
+      // `.shell-wall` in globals.css; exposed here for one-off use.
+      maxWidth: {
+        reading: "var(--shell-reading)",
+        wall: "var(--shell-wall)",
+      },
+      spacing: {
+        nav: "var(--shell-nav)",
+      },
     },
   },
   plugins: [],
