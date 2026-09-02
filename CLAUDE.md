@@ -150,6 +150,33 @@ run. **Never verify by invoking a production writer path.**
 
 ---
 
+## 6b. How to work — applies to every task
+
+These are standing behavioural rules, not a checklist for large changes. They
+are here rather than in a skill because a skill loads only when it triggers,
+and these apply before you know what the task is.
+
+1. **Think before coding.** State your assumptions. If several readings exist,
+   present them — do not pick one silently. If a simpler approach exists, say
+   so. If something is unclear, stop and name the confusion.
+2. **Simplicity first.** The minimum that solves the problem. No speculative
+   features, no abstraction for single-use code, no configurability nobody
+   asked for, no error handling for impossible cases.
+3. **Surgical changes.** Every changed line traces to the request. Do not
+   improve adjacent code, do not refactor what is not broken, match the
+   surrounding style. Mention unrelated dead code; do not delete it. Remove
+   only the orphans your own change created.
+4. **Goal-driven execution.** Turn the task into verifiable criteria, and for
+   multi-step work state a short plan with a verification step per item.
+
+Full text: `.claude/skills/karpathy-guidelines/SKILL.md`.
+
+**Shared method skills.** 75 skills — UX, code craftsmanship, architecture,
+product, marketing — live in `SnagItOrg/skills`, not here. See
+`.claude/skills/skills-catalogue/SKILL.md` for how to find and install them.
+They give method, not permission: where one conflicts with this file or
+`frontend/CLAUDE.md`, the repo wins.
+
 ## 7. Where facts live
 
 Open these when you need them. None is pre-reading, and none supersedes this
