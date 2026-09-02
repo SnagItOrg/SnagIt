@@ -26,6 +26,8 @@ import {
   loadSupportedSlugs,
   resolveSlugRole,
   type CatalogueStateRow,
+  effectiveExposure,
+  type ExposureState,
 } from '../../frontend/lib/catalogue'
 
 import {
@@ -385,4 +387,58 @@ test('i18n: category names are music-only', () => {
   for (const locale of ['da', 'en'] as const) {
     assert.deepEqual(Object.keys(translations[locale].categoryNames), ['music-gear'])
   }
+})
+
+
+/**
+ * The effective exposure state, parameterised.
+ *
+ * /admin/products badged `browse_visibility` alone and called `public`
+ * "Public". Measured 2026-09-02: 35 rows are active+public, 14 pass
+ * `isCanonical`, and the browse projection calls 30 `is_public` — 20 of which
+ * are not supported and have no product page. The badge has to name the gate
+ * that is actually missing, and precedence decides WHICH gate that is.
+ */
+test('exposure: each axis combination reports the one gate that is missing', () => {
+  const music = { browse_domain: 'music' as const }
+  const cases: ReadonlyArray<[string, Parameters<typeof effectiveExposure>[0], ExposureState]> = [
+    ['everything passes',
+      { ...music, status: 'active', support_state: 'supported', browse_visibility: 'public', taxonomy_state: 'classified' },
+      'live_in_browse'],
+    ['classified missing -> page still renders, browse does not list it',
+      { ...music, status: 'active', support_state: 'supported', browse_visibility: 'public', taxonomy_state: 'missing_subcategory' },
+      'page_only'],
+    ['root mapping missing is equally not classified',
+      { ...music, status: 'active', support_state: 'supported', browse_visibility: 'public', taxonomy_state: 'missing_root_mapping' },
+      'page_only'],
+    ['public but not supported — the 20-row production case',
+      { ...music, status: 'active', support_state: 'known', browse_visibility: 'public', taxonomy_state: 'classified' },
+      'unsupported'],
+    ['reserve is not supported either',
+      { ...music, status: 'active', support_state: 'reserve', browse_visibility: 'public', taxonomy_state: 'classified' },
+      'unsupported'],
+    ['a non-music identity has no page, whatever visibility says',
+      { browse_domain: 'design', status: 'active', support_state: 'supported', browse_visibility: 'public', taxonomy_state: 'classified' },
+      'unsupported'],
+    ['withheld on purpose',
+      { ...music, status: 'active', support_state: 'supported', browse_visibility: 'qa_only', taxonomy_state: 'classified' },
+      'hidden'],
+    ['hidden is withheld too',
+      { ...music, status: 'active', support_state: 'supported', browse_visibility: 'hidden', taxonomy_state: 'classified' },
+      'hidden'],
+    ['an inactive identity outranks every other complaint',
+      { ...music, status: 'inactive', support_state: 'known', browse_visibility: 'qa_only', taxonomy_state: null },
+      'inactive'],
+    ['fail closed on an unreadable row', null, 'inactive'],
+    ['fail closed on an empty row', {}, 'inactive'],
+  ]
+  for (const [name, row, expected] of cases) {
+    assert.equal(effectiveExposure(row), expected, name)
+  }
+
+  // `public` alone is never a positive verdict.
+  assert.notEqual(
+    effectiveExposure({ browse_domain: 'music', status: 'active', support_state: 'known', browse_visibility: 'public', taxonomy_state: 'classified' }),
+    'live_in_browse',
+  )
 })

@@ -414,7 +414,7 @@ test('operator copy: the write path itself is untouched', () => {
   // Axis mapping, validation, intent requirement, dryRun and manifest keys are
   // WP-2-forbidden. Assert each is still exactly as WP-1 left it.
   assert.match(route, /tier:\s+'monitoring',/)
-  assert.match(route, /const mustDeclare: Axis\[\] = \['visibility', 'monitoring'\]/)
+  assert.match(route, /const mustDeclare: Axis\[\] = \['visibility', 'monitoring', 'taxonomy'\]/)
   assert.match(route, /const dryRun = req\.nextUrl\.searchParams\.get\('dryRun'\) === '1'/)
   assert.match(route, /error: 'undeclared_axis'/)
   assert.match(route, /error: 'inactive_product_cannot_be_supported'/)

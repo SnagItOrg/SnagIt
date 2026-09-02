@@ -59,12 +59,18 @@ const TIERS          = ['legendary', 'classic', 'standard'] as const
  */
 const MONITORING_BOUNDARY = 'data/klup-source-monitoring.json'
 
-type Axis = 'support' | 'visibility' | 'monitoring' | 'metadata'
+type Axis = 'support' | 'visibility' | 'monitoring' | 'taxonomy' | 'metadata'
 
 const FIELD_AXIS: Record<string, Axis> = {
   support_state:     'support',
   browse_visibility: 'visibility',
   tier:              'monitoring',
+  // Taxonomy is its own axis. `browse_product_projection` DERIVES
+  // `taxonomy_state` from `subcategory_id`, so writing the subcategory is the
+  // only way to make a product classified — and doing so can put it into
+  // public browse. That is a change of exposure, which is why it must be
+  // declared like `visibility` rather than riding along as metadata.
+  subcategory_id:    'taxonomy',
   year_released:     'metadata',
   tags:              'metadata',
 }
@@ -80,6 +86,11 @@ function consequence(axis: Axis, from: unknown, to: unknown): string {
       return to === 'public'
         ? 'Product page becomes publicly visible in browse. Matcher eligibility and marketplace monitoring are unchanged.'
         : 'Product page leaves public browse. Matcher eligibility and marketplace monitoring are unchanged.'
+    case 'taxonomy':
+      return to == null
+        ? 'Product loses its subcategory and leaves public browse. The product page is unaffected.'
+        : 'Category is derived from the subcategory\u2019s root mapping; no separate category value is written. '
+          + 'If the mapping resolves, the product becomes listable in public browse. Matcher eligibility and monitoring are unchanged.'
     case 'monitoring': {
       // One consequence, because tier now has exactly one. No scraper reads
       // tier: the coupling was removed in 04B and every source resolves its
@@ -139,7 +150,7 @@ export async function PATCH(
   // monitoring must be named, because those are the two that silently changed
   // public exposure and scraper configuration before.
   const intent: string[] = Array.isArray(body.intent) ? body.intent.map(String) : []
-  const mustDeclare: Axis[] = ['visibility', 'monitoring']
+  const mustDeclare: Axis[] = ['visibility', 'monitoring', 'taxonomy']
   const undeclared = mustDeclare.filter((a) => touched.has(a) && !intent.includes(a))
   if (undeclared.length > 0) {
     return NextResponse.json({
@@ -152,10 +163,44 @@ export async function PATCH(
 
   const admin = getSupabaseAdmin()
 
+  /**
+   * A subcategory that does not classify is refused rather than written.
+   *
+   * The view calls a product `classified` only when the chosen category is a
+   * music leaf whose parent is a music ROOT. 320 of 320 leaves are music but
+   * only 15 of 20 roots are, so a leaf can hang off a non-music root and
+   * silently produce `missing_root_mapping` — a save that reports success and
+   * changes nothing the operator can see. Fail closed instead.
+   */
+  if (update.subcategory_id !== undefined && update.subcategory_id !== null) {
+    const { data: sub, error: subErr } = await admin
+      .from('kg_category')
+      .select('id, parent_id, domain')
+      .eq('id', update.subcategory_id as string)
+      .maybeSingle()
+    if (subErr) return NextResponse.json({ error: subErr.message }, { status: 500 })
+    if (!sub) return NextResponse.json({ error: 'unknown_subcategory' }, { status: 400 })
+    if (!sub.parent_id) {
+      return NextResponse.json({ error: 'not_a_subcategory', message: 'Choose a leaf category, not a root.' }, { status: 400 })
+    }
+    const { data: root, error: rootErr } = await admin
+      .from('kg_category')
+      .select('id, parent_id, domain')
+      .eq('id', sub.parent_id)
+      .maybeSingle()
+    if (rootErr) return NextResponse.json({ error: rootErr.message }, { status: 500 })
+    if (!root || root.parent_id !== null || root.domain !== 'music' || sub.domain !== 'music') {
+      return NextResponse.json({
+        error: 'subcategory_would_not_classify',
+        message: 'That category does not map to a music root, so the product would stay out of browse.',
+      }, { status: 409 })
+    }
+  }
+
   // ── before state, for the manifest and for the dry run ───────────────────
   const { data: before, error: readErr } = await admin
     .from('kg_product')
-    .select('id, slug, canonical_name, status, support_state, browse_visibility, tier, year_released, tags')
+    .select('id, slug, canonical_name, status, support_state, browse_visibility, tier, subcategory_id, year_released, tags')
     .eq('id', params.id)
     .maybeSingle()
 
@@ -196,6 +241,7 @@ export async function PATCH(
       support:    update.support_state     === undefined ? before.support_state     : undefined,
       visibility: update.browse_visibility === undefined ? before.browse_visibility : undefined,
       monitoring: update.tier              === undefined ? before.tier              : undefined,
+      taxonomy:   update.subcategory_id     === undefined ? before.subcategory_id     : undefined,
     },
   }
 

@@ -2061,7 +2061,7 @@ test('the promotion API separates support, visibility and monitoring', () => {
   for (const f of ['support_state', 'browse_visibility', 'tier', 'year_released'])
     assert.ok(src.includes(f), `promotion route must handle ${f}`)
   // Visibility and monitoring cannot ride along with a support promotion.
-  assert.ok(src.includes("const mustDeclare: Axis[] = ['visibility', 'monitoring']"),
+  assert.ok(src.includes("const mustDeclare: Axis[] = ['visibility', 'monitoring', 'taxonomy']"),
     'visibility and monitoring must require explicit intent')
   assert.ok(src.includes('undeclared_axis'), 'undeclared axis must fail closed')
   // A dry run exists and returns the same manifest without writing.

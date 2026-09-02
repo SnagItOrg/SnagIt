@@ -78,6 +78,70 @@ export function isAdminOnly(row: CatalogueStateRow | null | undefined): boolean 
   return row!.browse_visibility === ADMIN_ONLY_VISIBILITY
 }
 
+/**
+ * WHAT AN OPERATOR ACTUALLY SEES — the five effective states.
+ *
+ * WHY THIS EXISTS. /admin/products rendered `browse_visibility` on its own and
+ * labelled `public` as "Public". That is one axis of four, so the badge said
+ * Public for rows whose product page 404s. Measured 2026-09-02: 35 rows are
+ * active+public, but only 14 pass `isCanonical`, and the browse projection
+ * calls 30 rows `is_public` — 20 of which are not supported and therefore have
+ * no product page at all.
+ *
+ * The two gates are NOT the same, and neither is `browse_visibility`:
+ *
+ *   product page   isCanonical()  = active + supported + music + public
+ *   browse         the above      + taxonomy_state = 'classified'
+ *
+ * `taxonomy_state` is DERIVED, never stored: `browse_product_projection`
+ * computes it from `subcategory_id` and the category's root mapping. It is
+ * passed in rather than recomputed here, so this file keeps its no-imports
+ * rule and there is still exactly one definition of "classified" — the view's.
+ */
+export const TAXONOMY_CLASSIFIED = 'classified' as const
+
+export type ExposureState =
+  /** Passes every gate: reachable from browse and from its own URL. */
+  | 'live_in_browse'
+  /** Canonical page renders, but browse will not list it: taxonomy incomplete. */
+  | 'page_only'
+  /** Not a supported music identity, so the page 404s whatever visibility says. */
+  | 'unsupported'
+  /** Identity is deprecated. Nothing renders. */
+  | 'inactive'
+  /** Deliberately withheld: qa_only or hidden. */
+  | 'hidden'
+
+export interface ExposureRow extends CatalogueStateRow {
+  /** From `browse_product_projection.taxonomy_state`. */
+  taxonomy_state?: string | null
+}
+
+/**
+ * The single missing gate, in precedence order.
+ *
+ * Order is the point. A row can fail several gates at once, and the operator
+ * needs the one to fix FIRST — promoting support on a deprecated identity is
+ * refused by the PATCH route, so `inactive` has to outrank `unsupported`.
+ *
+ * Fail-closed: an unreadable row is `inactive`, never a positive state.
+ */
+export function effectiveExposure(row: ExposureRow | null | undefined): ExposureState {
+  if (!row) return 'inactive'
+  if (row.status !== CANONICAL_STATUS) return 'inactive'
+  // Covers support_state AND the music-domain requirement, using the same
+  // predicate the product page itself is gated on.
+  if (!isSupportedMusicProduct(row)) return 'unsupported'
+  if (row.browse_visibility !== CANONICAL_VISIBILITY) return 'hidden'
+  if (row.taxonomy_state !== TAXONOMY_CLASSIFIED) return 'page_only'
+  return 'live_in_browse'
+}
+
+/** True only when the product is reachable by a user at all. */
+export function isExposed(state: ExposureState): boolean {
+  return state === 'live_in_browse' || state === 'page_only'
+}
+
 export type SlugRole = 'canonical' | 'admin_only' | 'family' | 'not_found'
 
 /**
