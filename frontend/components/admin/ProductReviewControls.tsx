@@ -57,16 +57,22 @@ export function ProductReviewControls({
   status,
   onDecided,
   onReassigned,
+  onFailed,
 }: {
   slug: string
   listingId: string
   status: MatchReviewStatus
   onDecided: (listingId: string, next: MatchReviewStatus) => void
   onReassigned: (listingId: string, productName: string) => void
+  /**
+   * Reported so the page can surface it in the same toast /admin/match uses.
+   * The message is always the route's human sentence or the i18n fallback —
+   * never database text.
+   */
+  onFailed: (message: string) => void
 }) {
   const { t } = useLocale()
   const [busy, setBusy] = useState<null | 'approve' | 'reject'>(null)
-  const [error, setError] = useState<string | null>(null)
   const [reassigning, setReassigning] = useState(false)
 
   const actions = ACTIONS_FOR[status]
@@ -76,7 +82,6 @@ export function ProductReviewControls({
     // time, and the button says which one is running.
     if (busy) return
     setBusy(decision)
-    setError(null)
     try {
       const res = await fetch(`/api/admin/product/${slug}/${decision}-match`, {
         method: 'POST',
@@ -87,12 +92,12 @@ export function ProductReviewControls({
         // The status is NOT advanced on failure. An operator who sees "Afvist"
         // must be able to trust that the row is rejected in the database.
         const body = (await res.json().catch(() => ({}))) as { error?: string }
-        setError(body.error ?? t.adminReview.saveFailed)
+        onFailed(body.error ?? t.adminReview.saveFailed)
         return
       }
       onDecided(listingId, decision === 'approve' ? 'reviewed' : 'rejected')
     } catch {
-      setError(t.adminReview.saveFailed)
+      onFailed(t.adminReview.saveFailed)
     } finally {
       setBusy(null)
     }
@@ -139,12 +144,6 @@ export function ProductReviewControls({
           </button>
         )}
       </div>
-
-      {error && (
-        <p role="alert" className="text-[11px] text-destructive-text" data-testid="review-error">
-          {error}
-        </p>
-      )}
 
       {reassigning && (
         <ReassignPanel

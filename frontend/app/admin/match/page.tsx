@@ -22,6 +22,8 @@ import {
   type MatchProduct,
   type MatchState,
 } from './match-state'
+import { Toast } from '@/components/Toast'
+import { useToast } from '@/lib/use-toast'
 import { isApproval, isRejection, type Disposition } from './dispositions'
 
 /**
@@ -90,23 +92,13 @@ function AdminMatchPageInner() {
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Aborts the sweep that is no longer wanted. Paired with the request id. */
   const inFlight = useRef<AbortController | null>(null)
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [toast, setToast] = useReducer(
-    (_: string | null, next: string | null) => next,
-    null as string | null,
-  )
+  const [toast, showToast] = useToast()
 
   const { selectedProduct, candidateRequest, candidates, localDecisions, sourceSelection } = state
   const counts = decisionCounts(state)
   const loading = isLoadingCandidates(state)
   const settling = isSelectionSettling(state)
   const sourcesPending = sourcesDiffer(state)
-
-  function showToast(msg: string) {
-    setToast(msg)
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setToast(null), 3000)
-  }
 
   /* ── product search ───────────────────────────────────────────────────── */
 
@@ -239,7 +231,6 @@ function AdminMatchPageInner() {
     return () => {
       inFlight.current?.abort()
       if (searchDebounce.current) clearTimeout(searchDebounce.current)
-      if (toastTimer.current) clearTimeout(toastTimer.current)
     }
   }, [])
 
@@ -794,13 +785,11 @@ function AdminMatchPageInner() {
         </p>
       )}
 
-      {/* Toast */}
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl text-sm font-medium text-white shadow-lg z-50"
-          style={{ backgroundColor: '#1a1a1a' }}>
-          {toast}
-        </div>
-      )}
+      {/* Toast — the shared component now, not an inline copy. The hardcoded
+          #1a1a1a it used is replaced by the `surface-overlay` token, which
+          globals.css already designates for toasts; frontend/CLAUDE.md forbids
+          hardcoded colour values. */}
+      {toast && <Toast message={toast} />}
     </div>
   )
 }

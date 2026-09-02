@@ -13,6 +13,8 @@ import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 // observations, so the imports follow P2 rather than the pre-P2 area set.
 import { ResponsiveContainer, ScatterChart, Scatter, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { useLocale } from '@/components/LocaleProvider'
+import { Toast } from '@/components/Toast'
+import { useToast } from '@/lib/use-toast'
 import { DanishMarketBlock, ReferencePopulationBlock } from '@/components/PriceAnswer'
 import type { PopulationKey, PopulationStats } from '@/lib/price-populations'
 import {
@@ -103,7 +105,12 @@ export default function ProductPage() {
   const reviewRequested = searchParams.get('review') === '1' || searchParams.get('debug') === '1'
   const [isAdmin, setIsAdmin] = useState(false)
   const [matchStatuses, setMatchStatuses] = useState<Record<string, MatchReviewStatus>>({})
-  const [reviewNotice, setReviewNotice] = useState<string | null>(null)
+  /**
+   * The same toast /admin/match uses. It lives here, at page level, rather
+   * than on the card: a rejected or moved card unmounts, and a message that
+   * unmounts with it cannot report what happened to it.
+   */
+  const [toast, showToast] = useToast()
   const reviewMode = isAdmin && reviewRequested
 
   useEffect(() => {
@@ -672,11 +679,6 @@ export default function ProductPage() {
                         >
                           {reviewRequested ? 'Afslut gennemgang' : 'Gennemgå matches'}
                         </a>
-                        {reviewNotice && (
-                          <span role="status" className="type-meta" data-testid="review-notice">
-                            {reviewNotice}
-                          </span>
-                        )}
                       </div>
                     )}
                     <div className="grid-wall grid-wall-lg">
@@ -701,10 +703,13 @@ export default function ProductPage() {
                               status={matchStatuses[listing.id] ?? 'unresolved'}
                               onDecided={(id, next) => {
                                 setMatchStatuses((prev) => ({ ...prev, [id]: next }))
-                                setReviewNotice(
-                                  next === 'rejected'
-                                    ? t.adminReview.rejectedFeedback
-                                    : t.adminReview.approvedFeedback,
+                                const title = listings.find((l) => l.id === id)?.title ?? ''
+                                showToast(
+                                  (next === 'rejected'
+                                    ? t.adminReview.successRejected
+                                    : t.adminReview.successApproved)
+                                    .replace('{listing}', title)
+                                    .replace('{product}', product.canonical_name),
                                 )
                                 /**
                                  * A REJECTED CARD LEAVES THE WALL NOW.
@@ -732,8 +737,11 @@ export default function ProductPage() {
                                 void loadMatchStatuses()
                               }}
                               onReassigned={(id, productName) => {
-                                setReviewNotice(
-                                  t.adminReview.movedTo.replace('{product}', productName),
+                                const title = listings.find((l) => l.id === id)?.title ?? ''
+                                showToast(
+                                  t.adminReview.successMoved
+                                    .replace('{listing}', title)
+                                    .replace('{product}', productName),
                                 )
                                 // A moved listing belongs to another product now,
                                 // so it leaves this wall for the same reason.
@@ -741,6 +749,7 @@ export default function ProductPage() {
                                 void loadProduct()
                                 void loadMatchStatuses()
                               }}
+                              onFailed={(message) => showToast(message)}
                             />
                           )}
                         </div>
@@ -770,6 +779,7 @@ export default function ProductPage() {
         initialQuery={modalQuery}
         creating={creating}
       />
+      {toast && <Toast message={toast} />}
     </div>
   )
 }

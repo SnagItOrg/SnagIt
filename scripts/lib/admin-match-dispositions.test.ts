@@ -916,7 +916,10 @@ test('review 12: a server error does not advance the card status', () => {
   const successIdx = code.indexOf('onDecided(listingId')
   assert.ok(failIdx !== -1 && successIdx !== -1)
   assert.ok(failIdx < successIdx, 'the failure branch returns before any state advance')
-  assert.ok(code.includes('setError('), 'the failure is surfaced')
+  // The failure is still surfaced; it now travels up via `onFailed` to the
+  // page-level toast /admin/match already used, instead of a local error line
+  // that vanished with the card.
+  assert.ok(code.includes('onFailed('), 'the failure is surfaced')
 })
 
 test('review 13: a confirmed decision refetches product and match data', () => {

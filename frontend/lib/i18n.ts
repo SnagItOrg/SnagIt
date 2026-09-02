@@ -304,9 +304,16 @@ export const translations = {
       confirmMove: 'Flyt til {product}',
       alreadyLinked: 'Allerede knyttet til denne annonce',
       cancel: 'Annuller',
-      movedTo: 'Flyttet til {product}',
-      rejectedFeedback: 'Match afvist',
-      approvedFeedback: 'Match godkendt',
+      /**
+       * The toast names the listing AND the product. "Match afvist" was true
+       * but useless once the card had already vanished: it did not say which
+       * listing, or which product it had left. `{listing}` and `{product}` are
+       * placeholders rather than concatenation so word order stays a
+       * translation decision.
+       */
+      successApproved: '\u201c{listing}\u201d blev godkendt til {product}.',
+      successRejected: '\u201c{listing}\u201d blev fjernet fra {product}.',
+      successMoved: '\u201c{listing}\u201d blev flyttet til {product}.',
       noResults: 'Ingen produkter matcher.',
     },
     dataDisplay: {
@@ -608,9 +615,9 @@ export const translations = {
       confirmMove: 'Move to {product}',
       alreadyLinked: 'Already linked to this listing',
       cancel: 'Cancel',
-      movedTo: 'Moved to {product}',
-      rejectedFeedback: 'Match rejected',
-      approvedFeedback: 'Match approved',
+      successApproved: '\u201c{listing}\u201d was approved for {product}.',
+      successRejected: '\u201c{listing}\u201d was removed from {product}.',
+      successMoved: '\u201c{listing}\u201d was moved to {product}.',
       noResults: 'No products match.',
     },
     dataDisplay: {
