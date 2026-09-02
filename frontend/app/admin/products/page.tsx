@@ -39,11 +39,30 @@ type Product = {
 
 type Subcategory = { id: string; name: string; parent_name: string | null; classifies: boolean }
 
-const SUPPORT_ORDER: SupportState[] = ['known', 'reserve', 'supported']
-const SUPPORT_LABEL: Record<SupportState, string> = {
-  known:     'Kendt',
-  reserve:   'Reserve',
-  supported: 'Understøttet',
+/**
+ * The one publication vocabulary the normal workflow exposes.
+ *
+ * PAN-22. `known / reserve / supported` and `public / qa_only / hidden` are
+ * internal axes, and showing both let a product read "Public" while its page
+ * answered 404. The operator now picks an outcome; the server derives the
+ * axes in a single atomic transition.
+ */
+type PublicationAction = 'public' | 'qa' | 'hidden'
+
+const PUBLICATION_ORDER: PublicationAction[] = ['public', 'qa', 'hidden']
+
+const PUBLICATION_LABEL: Record<PublicationAction, string> = {
+  public: 'Public',
+  qa:     'QA',
+  hidden: 'Hidden',
+}
+
+/** Which action a row is currently AT, derived from its effective exposure. */
+function currentAction(p: Product): PublicationAction | null {
+  if (p.browse_visibility === 'hidden') return 'hidden'
+  if (p.exposure === 'live_in_browse' || p.exposure === 'page_only') return 'public'
+  if (p.support_state === 'supported' && p.browse_visibility === 'qa_only') return 'qa'
+  return null
 }
 
 /**
@@ -78,26 +97,15 @@ const EXPOSURE_STYLE: Record<ExposureState, { background: string; color: string 
 }
 
 const TIER_ORDER: Tier[] = ['standard', 'classic', 'legendary']
-const VISIBILITY_ORDER: BrowseVisibility[] = ['qa_only', 'public', 'hidden']
 const TIER_LABEL: Record<Tier, string> = {
   standard:  'Standard',
   classic:   'Classic',
   legendary: 'Legendary',
 }
-const VISIBILITY_LABEL: Record<BrowseVisibility, string> = {
-  qa_only: 'QA only',
-  public: 'Public',
-  hidden: 'Hidden',
-}
 const TIER_STYLE: Record<Tier, { background: string; color: string }> = {
   standard:  { background: 'var(--secondary)', color: 'var(--muted-foreground)' },
   classic:   { background: 'var(--secondary)', color: 'var(--foreground)' },
   legendary: { background: 'var(--foreground)', color: 'var(--background)' },
-}
-const VISIBILITY_STYLE: Record<BrowseVisibility, { background: string; color: string }> = {
-  qa_only: { background: 'var(--secondary)', color: 'var(--muted-foreground)' },
-  public: { background: 'var(--foreground)', color: 'var(--background)' },
-  hidden: { background: 'rgba(239,68,68,0.12)', color: 'rgb(239,68,68)' },
 }
 
 export default function AdminProductsPage() {
@@ -195,15 +203,6 @@ export default function AdminProductsPage() {
     }
   }
 
-  async function cycleSupport(product: Product) {
-    const next = SUPPORT_ORDER[(SUPPORT_ORDER.indexOf(product.support_state) + 1) % SUPPORT_ORDER.length]
-    await patchProduct(
-      product,
-      { support_state: next, intent: ['support'] },
-      { support_state: next },
-      `${product.canonical_name}: support sat til ${SUPPORT_LABEL[next]}.`,
-    )
-  }
 
   async function setSubcategory(product: Product, subcategoryId: string) {
     const chosen = subcategories?.find((c) => c.id === subcategoryId)
@@ -242,20 +241,21 @@ export default function AdminProductsPage() {
     setSaving(null)
   }
 
-  async function cycleVisibility(product: Product) {
-    const currentIdx = VISIBILITY_ORDER.indexOf(product.browse_visibility)
-    const nextVisibility = VISIBILITY_ORDER[(currentIdx + 1) % VISIBILITY_ORDER.length]
-    setSaving(product.id)
-    await fetch(`/api/admin/products/${product.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ browse_visibility: nextVisibility, intent: ['visibility'] }),
-    })
-    setProducts((prev) =>
-      prev.map((p) => p.id === product.id ? { ...p, browse_visibility: nextVisibility } : p)
+  /**
+   * One action, one request, one atomic server-side transition.
+   *
+   * The client sends the OUTCOME and never the axes: the server owns the
+   * mapping, so a partial state cannot exist between two client calls. On
+   * success `patchProduct` re-reads the list, so the badge shows the server's
+   * effective exposure rather than a predicted one.
+   */
+  async function setPublication(product: Product, action: PublicationAction) {
+    await patchProduct(
+      product,
+      { publication: action },
+      {},
+      `${product.canonical_name}: ${PUBLICATION_LABEL[action]}.`,
     )
-    showToast(`${product.canonical_name}: visibility sat til ${VISIBILITY_LABEL[nextVisibility]}.`)
-    setSaving(null)
   }
 
   async function saveYear(product: Product) {
@@ -358,30 +358,38 @@ export default function AdminProductsPage() {
                 {TIER_LABEL[p.tier]}
               </button>
 
-              <button
-                onClick={() => cycleVisibility(p)}
-                disabled={saving === p.id}
-                className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-opacity disabled:opacity-50"
-                style={VISIBILITY_STYLE[p.browse_visibility]}
-                title="Klik for at skifte browse visibility"
+              {/* The single publication control. Three outcomes, one request
+                  each. The internal axes are not offered here. */}
+              <div
+                className="shrink-0 flex items-center rounded-full overflow-hidden"
+                style={{ border: '1px solid var(--border)' }}
+                data-testid={`publication-${p.slug}`}
+                role="group"
+                aria-label="Publicering"
               >
-                {VISIBILITY_LABEL[p.browse_visibility]}
-              </button>
-
-              {/* Support — the axis that decides whether the product page
-                  exists at all, and which this list could not reach before. */}
-              <button
-                onClick={() => cycleSupport(p)}
-                disabled={saving === p.id}
-                data-testid={`support-${p.slug}`}
-                className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-opacity disabled:opacity-50"
-                style={p.support_state === 'supported'
-                  ? { background: 'var(--foreground)', color: 'var(--background)' }
-                  : { background: 'var(--secondary)', color: 'var(--muted-foreground)' }}
-                title="Klik for at skifte support state"
-              >
-                {SUPPORT_LABEL[p.support_state]}
-              </button>
+                {PUBLICATION_ORDER.map((action) => {
+                  const active = currentAction(p) === action
+                  return (
+                    <button
+                      key={action}
+                      onClick={() => setPublication(p, action)}
+                      disabled={saving === p.id || active}
+                      aria-pressed={active}
+                      className="text-[11px] font-semibold px-2.5 py-1 transition-opacity disabled:opacity-100"
+                      style={active
+                        ? { background: 'var(--foreground)', color: 'var(--background)' }
+                        : { background: 'transparent', color: 'var(--muted-foreground)' }}
+                      title={action === 'public'
+                        ? 'Offentlig produktside og browse. Kræver en music-underkategori.'
+                        : action === 'qa'
+                          ? 'Kun synlig for en admin-session.'
+                          : 'Skjuler produktet. Support, matches og overvågning bevares.'}
+                    >
+                      {PUBLICATION_LABEL[action]}
+                    </button>
+                  )
+                })}
+              </div>
 
               {/* Year released — click to edit */}
               {yearEditing === p.id ? (

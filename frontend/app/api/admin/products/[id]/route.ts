@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { getCurrentAdminState } from '@/lib/admin-auth'
+import {
+  PUBLICATION_TRANSITION,
+  isPublicationAction,
+  publicationRefusal,
+} from '@/lib/publication'
 
 /**
  * Product lifecycle mutations for /admin/products.
@@ -123,6 +128,31 @@ export async function PATCH(
   const update: Record<string, unknown> = {}
   const touched = new Set<Axis>()
 
+  // ── the publication action, resolved server-side ─────────────────────────
+  // One vocabulary or the other, never both: accepting `publication` next to
+  // raw axis fields would be a second promotion model competing with this one.
+  const publication: unknown = (body as Record<string, unknown>).publication
+  if (publication !== undefined) {
+    if (!isPublicationAction(publication)) {
+      return NextResponse.json(
+        { error: 'invalid_publication', allowed: Object.keys(PUBLICATION_TRANSITION) },
+        { status: 400 },
+      )
+    }
+    const rawAxes = Object.keys(FIELD_AXIS).filter((f) => body[f] !== undefined)
+    if (rawAxes.length > 0) {
+      return NextResponse.json({
+        error: 'publication_conflicts_with_axis_fields',
+        message: 'Send either a publication action or raw axis fields, not both.',
+        fields: rawAxes,
+      }, { status: 400 })
+    }
+    for (const [field, value] of Object.entries(PUBLICATION_TRANSITION[publication])) {
+      update[field] = value
+      touched.add(FIELD_AXIS[field])
+    }
+  }
+
   for (const [field, axis] of Object.entries(FIELD_AXIS)) {
     if (body[field] === undefined) continue
     update[field] = body[field]
@@ -149,7 +179,12 @@ export async function PATCH(
   // may be implied (they carry no cross-axis consequence); visibility and
   // monitoring must be named, because those are the two that silently changed
   // public exposure and scraper configuration before.
-  const intent: string[] = Array.isArray(body.intent) ? body.intent.map(String) : []
+  // A publication action names its own consequence, so it satisfies the
+  // declaration requirement by construction — the operator chose "Public", not
+  // a visibility field that happened to move.
+  const intent: string[] = publication !== undefined
+    ? Array.from(touched)
+    : (Array.isArray(body.intent) ? body.intent.map(String) : [])
   const mustDeclare: Axis[] = ['visibility', 'monitoring', 'taxonomy']
   const undeclared = mustDeclare.filter((a) => touched.has(a) && !intent.includes(a))
   if (undeclared.length > 0) {
@@ -215,6 +250,38 @@ export async function PATCH(
     }, { status: 409 })
   }
 
+  /**
+   * Public requires a classifying music taxonomy — checked before the write,
+   * so a refused Public leaves no partial state.
+   *
+   * `taxonomy_state` is derived by `browse_product_projection`, not stored on
+   * `kg_product`, so it is read from the view rather than recomputed: there
+   * stays exactly one definition of "classified". Without this a Public action
+   * would succeed and put the product on a page that never reaches browse.
+   */
+  // Preconditions come from lib/publication.ts so the route cannot express a
+  // weaker rule than the contract. Refusal happens BEFORE the update, which is
+  // what makes "no partial state" true rather than hoped for.
+  if (publication !== undefined && isPublicationAction(publication)) {
+    const { data: proj, error: projErr } = await admin
+      .from('browse_product_projection')
+      .select('taxonomy_state, browse_domain')
+      .eq('id', params.id)
+      .maybeSingle()
+    if (projErr) return NextResponse.json({ error: projErr.message }, { status: 500 })
+    const refusal = publicationRefusal(publication, {
+      status: before.status,
+      taxonomy_state: proj?.taxonomy_state ?? null,
+      browse_domain: proj?.browse_domain ?? null,
+    })
+    if (refusal) {
+      return NextResponse.json(
+        { error: refusal.error, message: refusal.message },
+        { status: refusal.status },
+      )
+    }
+  }
+
   const changes = Object.entries(update)
     .filter(([f, v]) => (before as Record<string, unknown>)[f] !== v)
     .map(([field, to]) => ({
@@ -228,6 +295,7 @@ export async function PATCH(
   const manifest = {
     product: { id: before.id, slug: before.slug, canonical_name: before.canonical_name },
     dry_run: dryRun,
+    publication: publication === undefined ? undefined : publication,
     axes_touched: Array.from(touched),
     changes,
     // Editorial classification and source monitoring are separate concerns and

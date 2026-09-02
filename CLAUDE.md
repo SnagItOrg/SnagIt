@@ -121,6 +121,20 @@ coupling would silently widen monitoring. The KG is a broad identity universe,
 and brand-collision protection extends well past the supported cohort;
 operations are narrow and explicit. **A KG import must never widen monitoring.**
 
+**Publishing is one action, not four writes.** `/admin/products` exposes
+`Public / QA / Hidden` and nothing else; the internal axes are not offered
+there. The mapping and its preconditions live in
+[`frontend/lib/publication.ts`](frontend/lib/publication.ts) — import-free, like
+`catalogue.ts` — and the route applies them as a single atomic update, so a
+refused Public leaves no partial state. Public additionally requires a
+classifying music subcategory. `status` is never written by a publication
+action: it is a separate lifecycle axis, and inactivating a monitored product
+stops that source's scraper via `assertResolved()`.
+
+**Exposure is derived, so re-read it after a mutation and never predict it.**
+Four axes plus a view decide it; `effectiveExposure()` returns the one gate to
+fix next.
+
 Lifecycle axes and promotion authoring:
 [`docs/klup-product-lifecycle-guide.md`](docs/klup-product-lifecycle-guide.md).
 

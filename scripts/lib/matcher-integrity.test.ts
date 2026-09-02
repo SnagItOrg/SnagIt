@@ -2078,7 +2078,23 @@ test('the admin UI declares intent for the two consequential axes', () => {
   const src = fs.readFileSync(
     path.resolve(__dirname, '../../frontend/app/admin/products/page.tsx'), 'utf8')
   assert.ok(src.includes("intent: ['monitoring']"), 'tier change must declare monitoring intent')
-  assert.ok(src.includes("intent: ['visibility']"), 'visibility change must declare visibility intent')
+
+  // AMENDED BY PAN-22. Visibility is no longer a client-orchestrated axis: the
+  // UI sends a publication ACTION and the server derives both axes in one
+  // atomic update, declaring the intent itself. The guarantee is unchanged —
+  // exposure still cannot move without being named — so the assertion follows
+  // it to where it now lives, rather than pinning the two-PATCH shape PAN-22
+  // exists to remove.
+  assert.equal(src.includes("intent: ['visibility']"), false,
+    'the client must not orchestrate the visibility axis any more')
+  assert.ok(src.includes('publication: action'), 'the UI sends the outcome, not the axes')
+
+  const route = fs.readFileSync(
+    path.resolve(__dirname, '../../frontend/app/api/admin/products/[id]/route.ts'), 'utf8')
+  assert.ok(route.includes('publication_conflicts_with_axis_fields'),
+    'one vocabulary or the other, never both')
+  assert.ok(route.includes('Array.from(touched)'),
+    'the server declares the intent a publication action implies')
 })
 
 // SUPERSEDED by 'no scraper selects products by editorial tier' (Prompt 04B).
