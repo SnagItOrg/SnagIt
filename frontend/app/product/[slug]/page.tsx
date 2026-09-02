@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
@@ -9,6 +9,10 @@ import { SearchResultCard } from '@/components/SearchResultCard'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
+import {
+  ProductReviewControls,
+  type MatchReviewStatus,
+} from '@/components/admin/ProductReviewControls'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts'
 import { ChartFrame, DataLegend } from '@/components/data-display'
 import { formatDateRange, formatDkkAmount } from '@/lib/chart-format'
@@ -68,23 +72,69 @@ export default function ProductPage() {
 
   const [savedListingIds, setSavedListingIds] = useState<Set<string>>(new Set())
 
+  /**
+   * ADMIN REVIEW MODE.
+   *
+   * Two independent conditions, and only one of them is authorisation.
+   * `?review=1` (or the existing `?debug=1`) is a view preference anyone can
+   * type; `isAdmin` comes from /api/admin/me, which reads the session on the
+   * server. The controls need both, and every route they call re-checks admin
+   * for itself — the query parameter can never grant anything.
+   */
+  const searchParams = useSearchParams()
+  const reviewRequested = searchParams.get('review') === '1' || searchParams.get('debug') === '1'
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [matchStatuses, setMatchStatuses] = useState<Record<string, MatchReviewStatus>>({})
+  const [reviewNotice, setReviewNotice] = useState<string | null>(null)
+  const reviewMode = isAdmin && reviewRequested
+
   useEffect(() => {
-    fetch(`/api/product/${slug}`)
-      .then((r) => {
-        if (r.status === 404) { setNotFound(true); return null }
-        return r.json()
-      })
-      .then((data) => {
-        if (!data) return
-        setProduct(data.product)
-        setListings(data.listings ?? [])
-        setPriceHistory(data.priceHistory ?? [])
-        setPriceRange(data.priceRange ?? null)
-        setRelatedProducts(data.relatedProducts ?? [])
-      })
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false))
+    let cancelled = false
+    fetch('/api/admin/me')
+      .then((r) => (r.ok ? r.json() : { isAdmin: false }))
+      .then((d: { isAdmin?: boolean }) => { if (!cancelled && d.isAdmin) setIsAdmin(true) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  const loadMatchStatuses = useCallback(async () => {
+    if (!reviewMode) return
+    const res = await fetch(`/api/admin/product/${slug}/match-review`)
+    if (!res.ok) return
+    const body = (await res.json()) as {
+      matches?: Array<{ listing_id: string; status: MatchReviewStatus }>
+    }
+    setMatchStatuses(
+      Object.fromEntries((body.matches ?? []).map((m) => [m.listing_id, m.status])),
+    )
+  }, [reviewMode, slug])
+
+  useEffect(() => { void loadMatchStatuses() }, [loadMatchStatuses])
+
+  /**
+   * Extracted from the mount effect so a review decision can re-read it.
+   * Refetching is what makes a rejected listing leave the wall and the counts
+   * follow, without a full page reload.
+   */
+  const loadProduct = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/product/${slug}`)
+      if (r.status === 404) { setNotFound(true); return }
+      const data = await r.json()
+      if (!data) return
+      setProduct(data.product)
+      setListings(data.listings ?? [])
+      setPriceHistory(data.priceHistory ?? [])
+      setPriceRange(data.priceRange ?? null)
+      setRelatedProducts(data.relatedProducts ?? [])
+    } catch {
+      setNotFound(true)
+    } finally {
+      setLoading(false)
+    }
   }, [slug])
+
+  useEffect(() => { void loadProduct() }, [loadProduct])
 
   useEffect(() => {
     fetch('/api/saved-listings')
@@ -534,18 +584,57 @@ export default function ProductPage() {
                     <p className="text-sm font-medium text-foreground">
                       {listings.length} {listings.length === 1 ? 'annonce' : 'annoncer'}
                     </p>
+                    {isAdmin && (
+                      <div className="flex flex-wrap items-center gap-3">
+                        <a
+                          href={reviewRequested ? `/product/${slug}` : `/product/${slug}?review=1`}
+                          className="w-fit rounded-lg border border-line bg-surface-2 px-3 py-1 text-xs font-semibold text-ink-secondary transition-colors hover:bg-surface-3"
+                        >
+                          {reviewRequested ? 'Afslut gennemgang' : 'Gennemgå matches'}
+                        </a>
+                        {reviewNotice && (
+                          <span role="status" className="type-meta" data-testid="review-notice">
+                            {reviewNotice}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     <div className="grid-wall grid-wall-lg">
                     {listings.map((listing) => (
                       <ListingErrorBoundary key={listing.id} listingId={listing.id}>
-                        <SearchResultCard
-                          listing={listing}
-                          onCreateWatchlist={handleCreateWatchlist}
-                          creating={creating}
-                          variant="list"
-                          thomannImageUrl={product.image_url}
-                          isSaved={savedListingIds.has(listing.id)}
-                          onToggleSave={handleToggleSave}
-                        />
+                        <div className="flex flex-col">
+                          <SearchResultCard
+                            listing={listing}
+                            onCreateWatchlist={handleCreateWatchlist}
+                            creating={creating}
+                            variant="list"
+                            thomannImageUrl={product.image_url}
+                            isSaved={savedListingIds.has(listing.id)}
+                            onToggleSave={handleToggleSave}
+                          />
+                          {reviewMode && (
+                            <ProductReviewControls
+                              slug={slug}
+                              listingId={listing.id}
+                              status={matchStatuses[listing.id] ?? 'unresolved'}
+                              onDecided={(id, next) => {
+                                setMatchStatuses((prev) => ({ ...prev, [id]: next }))
+                                setReviewNotice(
+                                  next === 'rejected' ? 'Match afvist' : 'Match godkendt',
+                                )
+                                // The wall is re-read from the server: a rejected
+                                // listing leaves it, and the counts follow.
+                                void loadProduct()
+                                void loadMatchStatuses()
+                              }}
+                              onReassigned={(id, productName) => {
+                                setReviewNotice(`Listing flyttet til ${productName}`)
+                                void loadProduct()
+                                void loadMatchStatuses()
+                              }}
+                            />
+                          )}
+                        </div>
                       </ListingErrorBoundary>
                     ))}
                     </div>

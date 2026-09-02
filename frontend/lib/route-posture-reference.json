@@ -24,11 +24,9 @@
     "routable file to be classified — but any route that is protected, admin or",
     "machine-authenticated must be pinned here."
   ],
-
   "expected": {
     "/profile": "protected_page",
     "/watchlists/[id]/edit": "protected_page",
-
     "/api/watchlists": "protected_api",
     "/api/watchlists/[id]": "protected_api",
     "/api/watchlists/[id]/listings": "protected_api",
@@ -37,7 +35,6 @@
     "/api/preferences": "protected_api",
     "/api/price-history": "protected_api",
     "/api/market-price": "protected_api",
-
     "/admin": "admin_page",
     "/admin/cleanup": "admin_page",
     "/admin/match": "admin_page",
@@ -49,7 +46,6 @@
     "/admin/suggestions/bulk": "admin_page",
     "/admin/users": "admin_page",
     "/intel": "admin_page",
-
     "/api/admin/me": "admin_api",
     "/api/admin/msrp": "admin_api",
     "/api/admin/products": "admin_api",
@@ -76,6 +72,8 @@
     "/api/admin/product/new": "admin_api",
     "/api/admin/product/subcategories": "admin_api",
     "/api/admin/product/[slug]/reassign-match": "admin_api",
+    "/api/admin/product/[slug]/approve-match": "admin_api",
+    "/api/admin/product/[slug]/match-review": "admin_api",
     "/api/admin/product/[slug]/reject-match": "admin_api",
     "/api/admin/product/[slug]/save-listing": "admin_api",
     "/api/admin/product/[slug]/scrape-kleinanzeigen": "admin_api",
@@ -83,24 +81,22 @@
     "/api/admin/product/[slug]/set-price": "admin_api",
     "/api/admin/product/[slug]/synonym": "admin_api",
     "/api/admin/product/[slug]/synonym/[id]": "admin_api",
-
     "/api/cron/scrape": "machine_api",
-
     "/product/[slug]": "public_page_data_gated",
     "/api/product/[slug]": "public_api_data_gated"
   },
-
   "mustRequireSession": [
     "protected_page",
     "protected_api",
     "admin_page",
     "admin_api"
   ],
-
   "mustRequireAdmin": [
     "admin_page",
     "admin_api"
   ],
-
-  "adminPrefixes": ["/admin", "/api/admin"]
+  "adminPrefixes": [
+    "/admin",
+    "/api/admin"
+  ]
 }

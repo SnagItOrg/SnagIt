@@ -270,7 +270,7 @@ test('the stored method stays inside the CHECK constraint', () => {
   // listing_product_match_method_check allows EAN|SKU|MODEL|SYNONYM|FUZZY only.
   // A 'MANUAL' method would need a migration, which this change does not have.
   const allowed = ['EAN', 'SKU', 'MODEL', 'SYNONYM', 'FUZZY']
-  const match = DECISION_ROUTE.match(/const MANUAL_METHOD = '([A-Z]+)'/)
+  const match = WRITE_PLANNER.match(/const MANUAL_METHOD = '([A-Z]+)'/)
   assert.ok(match, 'the manual method must be a named constant')
   assert.ok(allowed.includes(match[1]), `${match[1]} would violate the CHECK constraint`)
 })

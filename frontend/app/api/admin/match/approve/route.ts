@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { getCurrentAdminState, requireAdminInRoute } from '@/lib/admin-auth'
 import {
+  MANUAL_METHOD,
+  MANUAL_SCORE,
   PERSISTS,
+  REJECTION_REASON,
   planWrites,
   requiresTargetProduct,
   validateDecision,
@@ -25,11 +28,6 @@ import {
  * nothing. An operator could reject the same wrong listing every day forever.
  */
 
-/** Values `listing_product_match.method` is allowed to hold (CHECK constraint). */
-const MANUAL_METHOD = 'FUZZY'
-/** `score` is a smallint with a 0..100 CHECK. New manual rows keep the existing value. */
-const MANUAL_SCORE = 1
-const REJECTION_REASON = 'admin_rejected'
 
 type DecisionRow = {
   listing_id: string

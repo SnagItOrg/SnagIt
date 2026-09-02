@@ -110,6 +110,12 @@ export function isRejection(d: Disposition): boolean {
  * `listing_product_match.rejected_reason` keeps its existing constant value —
  * redefining a populated column is not part of this slice.
  */
+/** Values `listing_product_match.method` is allowed to hold (CHECK constraint). */
+export const MANUAL_METHOD = 'FUZZY'
+/** `score` is a smallint with a 0..100 CHECK. New manual rows keep the existing value. */
+export const MANUAL_SCORE = 1
+export const REJECTION_REASON = 'admin_rejected'
+
 export const REJECTION_REASON_FOR: Readonly<Partial<Record<Disposition, string>>> = {
   accessory: 'accessory',
   wanted_ad: 'wanted_ad',
@@ -220,6 +226,16 @@ export type PlanArgs = {
   manualMethod: string
   manualScore: number
   rejectedReasonConstant: string
+  /**
+   * Which surface the operator decided from. Audit only.
+   *
+   * Parameterised so the product page can reuse this exact planner instead of
+   * growing a second reject contract that writes no provenance — which is what
+   * `/api/admin/product/[slug]/reject-match` used to do. One decision shape,
+   * several entry points. Defaults to the original value so the candidate flow
+   * is byte-identical.
+   */
+  decisionSource?: string
 }
 
 /**
@@ -279,7 +295,7 @@ export function planDecisionWrites(args: PlanArgs): PlannedRow[] {
           disposition: decision.disposition,
           actor_user_id: args.actorUserId,
           decided_at: args.decidedAt,
-          decision_source: 'admin/match',
+          decision_source: args.decisionSource ?? 'admin/match',
           // Which product the operator was reviewing when they assigned it
           // elsewhere. Audit only — no row is written against that product.
           ...(reassigned ? { reviewed_product_id: args.reviewedProductId } : {}),

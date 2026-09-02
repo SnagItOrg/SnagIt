@@ -28,7 +28,10 @@ import { join } from 'node:path'
 
 import {
   IS_VALID_FOR,
+  MANUAL_METHOD,
+  MANUAL_SCORE,
   PERSISTS,
+  REJECTION_REASON,
   REJECTION_REASON_FOR,
   isApproval,
   isRejection,
@@ -741,4 +744,441 @@ test('the writer reads only what it needs to decide, before deciding', () => {
   assert.ok(/touchedProductIds/.test(DECISION_ROUTE))
   assert.ok(/new Set\(\[reviewedProductId, \.\.\.moveTargets\]\)/.test(DECISION_ROUTE),
     'the reviewed product must always be read, or a conflict would go unseen')
+})
+
+/* ==========================================================================
+   Product-page match review mode.
+
+   The public product page gains admin-only review controls. These cover the
+   two things that can be wrong without being visible: the authorisation
+   boundary, and whether one decision can reach a relation it was not aimed at.
+   ========================================================================== */
+
+import {
+  DECISION_SOURCE,
+  DISPOSITION_FOR,
+} from '../../frontend/lib/admin-match-decision'
+
+const RV_FE = join(__dirname, '..', '..', 'frontend')
+/** Code only; the comments legitimately quote the patterns being asserted. */
+const rvCodeOf = (...seg: string[]) =>
+  readFileSync(join(RV_FE, ...seg), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
+
+const RV_PRODUCT_PAGE = ['app', 'product', '[slug]', 'page.tsx']
+const RV_CONTROLS = ['components', 'admin', 'ProductReviewControls.tsx']
+const RV_DECISION_LIB = ['lib', 'admin-match-decision.ts']
+const RV_REVIEW_ROUTE = ['app', 'api', 'admin', 'product', '[slug]', 'match-review', 'route.ts']
+const RV_APPROVE_ROUTE = ['app', 'api', 'admin', 'product', '[slug]', 'approve-match', 'route.ts']
+const RV_REJECT_ROUTE = ['app', 'api', 'admin', 'product', '[slug]', 'reject-match', 'route.ts']
+const RV_PUBLIC_ROUTE = ['app', 'api', 'product', '[slug]', 'route.ts']
+
+const RV_PRIOR = (isValid: boolean | null) => ({
+  method: 'MODEL', score: 70, isValid, explain: { matcher: 'kept' },
+})
+const rvPlanOne = (
+  disposition: 'exact' | 'wrong',
+  listingId = 'L1',
+  productId = 'P1',
+  prior: ReturnType<typeof RV_PRIOR> | undefined = RV_PRIOR(null),
+) =>
+  planDecisionWrites({
+    decisions: [{ listing_id: listingId, disposition, target_product_id: null }],
+    reviewedProductId: productId,
+    priorByKey: prior ? { [`${listingId}:${productId}`]: prior } : {},
+    actorUserId: 'admin-1',
+    decidedAt: '2026-09-02T10:00:00.000Z',
+    manualMethod: MANUAL_METHOD,
+    manualScore: MANUAL_SCORE,
+    rejectedReasonConstant: REJECTION_REASON,
+    decisionSource: DECISION_SOURCE,
+  })
+
+// ── 1-5: the authorisation boundary ─────────────────────────────────────────
+
+test('review 1: the toggle is rendered only for a server-verified admin', () => {
+  const code = rvCodeOf(...RV_PRODUCT_PAGE)
+  assert.ok(/isAdmin && \(/.test(code), 'the toggle is behind isAdmin')
+  assert.ok(code.includes("fetch('/api/admin/me')"), 'isAdmin comes from the server, not the URL')
+})
+
+test('review 2: every write route enforces admin server-side', () => {
+  for (const route of [RV_APPROVE_ROUTE, RV_REJECT_ROUTE, RV_REVIEW_ROUTE]) {
+    const code = rvCodeOf(...route)
+    assert.ok(code.includes('requireAdminInRoute'), `${route.join('/')} must gate itself`)
+  }
+})
+
+test('review 3: a query parameter grants nothing', () => {
+  const code = rvCodeOf(...RV_PRODUCT_PAGE)
+  // Review mode is the AND of a preference and a server-verified identity.
+  assert.ok(/reviewMode = isAdmin && reviewRequested/.test(code))
+  assert.equal(/reviewMode = reviewRequested/.test(code), false)
+  // The parameter must never be read by a route as authority.
+  for (const route of [RV_APPROVE_ROUTE, RV_REJECT_ROUTE, RV_REVIEW_ROUTE]) {
+    const code = rvCodeOf(...route)
+    assert.equal(/searchParams|['"]debug['"]|['"]review['"]/.test(code), false,
+      `${route.join('/')} must not read a view flag`)
+  }
+})
+
+test('review 4: an admin without review mode gets the normal page', () => {
+  const code = rvCodeOf(...RV_PRODUCT_PAGE)
+  assert.ok(/\{reviewMode && \(/.test(code), 'controls are behind reviewMode, not isAdmin alone')
+})
+
+test('review 5: review mode renders status and all three controls', () => {
+  const code = rvCodeOf(...RV_CONTROLS)
+  assert.ok(code.includes('Godkend'))
+  assert.ok(code.includes('Afvis'))
+  assert.ok(code.includes('Match med andet produkt'))
+  assert.ok(code.includes('StatusChip'))
+})
+
+// ── 6-10: the decision contract ─────────────────────────────────────────────
+
+test('review 6: an already-approved match can be rejected again', () => {
+  const rows = rvPlanOne('wrong', 'L1', 'P1', RV_PRIOR(true))
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].is_valid, false)
+  assert.equal(rows[0].rejected_reason, REJECTION_REASON)
+})
+
+test('review 7: an unresolved match can be approved', () => {
+  const rows = rvPlanOne('exact', 'L1', 'P1', RV_PRIOR(null))
+  assert.equal(rows[0].is_valid, true)
+  assert.equal(rows[0].rejected_reason, null)
+})
+
+test('review 8: a decision is scoped to the listing and the reviewed product', () => {
+  const rows = rvPlanOne('wrong', 'L-target', 'P-reviewed', RV_PRIOR(true))
+  assert.equal(rows.length, 1, 'exactly one row is written')
+  assert.equal(rows[0].listing_id, 'L-target')
+  assert.equal(rows[0].product_id, 'P-reviewed')
+})
+
+test('review 9: another product relation for the same listing is untouched', () => {
+  // The Juno-6 case: wrong on juno-106, correct on juno-6. One decision, one row.
+  const rows = rvPlanOne('wrong', 'L-juno6', 'P-juno106', RV_PRIOR(true))
+  assert.equal(rows.length, 1)
+  assert.notEqual(rows[0].product_id, 'P-juno6')
+  // And the writer refuses anything the planner aims elsewhere.
+  const lib = rvCodeOf(...RV_DECISION_LIB)
+  assert.ok(lib.includes('refusing an out-of-scope write'))
+  assert.ok(lib.includes(".eq('listing_id'") && lib.includes(".eq('product_id'"))
+})
+
+test('review 10: provenance is written, and prior matcher evidence survives', () => {
+  const rows = rvPlanOne('wrong', 'L1', 'P1', RV_PRIOR(true))
+  const decision = (rows[0].explain as Record<string, Record<string, unknown>>).admin_decision
+  assert.equal(decision.decision, 'rejected')
+  assert.equal(decision.actor_user_id, 'admin-1')
+  assert.equal(decision.decided_at, '2026-09-02T10:00:00.000Z')
+  assert.equal(decision.decision_source, DECISION_SOURCE)
+  assert.equal(rows[0].method, 'MODEL', 'the matcher method is preserved')
+  assert.equal(rows[0].score, 70)
+  assert.equal((rows[0].explain as Record<string, unknown>).matcher, 'kept', 'prior explain survives')
+})
+
+test('review 10b: both product-page decisions use the shared disposition vocabulary', () => {
+  assert.equal(DISPOSITION_FOR.approve, 'exact')
+  assert.equal(DISPOSITION_FOR.reject, 'wrong')
+  assert.equal(IS_VALID_FOR[DISPOSITION_FOR.approve], true)
+  assert.equal(IS_VALID_FOR[DISPOSITION_FOR.reject], false)
+})
+
+test('review 10c: the product page no longer has a second reject contract', () => {
+  const code = rvCodeOf(...RV_REJECT_ROUTE)
+  assert.ok(code.includes('applyProductPageDecision'), 'delegates to the shared writer')
+  assert.equal(/\.update\(\s*\{/.test(code), false, 'no direct is_valid update remains')
+})
+
+// ── 11-13: interaction ──────────────────────────────────────────────────────
+
+test('review 11: reassign reuses the existing contract, not a new picker', () => {
+  const code = rvCodeOf(...RV_CONTROLS)
+  assert.ok(code.includes('ReassignPanel'), 'the existing panel is reused')
+  assert.equal(/admin\/products\?q=/.test(code), false, 'no parallel KG search here')
+  const panel = rvCodeOf('components', 'admin', 'ReassignPanel.tsx')
+  assert.ok(panel.includes('reassign-match'), 'the panel still calls the existing route')
+})
+
+test('review 12: a server error does not advance the card status', () => {
+  const code = rvCodeOf(...RV_CONTROLS)
+  // onDecided is only reached after the ok-check returns.
+  const failIdx = code.indexOf('if (!res.ok)')
+  const successIdx = code.indexOf('onDecided(listingId')
+  assert.ok(failIdx !== -1 && successIdx !== -1)
+  assert.ok(failIdx < successIdx, 'the failure branch returns before any state advance')
+  assert.ok(code.includes('setError('), 'the failure is surfaced')
+})
+
+test('review 13: a confirmed decision refetches product and match data', () => {
+  const code = rvCodeOf(...RV_PRODUCT_PAGE)
+  assert.ok(code.includes('void loadProduct()'))
+  assert.ok(code.includes('void loadMatchStatuses()'))
+})
+
+// ── 14-15: the public surface is unchanged ──────────────────────────────────
+
+test('review 14: the public product API exposes no admin match metadata', () => {
+  const code = rvCodeOf(...RV_PUBLIC_ROUTE)
+  for (const leak of ['is_valid', 'rejected_reason', 'explain', 'admin_decision', 'actor_user_id']) {
+    assert.equal(code.includes(`${leak}:`), false, `public payload must not carry ${leak}`)
+  }
+  // The public route still filters rejections without publishing the field.
+  assert.ok(code.includes("not('is_valid', 'is', false)"), 'filtering is allowed; exposing is not')
+})
+
+test('review 15: without review mode the public page renders no review markup', () => {
+  const code = rvCodeOf(...RV_PRODUCT_PAGE)
+  const controls = code.indexOf('<ProductReviewControls')
+  assert.ok(controls !== -1)
+  const guard = code.lastIndexOf('reviewMode &&', controls)
+  assert.ok(guard !== -1 && guard < controls, 'every control is behind the reviewMode guard')
+})
+
+test('review 15b: the admin metadata endpoint withholds actor and explain', () => {
+  const code = rvCodeOf(...RV_REVIEW_ROUTE)
+  assert.ok(code.includes("select('listing_id, is_valid, method, score')"))
+  assert.equal(code.includes('explain'), false, 'explain holds actor_user_id and is not returned')
+  assert.equal(code.includes('rejected_reason'), false)
+})
+
+/* ── Reject contract: provenance AND the pre-existing reason ────────────────
+   The route documented `{ listing_id, reason? }` before review mode existed.
+   These lock the compatibility of that request shape and, more importantly,
+   that a decision never erases a more specific cause another producer wrote. */
+
+import { applyProductPageDecision } from '../../frontend/lib/admin-match-decision'
+
+type RvFakeRow = Record<string, unknown>
+
+/** Minimal recording stand-in for the Supabase admin client. */
+function rvFakeAdmin(prior: RvFakeRow | null) {
+  const upserts: RvFakeRow[][] = []
+  const client = {
+    from(table: string) {
+      const b: Record<string, unknown> = {
+        select: () => b,
+        eq: () => b,
+        maybeSingle: async () =>
+          table === 'kg_product'
+            ? { data: { id: 'P-juno106' }, error: null }
+            : { data: prior, error: null },
+        upsert: async (rows: RvFakeRow[]) => { upserts.push(rows); return { error: null } },
+      }
+      return b
+    },
+  }
+  return { client: client as never, upserts }
+}
+
+const RV_PRIOR_ROW = (over: RvFakeRow = {}) => ({
+  method: 'MODEL', score: 70, is_valid: true, rejected_reason: null,
+  explain: { matcher: 'kept' }, ...over,
+})
+
+test('reject 1: a legacy request carrying `reason` is still accepted', async () => {
+  const { client, upserts } = rvFakeAdmin(RV_PRIOR_ROW())
+  const res = await applyProductPageDecision(client, {
+    slug: 'roland-juno-106', listingId: 'L1', decision: 'reject',
+    actorUserId: 'admin-1', operatorNote: 'Det er en JV-1010, ikke en Juno-106',
+  })
+  assert.equal(res.ok, true)
+  const row = upserts[0][0] as RvFakeRow
+  const decision = (row.explain as Record<string, RvFakeRow>).admin_decision
+  assert.equal(decision.operator_note, 'Det er en JV-1010, ikke en Juno-106')
+})
+
+test('reject 2: a more specific prior cause is preserved, not overwritten', async () => {
+  // The matcher's brand guard wrote this; an admin confirming the rejection
+  // must not replace it with the generic constant.
+  const { client, upserts } = rvFakeAdmin(RV_PRIOR_ROW({ rejected_reason: 'brand_collision', is_valid: false }))
+  await applyProductPageDecision(client, {
+    slug: 'roland-juno-106', listingId: 'L1', decision: 'reject', actorUserId: 'admin-1',
+  })
+  assert.equal((upserts[0][0] as RvFakeRow).rejected_reason, 'brand_collision')
+})
+
+test('reject 2b: with no prior cause the structured constant is written', async () => {
+  const { client, upserts } = rvFakeAdmin(RV_PRIOR_ROW())
+  await applyProductPageDecision(client, {
+    slug: 'roland-juno-106', listingId: 'L1', decision: 'reject', actorUserId: 'admin-1',
+  })
+  assert.equal((upserts[0][0] as RvFakeRow).rejected_reason, REJECTION_REASON)
+})
+
+test('reject 3: admin_decision is written alongside the reason', async () => {
+  const { client, upserts } = rvFakeAdmin(RV_PRIOR_ROW({ rejected_reason: 'brand_collision', is_valid: false }))
+  await applyProductPageDecision(client, {
+    slug: 'roland-juno-106', listingId: 'L1', decision: 'reject',
+    actorUserId: 'admin-1', operatorNote: 'bekræftet',
+  })
+  const row = upserts[0][0] as RvFakeRow
+  const decision = (row.explain as Record<string, RvFakeRow>).admin_decision
+  assert.equal(row.rejected_reason, 'brand_collision', 'column cause survives')
+  assert.equal(decision.decision, 'rejected', 'and provenance is written too')
+  assert.equal(decision.operator_note, 'bekræftet')
+})
+
+test('reject 4: actor, timestamp and source are recorded', async () => {
+  const { client, upserts } = rvFakeAdmin(RV_PRIOR_ROW())
+  await applyProductPageDecision(client, {
+    slug: 'roland-juno-106', listingId: 'L1', decision: 'reject', actorUserId: 'admin-7',
+  })
+  const d = ((upserts[0][0] as RvFakeRow).explain as Record<string, RvFakeRow>).admin_decision
+  assert.equal(d.actor_user_id, 'admin-7')
+  assert.equal(d.decision_source, DECISION_SOURCE)
+  assert.ok(typeof d.decided_at === 'string' && !Number.isNaN(Date.parse(d.decided_at as string)))
+  assert.equal(d.disposition, 'wrong', 'the structured disposition is kept')
+})
+
+test('reject 5: existing explain and matcher metadata survive', async () => {
+  const { client, upserts } = rvFakeAdmin(RV_PRIOR_ROW({ explain: { matcher: 'kept', ai_pass: 2 } }))
+  await applyProductPageDecision(client, {
+    slug: 'roland-juno-106', listingId: 'L1', decision: 'reject', actorUserId: 'admin-1',
+  })
+  const row = upserts[0][0] as RvFakeRow
+  assert.equal(row.method, 'MODEL', 'matcher method preserved')
+  assert.equal(row.score, 70)
+  assert.equal((row.explain as RvFakeRow).matcher, 'kept')
+  assert.equal((row.explain as RvFakeRow).ai_pass, 2)
+})
+
+test('reject 6: approving clears the rejection cause', async () => {
+  const { client, upserts } = rvFakeAdmin(RV_PRIOR_ROW({ rejected_reason: 'brand_collision', is_valid: false }))
+  await applyProductPageDecision(client, {
+    slug: 'roland-juno-106', listingId: 'L1', decision: 'approve', actorUserId: 'admin-1',
+  })
+  const row = upserts[0][0] as RvFakeRow
+  assert.equal(row.is_valid, true)
+  assert.equal(row.rejected_reason, null, 'the cause no longer holds once approved')
+})
+
+test('reject 7: the batch flow is untouched by the product-page source', () => {
+  // planDecisionWrites still defaults to the original source when none is given.
+  const rows = planDecisionWrites({
+    decisions: [{ listing_id: 'L1', disposition: 'wrong', target_product_id: null }],
+    reviewedProductId: 'P1', priorByKey: {}, actorUserId: 'a', decidedAt: 'D',
+    manualMethod: MANUAL_METHOD, manualScore: MANUAL_SCORE, rejectedReasonConstant: REJECTION_REASON,
+  })
+  const d = (rows[0].explain as Record<string, Record<string, unknown>>).admin_decision
+  assert.equal(d.decision_source, 'admin/match')
+})
+
+test('reject 7b: the curation client request shape still works', () => {
+  const code = rvCodeOf('app', 'admin', 'product', '[slug]', 'ProductCurationClient.tsx')
+  assert.ok(code.includes("JSON.stringify({ listing_id: listing.id })"), 'existing client unchanged')
+  const route = rvCodeOf(...RV_REJECT_ROUTE)
+  assert.ok(/listing_id, reason/.test(route), 'and the route still destructures reason')
+})
+
+test('reject 8: a decision never touches a relation by listing id alone', () => {
+  const lib = rvCodeOf(...RV_DECISION_LIB)
+  // Both reads and the write are keyed on the pair.
+  assert.equal((lib.match(/\.eq\('product_id'/g) ?? []).length >= 1, true)
+  assert.ok(lib.includes("upsert([row], { onConflict: 'listing_id,product_id' })"))
+})
+
+/* ── The extracted reassign panel, and its two consumers ────────────────────── */
+
+test('reassign: both consumers render the same extracted panel', () => {
+  const panel = 'components/admin/ReassignPanel'
+  const curation = rvCodeOf('app', 'admin', 'product', '[slug]', 'ProductCurationClient.tsx')
+  const controls = rvCodeOf(...RV_CONTROLS)
+  for (const [name, code] of [['curation page', curation], ['product-page review', controls]] as const) {
+    assert.ok(code.includes(panel), `${name} imports the shared panel`)
+    assert.ok(code.includes('<ReassignPanel'), `${name} renders it`)
+  }
+  // Neither consumer may hold its own copy of the search or the create form.
+  for (const code of [curation, controls]) {
+    assert.equal(code.includes('function ReassignPanel'), false)
+    assert.equal(code.includes('function InlineNewProductForm'), false)
+  }
+})
+
+test('reassign: the panel props contract is identical for both consumers', () => {
+  for (const code of [
+    rvCodeOf('app', 'admin', 'product', '[slug]', 'ProductCurationClient.tsx'),
+    rvCodeOf(...RV_CONTROLS),
+  ]) {
+    let at = code.indexOf('<ReassignPanel')
+    let sites = 0
+    while (at !== -1) {
+      const block = code.slice(at, at + 1200)
+      for (const prop of ['slug=', 'listingId=', 'onSuccess=', 'onCancel=']) {
+        assert.ok(block.includes(prop), `call site ${sites} must pass ${prop}`)
+      }
+      sites += 1
+      at = code.indexOf('<ReassignPanel', at + 1)
+    }
+    assert.ok(sites > 0, 'at least one call site')
+  }
+})
+
+test('reassign: the panel still targets the pre-existing routes', () => {
+  const panel = rvCodeOf('components', 'admin', 'ReassignPanel.tsx')
+  assert.ok(panel.includes('/api/admin/products?q='), 'the existing product search')
+  assert.ok(panel.includes('/reassign-match'), 'the existing reassign route')
+  assert.ok(panel.includes('/api/admin/product/new'), 'the existing create route')
+  // Payload keys, unchanged by the move.
+  assert.ok(panel.includes('target_slug'))
+})
+
+/* ── Multi-relation safety and the security surface ─────────────────────────── */
+
+test('safety: reassign moves one pair and deletes nothing', () => {
+  const route = rvCodeOf('app', 'api', 'admin', 'product', '[slug]', 'reassign-match', 'route.ts')
+  assert.equal(/\.delete\(/.test(route), false, 'no listing or match is ever deleted')
+  assert.ok(route.includes(".eq('listing_id'"), 'scoped by listing')
+  assert.ok(route.includes(".eq('product_id'"), 'AND by the source product')
+})
+
+test('safety: no decision route updates by listing id alone', () => {
+  for (const seg of [
+    ['app', 'api', 'admin', 'product', '[slug]', 'reject-match', 'route.ts'],
+    ['app', 'api', 'admin', 'product', '[slug]', 'approve-match', 'route.ts'],
+  ]) {
+    const code = rvCodeOf(...seg)
+    // These delegate; the pair-scoping lives in the shared writer.
+    assert.ok(code.includes('applyProductPageDecision'))
+    assert.equal(/\.from\('listing_product_match'\)/.test(code), false, 'no direct table access')
+  }
+})
+
+test('security: the client cannot choose the actor or the product', () => {
+  for (const seg of [
+    ['app', 'api', 'admin', 'product', '[slug]', 'reject-match', 'route.ts'],
+    ['app', 'api', 'admin', 'product', '[slug]', 'approve-match', 'route.ts'],
+  ]) {
+    const code = rvCodeOf(...seg)
+    assert.ok(code.includes('getCurrentAdminState()'), 'actor comes from the session')
+    assert.ok(/actorUserId: userId/.test(code))
+    // Only listing_id (and the optional note) are read from the body.
+    assert.equal(/product_id.*await req\.json|json\(\).*product_id/s.test(code), false,
+      'product id is never taken from the request body')
+    assert.ok(/slug: params\.slug/.test(code), 'product is resolved from the route slug')
+  }
+})
+
+test('security: both new routes are in the posture registry', async () => {
+  const { ROUTE_ACCESS } = await import('../../frontend/lib/route-access')
+  const rows = ROUTE_ACCESS as ReadonlyArray<{ route: string; access: string }>
+  for (const r of [
+    '/api/admin/product/[slug]/approve-match',
+    '/api/admin/product/[slug]/match-review',
+  ]) {
+    const hit = rows.find((x) => x.route === r)
+    assert.ok(hit, `${r} must be classified`)
+    assert.equal(hit.access, 'admin_api')
+  }
+})
+
+test('security: match-review metadata is admin-gated and minimal', () => {
+  const code = rvCodeOf(...RV_REVIEW_ROUTE)
+  const gate = code.indexOf('requireAdminInRoute')
+  const read = code.indexOf("from('listing_product_match')")
+  assert.ok(gate !== -1 && read !== -1 && gate < read, 'authorisation runs before any read')
 })
