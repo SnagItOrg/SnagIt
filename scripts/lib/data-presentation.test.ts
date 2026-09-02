@@ -981,14 +981,14 @@ test('verdict 15/16: the card renders a badge for each verdict and nothing for n
 })
 
 test('verdict 15c: the badge itself introduces no transition-all', () => {
-  // Four `transition-all` sites survive in this file, all in the pre-existing
-  // email-capture UI and heart button — the same four as at HEAD. Rev. 2
-  // assigns their removal to P3; P2 must not add a fifth. Asserting the badge
-  // markup specifically rather than the file as a whole.
+  // P2 left four `transition-all` sites in this file — the pre-existing
+  // email-capture UI and the action buttons — and recorded that their removal
+  // belonged to P3. P3 has since replaced all four with named transition
+  // properties, so the expected count is now zero rather than four.
   const code = codeOf(CARD)
   const badge = code.slice(code.indexOf('function MarketVerdictBadge'), code.indexOf('export function SearchResultCard'))
   assert.equal(badge.includes('transition-all'), false)
-  assert.equal((code.match(/transition-all/g) ?? []).length, 4, 'unchanged from HEAD; P2 added none')
+  assert.equal((code.match(/transition-all/g) ?? []).length, 0, 'P3 removed the last four')
 })
 
 test('verdict 15b: the badge is never colour alone and carries its basis', () => {

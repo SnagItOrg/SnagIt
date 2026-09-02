@@ -202,6 +202,8 @@ export const translations = {
     thomannNewPrice: 'Ny hos Thomann',
     opensAt: 'Åbner hos {source}',
     approxDkk: '≈ {dkk} kr ({original})',
+    /* A converted price whose stored original is the same number: one figure, marked approximate. */
+    approxDkkOnly: 'ca. {dkk} kr',
 
     // Price populations (P2) — each number names the population behind it.
     dkMarketHeading: 'Det danske marked',
@@ -535,6 +537,7 @@ export const translations = {
     thomannNewPrice: 'New at Thomann',
     opensAt: 'Opens at {source}',
     approxDkk: '≈ {dkk} kr ({original})',
+    approxDkkOnly: 'approx. {dkk} kr',
 
     dkMarketHeading: 'The Danish market',
     dkMarketNone: 'No Danish listings right now.',

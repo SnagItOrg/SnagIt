@@ -180,8 +180,31 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
    * are converted USD stored as currency='DKK'. Population decides.
    */
   const listingPopulation = classifyListing(listing).population
-  const dkkApprox = listing.price_dkk != null && isApproximateDkk(listingPopulation)
-    ? `≈ ${Math.round(Number(listing.price_dkk)).toLocaleString('da-DK')} kr`
+  const dkkNum = listing.price_dkk != null ? Math.round(Number(listing.price_dkk)) : null
+  const approximate = dkkNum != null && isApproximateDkk(listingPopulation)
+
+  /**
+   * ONE NUMBER, NOT THE SAME NUMBER TWICE.
+   *
+   * Every active Reverb row stores its converted USD under `currency='DKK'`
+   * with `price_dkk` set to the identical figure, so the honest "approximate"
+   * marker rendered as `11.603 kr ≈ 11.603 kr`. When the original and the
+   * comparable figure ARE the same number there is only one price to show —
+   * still marked approximate, because it is still a conversion.
+   *
+   * A genuine foreign row (NOK 18.000 -> 10.800 kr) has two different numbers
+   * and keeps both. A Danish row is not approximate at all and keeps neither.
+   */
+  const singleApproxFigure = approximate
+    && listing.price != null
+    && Math.round(Number(listing.price)) === dkkNum
+
+  const priceDisplay = singleApproxFigure
+    ? t.approxDkkOnly.replace('{dkk}', dkkNum!.toLocaleString('da-DK'))
+    : priceFormatted
+
+  const dkkApprox = approximate && !singleApproxFigure
+    ? `≈ ${dkkNum!.toLocaleString('da-DK')} kr`
     : null
 
   /** Real listing age, or nothing. `scraped_at` is when Klup looked. */
@@ -299,7 +322,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
           <div className="flex justify-between items-start gap-2">
             <p className="text-sm font-semibold text-foreground flex-1 line-clamp-2 min-h-[2.5rem]">{listing.title}</p>
             <div className="flex flex-col items-end flex-shrink-0">
-              <p className="text-sm font-semibold text-foreground tabular-nums">{priceFormatted}</p>
+              <p className="text-sm font-semibold text-foreground tabular-nums">{priceDisplay}</p>
               {dkkApprox && (
                 <p className="text-[10px] text-muted-foreground leading-tight">{dkkApprox}</p>
               )}
@@ -325,69 +348,103 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
   }
 
   // ─── List variant (default) ─────────────────────────────────────────────────
+  //
+  // IMAGE-FORWARD. The picture was an 80x80 thumbnail beside the text, which on
+  // a wall of listings gave the buyer nothing to scan: Krug's first fact is that
+  // people scan rather than read, and for used gear the photo carries most of
+  // the condition signal. It is now the dominant element, at the same 4:3 the
+  // product cards in browse already use, so the two card types agree.
+  //
+  // STILL ONE TAB STOP. Image, title, price and meta remain inside a single
+  // anchor. Splitting them would add a second tab stop to the same destination
+  // for no gain, and nesting a button inside the anchor — the mistake the unused
+  // grid variant makes — would break activation on assistive technology.
   return (
-    <div className="surface-card rounded-2xl overflow-hidden transition-colors hover:border-line-strong">
-      {/* Clickable area: thumbnail + title/price/meta */}
-      <a
-        href={listing.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex gap-3 px-3 pt-3 pb-2"
-        onClick={() => posthog?.capture('listing_clicked', { listing_id: listing.id, source: listing.source, price: listing.price ?? 0 })}
-      >
-        {/* Thumbnail */}
-        <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+    <div className="surface-card rounded-2xl overflow-hidden flex flex-col transition-colors hover:border-line-strong">
+      {/*
+        NOT A LINK. The body used to carry `href={listing.url}` — the same
+        destination as `Se annonce` below it — so the card offered two
+        interactive routes to one URL, two tab stops, and two analytics paths
+        for one intent. `Se annonce` is the single primary way out to the
+        marketplace; the click tracking moved there with it.
+      */}
+      <div className="flex flex-col">
+        {/*
+          One stable ratio and a token plate. `--secondary` is the same surface
+          the browse product cards sit on, so a white cut-out photo reads as
+          deliberate in both themes instead of floating on a light rectangle in
+          dark mode.
+        */}
+        <div className="relative w-full aspect-[4/3] overflow-hidden" style={{ background: 'var(--secondary)' }}>
           {imgSrc && !imgError ? (
             <Image
               src={imgSrc}
               alt={listing.title}
-              width={80}
-              height={80}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 25vw"
               onError={() => setImgError(true)}
             />
           ) : (
-            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--muted-foreground)' }}>
-              image
-            </span>
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="material-symbols-outlined" style={{ fontSize: '36px', color: 'var(--muted-foreground)', opacity: 0.4 }}>
+                image
+              </span>
+            </div>
           )}
         </div>
 
-        {/* Title + price + meta */}
-        <div className="flex-1 min-w-0 flex flex-col gap-1">
+        {/* Title, then price, then the deal signal, then provenance. */}
+        <div className="flex flex-col gap-1 px-3 pt-3">
           <p className="text-sm font-semibold text-foreground line-clamp-2 wrap-anywhere">{listing.title}</p>
-          <div className="flex items-baseline gap-2 min-w-0">
-            <p className="text-base font-semibold truncate tabular-nums" style={{ color: 'var(--foreground)' }}>
-              {priceFormatted}
+
+          {/*
+            The price never truncates. It is the number the whole card exists to
+            report, and `truncate` cut it at 360px.
+          */}
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <p className="text-base font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>
+              {priceDisplay}
             </p>
             {dkkApprox && (
-              <span className="text-[11px] text-muted-foreground flex-shrink-0">{dkkApprox}</span>
+              <span className="text-[11px] text-muted-foreground">{dkkApprox}</span>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px] mt-auto text-muted-foreground min-w-0">
-            <MarketVerdictBadge
-              verdict={marketVerdict}
-              basisLabelKey={marketVerdictBasisLabel}
-              t={t as unknown as Record<string, string>}
-            />
+
+          {/*
+            The deal label gets its own line. Sharing the meta row made it
+            compete with the platform, age and country for the same wrap, and at
+            360px it was the price that lost.
+          */}
+          {marketVerdict && (
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+              <MarketVerdictBadge
+                verdict={marketVerdict}
+                basisLabelKey={marketVerdictBasisLabel}
+                t={t as unknown as Record<string, string>}
+              />
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
             <PlatformBadge listing={listing} />
             {firstSeen && (
               <>
-                <span className="flex-shrink-0">·</span>
-                <span className="flex-shrink-0">{timeSince(firstSeen, locale)}</span>
+                <span>·</span>
+                <span>{timeSince(firstSeen, locale)}</span>
               </>
             )}
             {getLocationDisplay(listing) && (
               <>
-                <span className="flex-shrink-0">·</span>
-                <span className="truncate">{getLocationDisplay(listing)}</span>
+                <span>·</span>
+                <span>{getLocationDisplay(listing)}</span>
               </>
             )}
           </div>
         </div>
-      </a>
+      </div>
 
-      {/* Thomann new price — outside <a> to avoid nested anchor */}
+      {/* Thomann new price — kept out of the body for the same reason */}
       {thomannPriceDkk != null && thomannUrl && (
         <div className="px-3 pb-1">
           <a
@@ -430,7 +487,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
                 placeholder={t.email}
                 required
                 autoFocus
-                className="w-full rounded-xl px-3 py-2 text-sm outline-none transition-all"
+                className="w-full rounded-xl px-3 py-2 text-sm outline-none transition-colors"
                 style={{
                   backgroundColor: 'var(--input-background)',
                   border: '1px solid var(--border)',
@@ -442,7 +499,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               <button
                 type="submit"
                 disabled={captureLoading || !captureEmail.trim()}
-                className="w-full rounded-xl py-2 min-h-[44px] text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full rounded-xl py-2 min-h-[44px] text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
               >
                 {captureLoading ? '...' : t.sendLoginLink}
@@ -453,43 +510,58 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
             </form>
           )
         ) : (
-          <div className="flex gap-2">
+          /*
+            ONE PRIMARY ACTION, AND THE ROW WRAPS.
+
+            `flex` with `whitespace-nowrap` on four controls overflowed the card
+            at 360px and clipped "Se annonce" — measured on production before
+            this change. Wrapping is the fix; shrinking or hiding a control on
+            touch is not, because save and watch have no hover to fall back on.
+
+            DOM order matches visual order, so the keyboard reaches the primary
+            action first. `Se annonce` is the only filled control: Krug's
+            satisficing means the operator takes the first reasonable-looking
+            option, so exactly one should look like the obvious one.
+          */
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={listing.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => posthog?.capture('listing_clicked', { listing_id: listing.id, source: listing.source, price: listing.price ?? 0 })}
+              className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors"
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
+              {t.viewListing}
+            </a>
             {/* Heart — save listing */}
             <button
               onClick={(e) => { e.stopPropagation(); handleHeartClick() }}
-              className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors"
               style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: isSaved ? 'var(--foreground)' : 'var(--muted-foreground)' }}
-              aria-label="Gem annonce"
+              aria-label={isSaved ? 'Fjern fra gemte annoncer' : 'Gem annonce'}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isSaved ? 'text-red-500' : ''}>
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isSaved ? 'text-red-500' : ''}>
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               </svg>
+              {/* Saved state is carried by the word, not only by the filled heart. */}
               {isSaved ? 'Gemt' : 'Gem'}
             </button>
             {/* Bell — create watchlist alert */}
             <button
               onClick={(e) => { e.stopPropagation(); handleWatchlistClick() }}
               disabled={creating}
-              className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>notifications</span>
+              <span aria-hidden="true" className="material-symbols-outlined" style={{ fontSize: '14px' }}>notifications</span>
               {t.createWatchlist}
             </button>
-            <a
-              href={listing.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap border border-border hover:border-border/80 transition-colors"
-              style={{ color: 'var(--foreground)' }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
-              {t.viewListing}
-            </a>
             {productSlug && (
               <a
                 href={`/product/${productSlug}`}
-                className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap border border-border hover:border-border/80 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold border border-border hover:border-border/80 transition-colors"
                 style={{ color: 'var(--muted-foreground)' }}
               >
                 Se produktside →

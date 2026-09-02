@@ -9,6 +9,16 @@ const nextConfig = {
       },
       // Any subdomain of dba.dk (covers billeder.dba.dk, cdn.dba.dk, etc.)
       {
+        // Kleinanzeigen listing photos. An existing production source, not a new
+        // CDN: 14 of the 50 images on roland-juno-106 come from here and were
+        // silently falling back to the placeholder because the host was never
+        // declared. Narrow on purpose — exact host, exact protocol, and the one
+        // path prefix every live URL uses.
+        protocol: 'https',
+        hostname: 'img.kleinanzeigen.de',
+        pathname: '/api/v1/prod-ads/images/**',
+      },
+      {
         protocol: 'https',
         hostname: '**.dba.dk',
       },
