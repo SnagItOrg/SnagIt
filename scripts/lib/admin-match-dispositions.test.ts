@@ -828,12 +828,17 @@ test('review 4: an admin without review mode gets the normal page', () => {
   assert.ok(/\{reviewMode && \(/.test(code), 'controls are behind reviewMode, not isAdmin alone')
 })
 
-test('review 5: review mode renders status and all three controls', () => {
+test('review 5: review mode renders status and the controls, via i18n', () => {
   const code = rvCodeOf(...RV_CONTROLS)
-  assert.ok(code.includes('Godkend'))
-  assert.ok(code.includes('Afvis'))
-  assert.ok(code.includes('Match med andet produkt'))
+  // The literal Danish that used to live here moved into lib/i18n.ts, which
+  // frontend/CLAUDE.md requires for anything rendered on a localised page.
+  // The controls are still all three; they are now keys, not strings.
+  assert.ok(code.includes('t.adminReview.approve'))
+  assert.ok(code.includes('t.adminReview.reject'))
+  assert.ok(code.includes('t.adminReview.move'))
   assert.ok(code.includes('StatusChip'))
+  assert.equal(/'(Godkend|Afvis|Match med andet produkt)'/.test(code), false,
+    'no raw Danish string may remain in the component')
 })
 
 // ── 6-10: the decision contract ─────────────────────────────────────────────
@@ -1132,8 +1137,16 @@ test('reassign: the panel still targets the pre-existing routes', () => {
 test('safety: reassign moves one pair and deletes nothing', () => {
   const route = rvCodeOf('app', 'api', 'admin', 'product', '[slug]', 'reassign-match', 'route.ts')
   assert.equal(/\.delete\(/.test(route), false, 'no listing or match is ever deleted')
-  assert.ok(route.includes(".eq('listing_id'"), 'scoped by listing')
-  assert.ok(route.includes(".eq('product_id'"), 'AND by the source product')
+  // The route now delegates, exactly as reject-match and approve-match already
+  // do. The pair-scoping property did not go away — it moved into the shared
+  // writer, so it is asserted there instead of here.
+  assert.ok(route.includes('applyReassign'), 'delegates to the shared writer')
+  assert.equal(/\.from\('listing_product_match'\)/.test(route), false, 'no direct table access')
+
+  const writer = rvCodeOf('lib', 'admin-match-decision.ts')
+  assert.equal(/\.delete\(/.test(writer), false, 'the writer deletes nothing either')
+  assert.ok(writer.includes(".eq('listing_id'"), 'scoped by listing')
+  assert.ok(writer.includes(".eq('product_id'"), 'AND by the product')
 })
 
 test('safety: no decision route updates by listing id alone', () => {

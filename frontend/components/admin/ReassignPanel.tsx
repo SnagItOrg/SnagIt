@@ -13,6 +13,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { useLocale } from '@/components/LocaleProvider'
+
 // ─── ReassignPanel — inline UI for moving a listing to another product ─────
 type ProductSearchResult = {
   id: string
@@ -34,6 +36,7 @@ export function ReassignPanel({
   onSuccess: (opts: ReassignSuccessOpts) => void
   onCancel: () => void
 }) {
+  const { t } = useLocale()
   const [searchValue, setSearchValue] = useState('')
   const [results, setResults] = useState<ProductSearchResult[]>([])
   const [searching, setSearching] = useState(false)
@@ -85,7 +88,25 @@ export function ReassignPanel({
     return () => clearTimeout(handle)
   }, [searchValue, mode])
 
+  /**
+   * SELECTION IS NOT COMMITMENT.
+   *
+   * Every result used to be a submit button: one click on a search result wrote
+   * the move. There was no confirmation step, no read-back of the destination,
+   * and a mis-click was a database write that had to be undone by hand.
+   *
+   * Nielsen #5 (error prevention) prefers removing the error-prone condition to
+   * warning about it, and Krug's satisficing — users click the first reasonable
+   * option rather than the best one — makes a one-click write on a fuzzy search
+   * result exactly the wrong affordance. So a click now only selects; the write
+   * lives behind a button that names its own destination ("Flyt til Roland
+   * Juno-6"), which is the last thing the operator reads before committing.
+   */
+  const [selected, setSelected] = useState<ProductSearchResult | null>(null)
+
   async function reassignTo(targetSlug: string, productName: string, created = false) {
+    // One request per intent. Without this, a double-click fires two POSTs.
+    if (submitting) return
     setSubmitting(true)
     setError(null)
     try {
@@ -95,11 +116,15 @@ export function ReassignPanel({
         body: JSON.stringify({ listing_id: listingId, target_slug: targetSlug }),
       })
       if (!res.ok) {
+        // The route already translates database failures into human sentences;
+        // this fallback only covers a response that carries no body at all.
         const data = await res.json().catch(() => ({}))
-        setError(data.error ?? 'Kunne ikke flytte listing')
+        setError(data.error ?? t.adminReview.saveFailed)
         return
       }
       onSuccess({ productName, created })
+    } catch {
+      setError(t.adminReview.saveFailed)
     } finally {
       setSubmitting(false)
     }
@@ -124,14 +149,15 @@ export function ReassignPanel({
       ref={panelRef}
       className="flex flex-col gap-2 p-3 rounded-xl"
       style={{ background: 'var(--secondary)', border: '1px solid var(--border)' }}
+      data-testid="reassign-panel"
     >
       <div className="flex items-center gap-2">
         <input
           type="text"
           autoFocus
           value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          placeholder="Søg produkt..."
+          onChange={(e) => { setSearchValue(e.target.value); setSelected(null) }}
+          placeholder={t.adminReview.searchPlaceholder}
           disabled={submitting}
           className="flex-1 text-sm px-3 py-2 rounded-lg outline-none disabled:opacity-50"
           style={{
@@ -143,42 +169,74 @@ export function ReassignPanel({
         <button
           type="button"
           onClick={onCancel}
-          className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+          disabled={submitting}
+          data-testid="reassign-cancel"
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
           style={{ background: 'transparent', color: 'var(--muted-foreground)' }}
         >
-          Annuller
+          {t.adminReview.cancel}
         </button>
       </div>
 
       {trimmed.length >= 2 && (
-        <ul className="flex flex-col gap-1">
+        <ul className="flex flex-col gap-1" role="radiogroup" aria-label={t.adminReview.selectPrompt}>
           {searching && (
             <li className="text-[11px] px-2" style={{ color: 'var(--muted-foreground)' }}>
               Søger…
             </li>
           )}
-          {!searching && results.map((p) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                onClick={() => reassignTo(p.slug, p.canonical_name)}
-                disabled={submitting}
-                className="w-full flex items-center justify-between gap-2 text-sm px-3 py-2 rounded-lg disabled:opacity-40"
-                style={{ background: 'var(--card)', color: 'var(--foreground)' }}
-              >
-                <span className="truncate">{p.canonical_name}</span>
-                <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0"
+          {!searching && results.map((p) => {
+            // The product under review is the one link we can prove already
+            // exists without another round trip. Offering it as a destination
+            // would be offering a move to where the listing already is.
+            const alreadyLinked = p.slug === slug
+            const isSelected = selected?.slug === p.slug
+            return (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  onClick={() => { if (!alreadyLinked) setSelected(p) }}
+                  disabled={submitting || alreadyLinked}
+                  data-testid={`reassign-option-${p.slug}`}
+                  /*
+                    WRAPS, NEVER TRUNCATES. At 360px `truncate` cut the name to
+                    "Roland Ju…", which is unreadable precisely where it matters
+                    most: Roland Juno-6 and Roland ju-06 are different
+                    instruments that share that prefix. The operator must see
+                    the full canonical name before committing a write, so the
+                    row wraps and the badge moves to a second line instead.
+                  */
+                  className="w-full flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm px-3 py-2 rounded-lg text-left disabled:opacity-40"
                   style={{
-                    background: p.tier === 'legendary' ? 'var(--foreground)' : 'var(--secondary)',
-                    color: p.tier === 'legendary' ? 'var(--background)' : 'var(--muted-foreground)',
+                    background: 'var(--card)',
+                    color: 'var(--foreground)',
+                    // Selection is shown with the neutral foreground token.
+                    // Green is reserved for Kup ratings and "Aktiv" badges.
+                    border: isSelected ? '1px solid var(--foreground)' : '1px solid transparent',
                   }}
                 >
-                  {p.tier}
-                </span>
-              </button>
-            </li>
-          ))}
+                  <span className="min-w-0 break-words">{p.canonical_name}</span>
+                  {alreadyLinked ? (
+                    <span className="text-[10px] shrink-0" style={{ color: 'var(--muted-foreground)' }}>
+                      {t.adminReview.alreadyLinked}
+                    </span>
+                  ) : (
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0"
+                      style={{
+                        background: p.tier === 'legendary' ? 'var(--foreground)' : 'var(--secondary)',
+                        color: p.tier === 'legendary' ? 'var(--background)' : 'var(--muted-foreground)',
+                      }}
+                    >
+                      {p.tier}
+                    </span>
+                  )}
+                </button>
+              </li>
+            )
+          })}
           {!searching && results.length === 0 && (
             <li>
               <button
@@ -195,12 +253,37 @@ export function ReassignPanel({
         </ul>
       )}
 
+      {/*
+        The commit step. Disabled until something is selected, and it states the
+        destination rather than a generic verb, so the operator confirms the
+        specific move rather than "OK".
+      */}
+      {trimmed.length >= 2 && (
+        <button
+          type="button"
+          onClick={() => { if (selected) void reassignTo(selected.slug, selected.canonical_name) }}
+          disabled={!selected || submitting}
+          data-testid="reassign-confirm"
+          className="text-xs font-semibold px-3 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ background: 'var(--foreground)', color: 'var(--background)' }}
+        >
+          {submitting
+            ? t.adminReview.moving
+            : selected
+              ? t.adminReview.confirmMove.replace('{product}', selected.canonical_name)
+              : t.adminReview.selectPrompt}
+        </button>
+      )}
+
       {error && (
-        <p className="text-xs" style={{ color: 'rgb(239,68,68)' }}>{error}</p>
+        <p role="alert" className="text-xs" style={{ color: 'rgb(239,68,68)' }} data-testid="reassign-error">
+          {error}
+        </p>
       )}
     </div>
   )
 }
+
 
 // ─── InlineNewProductForm — mini form for inline product creation ──────────
 type BrandOption = { id: string; name: string }

@@ -9,6 +9,7 @@ import { SearchResultCard } from '@/components/SearchResultCard'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
+import { useLocale } from '@/components/LocaleProvider'
 import {
   ProductReviewControls,
   type MatchReviewStatus,
@@ -57,6 +58,7 @@ export default function ProductPage() {
   const slug = params.slug as string
 
   const [product, setProduct]           = useState<Product | null>(null)
+  const { t } = useLocale()
   const [listings, setListings]         = useState<Listing[]>([])
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([])
   const [priceRange, setPriceRange]     = useState<PriceRange | null>(null)
@@ -620,15 +622,42 @@ export default function ProductPage() {
                               onDecided={(id, next) => {
                                 setMatchStatuses((prev) => ({ ...prev, [id]: next }))
                                 setReviewNotice(
-                                  next === 'rejected' ? 'Match afvist' : 'Match godkendt',
+                                  next === 'rejected'
+                                    ? t.adminReview.rejectedFeedback
+                                    : t.adminReview.approvedFeedback,
                                 )
-                                // The wall is re-read from the server: a rejected
-                                // listing leaves it, and the counts follow.
+                                /**
+                                 * A REJECTED CARD LEAVES THE WALL NOW.
+                                 *
+                                 * This used to rely on `loadProduct()` alone, so
+                                 * the rejected listing sat there — unchanged and
+                                 * still offering the same buttons — until a
+                                 * refetch the Data Cache was answering from cache
+                                 * anyway. The operator's most common reading was
+                                 * "it didn't work", and the usual response was to
+                                 * click reject again.
+                                 *
+                                 * Nielsen #1: the response to a decision has to be
+                                 * immediate and visible. Both listing counts on
+                                 * this page derive from `listings.length`, so
+                                 * removing the row updates them without a second
+                                 * source of truth. The refetch below still runs
+                                 * and remains authoritative; this removes the wait,
+                                 * not the verification.
+                                 */
+                                if (next === 'rejected') {
+                                  setListings((prev) => prev.filter((l) => l.id !== id))
+                                }
                                 void loadProduct()
                                 void loadMatchStatuses()
                               }}
                               onReassigned={(id, productName) => {
-                                setReviewNotice(`Listing flyttet til ${productName}`)
+                                setReviewNotice(
+                                  t.adminReview.movedTo.replace('{product}', productName),
+                                )
+                                // A moved listing belongs to another product now,
+                                // so it leaves this wall for the same reason.
+                                setListings((prev) => prev.filter((l) => l.id !== id))
                                 void loadProduct()
                                 void loadMatchStatuses()
                               }}

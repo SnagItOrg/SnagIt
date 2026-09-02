@@ -41,6 +41,11 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/admin-match-retrieval.test.ts',
       'scripts/lib/admin-match-review-integration.test.ts',
       'scripts/lib/admin-match-state.test.ts',
+      // Added by the admin review hotfix: reassignment had to become
+      // idempotent (a listing already linked to the target collided with
+      // the unique index) and the review state machine had to become
+      // explicit, so both carry their own suite.
+      'scripts/lib/admin-review-hotfix.test.ts',
       'scripts/lib/baseline.test.ts',
       'scripts/lib/data-presentation.test.ts',
       'scripts/lib/integration-boundary.test.ts',

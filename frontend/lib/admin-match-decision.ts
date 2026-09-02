@@ -31,6 +31,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import {
+  IS_VALID_FOR,
   MANUAL_METHOD,
   MANUAL_SCORE,
   REJECTION_REASON,
@@ -187,4 +188,162 @@ export async function applyProductPageDecision(
   if (error) return { ok: false, status: 500, error: error.message }
 
   return { ok: true, status: 200, isValid: row.is_valid }
+}
+
+
+// ── Reassign ────────────────────────────────────────────────────────────────
+
+export type ReassignOutcome =
+  /** The target relation did not exist and was created. */
+  | 'moved'
+  /** The target relation already existed; only the source was resolved. */
+  | 'already_linked'
+  /** Target equals the product under review. Nothing to do. */
+  | 'noop_same_product'
+
+export interface ReassignResult {
+  ok: boolean
+  status: number
+  error?: string
+  outcome?: ReassignOutcome
+}
+
+/**
+ * Move a listing to the product it really is — idempotently.
+ *
+ * THE BUG THIS REPLACES. The old route issued a single
+ * `UPDATE ... SET product_id = <target>` scoped to the SOURCE pair. When the
+ * listing already had a relation to the target — which is the normal case for
+ * the listings most worth reassigning — the update collided with
+ * `lpm_listing_product_unique (listing_id, product_id)` and Postgres error
+ * 23505 was returned to the operator verbatim. Production proof: "Roland
+ * Juno 6" holds valid relations to BOTH roland-juno-106 and roland-juno-6, so
+ * moving it was impossible through the UI.
+ *
+ * THE MODEL. Reassignment is not one row moving. It is two decisions:
+ *
+ *   TARGET  this listing IS that product        -> is_valid = true
+ *   SOURCE  this listing is NOT this product    -> is_valid = false
+ *
+ * Expressed that way the operation is naturally idempotent — repeating it
+ * converges on the same two rows — and the target's prior state stops
+ * mattering:
+ *
+ *   target true    keep it, re-affirm, reject the source   (no duplicate row)
+ *   target null    approve it, reject the source
+ *   target false   reopen it with a fresh decision, reject the source
+ *   target absent  create it, reject the source
+ *   target = source no write at all
+ *
+ * BOTH ROWS IN ONE STATEMENT. `upsert` on the unique constraint writes them
+ * atomically, so there is no window where the listing belongs to both products
+ * or to neither. That also removes the 23505 entirely: a conflict is now the
+ * mechanism, not an error.
+ *
+ * `planWrites` is deliberately NOT used. Its conflict guard refuses a
+ * reassignment when a prior row exists on the reviewed product — correct for
+ * the candidate queue, where a prior row means the listing should be fixed
+ * where it already lives, and exactly wrong here, where a prior source row is
+ * the precondition.
+ */
+export async function applyReassign(
+  admin: SupabaseClient,
+  args: { slug: string; listingId: string; targetSlug: string; actorUserId: string | null },
+): Promise<ReassignResult> {
+  const [sourceRes, targetRes] = await Promise.all([
+    admin.from('kg_product').select('id').eq('slug', args.slug).maybeSingle(),
+    admin.from('kg_product').select('id').eq('slug', args.targetSlug).maybeSingle(),
+  ])
+  if (sourceRes.error) return { ok: false, status: 500, error: sourceRes.error.message }
+  if (targetRes.error) return { ok: false, status: 500, error: targetRes.error.message }
+  if (!sourceRes.data) return { ok: false, status: 404, error: 'source product not found' }
+  if (!targetRes.data) return { ok: false, status: 404, error: 'target product not found' }
+
+  const sourceId = (sourceRes.data as { id: string }).id
+  const targetId = (targetRes.data as { id: string }).id
+
+  // Choosing the product you are already reviewing is not an error, and it is
+  // not a write either.
+  if (sourceId === targetId) {
+    return { ok: true, status: 200, outcome: 'noop_same_product' }
+  }
+
+  const priorRes = await admin
+    .from('listing_product_match')
+    .select('product_id, method, score, is_valid, rejected_reason, explain')
+    .eq('listing_id', args.listingId)
+    .in('product_id', [sourceId, targetId])
+
+  if (priorRes.error) return { ok: false, status: 500, error: priorRes.error.message }
+
+  const priors = (priorRes.data ?? []) as Array<{
+    product_id: string
+    method: string | null
+    score: number | null
+    is_valid: boolean | null
+    rejected_reason: string | null
+    explain: Record<string, unknown> | null
+  }>
+  const sourcePrior = priors.find((r) => r.product_id === sourceId)
+  const targetPrior = priors.find((r) => r.product_id === targetId)
+
+  if (!sourcePrior) return { ok: false, status: 404, error: 'match not found' }
+
+  const decidedAt = new Date().toISOString()
+  const priorByKey: Record<string, { method: string; score: number; isValid: boolean | null; explain: Record<string, unknown> }> = {}
+  for (const r of priors) {
+    priorByKey[`${args.listingId}:${r.product_id}`] = {
+      method: r.method ?? MANUAL_METHOD,
+      score: r.score ?? MANUAL_SCORE,
+      isValid: r.is_valid ?? null,
+      explain: r.explain ?? {},
+    }
+  }
+
+  const plan = (disposition: Disposition, targetProductId: string | null) =>
+    planDecisionWrites({
+      decisions: [{ listing_id: args.listingId, disposition, target_product_id: targetProductId }],
+      reviewedProductId: sourceId,
+      priorByKey,
+      actorUserId: args.actorUserId,
+      decidedAt,
+      manualMethod: MANUAL_METHOD,
+      manualScore: MANUAL_SCORE,
+      rejectedReasonConstant: REJECTION_REASON,
+      decisionSource: DECISION_SOURCE,
+    })
+
+  const targetRows = plan('move_to_existing_product', targetId)
+  const sourceRows = plan('wrong', null)
+  if (targetRows.length !== 1 || sourceRows.length !== 1) {
+    return { ok: false, status: 500, error: 'reassign produced no write' }
+  }
+
+  const targetRow = targetRows[0]
+  const sourceRow = sourceRows[0]
+
+  // Scope guard: this operation may only ever touch these two pairs.
+  if (targetRow.product_id !== targetId || sourceRow.product_id !== sourceId) {
+    return { ok: false, status: 500, error: 'refusing an out-of-scope write' }
+  }
+  if (!IS_VALID_FOR['move_to_existing_product'] || IS_VALID_FOR['wrong']) {
+    return { ok: false, status: 500, error: 'disposition contract changed unexpectedly' }
+  }
+
+  // A more specific rejection cause on the source survives, as elsewhere.
+  if (sourcePrior.rejected_reason && sourcePrior.rejected_reason !== REJECTION_REASON) {
+    sourceRow.rejected_reason = sourcePrior.rejected_reason
+  }
+
+  const { error } = await admin
+    .from('listing_product_match')
+    .upsert([targetRow, sourceRow], { onConflict: 'listing_id,product_id' })
+
+  if (error) return { ok: false, status: 500, error: error.message }
+
+  return {
+    ok: true,
+    status: 200,
+    outcome: targetPrior ? 'already_linked' : 'moved',
+  }
 }

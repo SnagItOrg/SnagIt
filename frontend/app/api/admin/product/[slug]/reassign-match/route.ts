@@ -1,14 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
-import { requireAdminInRoute } from '@/lib/admin-auth'
+import { getCurrentAdminState, requireAdminInRoute } from '@/lib/admin-auth'
+import { applyReassign } from '@/lib/admin-match-decision'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-// POST /api/admin/product/[slug]/reassign-match
-// Body: { listing_id: string, target_slug: string }
-// Moves a listing_product_match from the source product (resolved via params.slug)
-// to the target product (resolved via target_slug). Marks the match valid and
-// clears any rejected_reason — manual reassignment is a confirmation.
+/**
+ * POST /api/admin/product/[slug]/reassign-match
+ * Body: { listing_id: string, target_slug: string }
+ *
+ * Moves a listing to the product it really is. Delegates to `applyReassign`,
+ * which expresses the move as two decisions written in one statement, so a
+ * listing that ALREADY has a relation to the target no longer collides with
+ * `lpm_listing_product_unique`.
+ *
+ * NO DATABASE TEXT REACHES THE OPERATOR. The old route returned
+ * `updateErr.message` verbatim, which is how "duplicate key value violates
+ * unique constraint" ended up in the UI. Nielsen #9: an error must say what
+ * happened and what to do, in the reader's language — a constraint name says
+ * neither. The detail is logged server-side instead, with no row data and no
+ * credentials.
+ */
 export async function POST(
   req: NextRequest,
   { params }: { params: { slug: string } },
@@ -16,6 +28,7 @@ export async function POST(
   const denied = await requireAdminInRoute()
   if (denied) return denied
 
+  const { userId } = await getCurrentAdminState()
   const { listing_id, target_slug } = (await req.json()) as {
     listing_id?: string
     target_slug?: string
@@ -29,44 +42,32 @@ export async function POST(
     return NextResponse.json({ error: 'target_slug is required' }, { status: 400 })
   }
 
-  const admin = getSupabaseAdmin()
+  const result = await applyReassign(getSupabaseAdmin(), {
+    slug: params.slug,
+    listingId: listing_id,
+    targetSlug,
+    actorUserId: userId,
+  })
 
-  const [sourceRes, targetRes] = await Promise.all([
-    admin.from('kg_product').select('id').eq('slug', params.slug).maybeSingle(),
-    admin.from('kg_product').select('id').eq('slug', targetSlug).maybeSingle(),
-  ])
-
-  if (sourceRes.error) {
-    return NextResponse.json({ error: sourceRes.error.message }, { status: 500 })
-  }
-  if (targetRes.error) {
-    return NextResponse.json({ error: targetRes.error.message }, { status: 500 })
-  }
-  if (!sourceRes.data) {
-    return NextResponse.json({ error: 'source product not found' }, { status: 404 })
-  }
-  if (!targetRes.data) {
-    return NextResponse.json({ error: 'target product not found' }, { status: 404 })
-  }
-
-  const { data: updated, error: updateErr } = await admin
-    .from('listing_product_match')
-    .update({
-      product_id: targetRes.data.id,
-      is_valid: true,
-      method: 'FUZZY',
-      rejected_reason: null,
-    })
-    .eq('listing_id', listing_id)
-    .eq('product_id', sourceRes.data.id)
-    .select('id')
-
-  if (updateErr) {
-    return NextResponse.json({ error: updateErr.message }, { status: 500 })
-  }
-  if (!updated || updated.length === 0) {
-    return NextResponse.json({ error: 'match not found' }, { status: 404 })
+  if (!result.ok) {
+    // Human-readable outward, technical inward.
+    const message =
+      result.status === 404
+        ? 'Kunne ikke finde annoncen eller produktet. Genindlæs siden og prøv igen.'
+        : 'Kunne ikke flytte annoncen lige nu. Prøv igen.'
+    console.error(JSON.stringify({
+      channel: 'operational',
+      component: 'admin-reassign',
+      event: 'reassign_failed',
+      status: result.status,
+      detail: result.error ?? 'unknown',
+    }))
+    return NextResponse.json({ error: message }, { status: result.status })
   }
 
-  return NextResponse.json({ moved: true, target_slug: targetSlug })
+  return NextResponse.json({
+    moved: true,
+    target_slug: targetSlug,
+    outcome: result.outcome,
+  })
 }

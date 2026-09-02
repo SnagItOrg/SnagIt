@@ -22,6 +22,19 @@ import {
   type PublicRelatedProduct,
 } from '@/lib/public-product'
 
+/**
+ * Freshness. The same contract /api/search/resolve and /api/discover already
+ * declare, and which this route was missing.
+ *
+ * Without it Next's Data Cache stores the listing payload, so a listing an
+ * operator has just rejected reappears on reload — the second half of the
+ * "rejected card lingers" bug. The first half was local state; this is the
+ * half that survived a refresh.
+ */
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+
 export type PricePoint = {
   sold_at:   string
   price:     number

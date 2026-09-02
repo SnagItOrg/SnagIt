@@ -247,6 +247,39 @@ export const translations = {
     // Data-presentation primitives (components/data-display). Absence has four
     // distinct causes and the reader needs to know which one they are looking
     // at — "no data yet" and "we could not load it" are not the same fact.
+    /**
+     * Admin match review, rendered on the PUBLIC product page.
+     *
+     * WHY THIS IS TRANSLATED WHEN /admin/* IS NOT. `app/admin/match/page.tsx`
+     * documents a deliberate Danish-only deviation: it is a standalone operator
+     * surface, so translating its jargon would make it the odd one out. These
+     * controls are different — they render inside `/product/[slug]`, which is
+     * localised. An operator reading the page in English would otherwise get
+     * Danish chips beside English content on the same card.
+     */
+    adminReview: {
+      statusUnresolved: 'Uafklaret',
+      statusReviewed: 'Gennemg\u00e5et',
+      statusRejected: 'Afvist',
+      approve: 'Godkend',
+      reject: 'Afvis',
+      move: 'Flyt til andet produkt',
+      saving: 'Gemmer\u2026',
+      moving: 'Flytter\u2026',
+      saveFailed: 'Kunne ikke gemme. Pr\u00f8v igen.',
+      // Nielsen #5: choosing is not committing. The operator picks a target,
+      // reads it back in the button, and only then writes.
+      searchPlaceholder: 'S\u00f8g efter det rigtige produkt\u2026',
+      selectPrompt: 'V\u00e6lg produktet annoncen h\u00f8rer til.',
+      // {product} is filled in so the button states its own consequence.
+      confirmMove: 'Flyt til {product}',
+      alreadyLinked: 'Allerede knyttet til denne annonce',
+      cancel: 'Annuller',
+      movedTo: 'Flyttet til {product}',
+      rejectedFeedback: 'Match afvist',
+      approvedFeedback: 'Match godkendt',
+      noResults: 'Ingen produkter matcher.',
+    },
     dataDisplay: {
       noObservations: 'Ingen observationer',
       noObservationsDetail: 'Vi har ikke registreret prisdata for dette endnu.',
@@ -503,6 +536,26 @@ export const translations = {
     privacyNoRawSearch: 'We never send your raw search text or your email address to our analytics tool.',
 
 
+    adminReview: {
+      statusUnresolved: 'Unresolved',
+      statusReviewed: 'Reviewed',
+      statusRejected: 'Rejected',
+      approve: 'Approve',
+      reject: 'Reject',
+      move: 'Move to another product',
+      saving: 'Saving\u2026',
+      moving: 'Moving\u2026',
+      saveFailed: 'Could not save. Please try again.',
+      searchPlaceholder: 'Search for the right product\u2026',
+      selectPrompt: 'Choose the product this listing belongs to.',
+      confirmMove: 'Move to {product}',
+      alreadyLinked: 'Already linked to this listing',
+      cancel: 'Cancel',
+      movedTo: 'Moved to {product}',
+      rejectedFeedback: 'Match rejected',
+      approvedFeedback: 'Match approved',
+      noResults: 'No products match.',
+    },
     dataDisplay: {
       noObservations: 'No observations',
       noObservationsDetail: 'Nothing has been recorded here yet.',

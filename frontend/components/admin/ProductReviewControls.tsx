@@ -24,25 +24,32 @@
 import { useState } from 'react'
 
 import { ReassignPanel } from '@/components/admin/ReassignPanel'
+import { useLocale } from '@/components/LocaleProvider'
+import { ACTIONS_FOR, type MatchReviewStatus } from '@/lib/match-review-state'
 
-export type MatchReviewStatus = 'reviewed' | 'unresolved' | 'rejected'
-
-const STATUS_LABEL: Readonly<Record<MatchReviewStatus, string>> = {
-  reviewed: 'Gennemgået',
-  unresolved: 'Uafklaret',
-  rejected: 'Afvist',
-}
+// Re-exported so existing importers of this component keep working.
+export { ACTIONS_FOR }
+export type { MatchReviewStatus }
 
 function StatusChip({ status }: { status: MatchReviewStatus }) {
+  const { t } = useLocale()
+  const label = {
+    reviewed: t.adminReview.statusReviewed,
+    unresolved: t.adminReview.statusUnresolved,
+    rejected: t.adminReview.statusRejected,
+  }[status]
+
   return (
     <span
       className="inline-flex w-fit items-center rounded-full border border-line bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-secondary"
       data-testid={`match-status-${status}`}
     >
-      {STATUS_LABEL[status]}
+      {label}
     </span>
   )
 }
+
+const BTN = 'rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
 
 export function ProductReviewControls({
   slug,
@@ -57,11 +64,17 @@ export function ProductReviewControls({
   onDecided: (listingId: string, next: MatchReviewStatus) => void
   onReassigned: (listingId: string, productName: string) => void
 }) {
+  const { t } = useLocale()
   const [busy, setBusy] = useState<null | 'approve' | 'reject'>(null)
   const [error, setError] = useState<string | null>(null)
   const [reassigning, setReassigning] = useState(false)
 
+  const actions = ACTIONS_FOR[status]
+
   async function decide(decision: 'approve' | 'reject') {
+    // Nielsen #1 plus double-submit protection: one in-flight decision at a
+    // time, and the button says which one is running.
+    if (busy) return
     setBusy(decision)
     setError(null)
     try {
@@ -74,12 +87,12 @@ export function ProductReviewControls({
         // The status is NOT advanced on failure. An operator who sees "Afvist"
         // must be able to trust that the row is rejected in the database.
         const body = (await res.json().catch(() => ({}))) as { error?: string }
-        setError(body.error ?? `Kunne ikke gemme (${res.status})`)
+        setError(body.error ?? t.adminReview.saveFailed)
         return
       }
       onDecided(listingId, decision === 'approve' ? 'reviewed' : 'rejected')
     } catch {
-      setError('Kunne ikke gemme. Prøv igen.')
+      setError(t.adminReview.saveFailed)
     } finally {
       setBusy(null)
     }
@@ -90,32 +103,41 @@ export function ProductReviewControls({
       <div className="flex flex-wrap items-center gap-2">
         <StatusChip status={status} />
 
-        <button
-          type="button"
-          onClick={() => void decide('approve')}
-          disabled={busy !== null}
-          className="rounded-lg border border-line bg-surface-1 px-2.5 py-1 text-[11px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-50"
-        >
-          {busy === 'approve' ? 'Gemmer…' : 'Godkend'}
-        </button>
+        {actions.approve && (
+          <button
+            type="button"
+            onClick={() => void decide('approve')}
+            disabled={busy !== null}
+            data-testid="review-approve"
+            className={`${BTN} border-line bg-surface-1 text-ink hover:bg-surface-2`}
+          >
+            {busy === 'approve' ? t.adminReview.saving : t.adminReview.approve}
+          </button>
+        )}
 
-        <button
-          type="button"
-          onClick={() => void decide('reject')}
-          disabled={busy !== null}
-          className="rounded-lg border border-destructive-border bg-destructive-subtle px-2.5 py-1 text-[11px] font-semibold text-destructive-text transition-colors hover:bg-surface-2 disabled:opacity-50"
-        >
-          {busy === 'reject' ? 'Gemmer…' : 'Afvis'}
-        </button>
+        {actions.reject && (
+          <button
+            type="button"
+            onClick={() => void decide('reject')}
+            disabled={busy !== null}
+            data-testid="review-reject"
+            className={`${BTN} border-destructive-border bg-destructive-subtle text-destructive-text hover:bg-surface-2`}
+          >
+            {busy === 'reject' ? t.adminReview.saving : t.adminReview.reject}
+          </button>
+        )}
 
-        <button
-          type="button"
-          onClick={() => setReassigning((v) => !v)}
-          disabled={busy !== null}
-          className="rounded-lg border border-line bg-surface-1 px-2.5 py-1 text-[11px] font-semibold text-ink-secondary transition-colors hover:bg-surface-2 disabled:opacity-50"
-        >
-          Match med andet produkt
-        </button>
+        {actions.move && (
+          <button
+            type="button"
+            onClick={() => setReassigning((v) => !v)}
+            disabled={busy !== null}
+            data-testid="review-move"
+            className={`${BTN} border-line bg-surface-1 text-ink-secondary hover:bg-surface-2`}
+          >
+            {t.adminReview.move}
+          </button>
+        )}
       </div>
 
       {error && (
