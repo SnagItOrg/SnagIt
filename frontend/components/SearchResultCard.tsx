@@ -6,7 +6,8 @@ import type { Listing } from '@/lib/supabase'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { usePostHog } from 'posthog-js/react'
-import { formatOriginalPrice, formatDkkApprox } from '@/lib/currency'
+import { formatOriginalPrice } from '@/lib/currency'
+import { classifyListing, firstSeenTimestamp, isApproximateDkk } from '@/lib/price-populations'
 
 // Country name → ISO code for flag emoji lookup
 const COUNTRY_CODES: Record<string, string> = {
@@ -86,6 +87,47 @@ interface Props {
   thomannUrl?:        string | null
   productSlug?:       string | null
   thomannImageUrl?:   string | null
+  /** Position of this listing inside its OWN asking population. Server-computed. */
+  marketVerdict?:            'under' | 'typical' | 'over' | null
+  marketVerdictPopulation?:  string | null
+  /** i18n key naming the population the verdict was measured against. */
+  marketVerdictBasisLabel?:  string | null
+}
+
+/**
+ * The deal signal. Replaces the hidden KUP-RATING placeholder.
+ *
+ * Renders NOTHING when there is no verdict — no empty badge, no reserved gap —
+ * because a listing without a comparable population has nothing to say, and a
+ * placeholder would imply otherwise.
+ *
+ * The label is always a word, never colour alone, and it describes position in
+ * one asking population. It is deliberately not "Kup", "God handel", "Billig"
+ * or any judgement of the deal: Klup is stating where the price sits, not
+ * whether to buy.
+ */
+function MarketVerdictBadge({
+  verdict,
+  basisLabelKey,
+  t,
+}: {
+  verdict?: 'under' | 'typical' | 'over' | null
+  basisLabelKey?: string | null
+  t: Record<string, string>
+}) {
+  if (!verdict) return null
+  const label =
+    verdict === 'under' ? t.verdictUnder : verdict === 'over' ? t.verdictOver : t.verdictTypical
+  const basis = basisLabelKey ? t[basisLabelKey] : null
+  return (
+    <span
+      className="inline-flex w-fit items-center rounded-full border border-line bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-secondary"
+      title={basis ?? undefined}
+      aria-label={basis ? `${label}. ${basis}` : label}
+    >
+      {label}
+    </span>
+  )
 }
 
 function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boolean }) {
@@ -112,7 +154,7 @@ function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boo
   return <span className={cls}>DBA</span>
 }
 
-export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave, thomannPriceDkk, thomannUrl, productSlug, thomannImageUrl }: Props) {
+export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave, thomannPriceDkk, thomannUrl, productSlug, thomannImageUrl, marketVerdict, marketVerdictBasisLabel }: Props) {
   const { locale, t } = useLocale()
   const posthog = usePostHog()
 
@@ -125,9 +167,25 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
   const priceFormatted = listing.price != null
     ? formatOriginalPrice(listing.price, listing.currency)
     : t.priceNotListed
-  const dkkApprox = listing.price != null
-    ? formatDkkApprox(listing.price, listing.currency)
+  /**
+   * The comparable DKK figure is READ, not recomputed.
+   *
+   * This used to call `formatDkkApprox(price, currency)`, converting again at
+   * render through the static April table — a third conversion path that could
+   * disagree with the `price_dkk` already stored on the same row. `price_dkk`
+   * is written at ingestion and is what every P2 statistic is built from, so
+   * the card and the band now quote the same number.
+   *
+   * `currency` is never consulted for market: all 39,926 active Reverb rows
+   * are converted USD stored as currency='DKK'. Population decides.
+   */
+  const listingPopulation = classifyListing(listing).population
+  const dkkApprox = listing.price_dkk != null && isApproximateDkk(listingPopulation)
+    ? `≈ ${Math.round(Number(listing.price_dkk)).toLocaleString('da-DK')} kr`
     : null
+
+  /** Real listing age, or nothing. `scraped_at` is when Klup looked. */
+  const firstSeen = firstSeenTimestamp(listing)
 
   async function handleWatchlistClick() {
     const supabase = createSupabaseBrowserClient()
@@ -233,8 +291,11 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
 
         {/* Card body */}
         <div className="p-3 flex flex-col gap-1">
-          {/* KUP-RATING: Intentionally hidden until knowledge graph has sufficient
-              per-variant price history. Do not ship without data validation. */}
+          <MarketVerdictBadge
+            verdict={marketVerdict}
+            basisLabelKey={marketVerdictBasisLabel}
+            t={t as unknown as Record<string, string>}
+          />
           <div className="flex justify-between items-start gap-2">
             <p className="text-sm font-semibold text-foreground flex-1 line-clamp-2 min-h-[2.5rem]">{listing.title}</p>
             <div className="flex flex-col items-end flex-shrink-0">
@@ -254,7 +315,9 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
                 <span>·</span>
               </>
             )}
-            <span className="flex-shrink-0">{timeSince(listing.scraped_at, locale)}</span>
+            {firstSeen && (
+              <span className="flex-shrink-0">{timeSince(firstSeen, locale)}</span>
+            )}
           </div>
         </div>
       </a>
@@ -301,10 +364,19 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               <span className="text-[11px] text-muted-foreground flex-shrink-0">{dkkApprox}</span>
             )}
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] mt-auto text-muted-foreground min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] mt-auto text-muted-foreground min-w-0">
+            <MarketVerdictBadge
+              verdict={marketVerdict}
+              basisLabelKey={marketVerdictBasisLabel}
+              t={t as unknown as Record<string, string>}
+            />
             <PlatformBadge listing={listing} />
-            <span className="flex-shrink-0">·</span>
-            <span className="flex-shrink-0">{timeSince(listing.scraped_at, locale)}</span>
+            {firstSeen && (
+              <>
+                <span className="flex-shrink-0">·</span>
+                <span className="flex-shrink-0">{timeSince(firstSeen, locale)}</span>
+              </>
+            )}
             {getLocationDisplay(listing) && (
               <>
                 <span className="flex-shrink-0">·</span>

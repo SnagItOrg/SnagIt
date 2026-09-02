@@ -60,6 +60,9 @@ test('integration: every package suite is registered exactly once', () => {
       // listing with no price, so it carries its own suite.
       'scripts/lib/kleinanzeigen-price.test.ts',
       'scripts/lib/matcher-integrity.test.ts',
+      // Added by the P2 integration: the seam between source-aware price
+      // answers and admin review mode, which neither suite covers alone.
+      'scripts/lib/p2-review-integration.test.ts',
       'scripts/lib/wp1-catalogue.test.ts',
       'scripts/lib/wp1-public-contract.test.ts',
       'scripts/lib/wp1-route-access.test.ts',

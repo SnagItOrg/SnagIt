@@ -929,9 +929,31 @@ test('review 13: a confirmed decision refetches product and match data', () => {
 
 test('review 14: the public product API exposes no admin match metadata', () => {
   const code = rvCodeOf(...RV_PUBLIC_ROUTE)
+
+  /**
+   * SCOPED TO THE PAYLOAD, NOT THE FILE.
+   *
+   * This used to forbid the substring `is_valid:` anywhere in the route. P2
+   * added `is_valid: boolean | null` as a TYPE ANNOTATION on the internal
+   * match-row shape, which the coarse check read as a leak. The property being
+   * protected is that the RESPONSE carries no admin metadata, so the assertion
+   * now looks at the response object and at the public listing shape — the two
+   * places a leak could actually occur.
+   */
+  const at = code.lastIndexOf('return NextResponse.json(')
+  assert.ok(at !== -1, 'the route returns a JSON response')
+  const payload = code.slice(at, code.indexOf('\n', code.indexOf('{', at + 25)))
   for (const leak of ['is_valid', 'rejected_reason', 'explain', 'admin_decision', 'actor_user_id']) {
-    assert.equal(code.includes(`${leak}:`), false, `public payload must not carry ${leak}`)
+    assert.equal(payload.includes(leak), false, `public payload must not carry ${leak}`)
   }
+
+  // The listings themselves are built by `toPublicListing`, whose field list is
+  // the real boundary: nothing can be serialised that is not named there.
+  const publicShape = rvCodeOf('lib', 'public-product.ts')
+  for (const leak of ['is_valid', 'rejected_reason', 'explain', 'admin_decision', 'actor_user_id']) {
+    assert.equal(publicShape.includes(leak), false, `the public listing shape must not carry ${leak}`)
+  }
+
   // The public route still filters rejections without publishing the field.
   assert.ok(code.includes("not('is_valid', 'is', false)"), 'filtering is allowed; exposing is not')
 })

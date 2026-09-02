@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { isCurrentUserAdmin } from '@/lib/admin-auth'
 import { hasPlausibleListingPrice, sanitizeListingPrice } from '@/lib/listing-price-integrity'
+import { median as t7Median, partitionByIqr } from '@/lib/statistics'
+import { fetchAllPages } from '@/lib/exhaustive-fetch'
+import {
+  buildPopulationStats,
+  classifyListing,
+  groupByPopulation,
+  verdictBasisLabelKey,
+  verdictFor,
+  type PopulationKey,
+  type PopulationStats,
+} from '@/lib/price-populations'
 import { isFamilySlug } from '@/lib/families'
 import {
   CatalogueUnavailableError,
@@ -26,14 +37,26 @@ import {
  * Freshness. The same contract /api/search/resolve and /api/discover already
  * declare, and which this route was missing.
  *
- * Without it Next's Data Cache stores the listing payload, so a listing an
- * operator has just rejected reappears on reload — the second half of the
- * "rejected card lingers" bug. The first half was local state; this is the
- * half that survived a refresh.
+ * TWO INDEPENDENT FAILURES ARRIVED AT THE SAME THREE EXPORTS, and both are
+ * worth keeping on the record:
+ *
+ *   - Prices. Next's Data Cache stores the Supabase reads, so the page can
+ *     serve prices from before the last scraper run. Observed 2026-09-01: two
+ *     products kept returning pre-fix populations until
+ *     `.next/cache/fetch-cache` was deleted. Price statistics must not be
+ *     cached behind an ingestion run.
+ *   - Curation. The same cache re-served a listing an operator had just
+ *     rejected, which was the half of the "rejected card lingers" bug that
+ *     survived a refresh; the other half was local state.
+ *
+ * One contract, two reasons. Removing it breaks both.
  */
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const fetchCache = 'force-no-store'
+
+/** How many listings the wall renders. Not a statistical bound. */
+const DISPLAY_LISTING_LIMIT = 50
 
 export type PricePoint = {
   sold_at:   string
@@ -60,24 +83,17 @@ export type RelatedProduct = PublicRelatedProduct
  * LITERALS to type the result, and an interpolated literal defeats that parser.
  * The shape is asserted by the contract test instead.
  */
-const MATCH_WITH_LISTING_SELECT: string = `score, listings(${PUBLIC_LISTING_SELECT})`
+const MATCH_WITH_LISTING_SELECT: string = `id, score, is_valid, listings(${PUBLIC_LISTING_SELECT})`
 
-function iqrFilter(prices: number[]): number[] {
-  if (prices.length < 4) return prices
-  const sorted = [...prices].sort((a, b) => a - b)
-  const q1 = sorted[Math.floor(sorted.length * 0.25)]
-  const q3 = sorted[Math.floor(sorted.length * 0.75)]
-  const iqr = q3 - q1
-  const lo  = q1 - 1.5 * iqr
-  const hi  = q3 + 1.5 * iqr
-  return sorted.filter((p) => p >= lo && p <= hi)
-}
-
-function median(prices: number[]): number {
-  const s = [...prices].sort((a, b) => a - b)
-  const m = Math.floor(s.length / 2)
-  return s.length % 2 === 0 ? (s[m - 1] + s[m]) / 2 : s[m]
-}
+/**
+ * Quartiles moved to lib/statistics.ts (Type 7), owner decision C1.
+ *
+ * The estimator that used to live here indexed at `floor(n * p)`, which on
+ * [1000,1200,1500,1800,2000,5000] returns Q1=1200 / Q3=2000 where Type 7 —
+ * and `app/intel`, `api/price-observations` and Postgres `percentile_cont` —
+ * return 1275 / 1950. This route is what the public price answer is built on,
+ * so it was the one that had to move.
+ */
 
 /**
  * Identical 404 for every ineligible outcome.
@@ -208,40 +224,72 @@ async function handle(req: NextRequest, slug: string) {
     .map((r) => r.slug)
     .slice(0, 6)
 
-  const [matchesRes, reverbRes, auctionetRes, relatedRes, relatedDomainRes] = await Promise.all([
-    // A REJECTED MATCH IS NOT EVIDENCE. `is_valid = false` is an explicit
-    // verdict — written by the matcher's hard brand-collision branch, by the
-    // AI validation pass, or by an admin through /admin/product/[slug] — and
-    // this query discarded it, so every adjudicated wrong match still rendered
-    // on the public page.
-    //
-    // Measured 2026-08-29 across the 14 canonical products: 87 of the 309
-    // rendered rows (28.2%) were already marked `is_valid = false`, on 10 of
-    // the 14 products, peaking at 68.6% on `roland-jupiter-8`. They are slider
-    // caps, potentiometers, benders, EPROMs, service schematics and Voyager
-    // variants — each carrying a written `rejected_reason` explaining why it is
-    // not this product, sitting in the price evidence for it.
-    //
-    // `.not('is_valid','is',false)` keeps NULL and true, and drops only the
-    // explicit rejection. NULL must stay: it is the normal state of an
-    // automatic match, and the matcher's contract treats it as trusted.
-    admin
+  /**
+   * One page of matched listings, ordered deterministically.
+   *
+   // A REJECTED MATCH IS NOT EVIDENCE. `is_valid = false` is an explicit
+   // verdict — written by the matcher's hard brand-collision branch, by the
+   // AI validation pass, or by an admin through /admin/product/[slug] — and
+   // this query discarded it, so every adjudicated wrong match still rendered
+   // on the public page.
+   //
+   // Measured 2026-08-29 across the 14 canonical products: 87 of the 309
+   // rendered rows (28.2%) were already marked `is_valid = false`, on 10 of
+   // the 14 products, peaking at 68.6% on `roland-jupiter-8`. They are slider
+   // caps, potentiometers, benders, EPROMs, service schematics and Voyager
+   // variants — each carrying a written `rejected_reason` explaining why it is
+   // not this product, sitting in the price evidence for it.
+   //
+   // `.not('is_valid','is',false)` keeps NULL and true, and drops only the
+   // explicit rejection. NULL must stay: it is the normal state of an
+   // automatic match, and the matcher's contract treats it as trusted.
+
+   */
+  const fetchMatchPage = async (from: number, to: number) => {
+    const res = await admin
       .from('listing_product_match')
       .select(MATCH_WITH_LISTING_SELECT)
       .eq('product_id', productId)
       .not('is_valid', 'is', false)
+      // `id` is the unique tie-breaker. Without it, equal scores can reorder
+      // between requests and rows are silently dropped or duplicated across a
+      // page boundary.
       .order('score', { ascending: false })
-      .limit(50),
+      .order('id', { ascending: true })
+      .range(from, to)
+    if (res.error) throw new CatalogueUnavailableError('listing_lookup')
+    return (res.data ?? []) as unknown as Array<{ id: string; score: number | null; is_valid: boolean | null; listings: Record<string, unknown> | null }>
+  }
+
+  const [matchesAll, reverbAll, auctionetRes, relatedRes, relatedDomainRes] = await Promise.all([
+    // Read to exhaustion. No maximum population size is stated anywhere.
+    fetchAllPages(fetchMatchPage, (row) => row.id),
+
     // Reverb price history: deterministic FK join (mig 031 added the column,
     // mig 034 backfills it). Replaces the prior ilike on canonical_name which
     // pulled in parts and accessories — see CLAUDE.md "parts pollution".
-    admin
-      .from('reverb_price_history')
-      .select('price, sold_at, condition')
-      .eq('kg_product_id', productId)
-      .not('sold_at', 'is', null)
-      .order('sold_at', { ascending: true })
-      .limit(500),
+    /**
+     * Sold history is a statistical population too, so it is read to
+     * exhaustion for the same reason the asking side is: a `.limit()` here
+     * would be a completeness guarantee that nobody re-checks. `sold_at` is
+     * not unique, so `id` is the tie-breaker that makes paging deterministic.
+     * The widest product today is 89 rows — one page.
+     */
+    fetchAllPages(
+      async (from, to) => {
+        const res = await admin
+          .from('reverb_price_history')
+          .select('id, price, sold_at, condition')
+          .eq('kg_product_id', productId)
+          .not('sold_at', 'is', null)
+          .order('sold_at', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to)
+        if (res.error) throw new CatalogueUnavailableError('sold_history_lookup')
+        return (res.data ?? []) as Array<Record<string, unknown>>
+      },
+      (row) => String(row.id),
+    ),
     // Auctionet still uses ilike — auctionet_price_history has no kg_product_id
     // column yet. Migrating it is a separate, scoped change.
     admin
@@ -277,18 +325,18 @@ async function handle(req: NextRequest, slug: string) {
     throw new CatalogueUnavailableError('related_lookup')
   }
 
-  if (matchesRes.error) throw new CatalogueUnavailableError('listing_lookup')
 
   type ListingRow = Record<string, unknown>
   // The typed select() parser cannot see through an interpolated select
   // string, so the row shape is asserted here and covered by the contract test.
-  const matchRows = (matchesRes.data ?? []) as unknown as Array<{
+  const matchRows = matchesAll.rows as unknown as Array<{
     score: number | null
+    is_valid: boolean | null
     listings: ListingRow | null
   }>
 
-  const listings = matchRows
-    .map((m) => ({ score: m.score ?? 0, listing: m.listings }))
+  const allMatched = matchRows
+    .map((m) => ({ score: m.score ?? 0, isVerified: m.is_valid === true, listing: m.listings }))
     .filter(({ listing }) => listing != null && listing.is_active !== false)
     // Normalise a legacy Kleinanzeigen discount pair before anything renders
     // it. 235240 is 235 EUR now, down from 240 — two real prices welded by an
@@ -309,13 +357,41 @@ async function handle(req: NextRequest, slug: string) {
       const tb = new Date((b.listing?.scraped_at as string) ?? 0).getTime()
       return tb - ta
     })
-    .map(({ listing }) => toPublicListing(listing))
-    .filter((l): l is NonNullable<typeof l> => l !== null)
-    .slice(0, 50)
+    .map(({ isVerified, listing }) => ({ isVerified, listing: toPublicListing(listing) }))
+    .filter((m): m is { isVerified: boolean; listing: NonNullable<typeof m.listing> } => m.listing !== null)
+
+  /**
+   * TWO ELIGIBILITY CONTRACTS, deliberately different. Owner decision,
+   * 2026-09-01.
+   *
+   *   WALL        is_valid IS NOT FALSE   — hides adjudicated rejections,
+   *                                          still shows unreviewed matches
+   *   STATISTICS  is_valid = true         — only explicitly verified matches
+   *
+   * The wall is a place to look; a median is a claim. An unreviewed automatic
+   * match is fine to show a person who can judge it themselves, and not fine
+   * to average. Measured 2026-09-01: DX7's asking population was dominated by
+   * unreviewed `score=70, method=MODEL` rows that are ROM cartridges, manuals
+   * and wood side panels; MS-20's by replacement keys and a power adapter;
+   * Minimoog's extreme by a Voyager; Jupiter-8's by a two-instrument bundle.
+   * Every one of them is `is_valid IS NULL`.
+   *
+   * Sold history is unaffected: it does not come through
+   * `listing_product_match` and has its own contract.
+   */
+  const allListings = allMatched.map((m) => m.listing)
+  const verifiedListings = allMatched.filter((m) => m.isVerified).map((m) => m.listing)
+
+  /**
+   * The wall shows a page of the wall population; statistics use the whole
+   * verified population. A median over "the 50 newest listings" is a different
+   * statistic from a median over the product's verified listings.
+   */
+  const listings = allListings.slice(0, DISPLAY_LISTING_LIMIT)
 
   // Build price history time-series
   const priceHistory: PricePoint[] = [
-    ...(reverbRes.data ?? []).map((r) => ({
+    ...reverbAll.rows.map((r) => ({
       sold_at:   r.sold_at as string,
       price:     Number(r.price),
       condition: r.condition as string | null,
@@ -329,12 +405,127 @@ async function handle(req: NextRequest, slug: string) {
     })),
   ].sort((a, b) => new Date(a.sold_at).getTime() - new Date(b.sold_at).getTime())
 
-  // IQR-filtered price range
+  // Legacy sold range. Retained so nothing downstream breaks, now computed
+  // through the shared Type 7 contract. The page no longer renders it as the
+  // headline — see `populations` below.
   const rawPrices = priceHistory.map((p) => p.price).filter((p) => p > 0)
-  const filtered  = iqrFilter(rawPrices)
-  const priceRange: PriceRange | null = filtered.length >= 3
-    ? { low: Math.min(...filtered), high: Math.max(...filtered), median: Math.round(median(filtered)), count: filtered.length }
+  const filtered  = partitionByIqr(rawPrices).kept
+  const filteredMedian = t7Median(filtered)
+  const priceRange: PriceRange | null = filtered.length >= 3 && filteredMedian != null
+    ? { low: Math.min(...filtered), high: Math.max(...filtered), median: Math.round(filteredMedian), count: filtered.length }
     : null
+
+  /**
+   * Six populations, never blended.
+   *
+   * Asking rows are grouped by platform/market; sold rows are their own
+   * population and are the only ones that may be called sales. Everything the
+   * page renders — median, band, verdict, counts — is derived from exactly one
+   * of these, which is why the page cannot accidentally mix markets.
+   */
+  const grouped = groupByPopulation(verifiedListings)
+  // A truncated read is an incomplete population, and an incomplete
+  // population produces no statistics at all — see BuildOptions.incomplete.
+  const askingIncomplete = { incomplete: matchesAll.truncated }
+  const soldIncomplete = { incomplete: reverbAll.truncated }
+  const populations = {
+    'dk-asking':     buildPopulationStats('dk-asking',     grouped.byPopulation['dk-asking'], askingIncomplete),
+    'de-asking':     buildPopulationStats('de-asking',     grouped.byPopulation['de-asking'], askingIncomplete),
+    'se-asking':     buildPopulationStats('se-asking',     grouped.byPopulation['se-asking'], askingIncomplete),
+    'no-asking':     buildPopulationStats('no-asking',     grouped.byPopulation['no-asking'], askingIncomplete),
+    'reverb-asking': buildPopulationStats('reverb-asking', grouped.byPopulation['reverb-asking'], askingIncomplete),
+    'reverb-sold':   buildPopulationStats('reverb-sold', priceHistory.map((p) => ({
+      price: p.price,
+      price_dkk: p.price,
+      source: p.source,
+      country: null,
+      condition: p.condition,
+    })), soldIncomplete),
+  } satisfies Record<PopulationKey, PopulationStats>
+
+  /**
+   * One reconciled explanation of the two sold counts the page used to show.
+   * Null when the sold read was truncated — a partial raw count reads exactly
+   * like a real one.
+   */
+  const soldCounts = reverbAll.truncated ? null : {
+    raw: rawPrices.length,
+    filtered: populations['reverb-sold'].nFiltered,
+    excludedOutliers: populations['reverb-sold'].excluded.iqr_outlier,
+  }
+
+  /**
+   * How the wall population narrows to the statistical one. Every step is
+   * named so the difference between "shown" and "counted" is auditable:
+   *
+   *   wallRawN
+   *     − excludedUnverifiedN   (is_valid IS NULL — shown, never counted)
+   *   = verifiedStatisticalN
+   *     − unresolvedN           (no market could be established)
+   *     − excludedPriceN        (no price, or no comparable DKK)
+   *   = priceEligibleN
+   *     − excludedOutlierN      (Tukey fences)
+   *   = filteredN               (what every published statistic is built on)
+   */
+  const ASKING_KEYS = ['dk-asking', 'de-asking', 'se-asking', 'no-asking', 'reverb-asking'] as const
+  const sumOver = (pick: (p: PopulationStats) => number) =>
+    ASKING_KEYS.reduce((total, key) => total + pick(populations[key]), 0)
+
+  const eligibility = matchesAll.truncated ? null : {
+    wallRawN: allListings.length,
+    verifiedStatisticalN: verifiedListings.length,
+    excludedUnverifiedN: allListings.length - verifiedListings.length,
+    unresolvedN: grouped.unresolved.length,
+    priceEligibleN: sumOver((p) => p.nEligible),
+    excludedPriceN: sumOver((p) => p.excluded.price_not_listed + p.excluded.no_comparable_dkk),
+    filteredN: sumOver((p) => p.nFiltered),
+    excludedOutlierN: sumOver((p) => p.excluded.iqr_outlier),
+  }
+
+  /**
+   * The deal signal, computed SERVER-SIDE against the listing's OWN population.
+   *
+   * The client never re-derives quartiles or boundaries — it renders a label.
+   * `verdictFor` refuses anything that is not a complete, banded, width-passing
+   * population whose key equals the listing's own, so every gate (unreviewed,
+   * missing price_dkk, unknown population, n < 8, median-only, listings-only,
+   * none, truncated, too wide, population mismatch) resolves to null here
+   * rather than in a template.
+   *
+   * Only asking populations can ever produce one: `reverb-sold` is not a
+   * classification any listing receives, so a card verdict can never be
+   * measured against sold prices.
+   */
+  const verifiedIds = new Set(verifiedListings.map((l) => l.id))
+  const listingsWithVerdict = listings.map((listing) => {
+    const population = verifiedIds.has(listing.id)
+      ? classifyListing(listing).population
+      : null
+    const stats = population ? populations[population] : null
+    const outcome = stats
+      ? verdictFor(listing.price_dkk, population, stats)
+      : { verdict: null, against: null }
+    return {
+      ...listing,
+      marketVerdict: outcome.verdict,
+      marketVerdictPopulation: outcome.against,
+      marketVerdictBasisLabel: verdictBasisLabelKey(outcome.against),
+    }
+  })
+
+  /** Listings whose market could not be established are named, never guessed. */
+  const unresolvedListings = grouped.unresolved.length
+
+  /** Retrieval evidence: how many requests the population cost, and whether
+   *  the page loop ever hit its safety bound. `truncated: true` would mean a
+   *  statistic is incomplete and must not be trusted. */
+  const retrieval = {
+    matchPages: matchesAll.pages,
+    matchRows: matchesAll.rows.length,
+    soldPages: reverbAll.pages,
+    soldRows: reverbAll.rows.length,
+    truncated: matchesAll.truncated || reverbAll.truncated,
+  }
 
   const relatedDomains = new Map<string, string | null>(
     ((relatedDomainRes.data ?? []) as Array<Record<string, unknown>>)
@@ -355,7 +546,7 @@ async function handle(req: NextRequest, slug: string) {
     .filter((r): r is RelatedProduct => r !== null)
 
   return NextResponse.json(
-    { product, listings, priceHistory, priceRange, relatedProducts, adminPreview },
+    { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, adminPreview },
     {
       headers: adminPreview
         // An unpublished product must never enter a shared cache.

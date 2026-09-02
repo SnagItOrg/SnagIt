@@ -9,17 +9,27 @@ import { SearchResultCard } from '@/components/SearchResultCard'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
+// Recharts: P2 replaced the area chart with a scatter of individual sold
+// observations, so the imports follow P2 rather than the pre-P2 area set.
+import { ResponsiveContainer, ScatterChart, Scatter, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { useLocale } from '@/components/LocaleProvider'
+import { DanishMarketBlock, ReferencePopulationBlock } from '@/components/PriceAnswer'
+import type { PopulationKey, PopulationStats } from '@/lib/price-populations'
 import {
   ProductReviewControls,
   type MatchReviewStatus,
 } from '@/components/admin/ProductReviewControls'
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts'
+
+/** The product API enriches each listing with a server-computed deal signal. */
+type ListingWithVerdict = {
+  marketVerdict?: 'under' | 'typical' | 'over' | null
+  marketVerdictBasisLabel?: string | null
+}
 import { ChartFrame, DataLegend } from '@/components/data-display'
-import { formatDateRange, formatDkkAmount } from '@/lib/chart-format'
+import { formatCompact, formatDateRange, formatDkkAmount } from '@/lib/chart-format'
 import { seriesColor } from '@/lib/chart-palette'
 import type { Listing } from '@/lib/supabase'
-import type { PricePoint, PriceRange, RelatedProduct } from '@/app/api/product/[slug]/route'
+import type { PricePoint, RelatedProduct } from '@/app/api/product/[slug]/route'
 
 /**
  * The entity key for the sold-price series.
@@ -28,7 +38,12 @@ import type { PricePoint, PriceRange, RelatedProduct } from '@/app/api/product/[
  * named in the frame's source line instead of being split into series we do
  * not actually draw separately.
  */
-const SOLD_SERIES = 'sold-price'
+function fillTemplate(template: string, values: Record<string, string | number>): string {
+  return Object.entries(values).reduce(
+    (acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)),
+    template,
+  )
+}
 
 type ProductAttributes = {
   description?:     string
@@ -56,12 +71,13 @@ type Product = {
 export default function ProductPage() {
   const params = useParams()
   const slug = params.slug as string
+  const { t, locale } = useLocale()
 
   const [product, setProduct]           = useState<Product | null>(null)
-  const { t } = useLocale()
   const [listings, setListings]         = useState<Listing[]>([])
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([])
-  const [priceRange, setPriceRange]     = useState<PriceRange | null>(null)
+  const [populations, setPopulations]   = useState<Record<PopulationKey, PopulationStats> | null>(null)
+  const [soldCounts, setSoldCounts]     = useState<{ raw: number; filtered: number; excludedOutliers: number } | null>(null)
   const [loading, setLoading]           = useState(true)
   const [notFound, setNotFound]         = useState(false)
   const [imgError, setImgError]         = useState(false)
@@ -117,6 +133,12 @@ export default function ProductPage() {
    * Extracted from the mount effect so a review decision can re-read it.
    * Refetching is what makes a rejected listing leave the wall and the counts
    * follow, without a full page reload.
+   *
+   * INTEGRATION NOTE. P2 fetched this inline on mount; the review flow needs to
+   * call it again after a decision, so the callable shape is kept and P2's
+   * payload is read inside it. `populations` and `soldCounts` replace the old
+   * `priceRange`, so a decision refreshes the price evidence too — rejecting a
+   * listing changes the population it was counted in.
    */
   const loadProduct = useCallback(async () => {
     try {
@@ -127,7 +149,8 @@ export default function ProductPage() {
       setProduct(data.product)
       setListings(data.listings ?? [])
       setPriceHistory(data.priceHistory ?? [])
-      setPriceRange(data.priceRange ?? null)
+      setPopulations(data.populations ?? null)
+      setSoldCounts(data.soldCounts ?? null)
       setRelatedProducts(data.relatedProducts ?? [])
     } catch {
       setNotFound(true)
@@ -289,27 +312,32 @@ export default function ProductPage() {
                       )}
                     </div>
 
-                    {/* Typical used price */}
-                    {priceRange ? (
-                      <div className="flex flex-col gap-1">
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                          Typisk brugtpris
-                        </p>
-                        <p className="text-[clamp(1.5rem,1.1rem+1.6vw,2rem)] font-semibold tracking-tight text-foreground tabular-nums wrap-anywhere">
-                          {priceRange.low.toLocaleString('da-DK')}
-                          <span className="text-muted-foreground font-normal mx-2">–</span>
-                          {priceRange.high.toLocaleString('da-DK')} kr
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Median {priceRange.median.toLocaleString('da-DK')} kr
-                          <span className="mx-1.5">·</span>
-                          baseret på {priceRange.count} salg
-                        </p>
+                    {/* THE PRICE ANSWER.
+                        Danish market first, at whatever tier its data supports,
+                        then Reverb as clearly separate reference populations.
+                        The old headline was a min-max over international SOLD
+                        prices labelled "Typisk brugtpris" — a 5.2x range on
+                        Juno-60 — which answered no question and named no
+                        population. Owner decision C2, 2026-09-01. */}
+                    {populations && (
+                      <div className="flex flex-col gap-5">
+                        <DanishMarketBlock stats={populations['dk-asking']} />
+
+                        {(populations['reverb-sold'].tier === 'band' ||
+                          populations['reverb-asking'].tier === 'band') && (
+                          <div className="flex flex-col gap-3">
+                            <ReferencePopulationBlock
+                              stats={populations['reverb-sold']}
+                              heading={t.reverbSoldHeading}
+                            />
+                            <ReferencePopulationBlock
+                              stats={populations['reverb-asking']}
+                              heading={t.reverbAskingHeading}
+                              note={t.reverbAskingNote}
+                            />
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Ikke nok prisdata til at beregne typisk pris endnu.
-                      </p>
                     )}
 
                     {/* Thomann new price reference */}
@@ -351,68 +379,121 @@ export default function ProductPage() {
 
                 {/* ── Price history ─────────────────────────────── */}
                 {(() => {
-                  // The threshold is unchanged: fewer than five sold prices is
-                  // not a trend. What changed is what happens below it — the
-                  // section used to disappear, which reads as "this product has
-                  // no history" when the truth is "we have three observations".
-                  const MIN_POINTS = 5
-                  const sources = Array.from(
-                    priceHistory.reduce((acc, point) => {
-                      acc.set(point.source, (acc.get(point.source) ?? 0) + 1)
-                      return acc
-                    }, new Map<string, number>()),
-                  )
+                  /**
+                   * Sold prices only, on a real time axis.
+                   *
+                   * Three things changed. The x-axis was `dataKey="sold_at"`
+                   * with no `type`, so Recharts defaulted to a CATEGORY scale
+                   * and the chart plotted sale INDEX, not time — evenly spacing
+                   * sales that happened years apart. The y-axis was hidden, so
+                   * the shape had no magnitude. And `condition`, carried from
+                   * the database through the API and into this component, was
+                   * never read.
+                   *
+                   * Asking prices are deliberately NOT plotted here. Placing
+                   * them on the sold distribution is a cross-population
+                   * comparison, which owner decision C2 defers.
+                   */
+                  const sold = populations?.['reverb-sold'] ?? null
+                  const enough = sold?.tier === 'band'
+
+                  const points = priceHistory
+                    .map((pt) => ({
+                      ts: new Date(pt.sold_at).getTime(),
+                      price: pt.price,
+                      condition: pt.condition && pt.condition.trim() !== ''
+                        ? pt.condition
+                        : t.conditionUnknown,
+                    }))
+                    .filter((pt) => Number.isFinite(pt.ts) && pt.price > 0)
+
+                  const byCondition = new Map<string, typeof points>()
+                  for (const pt of points) {
+                    const list = byCondition.get(pt.condition) ?? []
+                    list.push(pt)
+                    byCondition.set(pt.condition, list)
+                  }
+                  const conditionSeries = Array.from(byCondition.entries())
+                    .sort((a, b) => b[1].length - a[1].length)
+
                   const period = formatDateRange(
                     priceHistory[0]?.sold_at,
                     priceHistory[priceHistory.length - 1]?.sold_at,
                   )
-                  const enough = priceHistory.length >= MIN_POINTS
 
                   return (
                     <ChartFrame
                       className="mb-10"
-                      title="Prishistorik"
-                      description="Registrerede salgspriser — ikke udbudspriser."
-                      locale="da"
+                      title={t.priceHistoryTitle}
+                      description={t.reverbSoldHeading}
+                      locale={locale}
                       headingLevel="h2"
                       state={enough ? 'ready' : 'empty'}
                       emptyReason={
                         priceHistory.length === 0 ? 'no-observations' : 'insufficient-observations'
                       }
                       emptyDetail={
-                        priceHistory.length === 0
-                          ? undefined
-                          : `Vi har ${priceHistory.length} registreret${priceHistory.length === 1 ? '' : 'e'} salg for dette produkt. Der skal ${MIN_POINTS} til, f\u00f8r vi viser en kurve.`
+                        // A truncated read must not report a partial count as
+                        // if it were the whole sold history.
+                        sold?.tier === 'unavailable'
+                          ? t.priceDataUnavailable
+                          : priceHistory.length === 0
+                            ? undefined
+                            : fillTemplate(t.priceBandTooFew, { count: priceHistory.length })
                       }
                       legend={
                         enough ? (
-                          <DataLegend items={[{ key: SOLD_SERIES, label: 'Solgt', count: priceHistory.length }]} />
+                          <DataLegend
+                            items={conditionSeries.map(([name, list]) => ({
+                              key: name,
+                              label: name,
+                              count: list.length,
+                            }))}
+                          />
                         ) : undefined
                       }
-                      source={
-                        sources.length > 0
-                          ? sources.map(([name, count]) => `${name} (${count})`).join(' \u00b7 ')
-                          : undefined
-                      }
+                      source={soldCounts
+                        ? fillTemplate(t.soldCountsReconciled, {
+                            filtered: soldCounts.filtered,
+                            raw: soldCounts.raw,
+                            excluded: soldCounts.excludedOutliers,
+                          })
+                        : undefined}
                       period={period ?? undefined}
-                      sample={
-                        priceHistory.length > 0 ? `${priceHistory.length} salg` : undefined
-                      }
+                      sample={sold ? `n = ${sold.nFiltered}` : undefined}
                     >
-                      {/* One value axis, hidden. Never a second scale: two axes
-                          over one chart let the reader pick the story. */}
-                      <div className="h-28 w-full min-w-0">
+                      <div className="h-64 w-full min-w-0">
                         <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={priceHistory} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-                            <defs>
-                              <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={seriesColor(SOLD_SERIES)} stopOpacity={0.18} />
-                                <stop offset="95%" stopColor={seriesColor(SOLD_SERIES)} stopOpacity={0} />
-                              </linearGradient>
-                            </defs>
-                            <XAxis dataKey="sold_at" hide />
-                            <YAxis hide domain={['auto', 'auto']} />
+                          <ScatterChart margin={{ top: 8, right: 8, left: 8, bottom: 4 }}>
+                            <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="2 4" vertical={false} />
+                            {/* A real time domain, not a category index. */}
+                            <XAxis
+                              type="number"
+                              dataKey="ts"
+                              domain={['dataMin', 'dataMax']}
+                              scale="time"
+                              tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                              tickLine={false}
+                              axisLine={{ stroke: 'var(--border-subtle)' }}
+                              tickFormatter={(v: number) =>
+                                new Date(v).toLocaleDateString('da-DK', { month: 'short', year: '2-digit' })
+                              }
+                              minTickGap={28}
+                            />
+                            {/* Kroner, visible. */}
+                            <YAxis
+                              type="number"
+                              dataKey="price"
+                              domain={['auto', 'auto']}
+                              width={64}
+                              tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                              tickLine={false}
+                              axisLine={false}
+                              tickFormatter={(v: number) => formatCompact(v, 'da-DK') ?? ''}
+                              label={undefined}
+                            />
                             <Tooltip
+                              cursor={{ stroke: 'var(--border-strong)', strokeDasharray: '2 4' }}
                               contentStyle={{
                                 background: 'var(--surface-1)',
                                 border: '1px solid var(--border-subtle)',
@@ -420,32 +501,29 @@ export default function ProductPage() {
                                 fontSize: 12,
                                 color: 'var(--text-primary)',
                               }}
-                              formatter={(v: unknown) => [formatDkkAmount(Number(v)) ?? '\u2014', 'Pris']}
+                              formatter={(v: unknown, name: unknown) => [
+                                formatDkkAmount(Number(v)) ?? '\u2014',
+                                String(name),
+                              ]}
                               labelFormatter={(l: unknown) =>
-                                new Date(String(l)).toLocaleDateString('da-DK', { month: 'short', year: 'numeric' })
+                                new Date(Number(l)).toLocaleDateString('da-DK', {
+                                  day: 'numeric', month: 'short', year: 'numeric',
+                                })
                               }
                             />
-                            <Area
-                              type="monotone"
-                              dataKey="price"
-                              stroke={seriesColor(SOLD_SERIES)}
-                              strokeWidth={1.5}
-                              fill="url(#priceGrad)"
-                              dot={false}
-                              activeDot={{ r: 3 }}
-                            />
-                          </AreaChart>
+                            {conditionSeries.map(([name, list]) => (
+                              <Scatter
+                                key={name}
+                                name={name}
+                                data={list}
+                                fill={seriesColor(name)}
+                                fillOpacity={0.75}
+                              />
+                            ))}
+                          </ScatterChart>
                         </ResponsiveContainer>
                       </div>
-                      <a
-                        href="https://reverb.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 flex items-center gap-1 self-start text-xs text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: 12 }}>open_in_new</span>
-                        Prisdata fra Reverb
-                      </a>
+                      <p className="mt-3 type-meta">{t.chartAxisPriceDkk}</p>
                     </ChartFrame>
                   )
                 })()}
@@ -607,6 +685,8 @@ export default function ProductPage() {
                         <div className="flex flex-col">
                           <SearchResultCard
                             listing={listing}
+                            marketVerdict={(listing as ListingWithVerdict).marketVerdict}
+                            marketVerdictBasisLabel={(listing as ListingWithVerdict).marketVerdictBasisLabel}
                             onCreateWatchlist={handleCreateWatchlist}
                             creating={creating}
                             variant="list"
