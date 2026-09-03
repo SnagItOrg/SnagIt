@@ -289,6 +289,11 @@ export const translations = {
      * Danish chips beside English content on the same card.
      */
     adminReview: {
+      // Shown when ?review=1 is requested by someone the server does not
+      // recognise as an admin. Rendering nothing at all left the operator
+      // with no way to tell an empty review mode from a missing feature.
+      signedOutNotice: 'Gennemgangstilstand kr\u00e6ver en admin-session, og denne browser er ikke logget ind som admin p\u00e5 dette dom\u00e6ne.',
+      signIn: 'Log ind',
       statusUnresolved: 'Uafklaret',
       statusReviewed: 'Gennemg\u00e5et',
       statusRejected: 'Afvist',
@@ -604,6 +609,8 @@ export const translations = {
 
 
     adminReview: {
+      signedOutNotice: 'Review mode needs an admin session, and this browser is not signed in as an admin on this domain.',
+      signIn: 'Sign in',
       statusUnresolved: 'Unresolved',
       statusReviewed: 'Reviewed',
       statusRejected: 'Rejected',

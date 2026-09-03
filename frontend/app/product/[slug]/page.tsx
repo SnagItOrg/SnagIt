@@ -676,6 +676,43 @@ export default function ProductPage() {
                   result and saving the query as a search term are two
                   separate, explicitly clicked actions.
                 */}
+                {/*
+                  REVIEW MODE MUST NEVER FAIL SILENTLY.
+
+                  `reviewMode` is `isAdmin && reviewRequested`, and `isAdmin`
+                  comes from /api/admin/me — a per-origin session. On a preview
+                  deployment that is a DIFFERENT origin from production, so a
+                  signed-in operator arrives here signed out and the whole
+                  review surface rendered nothing, with no explanation. That is
+                  indistinguishable from the feature being missing, and it is
+                  exactly how the first two PAN-31 previews were read.
+                */}
+                {reviewRequested && !isAdmin && (
+                  <div className="mb-6 rounded-2xl border border-line bg-surface-2 p-4 text-sm text-ink-secondary">
+                    {t.adminReview.signedOutNotice}{' '}
+                    <a href="/login" className="font-semibold underline text-ink">
+                      {t.adminReview.signIn}
+                    </a>
+                  </div>
+                )}
+
+                {/*
+                  The entry point used to live inside the `listings.length > 0`
+                  block below, so a product with no matched listings offered an
+                  admin no way into review mode — the one case where the live
+                  search is most needed.
+                */}
+                {isAdmin && (
+                  <div className="mb-4 flex flex-wrap items-center gap-3">
+                    <a
+                      href={reviewRequested ? `/product/${slug}` : `/product/${slug}?review=1`}
+                      className="w-fit rounded-lg border border-line bg-surface-2 px-3 py-1 text-xs font-semibold text-ink-secondary transition-colors hover:bg-surface-3"
+                    >
+                      {reviewRequested ? 'Afslut gennemgang' : 'Gennemgå matches'}
+                    </a>
+                  </div>
+                )}
+
                 {reviewMode && product && (
                   <div className="mb-6">
                     <ScrapeSection
@@ -700,16 +737,6 @@ export default function ProductPage() {
                     <p className="text-sm font-medium text-foreground">
                       {listings.length} {listings.length === 1 ? 'annonce' : 'annoncer'}
                     </p>
-                    {isAdmin && (
-                      <div className="flex flex-wrap items-center gap-3">
-                        <a
-                          href={reviewRequested ? `/product/${slug}` : `/product/${slug}?review=1`}
-                          className="w-fit rounded-lg border border-line bg-surface-2 px-3 py-1 text-xs font-semibold text-ink-secondary transition-colors hover:bg-surface-3"
-                        >
-                          {reviewRequested ? 'Afslut gennemgang' : 'Gennemgå matches'}
-                        </a>
-                      </div>
-                    )}
                     <div className="grid-wall grid-wall-lg">
                     {listings.map((listing) => (
                       <ListingErrorBoundary key={listing.id} listingId={listing.id}>
