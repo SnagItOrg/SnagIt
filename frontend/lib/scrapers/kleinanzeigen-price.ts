@@ -119,12 +119,28 @@ export function parseGermanPriceOutcome(raw: string | null | undefined): PriceOu
 
   if (SHIPPING_ONLY_PATTERN.test(text)) return { value: null, reason: 'shipping_only' }
 
-  for (const pattern of NO_PRICE_PATTERNS) {
-    if (pattern.test(text)) return { value: null, reason: 'no_price_stated' }
-  }
-
+  /**
+   * ORDER MATTERS, AND IT USED TO BE WRONG.
+   *
+   * The NO_PRICE check ran BEFORE the number was read, so any price element
+   * whose text merely contained one of these words lost a stated amount. The
+   * patterns are unanchored — `/verschenken/i` matches anywhere — so a card
+   * reading `450 € ... Rest zu verschenken` was stored with no price at all.
+   * PAN-24 measured the share of Kleinanzeigen rows without a price doubling
+   * to 66.5% after the 29-30 Aug parser change, with 100% of them arriving
+   * through `no_price_stated`, the one reason that was never logged.
+   *
+   * An explicit number now wins. `no_price_stated` keeps its meaning and is
+   * reached only when the text states no amount at all — which is exactly the
+   * `Preis auf Anfrage` / `zu verschenken` case it was written for.
+   */
   const match = text.match(/\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?/)
-  if (!match) return { value: null, reason: 'no_number' }
+  if (!match) {
+    for (const pattern of NO_PRICE_PATTERNS) {
+      if (pattern.test(text)) return { value: null, reason: 'no_price_stated' }
+    }
+    return { value: null, reason: 'no_number' }
+  }
 
   const token = match[0]
   const hasDot = token.includes('.')
@@ -308,4 +324,29 @@ function offerPriceFrom(node: unknown): number | null {
   if (typeof raw === 'string') return parseGermanPrice(raw)
 
   return null
+}
+
+/**
+ * Fold one price outcome into a per-run tally.
+ *
+ * WHY THIS EXISTS. `no_price_stated` was the only refusal reason the scraper
+ * did not log, and it turned out to carry 100% of the missing prices — the
+ * defect was invisible in the run's own output for weeks. Counting is done
+ * here rather than logged per advert so the volume stays bounded: one line per
+ * run, whatever the listing count.
+ *
+ * The tally holds counts only. No markup, no listing identity, no credential
+ * can reach it, because nothing but static reason codes is ever used as a key.
+ */
+export function recordPriceOutcome(
+  tally: Record<string, number>,
+  outcome: PriceOutcome,
+): Record<string, number> {
+  tally.cards = (tally.cards ?? 0) + 1
+  if (outcome.value != null) {
+    tally.priced = (tally.priced ?? 0) + 1
+  } else if (outcome.reason) {
+    tally[outcome.reason] = (tally[outcome.reason] ?? 0) + 1
+  }
+  return tally
 }

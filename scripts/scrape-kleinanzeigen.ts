@@ -27,7 +27,17 @@ import { monitoredSlugs, assertResolved } from './lib/source-monitoring'
 // This script is the PM2 writer, so a parser fix that lands only in the frontend
 // module changes no stored row — which is exactly how the welded-pair shape
 // survived its own 2026-05 diagnosis.
-import { extractCardPriceOutcome } from '../frontend/lib/scrapers/kleinanzeigen-price'
+import { extractCardPriceOutcome, recordPriceOutcome } from '../frontend/lib/scrapers/kleinanzeigen-price'
+
+/**
+ * Per-run price tally, emitted once at the end of the run.
+ *
+ * `no_price_stated` was excluded from the per-listing warning below, so the
+ * one reason that carried every missing price produced no output at all. It is
+ * counted here on exactly the same terms as every other reason. Counting
+ * rather than logging per advert keeps the volume bounded: one line per run.
+ */
+const priceTally: Record<string, number> = {}
 import {
   classifyKleinanzeigenPrice,
   recoverKleinanzeigenPrice,
@@ -208,7 +218,10 @@ function parseArticle(articleHtml: string): ScrapedListing | null {
    * no credentials ever reach this line.
    */
   const priceOutcome = extractCardPriceOutcome(articleHtml)
+  recordPriceOutcome(priceTally, priceOutcome)
   const price = priceOutcome.value
+  // The per-listing warning keeps its existing scope. `no_price_stated` is the
+  // common case and belongs in the aggregate, not in one line per advert.
   if (price == null && priceOutcome.reason && priceOutcome.reason !== 'no_price_stated') {
     console.warn(
       JSON.stringify({
@@ -487,6 +500,17 @@ async function main() {
   }
 
   console.log(`[scrape-kleinanzeigen] Done. ${scrapedProducts} products scraped, ${totalListings} listings total.`)
+
+  // The distribution by reason, readable straight from one normal run's log.
+  console.log(
+    JSON.stringify({
+      channel: 'operational',
+      component: 'scrape-kleinanzeigen',
+      event: 'price_outcome_summary',
+      source: 'kleinanzeigen',
+      ...priceTally,
+    }),
+  )
 
   // Bounded new-inflow matching: only the ids this run just wrote. Runs after
   // the writes complete and never changes this script's exit status.

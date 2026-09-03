@@ -19,6 +19,7 @@ import {
   extractCardPrice,
   parseGermanPrice,
   parseGermanPriceOutcome,
+  recordPriceOutcome,
 } from '../../frontend/lib/scrapers/kleinanzeigen-price'
 import {
   KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR,
@@ -707,4 +708,60 @@ test('the ambiguous reason is a static code carrying no listing content', () => 
   assert.match(reason, /^[a-z_]+$/)
   assert.equal(reason, 'ambiguous_pair')
   assert.ok(!reason.includes('123456'), 'the value must not travel in the code')
+})
+
+/* ------------------------------------------------------------------ *
+ * PAN-19 — the two behaviours PAN-24 proved were unprotected
+ * ------------------------------------------------------------------ */
+
+test('a stated amount survives a no-price phrase in the same text', () => {
+  // The NO_PRICE patterns are unanchored, and they used to run BEFORE the
+  // number was read, so any element merely containing one of these words lost
+  // a real asking price. PAN-24 measured the share of Kleinanzeigen rows with
+  // no price doubling to 66.5% after that ordering shipped.
+  for (const [text, expected] of [
+    ['450 € Rest zu verschenken', 450],
+    ['1.200 € VB, Zubehör zu verschenken', 1200],
+    ['Preis auf Anfrage — Richtwert 800 €', 800],
+    ['350 € gegen Gebot', 350],
+  ] as const) {
+    const outcome = parseGermanPriceOutcome(text)
+    assert.equal(outcome.value, expected, `"${text}" lost its stated price`)
+    assert.equal(outcome.reason, null, `"${text}" was refused despite stating an amount`)
+  }
+
+  // The reason keeps its meaning where no amount is stated at all.
+  for (const text of ['Zu verschenken', 'Preis auf Anfrage', 'Gegen Gebot']) {
+    assert.equal(parseGermanPriceOutcome(text).value, null)
+    assert.equal(parseGermanPriceOutcome(text).reason, 'no_price_stated')
+  }
+})
+
+test('every refusal reason reaches the run tally, no_price_stated included', () => {
+  // no_price_stated was the ONLY reason the scraper did not log, and PAN-24
+  // found it carried 100% of the missing prices — invisible in the run output.
+  const tally: Record<string, number> = {}
+  const texts = [
+    '450 €',              // priced
+    'Zu verschenken',     // no_price_stated
+    'Preis auf Anfrage',  // no_price_stated
+    '+ Versand ab 5,49 €',// shipping_only
+    'Verhandlungsbasis',  // no_number
+  ]
+  for (const t of texts) recordPriceOutcome(tally, parseGermanPriceOutcome(t))
+
+  assert.equal(tally.cards, texts.length, 'every card is counted')
+  assert.equal(tally.priced, 1)
+  assert.equal(tally.no_price_stated, 2, 'no_price_stated is counted like any other reason')
+  assert.equal(tally.shipping_only, 1)
+  assert.equal(tally.no_number, 1)
+
+  // cards === priced + every refusal, so a reason can never be silently dropped.
+  const refused = Object.entries(tally)
+    .filter(([k]) => k !== 'cards' && k !== 'priced')
+    .reduce((n, [, v]) => n + v, 0)
+  assert.equal(tally.priced + refused, tally.cards)
+
+  // Counts only: no markup, no listing identity, no free text can be a key.
+  for (const key of Object.keys(tally)) assert.match(key, /^[a-z_]+$/)
 })
