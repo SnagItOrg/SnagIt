@@ -727,6 +727,14 @@ export default function ProductPage() {
                         showToast(`Annoncen er flyttet til ${productName}.`)
                       }
                       onStatus={showToast}
+                      /*
+                        Live search re-finds what scheduled ingestion already
+                        has. Both sources are already on this page, so the
+                        already-reviewed state costs no extra request.
+                      */
+                      knownListings={Object.fromEntries(
+                        listings.map((l) => [l.url, matchStatuses[l.id] ?? 'unresolved']),
+                      )}
                     />
                   </div>
                 )}

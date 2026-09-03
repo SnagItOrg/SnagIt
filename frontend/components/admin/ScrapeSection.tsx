@@ -23,6 +23,7 @@
 
 import { useState } from 'react'
 import { ReassignPanel } from '@/components/admin/ReassignPanel'
+import { StatusChip, type MatchReviewStatus } from '@/components/admin/ProductReviewControls'
 
 export type MatchedListing = {
   id: string
@@ -102,6 +103,7 @@ export function ScrapeSection({
   onSaved,
   onMoved,
   onStatus,
+  knownListings,
 }: {
   slug: string
   defaultQuery: string
@@ -110,6 +112,15 @@ export function ScrapeSection({
   onMoved?: (productName: string) => void
   /** Optional: a host that has a toast reports attachment and alias outcomes. */
   onStatus?: (message: string) => void
+  /**
+   * Listing URL -> review status, for listings ALREADY attached to this
+   * product. Live search re-finds what scheduled ingestion already has, so
+   * without this an approved listing came back looking exactly like a new one
+   * and still offered "Gem listing" — inviting the operator to re-decide
+   * something they had already decided. The host supplies it because the host
+   * already holds the matched set; nothing new is fetched.
+   */
+  knownListings?: Record<string, MatchReviewStatus>
 }) {
   const [query, setQuery] = useState(defaultQuery)
   const [platform, setPlatform] = useState<SearchPlatform>('dba')
@@ -376,17 +387,35 @@ export function ScrapeSection({
                 label: r.source,
               }
             const movePanelOpen = reassignState?.listingUrl === r.url
+            const known = knownListings?.[r.url]
             return (
               <li key={r.url} className="flex flex-col gap-2 py-3">
                 <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex items-center gap-3">
+                    <div
+                      className="shrink-0 overflow-hidden rounded-lg"
+                      style={{ width: 56, height: 56, background: 'var(--secondary)' }}
+                    >
+                      {r.image_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={r.image_url}
+                          alt=""
+                          loading="lazy"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => { e.currentTarget.style.visibility = 'hidden' }}
+                        />
+                      )}
+                    </div>
                   <div className="min-w-0 flex flex-col gap-0.5">
-                    <div>
+                    <div className="flex items-center gap-1.5">
                       <span
                         className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                         style={{ background: badge.bg, color: badge.fg }}
                       >
                         {badge.label}
                       </span>
+                      {known && <StatusChip status={known} />}
                     </div>
                     <a
                       href={r.url}
@@ -405,6 +434,7 @@ export function ScrapeSection({
                       {r.location && <> · {r.location}</>}
                     </p>
                   </div>
+                  </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={() => void handleMoveStart(r)}
@@ -419,14 +449,14 @@ export function ScrapeSection({
                     </button>
                     <button
                       onClick={() => handleSave(r)}
-                      disabled={saving || saved || movePanelOpen}
+                      disabled={saving || saved || movePanelOpen || known != null}
                       className="text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40"
                       style={{
-                        background: saved ? 'var(--secondary)' : 'var(--primary)',
-                        color: saved ? 'var(--muted-foreground)' : 'var(--primary-foreground)',
+                        background: saved || known ? 'var(--secondary)' : 'var(--primary)',
+                        color: saved || known ? 'var(--muted-foreground)' : 'var(--primary-foreground)',
                       }}
                     >
-                      {saved ? 'Gemt ✓' : saving ? 'Gemmer…' : 'Gem listing'}
+                      {known ? 'Allerede tilknyttet' : saved ? 'Gemt ✓' : saving ? 'Gemmer…' : 'Gem listing'}
                     </button>
                   </div>
                 </div>

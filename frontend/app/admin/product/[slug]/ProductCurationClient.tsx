@@ -143,6 +143,17 @@ export default function ProductCurationClient({ data }: { data: CurationData }) 
         defaultQuery={header.canonical_name}
         productId={header.id}
         onMoved={(name) => showToast(`Listing gemt og flyttet til ${name}`)}
+        /*
+          Same mapping the match-review route uses (is_valid true/false/null),
+          so a listing already attached here is labelled with the review
+          vocabulary rather than offered for attaching a second time.
+        */
+        knownListings={Object.fromEntries(
+          listings.map((l) => [
+            l.url,
+            l.is_valid === true ? 'reviewed' : l.is_valid === false ? 'rejected' : 'unresolved',
+          ]),
+        )}
         onSaved={(listing) => {
           setListings((prev) => {
             if (prev.some((l) => l.id === listing.id)) return prev

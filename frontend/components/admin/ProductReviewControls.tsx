@@ -31,7 +31,9 @@ import { ACTIONS_FOR, type MatchReviewStatus } from '@/lib/match-review-state'
 export { ACTIONS_FOR }
 export type { MatchReviewStatus }
 
-function StatusChip({ status }: { status: MatchReviewStatus }) {
+/** Exported so the live-search results can label an already-reviewed
+  * listing with the SAME vocabulary the review controls use. */
+export function StatusChip({ status }: { status: MatchReviewStatus }) {
   const { t } = useLocale()
   const label = {
     reviewed: t.adminReview.statusReviewed,
