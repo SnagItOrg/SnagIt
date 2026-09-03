@@ -21,6 +21,7 @@ import {
   ProductReviewControls,
   type MatchReviewStatus,
 } from '@/components/admin/ProductReviewControls'
+import { ScrapeSection } from '@/components/admin/ScrapeSection'
 
 /** The product API enriches each listing with a server-computed deal signal. */
 type ListingWithVerdict = {
@@ -665,6 +666,34 @@ export default function ProductPage() {
               </div>
 
               <div className="shell-wall flex flex-col">
+                {/*
+                  ── Live search (PAN-31) ─────────────────────────
+                  It sits ABOVE the listing wall and OUTSIDE the
+                  `listings.length > 0` guard on purpose: a product with no
+                  matched listings is exactly the one an operator opens review
+                  mode to fix, and hiding the search there would hide it when
+                  it is most needed. Searching writes nothing; attaching a
+                  result and saving the query as a search term are two
+                  separate, explicitly clicked actions.
+                */}
+                {reviewMode && product && (
+                  <div className="mb-6">
+                    <ScrapeSection
+                      slug={slug}
+                      defaultQuery={product.canonical_name}
+                      productId={product.id}
+                      onSaved={() => {
+                        void loadProduct()
+                        void loadMatchStatuses()
+                      }}
+                      onMoved={(productName) =>
+                        showToast(`Annoncen er flyttet til ${productName}.`)
+                      }
+                      onStatus={showToast}
+                    />
+                  </div>
+                )}
+
                 {/* ── Active listings ───────────────────────────── */}
                 {listings.length > 0 && (
                   <div className="flex flex-col gap-3">

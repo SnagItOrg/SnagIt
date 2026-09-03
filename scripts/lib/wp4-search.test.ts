@@ -1132,9 +1132,21 @@ test('the admin scrape workflow is preserved exactly', () => {
       `${file} must keep its in-route admin check`,
     )
   }
-  // The admin curation client still drives them.
-  const client = readCode('app', 'admin', 'product', '[slug]', 'ProductCurationClient.tsx')
-  assert.ok(client.includes('scrape-platform'), 'admin curation must still call scrape-platform')
+  // Admin curation still drives them. PAN-31 moved the section that issues the
+  // call out of ProductCurationClient.tsx and into components/admin, because
+  // /product/[slug]?review=1 renders the same implementation; the assertion
+  // follows the caller rather than pinning the file it used to live in.
+  const section = readCode('components', 'admin', 'ScrapeSection.tsx')
+  assert.ok(section.includes('scrape-platform'), 'admin curation must still call scrape-platform')
+  for (const host of [
+    ['app', 'admin', 'product', '[slug]', 'ProductCurationClient.tsx'],
+    ['app', 'product', '[slug]', 'page.tsx'],
+  ]) {
+    assert.ok(
+      readCode(...host).includes('ScrapeSection'),
+      `${host.join('/')} must render the shared search section`,
+    )
+  }
 })
 
 /* ------------------------------------------------------------------ *
