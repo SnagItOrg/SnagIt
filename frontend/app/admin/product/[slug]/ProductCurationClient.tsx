@@ -72,7 +72,7 @@ export type ScrapedListingPayload = {
   price_dkk: number | null
 }
 
-type SearchPlatform = 'dba' | 'finn' | 'blocket' | 'kleinanzeigen' | 'reverb' | 'all'
+type SearchPlatform = 'dba' | 'finn' | 'blocket' | 'kleinanzeigen' | 'reverb' | 'thomann' | 'all'
 
 const SOURCE_BADGE: Record<string, { bg: string; fg: string; label: string }> = {
   'dba.dk':         { bg: '#00098A', fg: '#ffffff', label: 'DBA' },
@@ -89,8 +89,16 @@ const SEARCH_PLATFORM_OPTS: Array<{ key: SearchPlatform; label: string; apiValue
   { key: 'blocket', label: 'Blocket', apiValue: 'blocket' },
   { key: 'kleinanzeigen', label: 'Kleinanzeigen', apiValue: 'kleinanzeigen' },
   { key: 'reverb', label: 'Reverb', apiValue: 'reverb' },
+  { key: 'thomann', label: 'Thomann', apiValue: 'thomann' },
   { key: 'all', label: 'Alle' },
 ]
+
+// The six sources the pre-pivot search covered. 'Alle' used to send four of
+// them, silently dropping Reverb and Thomann from an operator action labelled
+// "all platforms".
+const ALL_SEARCH_PLATFORMS = SEARCH_PLATFORM_OPTS
+  .map((opt) => opt.apiValue)
+  .filter((v): v is string => v != null)
 
 const COUNTRY_FLAG: Record<string, string> = {
   DK: '🇩🇰', DE: '🇩🇪', SE: '🇸🇪', NO: '🇳🇴', US: '🇺🇸', GB: '🇬🇧', FR: '🇫🇷', NL: '🇳🇱',
@@ -585,6 +593,7 @@ function ScrapeSection({
   const [savingId, setSavingId] = useState<string | null>(null)
   const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set())
   const [results, setResults] = useState<ScrapedListingPayload[]>([])
+  const [failedSources, setFailedSources] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [reassignState, setReassignState] = useState<{ listingUrl: string; listingId: string } | null>(null)
 
@@ -593,7 +602,7 @@ function ScrapeSection({
 
   const selectedPlatforms =
     platform === 'all'
-      ? ['dba', 'finn', 'blocket', 'kleinanzeigen']
+      ? ALL_SEARCH_PLATFORMS
       : [SEARCH_PLATFORM_OPTS.find((opt) => opt.key === platform)?.apiValue ?? 'dba']
 
   async function handleSearch(e: React.FormEvent) {
@@ -603,6 +612,7 @@ function ScrapeSection({
     setSearching(true)
     setError(null)
     setResults([])
+    setFailedSources([])
     setSavedUrls(new Set())
     try {
       const res = await fetch(`/api/admin/product/${slug}/scrape-platform`, {
@@ -616,6 +626,7 @@ function ScrapeSection({
         return
       }
       setResults((data.listings ?? []) as ScrapedListingPayload[])
+      setFailedSources((data.failedSources ?? []) as string[])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Søgning fejlede')
     } finally {
@@ -749,7 +760,14 @@ function ScrapeSection({
         </p>
       )}
 
-      {results.length === 0 && !searching && !error && (
+      {failedSources.length > 0 && (
+        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+          Svarede ikke: {failedSources.map((s) => SEARCH_PLATFORM_OPTS.find((o) => o.apiValue === s)?.label ?? s).join(', ')}.
+          {results.length > 0 && ' Øvrige resultater vises nedenfor.'}
+        </p>
+      )}
+
+      {results.length === 0 && failedSources.length === 0 && !searching && !error && (
         <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
           Indtast en søgning og tryk Søg. Resultater vises her.
         </p>
