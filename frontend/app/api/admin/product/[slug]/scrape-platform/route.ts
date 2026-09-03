@@ -31,6 +31,31 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 type Platform = 'dba' | 'finn' | 'blocket' | 'kleinanzeigen' | 'reverb' | 'thomann'
 
+/**
+ * WHAT THE DATABASE ALREADY KNOWS ABOUT A RESULT.
+ *
+ * Live search re-finds what scheduled ingestion already has, so a result the
+ * operator approved last week came back looking exactly like a new one and
+ * still offered "Gem listing". Every field here is READ from persisted state
+ * and keyed on the stable listing identity (url, source) — the same identity
+ * save-listing writes as (external_id, source). Nothing is inferred from the
+ * title or from text similarity.
+ *
+ * `status` is the review status of the relation to THIS product and uses the
+ * existing MatchReviewStatus vocabulary (lib/match-review-state.ts), derived
+ * with the same is_valid mapping as /api/admin/product/[slug]/match-review.
+ * It is null when no relation exists — "not adjudicated" and "no relation" are
+ * different facts and are not collapsed.
+ */
+type KnownState = {
+  /** Relation to THIS product: reviewed | unresolved | rejected, or null. */
+  status: 'reviewed' | 'unresolved' | 'rejected' | null
+  /** The URL already exists in `listings`, whatever it is matched to. */
+  ingested: boolean
+  /** Canonical name of another product holding a VALID relation to it. */
+  otherProduct: string | null
+}
+
 type ScrapedListing = {
   title: string
   price: number | null
@@ -41,6 +66,7 @@ type ScrapedListing = {
   source: string
   country: string | null
   price_dkk: number | null
+  known?: KnownState
 }
 
 type RawScrapedListing = {
@@ -166,10 +192,86 @@ function normalizeListing(listing: RawScrapedListing): ScrapedListing {
   }
 }
 
+/**
+ * One extra read per search, never a write. Three narrow selects, all scoped to
+ * the URLs actually returned.
+ */
+async function annotateKnownState(
+  slug: string,
+  listings: ScrapedListing[],
+): Promise<ScrapedListing[]> {
+  if (listings.length === 0) return listings
+  const admin = getSupabaseAdmin()
+
+  const { data: product } = await admin
+    .from('kg_product')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle()
+  if (!product) return listings
+
+  const { data: rows } = await admin
+    .from('listings')
+    .select('id, url, source')
+    .in('url', listings.map((l) => l.url))
+
+  const known = (rows ?? []) as Array<{ id: string; url: string; source: string }>
+  if (known.length === 0) return listings
+
+  // (url, source) is the identity save-listing writes. Two sources could in
+  // principle publish the same URL; keying on both keeps the lookup exact.
+  const idByIdentity = new Map(known.map((r) => [`${r.source}|${r.url}`, r.id]))
+
+  const { data: matchRows } = await admin
+    .from('listing_product_match')
+    .select('listing_id, product_id, is_valid')
+    .in('listing_id', known.map((r) => r.id))
+
+  const matches = (matchRows ?? []) as Array<{
+    listing_id: string; product_id: string; is_valid: boolean | null
+  }>
+
+  const otherIds = Array.from(new Set(
+    matches.filter((m) => m.product_id !== product.id && m.is_valid === true)
+           .map((m) => m.product_id),
+  ))
+  const nameById = new Map<string, string>()
+  if (otherIds.length > 0) {
+    const { data: others } = await admin
+      .from('kg_product')
+      .select('id, canonical_name')
+      .in('id', otherIds)
+    for (const p of (others ?? []) as Array<{ id: string; canonical_name: string }>) {
+      nameById.set(p.id, p.canonical_name)
+    }
+  }
+
+  return listings.map((l) => {
+    const listingId = idByIdentity.get(`${l.source}|${l.url}`)
+    if (!listingId) return l
+
+    const mine = matches.find((m) => m.listing_id === listingId && m.product_id === product.id)
+    const elsewhere = matches.find(
+      (m) => m.listing_id === listingId && m.product_id !== product.id && m.is_valid === true,
+    )
+
+    return {
+      ...l,
+      known: {
+        // Same mapping as the match-review route: true / false / null.
+        status: mine
+          ? (mine.is_valid === true ? 'reviewed' : mine.is_valid === false ? 'rejected' : 'unresolved')
+          : null,
+        ingested: true,
+        otherProduct: elsewhere ? (nameById.get(elsewhere.product_id) ?? null) : null,
+      },
+    }
+  })
+}
+
 export async function POST(
   req: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _ctx: { params: { slug: string } },
+  { params }: { params: { slug: string } },
 ) {
   const denied = await requireAdminInRoute()
   if (denied) return denied
@@ -194,7 +296,7 @@ export async function POST(
       const result = await fetchListingFromUrl(trimmed)
       if (result) {
         return NextResponse.json({
-          listings: [normalizeListing(result.listing)],
+          listings: await annotateKnownState(params.slug, [normalizeListing(result.listing)]),
           failedSources: [],
         })
       }
@@ -236,7 +338,10 @@ export async function POST(
   )
 
   return NextResponse.json({
-    listings: settled.flatMap((r) => r.listings).map((listing) => normalizeListing(listing)),
+    listings: await annotateKnownState(
+      params.slug,
+      settled.flatMap((r) => r.listings).map((listing) => normalizeListing(listing)),
+    ),
     failedSources: settled.filter((r) => r.failed).map((r) => r.platform),
   })
 }

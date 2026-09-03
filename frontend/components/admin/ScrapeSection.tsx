@@ -52,6 +52,15 @@ export type ScrapedListingPayload = {
   source: string
   country: string | null
   price_dkk: number | null
+  /**
+   * Read by the route from persisted listing/match state, keyed on the stable
+   * (url, source) identity. Absent for a result the database has never seen.
+   */
+  known?: {
+    status: MatchReviewStatus | null
+    ingested: boolean
+    otherProduct: string | null
+  }
 }
 
 export type SearchPlatform = 'dba' | 'finn' | 'blocket' | 'kleinanzeigen' | 'reverb' | 'thomann' | 'all'
@@ -103,7 +112,6 @@ export function ScrapeSection({
   onSaved,
   onMoved,
   onStatus,
-  knownListings,
 }: {
   slug: string
   defaultQuery: string
@@ -112,15 +120,6 @@ export function ScrapeSection({
   onMoved?: (productName: string) => void
   /** Optional: a host that has a toast reports attachment and alias outcomes. */
   onStatus?: (message: string) => void
-  /**
-   * Listing URL -> review status, for listings ALREADY attached to this
-   * product. Live search re-finds what scheduled ingestion already has, so
-   * without this an approved listing came back looking exactly like a new one
-   * and still offered "Gem listing" — inviting the operator to re-decide
-   * something they had already decided. The host supplies it because the host
-   * already holds the matched set; nothing new is fetched.
-   */
-  knownListings?: Record<string, MatchReviewStatus>
 }) {
   const [query, setQuery] = useState(defaultQuery)
   const [platform, setPlatform] = useState<SearchPlatform>('dba')
@@ -133,6 +132,8 @@ export function ScrapeSection({
   const [lastQuery, setLastQuery] = useState<string | null>(null)
   const [aliasState, setAliasState] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [aliasError, setAliasError] = useState<string | null>(null)
+  /** URLs whose thumbnail failed to load, so the row shows the placeholder. */
+  const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [reassignState, setReassignState] = useState<{ listingUrl: string; listingId: string } | null>(null)
 
@@ -387,7 +388,11 @@ export function ScrapeSection({
                 label: r.source,
               }
             const movePanelOpen = reassignState?.listingUrl === r.url
-            const known = knownListings?.[r.url]
+            const known = r.known
+            // A relation this product already holds, or one another product
+            // holds, is existing state — not something to attach again.
+            const settled = known != null
+              && (known.status === 'reviewed' || known.status === 'rejected' || known.otherProduct != null)
             return (
               <li key={r.url} className="flex flex-col gap-2 py-3">
                 <div className="flex items-center justify-between gap-3">
@@ -396,15 +401,24 @@ export function ScrapeSection({
                       className="shrink-0 overflow-hidden rounded-lg"
                       style={{ width: 56, height: 56, background: 'var(--secondary)' }}
                     >
-                      {r.image_url && (
+                      {r.image_url && !brokenImages.has(r.url) ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={r.image_url}
                           alt=""
                           loading="lazy"
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          onError={(e) => { e.currentTarget.style.visibility = 'hidden' }}
+                          onError={() => setBrokenImages((prev) => new Set(prev).add(r.url))}
                         />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center"
+                          style={{ color: 'var(--muted-foreground)' }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+                            image
+                          </span>
+                        </div>
                       )}
                     </div>
                   <div className="min-w-0 flex flex-col gap-0.5">
@@ -415,7 +429,17 @@ export function ScrapeSection({
                       >
                         {badge.label}
                       </span>
-                      {known && <StatusChip status={known} />}
+                      {known?.status && <StatusChip status={known.status} />}
+                      {known?.otherProduct && (
+                        <span className="text-[10px]" style={{ color: 'var(--muted-foreground)' }}>
+                          → {known.otherProduct}
+                        </span>
+                      )}
+                      {known?.ingested && !known.status && !known.otherProduct && (
+                        <span className="text-[10px]" style={{ color: 'var(--muted-foreground)' }}>
+                          Allerede indlæst
+                        </span>
+                      )}
                     </div>
                     <a
                       href={r.url}
@@ -449,14 +473,19 @@ export function ScrapeSection({
                     </button>
                     <button
                       onClick={() => handleSave(r)}
-                      disabled={saving || saved || movePanelOpen || known != null}
+                      disabled={saving || saved || movePanelOpen || settled}
                       className="text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40"
                       style={{
-                        background: saved || known ? 'var(--secondary)' : 'var(--primary)',
-                        color: saved || known ? 'var(--muted-foreground)' : 'var(--primary-foreground)',
+                        background: saved || settled ? 'var(--secondary)' : 'var(--primary)',
+                        color: saved || settled ? 'var(--muted-foreground)' : 'var(--primary-foreground)',
                       }}
                     >
-                      {known ? 'Allerede tilknyttet' : saved ? 'Gemt ✓' : saving ? 'Gemmer…' : 'Gem listing'}
+                      {known?.status === 'reviewed' ? 'Allerede tilknyttet'
+                        : known?.status === 'rejected' ? 'Afvist tidligere'
+                        : known?.otherProduct ? 'Tilknyttet andet produkt'
+                        : saved ? 'Gemt ✓'
+                        : saving ? 'Gemmer…'
+                        : 'Gem listing'}
                     </button>
                   </div>
                 </div>

@@ -335,9 +335,21 @@ export default function AdminProductsPage() {
                   single-row layout collapsed the name to "F…" at 360px, which
                   is the one thing the operator needs to identify the row. */}
               <div className="min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>
+                {/*
+                  The name is the way into the canonical curation surface.
+                  /admin/product/[slug] holds the live search, the synonyms and
+                  the matched listings, and it works for non-public products
+                  too — but this list offered no link to it at all, so the only
+                  way in was to know and type the URL.
+                */}
+                <Link
+                  href={`/admin/product/${p.slug}`}
+                  className="text-sm font-medium truncate block hover:underline"
+                  style={{ color: 'var(--foreground)' }}
+                  data-testid={`curate-${p.slug}`}
+                >
                   {p.canonical_name}
-                </p>
+                </Link>
                 <p className="text-xs truncate" style={{ color: 'var(--muted-foreground)' }}>
                   {p.kg_brand?.name ?? '—'} · {p.slug}
                 </p>
