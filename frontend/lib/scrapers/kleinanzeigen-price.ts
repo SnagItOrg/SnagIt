@@ -126,9 +126,15 @@ export function parseGermanPriceOutcome(raw: string | null | undefined): PriceOu
    * whose text merely contained one of these words lost a stated amount. The
    * patterns are unanchored — `/verschenken/i` matches anywhere — so a card
    * reading `450 € ... Rest zu verschenken` was stored with no price at all.
-   * PAN-24 measured the share of Kleinanzeigen rows without a price doubling
-   * to 66.5% after the 29-30 Aug parser change, with 100% of them arriving
-   * through `no_price_stated`, the one reason that was never logged.
+   *
+   * SCOPE, MEASURED — NOT the whole null rate. PAN-24 read an empty error log
+   * as "no refusals were logged" and concluded that all of the 66.5% missing
+   * prices arrived through `no_price_stated`. The actual PM2 log contradicts
+   * that: one run emitted 3,670 refusals, of which `no_number` accounted for
+   * essentially all and `no_price_stated` for NONE. This ordering bug is real
+   * and loses real asking prices, but it is not the documented main cause.
+   * `no_number` — a price element carrying no numeric token at all — is, and
+   * that is a separate defect this change does not address.
    *
    * An explicit number now wins. `no_price_stated` keeps its meaning and is
    * reached only when the text states no amount at all — which is exactly the
