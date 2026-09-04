@@ -416,21 +416,29 @@ test('rejection reasons are static codes, never markup or free text', () => {
   assert.ok(reasons.has('no_price_stated'))
 })
 
-test('the scraper logs a rejection and guards again at the write boundary', () => {
+test('the scraper counts every rejection and guards again at the write boundary', () => {
   const src = readFileSync(join(ROOT, 'scripts', 'scrape-kleinanzeigen.ts'), 'utf8')
-  assert.ok(src.includes("event: 'price_rejected'"), 'a parse rejection must be observable')
-  assert.ok(src.includes("event: 'price_rejected_at_write'"), 'and so must a write rejection')
+  // Refusals stay observable, but through the bounded per-run aggregate. The
+  // two per-advert `price_rejected` warnings this used to pin emitted 3,670
+  // lines in one measured run, each carrying a listing URL.
+  assert.ok(src.includes('recordPriceOutcome('), 'every parse outcome must be counted')
+  assert.ok(src.includes("event: 'price_outcome_summary'"), 'and reported once per run')
   assert.ok(src.includes('guardedPrice('), 'the write boundary must re-check')
   assert.ok(src.includes('classifyKleinanzeigenPrice'), 'through the shared authority')
+  assert.ok(src.includes('write_gate_'), 'a write-boundary refusal must still be counted')
   // Identity, timestamps and the conflict target must be untouched.
   assert.ok(src.includes('external_id: listing.url'))
   assert.ok(src.includes('scraped_at: new Date().toISOString()'))
-  // No markup, card text or credentials in any log line.
+  // Listing identity must appear NOWHERE: there is no per-advert line left,
+  // so this is absolute rather than scoped to one event.
+  assert.equal(src.includes('listing_url'), false, 'a log line still carries listing identity')
+  // Markup and credentials are legitimate variables elsewhere in the file;
+  // what matters is that none of them reaches an emitted operational payload.
   for (const leak of ['articleHtml', 'cardHtml', 'SERVICE_ROLE', 'apiKey', 'html)']) {
     const escaped = leak.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     assert.ok(
-      !new RegExp(`event: 'price_rejected[\\s\\S]{0,300}${escaped}`).test(src),
-      `the rejection log leaked ${leak}`,
+      !new RegExp(`channel: 'operational'[\\s\\S]{0,400}${escaped}`).test(src),
+      `an operational payload leaked ${leak}`,
     )
   }
 })
