@@ -32,10 +32,14 @@ import { extractCardPriceOutcome, recordPriceOutcome } from '../frontend/lib/scr
 /**
  * Per-run price tally, emitted once at the end of the run.
  *
- * `no_price_stated` was excluded from the per-listing warning below, so the
- * one reason that carried every missing price produced no output at all. It is
- * counted here on exactly the same terms as every other reason. Counting
- * rather than logging per advert keeps the volume bounded: one line per run.
+ * Every refusal reason is counted here on the same terms, including
+ * `no_price_stated`, which the removed per-advert warning excluded entirely.
+ *
+ * This REPLACES that warning rather than supplementing it. One measured run
+ * emitted 3,670 `price_rejected` lines, each carrying a listing URL — an
+ * unbounded log that also put listing identity into an operational channel,
+ * both of which this ticket forbids. The aggregate already holds every reason
+ * the per-advert line reported, so nothing is lost by deleting it.
  */
 const priceTally: Record<string, number> = {}
 import {
@@ -220,20 +224,6 @@ function parseArticle(articleHtml: string): ScrapedListing | null {
   const priceOutcome = extractCardPriceOutcome(articleHtml)
   recordPriceOutcome(priceTally, priceOutcome)
   const price = priceOutcome.value
-  // The per-listing warning keeps its existing scope. `no_price_stated` is the
-  // common case and belongs in the aggregate, not in one line per advert.
-  if (price == null && priceOutcome.reason && priceOutcome.reason !== 'no_price_stated') {
-    console.warn(
-      JSON.stringify({
-        channel: 'operational',
-        component: 'scrape-kleinanzeigen',
-        event: 'price_rejected',
-        source: 'kleinanzeigen',
-        listing_url: url,
-        reason: priceOutcome.reason,
-      }),
-    )
-  }
 
   return {
     title,
@@ -397,23 +387,17 @@ async function loadProducts(): Promise<Array<{ id: string; canonical_name: strin
 }
 
 /** Refuse an implausible price at the write boundary; never alter identity. */
-function guardedPrice(price: number | null, url: string): number | null {
+function guardedPrice(price: number | null): number | null {
   if (price == null) return null
   // Defence in depth: the parser already separates a discount pair, but this
   // boundary must reach the same answer on its own or the two could diverge.
   const recovered = recoverKleinanzeigenPrice(price)
   const verdict = classifyKleinanzeigenPrice(recovered.value)
   if (verdict.ok) return recovered.value
-  console.warn(
-    JSON.stringify({
-      channel: 'operational',
-      component: 'scrape-kleinanzeigen',
-      event: 'price_rejected_at_write',
-      source: 'kleinanzeigen',
-      listing_url: url,
-      reason: verdict.reason ?? 'above_impossible_bound',
-    }),
-  )
+  // Counted, not logged per advert: this boundary carried a listing URL too,
+  // and it fired 0 times in the measured run — invisible volume, real leak.
+  const code = `write_gate_${verdict.reason ?? 'above_impossible_bound'}`
+  priceTally[code] = (priceTally[code] ?? 0) + 1
   return null
 }
 
@@ -431,14 +415,14 @@ function buildRows(listings: ScrapedListing[]) {
    */
   return listings.map((listing) => ({
     title: listing.title,
-    price: guardedPrice(listing.price, listing.url),
+    price: guardedPrice(listing.price),
     currency: listing.currency,
     url: listing.url,
     image_url: listing.image_url,
     location: listing.location,
     source: listing.source,
     country: listing.country,
-    price_dkk: guardedPrice(listing.price, listing.url) != null ? listing.price_dkk ?? null : null,
+    price_dkk: guardedPrice(listing.price) != null ? listing.price_dkk ?? null : null,
     scraped_at: new Date().toISOString(),
     watchlist_id: null,
     normalized_text: normalizeText(listing.title),
