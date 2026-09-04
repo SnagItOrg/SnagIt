@@ -187,6 +187,68 @@ export function evaluateRun(
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * Did the run do its job at all?
+ * ------------------------------------------------------------------ */
+
+/**
+ * `evaluateRun` above judges the QUALITY of listings a run produced. This
+ * judges whether it produced any at all, which is a different question and the
+ * one `scrape-reverb` could not answer.
+ *
+ * WHY. On 2026-09-01 Reverb began refusing our unauthenticated requests.
+ * `fetchReverbListings` collapses every failure — 403, 418, 5xx, a thrown
+ * fetch — into an empty array, so the caller could not tell "blocked" from
+ * "no results". Three consecutive nightly runs wrote zero rows, logged
+ * thousands of HTTP 403s, and still printed `✅ Done` and exited 0.
+ *
+ * `evaluateRun` cannot catch this: its `zero_results_after_volume` rule is
+ * RELATIVE and needs a cohort baseline from `scrape_run`, which Reverb has
+ * never written. A run that fails on its very first attempt would still pass.
+ *
+ * The rule here is absolute and needs no history: a run that was given work,
+ * wrote nothing, and saw material failures did not succeed.
+ */
+export type IngestionOutcome = 'success' | 'partial' | 'failed'
+
+export interface IngestionRunFacts {
+  /** Units of work the run was given — search terms, products, queries. */
+  eligible: number
+  /** Rows actually written. The only positive evidence a run did anything. */
+  written: number
+  /** Upstream requests that did not yield a usable response. */
+  requestFailures: number
+  /** Writes the database refused. */
+  writeFailures: number
+  /** A lifecycle step (stale sweep, delist) that did not complete. */
+  lifecycleFailed: boolean
+}
+
+/**
+ * Absolute, history-free classification. `reason` is a static code — it never
+ * carries a URL, an identifier, a response body or a credential.
+ */
+export function classifyIngestionRun(
+  facts: IngestionRunFacts,
+): { outcome: IngestionOutcome; reason: string } {
+  const failures = facts.requestFailures + facts.writeFailures
+  const anyFailure = failures > 0 || facts.lifecycleFailed
+
+  // Nothing was asked of it. Writing nothing is the correct answer.
+  if (facts.eligible === 0) return { outcome: 'success', reason: 'no_eligible_work' }
+
+  if (facts.written === 0) {
+    // The case this function exists for.
+    if (anyFailure) return { outcome: 'failed', reason: 'no_writes_with_failures' }
+    // Genuinely nothing new upstream — every request succeeded and returned
+    // nothing. Rare, but it is not a failure and must not be reported as one.
+    return { outcome: 'success', reason: 'no_new_data' }
+  }
+
+  if (anyFailure) return { outcome: 'partial', reason: 'wrote_some_with_failures' }
+  return { outcome: 'success', reason: 'complete' }
+}
+
 // The gate verdict is persisted as part of the caller's single pre-promotion
 // evidence write (status + violations + cohort identity + baseline + coverage
 // together), so a standalone status-only setter no longer exists. The ordering

@@ -22,6 +22,7 @@ import * as fs from 'fs'
 // (CLAUDE.md "Module resolution pattern"). Required so the shared matcher
 // handoff below type-checks against the same SupabaseClient identity.
 import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
+import { classifyIngestionRun } from './lib/scrape-health'
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
 
 // ── Load env ─────────────────────────────────────────────────────────────────
@@ -100,6 +101,25 @@ function toDKK(amount: number, currency: string): number {
 
 // ── Reverb API ───────────────────────────────────────────────────────────────
 const API_BASE = 'https://api.reverb.com/api'
+
+/**
+ * Bounded per-run tally. Static keys only — an HTTP status, never a URL, a
+ * listing id, a response body or a credential. Counting rather than logging
+ * per request keeps the volume fixed: the 2026-09-03 run wrote 12,798 error
+ * lines, one per failed request, and still concluded that all was well.
+ */
+const runTally = {
+  requestsOk: 0,
+  requestFailures: 0,
+  writeFailures: 0,
+  lifecycleFailed: false,
+  byStatus: {} as Record<string, number>,
+}
+
+function countRequestFailure(code: string): void {
+  runTally.requestFailures += 1
+  runTally.byStatus[code] = (runTally.byStatus[code] ?? 0) + 1
+}
 const HEADERS = {
   'Accept-Version': '3.0',
   'Accept': 'application/hal+json',
@@ -133,20 +153,23 @@ async function fetchReverbListings(query: string, perPage = 50): Promise<ReverbL
     const res = await fetch(url, { headers: HEADERS })
 
     if (res.status === 429) {
-      console.warn('  ⚠️  Rate limit (429). Backing off 10s…')
+      // Backoff behaviour unchanged; it is now also counted.
+      countRequestFailure('http_429')
       await sleep(10000)
       return []
     }
 
     if (!res.ok) {
-      console.error(`  HTTP ${res.status}: ${res.statusText}`)
+      countRequestFailure(`http_${res.status}`)
       return []
     }
 
     const data = (await res.json()) as ReverbResponse
+    runTally.requestsOk += 1
     return data.listings ?? []
   } catch (err) {
-    console.error(`  Fetch error: ${(err as Error).message}`)
+    // The message can carry a host or a URL, so only the class is recorded.
+    countRequestFailure(err instanceof Error && err.name ? `fetch_${err.name}` : 'fetch_error')
     return []
   }
 }
@@ -306,6 +329,7 @@ async function main() {
 
     if (error) {
       console.error(`   ❌ Upsert error: ${error.message}`)
+      runTally.writeFailures += 1
       totalSkipped += rows.length
     } else {
       const count = data?.length ?? rows.length
@@ -335,15 +359,53 @@ async function main() {
 
   if (staleError) {
     console.error(`   ❌ Stale update error: ${staleError.message}`)
+    runTally.lifecycleFailed = true
   } else {
     console.log(`   ✓ ${staleCount ?? 0} marked inactive`)
   }
 
+  /**
+   * The verdict. `✅ Done` used to print unconditionally, so three nights of
+   * zero writes behind an HTTP 403 wall read as three healthy runs.
+   */
+  const { outcome, reason } = classifyIngestionRun({
+    eligible: terms.length,
+    written: totalUpserted,
+    requestFailures: runTally.requestFailures,
+    writeFailures: runTally.writeFailures,
+    lifecycleFailed: runTally.lifecycleFailed,
+  })
+
   console.log()
   console.log('─'.repeat(50))
-  console.log(`✅ Done`)
+  console.log(
+    JSON.stringify({
+      channel: 'operational',
+      component: 'scrape-reverb',
+      event: 'run_summary',
+      source: 'reverb',
+      outcome,
+      reason,
+      eligible_terms: terms.length,
+      upserted: totalUpserted,
+      skipped: totalSkipped,
+      requests_ok: runTally.requestsOk,
+      request_failures: runTally.requestFailures,
+      write_failures: runTally.writeFailures,
+      lifecycle_failed: runTally.lifecycleFailed,
+      by_status: runTally.byStatus,
+    }),
+  )
+
+  const icon = outcome === 'success' ? '✅' : outcome === 'partial' ? '⚠️ ' : '❌'
+  console.log(`${icon} ${outcome.toUpperCase()} (${reason})`)
   console.log(`   Upserted: ${totalUpserted}`)
   console.log(`   Skipped:  ${totalSkipped}`)
+
+  // Partial keeps exit 0: it made real progress and its rows are already
+  // written. Only a run that was given work and produced nothing while
+  // failing is a failure PM2 should surface.
+  if (outcome === 'failed') process.exitCode = 1
 }
 
 main().catch((err: unknown) => {

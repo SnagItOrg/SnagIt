@@ -23,7 +23,7 @@
  * assignment in BOTH directions: it never becomes a national market, and a
  * national market is never inferred for it from its source alone.
  *
- * WHY REVERB IS EXEMPT. `scripts/scrape-reverb.ts:236-238` stores
+ * WHY REVERB IS EXEMPT. `scripts/scrape-reverb.ts:259-261` stores
  * `price: <converted DKK>, currency: 'DKK', country: 'US'` — every active
  * Reverb row is an already-converted USD price wearing a DKK label. Any rule
  * that read `currency` would classify 39,926 international listings as Danish

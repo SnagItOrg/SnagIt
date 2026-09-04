@@ -23,7 +23,7 @@ import {
   type BaselineCandidate,
   type RunCohort,
 } from './baseline'
-import { evaluateRun, type ListingSample, type RunCounters } from './scrape-health'
+import { evaluateRun, type ListingSample, type RunCounters, classifyIngestionRun } from './scrape-health'
 
 // ── fixtures ──────────────────────────────────────────────────────────────
 
@@ -404,4 +404,66 @@ test('baseline selection is stable under concurrent inserts', () => {
   ]
   assert.deepEqual(selectBaseline(tied, COHORT, ANCHOR).runIds, ['run-z', 'run-y', 'run-x'])
   assert.deepEqual(selectBaseline([...tied].reverse(), COHORT, ANCHOR).runIds, ['run-z', 'run-y', 'run-x'])
+})
+
+/* ------------------------------------------------------------------ *
+ * PAN-39 — a run that did no work must not report success
+ * ------------------------------------------------------------------ */
+
+test('a run given work that writes nothing while failing is not a success', () => {
+  // The measured 2026-09-01..03 Reverb runs: search terms loaded, every
+  // request refused upstream, zero rows written — and `✅ Done`, exit 0.
+  const blocked = classifyIngestionRun({
+    eligible: 53, written: 0, requestFailures: 11076, writeFailures: 0, lifecycleFailed: false,
+  })
+  assert.equal(blocked.outcome, 'failed')
+  assert.equal(blocked.reason, 'no_writes_with_failures')
+
+  // A database refusal alone is equally disqualifying.
+  assert.equal(classifyIngestionRun({
+    eligible: 53, written: 0, requestFailures: 0, writeFailures: 3, lifecycleFailed: false,
+  }).outcome, 'failed')
+
+  // So is a lifecycle step that did not complete — the stale-sweep timeout.
+  assert.equal(classifyIngestionRun({
+    eligible: 53, written: 0, requestFailures: 0, writeFailures: 0, lifecycleFailed: true,
+  }).outcome, 'failed')
+
+  // But zero writes with NO failure is a quiet source, not a broken job, and
+  // no eligible work at all cannot fail.
+  assert.equal(classifyIngestionRun({
+    eligible: 53, written: 0, requestFailures: 0, writeFailures: 0, lifecycleFailed: false,
+  }).outcome, 'success')
+  assert.equal(classifyIngestionRun({
+    eligible: 0, written: 0, requestFailures: 0, writeFailures: 0, lifecycleFailed: false,
+  }).reason, 'no_eligible_work')
+
+  // The reason is a static code: no URL, id, response body or credential.
+  for (const facts of [
+    { eligible: 53, written: 0, requestFailures: 1, writeFailures: 0, lifecycleFailed: false },
+    { eligible: 53, written: 9, requestFailures: 1, writeFailures: 0, lifecycleFailed: false },
+  ]) {
+    assert.match(classifyIngestionRun(facts).reason, /^[a-z_]+$/)
+  }
+})
+
+test('valid results already written survive unrelated failures', () => {
+  // Run 117: half the normal volume landed before the wall came up. Those
+  // rows are real and must not be discarded by calling the run a failure.
+  const partial = classifyIngestionRun({
+    eligible: 53, written: 25636, requestFailures: 4000, writeFailures: 0, lifecycleFailed: false,
+  })
+  assert.equal(partial.outcome, 'partial')
+  assert.notEqual(partial.outcome, 'failed', 'partial progress must not be reported as total failure')
+  assert.notEqual(partial.outcome, 'success', 'nor as a clean run')
+
+  // A single failure alongside real writes is still partial, not success.
+  assert.equal(classifyIngestionRun({
+    eligible: 53, written: 1, requestFailures: 1, writeFailures: 0, lifecycleFailed: false,
+  }).outcome, 'partial')
+
+  // And a clean run stays clean.
+  assert.equal(classifyIngestionRun({
+    eligible: 53, written: 53216, requestFailures: 0, writeFailures: 0, lifecycleFailed: false,
+  }).outcome, 'success')
 })
