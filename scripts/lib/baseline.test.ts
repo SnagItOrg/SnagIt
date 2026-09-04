@@ -23,7 +23,7 @@ import {
   type BaselineCandidate,
   type RunCohort,
 } from './baseline'
-import { evaluateRun, type ListingSample, type RunCounters, classifyIngestionRun } from './scrape-health'
+import { evaluateRun, type ListingSample, type RunCounters, classifyIngestionRun, coverageIsComplete } from './scrape-health'
 
 // ── fixtures ──────────────────────────────────────────────────────────────
 
@@ -447,22 +447,35 @@ test('a run given work that writes nothing while failing is not a success', () =
   }
 })
 
-test('valid results already written survive unrelated failures', () => {
-  // Run 117: half the normal volume landed before the wall came up. Those
-  // rows are real and must not be discarded by calling the run a failure.
-  const partial = classifyIngestionRun({
-    eligible: 53, written: 25636, requestFailures: 4000, writeFailures: 0, lifecycleFailed: false,
-  })
-  assert.equal(partial.outcome, 'partial')
-  assert.notEqual(partial.outcome, 'failed', 'partial progress must not be reported as total failure')
-  assert.notEqual(partial.outcome, 'success', 'nor as a clean run')
+test('incomplete coverage keeps its results but must not run the lifecycle sweep', () => {
+  // Run 117: half the normal volume landed before the wall came up. Those rows
+  // are real and must not be discarded by calling the run a failure.
+  const partial = { eligible: 53, written: 25636, requestFailures: 4000, writeFailures: 0, lifecycleFailed: false }
+  assert.equal(classifyIngestionRun(partial).outcome, 'partial')
+  assert.notEqual(classifyIngestionRun(partial).outcome, 'failed', 'partial progress is not total failure')
+  assert.notEqual(classifyIngestionRun(partial).outcome, 'success', 'nor a clean run')
 
-  // A single failure alongside real writes is still partial, not success.
+  // THE POINT. "Not seen in 48h" is an inference about the source, and it is
+  // only valid if we successfully asked. Listings behind those 4000 failed
+  // requests are not missing — the run just never looked at them.
+  assert.equal(coverageIsComplete(partial), false, 'a partly blind run must not sweep')
+
+  // The 403 wall: every request failed, so the run saw nothing. Sweeping would
+  // have deactivated the entire active Reverb cohort.
+  assert.equal(coverageIsComplete({ eligible: 53, requestFailures: 11076, writeFailures: 0 }), false)
+  // A refused write is equally disqualifying, and so is having looked at nothing.
+  assert.equal(coverageIsComplete({ eligible: 53, requestFailures: 0, writeFailures: 1 }), false)
+  assert.equal(coverageIsComplete({ eligible: 0, requestFailures: 0, writeFailures: 0 }), false)
+
+  // Complete coverage is the only case that may sweep — including a legitimate
+  // quiet run, where every request succeeded and returned nothing.
+  assert.equal(coverageIsComplete({ eligible: 53, requestFailures: 0, writeFailures: 0 }), true)
+
+  // A single failure alongside real writes is still partial, and a clean run
+  // stays clean.
   assert.equal(classifyIngestionRun({
     eligible: 53, written: 1, requestFailures: 1, writeFailures: 0, lifecycleFailed: false,
   }).outcome, 'partial')
-
-  // And a clean run stays clean.
   assert.equal(classifyIngestionRun({
     eligible: 53, written: 53216, requestFailures: 0, writeFailures: 0, lifecycleFailed: false,
   }).outcome, 'success')

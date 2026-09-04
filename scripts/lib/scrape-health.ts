@@ -225,6 +225,31 @@ export interface IngestionRunFacts {
 }
 
 /**
+ * MAY THIS RUN TOUCH LIFECYCLE?
+ *
+ * `evaluateRun` already states the rule for its own outcomes: a `failed` run
+ * "must not touch lifecycle" because its data is untrusted. The same reasoning
+ * applies before any verdict exists, and it is stricter than the verdict.
+ *
+ * `scrape-reverb` marks a listing inactive when it was not seen for 48h. That
+ * inference is only valid if the run actually LOOKED. Under the 2026-09-01
+ * HTTP 403 wall every request failed, so the run saw nothing — and sweeping
+ * would have concluded that all 39,926 active Reverb listings had vanished
+ * from the source. Only the statement timeout stood between that run and
+ * deactivating the entire cohort. Partial coverage is the same defect at
+ * smaller scale: listings behind a failed query look missing when they are not.
+ *
+ * So the sweep needs COMPLETE coverage, not merely a non-failed verdict. A run
+ * with zero eligible work also looked at nothing and must not sweep either.
+ */
+export function coverageIsComplete(
+  facts: Pick<IngestionRunFacts, 'eligible' | 'requestFailures' | 'writeFailures'>,
+): boolean {
+  if (facts.eligible === 0) return false
+  return facts.requestFailures === 0 && facts.writeFailures === 0
+}
+
+/**
  * Absolute, history-free classification. `reason` is a static code — it never
  * carries a URL, an identifier, a response body or a credential.
  */

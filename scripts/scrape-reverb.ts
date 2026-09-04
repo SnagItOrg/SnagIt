@@ -22,7 +22,7 @@ import * as fs from 'fs'
 // (CLAUDE.md "Module resolution pattern"). Required so the shared matcher
 // handoff below type-checks against the same SupabaseClient identity.
 import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
-import { classifyIngestionRun } from './lib/scrape-health'
+import { classifyIngestionRun, coverageIsComplete } from './lib/scrape-health'
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
 
 // ── Load env ─────────────────────────────────────────────────────────────────
@@ -113,7 +113,19 @@ const runTally = {
   requestFailures: 0,
   writeFailures: 0,
   lifecycleFailed: false,
+  lifecycleSkipped: false,
   byStatus: {} as Record<string, number>,
+}
+
+/**
+ * A closed vocabulary. `err.name` is attacker- and runtime-influenced and can
+ * be an arbitrary string, so it is mapped onto known buckets with a fixed
+ * fallback rather than interpolated into a counter key.
+ */
+const FETCH_ERROR_BUCKETS: Record<string, string> = {
+  AbortError: 'fetch_aborted',
+  TimeoutError: 'fetch_timeout',
+  TypeError: 'fetch_network',
 }
 
 function countRequestFailure(code: string): void {
@@ -168,8 +180,9 @@ async function fetchReverbListings(query: string, perPage = 50): Promise<ReverbL
     runTally.requestsOk += 1
     return data.listings ?? []
   } catch (err) {
-    // The message can carry a host or a URL, so only the class is recorded.
-    countRequestFailure(err instanceof Error && err.name ? `fetch_${err.name}` : 'fetch_error')
+    // The message can carry a host or a URL, so only a fixed bucket is recorded.
+    const name = err instanceof Error ? err.name : ''
+    countRequestFailure(FETCH_ERROR_BUCKETS[name] ?? 'fetch_error')
     return []
   }
 }
@@ -282,11 +295,13 @@ async function main() {
   console.log()
 
   const terms = await loadSearchTerms()
-  if (terms.length === 0) {
-    console.log('No search terms found in kg_product. Exiting.')
-    return
-  }
-  console.log(`Loaded ${terms.length} search terms from knowledge graph.\n`)
+  // No early return: a run that loaded nothing still owes one bounded summary,
+  // and `no_eligible_work` is only reachable if classification runs at all.
+  // The loop below is a no-op on an empty list, and both batch helpers treat
+  // an empty batch as no work.
+  console.log(terms.length === 0
+    ? 'No search terms found in kg_product.'
+    : `Loaded ${terms.length} search terms from knowledge graph.\n`)
 
   const ingestionBatchId = newIngestionBatchId()
   let totalUpserted = 0
@@ -347,21 +362,42 @@ async function main() {
     ? { source: 'reverb', considered: 0, matched: 0, rejected: 0, deferred: 0, skipped: 'batch_identity_lookup_failed' }
     : await matchScrapedBatch(supabase, 'reverb', insertedReverb))
 
-  // Mark stale Reverb listings as inactive (not seen in 48h)
-  console.log('Marking stale Reverb listings as inactive…')
-  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
-  const { error: staleError, count: staleCount } = await supabase
-    .from('listings')
-    .update({ is_active: false })
-    .eq('source', 'reverb')
-    .eq('is_active', true)
-    .lt('scraped_at', cutoff)
-
-  if (staleError) {
-    console.error(`   ❌ Stale update error: ${staleError.message}`)
-    runTally.lifecycleFailed = true
+  /**
+   * Mark stale Reverb listings as inactive (not seen in 48h) — ONLY when this
+   * run actually looked at everything it was given.
+   *
+   * "Not seen" is an inference about the SOURCE. It is only valid if we
+   * successfully asked. Under the 403 wall every request failed, so the run saw
+   * nothing, and sweeping would have concluded that all 39,926 active Reverb
+   * listings had disappeared. Partial coverage is the same defect smaller:
+   * listings behind a failed query look missing when they are not.
+   *
+   * This is the rule scrape-health.ts already states for `failed` runs, applied
+   * where it belongs — before the write, not after the verdict.
+   */
+  if (!coverageIsComplete({
+    eligible: terms.length,
+    requestFailures: runTally.requestFailures,
+    writeFailures: runTally.writeFailures,
+  })) {
+    runTally.lifecycleSkipped = true
+    console.log('Skipping stale sweep: incomplete coverage, so absence proves nothing.')
   } else {
-    console.log(`   ✓ ${staleCount ?? 0} marked inactive`)
+    console.log('Marking stale Reverb listings as inactive…')
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+    const { error: staleError, count: staleCount } = await supabase
+      .from('listings')
+      .update({ is_active: false })
+      .eq('source', 'reverb')
+      .eq('is_active', true)
+      .lt('scraped_at', cutoff)
+
+    if (staleError) {
+      console.error(`   ❌ Stale update error: ${staleError.message}`)
+      runTally.lifecycleFailed = true
+    } else {
+      console.log(`   ✓ ${staleCount ?? 0} marked inactive`)
+    }
   }
 
   /**
@@ -393,6 +429,7 @@ async function main() {
       request_failures: runTally.requestFailures,
       write_failures: runTally.writeFailures,
       lifecycle_failed: runTally.lifecycleFailed,
+      lifecycle_skipped: runTally.lifecycleSkipped,
       by_status: runTally.byStatus,
     }),
   )
