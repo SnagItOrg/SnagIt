@@ -20,6 +20,7 @@ import {
   parseGermanPrice,
   parseGermanPriceOutcome,
   recordPriceOutcome,
+  recordWriteGateRefusal,
 } from '../../frontend/lib/scrapers/kleinanzeigen-price'
 import {
   KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR,
@@ -419,13 +420,13 @@ test('rejection reasons are static codes, never markup or free text', () => {
 test('the scraper counts every rejection and guards again at the write boundary', () => {
   const src = readFileSync(join(ROOT, 'scripts', 'scrape-kleinanzeigen.ts'), 'utf8')
   // Refusals stay observable, but through the bounded per-run aggregate. The
-  // two per-advert `price_rejected` warnings this used to pin emitted 3,670
-  // lines in one measured run, each carrying a listing URL.
+  // two per-advert `price_rejected` warnings this used to pin left 8,455 lines
+  // in the retained PM2 error log, each carrying a listing URL.
   assert.ok(src.includes('recordPriceOutcome('), 'every parse outcome must be counted')
   assert.ok(src.includes("event: 'price_outcome_summary'"), 'and reported once per run')
   assert.ok(src.includes('guardedPrice('), 'the write boundary must re-check')
   assert.ok(src.includes('classifyKleinanzeigenPrice'), 'through the shared authority')
-  assert.ok(src.includes('write_gate_'), 'a write-boundary refusal must still be counted')
+  assert.ok(src.includes('recordWriteGateRefusal('), 'a write-boundary refusal must still be counted')
   // Identity, timestamps and the conflict target must be untouched.
   assert.ok(src.includes('external_id: listing.url'))
   assert.ok(src.includes('scraped_at: new Date().toISOString()'))
@@ -738,8 +739,14 @@ test('a stated amount survives a no-price phrase in the same text', () => {
     assert.equal(outcome.reason, null, `"${text}" was refused despite stating an amount`)
   }
 
-  // The reason keeps its meaning where no amount is stated at all.
-  for (const text of ['Zu verschenken', 'Preis auf Anfrage', 'Gegen Gebot']) {
+  // And the reason keeps its meaning where no amount in MONEY is stated. A
+  // bare quantity beside the phrase is not an asking price, and storing it
+  // would put a fabricated 2 EUR into the band — the write bound refuses
+  // implausibly high values and would never catch it.
+  for (const text of [
+    'Zu verschenken', 'Preis auf Anfrage', 'Gegen Gebot',
+    'Preis auf Anfrage, 2 Stück', 'Zu verschenken, 3 Stück',
+  ]) {
     assert.equal(parseGermanPriceOutcome(text).value, null)
     assert.equal(parseGermanPriceOutcome(text).reason, 'no_price_stated')
   }
@@ -769,6 +776,17 @@ test('every refusal reason reaches the run tally, no_price_stated included', () 
     .filter(([k]) => k !== 'cards' && k !== 'priced')
     .reduce((n, [, v]) => n + v, 0)
   assert.equal(tally.priced + refused, tally.cards)
+
+  // A write-boundary refusal lands in the SAME tally, and moves the count off
+  // `priced` rather than adding a second one — the card was already counted.
+  recordWriteGateRefusal(tally, 'above_impossible_bound')
+  assert.equal(tally.write_gate_above_impossible_bound, 1)
+  assert.equal(tally.priced, 0, 'the card must not be counted as priced and refused')
+
+  const refusedAfterGate = Object.entries(tally)
+    .filter(([k]) => k !== 'cards' && k !== 'priced')
+    .reduce((n, [, v]) => n + v, 0)
+  assert.equal(tally.priced + refusedAfterGate, tally.cards, 'the summary must still reconcile')
 
   // Counts only: no markup, no listing identity, no free text can be a key.
   for (const key of Object.keys(tally)) assert.match(key, /^[a-z_]+$/)

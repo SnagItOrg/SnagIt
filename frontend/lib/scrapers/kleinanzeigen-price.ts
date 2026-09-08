@@ -71,8 +71,11 @@ const SHIPPING_ONLY_PATTERN = /^[+\s]*(?:versand|zzgl\.?\s*versand|lieferung)\b/
 /**
  * Text that states there is no asking price.
  *
- * Checked before any digit is read, because several of these sit next to
- * unrelated numbers ("Preis auf Anfrage, 2 Stück").
+ * Consulted AFTER the number, so a stated amount is no longer lost to a phrase
+ * elsewhere in the same text — but a text carrying one of these phrases must
+ * state a CURRENCY-MARKED amount, because several of them sit next to
+ * unrelated numbers. "Preis auf Anfrage, 2 Stück" is absence, not an ad asking
+ * 2 EUR.
  *
  * `Zu verschenken` ("to give away") is genuinely free and is still mapped to
  * null rather than 0. `listings.price` cannot distinguish "free" from
@@ -130,22 +133,29 @@ export function parseGermanPriceOutcome(raw: string | null | undefined): PriceOu
    * SCOPE, MEASURED — NOT the whole null rate. PAN-24 read an empty error log
    * as "no refusals were logged" and concluded that all of the 66.5% missing
    * prices arrived through `no_price_stated`. The actual PM2 log contradicts
-   * that: one run emitted 3,670 refusals, of which `no_number` accounted for
-   * essentially all and `no_price_stated` for NONE. This ordering bug is real
+   * that. The PM2 error log holds 8,455 logged refusals across its retained
+   * runs: 8,443 `no_number`, 12 `ambiguous_pair`, and NO `no_price_stated`.
+   * (The log carries no run separator, so it is read as a total, not per run.)
+   * This ordering bug is real
    * and loses real asking prices, but it is not the documented main cause.
    * `no_number` — a price element carrying no numeric token at all — is, and
    * that is a separate defect this change does not address.
    *
-   * An explicit number now wins. `no_price_stated` keeps its meaning and is
-   * reached only when the text states no amount at all — which is exactly the
-   * `Preis auf Anfrage` / `zu verschenken` case it was written for.
+   * An explicit number now wins — but only a CURRENCY-MARKED one. Inverting
+   * the order alone trades one fabrication for another: `Preis auf Anfrage,
+   * 2 Stück` would be stored as an ad asking 2 EUR, and nothing downstream
+   * catches it, because the write bound refuses implausibly HIGH values and
+   * has no lower bound at all. A fabricated 2 EUR enters the asking-price band
+   * as a real observation, which is the corruption this ticket exists to stop.
+   *
+   * `no_price_stated` therefore keeps its meaning: the text states no amount,
+   * or states no amount in money.
    */
   const match = text.match(/\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?/)
-  if (!match) {
-    for (const pattern of NO_PRICE_PATTERNS) {
-      if (pattern.test(text)) return { value: null, reason: 'no_price_stated' }
-    }
-    return { value: null, reason: 'no_number' }
+  const statesNoPrice = NO_PRICE_PATTERNS.some((pattern) => pattern.test(text))
+  if (!match) return { value: null, reason: statesNoPrice ? 'no_price_stated' : 'no_number' }
+  if (statesNoPrice && !/^\s*(?:€|eur\b)/i.test(text.slice((match.index ?? 0) + match[0].length))) {
+    return { value: null, reason: 'no_price_stated' }
   }
 
   const token = match[0]
@@ -354,5 +364,25 @@ export function recordPriceOutcome(
   } else if (outcome.reason) {
     tally[outcome.reason] = (tally[outcome.reason] ?? 0) + 1
   }
+  return tally
+}
+
+/**
+ * Fold a write-boundary refusal into the SAME tally.
+ *
+ * The card was already counted as `priced` when it was parsed, so this MOVES
+ * the count rather than adding one. `cards === priced + every refusal` has to
+ * reconcile in the emitted summary, or a reader cannot compute a rate from it —
+ * and computing that rate is the whole point of the aggregate.
+ *
+ * The reason is typed, so only a static code can ever become a key.
+ */
+export function recordWriteGateRefusal(
+  tally: Record<string, number>,
+  reason: PriceRejectionReason,
+): Record<string, number> {
+  const code = `write_gate_${reason}`
+  tally[code] = (tally[code] ?? 0) + 1
+  tally.priced = (tally.priced ?? 0) - 1
   return tally
 }
