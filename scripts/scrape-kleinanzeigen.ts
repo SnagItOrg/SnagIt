@@ -27,7 +27,16 @@ import { monitoredSlugs, assertResolved } from './lib/source-monitoring'
 // This script is the PM2 writer, so a parser fix that lands only in the frontend
 // module changes no stored row — which is exactly how the welded-pair shape
 // survived its own 2026-05 diagnosis.
-import { extractCardPriceOutcome, recordPriceOutcome } from '../frontend/lib/scrapers/kleinanzeigen-price'
+import {
+  extractCardPriceOutcome,
+  recordPriceOutcome,
+  recordWriteGateRefusal,
+} from '../frontend/lib/scrapers/kleinanzeigen-price'
+import {
+  classifyKleinanzeigenPrice,
+  recoverKleinanzeigenPrice,
+} from '../frontend/lib/listing-price-integrity'
+import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
 
 /**
  * Per-run price tally, emitted once at the end of the run.
@@ -35,18 +44,13 @@ import { extractCardPriceOutcome, recordPriceOutcome } from '../frontend/lib/scr
  * Every refusal reason is counted here on the same terms, including
  * `no_price_stated`, which the removed per-advert warning excluded entirely.
  *
- * This REPLACES that warning rather than supplementing it. One measured run
- * emitted 3,670 `price_rejected` lines, each carrying a listing URL — an
- * unbounded log that also put listing identity into an operational channel,
+ * This REPLACES that warning rather than supplementing it. The retained PM2
+ * error log holds 8,455 `price_rejected` lines, each carrying a listing URL —
+ * an unbounded log that also put listing identity into an operational channel,
  * both of which this ticket forbids. The aggregate already holds every reason
  * the per-advert line reported, so nothing is lost by deleting it.
  */
 const priceTally: Record<string, number> = {}
-import {
-  classifyKleinanzeigenPrice,
-  recoverKleinanzeigenPrice,
-} from '../frontend/lib/listing-price-integrity'
-import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
 
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
 
@@ -216,10 +220,10 @@ function parseArticle(articleHtml: string): ScrapedListing | null {
   /**
    * Price, with the reason when there is none.
    *
-   * A refusal is logged as a static event so a parser regression is visible in
-   * the run's own output instead of arriving weeks later as a wrong number on
-   * a product page. The listing URL is the identity — no markup, no card text,
-   * no credentials ever reach this line.
+   * The outcome is COUNTED, never logged per advert, so a parser regression is
+   * visible in the run's own output instead of arriving weeks later as a wrong
+   * number on a product page. Nothing identifying leaves this line: the tally
+   * takes static reason codes as keys and nothing else.
    */
   const priceOutcome = extractCardPriceOutcome(articleHtml)
   recordPriceOutcome(priceTally, priceOutcome)
@@ -396,8 +400,7 @@ function guardedPrice(price: number | null): number | null {
   if (verdict.ok) return recovered.value
   // Counted, not logged per advert: this boundary carried a listing URL too,
   // and it fired 0 times in the measured run — invisible volume, real leak.
-  const code = `write_gate_${verdict.reason ?? 'above_impossible_bound'}`
-  priceTally[code] = (priceTally[code] ?? 0) + 1
+  recordWriteGateRefusal(priceTally, verdict.reason ?? 'above_impossible_bound')
   return null
 }
 
@@ -413,23 +416,29 @@ function buildRows(listings: ScrapedListing[]) {
    * timestamps and the `external_id` conflict target are untouched, only the
    * price field is neutralised.
    */
-  return listings.map((listing) => ({
-    title: listing.title,
-    price: guardedPrice(listing.price),
-    currency: listing.currency,
-    url: listing.url,
-    image_url: listing.image_url,
-    location: listing.location,
-    source: listing.source,
-    country: listing.country,
-    price_dkk: guardedPrice(listing.price) != null ? listing.price_dkk ?? null : null,
-    scraped_at: new Date().toISOString(),
-    watchlist_id: null,
-    normalized_text: normalizeText(listing.title),
-    external_id: listing.url,
-    is_active: true,
-    platform: 'kleinanzeigen',
-  }))
+  return listings.map((listing) => {
+    // Guarded ONCE per listing. Two calls charged the run tally twice for the
+    // same refusal, so the count the aggregate exists to report would be double
+    // the truth.
+    const price = guardedPrice(listing.price)
+    return {
+      title: listing.title,
+      price,
+      currency: listing.currency,
+      url: listing.url,
+      image_url: listing.image_url,
+      location: listing.location,
+      source: listing.source,
+      country: listing.country,
+      price_dkk: price != null ? listing.price_dkk ?? null : null,
+      scraped_at: new Date().toISOString(),
+      watchlist_id: null,
+      normalized_text: normalizeText(listing.title),
+      external_id: listing.url,
+      is_active: true,
+      platform: 'kleinanzeigen',
+    }
+  })
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
