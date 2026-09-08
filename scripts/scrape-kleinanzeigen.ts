@@ -32,6 +32,7 @@ import {
   recordPriceOutcome,
   recordWriteGateRefusal,
 } from '../frontend/lib/scrapers/kleinanzeigen-price'
+import { extractCardLocation } from '../frontend/lib/scrapers/kleinanzeigen-location'
 import {
   classifyKleinanzeigenPrice,
   recoverKleinanzeigenPrice,
@@ -212,10 +213,7 @@ function parseArticle(articleHtml: string): ScrapedListing | null {
 
 
   const imageUrl = extractAttr(articleHtml, /<img\b[^>]*src=["']([^"']+)["'][^>]*>/i)
-  const location = extractFirst(articleHtml, [
-    /<[^>]*class=["'][^"']*location[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/i,
-    /<[^>]*class=["'][^"']*aditem-main--top--left[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/i,
-  ])
+  const location = extractCardLocation(articleHtml)
 
   /**
    * Price, with the reason when there is none.

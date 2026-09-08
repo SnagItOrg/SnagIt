@@ -23,6 +23,7 @@ import {
   recordPriceOutcome,
   recordWriteGateRefusal,
 } from '../../frontend/lib/scrapers/kleinanzeigen-price'
+import { extractCardLocation } from '../../frontend/lib/scrapers/kleinanzeigen-location'
 import {
   KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR,
   classifyKleinanzeigenPrice,
@@ -209,6 +210,59 @@ test('the 2026-09 card layout still yields the asking price', () => {
   assert.notEqual(extractCardPrice(card('490 €')), 1984)
   assert.notEqual(extractCardPrice(card('490 €')), 1988)
   assert.equal(extractCardPrice(card('490 €')), 490)
+})
+
+test('the card location survives the 2026-09 layout, and reads nothing else', () => {
+  /**
+   * PAN-48. The redesign removed the semantic classes, so `[class*=location]`
+   * and `[class*=aditem-main--top--left]` matched 0 of 25 sampled cards — and
+   * the database agrees: 56 of 63 rows carried a location in 2026-05, 0 of
+   * 3,249 since 2026-08.
+   *
+   * The location and the posting date are structurally identical — class-less
+   * leaf spans, same container, each behind its own icon — so only the text
+   * shape separates them. That is what this pins, together with the three
+   * things that must never be read instead.
+   */
+  const current = (place: string, extra = '') => `
+    <article data-adid="0">
+      <h3 class="text-title3 font-strong"><a href="/s-anzeige/x/1">Korg MS-20 Baujahr 1978</a></h3>
+      <div class="z-raised flex grow"><div class="mb-xsmall flex items-start">
+        <div class="flex items-center gap-xxsmall"><svg class="shrink-0 fill-current"></svg><span>${place}</span></div>
+        <div class="flex items-center gap-xxsmall"><svg class="shrink-0 fill-current"></svg><span>08.09.2026</span></div>
+      </div></div>
+      <p class="my-xsmall text-title3 font-strong">950 €</p>
+      <span>Versand möglich</span>${extra}
+    </article>`
+
+  // The layout Kleinanzeigen serves today.
+  assert.equal(extractCardLocation(current('20095 Hamburg')), '20095 Hamburg')
+  assert.equal(extractCardLocation(current('40477 Düsseldorf-Pempelfort')), '40477 Düsseldorf-Pempelfort')
+  assert.equal(extractCardLocation(current('88662 Überlingen/Bodensee')), '88662 Überlingen/Bodensee')
+
+  // The date sits in an identical span behind an identical icon: never the location.
+  assert.notEqual(extractCardLocation(current('20095 Hamburg')), '08.09.2026')
+  // Neither shipping, seller type nor the heading's year may be read as a place.
+  assert.equal(extractCardLocation(current('20095 Hamburg', '<span>Gesuch</span>')), '20095 Hamburg')
+
+  // A card stating no place stays absent — never fabricated.
+  const placeless = `
+    <article data-adid="0">
+      <h3 class="font-strong">Korg MS-20 1978</h3>
+      <div class="flex items-center gap-xxsmall"><svg></svg><span>08.09.2026</span></div>
+      <span>Versand möglich</span>
+    </article>`
+  assert.equal(extractCardLocation(placeless), null)
+
+  // The previous markup keeps resolving exactly as before — tiers 1 and 2.
+  assert.equal(
+    extractCardLocation('<article><div class="aditem-main--top--left">10115 Berlin</div></article>'),
+    '10115 Berlin',
+  )
+  assert.equal(
+    extractCardLocation('<article><div class="ad-listitem-location">80331 München</div></article>'),
+    '80331 München',
+  )
 })
 
 test('an ImageObject ld+json block is not mistaken for an offer', () => {

@@ -14,6 +14,7 @@ import type { Listing } from '../supabase'
 import { toDkkApprox } from '../currency'
 import { normalizeQuery } from '../query-normalizer'
 import { extractCardPrice } from './kleinanzeigen-price'
+import { extractCardLocation } from './kleinanzeigen-location'
 
 type ScrapedListing = Omit<Listing, 'id' | 'scraped_at'>
 
@@ -45,14 +46,6 @@ function extractTitle(article: cheerio.Cheerio<AnyNode>): string {
     article.find('h2, h3').first().text().trim()
 
   return title.replace(/\s+/g, ' ').trim()
-}
-
-function extractLocation(article: cheerio.Cheerio<AnyNode>): string | null {
-  const location =
-    article.find('[class*="location"]').first().text().trim() ||
-    article.find('[class*="aditem-main--top--left"]').first().text().trim()
-
-  return location ? location.replace(/\s+/g, ' ').trim() : null
 }
 
 async function fetchKleinanzeigenPage(
@@ -101,7 +94,8 @@ async function fetchKleinanzeigenPage(
         currency: 'EUR',
         url: resolvedUrl,
         image_url: article.find('img').first().attr('src') ?? null,
-        location: extractLocation(article),
+        // Same bytes, same rule as the PM2 writer — see ./kleinanzeigen-location.
+        location: extractCardLocation($.html(article)),
         source: 'kleinanzeigen',
         country: 'DE',
         price_dkk: price != null ? toDkkApprox(price, 'EUR') : null,
