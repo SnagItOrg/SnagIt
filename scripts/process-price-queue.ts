@@ -176,8 +176,14 @@ async function finaliseQueueRow(
     .update({ status, processed_at: new Date().toISOString() })
     .eq('id', id)
 
+  // Report the write, then the claim — never the other way round. Announcing
+  // `queue_row_done` before knowing the update landed is the same shape of
+  // false success this ticket exists to remove, one layer down.
+  if (error) {
+    console.error(`    queue_status_write_failed (${status})`)
+    return
+  }
   console.log(`    queue_row_${status} (${reason})`)
-  if (error) console.error(`    queue_status_write_failed (${status})`)
 }
 
 // ── Process one queue item ───────────────────────────────────────────────────
