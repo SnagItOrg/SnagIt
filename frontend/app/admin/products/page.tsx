@@ -5,6 +5,12 @@ import Link from 'next/link'
 
 import { Toast } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
+import {
+  PUBLICATION_STATE_ACTION,
+  publicationState,
+  type PublicationAction,
+  type PublicationState,
+} from '@/lib/publication'
 
 /**
  * Mirrors `ExposureState` / `SupportState` in `lib/catalogue.ts` as TYPES only.
@@ -47,8 +53,6 @@ type Subcategory = { id: string; name: string; parent_name: string | null; class
  * answered 404. The operator now picks an outcome; the server derives the
  * axes in a single atomic transition.
  */
-type PublicationAction = 'public' | 'qa' | 'hidden'
-
 const PUBLICATION_ORDER: PublicationAction[] = ['public', 'qa', 'hidden']
 
 const PUBLICATION_LABEL: Record<PublicationAction, string> = {
@@ -57,43 +61,44 @@ const PUBLICATION_LABEL: Record<PublicationAction, string> = {
   hidden: 'Hidden',
 }
 
-/** Which action a row is currently AT, derived from its effective exposure. */
-function currentAction(p: Product): PublicationAction | null {
-  if (p.browse_visibility === 'hidden') return 'hidden'
-  if (p.exposure === 'live_in_browse' || p.exposure === 'page_only') return 'public'
-  if (p.support_state === 'supported' && p.browse_visibility === 'qa_only') return 'qa'
-  return null
-}
-
 /**
- * The effective state, and the ONE gate to fix next.
+ * ONE status per row, and it always agrees with the publication control.
  *
- * `Public` is deliberately not a label here. It is a value of one axis out of
- * four, and using it as a status is what made the list claim 35 exposed
- * products where 14 have a page.
+ * The list used to badge `effectiveExposure()` directly. That answers a public
+ * question — can a visitor reach this? — so it reports `qa_only` as `hidden`,
+ * and a QA row read "QA" on its control and "Skjult" on its badge at the same
+ * time. The states below are the operator's vocabulary; `publicationState()`
+ * owns the mapping, so the badge and the active button cannot disagree.
+ *
+ * A `blocked_*` state names the ONE gate to fix next and has no active button:
+ * it is not a state anybody chose.
  */
-const EXPOSURE_LABEL: Record<ExposureState, string> = {
-  live_in_browse: 'Live i browse',
-  page_only:      'Kun produktside',
-  unsupported:    'Blokeret: ikke understøttet',
-  inactive:       'Blokeret: inaktiv',
-  hidden:         'Skjult',
+const STATE_LABEL: Record<PublicationState, string> = {
+  live:                'Live i browse',
+  qa:                  'QA',
+  hidden:              'Skjult',
+  blocked_taxonomy:    'Blokeret: mangler underkategori',
+  blocked_unsupported: 'Blokeret: ikke understøttet',
+  blocked_inactive:    'Blokeret: inaktiv',
 }
 
-const EXPOSURE_BLOCKER: Record<ExposureState, string | null> = {
-  live_in_browse: null,
-  page_only:      'Mangler taxonomy — vælg en underkategori for at komme i browse.',
-  unsupported:    'Support er ikke “supported” — produktsiden svarer 404.',
-  inactive:       'Identiteten er inaktiv — intet vises.',
-  hidden:         'Browse visibility er ikke “public”.',
+/** Only a blocked row needs an explanation; a chosen state speaks for itself. */
+const STATE_BLOCKER: Record<PublicationState, string | null> = {
+  live:                null,
+  qa:                  null,
+  hidden:              null,
+  blocked_taxonomy:    'Vælg en underkategori, før produktet kan gøres offentligt.',
+  blocked_unsupported: 'Produktsiden svarer 404, indtil produktet publiceres.',
+  blocked_inactive:    'Identiteten er inaktiv — intet vises.',
 }
 
-const EXPOSURE_STYLE: Record<ExposureState, { background: string; color: string }> = {
-  live_in_browse: { background: 'var(--foreground)', color: 'var(--background)' },
-  page_only:      { background: 'var(--secondary)', color: 'var(--foreground)' },
-  unsupported:    { background: 'rgba(239,68,68,0.12)', color: 'rgb(239,68,68)' },
-  inactive:       { background: 'rgba(239,68,68,0.12)', color: 'rgb(239,68,68)' },
-  hidden:         { background: 'var(--secondary)', color: 'var(--muted-foreground)' },
+const STATE_STYLE: Record<PublicationState, { background: string; color: string }> = {
+  live:                { background: 'var(--foreground)', color: 'var(--background)' },
+  qa:                  { background: 'var(--secondary)', color: 'var(--foreground)' },
+  hidden:              { background: 'var(--secondary)', color: 'var(--muted-foreground)' },
+  blocked_taxonomy:    { background: 'rgba(239,68,68,0.12)', color: 'rgb(239,68,68)' },
+  blocked_unsupported: { background: 'rgba(239,68,68,0.12)', color: 'rgb(239,68,68)' },
+  blocked_inactive:    { background: 'rgba(239,68,68,0.12)', color: 'rgb(239,68,68)' },
 }
 
 const TIER_ORDER: Tier[] = ['standard', 'classic', 'legendary']
@@ -379,7 +384,7 @@ export default function AdminProductsPage() {
                 aria-label="Publicering"
               >
                 {PUBLICATION_ORDER.map((action) => {
-                  const active = currentAction(p) === action
+                  const active = PUBLICATION_STATE_ACTION[publicationState(p)] === action
                   return (
                     <button
                       key={action}
@@ -434,18 +439,18 @@ export default function AdminProductsPage() {
               )}
               </div>
 
-              {/* Effective exposure, and the single gate to fix next. */}
+              {/* The same state the control is driven by — never a second opinion. */}
               {(() => {
-                const state = p.exposure
-                const blocker = EXPOSURE_BLOCKER[state]
+                const state = publicationState(p)
+                const blocker = STATE_BLOCKER[state]
                 return (
                   <div className="flex flex-wrap items-center gap-2">
                     <span
                       data-testid={`exposure-${p.slug}`}
                       className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full"
-                      style={EXPOSURE_STYLE[state]}
+                      style={STATE_STYLE[state]}
                     >
-                      {EXPOSURE_LABEL[state]}
+                      {STATE_LABEL[state]}
                     </span>
                     {blocker && (
                       <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
