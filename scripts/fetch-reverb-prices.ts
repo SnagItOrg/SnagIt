@@ -43,6 +43,17 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   process.exit(1)
 }
 
+// Reverb refuses unauthenticated /api/listings since 2026-09-01. Stop before the
+// first request rather than issuing thousands that are certain to be refused —
+// a missing credential used to be indistinguishable from a blocked source.
+// The variable name is safe to print; its value never is.
+const REVERB_API_TOKEN = process.env.REVERB_API_TOKEN
+
+if (!REVERB_API_TOKEN) {
+  console.error('❌ Missing REVERB_API_TOKEN — refusing to run unauthenticated')
+  process.exit(1)
+}
+
 // ── CLI flags ─────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2)
 const DRY_RUN = args.includes('--dry-run')
@@ -111,6 +122,9 @@ const HEADERS = {
   'Accept-Version': '3.0',
   'Accept': 'application/hal+json',
   'User-Agent': 'Klup-Scraper/1.0',
+  // Reverb's documented scheme. Sent only to API_BASE (api.reverb.com) — the
+  // exchange-rate fetch above passes no headers and must never receive these.
+  'Authorization': `Bearer ${REVERB_API_TOKEN}`,
 }
 
 interface ReverbPrice {
