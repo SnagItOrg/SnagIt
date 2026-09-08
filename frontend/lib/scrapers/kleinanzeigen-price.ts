@@ -75,7 +75,8 @@ const SHIPPING_ONLY_PATTERN = /^[+\s]*(?:versand|zzgl\.?\s*versand|lieferung)\b/
  * elsewhere in the same text — but a text carrying one of these phrases must
  * state a CURRENCY-MARKED amount, because several of them sit next to
  * unrelated numbers. "Preis auf Anfrage, 2 Stück" is absence, not an ad asking
- * 2 EUR.
+ * 2 EUR. The marker may sit on either side of the number: `800 €` and
+ * `EUR 800` are both supported input forms.
  *
  * `Zu verschenken` ("to give away") is genuinely free and is still mapped to
  * null rather than 0. `listings.price` cannot distinguish "free" from
@@ -90,6 +91,23 @@ const NO_PRICE_PATTERNS: readonly RegExp[] = [
   /auf\s+anfrage/i,
   /gegen\s+gebot/i,
 ]
+
+/**
+ * Is this number written as money?
+ *
+ * Only asked when the text ALSO states there is no price, where the number has
+ * to prove it is an amount rather than a quantity. The marker may lead or
+ * follow: `800 €` and `EUR 800` are both supported forms, and the suite pins
+ * both — a rule that only read a trailing marker would drop the stated price
+ * from `EUR 800, Rest zu verschenken`, which is the loss this ticket exists to
+ * stop.
+ */
+function isCurrencyMarked(text: string, match: RegExpMatchArray): boolean {
+  const start = match.index ?? 0
+  const follows = text.slice(start + match[0].length)
+  const leads = text.slice(0, start)
+  return /^\s*(?:€|eur\b)/i.test(follows) || /(?:€|\beur)\s*$/i.test(leads)
+}
 
 /**
  * Parse a German marketplace price into whole EUR, or null.
@@ -136,10 +154,11 @@ export function parseGermanPriceOutcome(raw: string | null | undefined): PriceOu
    * that. The PM2 error log holds 8,455 logged refusals across its retained
    * runs: 8,443 `no_number`, 12 `ambiguous_pair`, and NO `no_price_stated`.
    * (The log carries no run separator, so it is read as a total, not per run.)
-   * This ordering bug is real
-   * and loses real asking prices, but it is not the documented main cause.
-   * `no_number` — a price element carrying no numeric token at all — is, and
-   * that is a separate defect this change does not address.
+   *
+   * This ordering bug is real and loses real asking prices, but it is not the
+   * documented main cause. `no_number` — a price element carrying no numeric
+   * token at all — is, and that is a separate defect this change does not
+   * address. It is PAN-46.
    *
    * An explicit number now wins — but only a CURRENCY-MARKED one. Inverting
    * the order alone trades one fabrication for another: `Preis auf Anfrage,
@@ -154,7 +173,7 @@ export function parseGermanPriceOutcome(raw: string | null | undefined): PriceOu
   const match = text.match(/\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?/)
   const statesNoPrice = NO_PRICE_PATTERNS.some((pattern) => pattern.test(text))
   if (!match) return { value: null, reason: statesNoPrice ? 'no_price_stated' : 'no_number' }
-  if (statesNoPrice && !/^\s*(?:€|eur\b)/i.test(text.slice((match.index ?? 0) + match[0].length))) {
+  if (statesNoPrice && !isCurrencyMarked(text, match)) {
     return { value: null, reason: 'no_price_stated' }
   }
 
