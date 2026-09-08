@@ -40,6 +40,17 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   process.exit(1)
 }
 
+// Reverb refuses unauthenticated /api/listings since 2026-09-01. Stop here —
+// before the queue SELECT and before any status transition — so a missing
+// credential can never move a row out of pending. The variable name is safe
+// to print; its value never is.
+const REVERB_API_TOKEN = process.env.REVERB_API_TOKEN
+
+if (!REVERB_API_TOKEN) {
+  console.error('Missing REVERB_API_TOKEN — refusing to run unauthenticated')
+  process.exit(1)
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: { persistSession: false },
 })
@@ -95,6 +106,9 @@ const HEADERS = {
   'Accept-Version': '3.0',
   'Accept': 'application/hal+json',
   'User-Agent': 'Klup-Scraper/1.0',
+  // Reverb's documented scheme. Sent only to API_BASE (api.reverb.com) — the
+  // exchange-rate fetch above passes no headers and must never receive these.
+  'Authorization': `Bearer ${REVERB_API_TOKEN}`,
 }
 
 interface ReverbListing {
@@ -107,27 +121,63 @@ interface ReverbListing {
   created_at?: string
 }
 
-async function fetchSoldListings(query: string): Promise<ReverbListing[]> {
+/**
+ * `null` means the provider did not give us a usable answer; `[]` means it
+ * answered and had nothing. Collapsing both into `[]` is what let a refused
+ * request finalise a queue row as `done` — the same silent false success
+ * PAN-39 removed from scrape-reverb.
+ *
+ * Every failure is reported as a static code. `res.statusText` and
+ * `err.message` are provider-controlled and can carry a host or a URL, so
+ * neither reaches a log line.
+ */
+async function fetchSoldListings(query: string): Promise<ReverbListing[] | null> {
   await rateLimit()
   const url = `${API_BASE}/listings?query=${encodeURIComponent(query)}&state=sold&per_page=20`
 
   try {
     const res = await fetch(url, { headers: HEADERS })
     if (res.status === 429) {
-      console.warn('    Rate limit (429). Backing off 10s…')
+      // Backoff behaviour unchanged; 429 is now a failure rather than "empty".
+      console.error('    provider_http_429')
       await sleep(10000)
-      return []
+      return null
     }
     if (!res.ok) {
-      console.error(`    HTTP ${res.status}: ${res.statusText}`)
-      return []
+      console.error(`    provider_http_${res.status}`)
+      return null
     }
-    const data = (await res.json()) as { listings?: ReverbListing[] }
-    return data.listings ?? []
-  } catch (err) {
-    console.error(`    Fetch error: ${(err as Error).message}`)
-    return []
+    const data = (await res.json()) as { listings?: unknown }
+    const listings = data.listings ?? []
+    if (!Array.isArray(listings)) {
+      console.error('    provider_invalid_response')
+      return null
+    }
+    return listings as ReverbListing[]
+  } catch {
+    console.error('    provider_request_failed')
+    return null
   }
+}
+
+/**
+ * The only terminal transition for a queue row. `reason` is a static code — it
+ * never carries a product slug, a listing identity or a provider message, and
+ * neither does the write-failure report: a Postgres error can embed the very
+ * row it rejected.
+ */
+async function finaliseQueueRow(
+  id: string,
+  status: 'done' | 'failed',
+  reason: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('price_fetch_queue')
+    .update({ status, processed_at: new Date().toISOString() })
+    .eq('id', id)
+
+  console.log(`    queue_row_${status} (${reason})`)
+  if (error) console.error(`    queue_status_write_failed (${status})`)
 }
 
 // ── Process one queue item ───────────────────────────────────────────────────
@@ -153,11 +203,7 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
 
   if (!product) {
     console.log(`    Product not found for slug: ${item.product_slug}`)
-    const { error } = await supabase
-      .from('price_fetch_queue')
-      .update({ status: 'failed', processed_at: new Date().toISOString() })
-      .eq('id', item.id)
-    if (error) console.error(`    ❌ Failed to mark failed: ${error.message}`)
+    await finaliseQueueRow(item.id, 'failed', 'product_not_found')
     return false
   }
 
@@ -167,13 +213,16 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
 
   const listings = await fetchSoldListings(searchQuery)
 
+  // A refusal is not a quiet source. Finalise as `failed` rather than leaving
+  // the row pending, which would re-offer it every run without bound.
+  if (listings === null) {
+    await finaliseQueueRow(item.id, 'failed', 'provider_unavailable')
+    return false
+  }
+
+  // A real 200 that carried nothing. This one legitimately completes.
   if (listings.length === 0) {
-    console.log('    No sold listings found')
-    const { error } = await supabase
-      .from('price_fetch_queue')
-      .update({ status: 'done', processed_at: new Date().toISOString() })
-      .eq('id', item.id)
-    if (error) console.error(`    ❌ Failed to mark done: ${error.message}`)
+    await finaliseQueueRow(item.id, 'done', 'no_sold_listings')
     return true
   }
 
@@ -198,23 +247,13 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
       .upsert(rows, { onConflict: 'listing_url,watchlist_id', ignoreDuplicates: true })
 
     if (error) {
-      console.error(`    Upsert error: ${error.message}`)
-      const { error: failError } = await supabase
-        .from('price_fetch_queue')
-        .update({ status: 'failed', processed_at: new Date().toISOString() })
-        .eq('id', item.id)
-      if (failError) console.error(`    ❌ Failed to mark failed: ${failError.message}`)
+      await finaliseQueueRow(item.id, 'failed', 'price_history_write_failed')
       return false
     }
     console.log(`    Upserted ${rows.length} price records`)
   }
 
-  const { error: doneError } = await supabase
-    .from('price_fetch_queue')
-    .update({ status: 'done', processed_at: new Date().toISOString() })
-    .eq('id', item.id)
-  if (doneError) console.error(`    ❌ Failed to mark done: ${doneError.message}`)
-
+  await finaliseQueueRow(item.id, 'done', 'complete')
   return true
 }
 
