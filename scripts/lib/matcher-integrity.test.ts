@@ -2074,11 +2074,20 @@ test('the promotion API separates support, visibility and monitoring', () => {
     assert.ok(src.includes(c), `${c} must be a closed set`)
 })
 
-test('the admin UI declares intent for the two consequential axes', () => {
+test('the admin UI declares intent for the axis it still sends', () => {
   const src = fs.readFileSync(
     path.resolve(__dirname, '../../frontend/app/admin/products/page.tsx'), 'utf8')
   assert.ok(src.includes("intent: ['monitoring']"), 'tier change must declare monitoring intent')
-  assert.ok(src.includes("intent: ['visibility']"), 'visibility change must declare visibility intent')
+
+  // AMENDED BY PAN-22. Visibility is no longer a client-orchestrated axis: the
+  // UI sends a publication ACTION and the server derives both axes in one
+  // atomic update, declaring the intent itself. The guarantee is unchanged —
+  // exposure still cannot move without being named — so what survives here is
+  // the half a source read can actually see: the client must not name the axis
+  // again. What the action WRITES is covered import-free, against the seam
+  // itself, in scripts/lib/pan22-publication.test.ts.
+  assert.equal(src.includes("intent: ['visibility']"), false,
+    'the client must not orchestrate the visibility axis')
 })
 
 // SUPERSEDED by 'no scraper selects products by editorial tier' (Prompt 04B).
