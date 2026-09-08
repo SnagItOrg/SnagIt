@@ -132,7 +132,9 @@ source's scraper via `assertResolved()`.
 
 **Exposure is derived, so re-read it after a mutation and never predict it.**
 Four axes and a view decide it; `effectiveExposure()` names the one gate to fix
-next.
+next. It answers the *public* question, so it reads `qa_only` as hidden — the
+operator-facing state is `publicationState()` in the same publication module,
+and an admin surface must not badge one while acting on the other.
 
 Lifecycle axes and promotion authoring:
 [`docs/klup-product-lifecycle-guide.md`](docs/klup-product-lifecycle-guide.md).
