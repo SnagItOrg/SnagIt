@@ -14,15 +14,17 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  PUBLICATION_STATE_ACTION,
   PUBLICATION_TRANSITION,
   isPublicationAction,
   publicationRefusal,
+  publicationState,
   type PublicationAction,
 } from '../../frontend/lib/publication'
 
 const ACTIVE_CLASSIFIED = { status: 'active', taxonomy_state: 'classified', browse_domain: 'music' }
 
-test('PAN-22: each action writes exactly the ratified fields, and never status', () => {
+test('PAN-22: the transition writes exactly the ratified fields, and a row is at one state', () => {
   // Public and QA establish support — an unsupported product answers 404
   // whatever its visibility says (PAN-23 audit: 21 such rows exist).
   assert.deepEqual(PUBLICATION_TRANSITION.public, {
@@ -49,6 +51,48 @@ test('PAN-22: each action writes exactly the ratified fields, and never status',
   assert.deepEqual(Object.keys(PUBLICATION_TRANSITION).sort(), ['hidden', 'public', 'qa'])
   for (const bad of ['Public', 'qa_only', 'supported', '', null, undefined, 1]) {
     assert.equal(isPublicationAction(bad), false, `${String(bad)} must not be an action`)
+  }
+
+  /* ---------------------------------------------------------------- *
+   * The read side: which state a row is AT.
+   *
+   * The admin list derived the active button and the status badge from two
+   * different rules, so a QA row said "QA" and "Skjult" at once, and a
+   * supported+public row with no subcategory showed Public as a finished
+   * state it does not satisfy. One mapping now feeds both.
+   * ---------------------------------------------------------------- */
+  const CASES: Array<[string, Parameters<typeof publicationState>[0], string, PublicationAction | null]> = [
+    ['supported + public + classified',
+      { exposure: 'live_in_browse', support_state: 'supported', browse_visibility: 'public' }, 'live', 'public'],
+    ['supported + qa_only',
+      { exposure: 'hidden', support_state: 'supported', browse_visibility: 'qa_only' }, 'qa', 'qa'],
+    ['hidden',
+      { exposure: 'hidden', support_state: 'supported', browse_visibility: 'hidden' }, 'hidden', 'hidden'],
+    ['supported + public, no classifying taxonomy',
+      { exposure: 'page_only', support_state: 'supported', browse_visibility: 'public' }, 'blocked_taxonomy', null],
+    ['known + public — the measured legacy rows',
+      { exposure: 'unsupported', support_state: 'known', browse_visibility: 'public' }, 'blocked_unsupported', null],
+    ['inactive',
+      { exposure: 'inactive', support_state: 'supported', browse_visibility: 'public' }, 'blocked_inactive', null],
+    // Raw KG: 3.637 such rows exist and none of them is QA.
+    ['known + qa_only',
+      { exposure: 'unsupported', support_state: 'known', browse_visibility: 'qa_only' }, 'blocked_unsupported', null],
+  ]
+
+  for (const [what, row, expected, action] of CASES) {
+    assert.equal(publicationState(row), expected, what)
+    assert.equal(PUBLICATION_STATE_ACTION[publicationState(row)], action, `${what}: active action`)
+  }
+
+  // Fail-closed: an unreadable row is blocked, never live.
+  assert.equal(publicationState(null), 'blocked_inactive')
+  assert.equal(publicationState({}), 'blocked_unsupported')
+
+  // The invariant the defect broke: a state that names a blocker can never
+  // also present a finished publication action.
+  for (const [state, act] of Object.entries(PUBLICATION_STATE_ACTION)) {
+    assert.equal(state.startsWith('blocked_'), act === null,
+      `${state} must not both block and show an active action`)
   }
 })
 
