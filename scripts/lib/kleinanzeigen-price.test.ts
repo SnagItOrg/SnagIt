@@ -733,6 +733,10 @@ test('a stated amount survives a no-price phrase in the same text', () => {
     ['1.200 € VB, Zubehör zu verschenken', 1200],
     ['Preis auf Anfrage — Richtwert 800 €', 800],
     ['350 € gegen Gebot', 350],
+    // The marker leads as well as follows: `EUR 800` is a pinned input form
+    // (see 'German price forms parse to whole EUR'), so a rule that only read
+    // a trailing € would drop this stated price.
+    ['EUR 800, Rest zu verschenken', 800],
   ] as const) {
     const outcome = parseGermanPriceOutcome(text)
     assert.equal(outcome.value, expected, `"${text}" lost its stated price`)
