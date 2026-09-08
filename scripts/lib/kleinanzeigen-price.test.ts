@@ -17,6 +17,7 @@ import { join } from 'node:path'
 
 import {
   extractCardPrice,
+  extractCardPriceOutcome,
   parseGermanPrice,
   parseGermanPriceOutcome,
   recordPriceOutcome,
@@ -162,6 +163,52 @@ test('unparseable structured data falls through instead of failing', () => {
     '<article data-adid="1"><script type="application/ld+json">{ not json </script>' +
     '<p class="aditem-main--middle--price-shipping--price">320 €</p></article>'
   assert.equal(extractCardPrice(card), 320)
+})
+
+test('the 2026-09 card layout still yields the asking price', () => {
+  /**
+   * PAN-46. Kleinanzeigen replaced the semantic `aditem-*` classes with utility
+   * classes: a sampled results page carried NO element whose class contains
+   * `price`, so every card fell through to `no_number` — 8,443 of 8,455 logged
+   * refusals — while title, URL and image still resolved, storing the listing
+   * without the price it plainly states.
+   *
+   * The price is the card's one bold paragraph. This pins that, and pins the
+   * three things around it that must never be read instead.
+   */
+  const card = (price: string, struck = '') => `
+    <article class="flex justify-between p-medium" data-adid="0">
+      <h3 class="mb-xsmall line-clamp-2 text-title3 font-strong hover:underline">
+        <a href="/s-anzeige/x/1">Roland Juno-106 Baujahr 1984</a>
+      </h3>
+      <p class="mb-xsmall text-bodyRegular text-onSurfaceSubdued">Gekauft 1988, 2 Besitzer</p>
+      <div class="flex">
+        <p class="my-xsmall text-title3 font-strong text-secondary">${price}</p>
+        ${struck}
+      </div>
+      <p class="flex">Versand möglich</p>
+    </article>`
+
+  assert.equal(extractCardPrice(card('1.500 €')), 1500)
+  assert.equal(extractCardPrice(card('950 €')), 950)
+  assert.equal(extractCardPrice(card('1.500 € VB')), 1500, 'VB is a suffix on a real ask')
+
+  // The struck-through former price is not bold, and must not be read.
+  const discounted = card(
+    '1.500 €',
+    '<p class="m-xsmall text-title3 text-onSurfaceNonessential line-through">1.800 €</p>',
+  )
+  assert.equal(extractCardPrice(discounted), 1500, 'the former price was read instead')
+
+  // A negotiable card that states no amount stays absent — never fabricated.
+  assert.equal(parseGermanPriceOutcome('VB').value, null)
+  assert.equal(extractCardPriceOutcome(card('VB')).value, null)
+  assert.equal(extractCardPriceOutcome(card('VB')).reason, 'no_number')
+
+  // The heading is bold too, but it is an h3: its year must never be the price.
+  assert.notEqual(extractCardPrice(card('490 €')), 1984)
+  assert.notEqual(extractCardPrice(card('490 €')), 1988)
+  assert.equal(extractCardPrice(card('490 €')), 490)
 })
 
 test('an ImageObject ld+json block is not mistaken for an offer', () => {

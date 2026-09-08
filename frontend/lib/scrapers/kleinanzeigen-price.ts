@@ -244,6 +244,41 @@ function stripTags(html: string): string {
     .trim()
 }
 
+/**
+ * Text of the card's one bold paragraph — the price in the 2026-09 layout.
+ *
+ * THE DEFECT THIS EXISTS TO FIX (measured on a sampled results page, 2026-09-08).
+ * Kleinanzeigen replaced the semantic `aditem-*` classes with utility classes.
+ * The page carries **no element whose class contains `price`** any more, so
+ * tiers 3 and 4 match nothing and every card arrives as `no_number` — 8,443 of
+ * 8,455 logged refusals. Title, URL and image still resolve, so the listing is
+ * stored, priceless, and the asking-price band silently loses it.
+ *
+ * WHY BOLD, AND WHY A PARAGRAPH. On the sampled page every card had exactly one
+ * `<p>` whose class contains `font-strong`, and it was the asking price in all
+ * 16. The heading is bold too but is an `<h3>`; the struck-through former price
+ * is a `<p>` that is NOT bold; the shipping line is a `<p>` carrying no amount.
+ * Requiring a bold paragraph therefore selects the current asking price and
+ * nothing that could be mistaken for one.
+ *
+ * `line-through` is skipped as well, so a future layout that bolds the former
+ * price cannot resurrect the welded-pair defect this module was written for.
+ */
+function boldParagraphText(html: string): string | null {
+  // `Array.from` rather than iterating the matcher directly: this module is
+  // compiled by the frontend tsconfig, whose target refuses a bare `for...of`
+  // over a RegExp iterator.
+  const paragraphs = Array.from(
+    html.matchAll(/<p\b([^>]*class=["'][^"']*font-strong[^"']*["'][^>]*)>([\s\S]*?)<\/p>/gi),
+  )
+  for (const match of paragraphs) {
+    if (/line-through/i.test(match[1])) continue
+    const text = stripTags(match[2])
+    if (text.length > 0) return text
+  }
+  return null
+}
+
 /** Text of the first element whose class matches `classPattern`, tags removed. */
 function textOfElementWithClass(html: string, classPattern: string): string | null {
   const re = new RegExp(
@@ -273,6 +308,8 @@ function textOfElementWithClass(html: string, classPattern: string): string | nu
  *   4. the price/shipping wrapper — the previous behaviour, kept for older or
  *      A/B markup, but only after the old price has been removed so it can no
  *      longer concatenate.
+ *   5. the bold paragraph — the card layout Kleinanzeigen served from 2026-09,
+ *      which carries no `price` class at all. See `boldParagraphText`.
  *
  * The old price is stripped up front, so NO tier can reproduce the defect.
  */
@@ -312,6 +349,10 @@ export function extractCardPriceOutcome(cardHtml: string): PriceOutcome {
   // 4. the wrapper, as a fallback
   const wrapper = textOfElementWithClass(withoutOldPrice, 'price')
   if (wrapper) return parseGermanPriceOutcome(wrapper)
+
+  // 5. the current layout, which names no element `price` at all
+  const bold = boldParagraphText(withoutOldPrice)
+  if (bold) return parseGermanPriceOutcome(bold)
 
   return { value: null, reason: 'no_number' }
 }
