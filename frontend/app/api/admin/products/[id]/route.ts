@@ -111,6 +111,42 @@ function consequence(axis: Axis, from: unknown, to: unknown): string {
   }
 }
 
+/**
+ * A database failure, told to the operator without a database word in it.
+ *
+ * Every Supabase read and write on this route used to return `err.message`
+ * straight to the browser, and the admin list renders `data.message ?? error`
+ * in a toast — so a constraint violation or a PostgREST parse error was shown
+ * verbatim to a human who cannot act on it, carrying table, column and
+ * sometimes row values with it. The ticket's contract is that no database word
+ * reaches the UI.
+ *
+ * The client gets a stable machine code and one human sentence. The operator
+ * channel gets the stage and the Postgres/PostgREST code — NOT the message,
+ * because a unique-violation message embeds the row values that collided, and
+ * operational logs must never carry production data.
+ */
+type DbStage =
+  | 'category_lookup'
+  | 'category_root_lookup'
+  | 'product_read'
+  | 'exposure_read'
+  | 'product_save'
+
+function databaseFailure(stage: DbStage, err: { code?: string } | null): NextResponse {
+  console.error(JSON.stringify({
+    channel: 'operational',
+    component: 'admin-products',
+    event: 'database_error',
+    stage,
+    code: err?.code ?? null,
+  }))
+  return NextResponse.json({
+    error: 'database_error',
+    message: 'Handlingen kunne ikke gennemføres. Prøv igen — kontakt drift, hvis det bliver ved.',
+  }, { status: 500 })
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
@@ -213,7 +249,7 @@ export async function PATCH(
       .select('id, parent_id, domain')
       .eq('id', update.subcategory_id as string)
       .maybeSingle()
-    if (subErr) return NextResponse.json({ error: subErr.message }, { status: 500 })
+    if (subErr) return databaseFailure('category_lookup', subErr)
     if (!sub) return NextResponse.json({ error: 'unknown_subcategory' }, { status: 400 })
     if (!sub.parent_id) {
       return NextResponse.json({ error: 'not_a_subcategory', message: 'Choose a leaf category, not a root.' }, { status: 400 })
@@ -223,7 +259,7 @@ export async function PATCH(
       .select('id, parent_id, domain')
       .eq('id', sub.parent_id)
       .maybeSingle()
-    if (rootErr) return NextResponse.json({ error: rootErr.message }, { status: 500 })
+    if (rootErr) return databaseFailure('category_root_lookup', rootErr)
     if (!root || root.parent_id !== null || root.domain !== 'music' || sub.domain !== 'music') {
       return NextResponse.json({
         error: 'subcategory_would_not_classify',
@@ -239,7 +275,7 @@ export async function PATCH(
     .eq('id', params.id)
     .maybeSingle()
 
-  if (readErr) return NextResponse.json({ error: readErr.message }, { status: 500 })
+  if (readErr) return databaseFailure('product_read', readErr)
   if (!before) return NextResponse.json({ error: 'not_found' }, { status: 404 })
 
   // A deprecated identity can never be promoted into the supported cohort.
@@ -268,7 +304,7 @@ export async function PATCH(
       .select('taxonomy_state, browse_domain')
       .eq('id', params.id)
       .maybeSingle()
-    if (projErr) return NextResponse.json({ error: projErr.message }, { status: 500 })
+    if (projErr) return databaseFailure('exposure_read', projErr)
     const refusal = publicationRefusal(publication, {
       status: before.status,
       taxonomy_state: proj?.taxonomy_state ?? null,
@@ -317,7 +353,7 @@ export async function PATCH(
   if (changes.length === 0) return NextResponse.json({ ok: true, applied: false, manifest })
 
   const { error } = await admin.from('kg_product').update(update).eq('id', params.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return databaseFailure('product_save', error)
 
   return NextResponse.json({ ok: true, applied: true, manifest })
 }
