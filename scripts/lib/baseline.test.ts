@@ -450,7 +450,10 @@ test('a run given work that writes nothing while failing is not a success', () =
 test('incomplete coverage keeps its results but must not run the lifecycle sweep', () => {
   // Run 117: half the normal volume landed before the wall came up. Those rows
   // are real and must not be discarded by calling the run a failure.
-  const partial = { eligible: 53, written: 25636, requestFailures: 4000, writeFailures: 0, lifecycleFailed: false }
+  const partial = {
+    eligible: 12798, written: 25636, requestsOk: 8798, requestFailures: 4000,
+    writeFailures: 0, lifecycleFailed: false,
+  }
   assert.equal(classifyIngestionRun(partial).outcome, 'partial')
   assert.notEqual(classifyIngestionRun(partial).outcome, 'failed', 'partial progress is not total failure')
   assert.notEqual(classifyIngestionRun(partial).outcome, 'success', 'nor a clean run')
@@ -462,14 +465,30 @@ test('incomplete coverage keeps its results but must not run the lifecycle sweep
 
   // The 403 wall: every request failed, so the run saw nothing. Sweeping would
   // have deactivated the entire active Reverb cohort.
-  assert.equal(coverageIsComplete({ eligible: 53, requestFailures: 11076, writeFailures: 0 }), false)
+  assert.equal(coverageIsComplete({
+    eligible: 12798, requestsOk: 0, requestFailures: 12798, writeFailures: 0,
+  }), false)
   // A refused write is equally disqualifying, and so is having looked at nothing.
-  assert.equal(coverageIsComplete({ eligible: 53, requestFailures: 0, writeFailures: 1 }), false)
-  assert.equal(coverageIsComplete({ eligible: 0, requestFailures: 0, writeFailures: 0 }), false)
+  assert.equal(coverageIsComplete({
+    eligible: 12798, requestsOk: 12798, requestFailures: 0, writeFailures: 1,
+  }), false)
+  assert.equal(coverageIsComplete({
+    eligible: 0, requestsOk: 0, requestFailures: 0, writeFailures: 0,
+  }), false)
 
   // Complete coverage is the only case that may sweep — including a legitimate
   // quiet run, where every request succeeded and returned nothing.
-  assert.equal(coverageIsComplete({ eligible: 53, requestFailures: 0, writeFailures: 0 }), true)
+  assert.equal(coverageIsComplete({
+    eligible: 12798, requestsOk: 12798, requestFailures: 0, writeFailures: 0,
+  }), true)
+
+  // A clean tally is not a complete one. `--limit` breaks the term loop early,
+  // so no request failed, no write failed — and the terms never reached are
+  // indistinguishable from terms whose listings are gone. Sweeping here would
+  // deactivate listings for products this run never looked at.
+  assert.equal(coverageIsComplete({
+    eligible: 12798, requestsOk: 400, requestFailures: 0, writeFailures: 0,
+  }), false, 'a run cut short by --limit must not sweep')
 
   // A single failure alongside real writes is still partial, and a clean run
   // stays clean.

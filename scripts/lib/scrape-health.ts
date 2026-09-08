@@ -241,11 +241,23 @@ export interface IngestionRunFacts {
  *
  * So the sweep needs COMPLETE coverage, not merely a non-failed verdict. A run
  * with zero eligible work also looked at nothing and must not sweep either.
+ *
+ * AND ABSENCE OF FAILURE IS NOT PROOF OF COVERAGE. `scrape-reverb` breaks out
+ * of its term loop as soon as `--limit` is reached. That costs no request
+ * failure and no write failure, so a run can end with a spotless tally having
+ * never asked about most of its terms — and the old gate let it sweep. The
+ * gate therefore has to count ATTEMPTS, not just failures.
  */
 export function coverageIsComplete(
-  facts: Pick<IngestionRunFacts, 'eligible' | 'requestFailures' | 'writeFailures'>,
+  facts: Pick<IngestionRunFacts, 'eligible' | 'requestFailures' | 'writeFailures'>
+    & { /** Requests that returned a usable response. */ requestsOk: number },
 ): boolean {
+  // Looked at nothing.
   if (facts.eligible === 0) return false
+  // Looked at only part of it. Every attempt increments exactly one of these
+  // two counters, so their sum is the number of terms actually tried.
+  if (facts.requestsOk + facts.requestFailures !== facts.eligible) return false
+  // Looked at all of it, but not cleanly.
   return facts.requestFailures === 0 && facts.writeFailures === 0
 }
 

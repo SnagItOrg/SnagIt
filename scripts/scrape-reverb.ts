@@ -374,9 +374,15 @@ async function main() {
    *
    * This is the rule scrape-health.ts already states for `failed` runs, applied
    * where it belongs — before the write, not after the verdict.
+   *
+   * The loop above also breaks early once `--limit` is reached, which leaves
+   * terms unasked without recording a single failure. `coverageIsComplete`
+   * therefore checks that every eligible term was attempted, not merely that
+   * nothing went wrong.
    */
   if (!coverageIsComplete({
     eligible: terms.length,
+    requestsOk: runTally.requestsOk,
     requestFailures: runTally.requestFailures,
     writeFailures: runTally.writeFailures,
   })) {
