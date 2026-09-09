@@ -29,8 +29,40 @@
 /** Postcode, then a place that may carry spaces, hyphens or a slash. */
 const POSTCODE_AND_PLACE = /^\d{5}\s+[A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß.\-/ ]*$/
 
+/**
+ * The entity set the PM2 writer has always decoded, in its order.
+ *
+ * Lifted verbatim from `decodeHtmlEntities` in `scripts/scrape-kleinanzeigen.ts`
+ * rather than imported: that helper is private to a PM2 script, and
+ * `frontend/lib` importing from `scripts/` would invert the dependency across
+ * the boundary `wp4a-boundary` guards. Moving it out would rewire the scraper's
+ * own `stripTags` and `extractAttr`, which is more than this seam may change.
+ *
+ * The three umlauts are not decorative — someone added them to the base decoder
+ * because they saw them in the source. Dropping them here would silently change
+ * two behaviours: legacy markup would store a raw `M&uuml;nchen` in
+ * `listings.location`, and the current-layout rule would return null outright,
+ * because `&` and `;` are not in the place charset. Cheerio decodes at parse
+ * time, so the admin path would keep working while the PM2 writer — the one that
+ * writes the database — lost the location.
+ */
+function decodeHtmlEntities(input: string): string {
+  return input
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&uuml;/g, 'ü')
+    .replace(/&ouml;/g, 'ö')
+    .replace(/&auml;/g, 'ä')
+}
+
+/** Decode, then strip tags, then collapse — the base `stripTags` order exactly. */
 function textOf(html: string): string {
-  return html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim()
+  return decodeHtmlEntities(html)
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function firstByClass(cardHtml: string, className: string): string | null {
