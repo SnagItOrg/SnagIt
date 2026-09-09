@@ -263,6 +263,38 @@ test('the card location survives the 2026-09 layout, and reads nothing else', ()
     extractCardLocation('<article><div class="ad-listitem-location">80331 München</div></article>'),
     '80331 München',
   )
+
+  /*
+   * Entity-encoded umlauts decode, as the PM2 writer has always decoded them.
+   *
+   * The base `stripTags` ran `decodeHtmlEntities` first, covering `&uuml;`,
+   * `&ouml;` and `&auml;`. Losing that would fail silently in two directions:
+   * a legacy card would store a raw `M&uuml;nchen`, and a current-layout card
+   * would return null, because `&` and `;` are not in the place charset. The
+   * admin path would keep working — cheerio decodes at parse time — so only the
+   * writer that fills the database would lose the location.
+   */
+  assert.equal(
+    extractCardLocation('<article><div class="ad-listitem-location">80331 M&uuml;nchen</div></article>'),
+    '80331 München',
+    'tier 1 must decode entities as the base did',
+  )
+  assert.equal(
+    extractCardLocation('<article><div class="aditem-main--top--left">50667 K&ouml;ln</div></article>'),
+    '50667 Köln',
+    'tier 2 must decode entities as the base did',
+  )
+  assert.equal(extractCardLocation(current('80331 M&uuml;nchen')), '80331 München')
+  assert.equal(extractCardLocation(current('86720 N&ouml;rdlingen')), '86720 Nördlingen')
+  assert.equal(extractCardLocation(current('52062 A&auml;chen')), '52062 Aächen')
+
+  // Literal characters are unaffected by decoding.
+  assert.equal(extractCardLocation(current('80331 München')), '80331 München')
+  assert.equal(extractCardLocation(current('50667 Köln')), '50667 Köln')
+
+  // The other established entities decode too, and still cannot invent a place.
+  assert.equal(extractCardLocation(current('20095 Hamburg&nbsp;')), '20095 Hamburg')
+  assert.equal(extractCardLocation(placeless.replace('Versand möglich', 'Gr&uuml;&szlig;e')), null)
 })
 
 test('an ImageObject ld+json block is not mistaken for an offer', () => {
