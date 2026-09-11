@@ -30,10 +30,10 @@ export type ProductHeaderData = {
 }
 
 export type ThomannEntry = {
-  thomann_url: string
-  canonical_name: string
+  thomann_url: string | null
   price_dkk: number | null
-  scraped_at: string
+  /** Null when the price carries no observation time: undated, never current. */
+  price_updated_at: string | null
 }
 
 export type SynonymRow = {
@@ -53,7 +53,7 @@ export type NeighborProduct = {
 
 export type CurationData = {
   header: ProductHeaderData
-  thomann: ThomannEntry | null
+  thomann: ThomannEntry
   synonyms: SynonymRow[]
   listings: MatchedListing[]
   prev: NeighborProduct | null
@@ -90,6 +90,22 @@ function truncate(s: string, n: number): string {
   return s.slice(0, n - 1) + '…'
 }
 
+/**
+ * The age of the machine-fetched retail price — admin surface only.
+ *
+ * A missing observation time is shown as "udateret": the price is still there,
+ * but nothing records where it came from, so it is never presented as current.
+ * Labelling the age publicly would mean removing thomann_price_updated_at from
+ * FORBIDDEN_PRODUCT_FIELDS, which is a public-contract change with a test
+ * against it, and is deliberately not part of PAN-36.
+ */
+function retailAgeLabel(iso: string | null): string {
+  if (!iso) return 'udateret — oprindelsen kan ikke spores'
+  const days = daysSince(iso)
+  if (days === 0) return 'hentet i dag'
+  return `hentet for ${days} ${days === 1 ? 'dag' : 'dage'} siden`
+}
+
 export default function ProductCurationClient({ data }: { data: CurationData }) {
   const { header, thomann, prev, next } = data
 
@@ -117,6 +133,7 @@ export default function ProductCurationClient({ data }: { data: CurationData }) 
         thomann={thomann}
         prev={prev}
         next={next}
+        onSaved={showToast}
       />
 
       {/* Section 2 — synonyms */}
@@ -201,11 +218,13 @@ function ProductHeader({
   thomann,
   prev,
   next,
+  onSaved,
 }: {
   header: ProductHeaderData
-  thomann: ThomannEntry | null
+  thomann: ThomannEntry
   prev: NeighborProduct | null
   next: NeighborProduct | null
+  onSaved: (msg: string) => void
 }) {
   return (
     <section className="flex flex-col gap-3">
@@ -297,27 +316,119 @@ function ProductHeader({
             )}
           </div>
 
-          <div className="mt-2 text-sm">
-            {thomann && thomann.price_dkk != null ? (
+          <div className="mt-2 flex flex-col gap-1.5 text-sm">
+            {thomann.price_dkk != null ? (
               <span style={{ color: 'var(--foreground)' }}>
                 Nypris: <strong>{fmtNumber(thomann.price_dkk)} kr</strong>{' '}
-                <a
-                  href={thomann.thomann_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline"
-                  style={{ color: 'var(--muted-foreground)' }}
-                >
-                  → Thomann
-                </a>
+                <span style={{ color: 'var(--muted-foreground)' }}>
+                  · {retailAgeLabel(thomann.price_updated_at)}
+                </span>
               </span>
             ) : (
-              <span style={{ color: 'var(--muted-foreground)' }}>Ingen nypris</span>
+              <span style={{ color: 'var(--muted-foreground)' }}>Ingen nypris hentet</span>
             )}
+            <RetailSourceForm
+              productId={header.id}
+              initialUrl={thomann.thomann_url}
+              onSaved={onSaved}
+            />
           </div>
         </div>
       </div>
     </section>
+  )
+}
+
+
+/**
+ * The one human-owned input of the retail reference (PAN-36).
+ *
+ * The price is machine-owned: this form offers no price field, and the route it
+ * calls builds its update from an allow-list that does not contain
+ * thomann_price_dkk or thomann_price_updated_at, so neither is reachable from
+ * here. `intent: ['retail']` is the axis declaration — without it the route
+ * refuses the request before it touches the row.
+ */
+function RetailSourceForm({
+  productId,
+  initialUrl,
+  onSaved,
+}: {
+  productId: string
+  initialUrl: string | null
+  onSaved: (msg: string) => void
+}) {
+  const [url, setUrl] = useState(initialUrl ?? '')
+  const [saved, setSaved] = useState<string | null>(initialUrl)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = url.trim()
+    const next = trimmed === '' ? null : trimmed
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/admin/products/${productId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thomann_url: next, intent: ['retail'] }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.message ?? data.error ?? 'Kunne ikke gemme retail-kilden')
+        return
+      }
+      setSaved(next)
+      if (!data.applied) onSaved('Ingen ændring')
+      else onSaved(next ? 'Retail-kilde gemt' : 'Retail-kilde fjernet')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <form onSubmit={handleSave} className="flex flex-wrap items-center gap-2">
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://www.thomann.dk/…"
+          className="flex-1 min-w-[200px] text-xs px-3 py-1.5 rounded-xl"
+          style={{
+            background: 'var(--secondary)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--border)',
+          }}
+        />
+        <button
+          type="submit"
+          disabled={busy}
+          className="text-xs font-semibold px-4 py-1.5 rounded-xl disabled:opacity-40"
+          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+        >
+          Gem
+        </button>
+        {saved && (
+          <a
+            href={saved}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs hover:underline"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
+            → Thomann
+          </a>
+        )}
+      </form>
+      {error && (
+        <p className="text-xs" style={{ color: 'rgb(239,68,68)' }}>
+          {error}
+        </p>
+      )}
+    </div>
   )
 }
 

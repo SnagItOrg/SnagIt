@@ -19,6 +19,9 @@ type ProductRow = {
   year_released: number | null
   attributes: Record<string, unknown> | null
   reverb_csp_id: number | null
+  thomann_url: string | null
+  thomann_price_dkk: number | string | null
+  thomann_price_updated_at: string | null
   kg_brand: { name: string } | { name: string }[] | null
 }
 
@@ -62,7 +65,7 @@ async function loadCurationData(slug: string): Promise<CurationData | null> {
   const { data: productRow, error: productError } = await admin
     .from('kg_product')
     .select(
-      'id, slug, canonical_name, tier, image_url, hero_image_url, year_released, attributes, reverb_csp_id, kg_brand!inner(name)',
+      'id, slug, canonical_name, tier, image_url, hero_image_url, year_released, attributes, reverb_csp_id, thomann_url, thomann_price_dkk, thomann_price_updated_at, kg_brand!inner(name)',
     )
     .eq('slug', slug)
     .maybeSingle()
@@ -75,24 +78,18 @@ async function loadCurationData(slug: string): Promise<CurationData | null> {
   const product = productRow as unknown as ProductRow
   const brandName = resolveBrandName(product.kg_brand)
 
-  // Thomann retail entry — best-effort canonical-name match. The table has no
-  // currency column; price_dkk is always DKK by definition.
-  const { data: thomannData } = await admin
-    .from('thomann_product')
-    .select('thomann_url, canonical_name, price_dkk, scraped_at')
-    .ilike('canonical_name', `%${product.canonical_name}%`)
-    .order('scraped_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  const thomann: ThomannEntry | null = thomannData
-    ? {
-        thomann_url: thomannData.thomann_url,
-        canonical_name: thomannData.canonical_name,
-        price_dkk: toNumber(thomannData.price_dkk as number | string | null),
-        scraped_at: thomannData.scraped_at,
-      }
-    : null
+  // Retail reference, read from the same authority the public page reads: the
+  // kg_product columns themselves. This block used to resolve thomann_product
+  // through a fuzzy canonical_name match, which could show a price for ~8
+  // products while the public page showed 596, and displayed a thomann_url
+  // from a different table than the one a save writes (PAN-36). price_dkk is
+  // DKK by definition; a null thomann_price_updated_at means the price has no
+  // recorded observation time, not that it is fresh.
+  const thomann: ThomannEntry = {
+    thomann_url: product.thomann_url,
+    price_dkk: toNumber(product.thomann_price_dkk),
+    price_updated_at: product.thomann_price_updated_at,
+  }
 
   // Matched listings — only show unreviewed (NULL) and confirmed (true).
   const { data: matchData, error: matchError } = await admin

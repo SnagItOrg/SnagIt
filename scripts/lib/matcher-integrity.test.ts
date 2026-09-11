@@ -2060,9 +2060,14 @@ test('the promotion API separates support, visibility and monitoring', () => {
   // All four axes are named and mapped.
   for (const f of ['support_state', 'browse_visibility', 'tier', 'year_released'])
     assert.ok(src.includes(f), `promotion route must handle ${f}`)
-  // Visibility and monitoring cannot ride along with a support promotion.
-  assert.ok(src.includes("const mustDeclare: Axis[] = ['visibility', 'monitoring', 'taxonomy']"),
-    'visibility and monitoring must require explicit intent')
+  // Visibility, monitoring, taxonomy and the retail pointer cannot ride along
+  // with a support promotion.
+  assert.ok(src.includes("const mustDeclare: Axis[] = ['visibility', 'monitoring', 'taxonomy', 'retail']"),
+    'visibility, monitoring, taxonomy and retail must require explicit intent')
+  // PAN-36: the retail pointer is its own axis, because the metadata
+  // consequence string would assert "no matcher, visibility or monitoring
+  // effect" about a field the weekly fetch and the public page both read.
+  assert.match(src, /thomann_url:\s+'retail',/)
   assert.ok(src.includes('undeclared_axis'), 'undeclared axis must fail closed')
   // A dry run exists and returns the same manifest without writing.
   assert.ok(/dryRun/.test(src) && src.includes('applied: false'),
