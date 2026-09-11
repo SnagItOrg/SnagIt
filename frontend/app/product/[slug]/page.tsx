@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { SideNav } from '@/components/SideNav'
@@ -17,6 +17,7 @@ import { Toast } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
 import { DanishMarketBlock, ReferencePopulationBlock } from '@/components/PriceAnswer'
 import type { PopulationKey, PopulationStats } from '@/lib/price-populations'
+import { orderByVerdictRank } from '@/lib/listing-value-order'
 import {
   ProductReviewControls,
   type MatchReviewStatus,
@@ -78,6 +79,24 @@ export default function ProductPage() {
 
   const [product, setProduct]           = useState<Product | null>(null)
   const [listings, setListings]         = useState<Listing[]>([])
+  /**
+   * Presentation only. `false` is the order the API returned — score desc, id
+   * asc — and it stays the default, so nothing about the existing ordering
+   * changes unless the reader asks for it.
+   */
+  const [valueOrder, setValueOrder]     = useState(false)
+  /**
+   * The wall's render order. `orderByVerdictRank` reads only the verdict the
+   * API already computed — no price is compared, and a listing's population is
+   * never crossed. See ./lib/listing-value-order for why that makes this a
+   * presentation state rather than a price claim.
+   */
+  const orderedListings = useMemo(
+    () => (valueOrder
+      ? orderByVerdictRank(listings, (l) => (l as Listing & ListingWithVerdict).marketVerdict)
+      : listings),
+    [listings, valueOrder],
+  )
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([])
   const [populations, setPopulations]   = useState<Record<PopulationKey, PopulationStats> | null>(null)
   const [soldCounts, setSoldCounts]     = useState<{ raw: number; filtered: number; excludedOutliers: number } | null>(null)
@@ -734,11 +753,36 @@ export default function ProductPage() {
                 {/* ── Active listings ───────────────────────────── */}
                 {listings.length > 0 && (
                   <div className="flex flex-col gap-3">
-                    <p className="text-sm font-medium text-foreground">
-                      {listings.length} {listings.length === 1 ? 'annonce' : 'annoncer'}
-                    </p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-foreground">
+                        {listings.length} {listings.length === 1 ? 'annonce' : 'annoncer'}
+                      </p>
+                      {/*
+                        Two states, not a filtering framework. Nothing is hidden
+                        and nothing is recomputed: the same listings are shown
+                        in one of two orders, and the default is the one the API
+                        already returned.
+                      */}
+                      <div className="flex flex-wrap gap-1" role="group" aria-label={t.sortGroupLabel}>
+                        {([false, true] as const).map((mode) => (
+                          <button
+                            key={String(mode)}
+                            type="button"
+                            onClick={() => setValueOrder(mode)}
+                            aria-pressed={valueOrder === mode}
+                            title={mode ? t.sortByValueHint : undefined}
+                            className="px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors"
+                            style={valueOrder === mode
+                              ? { backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--foreground)' }
+                              : { backgroundColor: 'transparent', border: '1px solid transparent', color: 'var(--muted-foreground)' }}
+                          >
+                            {mode ? t.sortByValue : t.sortDefault}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <div className="grid-wall grid-wall-lg">
-                    {listings.map((listing) => (
+                    {orderedListings.map((listing) => (
                       <ListingErrorBoundary key={listing.id} listingId={listing.id}>
                         <div className="flex flex-col">
                           <SearchResultCard
