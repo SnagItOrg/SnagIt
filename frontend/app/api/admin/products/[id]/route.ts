@@ -64,7 +64,24 @@ const TIERS          = ['legendary', 'classic', 'standard'] as const
  */
 const MONITORING_BOUNDARY = 'data/klup-source-monitoring.json'
 
-type Axis = 'support' | 'visibility' | 'monitoring' | 'taxonomy' | 'metadata'
+/**
+ * The retail pointer has no closed set to validate against the way support
+ * states, visibilities and tiers do, so it carries its own rule: an absolute
+ * https address on a Thomann host, or null to clear the pointer. All 600
+ * stored URLs are https://www.thomann.dk/… (measured 2026-09-11).
+ */
+function isRetailUrl(value: unknown): boolean {
+  if (typeof value !== 'string') return false
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    return false
+  }
+  return parsed.protocol === 'https:' && /(^|\.)thomann\.(dk|de)$/.test(parsed.hostname)
+}
+
+type Axis = 'support' | 'visibility' | 'monitoring' | 'taxonomy' | 'metadata' | 'retail'
 
 const FIELD_AXIS: Record<string, Axis> = {
   support_state:     'support',
@@ -76,6 +93,13 @@ const FIELD_AXIS: Record<string, Axis> = {
   // public browse. That is a change of exposure, which is why it must be
   // declared like `visibility` rather than riding along as metadata.
   subcategory_id:    'taxonomy',
+  // The retail pointer is its own axis, not metadata: it decides which page the
+  // weekly Thomann fetch reads for this product and which link the public page
+  // shows, so "no matcher, visibility or monitoring effect" would be false for
+  // it. Only the pointer is human-owned — thomann_price_dkk and
+  // thomann_price_updated_at are written by the scheduled job alone, and their
+  // absence from this map is what puts them out of this route's reach.
+  thomann_url:       'retail',
   year_released:     'metadata',
   tags:              'metadata',
 }
@@ -106,6 +130,14 @@ function consequence(axis: Axis, from: unknown, to: unknown): string {
         `by ${MONITORING_BOUNDARY} and is not changed by this request.`
       )
     }
+    case 'retail':
+      return to == null
+        ? 'Retail source REMOVED. The weekly Thomann fetch stops refreshing this product\u2019s retail price. '
+          + 'The last fetched price and its observation time are left exactly as they are, and support, '
+          + 'visibility, taxonomy and monitoring are unchanged.'
+        : `Retail source SET to '${String(to)}'. The weekly Thomann fetch reads this URL for this product, `
+          + 'and the public product page links to it. No price is written here: thomann_price_dkk and '
+          + 'thomann_price_updated_at stay machine-owned. Support, visibility, taxonomy and monitoring are unchanged.'
     default:
       return 'Metadata only. No matcher, visibility or monitoring effect.'
   }
@@ -209,19 +241,27 @@ export async function PATCH(
   if (update.tier !== undefined && !TIERS.includes(update.tier as never)) {
     return NextResponse.json({ error: 'invalid_tier', allowed: TIERS }, { status: 400 })
   }
+  if (update.thomann_url !== undefined && update.thomann_url !== null && !isRetailUrl(update.thomann_url)) {
+    return NextResponse.json({
+      error: 'invalid_thomann_url',
+      message: 'Use a full https://www.thomann.dk/… address, or null to remove the retail source.',
+    }, { status: 400 })
+  }
 
   // ── explicit intent, so no axis moves as a side effect ───────────────────
   // `intent` lists the axes the caller means to change. Support and metadata
   // may be implied (they carry no cross-axis consequence); visibility and
   // monitoring must be named, because those are the two that silently changed
-  // public exposure and scraper configuration before.
+  // public exposure and scraper configuration before. Retail is named for the
+  // same reason: it changes what the weekly fetch reads and what the public
+  // product page links to.
   // A publication action names its own consequence, so it satisfies the
   // declaration requirement by construction — the operator chose "Public", not
   // a visibility field that happened to move.
   const intent: string[] = publication !== undefined
     ? Array.from(touched)
     : (Array.isArray(body.intent) ? body.intent.map(String) : [])
-  const mustDeclare: Axis[] = ['visibility', 'monitoring', 'taxonomy']
+  const mustDeclare: Axis[] = ['visibility', 'monitoring', 'taxonomy', 'retail']
   const undeclared = mustDeclare.filter((a) => touched.has(a) && !intent.includes(a))
   if (undeclared.length > 0) {
     return NextResponse.json({
@@ -271,7 +311,7 @@ export async function PATCH(
   // ── before state, for the manifest and for the dry run ───────────────────
   const { data: before, error: readErr } = await admin
     .from('kg_product')
-    .select('id, slug, canonical_name, status, support_state, browse_visibility, tier, subcategory_id, year_released, tags')
+    .select('id, slug, canonical_name, status, support_state, browse_visibility, tier, subcategory_id, year_released, tags, thomann_url')
     .eq('id', params.id)
     .maybeSingle()
 
@@ -346,6 +386,7 @@ export async function PATCH(
       visibility: update.browse_visibility === undefined ? before.browse_visibility : undefined,
       monitoring: update.tier              === undefined ? before.tier              : undefined,
       taxonomy:   update.subcategory_id     === undefined ? before.subcategory_id     : undefined,
+      retail:     update.thomann_url         === undefined ? before.thomann_url         : undefined,
     },
   }
 

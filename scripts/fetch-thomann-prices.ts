@@ -1,20 +1,25 @@
 /**
  * scripts/fetch-thomann-prices.ts
  *
- * Refreshes Thomann retail prices from confirmed, demand-driven URLs stored
- * in the thomann_product table (populated when users search klup.dk).
+ * Refreshes Thomann retail prices for the kg_product rows that carry a
+ * thomann_url — the pointer an admin maintains on /admin/product/[slug].
  *
- * Unlike the old approach (sitemap-guessed kg_product.thomann_url), these URLs
- * are verified — they were returned by Thomann search and clicked through.
+ * The work list used to be the thomann_product table, populated when users
+ * searched klup.dk. WP-4 closed that write path, and nothing has fed the table
+ * since, so 584 of the 587 priced-but-undated products held a URL this job
+ * would never visit. The work list is therefore the pointer column itself
+ * (PAN-36 D8). thomann_product keeps its rows and gains no new writer here.
  *
  * Strategy:
- *   1. Pick thomann_product rows that are stale (scraped_at older than STALE_DAYS)
- *      or have never had a price (price_dkk IS NULL), ordered oldest-first.
+ *   1. Pick kg_product rows that carry a thomann_url and are stale: no price,
+ *      no observation time, or an observation time older than STALE_DAYS.
+ *      Undated rows are refreshed first.
  *   2. Fetch each product page, extract price via JSON-LD (main product, not bundles).
- *   3. Update thomann_product.price_dkk + scraped_at.
- *   4. If the row is linked to a kg_product (via kg_product_id or thomann_url match),
- *      also update kg_product.thomann_price_dkk + thomann_price_updated_at.
- *   5. Jittered delay between requests to be polite to Thomann.
+ *   3. Update kg_product.thomann_price_dkk + thomann_price_updated_at, keyed on
+ *      the kg id that came from the work list. The URL is never the write key:
+ *      224 of the 600 rows share a URL with another product (largest fan-out 6),
+ *      so matching on it would write one product's price onto its siblings.
+ *   4. Jittered delay between requests to be polite to Thomann.
  *
  * Usage:
  *   npx tsx scripts/fetch-thomann-prices.ts
@@ -179,41 +184,33 @@ async function fetchPage(url: string, rates: Record<string, number>, canonicalNa
 }
 
 // ── Supabase queries ──────────────────────────────────────────────────────────
-type ThomannRow = {
+type KgRetailRow = {
   id: string
   thomann_url: string
   canonical_name: string
-  kg_product_id: string | null
 }
 
-async function fetchStaleProducts(): Promise<ThomannRow[]> {
+async function fetchStaleProducts(): Promise<KgRetailRow[]> {
   const cutoff = new Date(Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000).toISOString()
 
+  // The staleness test is NULL-aware on purpose. Ported literally from the old
+  // thomann_product query it would read "price IS NULL OR updated_at < cutoff",
+  // and a NULL updated_at satisfies neither term — which would silently drop
+  // the 587 priced-but-undated products this work list exists to reach.
   const { data, error } = await supabase
-    .from('thomann_product')
-    .select('id, thomann_url, canonical_name, kg_product_id')
-    .or(`price_dkk.is.null,scraped_at.lt.${cutoff}`)
-    .order('scraped_at', { ascending: true, nullsFirst: true })
+    .from('kg_product')
+    .select('id, thomann_url, canonical_name')
+    .not('thomann_url', 'is', null)
+    .or(`thomann_price_dkk.is.null,thomann_price_updated_at.is.null,thomann_price_updated_at.lt.${cutoff}`)
+    .order('thomann_price_updated_at', { ascending: true, nullsFirst: true })
     .limit(LIMIT)
 
   if (error) {
-    console.error('❌ Failed to fetch thomann_product rows:', error.message)
+    console.error('❌ Failed to fetch kg_product rows:', error.message)
     process.exit(1)
   }
 
-  return (data ?? []) as ThomannRow[]
-}
-
-async function updateThomannProduct(id: string, priceDkk: number, imageUrl: string | null, now: string): Promise<void> {
-  const update: Record<string, unknown> = { price_dkk: priceDkk, scraped_at: now }
-  if (imageUrl) update.image_url = imageUrl
-
-  const { error } = await supabase
-    .from('thomann_product')
-    .update(update)
-    .eq('id', id)
-
-  if (error) throw new Error(`thomann_product update: ${error.message}`)
+  return (data ?? []) as KgRetailRow[]
 }
 
 async function updateKgProduct(kgProductId: string | null, thomannUrl: string, priceDkk: number, imageUrl: string | null, now: string): Promise<void> {
@@ -247,8 +244,8 @@ function jitteredDelay(): Promise<void> {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('💰 Thomann Price Fetcher (demand-driven)')
-  console.log(`   Source: thomann_product table (confirmed URLs from user searches)`)
+  console.log('💰 Thomann Price Fetcher')
+  console.log(`   Source: kg_product.thomann_url (maintained on /admin/product/[slug])`)
   console.log(`   Stale threshold: ${STALE_DAYS} days`)
   console.log(`   Delay: ${DELAY_MIN_MS / 1000}–${(DELAY_MIN_MS + DELAY_JITTER_MS) / 1000}s (jittered)`)
   console.log(`   Limit: ${LIMIT} products per run`)
@@ -290,8 +287,9 @@ async function main() {
       updated++
       if (!DRY_RUN) {
         try {
-          await updateThomannProduct(p.id, priceDkk, imageUrl, now)
-          await updateKgProduct(p.kg_product_id, p.thomann_url, priceDkk, imageUrl, now)
+          // p.id is the kg_product id, passed explicitly so the write takes
+          // updateKgProduct's id branch and never its thomann_url fallback.
+          await updateKgProduct(p.id, p.thomann_url, priceDkk, imageUrl, now)
         } catch (err) {
           console.error(`  ❌ DB error: ${(err as Error).message}`)
           errors++
