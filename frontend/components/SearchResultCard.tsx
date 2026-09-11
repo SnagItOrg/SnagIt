@@ -105,7 +105,37 @@ interface Props {
  * one asking population. It is deliberately not "Kup", "God handel", "Billig"
  * or any judgement of the deal: Klup is stating where the price sits, not
  * whether to buy.
+ *
+ * IT OUTRANKS THE SOURCE BADGE — it did not used to. This badge rendered at
+ * 11px in the same grey pill as `PlatformBadge`, which renders at 12px, so the
+ * marketplace name was literally louder than the price judgement on a wall
+ * meant to be scanned. Three things separate them now, and NONE of them is
+ * colour: size (14px vs 12px), weight (semibold vs medium) and shape (a
+ * rectangle vs a pill), plus a direction glyph. The verdict word itself is
+ * unchanged and still carries the meaning on its own.
+ *
+ * NO GREEN HERE, DELIBERATELY. `under` is the state a reader most wants to
+ * spot, so the obvious move is to paint it with the brand accent — and
+ * `frontend/CLAUDE.md` reserves `#13ec6d` for the Kup-rating and the Aktiv
+ * badge, nothing else. It is also the colour of a score Klup deliberately keeps
+ * hidden until it has the per-variant history to stand behind, so spending it
+ * on a per-listing judgement here would pre-empt that decision. `under`
+ * therefore earns its emphasis from contrast — raised surface, strong border,
+ * full-strength ink — which is the loudest neutral the token set offers.
+ *
+ * `over` carries the only colour, on the destructive ramp, because it is the
+ * only cautionary state; `typical` stays muted because it IS the neutral
+ * reading. Both ramps are already defined for light and dark. No new token is
+ * introduced, and P2's own PriceAnswer surface remains untinted.
  */
+const VERDICT_TONE: Readonly<Record<'under' | 'typical' | 'over', {
+  bg: string; border: string; fg: string; glyph: string
+}>> = {
+  under:   { bg: 'var(--surface-raised)',     border: 'var(--border-strong)',      fg: 'var(--foreground)',       glyph: 'south_east' },
+  typical: { bg: 'var(--secondary)',          border: 'var(--border)',             fg: 'var(--muted-foreground)', glyph: 'drag_handle' },
+  over:    { bg: 'var(--destructive-subtle)', border: 'var(--destructive-border)', fg: 'var(--destructive-text)', glyph: 'north_east' },
+}
+
 function MarketVerdictBadge({
   verdict,
   basisLabelKey,
@@ -119,12 +149,18 @@ function MarketVerdictBadge({
   const label =
     verdict === 'under' ? t.verdictUnder : verdict === 'over' ? t.verdictOver : t.verdictTypical
   const basis = basisLabelKey ? t[basisLabelKey] : null
+  const tone = VERDICT_TONE[verdict]
   return (
     <span
-      className="inline-flex w-fit items-center rounded-full border border-line bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-secondary"
+      className="inline-flex w-fit items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-semibold"
+      style={{ backgroundColor: tone.bg, border: `1px solid ${tone.border}`, color: tone.fg }}
       title={basis ?? undefined}
       aria-label={basis ? `${label}. ${basis}` : label}
     >
+      {/* Direction as a shape, so the three states differ without colour. */}
+      <span aria-hidden="true" className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+        {tone.glyph}
+      </span>
       {label}
     </span>
   )
@@ -394,9 +430,36 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
           )}
         </div>
 
-        {/* Title, then price, then the deal signal, then provenance. */}
-        <div className="flex flex-col gap-1 px-3 pt-3">
-          <p className="text-sm font-semibold text-foreground line-clamp-2 wrap-anywhere">{listing.title}</p>
+        {/*
+          SCAN ORDER: verdict, price, title, provenance.
+
+          The two decision signals come first. The title used to lead and the
+          verdict came fourth, which put the weakest-styled element behind the
+          longest one — on a wall of the SAME product, where every title says
+          much the same thing, the title is a disambiguator rather than the
+          thing being decided.
+
+          This departs from the ticket's literal sequence in one place: source
+          and country stay with age in the provenance row below the title
+          instead of sitting above it. They are supporting context, they share a
+          wrap, and lifting them above the title would push the title below four
+          rows of metadata for no scanning gain. The ticket permits the spatial
+          order to be adjusted so long as verdict and price stay primary, and
+          they do.
+        */}
+        <div className="flex flex-col gap-1.5 px-3 pt-3">
+          {/*
+            The deal label gets its own line. Sharing the meta row made it
+            compete with the platform, age and country for the same wrap, and at
+            360px it was the price that lost.
+          */}
+          {marketVerdict && (
+            <MarketVerdictBadge
+              verdict={marketVerdict}
+              basisLabelKey={marketVerdictBasisLabel}
+              t={t as unknown as Record<string, string>}
+            />
+          )}
 
           {/*
             The price never truncates. It is the number the whole card exists to
@@ -411,20 +474,8 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
             )}
           </div>
 
-          {/*
-            The deal label gets its own line. Sharing the meta row made it
-            compete with the platform, age and country for the same wrap, and at
-            360px it was the price that lost.
-          */}
-          {marketVerdict && (
-            <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-              <MarketVerdictBadge
-                verdict={marketVerdict}
-                basisLabelKey={marketVerdictBasisLabel}
-                t={t as unknown as Record<string, string>}
-              />
-            </div>
-          )}
+          {/* Medium, not semibold: the title identifies, the verdict decides. */}
+          <p className="text-sm font-medium text-foreground line-clamp-2 wrap-anywhere">{listing.title}</p>
 
           <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
             <PlatformBadge listing={listing} />

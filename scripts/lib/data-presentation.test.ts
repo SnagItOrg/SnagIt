@@ -27,6 +27,7 @@ import {
   seriesSlot,
 } from '../../frontend/lib/chart-palette'
 import { divergingBarGeometry, sparklineGeometry } from '../../frontend/lib/chart-geometry'
+import { orderByVerdictRank, verdictRank } from '../../frontend/lib/listing-value-order'
 import {
   formatCompact,
   formatCount,
@@ -1016,4 +1017,42 @@ test('verdict labels are never rebranded as a buy recommendation', async () => {
         `${loc}.${key} must describe position, not a recommendation`)
     }
   }
+})
+
+test('value ordering ranks verdicts and is stable within a rank', () => {
+  /**
+   * PAN-54. The listing wall gained a second render order, and this is the
+   * whole of its contract. It is asserted here because the ordering is new
+   * executable logic: nothing else would catch a listing without a verdict
+   * being promoted above one with a verdict, or the relative order of equals
+   * drifting when the engine's sort changes.
+   *
+   * It deliberately asserts nothing about badges, copy, colour or the P2
+   * verdict itself — the verdict arrives already computed, and this function
+   * never looks at a price.
+   */
+  const listing = (id: string, verdict: 'under' | 'typical' | 'over' | null) => ({ id, verdict })
+
+  // Ranks are total and ordered; anything unplaced sorts last.
+  assert.ok(verdictRank('under') < verdictRank('typical'))
+  assert.ok(verdictRank('typical') < verdictRank('over'))
+  assert.ok(verdictRank('over') < verdictRank(null))
+  assert.equal(verdictRank(undefined), verdictRank(null))
+
+  // The wall order the API returned, deliberately worst-first so a no-op would fail.
+  const wall = [
+    listing('a', null), listing('b', 'over'), listing('c', null),
+    listing('d', 'typical'), listing('e', 'under'), listing('f', 'typical'),
+  ]
+  const ordered = orderByVerdictRank(wall, (l) => l.verdict)
+
+  assert.deepEqual(ordered.map((l) => l.id), ['e', 'd', 'f', 'b', 'a', 'c'])
+
+  // Equal ranks keep the order they arrived in: d before f, a before c.
+  assert.ok(ordered.indexOf(wall[3]) < ordered.indexOf(wall[5]))
+  assert.ok(ordered.indexOf(wall[0]) < ordered.indexOf(wall[2]))
+
+  // Every listing survives, and the input is not mutated.
+  assert.equal(ordered.length, wall.length)
+  assert.equal(wall[0].id, 'a')
 })
