@@ -383,6 +383,11 @@ function RetailSourceForm({
       setSaved(next)
       if (!data.applied) onSaved('Ingen ændring')
       else onSaved(next ? 'Retail-kilde gemt' : 'Retail-kilde fjernet')
+    } catch {
+      // A rejected fetch or a body that will not parse never reached the row.
+      // Keep the last confirmed value, say so in the sentence the route already
+      // uses, and fire no success toast.
+      setError('Kunne ikke gemme retail-kilden')
     } finally {
       setBusy(false)
     }

@@ -213,14 +213,17 @@ async function fetchStaleProducts(): Promise<KgRetailRow[]> {
   return (data ?? []) as KgRetailRow[]
 }
 
-async function updateKgProduct(kgProductId: string | null, thomannUrl: string, priceDkk: number, imageUrl: string | null, now: string): Promise<void> {
+// Writes the two machine-owned retail fields and nothing else. The product
+// image is deliberately NOT written here: PAN-36 authorises the retail URL,
+// price and timestamp only, and this path now runs over ~600 kg_product rows
+// rather than the eight it once did. Image provenance is PAN-42.
+async function updateKgProduct(kgProductId: string | null, thomannUrl: string, priceDkk: number, now: string): Promise<void> {
   // If no explicit kg_product_id, try to match by thomann_url
   let query = supabase.from('kg_product')
   const update: Record<string, unknown> = {
     thomann_price_dkk: priceDkk,
     thomann_price_updated_at: now,
   }
-  if (imageUrl) update.image_url = imageUrl
 
   let result
   if (kgProductId) {
@@ -275,7 +278,7 @@ async function main() {
     const p = products[i]
     process.stdout.write(`[${i + 1}/${products.length}] ${p.canonical_name} … `)
 
-    let { priceDkk, imageUrl } = await fetchPage(p.thomann_url, rates, p.canonical_name)
+    let { priceDkk } = await fetchPage(p.thomann_url, rates, p.canonical_name)
 
     if (priceDkk !== null && priceDkk < 500) {
       console.warn(`[thomann] Suspicious low price for ${p.canonical_name}: ${priceDkk} DKK — skipping`)
@@ -283,13 +286,13 @@ async function main() {
     }
 
     if (priceDkk !== null) {
-      console.log(`✓ ${priceDkk.toLocaleString('da-DK')} kr${imageUrl ? ' 🖼️' : ''}`)
+      console.log(`✓ ${priceDkk.toLocaleString('da-DK')} kr`)
       updated++
       if (!DRY_RUN) {
         try {
           // p.id is the kg_product id, passed explicitly so the write takes
           // updateKgProduct's id branch and never its thomann_url fallback.
-          await updateKgProduct(p.id, p.thomann_url, priceDkk, imageUrl, now)
+          await updateKgProduct(p.id, p.thomann_url, priceDkk, now)
         } catch (err) {
           console.error(`  ❌ DB error: ${(err as Error).message}`)
           errors++
