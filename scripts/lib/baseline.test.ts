@@ -23,7 +23,7 @@ import {
   type BaselineCandidate,
   type RunCohort,
 } from './baseline'
-import { evaluateRun, type ListingSample, type RunCounters, classifyIngestionRun, coverageIsComplete } from './scrape-health'
+import { evaluateRun, type ListingSample, type RunCounters, classifyIngestionRun, coverageIsComplete, tallyUpsert } from './scrape-health'
 
 // ── fixtures ──────────────────────────────────────────────────────────────
 
@@ -498,4 +498,25 @@ test('incomplete coverage keeps its results but must not run the lifecycle sweep
   assert.equal(classifyIngestionRun({
     eligible: 53, written: 53216, requestFailures: 0, writeFailures: 0, lifecycleFailed: false,
   }).outcome, 'success')
+})
+
+test('a write where every row already existed reports zero written', () => {
+  /**
+   * PAN-62. `fetch-reverb-prices` writes with `ON CONFLICT DO NOTHING` and
+   * used to tally the array it had just submitted, so a run that inserted
+   * nothing printed the full submission count and read as success. This is the
+   * case that produced it: 556 rows handed over, every one already present,
+   * nothing returned.
+   *
+   * The assertion that matters is `written === 0` while `submitted` stays 556.
+   * Re-deriving written from submitted — the original defect — fails here.
+   */
+  assert.deepEqual(tallyUpsert(556, []), { submitted: 556, written: 0 })
+
+  // A partial night: written is the returned length, not the submitted length.
+  assert.deepEqual(tallyUpsert(556, [{ id: 'a' }, { id: 'b' }]), { submitted: 556, written: 2 })
+
+  // No result to read is not evidence of a write.
+  assert.equal(tallyUpsert(556, null).written, 0)
+  assert.equal(tallyUpsert(556, undefined).written, 0)
 })

@@ -342,6 +342,43 @@ export async function finishRun(
   if (error) console.error(`[health] could not close run record: ${error.message}`)
 }
 
+/* ------------------------------------------------------------------ *
+ * How many rows a write actually wrote
+ * ------------------------------------------------------------------ */
+
+export interface WriteTally {
+  /** Rows handed to the database. An upper bound, never evidence of a write. */
+  submitted: number
+  /** Rows the database reports it actually inserted. */
+  written: number
+}
+
+/**
+ * Separate "rows submitted" from "rows written".
+ *
+ * WHY THIS EXISTS. `fetch-reverb-prices` writes with `ignoreDuplicates: true`
+ * — `ON CONFLICT DO NOTHING` — and then tallied `rows.length`, the length of
+ * the array it had just handed over. On the run of 2026-09-12 03:00 CEST that
+ * printed `Upserted: 556` while the database created **9** rows: 547 already
+ * existed and were silently skipped. The dedup is correct — a sold record is
+ * an immutable historical fact — but the number was the input, not the result.
+ *
+ * That matters more than a wrong tally. This job emits no `run_summary`, so
+ * that line is its ONLY operational evidence, and a run that wrote nothing
+ * would report `Upserted: 556` and read as success. It is the same false
+ * success PAN-39 removed from `scrape-reverb`, in a job PAN-39 never covered.
+ *
+ * `DO NOTHING … RETURNING` yields only the rows genuinely inserted, so the
+ * returned array is the write count. An absent array counts as zero: a write
+ * whose result we cannot see has not been demonstrated.
+ */
+export function tallyUpsert(
+  submitted: number,
+  returned: readonly unknown[] | null | undefined,
+): WriteTally {
+  return { submitted, written: returned?.length ?? 0 }
+}
+
 /** Human-readable gate summary for the run log. */
 export function reportRun(
   status: RunStatus,

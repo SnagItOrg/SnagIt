@@ -17,6 +17,7 @@ import 'dotenv/config'
 import * as path from 'path'
 import * as fs from 'fs'
 import { createClient } from '@supabase/supabase-js'
+import { tallyUpsert } from './lib/scrape-health'
 
 // ── Load env ──────────────────────────────────────────────────────────────────
 // Try frontend/.env.local first, then .env.local at root
@@ -231,7 +232,8 @@ async function main() {
   console.log(`Found ${watchlists.length} watchlists (${unique.length} unique queries)\n`)
 
   let totalFetched = 0
-  let totalUpserted = 0
+  let totalSubmitted = 0
+  let totalWritten = 0
 
   for (const watchlist of unique) {
     if (queryFilter && !watchlist.query.toLowerCase().includes(queryFilter)) continue
@@ -278,15 +280,25 @@ async function main() {
       continue
     }
 
-    const { error } = await supabase
+    /*
+      `.select('id')` is what makes the count real. With
+      `ignoreDuplicates: true` this is `ON CONFLICT DO NOTHING … RETURNING`,
+      which yields only the rows actually inserted — so the response length is
+      the write count, where `rows.length` was only the submission count.
+      The dedup is unchanged; a sold record is an immutable historical fact.
+    */
+    const { data: insertedRows, error } = await supabase
       .from('reverb_price_history')
       .upsert(rows, { onConflict: 'listing_url,watchlist_id', ignoreDuplicates: true })
+      .select('id')
 
     if (error) {
       console.error(`   ❌ Upsert error: ${error.message}`)
     } else {
-      console.log(`   ✓ Upserted ${rows.length} rows`)
-      totalUpserted += rows.length
+      const tally = tallyUpsert(rows.length, insertedRows)
+      console.log(`   ✓ ${tally.written} written, ${tally.submitted} submitted`)
+      totalSubmitted += tally.submitted
+      totalWritten += tally.written
     }
 
     console.log()
@@ -295,7 +307,13 @@ async function main() {
   console.log('─'.repeat(50))
   console.log(`✅ Done`)
   console.log(`   Fetched: ${totalFetched} sold listings`)
-  if (!DRY_RUN) console.log(`   Upserted: ${totalUpserted} rows into reverb_price_history`)
+  if (!DRY_RUN) {
+    // Three separate facts. `written` is the only one that evidences a write;
+    // `submitted` is kept because the gap between them is the dedup working,
+    // and reading 0 written against 556 submitted should look normal, not alarming.
+    console.log(`   Submitted: ${totalSubmitted} rows to reverb_price_history`)
+    console.log(`   Written:   ${totalWritten} rows inserted`)
+  }
 }
 
 main().catch((err: unknown) => {
