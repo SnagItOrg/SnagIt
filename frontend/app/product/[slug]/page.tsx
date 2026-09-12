@@ -770,6 +770,7 @@ export default function ProductPage() {
                             type="button"
                             onClick={() => setValueOrder(mode)}
                             aria-pressed={valueOrder === mode}
+                            aria-describedby={mode && valueOrder ? 'sort-value-hint' : undefined}
                             title={mode ? t.sortByValueHint : undefined}
                             className="px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors"
                             style={valueOrder === mode
@@ -781,6 +782,16 @@ export default function ProductPage() {
                         ))}
                       </div>
                     </div>
+                    {/*
+                      The caveat cannot live in title= alone: a tooltip never
+                      fires on touch and never for keyboard users, and 360px is
+                      this wall's primary viewport. Same string, now readable.
+                    */}
+                    {valueOrder && (
+                      <p id="sort-value-hint" className="text-xs text-muted-foreground">
+                        {t.sortByValueHint}
+                      </p>
+                    )}
                     <div className="grid-wall grid-wall-lg">
                     {orderedListings.map((listing) => (
                       <ListingErrorBoundary key={listing.id} listingId={listing.id}>
