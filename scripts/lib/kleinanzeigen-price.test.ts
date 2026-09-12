@@ -295,6 +295,39 @@ test('the card location survives the 2026-09 layout, and reads nothing else', ()
   // The other established entities decode too, and still cannot invent a place.
   assert.equal(extractCardLocation(current('20095 Hamburg&nbsp;')), '20095 Hamburg')
   assert.equal(extractCardLocation(placeless.replace('Versand möglich', 'Gr&uuml;&szlig;e')), null)
+
+  /*
+   * The two consumers hand this function different bytes for the same card, so
+   * agreeing on literal input proves nothing. Measured with cheerio 1.2.0: the
+   * PM2 writer passes the response bytes verbatim, `<span>80331
+   * M&uuml;nchen</span>`, while the admin search passes `$.html(article)`,
+   * which cheerio has already decoded to `<span>80331 München</span>` and does
+   * not re-encode. Both forms must yield the one location, or the database and
+   * the admin surface disagree about where a listing is. Cheerio is a frontend
+   * dependency and this seam is deliberately dependency-free, so the two byte
+   * forms are stated here rather than produced by parsing.
+   */
+  const pm2Bytes = '<article><div class="flex items-center gap-xxsmall"><svg></svg><span>80331 M&uuml;nchen</span></div></article>'
+  const adminBytes = '<article><div class="flex items-center gap-xxsmall"><svg></svg><span>80331 München</span></div></article>'
+  assert.equal(extractCardLocation(pm2Bytes), '80331 München')
+  assert.equal(extractCardLocation(adminBytes), '80331 München')
+  assert.equal(extractCardLocation(pm2Bytes), extractCardLocation(adminBytes),
+    'the writer and the admin search must read one location from one card')
+
+  /*
+   * The rule is text-shaped, so it is scoped to spans on purpose. A postcode
+   * anywhere else on the card is someone else's text — a description, a
+   * heading, an alt attribute — and must never become the listing's location.
+   */
+  const outsideSeam = (markup: string) => `
+    <article data-adid="0">
+      <h3 class="font-strong">Korg MS-20</h3>${markup}
+      <div class="flex items-center gap-xxsmall"><svg></svg><span>08.09.2026</span></div>
+    </article>`
+  assert.equal(extractCardLocation(outsideSeam('<div class="mb-xsmall">80331 München</div>')), null)
+  assert.equal(extractCardLocation(outsideSeam('<p>Abholung in 80331 München möglich</p>')), null)
+  assert.equal(extractCardLocation(outsideSeam('<img src="/x.jpg" alt="80331 München" />')), null)
+  assert.equal(extractCardLocation(outsideSeam('<!-- cached: 80331 München -->')), null)
 })
 
 test('an ImageObject ld+json block is not mistaken for an offer', () => {
