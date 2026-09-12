@@ -331,7 +331,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
 
           {/* Discount badge */}
           {hasDiscount && (
-            <span className="absolute bottom-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
+            <span className="absolute bottom-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full bg-surface-raised border border-line-strong text-ink">
               -{discountPct}%
             </span>
           )}
