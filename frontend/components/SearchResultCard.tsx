@@ -114,24 +114,29 @@ interface Props {
  * rectangle vs a pill), plus a direction glyph. The verdict word itself is
  * unchanged and still carries the meaning on its own.
  *
- * NO GREEN HERE, DELIBERATELY. `under` is the state a reader most wants to
- * spot, so the obvious move is to paint it with the brand accent — and
- * `frontend/CLAUDE.md` reserves `#13ec6d` for the Kup-rating and the Aktiv
- * badge, nothing else. It is also the colour of a score Klup deliberately keeps
- * hidden until it has the per-variant history to stand behind, so spending it
- * on a per-listing judgement here would pre-empt that decision. `under`
- * therefore earns its emphasis from contrast — raised surface, strong border,
- * full-strength ink — which is the loudest neutral the token set offers.
+ * `under` CARRIES THE BRAND GREEN, by an explicit product-owner decision
+ * (PAN-63). It first shipped neutral, because `frontend/CLAUDE.md` reserved
+ * `#13ec6d` for the Kup-rating and the Aktiv badge and nothing else. That rule
+ * now reads the other way: green belongs to Klup's OWN judgements, and a
+ * price sitting below its own market is exactly that — the same class of
+ * statement as the Kup-rating, and the single strongest scanning signal on the
+ * wall. The rule moved in the same commit as this line; if you are about to
+ * revert one, read the other first.
  *
- * `over` carries the only colour, on the destructive ramp, because it is the
- * only cautionary state; `typical` stays muted because it IS the neutral
+ * The colour is ADDED to the hierarchy above, not substituted for it: size,
+ * weight, shape and the direction glyph are unchanged, so the three states
+ * still separate with colour ignored. Known and accepted: when the Kup-rating
+ * ships, green will carry two related meanings on this surface.
+ *
+ * `over` carries the cautionary colour, on the destructive ramp, because it is
+ * the only cautionary state; `typical` stays muted because it IS the neutral
  * reading. Both ramps are already defined for light and dark. No new token is
  * introduced, and P2's own PriceAnswer surface remains untinted.
  */
 const VERDICT_TONE: Readonly<Record<'under' | 'typical' | 'over', {
   bg: string; border: string; fg: string; glyph: string
 }>> = {
-  under:   { bg: 'var(--surface-raised)',     border: 'var(--border-strong)',      fg: 'var(--foreground)',       glyph: 'south_east' },
+  under:   { bg: 'var(--accent-subtle)',      border: 'var(--accent-border)',      fg: 'var(--accent-text)',      glyph: 'south_east' },
   typical: { bg: 'var(--secondary)',          border: 'var(--border)',             fg: 'var(--muted-foreground)', glyph: 'drag_handle' },
   over:    { bg: 'var(--destructive-subtle)', border: 'var(--destructive-border)', fg: 'var(--destructive-text)', glyph: 'north_east' },
 }
