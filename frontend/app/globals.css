@@ -616,6 +616,28 @@
   direction: ltr;
   -webkit-font-smoothing: antialiased;
   vertical-align: middle;
+  /* PAN-71: reserve the glyph's own box. Every Material Symbols glyph is drawn
+     to a 1em advance, so this is the loaded geometry — stated up front instead
+     of inherited from whatever the fallback font makes of the ligature word.
+     Before this, an icon box was 41px wide while the font loaded and 20px
+     after it landed. `overflow` bounds the fallback to that same box in the
+     one case it can still be painted (see below). */
+  width: 1em;
+  height: 1em;
+  overflow: hidden;
+}
+
+/* PAN-71: `display=swap` paints a fallback as soon as it can, and for an icon
+   font the fallback is the ligature itself — the literal word "notifications"
+   where an icon belongs. The glyph stays invisible until the font can draw it;
+   layout.tsx adds `icon-font-ready` at that moment. Because the box above is
+   already reserved, revealing changes ink only and shifts nothing.
+
+   `visibility`, not `color: transparent`: call sites set `color` inline
+   (`style={{ color: ... }}`), which would beat a declaration here. None sets
+   `visibility`. */
+html:not(.icon-font-ready) .material-symbols-outlined {
+  visibility: hidden;
 }
 
 .material-symbols-outlined.filled {
