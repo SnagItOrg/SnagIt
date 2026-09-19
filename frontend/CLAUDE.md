@@ -7,7 +7,7 @@
 
 ## Design system
 - Never use hardcoded color values — always use CSS custom properties (`var(--token)`)
-- Follow the sparse accent rule: `var(--accent)` only for Kup-rating and Aktiv badge
+- Follow the sparse accent rule: green only for Klup's own judgements — Kup-rating, Aktiv badge, `under typisk` verdict. See "Design rules — non-negotiable" for the exhaustive list
 - Reference design.panter.media for component patterns
 
 ### Tokens — `app/globals.css`
@@ -55,9 +55,20 @@ destructive action, and is deliberately not a destructive token.)
 
 ## Design rules — non-negotiable
 
-**Green accent `#13ec6d`:** ONLY on Kup-rating stars and "Aktiv" badges.
-**Never** on buttons, navigation, or any other UI element.
+**Green accent `#13ec6d` belongs to Klup's OWN judgements**, and to nothing
+else. Exactly three uses are permitted: Kup-rating stars, "Aktiv" badges, and
+the `under typisk` verdict badge. **Never** on buttons, navigation, or any
+other UI element — in particular not on a marketplace's own number, such as the
+`-X%` discount badge.
 (Exception: `/intel` private dashboard — see Intel dashboard section.)
+
+The `under typisk` use was added by product-owner decision (PAN-63), reversing
+the earlier blanket ban that PAN-54 honoured and PAN-59 enforced. A verdict
+that a price sits below its own market is Klup's judgement, the same class of
+statement as the Kup-rating. Accepted consequence: when the Kup-rating ships,
+green will carry two related meanings on the same surface. `typical` and `over`
+stay neutral and destructive respectively. Do not read this as a general
+loosening — the list is exhaustive, and extending it is a product-owner call.
 
 **Typography:** DM Serif Display for headlines, Inter for body.
 
