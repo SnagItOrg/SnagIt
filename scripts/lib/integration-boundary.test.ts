@@ -66,6 +66,10 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',
+      // PAN-72: the watchlist notification step decides whether `notified_at`
+      // may be stamped at all, and its provider-failure path is what used to
+      // produce a marker for a mail that never went out.
+      'scripts/lib/watchlist-notify.test.ts',
       'scripts/lib/wp1-catalogue.test.ts',
       'scripts/lib/wp1-public-contract.test.ts',
       'scripts/lib/wp1-route-access.test.ts',

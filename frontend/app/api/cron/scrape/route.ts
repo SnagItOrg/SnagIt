@@ -30,6 +30,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { scrapeDba } from '@/lib/scrapers/dba'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { sendNewListingsEmail } from '@/lib/email'
+import { notifyWatchlist, type NotifyOutcome } from '@/lib/watchlist-notify'
 import { newIngestionBatchId, matchRunInflow, reportBatchMatch } from '@/lib/matching/ingestion-batch'
 import { fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 
@@ -160,28 +161,37 @@ export async function GET(req: NextRequest) {
         .eq('watchlist_id', watchlist.id)
         .is('notified_at', null)
 
-      let notified = 0
+      // PAN-72. `notified_at` used to be written here unconditionally, outside
+      // both the recipient guard and the try/catch, so the marker recorded that
+      // execution reached this line and nothing more. `notifyWatchlist` owns it
+      // now and stamps only after a send that returned without throwing;
+      // anything else is counted and logged instead of marked.
+      let notify: NotifyOutcome = { notified: 0, unnotified: 0, failure: null, detail: null }
       if (newListings && newListings.length > 0) {
         const { data: { user } } = await getSupabaseAdmin()
           .auth.admin.getUserById(watchlist.user_id)
 
-        if (user?.email) {
-          try {
-            await sendNewListingsEmail({ to: user.email, query: watchlist.query, listings: newListings })
-            notified = newListings.length
-          } catch (emailErr) {
-            console.error(`Email failed for watchlist ${watchlist.id}:`, emailErr)
-          }
-        }
-
-        await getSupabaseAdmin()
-          .from('listings')
-          .update({ notified_at: now })
-          .eq('watchlist_id', watchlist.id)
-          .is('notified_at', null)
+        notify = await notifyWatchlist(
+          getSupabaseAdmin(),
+          {
+            watchlistId: watchlist.id,
+            query: watchlist.query,
+            email: user?.email,
+            listings: newListings,
+            now,
+          },
+          sendNewListingsEmail,
+        )
       }
 
-      results.push({ watchlist_id: watchlist.id, query: watchlist.query, type: 'listing', notified })
+      results.push({
+        watchlist_id: watchlist.id,
+        query: watchlist.query,
+        type: 'listing',
+        notified: notify.notified,
+        unnotified: notify.unnotified,
+        notify_failure: notify.failure,
+      })
       continue
     }
 
@@ -251,25 +261,23 @@ export async function GET(req: NextRequest) {
       .eq('watchlist_id', watchlist.id)
       .is('notified_at', null)
 
-    let notified = 0
+    // PAN-72, as in the listing path above: one writer, one precondition.
+    let notify: NotifyOutcome = { notified: 0, unnotified: 0, failure: null, detail: null }
     if (newListings && newListings.length > 0) {
       const { data: { user } } = await getSupabaseAdmin()
         .auth.admin.getUserById(watchlist.user_id)
 
-      if (user?.email) {
-        try {
-          await sendNewListingsEmail({ to: user.email, query: watchlist.query, listings: newListings })
-          notified = newListings.length
-        } catch (emailErr) {
-          console.error(`Email failed for watchlist ${watchlist.id}:`, emailErr)
-        }
-      }
-
-      await getSupabaseAdmin()
-        .from('listings')
-        .update({ notified_at: now })
-        .eq('watchlist_id', watchlist.id)
-        .is('notified_at', null)
+      notify = await notifyWatchlist(
+        getSupabaseAdmin(),
+        {
+          watchlistId: watchlist.id,
+          query: watchlist.query,
+          email: user?.email,
+          listings: newListings,
+          now,
+        },
+        sendNewListingsEmail,
+      )
     }
 
     results.push({
@@ -282,7 +290,9 @@ export async function GET(req: NextRequest) {
       // how many were first ingestion is decided by the database below, not by
       // the size of an upsert.
       upserted: filtered.length,
-      notified,
+      notified: notify.notified,
+      unnotified: notify.unnotified,
+      notify_failure: notify.failure,
     })
   }
 
