@@ -119,7 +119,7 @@ export default function ProfilePage() {
   const cardStyle = { backgroundColor: 'var(--card)', border: '1px solid var(--border)' }
 
   return (
-    <div className="min-h-screen bg-bg text-foreground flex">
+    <div className="min-h-screen bg-bg text-foreground md:flex">
       <SideNav active="profil" onChange={() => {}} />
 
       <main className="flex-1 md:pl-60 flex flex-col px-4 pt-6 pb-24 md:pb-10 md:px-8">

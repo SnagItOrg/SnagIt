@@ -97,87 +97,101 @@ export function SideNav({ active, onChange }: Props) {
   ]
 
   return (
-    <aside className="hidden md:flex flex-col w-60 fixed top-0 left-0 h-full border-r border-border bg-card z-40">
-      {/* Logo — also the way home (PAN-67) */}
-      <Link href="/" className="block px-6 py-6 border-b border-border">
-        <div className="flex items-center gap-3 text-primary">
+    <>
+      {/* Below md the sidebar does not render at all, so the same logo carries
+          the way home from here instead — BottomNav has no home destination
+          (PAN-73). In normal flow, so it never covers page content. */}
+      <header className="md:hidden border-b border-border bg-card">
+        <Link href="/" className="flex items-center gap-3 px-4 min-h-[44px] text-primary">
           <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
           </div>
           <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
-        </div>
-      </Link>
+        </Link>
+      </header>
 
-      {/* Nav items */}
-      <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
-        {navItems.map(({ tab, href, label, icon }) => {
-          const isActive = href
-            ? pathname === href
-            : tab !== undefined && active === tab
-          const itemStyle = {
-            color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
-            backgroundColor: isActive ? 'var(--secondary)' : 'transparent',
-          }
-          const itemClass = "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors w-full text-left"
+      <aside className="hidden md:flex flex-col w-60 fixed top-0 left-0 h-full border-r border-border bg-card z-40">
+        {/* Logo — also the way home (PAN-67) */}
+        <Link href="/" className="block px-6 py-6 border-b border-border">
+          <div className="flex items-center gap-3 text-primary">
+            <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
+            </div>
+            <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
+          </div>
+        </Link>
 
-          if (href) {
+        {/* Nav items */}
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
+          {navItems.map(({ tab, href, label, icon }) => {
+            const isActive = href
+              ? pathname === href
+              : tab !== undefined && active === tab
+            const itemStyle = {
+              color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
+              backgroundColor: isActive ? 'var(--secondary)' : 'transparent',
+            }
+            const itemClass = "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors w-full text-left"
+
+            if (href) {
+              return (
+                <Link key={href} href={href} className={itemClass} style={itemStyle}>
+                  {icon}
+                  <span>{label}</span>
+                </Link>
+              )
+            }
             return (
-              <Link key={href} href={href} className={itemClass} style={itemStyle}>
+              <button
+                key={tab}
+                onClick={() => tab !== undefined && onChange(tab)}
+                className={itemClass}
+                style={itemStyle}
+              >
                 {icon}
                 <span>{label}</span>
-              </Link>
+              </button>
             )
-          }
-          return (
-            <button
-              key={tab}
-              onClick={() => tab !== undefined && onChange(tab)}
-              className={itemClass}
-              style={itemStyle}
-            >
-              {icon}
-              <span>{label}</span>
-            </button>
-          )
-        })}
-      </nav>
+          })}
+        </nav>
 
-      {/* Bottom: theme toggle + locale toggle + logout */}
-      <div className="px-3 pb-6 pt-2 border-t border-border flex flex-col gap-1">
-        {/* Theme toggle */}
-        <ThemeToggle />
+        {/* Bottom: theme toggle + locale toggle + logout */}
+        <div className="px-3 pb-6 pt-2 border-t border-border flex flex-col gap-1">
+          {/* Theme toggle */}
+          <ThemeToggle />
 
-        {/* Locale toggle */}
-        <div className="flex gap-1 px-3 py-2">
-          {(['da', 'en'] as Locale[]).map((l) => (
-            <button
-              key={l}
-              onClick={() => setLocale(l)}
-              className="text-xs font-medium px-2.5 py-1.5 rounded-md transition-colors"
-              style={{
-                color: locale === l ? 'var(--foreground)' : 'var(--muted-foreground)',
-                backgroundColor: locale === l ? 'var(--secondary)' : 'transparent',
-              }}
-            >
-              {l.toUpperCase()}
-            </button>
-          ))}
+          {/* Locale toggle */}
+          <div className="flex gap-1 px-3 py-2">
+            {(['da', 'en'] as Locale[]).map((l) => (
+              <button
+                key={l}
+                onClick={() => setLocale(l)}
+                className="text-xs font-medium px-2.5 py-1.5 rounded-md transition-colors"
+                style={{
+                  color: locale === l ? 'var(--foreground)' : 'var(--muted-foreground)',
+                  backgroundColor: locale === l ? 'var(--secondary)' : 'transparent',
+                }}
+              >
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full text-left transition-colors hover:bg-secondary"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span>{t.logout}</span>
+          </button>
         </div>
-
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full text-left transition-colors hover:bg-secondary"
-          style={{ color: 'var(--muted-foreground)' }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-          <span>{t.logout}</span>
-        </button>
-      </div>
-    </aside>
+      </aside>
+    </>
   )
 }

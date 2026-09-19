@@ -101,7 +101,7 @@ export default function SavedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg text-foreground flex">
+    <div className="min-h-screen bg-bg text-foreground md:flex">
       <SideNav active="gemt" onChange={() => {}} />
 
       <main className="flex-1 md:pl-60 flex flex-col pb-24 md:pb-6">

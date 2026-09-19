@@ -248,7 +248,7 @@ export default function ProductPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex">
+    <div className="min-h-screen bg-background text-foreground md:flex">
       <SideNav active="soeg" onChange={() => {}} />
 
       <main className="flex-1 md:pl-60 flex flex-col pb-24 md:pb-10">
