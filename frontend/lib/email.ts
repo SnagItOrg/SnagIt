@@ -6,7 +6,7 @@ function getResend(): Resend {
   return new Resend(apiKey)
 }
 
-type ListingSnippet = {
+export type ListingSnippet = {
   title: string
   price: number | null
   currency: string
@@ -44,10 +44,20 @@ export async function sendNewListingsEmail({
     `View all: ${appUrl}`,
   ].join('\n')
 
-  await getResend().emails.send({
+  // PAN-72. The Resend client RESOLVES with `{ data, error }` on a rejected
+  // send — it does not throw. An unchecked `await` therefore returns normally
+  // when the provider refused the message, so a caller's try/catch sees a clean
+  // return and treats the failure as a delivery. Half of why a sent
+  // notification could not be told apart from a failed one.
+  //
+  // `error.name` is the provider's bounded reason code. `error.message` is
+  // free text that can echo the recipient address, so it is never read here.
+  const { error } = await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to,
     subject: `${listings.length} new${listings.length === 1 ? '' : ' listings'}: "${query}" on dba.dk`,
     text,
   })
+
+  if (error) throw new Error(`resend_rejected:${error.name}`)
 }
