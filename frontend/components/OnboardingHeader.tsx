@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/LocaleProvider'
 
@@ -13,17 +14,19 @@ export function OnboardingHeader({ currentStep, showSkip = false, showProgress =
   const router = useRouter()
   const { t } = useLocale()
 
+  // z-10: the pages that mount this header pull their <main> up over it with a
+  // negative margin, which otherwise swallows clicks on the logo (PAN-67).
   return (
-    <header className="w-full px-6 lg:px-10 pt-6 pb-4">
+    <header className="relative z-10 w-full px-6 lg:px-10 pt-6 pb-4">
       <div className="max-w-5xl mx-auto flex flex-col gap-4">
         {/* Logo + skip row */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 text-primary">
+          <Link href="/" className="flex items-center gap-3 min-h-[44px] text-primary">
             <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
               <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
             </div>
             <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
-          </div>
+          </Link>
 
           {showSkip && (
             <button

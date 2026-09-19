@@ -98,15 +98,15 @@ export function SideNav({ active, onChange }: Props) {
 
   return (
     <aside className="hidden md:flex flex-col w-60 fixed top-0 left-0 h-full border-r border-border bg-card z-40">
-      {/* Logo */}
-      <div className="px-6 py-6 border-b border-border">
+      {/* Logo — also the way home (PAN-67) */}
+      <Link href="/" className="block px-6 py-6 border-b border-border">
         <div className="flex items-center gap-3 text-primary">
           <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
           </div>
           <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
         </div>
-      </div>
+      </Link>
 
       {/* Nav items */}
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
