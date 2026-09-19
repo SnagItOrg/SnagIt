@@ -35,10 +35,20 @@ import "./globals.css";
  * than operational and is consent-gated too — which is why guardrail G8 is
  * measured on the consenting population only.
  *
- * THE FONT <link> TAGS ARE LEFT EXACTLY AS THEY WERE. They produce the four
- * documented lint warnings, and the release criterion is that the count stays
- * four. "Fixing" them here would be an unrelated change inside the one file
- * whose warning count is a tracked baseline.
+ * THE ICON FONT <link> TAGS WERE CHANGED BY PAN-71, and nothing else here was.
+ * They used to request every axis range of Material Symbols with
+ * `display=block` — a 3.98 MB download that painted nothing for its first
+ * three seconds and then the literal ligature text ("notifications") until it
+ * landed, 22 s under the throttled profile. The URL now pins the three axes
+ * the design never varies (GRAD 0, opsz 24, wght 400) and keeps only
+ * FILL 0..1, which `.filled` in globals.css uses: 460 KB, 8.7x smaller.
+ * `display=swap` replaces `block`, and globals.css keeps the glyph invisible
+ * with its box reserved until the font is usable, so no ligature is ever
+ * painted and the swap changes ink only, never geometry.
+ *
+ * The two `no-page-custom-font` warnings remain and are expected. The two
+ * `google-font-display` warnings are gone — that rule was reporting exactly
+ * this bug — so the tracked lint baseline for this file is now two, not four.
  */
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
@@ -75,14 +85,36 @@ export default function RootLayout({
       <head>
         <link
           rel="preload"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL,GRAD,opsz,wght@0..1,0,24,400&display=swap"
           as="style"
           crossOrigin="anonymous"
         />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL,GRAD,opsz,wght@0..1,0,24,400&display=swap"
           crossOrigin="anonymous"
+        />
+        {/*
+          Reveals the icons once the font can actually paint a glyph; until
+          then globals.css holds them invisible in a reserved box, so the
+          ligature text never reaches the screen.
+
+          THIS MUST STAY AFTER THE STYLESHEET <link> ABOVE. A classic script is
+          blocked until every stylesheet declared before it has loaded, and
+          that is what guarantees the @font-face exists by the time
+          `fonts.load()` is asked for it — asked any earlier it resolves
+          immediately against nothing and would reveal the ligature.
+
+          A font that fails outright still reveals, because a clipped 1em box
+          beats navigation with no icons in it at all.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              '(function(){var e=document.documentElement,r=function(){e.classList.add("icon-font-ready")};' +
+              'if(!document.fonts||!document.fonts.load){r();return}' +
+              'document.fonts.load(\'20px "Material Symbols Outlined"\').then(r,r)})();',
+          }}
         />
       </head>
       <body className={`${inter.className} ${dmSerifDisplay.variable}`}>
