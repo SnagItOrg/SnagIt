@@ -28,6 +28,12 @@
  * would be adopting a supplied list rather than deriving one, and every
  * unexercised token is a latent false rejection.
  *
+ * EXTENDED 2026-09-20 (PAN-96) to the supported GUITAR cohort, which no
+ * previous measurement covered: the 14 canonical products of the paragraph
+ * above are synths, drum machines and studio gear. One token was derived —
+ * `pickguard` — and it needed a mechanism neither existing class provides. The
+ * counts, the exclusions and the reasoning are with ACCESSORY_TOKENS below.
+ *
  * ─────────────────────────────────────────────────────────────────────────
  * WHAT IS DELIBERATELY *NOT* A PART TOKEN
  *
@@ -122,6 +128,69 @@ const PART_TOKENS: readonly string[] = [
  *   parts     "Roland TR-909 ... BAD SHAPE For Parts / Repair" is a whole unit
  *   key(s)    "61-Key", "64-Key" appear in most full-product titles
  * The narrow compound `modgrip` IS included: it names the accessory itself.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * GUITARS — measured 2026-09-20 (PAN-96). `pickguard` is the whole addition.
+ *
+ * The 2026-08-29 cohort was 14 canonical public products: synthesizers, drum
+ * machines, electric pianos and studio gear. No guitar was in it, so no guitar
+ * vocabulary was ever derived. Re-measured against the SUPPORTED guitar cohort
+ * — 17 active+supported rows under `acoustic-guitars/`, `bass-guitars/` and
+ * `electric-guitars/` that hold matches, 3,016 rows, 1,110 of them unreviewed
+ * and therefore trusted downstream:
+ *
+ *   pickguard     189 rows   188 adjudicated false,   1 true
+ *   fingerboard    96 rows     6 false,              31 true
+ *   fretboard      11 rows     0 false,               5 true
+ *   humbucker       6 rows     4 false,               0 true
+ *   tuner           4 rows     4 false,               0 true  (ONE distinct title)
+ *   knob/knobs      3 rows
+ *   pots            2 rows
+ *   truss rod / fret(s) / tremolo / strap / inlay / logo / sticker /
+ *   harness / control plate / screws                1–2 rows each
+ *   scratchplate / slagbræt / schlagbrett / machine head / mechaniken /
+ *   whammy / tailpiece / capo / plectrum / binding  0 rows
+ *
+ * One token clears the bar by two orders of magnitude. The rest are the noise
+ * floor, and several are refused on evidence rather than on volume:
+ *
+ *   fingerboard  "FENDER - Jim Root Jazzmaster Ebony Fingerboard Flat Black
+ *                 - 0115300706"                     15,102 DKK, complete
+ *   fretboard    "Fender Mustang Bass 1978 Maple Fretboard Blonde"
+ *                                                   18,365 DKK, complete
+ *   humbucker    "1996 Gibson ES-335 Dot - Figured Vintage Sunburst | USA Good
+ *                 Wood Era Semi-Hollow 57 Classic Humbucker | OHSC"
+ *                                                   27,288 DKK, complete
+ *   knob(s)      "...Jaguar Black w/ Anodized Pickguard, Buzz Stop Bar, Hat
+ *                 Knobs LIMITED MODEL"               8,053 DKK, complete
+ *                 (already excluded on synth evidence above; the guitar cohort
+ *                  agrees rather than adding a new reason)
+ *   pots         both observed rows already fire on the `pickup` PART_TOKEN,
+ *                so the token would add no coverage and only new risk
+ *   tuner        4 rows are 3 duplicates of one part listing. One distinct
+ *                title is an observation, not a pattern.
+ *   pickguards   1 row  — "Fender Pickguard Standard Jazz Bass Black 3-Ply -
+ *                Pickguards for Bass". It contains the SINGULAR too, so the
+ *                plural adds zero coverage.
+ *   scratchplate 1 row  — "Custom Pickguard for Fender Precision Bass – Unique
+ *                Guitar Laser Engraved Wooden Scratchplate". Same: the
+ *                singular `pickguard` already catches it.
+ *
+ * WHY `pickguard` IS AN ACCESSORY TOKEN AND NOT A PART TOKEN. A part token
+ * fires unconditionally, and genuine complete guitars name a pickguard as a
+ * feature they are sold WITH:
+ *
+ *   "Gibson Les Paul (Murphy Lab / Heavy Aged) « Green Lemon Faded » 70th
+ *    anniversary of the Les Paul Model with signed pickguard by Les Paul"
+ *                                                  78,098 DKK -> product
+ *   "Gibson Custom Shop Paul Jackson Jr. CS-346 Semi-Hollow Honeyburst
+ *    w/ OHSC & Pickguard"                          26,213 DKK -> product
+ *   "Custom Pickguard For Fender Telecaster Custom Built Billie Joe Armstrong
+ *    - Black/White/Black .090\""                       ~300 DKK -> accessory
+ *
+ * The inclusion-marker rule below separates the first two from the third on
+ * `with` and `w/`, exactly as it does for `cover` and `manual`.
+ * ─────────────────────────────────────────────────────────────────────────
  */
 const ACCESSORY_TOKENS: readonly string[] = [
   'cover',
@@ -133,6 +202,7 @@ const ACCESSORY_TOKENS: readonly string[] = [
   'bender',
   'eprom', 'eproms',
   'modgrip',
+  'pickguard',
 ]
 
 /**
@@ -217,6 +287,65 @@ function isShippingPickup(text: string): boolean {
 }
 
 /**
+ * `<colour> pickguard` is a SPECIFICATION, not a head noun.
+ *
+ * THE INCLUSION-MARKER RULE IS NOT SUFFICIENT HERE, and this is the only place
+ * in the file where that is true. 76 already-approved listings priced
+ * 3,491–4,725 DKK name the pickguard as one item in a comma- or dash-separated
+ * spec list, with no marker anywhere before it:
+ *
+ *   "Fender Standard Precision Bass, Laurel Fingerboard, White Pickguard, Black"
+ *   "Fender Standard Jazz Bass, Maple Fingerboard, Black Pickguard, Black"
+ *   "FENDER Standard Stratocaster HSS, Laurel Fingerboard, Black Pickguard, Black"
+ *
+ * These survived the 2026-09-20 sweep only because it was scoped to
+ * `is_valid IS NULL` and they were already `true`. Without this exception the
+ * next unreviewed listing of that shape — a stock Fender catalogue title, the
+ * single most common complete-guitar title form on Reverb — is refused.
+ *
+ * THE COLOUR LIST IS MEASURED, NOT SUPPLIED. Grouping every pickguard listing
+ * in the match pool by the word immediately preceding the noun:
+ *
+ *   white pickguard        57 true    1 false
+ *   black pickguard        19 true    0 false
+ *   tortoise pickguard      0 true    2 false
+ *   parchment pickguard     0 true    1 false
+ *   custom pickguard        0 true  237 false
+ *   guitar pickguard        0 true   27 false
+ *   bevel pickguard         0 true   15 false
+ *
+ * 57 + 19 = the whole genuine class. `tortoise` and `parchment` are colours
+ * too, and every observed listing that uses them is a part — a stock instrument
+ * ships white or black, and a replacement guard is where the exotic finishes
+ * live. Adopting them because they are "also colours" would be adopting a
+ * supplied list rather than deriving one, which this file refuses elsewhere.
+ *
+ * `/` IS A BOUNDARY, deliberately. A ply stack is not a colour name:
+ *   "Epiphone SG Traditional Pro 3 Ply White/Black/White Pickguard"  -> accessory
+ * `wordIndex` treats `-` and `_` as word characters but not `/`, so without
+ * this the trailing `White` would read as a specification. The one false
+ * negative of the whole rule is the sole `white pickguard` row adjudicated
+ * false — "Fender Standard Jazz Bass White Pickguard 3-Color Sunburst" at
+ * 4,436 DKK, which is the same title shape and the same price as 30+ of its
+ * approved siblings and was rejected by hand with "This is a listing for a
+ * pickguard accessory, not the actual bass guitar." That row is an adjudication
+ * inconsistency, not a counter-example, and is the reason to prefer a rule.
+ *
+ * MEASURED RECALL COST, ACCEPTED. One complete instrument in the pool names a
+ * pickguard with neither a marker nor a colour before it:
+ *   "1971 Fender Mustang Bass - All Original Except Pickguard"  12,696 DKK
+ * It is now deferred. Deferral writes NO ROW, so the listing stays recoverable
+ * by a later run or by human review — the same trade the neck/body class
+ * already makes. A negation marker for one observation would be vocabulary
+ * this file has no evidence for.
+ */
+const PICKGUARD_SPEC_PHRASE = /(?<![\w/-])(?:white|black)\s+pickguard(?![\w-])/i
+
+function isColourSpecPickguard(text: string): boolean {
+  return PICKGUARD_SPEC_PHRASE.test(text)
+}
+
+/**
  * Wanted / non-sale intent (da / de / en). The listing is a request TO BUY,
  * not an offer to sell, so it is not evidence of a price at all.
  *
@@ -288,6 +417,9 @@ export function detectNonProductIntent(title: string): IntentFinding | null {
     const at = wordIndex(text, token)
     if (at === -1) continue
     if (markerAt !== -1 && markerAt < at) continue
+    // The one token whose own evidence needs a second suppressor. Applied here
+    // rather than by weakening the token, exactly as `isShippingPickup` is.
+    if (token === 'pickguard' && isColourSpecPickguard(text)) continue
     return { intent: 'part_or_accessory', token }
   }
 

@@ -733,6 +733,75 @@ test('`pickup` in its shipping sense is not a part', () => {
   )
 })
 
+test('`pickguard` is an accessory head-noun, not a part token (PAN-96)', () => {
+  // The guitar cohort was never measured before 2026-09-20: the 14 canonical
+  // products of the 2026-08-29 derivation are synths, drum machines and studio
+  // gear. `pickguard` is 189 rows there, 188 of them adjudicated false — two
+  // orders of magnitude above every other candidate.
+  for (const title of [
+    'Custom Pickguard For Fender Telecaster Custom Built Billie Joe Armstrong - Black/White/Black .090"',
+    '5 ply Black/White WIDE BEVEL Pickguard for Gibson Les Paul Special P90',
+    'Warmoth Fender Telecaster Thinline Pickguard New bpg6806',
+    "Fender American Vintage '52 Telecaster Pickguard and Control Plate Screws",
+    'Fender Pickguard Standard Jazz Bass Black 3-Ply - Pickguards for Bass',
+  ]) {
+    assert.equal(
+      detectNonProductIntent(title.toLowerCase())?.intent,
+      'part_or_accessory',
+      `must be an accessory: ${title}`,
+    )
+  }
+
+  // ...but it is NOT a PART_TOKEN, because a complete guitar is sold WITH one.
+  // Both of these are real Reverb listings at real prices; the existing
+  // inclusion-marker mechanism separates them on `with` and `w/`.
+  for (const title of [
+    'Gibson Les Paul (Murphy Lab / Heavy Aged) \u00ab Green Lemon Faded \u00bb 70th anniversary of the Les Paul Model with signed pickguard by Les Paul',
+    'Gibson Custom Shop Paul Jackson Jr. CS-346 Semi-Hollow Honeyburst w/ OHSC & Pickguard',
+  ]) {
+    assert.equal(detectNonProductIntent(title.toLowerCase()), null, `must stay eligible: ${title}`)
+  }
+})
+
+test('a stock pickguard COLOUR is a specification, and the marker rule cannot see it', () => {
+  // 76 already-approved listings priced 3,491-4,725 DKK carry no inclusion
+  // marker at all: the colour is the marker. This is the single most common
+  // complete-guitar title form on Reverb, so failing it closed would refuse the
+  // catalogue rather than the noise.
+  for (const title of [
+    'Fender Standard Precision Bass, Laurel Fingerboard, White Pickguard, Black',
+    'Fender Standard Jazz Bass, Maple Fingerboard, Black Pickguard, Black',
+    'FENDER Standard Stratocaster HSS, Laurel Fingerboard, Black Pickguard, Black - Chitarra Elettrica',
+    'Fender Standard Precision Bass White Pickguard Black',
+  ]) {
+    assert.equal(detectNonProductIntent(title.toLowerCase()), null, `must stay eligible: ${title}`)
+  }
+
+  // The exception is narrow by measurement. `tortoise` and `parchment` are
+  // colours too and every observed listing using them is a part, and a ply
+  // stack is not a colour name - `/` is a boundary so the trailing `White` in
+  // `White/Black/White` does not read as a specification.
+  for (const title of [
+    'ACCURATE Celluloid Tortoise/Parchment Pickguard for Johnny Marr Jaguar Made USA',
+    'Epiphone SG Traditional Pro 3 Ply White/Black/White Pickguard Made In USA',
+    '920D Jazz Bass Drive HOT Loaded Parchment Pickguard Concentric Knob Plate',
+  ]) {
+    assert.equal(
+      detectNonProductIntent(title.toLowerCase())?.intent,
+      'part_or_accessory',
+      `must be an accessory: ${title}`,
+    )
+  }
+
+  // MEASURED RECALL COST, recorded rather than hidden. One complete instrument
+  // in the pool names a pickguard with neither a marker nor a colour before it.
+  // Deferral writes no row, so it stays recoverable by review.
+  assert.equal(
+    detectNonProductIntent('1971 Fender Mustang Bass - All Original Except Pickguard'.toLowerCase())?.intent,
+    'part_or_accessory',
+  )
+})
+
 test('German accessory vocabulary is deliberately NOT adopted', () => {
   // Re-measured 2026-08-29: zero hits on the canonical cohort, which is 98%
   // Reverb and lists in English. An unexercised token is a latent false
