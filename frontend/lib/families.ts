@@ -208,6 +208,29 @@ export function allFamilyChildSlugs(): Set<string> {
   return out
 }
 
+const FAMILY_BY_CHILD_SLUG = new Map<string, NavigationFamily>(
+  NAVIGATION_FAMILIES.flatMap((family) =>
+    family.children.map((child) => [child, family] as [string, NavigationFamily]),
+  ),
+)
+
+/**
+ * The family a product slug belongs to, or null — the reverse of `children[]`.
+ *
+ * This is the WHOLE of the hierarchy a product can see. PAN-52 ratified D5(a),
+ * `Family -> Terminal` with no intermediate level, so there is nothing above
+ * the family to walk to and no recursion to write. Category and subcategory are
+ * browse taxonomy and are explicitly NOT family ancestry (PAN-52 §6), so they
+ * are not consulted here and this never returns a browse root.
+ *
+ * It returns the CONFIGURATION, never a rendering decision: the family it hands
+ * back still lists non-canonical children. Every consumer must put those rows
+ * through `buildFamilyView` before a single slug reaches a public surface.
+ */
+export function familyForChild(slug: string): NavigationFamily | null {
+  return FAMILY_BY_CHILD_SLUG.get(slug) ?? null
+}
+
 /* ------------------------------------------------------------------ *
  * The legacy 308 map
  * ------------------------------------------------------------------ */

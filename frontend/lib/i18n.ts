@@ -185,6 +185,9 @@ export const translations = {
     familyNoPublicChildren: 'Klup følger flere varianter i denne familie internt, men ingen af dem er offentlige endnu.',
     familyNoSupportedChildren: 'Klup følger ingen varianter i denne familie endnu.',
     familyBackToCatalogue: 'Se hele kataloget',
+    // PAN-56: family context on the product page. The heading says "other
+    // models", never "other prices" — each sibling carries its own evidence.
+    familyOtherModels: 'Andre modeller i familien',
 
     // Price evidence (WP-3)
     priceBandMedian: 'median udbudspris',
@@ -530,6 +533,7 @@ export const translations = {
     familyNoPublicChildren: 'Klup follows several variants in this family internally, but none of them is public yet.',
     familyNoSupportedChildren: 'Klup does not follow any variant in this family yet.',
     familyBackToCatalogue: 'See the whole catalogue',
+    familyOtherModels: 'Other models in this family',
 
     priceBandMedian: 'median asking price',
     priceBandRange: 'typical range (p25–p75)',

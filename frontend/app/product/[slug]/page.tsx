@@ -33,7 +33,11 @@ import { ChartFrame, DataLegend } from '@/components/data-display'
 import { formatCompact, formatDateRange, formatDkkAmount } from '@/lib/chart-format'
 import { seriesColor } from '@/lib/chart-palette'
 import type { Listing } from '@/lib/supabase'
-import type { PricePoint, RelatedProduct } from '@/app/api/product/[slug]/route'
+// Type-only, and it must stay that way: the route reaches lib/families.ts,
+// which wp4a-boundary.test.ts forbids any client component to pull in by
+// value. A `type` edge is erased at compile time, so the family CONFIGURATION
+// never enters this bundle — only the canonical siblings the server filtered.
+import type { FamilyContext, PricePoint, RelatedProduct } from '@/app/api/product/[slug]/route'
 
 /**
  * The entity key for the sold-price series.
@@ -105,6 +109,10 @@ export default function ProductPage() {
   const [imgError, setImgError]         = useState(false)
 
   const [relatedProducts, setRelatedProducts] = useState<RelatedProduct[]>([])
+
+  /** Null for a product with no family — six of the seven families, and every
+   *  product outside one. The UI renders nothing at all in that case. */
+  const [familyContext, setFamilyContext] = useState<FamilyContext | null>(null)
 
   const [showModal,  setShowModal]  = useState(false)
   const [modalQuery, setModalQuery] = useState('')
@@ -179,6 +187,7 @@ export default function ProductPage() {
       setPopulations(data.populations ?? null)
       setSoldCounts(data.soldCounts ?? null)
       setRelatedProducts(data.relatedProducts ?? [])
+      setFamilyContext(data.familyContext ?? null)
     } catch {
       setNotFound(true)
     } finally {
@@ -284,6 +293,36 @@ export default function ProductPage() {
           ) : (
             <>
               <div className="shell-reading flex flex-col">
+
+                {/*
+                  ── Family breadcrumb (PAN-56) ──────────────────
+                  TWO LEVELS, because two is the whole ratified hierarchy:
+                  PAN-52 D5(a) admitted no intermediate, and §6 states that
+                  category/subcategory is browse taxonomy and NOT family
+                  ancestry — so a third crumb would be an invented level.
+                  The current product is the last crumb and is not a link, so
+                  which page you are on is unmistakable even though its
+                  siblings are one click away.
+                */}
+                {familyContext && (
+                  <nav aria-label={t.familyOtherModels} className="mb-4">
+                    <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 type-meta text-muted-foreground">
+                      <li>
+                        <a
+                          href={`/family/${familyContext.slug}`}
+                          className="hover:text-foreground transition-colors underline underline-offset-2"
+                        >
+                          {familyContext.label}
+                        </a>
+                      </li>
+                      <li aria-hidden="true">/</li>
+                      <li aria-current="page" className="text-foreground wrap-anywhere">
+                        {product.canonical_name}
+                      </li>
+                    </ol>
+                  </nav>
+                )}
+
                 {/* ── Hero: image + info ────────────────────────── */}
                 <div className="grid-hero gap-8 mb-10">
 
@@ -642,6 +681,36 @@ export default function ProductPage() {
                         {link.label}
                       </a>
                     ))}
+                  </div>
+                )}
+
+                {/*
+                  ── Family siblings (PAN-56) ────────────────────
+                  A LINK LIST, NOT A COMPARISON. There is deliberately no
+                  price, no band, no verdict and no listing count beside a
+                  sibling — `FamilyContext.siblings` is `{slug,label}` and has
+                  no field one could be put in. `familyWhyNotOnePrice` is the
+                  existing copy that says why: these markets are too far apart
+                  to combine, so the user is asked to pick the exact model
+                  rather than shown a number that spans all of them.
+                */}
+                {familyContext && familyContext.siblings.length > 0 && (
+                  <div className="flex flex-col gap-3 mb-10">
+                    <p className="text-sm font-medium text-foreground">{t.familyOtherModels}</p>
+                    <p className="type-meta text-muted-foreground max-w-[38rem]">
+                      {t.familyWhyNotOnePrice}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {familyContext.siblings.map((sibling) => (
+                        <a
+                          key={sibling.slug}
+                          href={`/product/${sibling.slug}`}
+                          className="rounded-xl border border-border px-4 py-2 type-meta text-foreground wrap-anywhere hover:border-foreground/30 transition-colors"
+                        >
+                          {sibling.label}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
 
