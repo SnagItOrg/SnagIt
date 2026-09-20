@@ -21,6 +21,7 @@ import {
   CANONICAL_STATUS,
   CANONICAL_SUPPORT,
   CANONICAL_VISIBILITY,
+  isCanonical,
   type CatalogueStateRow,
 } from '../../frontend/lib/catalogue'
 
@@ -40,7 +41,7 @@ import { ROUTE_ACCESS, requiresAuth } from '../../frontend/lib/route-access'
 const FRONTEND = join(__dirname, '..', '..', 'frontend')
 
 /** The six V1 families, from build plan §4.2. */
-const EXPECTED_FAMILIES = [
+const GUITAR_FAMILIES = [
   'gibson-les-paul',
   'fender-stratocaster',
   'fender-telecaster',
@@ -48,6 +49,9 @@ const EXPECTED_FAMILIES = [
   'fender-jazz-bass',
   'fender-precision-bass',
 ]
+
+/** The six, plus `rhodes` (PAN-85) — the first family with canonical children. */
+const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes']
 
 /**
  * Production state of every configured child, SELECT-verified 2026-08-28:
@@ -102,6 +106,14 @@ test('families: children match the reviewed §6.3 map', () => {
     'gibson-es-335': ['gibson-es-335-dot'],
     'fender-jazz-bass': [],
     'fender-precision-bass': [],
+    // PAN-85. Not from §6.3: these four were SELECT-verified active+supported+
+    // public+music on 2026-09-20, which is what makes them renderable at all.
+    rhodes: [
+      'rhodes-mark-i-stage-73',
+      'rhodes-mark-i-suitcase-73',
+      'rhodes-mark-ii-stage-73',
+      'rhodes-mark-i-stage-88',
+    ],
   }
   for (const family of NAVIGATION_FAMILIES) {
     assert.deepEqual([...family.children].sort(), [...expected[family.slug]].sort(), family.slug)
@@ -136,7 +148,14 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   for (const slug of EXPECTED_FAMILIES) {
     assert.equal(familyRedirectTarget(`/product/${slug}`), `/family/${slug}`)
   }
-  assert.equal(EXPECTED_FAMILIES.length, 6)
+  // Exactly six of them are LEGACY — a former priced /product page whose
+  // authority the 308 transfers. `rhodes` (PAN-85) has no legacy URL and never
+  // had a kg_product row, so /product/rhodes was a 404 before this change and
+  // is a 308 after it. That falls out of deriving the map from the family list
+  // rather than restating it, and it is the desired behaviour: a family slug
+  // must never resolve as a product, at any gate.
+  assert.equal(GUITAR_FAMILIES.length, 6)
+  assert.equal(EXPECTED_FAMILIES.length, 7)
 })
 
 test('redirects: nothing else is redirected', () => {
@@ -233,13 +252,74 @@ test('children: the config can hold no price, listing or count, at any depth', (
  * 4. Empty-family behaviour and the indexability transition
  * ------------------------------------------------------------------ */
 
-test('empty: all six families are empty on today’s production state', () => {
-  // Every configured child is supported+qa_only (SELECT, 2026-08-28).
-  for (const family of NAVIGATION_FAMILIES) {
+test('empty: the six guitar families are empty on today’s production state', () => {
+  // Every configured GUITAR child is supported+qa_only (SELECT, 2026-08-28,
+  // re-verified 2026-09-20). `rhodes` is deliberately excluded: its four
+  // children are public, which is the subject of the next test.
+  for (const slug of GUITAR_FAMILIES) {
+    const family = getFamily(slug)!
     const view = buildFamilyView(family, family.children.map(qaOnlyRow))
     assert.deepEqual(view.children, [], family.slug)
     assert.equal(view.published, false, family.slug)
   }
+})
+
+test('rhodes: the first family that renders — four canonical children, no price', () => {
+  const family = getFamily('rhodes')!
+  const view = buildFamilyView(family, family.children.map((s) => canonicalRow(s, s.toUpperCase())))
+
+  // All four render, in the reviewed order, and the family is published.
+  assert.deepEqual(
+    view.children.map((c) => c.slug),
+    [
+      'rhodes-mark-i-stage-73',
+      'rhodes-mark-i-suitcase-73',
+      'rhodes-mark-ii-stage-73',
+      'rhodes-mark-i-stage-88',
+    ],
+  )
+  assert.equal(view.published, true)
+
+  // A rendered child carries a slug and a label and NOTHING else — no price,
+  // no median, no count. This is the assertion PAN-85 exists to protect.
+  for (const child of view.children) assert.deepEqual(Object.keys(child).sort(), ['label', 'slug'])
+
+  // A non-canonical child is omitted entirely, never greyed and never named.
+  const partial = buildFamilyView(family, [
+    canonicalRow('rhodes-mark-i-stage-73', 'Rhodes Mark I Stage 73'),
+    qaOnlyRow('rhodes-mark-i-suitcase-73'),
+  ])
+  assert.deepEqual(partial.children, [
+    { slug: 'rhodes-mark-i-stage-73', label: 'Rhodes Mark I Stage 73' },
+  ])
+})
+
+test('rhodes: the family slug is a navigation label, never a product (PAN-84)', () => {
+  // There is no `rhodes` kg_product row and there must never be one. If one is
+  // created anyway, every gate that could price it refuses it.
+  assert.equal(isFamilySlug('rhodes'), true)
+  assert.equal(
+    isCanonical({
+      slug: 'rhodes',
+      status: CANONICAL_STATUS,
+      support_state: CANONICAL_SUPPORT,
+      browse_domain: CANONICAL_DOMAIN,
+      browse_visibility: CANONICAL_VISIBILITY,
+    }),
+    false,
+    'a rhodes row that passed all four axes would still be refused',
+  )
+  // The children themselves are of course still canonical.
+  assert.equal(
+    isCanonical({
+      slug: 'rhodes-mark-i-stage-73',
+      status: CANONICAL_STATUS,
+      support_state: CANONICAL_SUPPORT,
+      browse_domain: CANONICAL_DOMAIN,
+      browse_visibility: CANONICAL_VISIBILITY,
+    }),
+    true,
+  )
 })
 
 test('indexability: publishing ONE child flips the family, with no code change', () => {

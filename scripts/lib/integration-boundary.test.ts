@@ -212,7 +212,7 @@ test('integration: the index covers 48 supported identities and 6 families', () 
   ) as { products: Array<{ slug: string }>; families: Array<{ slug: string }> }
 
   assert.equal(index.products.length, 48, 'the supported cohort is 48')
-  assert.equal(index.families.length, 6, 'WP-2 landed six navigation families')
+  assert.equal(index.families.length, 7, 'WP-2 landed six navigation families; PAN-85 added rhodes')
   assert.equal(
     new Set(index.products.map((p) => p.slug)).size,
     48,

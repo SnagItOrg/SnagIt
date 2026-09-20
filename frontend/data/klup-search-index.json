@@ -558,6 +558,17 @@
         "pbass",
         "precisionbass"
       ]
+    },
+    {
+      "kind": "family",
+      "slug": "rhodes",
+      "label": "Rhodes Electric Piano",
+      "brand": "Rhodes",
+      "aliasKeys": [
+        "fenderrhodes",
+        "rhodes",
+        "rhodeselectricpiano"
+      ]
     }
   ]
 }

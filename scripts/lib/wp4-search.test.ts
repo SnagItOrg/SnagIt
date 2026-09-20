@@ -446,12 +446,19 @@ test('acceptance 3: "rhodes" disambiguates across every Rhodes identity Klup fol
   assert.equal(outcome.outcome, 'dangerous_alias_blocked')
   assert.equal(outcome.navigateTo, null)
   const slugs = outcome.candidates.map((c) => c.slug).sort()
+  // PAN-85 added the navigation family, and it belongs in this set: a visitor
+  // who types the bare term is exactly the visitor who does not yet know which
+  // Rhodes they want, so the directory is a legitimate choice beside the three
+  // identities. It is a CHOICE and never a destination — the dangerous-term
+  // guard is checked before exact matching, so this cannot auto-navigate.
   assert.deepEqual(slugs, [
+    'rhodes',
     'rhodes-mark-i-stage-73',
     'rhodes-mark-i-suitcase-73',
     'rhodes-mark-ii-stage-73',
   ])
-  // Each candidate is labelled well enough to choose between them.
+  // Each candidate is labelled well enough to choose between them. This is the
+  // assertion that decides the family is `Rhodes Electric Piano`, not `Rhodes`.
   for (const c of outcome.candidates) {
     assert.ok(c.label.length > 'Rhodes'.length, `"${c.label}" must carry its qualifier`)
   }
