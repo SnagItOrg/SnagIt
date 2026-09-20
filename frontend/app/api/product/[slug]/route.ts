@@ -13,7 +13,13 @@ import {
   type PopulationKey,
   type PopulationStats,
 } from '@/lib/price-populations'
-import { isFamilySlug } from '@/lib/families'
+import {
+  buildFamilyView,
+  familyForChild,
+  isFamilySlug,
+  type FamilyChildRow,
+  type RenderableChild,
+} from '@/lib/families'
 import {
   CatalogueUnavailableError,
   isAdminOnly,
@@ -74,6 +80,30 @@ export type PriceRange = {
 
 /** Public shape of a related product. Re-exported for the client. */
 export type RelatedProduct = PublicRelatedProduct
+
+/**
+ * The product's place in its navigation family — PAN-56.
+ *
+ * STRUCTURALLY UNABLE TO CARRY PRICE EVIDENCE, which is the whole point of the
+ * ticket. `siblings` is `RenderableChild[]`, and that type is exactly
+ * `{ slug, label }` — there is no field here a median, a band, a sold
+ * population, a listing count or a verdict could travel in, so "a family owns
+ * no price" (PAN-52 rule 2) is enforced by the shape rather than by review.
+ * Widening this type is how that rule would be lost; wp2-families.test.ts
+ * already pins `RenderableChild`'s key set.
+ *
+ * `siblings` EXCLUDES the product being viewed, so the page never offers a link
+ * back to itself, and it contains canonical-eligible rows only — the filtering
+ * is `buildFamilyView`, the same predicate the family route renders from.
+ */
+export type FamilyContext = {
+  /**
+   * Family route segment, as used under the /family/ prefix.
+   */
+  slug: string
+  label: string
+  siblings: RenderableChild[]
+}
 
 /**
  * Explicit embed. `listings(*)` shipped watchlist_id, ingestion_batch_id,
@@ -225,6 +255,18 @@ async function handle(req: NextRequest, slug: string) {
     .slice(0, 6)
 
   /**
+   * The navigation family this product belongs to, from reviewed code.
+   *
+   * Derived from the SLUG alone. It is deliberately not derived from the
+   * product row, from `category_id`/`subcategory_id` or from any listing:
+   * family membership is a reviewed code fact (PAN-52 D1(a)), and taxonomy is
+   * not ancestry (§6). `productId` above is already fixed by this point and
+   * nothing below may widen it — see the note on the response assembly.
+   */
+  const family = familyForChild(slug)
+  const familySiblingSlugs = family?.children ?? []
+
+  /**
    * One page of matched listings, ordered deterministically.
    *
    // A REJECTED MATCH IS NOT EVIDENCE. `is_valid = false` is an explicit
@@ -261,7 +303,15 @@ async function handle(req: NextRequest, slug: string) {
     return (res.data ?? []) as unknown as Array<{ id: string; score: number | null; is_valid: boolean | null; listings: Record<string, unknown> | null }>
   }
 
-  const [matchesAll, reverbAll, auctionetRes, relatedRes, relatedDomainRes] = await Promise.all([
+  const [
+    matchesAll,
+    reverbAll,
+    auctionetRes,
+    relatedRes,
+    relatedDomainRes,
+    familyRes,
+    familyDomainRes,
+  ] = await Promise.all([
     // Read to exhaustion. No maximum population size is stated anywhere.
     fetchAllPages(fetchMatchPage, (row) => row.id),
 
@@ -317,12 +367,34 @@ async function handle(req: NextRequest, slug: string) {
           .select('slug, browse_domain')
           .in('slug', relatedSlugs)
       : Promise.resolve({ data: [] as unknown[], error: null }),
+    // FAMILY SIBLINGS — the same two reads the family route makes, over the
+    // same four axes, so the product page cannot express a weaker publication
+    // rule than /family/<slug> already enforces. These select NO price column
+    // and touch NO listing table: `kg_product` identity and the browse domain,
+    // nothing else. Six of the seven families have zero canonical children
+    // today, so for those this resolves to an empty list and costs one query.
+    familySiblingSlugs.length > 0
+      ? admin
+          .from('kg_product')
+          .select('slug, canonical_name, status, support_state, browse_visibility')
+          .in('slug', familySiblingSlugs)
+      : Promise.resolve({ data: [] as unknown[], error: null }),
+    familySiblingSlugs.length > 0
+      ? admin
+          .from('browse_product_projection')
+          .select('slug, browse_domain')
+          .in('slug', familySiblingSlugs)
+      : Promise.resolve({ data: [] as unknown[], error: null }),
   ]).catch(() => {
     throw new CatalogueUnavailableError('detail_transport')
   })
 
   if (relatedRes.error || relatedDomainRes.error) {
     throw new CatalogueUnavailableError('related_lookup')
+  }
+
+  if (familyRes.error || familyDomainRes.error) {
+    throw new CatalogueUnavailableError('family_lookup')
   }
 
 
@@ -545,8 +617,58 @@ async function handle(req: NextRequest, slug: string) {
     .map((r) => toPublicRelatedProduct(r))
     .filter((r): r is RelatedProduct => r !== null)
 
+  /**
+   * FAMILY CONTEXT — navigation only.
+   *
+   * Built here, at the very end, from rows that were read for identity alone,
+   * and it reaches none of the price code above: `populations`, `priceRange`,
+   * `soldCounts`, `eligibility` and every per-listing `marketVerdict` are
+   * already computed and frozen by this line. The only product identity that
+   * ever entered a price query is the scalar `productId` — the three `.eq()`
+   * joins on `listing_product_match`, `reverb_price_history` and the Auctionet
+   * name match are untouched by this block and can never see a sibling slug.
+   * That is the isolation PAN-56 asks for, and it holds because the widening
+   * would have to be a visible edit to those three queries.
+   */
+  const familyDomains = new Map<string, string | null>(
+    ((familyDomainRes.data ?? []) as Array<Record<string, unknown>>)
+      .filter((r) => typeof r.slug === 'string')
+      .map((r) => [r.slug as string, (r.browse_domain as string | null) ?? null]),
+  )
+
+  const familyChildRows: FamilyChildRow[] = ((familyRes.data ?? []) as Array<Record<string, unknown>>)
+    .filter((r) => typeof r.slug === 'string')
+    .map((r) => ({
+      slug: r.slug as string,
+      canonical_name: (r.canonical_name as string | null) ?? null,
+      status: (r.status as string | null) ?? null,
+      support_state: (r.support_state as string | null) ?? null,
+      browse_visibility: (r.browse_visibility as string | null) ?? null,
+      browse_domain: familyDomains.get(r.slug as string) ?? null,
+    }))
+
+  const familyView = family ? buildFamilyView(family, familyChildRows) : null
+
+  /**
+   * `published` is the gate, not `siblings.length`. A family the route itself
+   * would render as unpublished must not be linked to from here, or the
+   * product page would advertise a `noindex` family page that names nothing.
+   * A canonical product is its own family's first canonical child, so on a
+   * public page this is true whenever a family exists; it is the admin-preview
+   * path (`adminPreview`, a non-canonical row) where it can legitimately be
+   * false, and there it correctly yields null.
+   */
+  const familyContext: FamilyContext | null =
+    family && familyView && familyView.published
+      ? {
+          slug: family.slug,
+          label: family.label,
+          siblings: familyView.children.filter((child) => child.slug !== slug),
+        }
+      : null
+
   return NextResponse.json(
-    { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, adminPreview },
+    { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, familyContext, adminPreview },
     {
       headers: adminPreview
         // An unpublished product must never enter a shared cache.

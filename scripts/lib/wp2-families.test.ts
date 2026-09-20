@@ -30,6 +30,7 @@ import {
   NAVIGATION_FAMILIES,
   allFamilyChildSlugs,
   buildFamilyView,
+  familyForChild,
   familyRedirectTarget,
   getFamily,
   isFamilySlug,
@@ -420,6 +421,23 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
   const linkers: string[] = []
   const redirectors: string[] = []
 
+  /**
+   * PAN-56 admits exactly ONE linking surface, and it is not an exception to
+   * the rule above — it is an instance of it.
+   *
+   * The product page's family breadcrumb renders only when `familyContext` is
+   * non-null, and /api/product/[slug] emits that field only when the
+   * FamilyView it built is `published`, i.e. has at least one canonical child.
+   * An EMPTY family therefore remains unreachable by any link, which is the
+   * property this test actually defends. PAN-52 D10(a) ratified the family as
+   * a route that publishes at its first canonical child, and PAN-85 made
+   * `rhodes` the first family to clear that bar.
+   *
+   * The gate is ASSERTED below rather than trusted, so deleting it fails this
+   * test instead of silently turning the breadcrumb into an unconditional link.
+   */
+  const GATED_LINKER = join('app', 'product', '[slug]', 'page.tsx')
+
   for (const file of [...walk(join(FRONTEND, 'app')), ...walk(join(FRONTEND, 'components'))]) {
     if (file.includes(join('app', 'family'))) continue          // the route itself
     const rel = file.replace(FRONTEND, 'frontend')
@@ -428,7 +446,7 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
       const isRedirect = /permanentRedirect\(|NextResponse\.redirect\(|familyRedirectTarget/.test(line)
       const isComment = /^\s*(\*|\/\/)/.test(line)
       if (isRedirect) redirectors.push(rel)
-      else if (!isComment) linkers.push(`${rel}: ${line.trim()}`)
+      else if (!isComment && !file.endsWith(GATED_LINKER)) linkers.push(`${rel}: ${line.trim()}`)
     }
   }
 
@@ -436,6 +454,20 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
     linkers,
     [],
     'an empty family must be absent from homepage, browse, navigation, sitemap and search',
+  )
+
+  // The one admitted linker, pinned on both sides of the seam.
+  const productPage = readRepoFile('app/product/[slug]/page.tsx')
+  assert.match(
+    productPage,
+    /\{familyContext && \(/,
+    'the family breadcrumb must be gated on familyContext, never rendered unconditionally',
+  )
+  const productApi = readRepoFile('app/api/product/[slug]/route.ts')
+  assert.match(
+    productApi,
+    /familyView\.published/,
+    'familyContext must be emitted only for a published family, so an empty one is never linked',
   )
   // And the redirect sources are exactly the legacy product surfaces.
   assert.deepEqual(
@@ -445,6 +477,63 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
       'frontend/app/product/[slug]/layout.tsx',
     ],
   )
+})
+
+/**
+ * PAN-56's one permitted hierarchy test (its test budget, and PAN-52 §13).
+ *
+ * It covers the single new primitive — the reverse lookup — and the two
+ * properties the product page depends on: a product outside every family
+ * resolves to nothing at all, and a sibling can carry no price evidence.
+ */
+test('hierarchy: familyForChild resolves a product to its family, and nothing else', () => {
+  // Round-trip: every declared child resolves back to the family that declares
+  // it. Built from NAVIGATION_FAMILIES rather than a second literal list, so
+  // adding a family cannot leave this assertion describing the old set.
+  for (const family of NAVIGATION_FAMILIES) {
+    for (const child of family.children) {
+      assert.equal(
+        familyForChild(child)?.slug,
+        family.slug,
+        `${child} must resolve to ${family.slug}`,
+      )
+    }
+  }
+
+  // A PRODUCT WITH NO FAMILY. `roland-juno-106` is canonical and belongs to no
+  // family, and this is the case the product page must handle by rendering
+  // nothing — not an empty breadcrumb and not a heading with no links.
+  assert.equal(familyForChild('roland-juno-106'), null)
+  assert.equal(familyForChild('does-not-exist'), null)
+
+  // A FAMILY SLUG IS NOT ITS OWN CHILD. `rhodes` names a family, so asking for
+  // its family must not answer itself and create a cycle in the breadcrumb.
+  assert.equal(familyForChild('rhodes'), null)
+
+  // PRICE ISOLATION, STRUCTURALLY. What the product page receives as a sibling
+  // is a RenderableChild, and it has exactly two keys — so no median, band,
+  // sold population, verdict or listing count can travel from a sibling into
+  // this product's evidence. Widening this shape is the way that rule is lost.
+  const rhodes = getFamily('rhodes')!
+  const rows: FamilyChildRow[] = rhodes.children.map((slug) => ({
+    slug,
+    canonical_name: slug.toUpperCase(),
+    status: CANONICAL_STATUS,
+    support_state: CANONICAL_SUPPORT,
+    browse_visibility: CANONICAL_VISIBILITY,
+    browse_domain: CANONICAL_DOMAIN,
+  }))
+  const view = buildFamilyView(rhodes, rows)
+  assert.equal(view.published, true)
+  for (const child of view.children) {
+    assert.deepEqual(Object.keys(child).sort(), ['label', 'slug'])
+  }
+
+  // And the page excludes the product being viewed from its own sibling list.
+  const viewing = rhodes.children[0]
+  const siblings = view.children.filter((c) => c.slug !== viewing)
+  assert.equal(siblings.length, view.children.length - 1)
+  assert.equal(siblings.some((s) => s.slug === viewing), false)
 })
 
 test('navigation: the family route links only to /browse and to canonical children', () => {
