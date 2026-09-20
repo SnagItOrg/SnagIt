@@ -188,6 +188,11 @@ export const translations = {
     // PAN-56: family context on the product page. The heading says "other
     // models", never "other prices" — each sibling carries its own evidence.
     familyOtherModels: 'Andre modeller i familien',
+    // PAN-94: a family may aggregate listings, never prices. The count names
+    // ANNONCER, never a price or a spread, and {count} is the length of the
+    // rendered list rather than a separately queried total.
+    familyListingsCount: '{count} aktive annoncer på familiens modeller',
+    familyNoListings: 'Ingen aktive annoncer på familiens modeller lige nu.',
 
     // Price evidence (WP-3)
     priceBandMedian: 'median udbudspris',
@@ -539,6 +544,8 @@ export const translations = {
     familyNoSupportedChildren: 'Klup does not follow any variant in this family yet.',
     familyBackToCatalogue: 'See the whole catalogue',
     familyOtherModels: 'Other models in this family',
+    familyListingsCount: '{count} active listings on this family’s models',
+    familyNoListings: 'No active listings on this family’s models right now.',
 
     priceBandMedian: 'median asking price',
     priceBandRange: 'typical range (p25–p75)',
