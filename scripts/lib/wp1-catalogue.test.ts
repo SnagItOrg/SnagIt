@@ -20,8 +20,10 @@ import {
   CANONICAL_STATUS,
   CANONICAL_SUPPORT,
   CANONICAL_VISIBILITY,
+  FAMILY_LABEL_SLUGS,
   isAdminOnly,
   isCanonical,
+  isFamilyLabelSlug,
   loadCanonicalSlugs,
   loadSupportedSlugs,
   resolveSlugRole,
@@ -36,6 +38,8 @@ import {
   getFamily,
   isFamilySlug,
 } from '../../frontend/lib/families'
+
+import { FAMILY_LABEL_SLUGS as PUBLICATION_FAMILY_LABEL_SLUGS } from '../../frontend/lib/publication'
 
 import { translations } from '../../frontend/lib/i18n'
 
@@ -441,4 +445,87 @@ test('exposure: each axis combination reports the one gate that is missing', () 
     effectiveExposure({ browse_domain: 'music', status: 'active', support_state: 'known', browse_visibility: 'public', taxonomy_state: 'classified' }),
     'live_in_browse',
   )
+})
+
+/* ------------------------------------------------------------------ *
+ * PAN-84 — a navigation family is never a product
+ * ------------------------------------------------------------------ */
+
+/**
+ * The real incident, reproduced. On 2026-09-20 six family-label rows were
+ * promoted `known -> supported` through the ordinary admin Public control.
+ * They were ALREADY `active` + `public` + `legendary`, so that one field made
+ * them canonical and matcher-eligible at once. `gibson-les-paul` is used here
+ * rather than a fixture slug because it is the row that actually carried 673
+ * verified matches at a 5.28x price spread.
+ */
+test('family label: a fully canonical row is still refused when its slug names a family', () => {
+  const promoted: CatalogueStateRow = { ...CANONICAL_ROW, slug: 'gibson-les-paul' }
+
+  // Every one of the four axes passes. Only the family-label rule refuses it.
+  assert.equal(isCanonical({ ...promoted, slug: 'gibson-les-paul-standard-50s' }), true,
+    'a real CHILD of the family is unaffected — the guard is not a prefix match')
+  assert.equal(isCanonical(promoted), false, 'the family label must not be canonical')
+
+  // QA is not a loophole: a family label is not an admin-previewable product.
+  assert.equal(isAdminOnly({ ...promoted, browse_visibility: 'qa_only' }), false)
+
+  // And the exposure badge tells the operator it is not a supported identity,
+  // rather than showing it as live.
+  assert.equal(effectiveExposure({ ...promoted, taxonomy_state: 'classified' }), 'unsupported')
+})
+
+test('family label: the set loaders drop it, which is where /api/discover leaked', async () => {
+  // Exactly the shape the promotion produced: all six supported+public.
+  const rows = [
+    ...FAMILY_LABEL_SLUGS.map((slug) => ({
+      slug,
+      status: CANONICAL_STATUS,
+      support_state: CANONICAL_SUPPORT,
+      browse_visibility: CANONICAL_VISIBILITY,
+    })),
+    { slug: 'roland-juno-106', status: CANONICAL_STATUS, support_state: CANONICAL_SUPPORT, browse_visibility: CANONICAL_VISIBILITY },
+  ]
+
+  const canonical = await loadCanonicalSlugs(async () => ({ data: rows, error: null }))
+  assert.deepEqual([...canonical], ['roland-juno-106'],
+    'no family label may enter the canonical set even when the query returns it')
+
+  // The matcher-eligible set is guarded too: support alone must not admit them.
+  const supported = await loadSupportedSlugs(async () => ({ data: rows, error: null }))
+  assert.deepEqual([...supported], ['roland-juno-106'])
+})
+
+/**
+ * THE DRIFT GUARD — the test that makes three copies of six strings safe.
+ *
+ * The list cannot be derived, for two independent reasons:
+ *   1. `lib/catalogue.ts` cannot import `lib/families.ts`, because families.ts
+ *      already imports catalogue.ts for child selection — that is a cycle.
+ *   2. `lib/publication.ts` cannot import either, because it is CLIENT-SAFE
+ *      (app/admin/products/page.tsx is a `use client` module that imports it)
+ *      while catalogue.ts is server-only — see wp4a-boundary.test.ts.
+ *
+ * So the slugs are duplicated deliberately, and drift is made impossible here
+ * instead: add, remove or rename a family in `families.ts` without updating
+ * both copies and this test fails.
+ */
+test('family label: all three lists are identical, so the deny-list cannot drift', () => {
+  const fromFamilies = NAVIGATION_FAMILIES.map((f) => f.slug).sort()
+  assert.deepEqual([...FAMILY_LABEL_SLUGS].sort(), fromFamilies,
+    'FAMILY_LABEL_SLUGS in lib/catalogue.ts must list exactly the slugs in lib/families.ts')
+  assert.deepEqual([...PUBLICATION_FAMILY_LABEL_SLUGS].sort(), fromFamilies,
+    'FAMILY_LABEL_SLUGS in lib/publication.ts must list exactly the slugs in lib/families.ts')
+
+  // The two predicates must agree on every slug either of them knows about.
+  for (const slug of fromFamilies) {
+    assert.equal(isFamilyLabelSlug(slug), true, slug)
+    assert.equal(isFamilySlug(slug), true, slug)
+  }
+
+  // A slugless row is not treated as a family: the guard must not become a
+  // catalogue-wide outage for callers that select fewer columns.
+  assert.equal(isFamilyLabelSlug(undefined), false)
+  assert.equal(isFamilyLabelSlug(null), false)
+  assert.equal(isCanonical(CANONICAL_ROW), true)
 })
