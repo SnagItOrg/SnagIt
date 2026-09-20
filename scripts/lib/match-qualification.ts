@@ -187,9 +187,9 @@ export function buildIdentityPayload(row: QualificationRow): IdentityPayload {
  *
  * So the finding travels to the judge as `deterministic_signal` and the judge
  * must name title words to override it. The guard keeps its cheapness and its
- * reviewability; it loses only the authority to be wrong on its own. The four
- * tokens that misfired — `chip`/`chips`, `eprom` — belong to PAN-96, which
- * owns that file; this module does not edit it.
+ * reviewability; it loses only the authority to be wrong on its own. The three
+ * tokens that misfired — `chips`, `eprom`, `cartridges` — belong to PAN-96,
+ * which owns that file; this module does not edit it.
  */
 export function deterministicSignal(title: string): string | null {
   const finding = detectNonProductIntent(title)
