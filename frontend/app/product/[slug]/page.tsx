@@ -103,6 +103,8 @@ export default function ProductPage() {
   )
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([])
   const [populations, setPopulations]   = useState<Record<PopulationKey, PopulationStats> | null>(null)
+  /** Danish wall listings still awaiting adjudication — see DanishMarketBlock. */
+  const [awaitingReview, setAwaitingReview] = useState(0)
   const [soldCounts, setSoldCounts]     = useState<{ raw: number; filtered: number; excludedOutliers: number } | null>(null)
   const [loading, setLoading]           = useState(true)
   const [notFound, setNotFound]         = useState(false)
@@ -185,6 +187,7 @@ export default function ProductPage() {
       setListings(data.listings ?? [])
       setPriceHistory(data.priceHistory ?? [])
       setPopulations(data.populations ?? null)
+      setAwaitingReview(data.awaitingReview ?? 0)
       setSoldCounts(data.soldCounts ?? null)
       setRelatedProducts(data.relatedProducts ?? [])
       setFamilyContext(data.familyContext ?? null)
@@ -387,7 +390,10 @@ export default function ProductPage() {
                         population. Owner decision C2, 2026-09-01. */}
                     {populations && (
                       <div className="flex flex-col gap-5">
-                        <DanishMarketBlock stats={populations['dk-asking']} />
+                        <DanishMarketBlock
+                          stats={populations['dk-asking']}
+                          awaitingReview={awaitingReview}
+                        />
 
                         {(populations['reverb-sold'].tier === 'band' ||
                           populations['reverb-asking'].tier === 'band') && (
