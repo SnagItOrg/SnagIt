@@ -14,8 +14,8 @@
  *
  * WHY THIS MODULE IS SERVER-ONLY, AND SAYS SO ITSELF.
  *
- * It resolves against `./search-index`, which carries all 48 supported
- * identities — 34 of them UNPUBLISHED. Resolution therefore reads private
+ * It resolves against `./search-index`, which carries every supported
+ * identity — most of them UNPUBLISHED. Resolution therefore reads private
  * catalogue state by construction: it must be able to RECOGNISE a private
  * product in order to decline it. That is exactly why the answer, not the
  * index, is what may cross to the browser.
@@ -109,8 +109,25 @@ function toCandidate(entity: SearchEntity): SearchCandidate {
   }
 }
 
-/** Deterministic ordering everywhere a set is shown: label, then slug. */
-function byLabel(a: SearchCandidate, b: SearchCandidate): number {
+/**
+ * Deterministic ordering everywhere a set is shown: family first, then label,
+ * then slug.
+ *
+ * WHY KIND LEADS. A family is not a sibling of the products beside it — it is
+ * the "show me all of them" row, so it belongs at the top of a set the user is
+ * being asked to choose from. Before PAN-55 this comparator sorted on label
+ * alone, and `rhodes` came out family-first by alphabetical accident: "Rhodes
+ * Electric Piano" happens to precede "Rhodes Mark I Stage 73". Relabel a
+ * family and that ordering silently inverts, burying the broad answer beneath
+ * the narrow ones. Ordering on kind makes the intent explicit and stable.
+ *
+ * This does NOT let a family outrank an exact product match. Exact intent is
+ * settled earlier, in `exactMatches`, which navigates before any set is built;
+ * by the time a set is sorted, every member is already an equally plausible
+ * reading of an ambiguous query.
+ */
+function byKindThenLabel(a: SearchCandidate, b: SearchCandidate): number {
+  if (a.kind !== b.kind) return a.kind === 'family' ? -1 : 1
   const byName = a.label.localeCompare(b.label, 'da')
   return byName !== 0 ? byName : a.slug.localeCompare(b.slug)
 }
@@ -270,7 +287,7 @@ export function resolveQuery(rawQuery: string, index: SearchIndex): SearchOutcom
   // 2. Dangerous terms: show the set, never pick. Checked BEFORE synonyms so a
   //    rewrite can never turn a blocked term into a navigation.
   if (isDangerousQuery(rawQuery)) {
-    // NOT capped here. The index now carries all 48 supported identities, so
+    // NOT capped here. The index carries the whole supported cohort, so
     // slicing before the eligibility filter could drop the public products
     // behind private ones that are about to be removed anyway. Display caps are
     // applied in `applyEligibility`, after the filter.
@@ -280,7 +297,7 @@ export function resolveQuery(rawQuery: string, index: SearchIndex): SearchOutcom
       outcome: 'dangerous_alias_blocked',
       resolution: 'dangerous_alias_blocked',
       resolutionClass: 'dangerous_alias_blocked',
-      candidates: candidates.sort(byLabel),
+      candidates: candidates.sort(byKindThenLabel),
     }
   }
 
@@ -325,7 +342,7 @@ export function resolveQuery(rawQuery: string, index: SearchIndex): SearchOutcom
       outcome: 'disambiguation',
       resolution: 'disambiguation',
       resolutionClass: 'ambiguous',
-      candidates: hits.map(toCandidate).sort(byLabel),
+      candidates: hits.map(toCandidate).sort(byKindThenLabel),
     }
   }
 
@@ -343,7 +360,7 @@ export function resolveQuery(rawQuery: string, index: SearchIndex): SearchOutcom
       outcome: 'disambiguation',
       resolution: 'disambiguation',
       resolutionClass: 'ambiguous',
-      candidates: related.entities.map(toCandidate).sort(byLabel),
+      candidates: related.entities.map(toCandidate).sort(byKindThenLabel),
     }
   }
 
@@ -436,7 +453,7 @@ export function applyEligibility(
 
   // FILTER FIRST, THEN CAP.
   //
-  // The index carries all 48 supported identities, of which 34 are private
+  // The index carries the whole supported cohort, most of it private
   // today. Capping before the filter would let private entries occupy the
   // display slots and push public ones out — the visitor would see a shorter
   // list, or none, for a query that has perfectly good public answers. The caps

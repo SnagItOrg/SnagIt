@@ -255,6 +255,10 @@ export const translations = {
     searchNotFollowedBody: 'Vi følger et bevidst lille katalog, så vi kan holde priserne ajour.',
     searchAmbiguousHeading: 'Hvilken mener du?',
     searchNearestHeading: 'Det tætteste Klup følger',
+    // Marks the one row in a candidate set that is a family rather than a
+    // model, so "Rhodes Electric Piano" is not read as a fifth Rhodes model
+    // sitting beside the four real ones (PAN-55).
+    searchKindFamily: 'Alle modeller',
     demandCta: 'Giv besked når Klup følger dette',
     demandThanks: 'Tak — vi har noteret det.',
 
@@ -595,6 +599,7 @@ export const translations = {
     searchNotFollowedBody: 'We follow a deliberately small catalogue so we can keep the prices current.',
     searchAmbiguousHeading: 'Which one do you mean?',
     searchNearestHeading: 'The closest Klup follows',
+    searchKindFamily: 'All models',
     demandCta: 'Tell me when Klup follows this',
     demandThanks: 'Thanks — we have noted it.',
 

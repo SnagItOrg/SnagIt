@@ -3,6 +3,26 @@
   "products": [
     {
       "kind": "product",
+      "slug": "ampex-atr-700",
+      "label": "Ampex ATR-700",
+      "brand": "Ampex",
+      "aliasKeys": [
+        "ampexatr700",
+        "atr700"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "arp-2600",
+      "label": "ARP 2600 (1971-1980)",
+      "brand": "Arp",
+      "aliasKeys": [
+        "arp2600",
+        "arparp2600"
+      ]
+    },
+    {
+      "kind": "product",
       "slug": "emu-sp-1200",
       "label": "E-mu SP-1200 (1987)",
       "brand": "E Mu",
@@ -193,6 +213,16 @@
     },
     {
       "kind": "product",
+      "slug": "linn-electronics-linndrum",
+      "label": "Linn Electronics LinnDrum",
+      "brand": "Linn Electronics",
+      "aliasKeys": [
+        "linndrum",
+        "linnelectronicslinndrum"
+      ]
+    },
+    {
+      "kind": "product",
       "slug": "manley-voxbox",
       "label": "Manley VOXBOX (1990s-)",
       "brand": "Manley",
@@ -263,12 +293,42 @@
     },
     {
       "kind": "product",
+      "slug": "oberheim-ob-x",
+      "label": "Oberheim OB-X",
+      "brand": "Oberheim",
+      "aliasKeys": [
+        "oberheimobx",
+        "obx"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "oberheim-ob-xa",
+      "label": "Oberheim OB-Xa",
+      "brand": "Oberheim",
+      "aliasKeys": [
+        "oberheimobxa",
+        "obxa"
+      ]
+    },
+    {
+      "kind": "product",
       "slug": "rhodes-mark-i-stage-73",
       "label": "Rhodes Mark I Stage 73 (1970)",
       "brand": "Rhodes",
       "aliasKeys": [
         "markistage73",
         "rhodesmarkistage73"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "rhodes-mark-i-stage-88",
+      "label": "Rhodes Mark I Stage 88 (1970)",
+      "brand": "Rhodes",
+      "aliasKeys": [
+        "markistage88",
+        "rhodesmarkistage88"
       ]
     },
     {
@@ -438,6 +498,16 @@
       "aliasKeys": [
         "prophet10",
         "sequentialprophet10"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "sequential-prophet-5",
+      "label": "Sequential Prophet-5 (1978-1984)",
+      "brand": "Sequential",
+      "aliasKeys": [
+        "prophet5",
+        "sequentialprophet5"
       ]
     },
     {
