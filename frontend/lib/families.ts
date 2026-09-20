@@ -11,10 +11,22 @@
  * the way the monitoring boundary is modelled: a reviewed file that no runtime
  * surface may mutate.
  *
- * A family NEVER aggregates listings or prices. That is structural, not a flag:
- * there is no field here that could carry a price, a listing or a count, and
- * the family route has no code path that computes one. Children's markets
- * differ by more than 3x (klup-launch-catalogue-selection.md §6.1).
+ * A family MAY aggregate its children's LISTINGS and NEVER their PRICES
+ * (PAN-94, amending CLAUDE.md §7). The two halves of that sentence are enforced
+ * differently and deliberately so:
+ *
+ *   listings — `buildFamilyView` collects them, from the children it already
+ *              refused or admitted, de-duplicated across children;
+ *   prices   — structural. `NavigationFamily` has no field that could carry a
+ *              price, `FamilyListing` has no field that could carry one either,
+ *              and the family route selects no price column from any table.
+ *
+ * Price stays out because a family's children are not one market. Measured on
+ * `fender-telecaster`: 74 Reverb observations spanning 3,874–188,885 DKK, a 48x
+ * band against MAX_BAND_WIDTH_RATIO = 10. The guard would reject that band
+ * anyway; the rule makes it a design property rather than a threshold accident
+ * that a wider catalogue could one day slip under
+ * (klup-launch-catalogue-selection.md §6.1).
  *
  * `aliases` are NAVIGATION ONLY. They are never matcher aliases and never reach
  * lib/matching/**. `Squier` never navigates to a Fender page and `Epiphone`
@@ -55,6 +67,15 @@ export interface NavigationFamily {
  * defect. `rhodes` is the exception, and the reason this paragraph changed:
  * its four children are `supported` + `public` + music, so it is the first
  * family that renders anything at all.
+ *
+ * RE-MEASURED 2026-09-20 (PAN-94) — THE PARAGRAPH ABOVE IS NO LONGER TRUE, and
+ * is kept because it records what PAN-85 saw. Four of the six guitar families
+ * now have `public` children and are `index, follow`: `gibson-les-paul` (4 of
+ * 5), `fender-telecaster` (2 of 3), `fender-stratocaster` and `gibson-es-335`
+ * (1 each). Only `fender-jazz-bass` and `fender-precision-bass` still render
+ * nothing, and for them the reason is not visibility — they have NO children
+ * configured at all, so no promotion can fill them and only a reviewed edit to
+ * this file can.
  *
  * `aliases` are NAVIGATION ONLY. A bare model number is never an alias —
  * migration 054 removed `335` as an identifier for exactly this reason — and
@@ -264,10 +285,18 @@ export function familyRedirectTarget(pathname: string): string | null {
  * Child selection — the binding rule of §4.2
  * ------------------------------------------------------------------ */
 
-/** A child row as the family route loads it: the four axes plus a display name. */
+/**
+ * A child row as the family route loads it: the four axes, a display name, and
+ * the `kg_product.id` that `listing_product_match.product_id` joins on.
+ *
+ * `id` is a JOIN KEY and never a rendered field. It exists on the loader shape
+ * only; `RenderableChild` and `FamilyListing` below carry no identifier the
+ * database would recognise, so it cannot travel into a response.
+ */
 export interface FamilyChildRow extends CatalogueStateRow {
   slug: string
   canonical_name?: string | null
+  id?: string | null
 }
 
 /** A child the family route is allowed to render. Never carries a price. */
@@ -276,10 +305,57 @@ export interface RenderableChild {
   label: string
 }
 
+/**
+ * A match row as the family route loads it — PAN-94.
+ *
+ * Identity and activity ONLY. `listings` is the explicit embed, and it selects
+ * neither `price`, `price_dkk` nor `currency`: the price columns are not
+ * filtered out downstream, they are never read. A route that cannot see a price
+ * cannot publish one.
+ */
+export interface FamilyListingRow {
+  product_id?: string | null
+  is_valid?: boolean | null
+  listings?: {
+    id?: string | null
+    title?: string | null
+    source?: string | null
+    is_active?: boolean | null
+  } | null
+}
+
+/**
+ * A listing the family route is allowed to render.
+ *
+ * FIVE KEYS, AND NO SIXTH. There is no field here a price, a band, a median, a
+ * verdict or a sold population could travel in — the same structural guarantee
+ * PAN-56 gives `RenderableChild`, extended to the listings PAN-94 admits.
+ * `childSlug` is what makes the row a NAVIGATION row rather than a marketplace
+ * row: it is the link target, and the price question is answered on the variant
+ * page it leads to, where the market is one market.
+ */
+export interface FamilyListing {
+  id: string
+  title: string
+  source: string | null
+  /** The canonical child this listing is attributed to. */
+  childSlug: string
+  childLabel: string
+}
+
 export interface FamilyView {
   family: NavigationFamily
   /** Canonical-eligible children only, in reviewed order. Possibly empty. */
   children: readonly RenderableChild[]
+  /**
+   * The children's active listings, de-duplicated and attributed.
+   *
+   * THE DISPLAYED COUNT IS `listings.length` AND NOTHING ELSE. There is no
+   * separate count field, because a count that is stored beside the rows it
+   * describes is a count that can disagree with them — which is exactly the
+   * defect PAN-94 was opened on.
+   */
+  listings: readonly FamilyListing[]
   /** True once at least one child is canonical: indexable AND navigable. */
   published: boolean
 }
@@ -307,10 +383,20 @@ export const FAMILY_MIN_CANONICAL_CHILDREN = 1
  *
  * Rows may arrive in any order and may be missing entirely; a child with no row
  * is simply not canonical. Fail-closed throughout.
+ *
+ * LISTINGS RIDE THE SAME PREDICATE — PAN-94. `listingRows` are attributed via
+ * the `kg_product.id` of a child that has ALREADY been admitted above, so a
+ * listing matched to a child this function refused is discarded with it. The
+ * family can therefore never render more catalogue than it names.
+ *
+ * `listingRows` defaults to empty so the callers that want eligibility only —
+ * `generateMetadata`, and the family-sibling block in /api/product — keep
+ * calling with two arguments and keep getting no listings.
  */
 export function buildFamilyView(
   family: NavigationFamily,
   rows: readonly FamilyChildRow[],
+  listingRows: readonly FamilyListingRow[] = [],
 ): FamilyView {
   const bySlug = new Map<string, FamilyChildRow>()
   for (const row of rows) {
@@ -318,17 +404,98 @@ export function buildFamilyView(
   }
 
   const children: RenderableChild[] = []
+  /** product_id -> the admitted child, plus its position in the reviewed order. */
+  const childByProductId = new Map<string, { child: RenderableChild; order: number }>()
+
   for (const slug of family.children) {
     const row = bySlug.get(slug)
     if (!row) continue
     if (!isCanonical(row)) continue
     const name = typeof row.canonical_name === 'string' ? row.canonical_name.trim() : ''
-    children.push({ slug, label: name.length > 0 ? name : slug })
+    const child: RenderableChild = { slug, label: name.length > 0 ? name : slug }
+    children.push(child)
+    if (typeof row.id === 'string' && row.id.length > 0) {
+      childByProductId.set(row.id, { child, order: children.length - 1 })
+    }
   }
 
   return {
     family,
     children,
+    listings: collectFamilyListings(listingRows, childByProductId),
     published: children.length >= FAMILY_MIN_CANONICAL_CHILDREN,
   }
+}
+
+/**
+ * Attribute, order and DE-DUPLICATE the admitted children's listings.
+ *
+ * DE-DUPLICATION IS THE POINT, not housekeeping. A listing may be matched to
+ * more than one child — measured on `rhodes`, 2026-09-20: two of the 39 match
+ * rows are a second match for a listing already counted under another Mark,
+ * so the four children sum to 39 while the family holds 37 DISTINCT listings.
+ * Summing per-child counts would therefore publish a number two higher than
+ * the rows beneath it. A listing is attributed to the FIRST child in reviewed
+ * order that claims it, which is deterministic and independent of the order
+ * the database returned the rows in.
+ *
+ * A match explicitly adjudicated wrong (`is_valid === false`) is not a listing
+ * for this product, for the same reason the product route drops it: it carries
+ * a written rejection. NULL stays — that is the normal state of an automatic
+ * match. The route applies this filter in SQL as well; stating it here too
+ * keeps the rule readable from a plain Node test with no database.
+ */
+function collectFamilyListings(
+  listingRows: readonly FamilyListingRow[],
+  childByProductId: ReadonlyMap<string, { child: RenderableChild; order: number }>,
+): FamilyListing[] {
+  const attributed: Array<{ order: number; listing: FamilyListing }> = []
+
+  for (const raw of listingRows) {
+    if (!raw || typeof raw !== 'object') continue
+    if (raw.is_valid === false) continue
+
+    const productId = typeof raw.product_id === 'string' ? raw.product_id : ''
+    const owner = childByProductId.get(productId)
+    if (!owner) continue
+
+    const listing = raw.listings
+    if (!listing || typeof listing !== 'object') continue
+    if (listing.is_active === false) continue
+
+    const id = typeof listing.id === 'string' ? listing.id.trim() : ''
+    const title = typeof listing.title === 'string' ? listing.title.trim() : ''
+    if (id.length === 0 || title.length === 0) continue
+
+    attributed.push({
+      order: owner.order,
+      listing: {
+        id,
+        title,
+        source: typeof listing.source === 'string' ? listing.source : null,
+        childSlug: owner.child.slug,
+        childLabel: owner.child.label,
+      },
+    })
+  }
+
+  // Sort BEFORE de-duplicating, so which child keeps a shared listing is decided
+  // by the reviewed order rather than by the order the rows arrived in.
+  attributed.sort((a, b) => {
+    if (a.order !== b.order) return a.order - b.order
+    if (a.listing.title !== b.listing.title) {
+      return a.listing.title.localeCompare(b.listing.title, 'da')
+    }
+    return a.listing.id.localeCompare(b.listing.id)
+  })
+
+  const seen = new Set<string>()
+  const listings: FamilyListing[] = []
+  for (const { listing } of attributed) {
+    if (seen.has(listing.id)) continue
+    seen.add(listing.id)
+    listings.push(listing)
+  }
+
+  return listings
 }

@@ -35,6 +35,7 @@ import {
   getFamily,
   isFamilySlug,
   type FamilyChildRow,
+  type FamilyListingRow,
 } from '../../frontend/lib/families'
 
 import { ROUTE_ACCESS, requiresAuth } from '../../frontend/lib/route-access'
@@ -234,13 +235,25 @@ test('children: canonical children render in reviewed order with their display n
   ])
 })
 
+/**
+ * PAN-94 SPLIT THIS ASSERTION IN TWO, because the product owner split the rule
+ * in two: a family MAY aggregate its children's listings and NEVER their
+ * prices. What used to be one forbidden-word list over one shape is now:
+ *
+ *   the CONFIG   — still holds no price, no listing and no count. `families.ts`
+ *                  is reviewed navigation data and gained nothing;
+ *   the VIEW     — may name listings, and may not name price evidence;
+ *   a LISTING    — an exact key set, the way `RenderableChild` has one.
+ *
+ * `count` stays forbidden on the view deliberately. The displayed number is
+ * `listings.length`; a stored count is a number that can disagree with the rows
+ * beneath it, which is the defect the ticket was opened on.
+ */
 test('children: the config can hold no price, listing or count, at any depth', () => {
   const forbidden = /price|band|listing|count|median|aggregate/i
   for (const family of NAVIGATION_FAMILIES) {
     for (const key of Object.keys(family)) assert.equal(forbidden.test(key), false, key)
   }
-  const view = buildFamilyView(getFamily('gibson-les-paul')!, [])
-  for (const key of Object.keys(view)) assert.equal(forbidden.test(key), false, key)
   for (const child of buildFamilyView(
     getFamily('gibson-es-335')!,
     [canonicalRow('gibson-es-335-dot')],
@@ -249,14 +262,33 @@ test('children: the config can hold no price, listing or count, at any depth', (
   }
 })
 
+test('view: names listings, and can name no price evidence and no stored count', () => {
+  const priceShaped = /price|band|median|verdict|aggregate|count/i
+  const view = buildFamilyView(getFamily('gibson-les-paul')!, [])
+
+  // An exact key set, not a spot check: a fifth key is how price evidence would
+  // arrive, and it now has to be written into this list to ship.
+  assert.deepEqual(Object.keys(view).sort(), ['children', 'family', 'listings', 'published'])
+  for (const key of Object.keys(view)) {
+    if (key === 'listings') continue
+    assert.equal(priceShaped.test(key), false, key)
+  }
+  // The count is derived from the rows themselves and exists nowhere else.
+  assert.deepEqual(view.listings, [])
+  assert.equal(view.listings.length, 0)
+})
+
 /* ------------------------------------------------------------------ *
  * 4. Empty-family behaviour and the indexability transition
  * ------------------------------------------------------------------ */
 
-test('empty: the six guitar families are empty on today’s production state', () => {
-  // Every configured GUITAR child is supported+qa_only (SELECT, 2026-08-28,
-  // re-verified 2026-09-20). `rhodes` is deliberately excluded: its four
-  // children are public, which is the subject of the next test.
+test('empty: the six guitar families are empty when every child is qa_only', () => {
+  // A PREDICATE TEST, NOT A SNAPSHOT OF PRODUCTION — renamed by PAN-94, which
+  // re-measured and found the old claim false. Four of the six guitar families
+  // now have `public` children (SELECT, 2026-09-20), so the assertion below is
+  // that a family whose children are ALL qa_only renders none of them, which is
+  // true whatever the catalogue does next. `rhodes` is excluded because the
+  // next test covers the canonical case.
   for (const slug of GUITAR_FAMILIES) {
     const family = getFamily(slug)!
     const view = buildFamilyView(family, family.children.map(qaOnlyRow))
@@ -293,6 +325,91 @@ test('rhodes: the first family that renders — four canonical children, no pric
   assert.deepEqual(partial.children, [
     { slug: 'rhodes-mark-i-stage-73', label: 'Rhodes Mark I Stage 73' },
   ])
+})
+
+/**
+ * PAN-94's one aggregation test.
+ *
+ * THE FIXTURE IS THE MEASUREMENT. Production, `rhodes`, 2026-09-20 (SELECT):
+ * `browse_product_projection.active_listing_count` sums to 40 across the four
+ * children; the four product pages render 39, because one match on
+ * `rhodes-mark-i-stage-73` is `is_valid = false`; and the family holds 37
+ * DISTINCT listings, because two listings are matched to two children each.
+ * Three numbers for one question, and the page must publish the third.
+ *
+ * The shape below reproduces that in miniature — four children, a rejected
+ * match, a delisted listing, a shared listing and a listing owned by a child
+ * the view refused — so the rule is checked without the database, which is what
+ * lets this file stay deterministic.
+ */
+test('listings: a family aggregates its children’s listings, de-duplicated and priceless', () => {
+  const family = getFamily('rhodes')!
+  const [first, second, third, fourth] = family.children
+
+  const rows: FamilyChildRow[] = [
+    { ...canonicalRow(first, 'Rhodes Mark I Stage 73'), id: 'id-1' },
+    { ...canonicalRow(second, 'Rhodes Mark I Suitcase 73'), id: 'id-2' },
+    { ...canonicalRow(third, 'Rhodes Mark II Stage 73'), id: 'id-3' },
+    // Admitted as a child, but nothing is matched to it: a model with no
+    // listings is still a model, and still renders as a link.
+    { ...canonicalRow(fourth, 'Rhodes Mark I Stage 88'), id: 'id-4' },
+  ]
+
+  const listingRows: FamilyListingRow[] = [
+    { product_id: 'id-1', is_valid: null, listings: { id: 'L1', title: 'Rhodes stagepiano', source: 'dba', is_active: true } },
+    // An automatic match that an operator or the AI pass adjudicated WRONG. The
+    // projection counts it; no page renders it; neither does this.
+    { product_id: 'id-1', is_valid: false, listings: { id: 'L2', title: 'Rhodes pedal', source: 'dba', is_active: true } },
+    // Delisted. Present in the match table, absent from the market.
+    { product_id: 'id-2', is_valid: true, listings: { id: 'L3', title: 'Solgt Rhodes', source: 'dba', is_active: false } },
+    { product_id: 'id-2', is_valid: true, listings: { id: 'L4', title: 'Suitcase 73', source: 'reverb', is_active: true } },
+    // THE SAME LISTING, MATCHED TO TWO CHILDREN. It is one thing on the market
+    // and must be counted once, under the FIRST child in reviewed order.
+    { product_id: 'id-3', is_valid: null, listings: { id: 'L5', title: 'Rhodes 73', source: 'dba', is_active: true } },
+    { product_id: 'id-1', is_valid: null, listings: { id: 'L5', title: 'Rhodes 73', source: 'dba', is_active: true } },
+    // Matched to a product that is not a child of this family at all.
+    { product_id: 'id-stranger', is_valid: null, listings: { id: 'L6', title: 'Wurlitzer 200A', source: 'dba', is_active: true } },
+  ]
+
+  const view = buildFamilyView(family, rows, listingRows)
+
+  assert.equal(view.children.length, 4)
+  // Reviewed child order first, then title, then id — so the order is a
+  // property of the reviewed config and not of what the database returned.
+  // Within the first child, "Rhodes 73" sorts before "Rhodes stagepiano".
+  assert.deepEqual(view.listings.map((l) => l.id), ['L5', 'L1', 'L4'])
+  // THE COUNT AND THE CONTENT ARE ONE ARRAY. This is the whole bug: there is no
+  // second number to compare, only a length.
+  assert.equal(view.listings.length, 3)
+
+  // Every listing names the child it belongs to, and that child is one the view
+  // actually rendered — so the link can never resolve to a 404.
+  const rendered = new Set(view.children.map((c) => c.slug))
+  for (const listing of view.listings) {
+    assert.equal(rendered.has(listing.childSlug), true, listing.childSlug)
+  }
+  assert.equal(view.listings.find((l) => l.id === 'L5')!.childSlug, first)
+  assert.equal(view.listings.find((l) => l.id === 'L4')!.childLabel, 'Rhodes Mark I Suitcase 73')
+
+  // PRICE ISOLATION, STRUCTURALLY — the PAN-56 assertion, extended to listings.
+  // Five keys and no sixth, so no asking price, band, median, verdict or sold
+  // population can cross the family boundary inside a listing. Widening this
+  // shape is the way the rule is lost.
+  for (const listing of view.listings) {
+    assert.deepEqual(
+      Object.keys(listing).sort(),
+      ['childLabel', 'childSlug', 'id', 'source', 'title'],
+    )
+  }
+
+  // A family with no canonical child aggregates nothing, whatever is matched to
+  // the label row itself. `fender-jazz-bass` is that case in production: the
+  // `kg_product` row carries 268 active matches (SELECT, 2026-09-20) and none of
+  // them is a child's, so the family correctly holds zero.
+  const jazzBass = getFamily('fender-jazz-bass')!
+  const empty = buildFamilyView(jazzBass, [], listingRows)
+  assert.deepEqual(empty.children, [])
+  assert.deepEqual(empty.listings, [])
 })
 
 test('rhodes: the family slug is a navigation label, never a product (PAN-84)', () => {
@@ -364,7 +481,14 @@ test('route: the family page imports and computes nothing price-shaped', () => {
   const page = readRepoFile('app/family/[slug]/page.tsx')
   for (const forbidden of [
     'price-band',
-    'listing_product_match',
+    // PAN-94 REMOVED `listing_product_match` FROM THIS LIST AND KEPT
+    // `active_listing_count`, which is the whole distinction the ticket draws.
+    // The match table is where the family's listings legitimately come from.
+    // The projection COLUMN is a second, pre-aggregated answer to the same
+    // question — it counts rows adjudicated `is_valid = false` that no page
+    // renders, and summing it across children double-counts a listing matched
+    // to two of them. Reading it here is how the count and the content would
+    // disagree again.
     'active_listing_count',
     'priceRange',
     'PriceHistory',
@@ -373,9 +497,25 @@ test('route: the family page imports and computes nothing price-shaped', () => {
   ]) {
     assert.equal(page.includes(forbidden), false, `family route must not reference ${forbidden}`)
   }
-  // It reads exactly two tables, both for eligibility only.
+
+  // It reads exactly three tables: two for eligibility, one for the listings.
   const tables = [...page.matchAll(/\.from\('([^']+)'\)/g)].map((m) => m[1]).sort()
-  assert.deepEqual(tables, ['browse_product_projection', 'kg_product'])
+  assert.deepEqual(tables, ['browse_product_projection', 'kg_product', 'listing_product_match'])
+
+  // AND NO SELECT ON THIS ROUTE MAY NAME A PRICE COLUMN. Asserted over the
+  // select literals rather than over the prose, so the file may still explain
+  // in words why it holds no price while being unable to read one.
+  const selects = [...page.matchAll(/\.select\('([^']*)'\)/g)].map((m) => m[1])
+  assert.equal(selects.length > 0, true, 'expected at least one select')
+  for (const select of selects) {
+    for (const column of ['price', 'price_dkk', 'currency', 'msrp']) {
+      assert.equal(
+        new RegExp(`\\b${column}\\b`).test(select),
+        false,
+        `family route select must not read ${column}: ${select}`,
+      )
+    }
+  }
 })
 
 test('route: the demand control is present on the empty state only', () => {
@@ -541,12 +681,21 @@ test('navigation: the family route links only to /browse and to canonical childr
   const hrefs = [...page.matchAll(/href=(?:\{`|["'])([^"'`]+)/g)].map((m) => m[1])
   assert.equal(hrefs.length > 0, true, 'expected at least one link')
   for (const href of hrefs) {
-    const ok = href === '/browse' || href === '/product/${child.slug}'
+    const ok =
+      href === '/browse' ||
+      href === '/product/${child.slug}' ||
+      // PAN-94. An aggregated listing links to the MODEL it is matched to, never
+      // to the marketplace it came from. A family page that linked off-site
+      // would send the visitor to a price with no verdict attached, which is
+      // the opposite of what a family exists to say.
+      href === '/product/${listing.childSlug}'
     assert.equal(ok, true, `unexpected outbound href on a family page: ${href}`)
   }
-  // Every /product/ link is built from a RenderableChild, which by construction
-  // passed isCanonical() — so no rendered link can resolve to a 404.
+  // Every /product/ link is built from a RenderableChild — directly, or through
+  // a listing whose `childSlug` is one — and a RenderableChild by construction
+  // passed isCanonical(), so no rendered link can resolve to a 404.
   assert.match(page, /href=\{`\/product\/\$\{child\.slug\}`\}/)
+  assert.match(page, /href=\{`\/product\/\$\{listing\.childSlug\}`\}/)
 })
 
 test('route-access: /family/[slug] is classified, reachable and no longer planned', () => {
