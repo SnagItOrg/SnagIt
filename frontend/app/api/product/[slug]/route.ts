@@ -8,6 +8,7 @@ import {
   buildPopulationStats,
   classifyListing,
   groupByPopulation,
+  isPriceEvidence,
   verdictBasisLabelKey,
   verdictFor,
   type PopulationKey,
@@ -408,7 +409,7 @@ async function handle(req: NextRequest, slug: string) {
   }>
 
   const allMatched = matchRows
-    .map((m) => ({ score: m.score ?? 0, isVerified: m.is_valid === true, listing: m.listings }))
+    .map((m) => ({ score: m.score ?? 0, isVerified: isPriceEvidence(m.is_valid), listing: m.listings }))
     .filter(({ listing }) => listing != null && listing.is_active !== false)
     // Normalise a legacy Kleinanzeigen discount pair before anything renders
     // it. 235240 is 235 EUR now, down from 240 — two real prices welded by an
@@ -438,7 +439,12 @@ async function handle(req: NextRequest, slug: string) {
    *
    *   WALL        is_valid IS NOT FALSE   — hides adjudicated rejections,
    *                                          still shows unreviewed matches
-   *   STATISTICS  is_valid = true         — only explicitly verified matches
+   *   STATISTICS  isPriceEvidence()       — only explicitly verified matches
+   *
+   * PAN-93 moved the statistical half into `isPriceEvidence` in
+   * lib/price-populations so /intel is held to the same rule by the same
+   * function rather than by a second copy of it. The behaviour here is
+   * unchanged; what changed is that there is now one place to change it.
    *
    * The wall is a place to look; a median is a claim. An unreviewed automatic
    * match is fine to show a person who can judge it themselves, and not fine
@@ -496,6 +502,29 @@ async function handle(req: NextRequest, slug: string) {
    * of these, which is why the page cannot accidentally mix markets.
    */
   const grouped = groupByPopulation(verifiedListings)
+
+  /**
+   * MONITORED, NOT YET PRICED — PAN-93.
+   *
+   * How many Danish listings are on the wall and awaiting adjudication. It
+   * exists so the primary block can tell two states apart that both arrive as
+   * `tier === 'none'`:
+   *
+   *   0   we looked at the Danish market and there is nothing
+   *   > 0 there are Danish listings, none of them reviewed yet
+   *
+   * Without it the page says "Ingen danske annoncer lige nu" directly above a
+   * wall of Danish annoncer. Measured on production 2026-09-20: ten public
+   * guitars have zero adjudicated matches and 644 unreviewed ones between
+   * them, so this is the state most of the published catalogue is in.
+   *
+   * The PRIMARY population only. A reference block renders nothing below
+   * `band` and has nothing to qualify.
+   */
+  const awaitingReview = groupByPopulation(
+    allMatched.filter((m) => !m.isVerified).map((m) => m.listing),
+  ).byPopulation['dk-asking'].length
+
   // A truncated read is an incomplete population, and an incomplete
   // population produces no statistics at all — see BuildOptions.incomplete.
   const askingIncomplete = { incomplete: matchesAll.truncated }
@@ -668,7 +697,7 @@ async function handle(req: NextRequest, slug: string) {
       : null
 
   return NextResponse.json(
-    { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, familyContext, adminPreview },
+    { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, awaitingReview, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, familyContext, adminPreview },
     {
       headers: adminPreview
         // An unpublished product must never enter a shared cache.

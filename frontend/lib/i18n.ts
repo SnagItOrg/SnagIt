@@ -215,6 +215,7 @@ export const translations = {
     // Price populations (P2) — each number names the population behind it.
     dkMarketHeading: 'Det danske marked',
     dkMarketNone: 'Ingen danske annoncer lige nu.',
+    dkMarketAwaitingReview: 'Vi overvåger danske annoncer for denne model, men ingen er gennemgået endnu. Derfor viser vi ingen typisk pris. Priserne herunder er de faktiske annoncer.',
     dkMarketCount: 'Klup har {count} gennemgået dansk annonce i prisgrundlaget',
     dkMarketCountPlural: 'Klup har {count} gennemgåede danske annoncer i prisgrundlaget',
     dkMarketMedianDescriptive: 'Median blandt {count} gennemgåede danske annoncer',
@@ -562,6 +563,7 @@ export const translations = {
 
     dkMarketHeading: 'The Danish market',
     dkMarketNone: 'No Danish listings right now.',
+    dkMarketAwaitingReview: 'We monitor Danish listings for this model, but none has been reviewed yet. So we show no typical price. The prices below are the actual listings.',
     dkMarketCount: 'Klup has {count} reviewed Danish listing in the price basis',
     dkMarketCountPlural: 'Klup has {count} reviewed Danish listings in the price basis',
     dkMarketMedianDescriptive: 'Median across {count} reviewed Danish listings',

@@ -66,6 +66,10 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',
+      // PAN-93: display and price evidence are two questions asked of one
+      // three-valued column, and two surfaces answer them. Its own suite
+      // because the failure is silent — a wrong median looks like a median.
+      'scripts/lib/pan93-price-evidence.test.ts',
       // PAN-72: the watchlist notification step decides whether `notified_at`
       // may be stamped at all, and its provider-failure path is what used to
       // produce a marker for a mail that never went out.

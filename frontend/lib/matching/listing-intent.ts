@@ -4,11 +4,12 @@
  * THE PROBLEM: the matcher keys on brand + model tokens, and a listing for a
  * *part of* a product contains exactly the same tokens as the product itself.
  * "Fender Jazz Bass pickups" and "Juno 106 voice chips" both clear the brand
- * proof that lets a score-70 model match become trusted. A trusted row is
- * `is_valid=NULL`, which /api/product/[slug] and /intel treat as trusted
- * immediately — so a 400 DKK pickup set lands in the price evidence for a
- * 9,000 DKK bass. Deferring to a later AI/admin pass does not make that safe,
- * because the row is visible the moment it is written.
+ * proof that lets a score-70 model match become trusted. Such a row is written
+ * `is_valid=NULL`, which /api/product/[slug] and /intel SHOW on the wall the
+ * moment it exists — so a 400 DKK pickup set appears under a 9,000 DKK bass.
+ * Since PAN-93 it cannot reach a median (`isPriceEvidence` in
+ * lib/price-populations), but it is still visible immediately, so deferring to
+ * a later AI/admin pass does not make writing it safe.
  *
  * EVIDENCE. Every token below was derived by enumerating the ~1,682 listings
  * that the matcher would otherwise have accepted as safe automatic matches
