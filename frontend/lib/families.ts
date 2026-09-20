@@ -43,13 +43,18 @@ export interface NavigationFamily {
 
 /**
  * The six navigation families of V1 — exactly the six public `kg_product` rows
- * that behave as priced products today. Children come verbatim from
+ * that behave as priced products today — plus `rhodes` (PAN-85), which is the
+ * first family that is ONLY a navigation concept: it has no `kg_product` row,
+ * and it must never be given one. Children come verbatim from
  * docs/klup-launch-catalogue-selection.md §6.3 and were verified present in
- * `kg_product` (SELECT, 2026-08-28).
+ * `kg_product` (SELECT, 2026-08-28; the four Rhodes children 2026-09-20).
  *
- * MEASURED TODAY: every child of every family is `supported` + `qa_only`, so
- * every family renders ZERO children. That is the expected V1 state, not a
- * defect, and it is why all six routes are `noindex` and unlisted (§4.2).
+ * MEASURED 2026-09-20 (PAN-85): every child of the six GUITAR families is
+ * still `supported` + `qa_only`, so those six render ZERO children and stay
+ * `noindex` and unlisted (§4.2). That remains the expected V1 state, not a
+ * defect. `rhodes` is the exception, and the reason this paragraph changed:
+ * its four children are `supported` + `public` + music, so it is the first
+ * family that renders anything at all.
  *
  * `aliases` are NAVIGATION ONLY. A bare model number is never an alias —
  * migration 054 removed `335` as an identifier for exactly this reason — and
@@ -114,6 +119,71 @@ export const NAVIGATION_FAMILIES: readonly NavigationFamily[] = [
     categoryRoot: 'bass-guitars',
     children: [],
     aliases: ['precision bass', 'p-bass', 'fender precision bass'],
+  },
+  {
+    slug: 'rhodes',
+    /*
+     * LABEL IS `Rhodes Electric Piano`, NOT bare `Rhodes`, for two measured
+     * reasons rather than taste.
+     *
+     * 1. `rhodes` is a DANGEROUS_TERM_KEY (lib/search-index.ts), so the query
+     *    "rhodes" renders a disambiguation SET instead of navigating. This
+     *    family is the first whose own slug is a dangerous term, so it is the
+     *    first to appear in such a set — beside `Rhodes Mark I Stage 73` and
+     *    its siblings. A candidate labelled just "Rhodes" is not choosable
+     *    against those; wp4-search.test.ts asserts exactly that property.
+     * 2. The route renders `brand` above `label`, which for a bare label would
+     *    print "Rhodes" directly above "Rhodes".
+     *
+     * `Electric Piano` is taken from the catalogue's own taxonomy — all four
+     * children are classified `keyboards-and-synths/electric-pianos` — so this
+     * is a descriptive family name, not an evocative editorial facet of the
+     * kind CLAUDE.md §7 forbids as a taxonomy replacement. The other six
+     * families are brand + model; the Rhodes line has no model word to use.
+     */
+    label: 'Rhodes Electric Piano',
+    /*
+     * BRAND IS `Rhodes`, NOT `Fender Rhodes` — measured, not chosen by taste.
+     * All four children carry `kg_brand.name = 'Rhodes'` (SELECT, 2026-09-20).
+     *
+     * The line was sold as Fender Rhodes while Fender owned the company and as
+     * Rhodes before and after, so NO single brand string is true of the whole
+     * production run. The one that is true of the ROWS is the one that keeps
+     * this file and `kg_product` from disagreeing — and `brand` here feeds the
+     * brand-affinity term in lib/search-resolver.ts, which compares against a
+     * single query TOKEN, so `Fender Rhodes` would simply never match one.
+     * The Fender era is carried by an alias instead, which is where a
+     * historical trading name belongs: navigation, never identity.
+     */
+    brand: 'Rhodes',
+    categoryRoot: 'keyboards-and-synths',
+    children: [
+      'rhodes-mark-i-stage-73',
+      'rhodes-mark-i-suitcase-73',
+      'rhodes-mark-ii-stage-73',
+      'rhodes-mark-i-stage-88',
+    ],
+    /*
+     * `fender rhodes` is measured, not assumed: 155 of the 395 listing titles
+     * containing "Rhodes" say "Fender Rhodes" (SELECT, 2026-09-20).
+     *
+     * THE COLLISION, AND WHY IT DOES NOT BITE. Ten of those 155 are the
+     * `Fender Rhodes Chroma Polaris` — a polyphonic ANALOG SYNTHESIZER, not an
+     * electric piano, and it holds its own `kg_product` rows
+     * (`fender-rhodes-chroma-polaris`, `rhodes-chroma-polaris`, both qa_only).
+     * Navigation auto-resolves on an EXACT alias key only (`exactMatches` in
+     * lib/search-resolver.ts; `relatedMatches` is documented there as never
+     * used to navigate). `fender rhodes chroma polaris` is not that key, so a
+     * Chroma query cannot be captured by this family — it can only surface as
+     * a suggestion, which is the right outcome for a term Klup does not
+     * support.
+     *
+     * `rhodes` is deliberately NOT listed: the label and the slug already
+     * produce that key. No bare model number appears — `73`, `88` and `mark i`
+     * name a CHILD rather than this family, and migration 054 removed `335`
+     * for exactly that reason.
+     */
+    aliases: ['fender rhodes'],
   },
 ]
 

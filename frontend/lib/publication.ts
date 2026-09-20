@@ -22,7 +22,7 @@
 export type PublicationAction = 'public' | 'qa' | 'hidden'
 
 /**
- * The six navigation-family slugs, repeated here rather than imported (PAN-84).
+ * The navigation-family slugs, repeated here rather than imported (PAN-84).
  *
  * This module is CLIENT-SAFE — `app/admin/products/page.tsx` is a `use client`
  * module that imports it — while `lib/catalogue.ts`, which owns the same list,
@@ -30,7 +30,7 @@ export type PublicationAction = 'public' | 'qa' | 'hidden'
  * the predicate from there would give a client bundle a value-import path into
  * server-only catalogue state, and the boundary test fails on exactly that.
  *
- * The six slugs are not sensitive: each is already a public `/family/<slug>`
+ * The slugs are not sensitive: each is already a public `/family/<slug>`
  * route. What matters is that the list cannot DRIFT, and that is enforced by
  * `scripts/lib/wp1-catalogue.test.ts`, which asserts this list, the one in
  * `lib/catalogue.ts` and `NAVIGATION_FAMILIES` in `lib/families.ts` are equal.
@@ -42,6 +42,9 @@ export const FAMILY_LABEL_SLUGS = [
   'gibson-es-335',
   'fender-jazz-bass',
   'fender-precision-bass',
+  // PAN-85. Unlike the six above, `rhodes` guards no existing row: the family
+  // has no `kg_product` row and must never be given one. See lib/catalogue.ts.
+  'rhodes',
 ]
 
 /** The fields each action writes. Nothing else is ever touched. */

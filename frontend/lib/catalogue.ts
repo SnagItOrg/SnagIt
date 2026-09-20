@@ -66,6 +66,13 @@ export const FAMILY_LABEL_SLUGS: readonly string[] = [
   'gibson-es-335',
   'fender-jazz-bass',
   'fender-precision-bass',
+  // PAN-85. `rhodes` has NO `kg_product` row and must never be given one, so
+  // unlike the six above it does not guard a row that exists today. It is here
+  // because the guard is structural rather than reactive: if a `rhodes` row is
+  // ever created, it is refused as a priced page and as a match target at
+  // creation, instead of after someone notices a single band averaging a Stage
+  // against a Suitcase.
+  'rhodes',
 ]
 
 const FAMILY_LABEL_SLUG_SET = new Set<string>(FAMILY_LABEL_SLUGS)
