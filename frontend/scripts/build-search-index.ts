@@ -139,7 +139,7 @@ async function main() {
 
   const admin = createClient(url, key, { auth: { persistSession: false } })
 
-  // ALL 48 SUPPORTED IDENTITIES — active + supported, public or private.
+  // THE WHOLE SUPPORTED COHORT — active + supported, public or private.
   //
   // Visibility is deliberately NOT a filter here and is deliberately NOT stored
   // in the artefact. Baking it in would make this file the visibility

@@ -80,9 +80,22 @@ const INDEXED_SLUGS = INDEX.products.map((p) => p.slug).sort()
  * against live state; this set only stands in for "what the gate said today".
  */
 const PUBLIC_COHORT = new Set([
+  // Refreshed 2026-09-20 (PAN-55) against the live gate: 21 rows are
+  // active + supported + music + public. The seven added here were already
+  // public then, but were still `known` when this fixture was written on
+  // 2026-08-28, so they were absent from both the index and this snapshot.
+  // `rhodes-mark-i-stage-88` is the one that mattered: without it this file
+  // asserted that Rhodes disambiguates across THREE children while the
+  // shipped family has four.
+  'ampex-atr-700',
+  'arp-2600',
   'korg-ms-20',
+  'linn-electronics-linndrum',
   'moog-minimoog',
+  'oberheim-ob-x',
+  'oberheim-ob-xa',
   'rhodes-mark-i-stage-73',
+  'rhodes-mark-i-stage-88',
   'rhodes-mark-i-suitcase-73',
   'rhodes-mark-ii-stage-73',
   'roland-juno-106',
@@ -92,6 +105,7 @@ const PUBLIC_COHORT = new Set([
   'roland-sh-101',
   'roland-tr-808',
   'roland-tr-909',
+  'sequential-prophet-5',
   'wurlitzer-200a',
   'yamaha-dx7',
 ])
@@ -246,8 +260,16 @@ test('index: never carries a visibility field', () => {
 test('index: cohorts outside the supported set are absent entirely', () => {
   const forbidden = [
     // public + unsupported (held from launch) — the matcher can never update them
-    'ampex-atr-700', 'arp-2600', 'linn-electronics-linndrum', 'oberheim-ob-x',
-    'oberheim-ob-xa', 'rhodes-mark-i-stage-88', 'sequential-prophet-5', 'strymon-timeline',
+    //
+    // This list was authored 2026-08-28 and held eight slugs. Seven of them —
+    // ampex-atr-700, arp-2600, linn-electronics-linndrum, oberheim-ob-x,
+    // oberheim-ob-xa, rhodes-mark-i-stage-88 and sequential-prophet-5 — were
+    // since promoted to `supported` and are now active + supported + music +
+    // public (SELECT, 2026-09-20), so `isCanonical()` renders a product page
+    // for each. They belong in the index; keeping them out left seven live
+    // public pages unfindable by search. The invariant in the title is
+    // unchanged — it was the MEMBERSHIP that went stale, not the rule.
+    'strymon-timeline',
     // family labels — they are families, never products
     'gibson-les-paul', 'fender-stratocaster', 'fender-telecaster',
     'fender-jazz-bass', 'fender-precision-bass', 'gibson-es-335',
@@ -454,6 +476,7 @@ test('acceptance 3: "rhodes" disambiguates across every Rhodes identity Klup fol
   assert.deepEqual(slugs, [
     'rhodes',
     'rhodes-mark-i-stage-73',
+    'rhodes-mark-i-stage-88',
     'rhodes-mark-i-suitcase-73',
     'rhodes-mark-ii-stage-73',
   ])
@@ -462,6 +485,28 @@ test('acceptance 3: "rhodes" disambiguates across every Rhodes identity Klup fol
   for (const c of outcome.candidates) {
     assert.ok(c.label.length > 'Rhodes'.length, `"${c.label}" must carry its qualifier`)
   }
+})
+
+test('a family leads the set it appears in, and never by alphabetical accident', () => {
+  // The one new contract PAN-55 introduces: a family is the "all models" row,
+  // so it sorts above the concrete models rather than among them. `rhodes`
+  // satisfied this before only because "Rhodes Electric Piano" happens to
+  // precede "Rhodes Mark I ..." — this asserts the rule, not the coincidence.
+  const outcome = resolvePublic('rhodes')
+  const kinds = outcome.candidates.map((c) => c.kind)
+  assert.equal(kinds[0], 'family', 'the family must lead the set')
+  assert.deepEqual(
+    kinds.slice(1),
+    kinds.slice(1).map(() => 'product'),
+    'no product may sort above the family',
+  )
+  // And the rule must not have cost the set its ordering WITHIN a kind.
+  const productLabels = outcome.candidates.filter((c) => c.kind === 'product').map((c) => c.label)
+  assert.deepEqual(
+    productLabels,
+    [...productLabels].sort((a, b) => a.localeCompare(b, 'da')),
+    'products are still ordered by label',
+  )
 })
 
 test('a dangerous term is dangerous only as the WHOLE query', () => {

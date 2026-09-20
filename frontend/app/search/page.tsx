@@ -453,6 +453,7 @@ function CandidateList({
   activeIndex: number
   listRef: React.RefObject<HTMLUListElement>
 }) {
+  const { t } = useLocale()
   return (
     <ul id={id} ref={listRef} role="listbox" className="flex flex-col gap-2">
       {options.map((option, i) => (
@@ -472,8 +473,31 @@ function CandidateList({
             }
           >
             <span className="min-w-0">
-              <span className="block text-sm font-semibold text-foreground truncate">
-                {option.label}
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="text-sm font-semibold text-foreground truncate">
+                  {option.label}
+                </span>
+                {/*
+                  A family row is NOT a fifth sibling — it is the "show me all
+                  of them" row, and unlabelled it reads as one more model. The
+                  badge is deliberately neutral: `--accent` is reserved for the
+                  Kup rating and the Aktiv badge, and this is neither. It is
+                  also the only kind that is marked, because the unmarked rows
+                  are the concrete models and badging all five would add noise
+                  to the common case, where every candidate is a product.
+                */}
+                {option.kind === 'family' && (
+                  <span
+                    className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium leading-none"
+                    style={{
+                      background: 'var(--surface-2)',
+                      color: 'var(--text-secondary)',
+                      border: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    {t.searchKindFamily}
+                  </span>
+                )}
               </span>
               <span className="block text-xs text-muted-foreground truncate">{option.brand}</span>
             </span>
