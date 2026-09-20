@@ -153,6 +153,35 @@ export function isConfirmedSales(key: PopulationKey): boolean {
   return POPULATIONS[key].confirmedSales
 }
 
+// ── Evidence ────────────────────────────────────────────────────────────────
+
+/**
+ * THE ONE PRICE-EVIDENCE PREDICATE — PAN-93.
+ *
+ * `listing_product_match.is_valid` is three-valued: true is an adjudicated
+ * confirmation, false an adjudicated rejection, NULL the untouched state every
+ * automatic match is written in. Only the first is evidence.
+ *
+ * A wall is a place to look; a median is a claim. Showing a person an
+ * unreviewed match costs them a glance — averaging it states a market level
+ * Klup has not established. Displaying a listing and counting it are therefore
+ * two different questions, and only this one is answered here.
+ *
+ * WHY IT IS A FUNCTION RATHER THAN A FILTER EACH CALLER WRITES. Two surfaces
+ * build price statistics from these rows — /api/product/[slug] and /intel — and
+ * they diverged: the public route already required `is_valid === true`, while
+ * /intel applied no adjudication filter at all and averaged rejected rows.
+ * Measured 2026-09-20 on production, that put the TR-909 US median at 585 DKK
+ * against an adjudicated 48,920, and Jupiter-8 US at 547 against 163,068. One
+ * exported predicate is what stops the two from drifting again.
+ *
+ * Fail-closed, like `isCanonical`: anything that is not exactly `true` — NULL,
+ * false, undefined, a missing column — is not evidence.
+ */
+export function isPriceEvidence(isValid: boolean | null | undefined): boolean {
+  return isValid === true
+}
+
 // ── Gates ───────────────────────────────────────────────────────────────────
 
 /** V1 §9.2 / decision 13. A band — median + Q1–Q3 — needs eight observations. */

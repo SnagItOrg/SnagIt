@@ -4,10 +4,12 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { CatalogueUnavailableError } from '@/lib/catalogue'
+import { fetchAllPages } from '@/lib/exhaustive-fetch'
 import {
   buildFamilyView,
   getFamily,
   type FamilyChildRow,
+  type FamilyListingRow,
   type FamilyView,
 } from '@/lib/families'
 import { translations } from '@/lib/i18n'
@@ -18,12 +20,29 @@ import { SITE_URL } from '@/lib/site-metadata'
  *
  * Stage 3 V1, WP-2. See docs/stage-3-v1-decision-and-build-plan.md §4.1–§4.2.
  *
- * WHAT THIS PAGE IS. A directory, and nothing else. A family groups products
- * whose markets differ by more than 3x (klup-launch-catalogue-selection.md
- * §6.1), so it must never present one price for all of them. That is enforced
- * structurally, not by a flag: this file imports no price module, computes no
- * band, loads no listing, and lib/families.ts has no field that could carry a
- * price, a listing or a count. There is no code path here that could aggregate.
+ * WHAT THIS PAGE IS. A directory of models, and — since PAN-94 — of what is on
+ * the market under them. A family groups products whose markets differ by more
+ * than 3x (klup-launch-catalogue-selection.md §6.1), so it must never present
+ * one price for all of them.
+ *
+ * THE LISTING HALF AND THE PRICE HALF ARE ENFORCED DIFFERENTLY. Listings are a
+ * feature: one query, and the count is the length of its result. Price is
+ * structural: this file imports no price module, computes no band, and the
+ * `listings` embed below selects `id, title, source, is_active` — no `price`,
+ * no `price_dkk`, no `currency`. A price is not filtered out here, it is never
+ * read, and `FamilyListing` has no field one could be written into.
+ *
+ * IT DOES NOT READ THE BROWSE PROJECTION'S PRE-AGGREGATED ACTIVE-LISTING COUNT
+ * — the column is named in the test that forbids it, not here, so the guard
+ * stays a substring scan. That is the defect PAN-94 closes rather than an
+ * omission: the column counts every
+ * `listing_product_match` row against an active listing, INCLUDING matches an
+ * operator or the AI pass has adjudicated wrong (`is_valid = false`), which no
+ * page renders. Measured on the four `rhodes` children, 2026-09-20: the
+ * projection says 40, the four product pages render 39, and the family holds 37
+ * distinct listings because two are matched to two children each. Three numbers
+ * for one question. The page now publishes only the third, and it publishes it
+ * by counting the rows it is about to render.
  *
  * WHY IT IS A SERVER COMPONENT. `robots` and the canonical URL have to be part
  * of the document a crawler receives, and the indexability rule below is data,
@@ -69,7 +88,9 @@ const loadFamilyView = cache(async (slug: string): Promise<FamilyView | null> =>
   const [productsRes, projectionRes] = await Promise.all([
     admin
       .from('kg_product')
-      .select('slug, canonical_name, status, support_state, browse_visibility')
+      // `id` is the join key for the listing read below and is never rendered:
+      // `RenderableChild` and `FamilyListing` carry no database identifier.
+      .select('id, slug, canonical_name, status, support_state, browse_visibility')
       .in('slug', family.children),
     admin
       .from('browse_product_projection')
@@ -92,6 +113,7 @@ const loadFamilyView = cache(async (slug: string): Promise<FamilyView | null> =>
   const rows: FamilyChildRow[] = ((productsRes.data ?? []) as Array<Record<string, unknown>>)
     .filter((raw): raw is Record<string, unknown> => typeof raw?.slug === 'string')
     .map((raw) => ({
+      id: (raw.id as string | null) ?? null,
       slug: raw.slug as string,
       canonical_name: (raw.canonical_name as string | null) ?? null,
       status: (raw.status as string | null) ?? null,
@@ -100,7 +122,62 @@ const loadFamilyView = cache(async (slug: string): Promise<FamilyView | null> =>
       browse_domain: domainBySlug.get(raw.slug as string) ?? null,
     }))
 
-  return buildFamilyView(family, rows)
+  /*
+    ELIGIBILITY FIRST, LISTINGS SECOND — and only for children this view has
+    already admitted. The listing read is scoped to the ids of the canonical
+    children, so a `qa_only` child's matches are never loaded at all: private
+    catalogue state does not enter the process merely to be filtered out of the
+    response. `fender-jazz-bass` and `fender-precision-bass` have no children
+    configured at all, so for those this returns here and costs no third query.
+  */
+  const eligibility = buildFamilyView(family, rows)
+  const idBySlug = new Map(rows.map((row) => [row.slug, row.id]))
+  const childIds = eligibility.children
+    .map((child) => idBySlug.get(child.slug))
+    .filter((id): id is string => typeof id === 'string' && id.length > 0)
+
+  if (childIds.length === 0) return eligibility
+
+  /*
+    ONE QUERY IS THE WHOLE FIX. The count the page prints is the length of this
+    result, so there is no second read for it to disagree with — and no
+    `.limit()`, because a capped list under an uncapped count is the same defect
+    wearing a different number. `fetchAllPages` reads to exhaustion on the
+    unique `id` order; the widest family today is `gibson-les-paul` at 261 rows,
+    still one page. If a family ever grows past a readable page, the answer is
+    paging that moves the COUNT with the rows — never a silent cap.
+
+    `.not('is_valid','is',false)` keeps NULL and true and drops only the
+    explicit rejection, exactly as /api/product does — so a match adjudicated
+    wrong cannot be counted here while the product page declines to render it.
+  */
+  const listingRows = await fetchAllPages(
+    async (from, to) => {
+      // A transport-level rejection never reaches the `{ data, error }` shape,
+      // so the await itself is wrapped — same failure model as the two reads
+      // above: unavailability is a throw, never an empty family.
+      const res = await admin
+        .from('listing_product_match')
+        .select('id, product_id, is_valid, listings(id, title, source, is_active)')
+        .in('product_id', childIds)
+        .not('is_valid', 'is', false)
+        .order('id', { ascending: true })
+        .range(from, to)
+        .then(
+          (r) => r,
+          () => {
+            throw new CatalogueUnavailableError('family_listings_transport')
+          },
+        )
+      if (res.error) throw new CatalogueUnavailableError('family_listings_lookup')
+      return (res.data ?? []) as unknown as Array<{ id: string } & FamilyListingRow>
+    },
+    (row) => row.id,
+  )
+
+  // Re-derived from the SAME rows, so the children cannot differ between the two
+  // calls; the second call only adds the listings those children own.
+  return buildFamilyView(family, rows, listingRows.rows)
 })
 
 /**
@@ -130,7 +207,7 @@ export default async function FamilyPage({ params }: { params: { slug: string } 
   const view = await loadFamilyView(params.slug)
   if (!view) notFound()
 
-  const { family, children } = view
+  const { family, children, listings } = view
 
   return (
     <main
@@ -178,6 +255,45 @@ export default async function FamilyPage({ params }: { params: { slug: string } 
           <p className="mt-4 text-base leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
             {family.children.length > 0 ? t.familyNoPublicChildren : t.familyNoSupportedChildren}
           </p>
+        )}
+
+        {/*
+          ── The market under this family (PAN-94) ──────────────
+          The count is `listings.length`: the number printed and the rows
+          printed under it are the same array, so no read can disagree with
+          another. Rendered only where there is a model to attribute a listing
+          to — a family with no canonical child shows the demand form instead.
+
+          EACH ROW IS A NAVIGATION ROW, NOT A MARKETPLACE ROW. It carries the
+          seller's title, the source it came from, and the model it is matched
+          to — and the only link is INTO that model's page, where the market is
+          one market and Klup can answer the price question. There is no price
+          on this surface and no link that leaves for a marketplace carrying
+          none, because either would turn "too broad to combine" into a price
+          list the visitor combines themselves.
+        */}
+        {children.length > 0 && (
+          <section className="mt-10 flex flex-col gap-2">
+            <p className="type-label" style={{ color: 'var(--muted-foreground)' }}>
+              {listings.length > 0
+                ? t.familyListingsCount.replace('{count}', String(listings.length))
+                : t.familyNoListings}
+            </p>
+
+            {listings.map((listing) => (
+              <Link
+                key={listing.id}
+                href={`/product/${listing.childSlug}`}
+                className="flex flex-col gap-1 rounded-2xl px-5 py-4 transition-opacity hover:opacity-80"
+                style={{ border: '1px solid var(--border)', color: 'var(--foreground)' }}
+              >
+                <span className="text-base wrap-anywhere">{listing.title}</span>
+                <span className="type-meta" style={{ color: 'var(--muted-foreground)' }}>
+                  {listing.source ? `${listing.childLabel} · ${listing.source}` : listing.childLabel}
+                </span>
+              </Link>
+            ))}
+          </section>
         )}
 
         {/*

@@ -859,8 +859,10 @@ export async function matchListings(
 
     // Deferred: NOT safe to automate. Deliberately writes NO ROW.
     //
-    // A row with is_valid=NULL would be read as TRUSTED by /api/product/[slug]
-    // and /intel, which is the exact failure this gate exists to prevent, and
+    // A row with is_valid=NULL is SHOWN by /api/product/[slug] and /intel from
+    // the moment it is written — it cannot reach a median since PAN-93, but it
+    // is still an undecidable listing presented under a product, which is the
+    // failure this gate exists to prevent. And
     // is_valid=false would permanently bury a listing that is merely
     // undecidable rather than wrong. Writing nothing leaves the listing in the
     // unmatched backlog, where a later run with a cleaner KG — or a human in
@@ -885,8 +887,9 @@ export async function matchListings(
     }
 
     // Brand collision. Persisted as an explicit rejection rather than dropped:
-    //   - is_valid=false keeps it out of every consumer, which all filter
-    //     `is_valid IS NULL OR is_valid = true`;
+    //   - is_valid=false keeps it off the wall too, not just out of the price
+    //     evidence: display filters `is_valid IS NOT FALSE` and every price
+    //     statistic filters `isPriceEvidence` (PAN-93);
     //   - it records WHY, so the decision is auditable;
     //   - it makes the run idempotent — the listing is not re-evaluated
     //     against the same colliding product on every subsequent run.

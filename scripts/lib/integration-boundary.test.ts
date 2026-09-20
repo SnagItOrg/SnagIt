@@ -66,6 +66,10 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',
+      // PAN-93: display and price evidence are two questions asked of one
+      // three-valued column, and two surfaces answer them. Its own suite
+      // because the failure is silent — a wrong median looks like a median.
+      'scripts/lib/pan93-price-evidence.test.ts',
       // PAN-97: the admin subcategory picker's narrowing and parent labelling,
       // import-free for the same reason — 320 leaves and 13 duplicated leaf
       // names are a data property, not a React one.

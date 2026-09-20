@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { hasPlausibleListingPrice } from '@/lib/listing-price-integrity'
+import { isPriceEvidence } from '@/lib/price-populations'
 import { IntelDashboard } from './IntelDashboard'
 import {
   MARKETS,
@@ -24,6 +25,8 @@ type SoldCompRow = {
 
 type MatchWithListing = {
   product_id: string
+  /** Three-valued adjudication. Only `true` is price evidence — PAN-93. */
+  is_valid: boolean | null
   listings: {
     id: string
     title: string
@@ -100,7 +103,7 @@ async function loadIntelData(): Promise<IntelData> {
   const { data: matches, error: matchesError } = await admin
     .from('listing_product_match')
     .select(
-      'product_id, listings!inner(id, title, url, source, country, price, price_dkk, location, scraped_at)',
+      'product_id, is_valid, listings!inner(id, title, url, source, country, price, price_dkk, location, scraped_at)',
     )
     .in('product_id', productIds)
     .eq('listings.is_active', true)
@@ -153,6 +156,18 @@ async function loadIntelData(): Promise<IntelData> {
   for (const m of matchRows) {
     const l = m.listings
     if (!l) continue
+    // ADJUDICATED EVIDENCE ONLY — PAN-93, and the same function the public
+    // product route uses, deliberately not a second copy of the rule.
+    //
+    // This dashboard had NO adjudication filter at all, so every median here
+    // was taken over unreviewed AND explicitly rejected matches. Measured on
+    // production 2026-09-20: the TR-909 US median read 585 DKK against an
+    // adjudicated 48,920, Jupiter-8 US 547 against 163,068, TR-808 US 2,444
+    // against 48,011 and DX7 US 660 against 5,810 — cables, manuals and
+    // service parts filed under the instrument, most of them already carrying
+    // a written rejection. An arbitrage delta computed from those numbers is
+    // noise wearing a monospace font.
+    if (!isPriceEvidence(m.is_valid)) continue
     if (!isMarket(l.country)) continue
     // Legacy Kleinanzeigen rows with concatenated raw prices would otherwise
     // dominate every DE median and delta on this dashboard. See

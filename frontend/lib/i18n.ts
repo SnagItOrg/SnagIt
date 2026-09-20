@@ -188,6 +188,11 @@ export const translations = {
     // PAN-56: family context on the product page. The heading says "other
     // models", never "other prices" — each sibling carries its own evidence.
     familyOtherModels: 'Andre modeller i familien',
+    // PAN-94: a family may aggregate listings, never prices. The count names
+    // ANNONCER, never a price or a spread, and {count} is the length of the
+    // rendered list rather than a separately queried total.
+    familyListingsCount: '{count} aktive annoncer på familiens modeller',
+    familyNoListings: 'Ingen aktive annoncer på familiens modeller lige nu.',
 
     // Price evidence (WP-3)
     priceBandMedian: 'median udbudspris',
@@ -215,6 +220,7 @@ export const translations = {
     // Price populations (P2) — each number names the population behind it.
     dkMarketHeading: 'Det danske marked',
     dkMarketNone: 'Ingen danske annoncer lige nu.',
+    dkMarketAwaitingReview: 'Vi overvåger danske annoncer for denne model, men ingen er gennemgået endnu. Derfor viser vi ingen typisk pris. Priserne herunder er de faktiske annoncer.',
     dkMarketCount: 'Klup har {count} gennemgået dansk annonce i prisgrundlaget',
     dkMarketCountPlural: 'Klup har {count} gennemgåede danske annoncer i prisgrundlaget',
     dkMarketMedianDescriptive: 'Median blandt {count} gennemgåede danske annoncer',
@@ -538,6 +544,8 @@ export const translations = {
     familyNoSupportedChildren: 'Klup does not follow any variant in this family yet.',
     familyBackToCatalogue: 'See the whole catalogue',
     familyOtherModels: 'Other models in this family',
+    familyListingsCount: '{count} active listings on this family’s models',
+    familyNoListings: 'No active listings on this family’s models right now.',
 
     priceBandMedian: 'median asking price',
     priceBandRange: 'typical range (p25–p75)',
@@ -562,6 +570,7 @@ export const translations = {
 
     dkMarketHeading: 'The Danish market',
     dkMarketNone: 'No Danish listings right now.',
+    dkMarketAwaitingReview: 'We monitor Danish listings for this model, but none has been reviewed yet. So we show no typical price. The prices below are the actual listings.',
     dkMarketCount: 'Klup has {count} reviewed Danish listing in the price basis',
     dkMarketCountPlural: 'Klup has {count} reviewed Danish listings in the price basis',
     dkMarketMedianDescriptive: 'Median across {count} reviewed Danish listings',

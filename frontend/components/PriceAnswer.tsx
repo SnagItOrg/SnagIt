@@ -44,8 +44,23 @@ function Headline({ label, value }: { label: string; value: number | null }) {
   )
 }
 
-/** The Danish market. Always rendered, at whatever tier the data supports. */
-export function DanishMarketBlock({ stats }: { stats: PopulationStats }) {
+/**
+ * The Danish market. Always rendered, at whatever tier the data supports.
+ *
+ * `awaitingReview` counts the Danish listings on the wall that are not yet
+ * adjudicated, and it changes nothing but the `none` branch. An empty
+ * statistical population has two causes a reader must not have conflated:
+ * there is nothing to show, or there is something and Klup has not reviewed it
+ * yet. The second is the state most of the published catalogue is in, and
+ * saying "no Danish listings" above a wall of Danish listings is false. PAN-93.
+ */
+export function DanishMarketBlock({
+  stats,
+  awaitingReview = 0,
+}: {
+  stats: PopulationStats
+  awaitingReview?: number
+}) {
   const { t } = useLocale()
 
   if (stats.tier === 'unavailable') {
@@ -61,7 +76,9 @@ export function DanishMarketBlock({ stats }: { stats: PopulationStats }) {
     return (
       <div className="flex flex-col gap-1">
         <p className="type-label">{t.dkMarketHeading}</p>
-        <p className="type-body-secondary">{t.dkMarketNone}</p>
+        <p className="type-body-secondary">
+          {awaitingReview > 0 ? t.dkMarketAwaitingReview : t.dkMarketNone}
+        </p>
       </div>
     )
   }

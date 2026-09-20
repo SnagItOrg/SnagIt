@@ -214,9 +214,16 @@ They describe decisions as they were made. Do not act on them as current
 instructions, and do not rewrite them.
 
 Product families (`Fender Stratocaster`) are navigation concepts that group
-children but never aggregate listings or prices; concrete variants
-(`Fender American Professional II Stratocaster`) are the terminal
-listing/price/monitoring identities. Evocative labels (`The Time Machines`)
+children. **A family MAY aggregate its children's listings; it NEVER aggregates
+price evidence** — no band, no median, no deal verdict (PAN-94, product-owner
+decision 2026-09-20, splitting the single prohibition this sentence used to
+carry). The listing half is a feature of `buildFamilyView()` in
+[`frontend/lib/families.ts`](frontend/lib/families.ts); the price half is
+structural, not a flag — `FamilyListing` has no field a price could travel in
+and the family route selects no price column. Concrete variants
+(`Fender American Professional II Stratocaster`) remain the terminal
+price/monitoring identities, and a family's listings are attributed to the child
+they are matched to, never pooled. Evocative labels (`The Time Machines`)
 are editorial facets — never taxonomy replacements, never matcher aliases.
 
 ---
