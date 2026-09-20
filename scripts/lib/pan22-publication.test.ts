@@ -122,3 +122,37 @@ test('PAN-22: a Public that cannot classify is refused before any write', () => 
   assert.equal(publicationRefusal('hidden', { status: 'inactive' }), null,
     'Hidden only removes exposure, so it stays available on any row')
 })
+
+/**
+ * PAN-84 — the click that caused the incident, refused with a reason.
+ *
+ * The six family labels were already `active` + `public` + `classified`, so
+ * every existing precondition passed and the Public action wrote
+ * `support_state: 'supported'`. The operator got a success, not a lesson.
+ */
+test('PAN-84: a navigation family label is refused, and the refusal names the rule', () => {
+  const familyLabel = { slug: 'fender-jazz-bass', status: 'active', taxonomy_state: 'classified', browse_domain: 'music' }
+
+  for (const action of ['public', 'qa'] as const) {
+    const refusal = publicationRefusal(action, familyLabel)
+    assert.equal(refusal?.error, 'family_label_cannot_be_published', `${action} must be refused`)
+    assert.equal(refusal?.status, 409)
+    // The operator must learn WHY: the message names the slug and the rule.
+    assert.match(String(refusal?.message), /fender-jazz-bass/)
+    assert.match(String(refusal?.message), /navigationsfamilie/)
+  }
+
+  // It outranks the fixable gates: an inactive family label must not be told
+  // to reactivate, because reactivating still ends in a refusal.
+  assert.equal(
+    publicationRefusal('public', { ...familyLabel, status: 'inactive' })?.error,
+    'family_label_cannot_be_published',
+  )
+
+  // Hidden stays available — withdrawing exposure is always allowed, and the
+  // six must stay resolvable so /product/<slug> keeps its 308 redirect.
+  assert.equal(publicationRefusal('hidden', familyLabel), null)
+
+  // A real product is untouched.
+  assert.equal(publicationRefusal('public', { ...familyLabel, slug: 'roland-juno-106' }), null)
+})

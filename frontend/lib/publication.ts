@@ -9,7 +9,10 @@
  *
  * WHY THIS MODULE HAS NO IMPORTS. Like `lib/catalogue.ts`, the rules here are
  * the ones a route must not restate, so they have to be exercisable from a
- * plain Node test with no Next.js or Supabase in scope.
+ * plain Node test with no Next.js or Supabase in scope. It is ALSO client-safe
+ * and must stay that way: `app/admin/products/page.tsx` imports it, and
+ * `lib/catalogue.ts` is server-only, so an import from there would breach the
+ * client/server boundary (see FAMILY_LABEL_SLUGS below).
  *
  * `status` is deliberately absent from every transition. It is a separate
  * lifecycle axis (ratified D-rule 4), and inactivating a monitored product can
@@ -17,6 +20,29 @@
  */
 
 export type PublicationAction = 'public' | 'qa' | 'hidden'
+
+/**
+ * The six navigation-family slugs, repeated here rather than imported (PAN-84).
+ *
+ * This module is CLIENT-SAFE — `app/admin/products/page.tsx` is a `use client`
+ * module that imports it — while `lib/catalogue.ts`, which owns the same list,
+ * is on the SERVER_ONLY list in `scripts/lib/wp4a-boundary.test.ts`. Importing
+ * the predicate from there would give a client bundle a value-import path into
+ * server-only catalogue state, and the boundary test fails on exactly that.
+ *
+ * The six slugs are not sensitive: each is already a public `/family/<slug>`
+ * route. What matters is that the list cannot DRIFT, and that is enforced by
+ * `scripts/lib/wp1-catalogue.test.ts`, which asserts this list, the one in
+ * `lib/catalogue.ts` and `NAVIGATION_FAMILIES` in `lib/families.ts` are equal.
+ */
+export const FAMILY_LABEL_SLUGS = [
+  'gibson-les-paul',
+  'fender-stratocaster',
+  'fender-telecaster',
+  'gibson-es-335',
+  'fender-jazz-bass',
+  'fender-precision-bass',
+]
 
 /** The fields each action writes. Nothing else is ever touched. */
 export const PUBLICATION_TRANSITION: Record<PublicationAction, Record<string, string>> = {
@@ -36,6 +62,8 @@ export function isPublicationAction(value: unknown): value is PublicationAction 
 
 /** The row facts a precondition needs. `taxonomy_state` is derived by the view. */
 export interface PublicationRow {
+  /** Read only by the family-label guard (PAN-84). */
+  slug?: string | null
   status?: string | null
   taxonomy_state?: string | null
   browse_domain?: string | null
@@ -64,6 +92,21 @@ export function publicationRefusal(
 ): PublicationRefusal | null {
   // Hidden only removes exposure, so it stays available on any row.
   if (action === 'hidden') return null
+
+  /**
+   * PAN-84. Checked FIRST, ahead of the fixable gates below, because it is the
+   * one refusal the operator can never satisfy. Reporting "reactivate the
+   * identity" or "choose a subcategory" for a family label would send them off
+   * to do work that still ends in a refusal — and one of those gates passing
+   * is precisely how the six were promoted in the first place.
+   */
+  if (typeof row?.slug === 'string' && FAMILY_LABEL_SLUGS.includes(row.slug)) {
+    return {
+      error: 'family_label_cannot_be_published',
+      message: `«${row.slug}» er en navigationsfamilie, ikke et produkt. En familie grupperer varianter og må aldrig samle annoncer eller priser, så den kan ikke publiceres. Publicér en konkret variant i stedet.`,
+      status: 409,
+    }
+  }
 
   if (!row || row.status !== 'active') {
     return {

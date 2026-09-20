@@ -346,6 +346,7 @@ export async function PATCH(
       .maybeSingle()
     if (projErr) return databaseFailure('exposure_read', projErr)
     const refusal = publicationRefusal(publication, {
+      slug: before.slug,
       status: before.status,
       taxonomy_state: proj?.taxonomy_state ?? null,
       browse_domain: proj?.browse_domain ?? null,

@@ -61,16 +61,20 @@ import {
 
 // ── fixtures ──────────────────────────────────────────────────────────────
 
+// NOTE: these five carry TERMINAL-VARIANT slugs, not the navigation-family
+// slugs of lib/families.ts. Their job is brand-collision selection, and a family
+// label is not a match target at all (PAN-84), so using one here would test the
+// family guard instead of the brand guard. Names and brands are unchanged.
 const GIBSON_LES_PAUL: Product = {
-  id: 'p-gibson-lp', slug: 'gibson-les-paul',
+  id: 'p-gibson-lp', slug: 'gibson-les-paul-standard-50s',
   canonical_name: 'Gibson Les Paul', model_name: 'Les Paul', brand_name: 'gibson', status: 'active', support_state: 'supported',
 }
 const GIBSON_ES335: Product = {
-  id: 'p-gibson-es335', slug: 'gibson-es-335',
+  id: 'p-gibson-es335', slug: 'gibson-es-335-dot',
   canonical_name: 'Gibson ES-335', model_name: 'ES-335', brand_name: 'gibson', status: 'active', support_state: 'supported',
 }
 const FENDER_STRAT: Product = {
-  id: 'p-fender-strat', slug: 'fender-stratocaster',
+  id: 'p-fender-strat', slug: 'fender-american-professional-ii-stratocaster',
   canonical_name: 'Fender Stratocaster', model_name: 'Stratocaster', brand_name: 'fender', status: 'active', support_state: 'supported',
 }
 const RHODES_MK1: Product = {
@@ -110,11 +114,11 @@ const IBANEZ_RG: Product = {
   canonical_name: 'Ibanez RG', model_name: 'RG550', brand_name: 'ibanez', status: 'active', support_state: 'supported',
 }
 const FENDER_JAZZ_BASS: Product = {
-  id: 'p-fender-jb', slug: 'fender-jazz-bass',
+  id: 'p-fender-jb', slug: 'fender-jazz-bass-terminal',
   canonical_name: 'Fender Jazz Bass', model_name: 'Jazz Bass', brand_name: 'fender', status: 'active', support_state: 'supported',
 }
 const FENDER_TELECASTER: Product = {
-  id: 'p-fender-tele', slug: 'fender-telecaster',
+  id: 'p-fender-tele', slug: 'fender-telecaster-thinline',
   canonical_name: 'Fender Telecaster', model_name: 'Telecaster', brand_name: 'fender', status: 'active', support_state: 'supported',
 }
 const KORG_MS20: Product = {
@@ -2318,3 +2322,35 @@ test('the frozen cohort resolves to exactly 48 clean KG identities', () => {
     'no consolidation prerequisite may remain after the mapping correction')
 })
 
+
+/**
+ * PAN-84 — the half of the guard that grows in silence.
+ *
+ * `isMatchableProduct` reads only `status` and `support_state`, so promoting a
+ * family label to `supported` made it a match target immediately. Blocking the
+ * product page alone would have left every later matcher run piling family-level
+ * listings onto the label — which is how `gibson-les-paul` reached 673 verified
+ * matches spanning Custom, Standard '50s, Standard '60s, Studio and Special.
+ */
+test('a navigation family label is never a match target, however it is supported', () => {
+  const promoted = { status: MATCHABLE_STATUS, support_state: MATCHABLE_SUPPORT_STATE }
+
+  // Both axes pass. The slug is the only thing that refuses it.
+  assert.equal(isMatchableProduct(promoted), true, 'control: the two axes alone admit it')
+  assert.equal(isMatchableProduct({ ...promoted, slug: 'gibson-les-paul' }), false,
+    'the family label must never receive automatic matches')
+
+  // A real child of that family is a legitimate terminal product, so the guard
+  // must be exact-match and not a brand or prefix sweep.
+  assert.equal(isMatchableProduct({ ...promoted, slug: 'gibson-les-paul-standard-50s' }), true)
+
+  // And it holds through the real candidate filter, not just the predicate.
+  const familyRow = normalizeProductRow({
+    id: 'fam', slug: 'gibson-les-paul', canonical_name: 'Gibson Les Paul',
+    model_name: 'Les Paul', status: 'active', support_state: 'supported',
+    kg_brand: { name: 'Gibson' },
+  } as Parameters<typeof normalizeProductRow>[0])
+  assert.equal(isMatchableProduct(familyRow), false)
+  assert.equal(decideMatch('Gibson Les Paul 1998', buildMatchIndex([familyRow], [], [])).kind,
+    'none', 'the family label is filtered out, so no candidate survives to be matched')
+})

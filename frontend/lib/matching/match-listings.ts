@@ -20,6 +20,10 @@ import {
   type BrandCollision,
 } from './brand-guard'
 import { detectNonProductIntent, type NonProductIntent } from './listing-intent'
+// The family-label rule is owned by lib/catalogue.ts — the same module that
+// owns the canonical predicate — so both gates refuse the same six slugs for
+// the same reason instead of holding two opinions (PAN-84).
+import { isFamilyLabelSlug } from '../catalogue'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -728,8 +732,20 @@ export const MATCHABLE_SUPPORT_STATE = 'supported'
  * Visibility (`browse_visibility`) and marketplace monitoring (`tier`) are
  * deliberately absent: a supported product can be matched while still private,
  * and matching never implies that any marketplace is being queried for it.
+ *
+ * A NAVIGATION FAMILY IS NEVER A MATCH TARGET (PAN-84). This is the half of the
+ * guard that grows in silence: blocking only the product page still lets every
+ * subsequent matcher run pile family-level listings onto the label, building a
+ * price basis that spans a whole model range. `gibson-les-paul` had already
+ * accumulated 673 verified matches at a 5.28x spread that way.
+ *
+ * `slug` is optional so existing callers that pass only the two axes still
+ * type-check; the matcher itself passes a full `Product`, which always has one.
  */
-export function isMatchableProduct(p: Pick<Product, 'status' | 'support_state'>): boolean {
+export function isMatchableProduct(
+  p: Pick<Product, 'status' | 'support_state'> & { slug?: string | null },
+): boolean {
+  if (isFamilyLabelSlug(p.slug)) return false
   return p.status === MATCHABLE_STATUS && p.support_state === MATCHABLE_SUPPORT_STATE
 }
 

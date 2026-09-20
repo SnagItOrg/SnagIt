@@ -38,10 +38,56 @@ export type SupportState = 'known' | 'reserve' | 'supported'
 export type BrowseVisibility = 'public' | 'qa_only' | 'hidden'
 
 /**
- * The four axes an eligibility decision reads, and nothing else.
- * Every field is optional so that a partial row is representable — and refused.
+ * The six legacy family-label slugs. A navigation family GROUPS variants and
+ * never aggregates listings or prices (CLAUDE.md §7), so these rows may never
+ * be a canonical product and may never receive automatic matches.
+ *
+ * WHY THIS LIST IS DUPLICATED FROM lib/families.ts RATHER THAN DERIVED.
+ * `families.ts` already imports THIS module (`isCanonical`, for child
+ * selection), so importing it back would be a cycle, not merely a violation of
+ * the no-imports rule above. Inverting the dependency — owning the slugs here
+ * and having `families.ts` consume them — was rejected only because PAN-84
+ * forbids touching `families.ts`; it remains the cleaner long-term shape.
+ *
+ * A THIRD copy lives in `lib/publication.ts`, which cannot import this module
+ * either: it is client-safe, and this one is server-only (wp4a-boundary.test).
+ *
+ * The duplication is therefore made safe by a TEST, not by discipline:
+ * `scripts/lib/wp1-catalogue.test.ts` asserts all three lists — here, in
+ * `lib/publication.ts` and NAVIGATION_FAMILIES in `lib/families.ts` — are
+ * equal, so adding or removing a family without updating this one fails the
+ * suite. See PAN-52 D8, which recommends exactly this shape, and rejects
+ * "rely on review discipline" as not a guardrail at all.
+ */
+export const FAMILY_LABEL_SLUGS: readonly string[] = [
+  'gibson-les-paul',
+  'fender-stratocaster',
+  'fender-telecaster',
+  'gibson-es-335',
+  'fender-jazz-bass',
+  'fender-precision-bass',
+]
+
+const FAMILY_LABEL_SLUG_SET = new Set<string>(FAMILY_LABEL_SLUGS)
+
+/**
+ * True when a slug names a navigation family rather than a product.
+ *
+ * A row with no readable slug is NOT treated as a family label: the set-based
+ * loaders below always know the slug, and refusing every slugless row would
+ * turn this guard into a catalogue-wide outage rather than a family guard.
+ */
+export function isFamilyLabelSlug(slug: string | null | undefined): boolean {
+  return typeof slug === 'string' && FAMILY_LABEL_SLUG_SET.has(slug)
+}
+
+/**
+ * The four axes an eligibility decision reads, plus the slug the family-label
+ * guard reads. Every field is optional so that a partial row is representable —
+ * and refused.
  */
 export interface CatalogueStateRow {
+  slug?: string | null
   status?: string | null
   support_state?: string | null
   browse_visibility?: string | null
@@ -54,6 +100,12 @@ export const CATALOGUE_STATE_SELECT = 'slug, status, support_state, browse_visib
 /** True only for a row that is active, supported and in the music domain. */
 export function isSupportedMusicProduct(row: CatalogueStateRow | null | undefined): boolean {
   if (!row) return false
+  // PAN-84. The family-label rule outranks the four axes: promoting one of the
+  // six to `supported` is a single admin field write, and before this guard it
+  // turned a navigation label into a priced page AND a match target at once.
+  // Placed here rather than in `isCanonical` so `isAdminOnly` and
+  // `effectiveExposure` inherit it — a family label is not a QA product either.
+  if (isFamilyLabelSlug(row.slug)) return false
   if (row.status !== CANONICAL_STATUS) return false
   if (row.support_state !== CANONICAL_SUPPORT) return false
   if (row.browse_domain !== CANONICAL_DOMAIN) return false
@@ -232,6 +284,11 @@ function collectSlugs(rows: unknown, wantVisibility: string | null): Set<string>
     const row = raw as Record<string, unknown>
     const slug = row.slug
     if (typeof slug !== 'string' || slug.length === 0) continue
+    // PAN-84. This is where the incident actually leaked: the six promoted
+    // family labels entered the canonical set and rendered as homepage cards
+    // on /api/discover, while /product/<slug> still redirected. Here the slug
+    // is always known, so the guard is fully closed rather than best-effort.
+    if (isFamilyLabelSlug(slug)) continue
     if (row.status !== CANONICAL_STATUS) continue
     if (row.support_state !== CANONICAL_SUPPORT) continue
     if (wantVisibility !== null && row.browse_visibility !== wantVisibility) continue
