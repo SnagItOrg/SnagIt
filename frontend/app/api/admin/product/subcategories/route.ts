@@ -6,6 +6,8 @@ import { requireAdminInRoute } from '@/lib/admin-auth'
 // Returns leaf kg_category rows (parent_id IS NOT NULL) with their parent's
 // name resolved client-side from a single second query — kg_category is small
 // (~340 rows) so we load both lists and merge in TS.
+// kg_category has no `name` column, only `name_da` / `name_en`. The admin
+// surface is Danish-only and has no locale, so `name_da` is the display name.
 export async function GET() {
   const denied = await requireAdminInRoute()
   if (denied) return denied
@@ -14,14 +16,14 @@ export async function GET() {
 
   const { data, error } = await admin
     .from('kg_category')
-    .select('id, name, parent_id, domain')
-    .order('name', { ascending: true })
+    .select('id, name_da, parent_id, domain')
+    .order('name_da', { ascending: true })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const rows = (data ?? []) as { id: string; name: string; parent_id: string | null; domain: string | null }[]
+  const rows = (data ?? []) as { id: string; name_da: string; parent_id: string | null; domain: string | null }[]
   const byId = new Map(rows.map((r) => [r.id, r]))
 
   /**
@@ -38,8 +40,8 @@ export async function GET() {
       const root = r.parent_id ? byId.get(r.parent_id) ?? null : null
       return {
         id: r.id,
-        name: r.name,
-        parent_name: root?.name ?? null,
+        name: r.name_da,
+        parent_name: root?.name_da ?? null,
         classifies: r.domain === 'music' && root != null && root.parent_id === null && root.domain === 'music',
       }
     })
