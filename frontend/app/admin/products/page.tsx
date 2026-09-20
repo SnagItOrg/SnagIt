@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useId, useMemo, useRef } from 'react'
 import Link from 'next/link'
 
 import { Toast } from '@/components/Toast'
@@ -11,6 +11,11 @@ import {
   type PublicationAction,
   type PublicationState,
 } from '@/lib/publication'
+import {
+  filterSubcategories,
+  subcategoryLabel,
+  type SubcategoryOption,
+} from '@/lib/subcategory-filter'
 
 /**
  * Mirrors `ExposureState` / `SupportState` in `lib/catalogue.ts` as TYPES only.
@@ -43,7 +48,8 @@ type Product = {
   kg_brand: { name: string } | null
 }
 
-type Subcategory = { id: string; name: string; parent_name: string | null; classifies: boolean }
+/** The picker's row shape lives with the rules that read it. */
+type Subcategory = SubcategoryOption
 
 /**
  * The one publication vocabulary the normal workflow exposes.
@@ -216,7 +222,9 @@ export default function AdminProductsPage() {
       // `taxonomy_state` is derived by the view, so it is re-read rather than
       // guessed: a successful write is only `classified` if the root maps.
       { subcategory_id: subcategoryId, taxonomy_state: chosen?.classifies ? 'classified' : null },
-      `${product.canonical_name}: underkategori sat til ${chosen?.name ?? '—'}.`,
+      // The parent belongs in the confirmation too: 13 leaf names occur under
+      // more than one root, so a bare "Baritone" does not say what was saved.
+      `${product.canonical_name}: underkategori sat til ${chosen ? subcategoryLabel(chosen) : '—'}.`,
     )
     if (ok) setTaxEditing(null)
   }
@@ -466,23 +474,14 @@ export default function AdminProductsPage() {
                           {subcatError}
                         </span>
                       ) : (
-                        <select
-                          autoFocus
-                          disabled={saving === p.id || subcategories === null}
-                          defaultValue={p.subcategory_id ?? ''}
-                          onChange={(e) => e.target.value && setSubcategory(p, e.target.value)}
-                          data-testid={`subcategory-${p.slug}`}
-                          className="text-xs rounded-lg px-2 py-1 outline-none"
-                          style={{ background: 'var(--input-background)', border: '1px solid var(--ring)', color: 'var(--foreground)' }}
-                        >
-                          <option value="">{subcategories === null ? 'Henter…' : 'Vælg underkategori…'}</option>
-                          {(subcategories ?? []).map((c) => (
-                            <option key={c.id} value={c.id} disabled={!c.classifies}>
-                              {c.parent_name ? `${c.parent_name} › ${c.name}` : c.name}
-                              {c.classifies ? '' : ' (mapper ikke)'}
-                            </option>
-                          ))}
-                        </select>
+                        <SubcategoryCombobox
+                          slug={p.slug}
+                          options={subcategories}
+                          selectedId={p.subcategory_id}
+                          disabled={saving === p.id}
+                          onSelect={(id) => setSubcategory(p, id)}
+                          onDismiss={() => setTaxEditing(null)}
+                        />
                       )
                     ) : (
                       <button
@@ -507,6 +506,158 @@ export default function AdminProductsPage() {
         </div>
       )}
       {toast && <Toast message={toast} />}
+    </div>
+  )
+}
+
+/**
+ * PAN-97 — the subcategory picker, narrowable.
+ *
+ * It used to be a native `<select>` over all 320 leaves in one flat list, so
+ * reaching `Electric Guitars › Solid Body` meant scrolling past Hi-Hats and
+ * Patchbays. Distance is an error source: of eight guitars classified by hand,
+ * two landed in Solid Body that belonged in Semi-Hollow — three rows apart in
+ * a narrowed list, three hundred apart in that one.
+ *
+ * It filters and it does not rank. No new category can be created here: the
+ * input is a filter, and the only way to produce a value is to pick a row that
+ * the server already served.
+ *
+ * Replacing a native control means re-earning what it gave for free, so the
+ * listbox is a real ARIA combobox with arrow keys, Enter and Escape.
+ */
+function SubcategoryCombobox({
+  slug,
+  options,
+  selectedId,
+  disabled,
+  onSelect,
+  onDismiss,
+}: {
+  slug: string
+  /** `null` while the one-time fetch is still in flight. */
+  options: Subcategory[] | null
+  selectedId: string | null
+  disabled: boolean
+  onSelect: (id: string) => void
+  onDismiss: () => void
+}) {
+  const [query, setQuery] = useState('')
+  const [activeIndex, setActiveIndex] = useState(0)
+  const listboxId = useId()
+  const optionId = (i: number) => `${listboxId}-option-${i}`
+  const listRef = useRef<HTMLDivElement>(null)
+
+  const matches = useMemo(
+    () => filterSubcategories(options ?? [], query),
+    [options, query],
+  )
+
+  // A narrowed list is a new list; keeping the old cursor would arm Enter with
+  // whatever happens to sit at that index now.
+  useEffect(() => { setActiveIndex(0) }, [query])
+
+  useEffect(() => {
+    const active = listRef.current?.children[activeIndex]
+    if (active instanceof HTMLElement) active.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex, matches.length])
+
+  function choose(option: Subcategory | undefined) {
+    // `classifies` is false for a leaf whose root does not map; the PATCH route
+    // refuses it anyway, so the control refuses first rather than reporting a
+    // save that changed nothing visible.
+    if (!option || !option.classifies) return
+    onSelect(option.id)
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Escape') { e.preventDefault(); onDismiss(); return }
+    if (e.key === 'Enter') { e.preventDefault(); choose(matches[activeIndex]); return }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (matches.length === 0) return
+      const step = e.key === 'ArrowDown' ? 1 : -1
+      setActiveIndex((i) => (i + step + matches.length) % matches.length)
+    }
+  }
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        autoFocus
+        disabled={disabled || options === null}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={onKeyDown}
+        onBlur={onDismiss}
+        role="combobox"
+        aria-expanded={options !== null}
+        aria-controls={listboxId}
+        aria-autocomplete="list"
+        aria-activedescendant={matches.length > 0 ? optionId(activeIndex) : undefined}
+        aria-label="Søg underkategori"
+        placeholder={options === null ? 'Henter…' : 'Søg underkategori…'}
+        data-testid={`subcategory-${slug}`}
+        className="w-56 text-xs rounded-lg px-2 py-1 outline-none"
+        style={{ background: 'var(--input-background)', border: '1px solid var(--ring)', color: 'var(--foreground)' }}
+      />
+      {options !== null && (
+        <div
+          id={listboxId}
+          ref={listRef}
+          role="listbox"
+          aria-label="Underkategorier"
+          // Keeps focus on the input, so `onBlur` cannot dismiss the control
+          // between pressing and releasing the mouse over an option.
+          onMouseDown={(e) => e.preventDefault()}
+          className="absolute top-full left-0 mt-1 z-20 w-72 max-w-[calc(100vw-3rem)] max-h-64 overflow-y-auto rounded-xl shadow-overlay"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+        >
+          {matches.length === 0 ? (
+            // The fetch cannot be empty here — an empty or failed load is
+            // reported as `subcatError` instead — so this is only ever a query
+            // that matched nothing.
+            <p className="px-3 py-2 text-xs" style={{ color: 'var(--muted-foreground)' }}>
+              Ingen underkategorier matcher “{query}”.
+            </p>
+          ) : (
+            matches.map((c, i) => {
+              const isActive = i === activeIndex
+              const isCurrent = c.id === selectedId
+              return (
+                <button
+                  key={c.id}
+                  id={optionId(i)}
+                  type="button"
+                  role="option"
+                  aria-selected={isCurrent}
+                  disabled={!c.classifies}
+                  onMouseEnter={() => setActiveIndex(i)}
+                  onClick={() => choose(c)}
+                  className="w-full text-left px-3 py-1.5 text-xs disabled:opacity-50"
+                  style={{
+                    background: isActive ? 'var(--secondary)' : 'transparent',
+                    color: 'var(--foreground)',
+                    fontWeight: isCurrent ? 600 : 400,
+                  }}
+                >
+                  {/* The parent is what makes `Solid Body` and `Semi-Hollow`
+                      read as Electric Guitars leaves, and what tells the 13
+                      duplicated leaf names apart. */}
+                  {c.parent_name && (
+                    <span style={{ color: 'var(--muted-foreground)' }}>{c.parent_name} › </span>
+                  )}
+                  {c.name}
+                  {!c.classifies && (
+                    <span style={{ color: 'var(--muted-foreground)' }}> (mapper ikke)</span>
+                  )}
+                </button>
+              )
+            })
+          )}
+        </div>
+      )}
     </div>
   )
 }

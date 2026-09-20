@@ -70,6 +70,10 @@ test('integration: every package suite is registered exactly once', () => {
       // three-valued column, and two surfaces answer them. Its own suite
       // because the failure is silent — a wrong median looks like a median.
       'scripts/lib/pan93-price-evidence.test.ts',
+      // PAN-97: the admin subcategory picker's narrowing and parent labelling,
+      // import-free for the same reason — 320 leaves and 13 duplicated leaf
+      // names are a data property, not a React one.
+      'scripts/lib/pan97-subcategory-picker.test.ts',
       // PAN-72: the watchlist notification step decides whether `notified_at`
       // may be stamped at all, and its provider-failure path is what used to
       // produce a marker for a mail that never went out.
