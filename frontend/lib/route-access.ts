@@ -130,6 +130,11 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   /* ---------------- public APIs ---------------- */
   { route: '/api/browse', access: 'public_api', note: 'debug payload remains admin-gated in-route' },
   { route: '/api/browse/[root]', access: 'public_api' },
+  {
+    route: '/api/catalogue-tree',
+    access: 'public_api',
+    note: 'PAN-17 sidebar tree; same public+supported rows /api/browse serves, no debug variant',
+  },
   { route: '/api/discover', access: 'public_api', note: 'filters to the canonical set in SQL' },
   { route: '/api/brands', access: 'public_api' },
   { route: '/api/price-observations', access: 'public_api' },
