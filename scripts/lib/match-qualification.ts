@@ -1,29 +1,48 @@
 /**
- * PAN-95 — qualify a proposed match by IDENTITY, never by a price threshold.
+ * PAN-95 — qualify a proposed match by IDENTITY, with price as EVIDENCE and
+ * never as a rule.
  *
  * WHY A THRESHOLD CANNOT BE THE RULE. The question a match row answers is
- * "is this listing this product?". Price is a proxy for that question and it
+ * "is this listing this product?". A price FLOOR answers a different one and
  * fails in both directions: a Roland SH-101 at 7.500 DKK against a ~15.000 DKK
  * band is an unusually cheap GENUINE instrument — exactly the bargain Klup
  * exists to surface, already recorded as a known false reject in
  * `frontend/lib/matching/listing-intent.ts` — while a 900 DKK pickguard clears
  * any floor that would keep a cheap Squier.
  *
- * MEASURED, 2026-09-20, production, SELECT only: 5 of the 58 supported
- * products carry a `price_min_dkk`/`price_max_dkk` band at all. For the other
- * 53 a price rule has nothing to compare against, and the five bands it does
- * have are Reverb comps — asking-side US evidence, not Danish sold history.
+ * WHY DENYING THE JUDGE PRICE ENTIRELY WAS THE WRONG CORRECTION. The first
+ * revision of this module removed price from the payload by construction. That
+ * over-generalised: the thing to avoid is a threshold, and withholding context
+ * is not the same act as refusing to threshold on it. Measured on the
+ * 2026-09-20 dry run, it cost the only strong signal for the mirror failure —
+ * A PART WHOSE TITLE READS LIKE THE PRODUCT. "1978 Gibson Les Paul Custom
+ * 1-ply Cream W/Bracket" was approved `exact` at confidence 88 on the words
+ * alone. It is a pickguard, at 293 DKK against an adjudicated median of 30.266
+ * — 1.0%. On the title the row is genuinely undecidable; with the ratio in
+ * view it is not.
  *
- * SO PRICE IS NOT IN THE MODEL'S INPUT AT ALL. `buildIdentityPayload` is the
- * single constructor of what the model sees, `MODEL_PAYLOAD_KEYS` names every
- * key it may contain, and a test pins that neither list admits a price field.
- * The prohibition is structural rather than a sentence in a prompt that a
- * later edit can soften. Price still reaches the MANIFEST, because the human
- * vetoing a row should see it; it just cannot reach the judgement.
+ * WHAT PRICE CONTEXT IS, AND WHERE IT COMES FROM. Not `kg_product`'s
+ * `price_min_dkk`/`price_max_dkk` — only 5 of the supported products carry
+ * that, and those five are Reverb comps. The context here is the product's own
+ * ADJUDICATED population: the prices of listings a human already confirmed on
+ * it (`is_valid = true`, PAN-93's `isPriceEvidence`). Measured 2026-09-20 that
+ * covers 49 of the 50 products with unreviewed rows, 44 of them at n >= 8.
+ * The gates are the repo's own — `MIN_DESCRIPTIVE_MEDIAN_N` for a median,
+ * `MIN_BAND_N` for a quartile band — so this pass cannot show a number a
+ * product page would refuse to.
  *
- * WHAT THE MODEL SEES INSTEAD IS IDENTITY: the product's canonical and model
- * name, its brand, and the SIBLING ROWS of the same brand that could compete
- * for the listing. The failure this is built for is real and current — two
+ * IT IS STILL EVIDENCE, NOT A GATE. No code here compares a ratio to a
+ * constant and no verdict is derived from one; the prompt says in as many
+ * words that a low ratio is a reason to look harder at the title and never a
+ * reason to reject. The measurement that backs that: of 1.140 approvals with a
+ * median to compare against, 21 sit between 12% and 50% of it — a DX7 at 23%,
+ * an SH-101 at 45% — and every one is a genuine instrument. A floor anywhere
+ * above 12% deletes all of them. Conversely 52 REJECTED rows sit above 80% of
+ * the median, so price can never decide alone in either direction.
+ *
+ * WHAT THE MODEL SEES BESIDES: the product's canonical and model name, its
+ * brand, and the SIBLING ROWS of the same brand that could compete for the
+ * listing. The failure that is built for is real and current — two
  * "Fender American Ultra II Telecaster" listings sit unreviewed on
  * `fender-telecaster-custom` while `fender-american-ultra-ii-telecaster` has
  * its own supported row. A judge that never sees the sibling cannot notice.
@@ -58,6 +77,8 @@ import {
   type PriorRow,
 } from '../../frontend/app/admin/match/dispositions'
 import { detectNonProductIntent } from '../../frontend/lib/matching/listing-intent'
+import { MIN_BAND_N, MIN_DESCRIPTIVE_MEDIAN_N } from '../../frontend/lib/price-populations'
+import { quartiles, usableValues } from '../../frontend/lib/statistics'
 
 /** What the judge may return. `abstain` is a verdict, not a failure to answer. */
 export type Verdict = 'exact' | 'accessory' | 'wanted_ad' | 'wrong' | 'abstain'
@@ -82,6 +103,65 @@ export interface SiblingIdentity {
   canonical_name: string
 }
 
+/**
+ * What one listing costs, set against what this product is known to cost.
+ *
+ * Every field is nullable independently, because they fail independently: a
+ * listing can have no stated price, and a product can have too little
+ * adjudicated evidence for a median or for a band. Nothing is substituted — a
+ * missing number is null and the judge is told it is unknown, never given a
+ * default that would read as a measurement.
+ */
+export interface PriceContext {
+  /** The listing's asking price, normalised to DKK. Null if not stated. */
+  listing_price_dkk: number | null
+  /** Median of the adjudicated population. Null below MIN_DESCRIPTIVE_MEDIAN_N. */
+  product_median_dkk: number | null
+  /** Q1–Q3 of the same population. Null below MIN_BAND_N. */
+  product_q1_dkk: number | null
+  product_q3_dkk: number | null
+  /** How many confirmed listings the numbers above are computed from. */
+  adjudicated_n: number
+  /** The listing as a percentage of the median. Null if either side is null. */
+  listing_pct_of_median: number | null
+}
+
+/**
+ * Build the price context for one row from the product's adjudicated prices.
+ *
+ * A zero or negative asking price is NOT a price — on dba.dk it is how a
+ * "byttes"/"vurderes solgt" listing renders, and three such rows sit in the
+ * 2026-09-20 manifest. Treating 0 as a number would hand the judge a ratio of
+ * 0.0% and manufacture the exact false reject this design exists to prevent.
+ *
+ * The two gates are the repo's, not new ones: a median needs
+ * `MIN_DESCRIPTIVE_MEDIAN_N` observations and a quartile band needs
+ * `MIN_BAND_N`. Below the first, the judge gets the listing price and an
+ * explicit `adjudicated_n` and no comparison to draw.
+ */
+export function buildPriceContext(
+  listingPriceDkk: number | null,
+  adjudicatedPricesDkk: readonly (number | null)[],
+): PriceContext {
+  const prices = usableValues(adjudicatedPricesDkk).filter((p) => p > 0)
+  const n = prices.length
+  const q = n >= MIN_DESCRIPTIVE_MEDIAN_N ? quartiles(prices) : null
+  const median = q ? Math.round(q.median) : null
+  const price = listingPriceDkk !== null && listingPriceDkk > 0 ? listingPriceDkk : null
+
+  return {
+    listing_price_dkk: price,
+    product_median_dkk: median,
+    product_q1_dkk: q && n >= MIN_BAND_N ? Math.round(q.q1) : null,
+    product_q3_dkk: q && n >= MIN_BAND_N ? Math.round(q.q3) : null,
+    adjudicated_n: n,
+    listing_pct_of_median:
+      price !== null && median !== null && median > 0
+        ? Math.round((price / median) * 1000) / 10
+        : null,
+  }
+}
+
 /** Everything the pipeline knows about one unreviewed match. */
 export interface QualificationRow {
   match_id: string
@@ -97,7 +177,9 @@ export interface QualificationRow {
   matcher_method: string
   matcher_score: number
   siblings: readonly SiblingIdentity[]
-  /** Audit columns. Present on the manifest, absent from the model payload. */
+  /** The listing's price against the product's adjudicated population. */
+  price_context: PriceContext
+  /** Audit columns. Present on the manifest; only the price reaches the judge. */
   listing_price_dkk: number | null
   listing_currency: string | null
   listing_url: string | null
@@ -107,10 +189,11 @@ export interface QualificationRow {
 /**
  * Every key `buildIdentityPayload` may emit.
  *
- * This list is the price prohibition. A test compares it to the payload's own
- * keys and to a literal deny-list, so adding `listing_price_dkk` back into the
- * judge's view fails the suite rather than quietly reintroducing the threshold
- * the product owner removed.
+ * The list used to be the price PROHIBITION — a test failed if any key matched
+ * `/price|dkk|currency/`. It is now the price GUARANTEE, inverted for the
+ * reason in the module header: the test asserts that `price_context` is there
+ * and correctly shaped. What the list still does is keep the judge's view
+ * enumerable, so a field cannot enter it without a test noticing.
  */
 export const MODEL_PAYLOAD_KEYS: readonly string[] = [
   'id',
@@ -124,6 +207,7 @@ export const MODEL_PAYLOAD_KEYS: readonly string[] = [
   'matcher_method',
   'matcher_score',
   'deterministic_signal',
+  'price_context',
 ]
 
 export interface IdentityPayload {
@@ -139,9 +223,11 @@ export interface IdentityPayload {
   matcher_score: number
   /** `listing-intent` finding, or null. A signal to weigh, never a verdict. */
   deterministic_signal: string | null
+  /** Money as evidence. Nothing in this module thresholds on it. */
+  price_context: PriceContext
 }
 
-/** The ONLY constructor of the judge's view. Identity in, no money. */
+/** The ONLY constructor of the judge's view. */
 export function buildIdentityPayload(row: QualificationRow): IdentityPayload {
   return {
     id: row.match_id,
@@ -158,6 +244,7 @@ export function buildIdentityPayload(row: QualificationRow): IdentityPayload {
     matcher_method: row.matcher_method,
     matcher_score: row.matcher_score,
     deterministic_signal: deterministicSignal(row.listing_title),
+    price_context: row.price_context,
   }
 }
 
@@ -214,10 +301,12 @@ export interface ManifestRow {
   listing_id: string
   product_slug: string
   listing_title: string
-  /** Audit only — the human vetoes with it, the judge never saw it. */
   listing_price_dkk: number | null
   listing_currency: string | null
   listing_url: string | null
+  /** The same two numbers the judge reasoned from, so a veto can check them. */
+  product_median_dkk: number | null
+  listing_pct_of_median: number | null
   /** The guard's finding, carried for audit whether or not the judge agreed. */
   deterministic_signal: string | null
   verdict: Verdict
@@ -294,6 +383,8 @@ export function planManifestRow(args: PlanManifestArgs): ManifestRow {
     listing_price_dkk: row.listing_price_dkk,
     listing_currency: row.listing_currency,
     listing_url: row.listing_url,
+    product_median_dkk: row.price_context.product_median_dkk,
+    listing_pct_of_median: row.price_context.listing_pct_of_median,
     deterministic_signal: deterministicSignal(row.listing_title),
     verdict,
     disposition,

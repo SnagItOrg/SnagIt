@@ -18,6 +18,7 @@ import {
   MODEL_PAYLOAD_KEYS,
   VERDICT_DISPOSITION,
   buildIdentityPayload,
+  buildPriceContext,
   decisionSource,
   deterministicSignal,
   planManifestRow,
@@ -45,6 +46,9 @@ const ROW: QualificationRow = {
   siblings: [
     { slug: 'fender-american-ultra-ii-telecaster', canonical_name: 'Fender American Ultra II Telecaster' },
   ],
+  price_context: buildPriceContext(14754, [
+    12000, 13000, 14000, 15000, 16000, 17000, 18000, 26001, 30000,
+  ]),
   listing_price_dkk: 14754,
   listing_currency: 'DKK',
   listing_url: 'https://example.invalid/listing',
@@ -54,30 +58,104 @@ const ROW: QualificationRow = {
 const ARGS = { decidedAt: '2026-09-20T00:00:00.000Z', runId: 'test' }
 
 /**
- * The whole point of PAN-95. A price floor is a proxy for identity that deletes
- * cheap genuine instruments and admits expensive parts, so it is removed by
- * construction rather than by a sentence in a prompt: the payload builder is
- * the only thing that constructs the judge's view, and neither it nor the key
- * list it is pinned against may name money.
+ * THE STRUCTURAL GUARANTEE, INVERTED.
+ *
+ * This test used to fail if any key matched `/price|dkk|currency/`. That was
+ * the wrong invariant: the thing to keep out is a price THRESHOLD, and the
+ * first design mistook withholding context for refusing to threshold on it.
+ * Measured, that cost the only strong signal for a part whose title reads like
+ * the product — a 293 DKK "1978 Gibson Les Paul Custom 1-ply Cream W/Bracket"
+ * approved `exact` at confidence 88 against a 30.266 DKK median.
+ *
+ * So the same structure now pins the opposite promise: the price context is
+ * present, correctly shaped, and reaches the judge along with the identity a
+ * title-only judge could not otherwise have.
  */
-test('the judge is given identity and never a price', () => {
+test('the judge is given identity AND the price context', () => {
   const payload = buildIdentityPayload(ROW)
   assert.deepEqual(Object.keys(payload).sort(), [...MODEL_PAYLOAD_KEYS].sort())
 
-  const forbidden = /price|dkk|currency|msrp|thomann|cost|value/i
-  for (const key of MODEL_PAYLOAD_KEYS) {
-    assert.ok(!forbidden.test(key), `${key} would put money in front of the judge`)
-  }
-  // The listing's price is known — it reaches the manifest, not the payload.
-  const manifest = planManifestRow({ row: ROW, verdict: 'exact', confidence: 90, evidence: 'x', ...ARGS })
-  assert.equal(manifest.listing_price_dkk, 14754)
-  assert.ok(!JSON.stringify(payload).includes('14754'))
+  // The three numbers the owner asked for: the listing, the product, the ratio.
+  assert.equal(payload.price_context.listing_price_dkk, 14754)
+  assert.equal(payload.price_context.product_median_dkk, 16000)
+  assert.equal(payload.price_context.listing_pct_of_median, 92.2)
+  assert.equal(payload.price_context.adjudicated_n, 9)
+  // A band needs MIN_BAND_N=8; this population has nine, so it carries one.
+  assert.equal(payload.price_context.product_q1_dkk, 14000)
+  assert.equal(payload.price_context.product_q3_dkk, 18000)
 
   // Identity that a title-only judge could not otherwise have.
   assert.equal(payload.candidate_brand, 'Fender')
   assert.deepEqual(payload.sibling_products.map((s) => s.slug), [
     'fender-american-ultra-ii-telecaster',
   ])
+
+  // The human vetoing the row sees the same two numbers the judge reasoned from.
+  const manifest = planManifestRow({ row: ROW, verdict: 'exact', confidence: 90, evidence: 'x', ...ARGS })
+  assert.equal(manifest.listing_price_dkk, 14754)
+  assert.equal(manifest.product_median_dkk, 16000)
+  assert.equal(manifest.listing_pct_of_median, 92.2)
+})
+
+/**
+ * The context must not invent a market level it does not have.
+ *
+ * Three ways it can fail, and all three fail to null rather than to a number:
+ * a listing with no stated price (on dba.dk a "byttes"/"vurderes solgt" row
+ * arrives as 0 — three sit in the 2026-09-20 manifest, and a ratio of 0.0%
+ * would manufacture the exact false reject this design exists to prevent), a
+ * product below `MIN_DESCRIPTIVE_MEDIAN_N` confirmations, and a product with
+ * enough for a median but not for a band.
+ */
+test('price context fails to null, never to a number', () => {
+  const noPrice = buildPriceContext(0, [10000, 11000, 12000, 13000])
+  assert.equal(noPrice.listing_price_dkk, null)
+  assert.equal(noPrice.listing_pct_of_median, null)
+  assert.equal(noPrice.product_median_dkk, 11500)
+
+  const thin = buildPriceContext(5000, [10000, 12000])
+  assert.equal(thin.listing_price_dkk, 5000)
+  assert.equal(thin.product_median_dkk, null)
+  assert.equal(thin.listing_pct_of_median, null)
+  assert.equal(thin.adjudicated_n, 2)
+
+  // n=4: a median is descriptive, a Q1-Q3 band is not yet earned.
+  const medianOnly = buildPriceContext(5000, [10000, 12000, 14000, 16000])
+  assert.equal(medianOnly.product_median_dkk, 13000)
+  assert.equal(medianOnly.product_q1_dkk, null)
+  assert.equal(medianOnly.product_q3_dkk, null)
+
+  // Nulls and non-prices in the population are not observations.
+  const dirty = buildPriceContext(1000, [null, 0, -5, 10000, 20000, 30000])
+  assert.equal(dirty.adjudicated_n, 3)
+  assert.equal(dirty.product_median_dkk, 20000)
+  assert.equal(dirty.listing_pct_of_median, 5)
+})
+
+/**
+ * PRICE IS EVIDENCE, NOT A GATE. Nothing in this module may turn a ratio into
+ * a verdict — that is the prohibition the owner actually wanted, and it is the
+ * one that survives. The SH-101 case is the proof: 7.500 DKK against a ~15.000
+ * median is 50%, and it must still be able to come out `exact` with a write
+ * planned, exactly like a listing at 100%.
+ */
+test('a low ratio cannot reject on its own', () => {
+  const bargain: QualificationRow = {
+    ...ROW,
+    listing_title: 'Roland SH-101 - Nyserviceret',
+    listing_price_dkk: 7500,
+    price_context: buildPriceContext(7500, [
+      12000, 13000, 14000, 15000, 15000, 16000, 17000, 18000,
+    ]),
+  }
+  assert.equal(bargain.price_context.listing_pct_of_median, 50)
+
+  const approved = planManifestRow({
+    row: bargain, verdict: 'exact', confidence: 90, evidence: 'SH-101 named exactly', ...ARGS,
+  })
+  assert.equal(approved.verdict, 'exact')
+  assert.equal(approved.would_write?.is_valid, true)
+  assert.equal(approved.listing_pct_of_median, 50)
 })
 
 /**
