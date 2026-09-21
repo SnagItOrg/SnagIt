@@ -9,6 +9,7 @@ import {
 } from '@/lib/catalogue'
 import {
   HOME_CATEGORY_DOMAIN,
+  LEGACY_COARSE_ROOT_SLUG,
   buildHomeCategories,
   type HomeCategory,
   type HomeCategoryRow,
@@ -363,7 +364,11 @@ async function fetchMusicTaxonomy(admin: SupabaseClient) {
       .select('id, slug, name_da, name_en, image_url')
       .eq('domain', 'music')
       .is('parent_id', null)
-      .neq('slug', 'music-gear')
+      // The same definition the homepage shelf uses, read from one place
+      // rather than repeated as a literal. PAN-86: two `.neq()`s naming the
+      // same legacy root is how two surfaces come to disagree about whether a
+      // category exists.
+      .neq('slug', LEGACY_COARSE_ROOT_SLUG)
       .order('name_en'),
     admin
       .from('kg_category')
@@ -374,7 +379,9 @@ async function fetchMusicTaxonomy(admin: SupabaseClient) {
     admin
       .from('kg_category')
       .select('image_url')
-      .eq('slug', 'music-gear')
+      // Not the exclusion — this reads the legacy root's IMAGE, which
+      // /browse lends to keyboards-and-synths a few lines below.
+      .eq('slug', LEGACY_COARSE_ROOT_SLUG)
       .single(),
   ]).catch(() => {
     throw new CatalogueUnavailableError('browse_taxonomy_transport')
@@ -394,14 +401,16 @@ async function fetchMusicTaxonomy(admin: SupabaseClient) {
 /**
  * Every in-scope root, for the homepage category shelf (PAN-86).
  *
- * Deliberately NOT `fetchMusicTaxonomy`. That function answers /browse's
- * question and carries two exclusions the homepage must not inherit: it drops
- * `music-gear` by slug, and it selects no `domain` or `parent_id`, so its
- * caller could not re-check scope even if it wanted to. This one selects the
- * two scope columns precisely so `buildHomeCategories` can assert on them
- * rather than trust the filter — the query narrows for cost, the pure function
- * decides for correctness, and a change to either alone cannot widen the
- * shelf past the music domain.
+ * Deliberately NOT `fetchMusicTaxonomy`, whose select carries no `domain` or
+ * `parent_id` and whose caller therefore could not re-check scope even if it
+ * wanted to. This one selects both scope columns precisely so
+ * `isRenderableRoot()` can decide on the rows rather than trust the filter:
+ * the query narrows for cost, the pure predicate decides for correctness, and
+ * a change to either alone cannot widen the shelf.
+ *
+ * The legacy-root exclusion is NOT repeated here. It lives in
+ * `isRenderableRoot()`, which both this shelf and `fetchMusicTaxonomy` now
+ * defer to for the definition.
  */
 async function fetchHomeCategoryRoots(admin: SupabaseClient): Promise<HomeCategoryRow[]> {
   const res = await admin

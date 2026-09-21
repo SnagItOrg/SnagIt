@@ -8,10 +8,12 @@
  *
  * The fixture is production, read on 2026-09-21. `kg_category` holds 20 roots:
  * 15 `music`, 2 `design` (`danish-modern`, `design-objects`) and 3 `other`
- * (`cycling`, `photography`, `tech`). Four music roots have public, supported
- * products — keyboards-and-synths 19, electric-guitars 10, effects-and-pedals
- * 1, pro-audio 1, totalling the 31 rows the public catalogue serves — and the
- * other eleven have none.
+ * (`cycling`, `photography`, `tech`). One of the 15 music roots is
+ * `music-gear`, the legacy coarse root, which holds no `kg_product` rows at
+ * all and which `/browse` has always hidden — so 14 are renderable. Four have
+ * public, supported products: keyboards-and-synths 19, electric-guitars 10,
+ * effects-and-pedals 1, pro-audio 1, totalling the 31 rows the public
+ * catalogue serves. The other ten have none.
  *
  * `frontend/lib/home-categories.ts` is import-free for the same reason
  * `catalogue.ts` and `publication.ts` are: the scope predicate has to be
@@ -22,7 +24,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  LEGACY_COARSE_ROOT_SLUG,
   buildHomeCategories,
+  isRenderableRoot,
   type HomeCategoryRow,
 } from '../../frontend/lib/home-categories'
 
@@ -83,7 +87,15 @@ test('PAN-86: the shelf is scoped by domain, and scope fails closed', () => {
   for (const forbidden of ['danish-modern', 'design-objects', 'cycling', 'photography', 'tech']) {
     assert.equal(slugs.includes(forbidden), false, `${forbidden} reached the homepage`)
   }
-  assert.equal(shelf.length, 15)
+
+  // ONE DEFINITION OF "REAL ROOT", NOT TWO. `music-gear` is the legacy coarse
+  // root — zero kg_product rows, a peer of nothing — and lib/browse.ts has
+  // excluded it from /browse since before this shelf existed. Both surfaces
+  // now read `LEGACY_COARSE_ROOT_SLUG`, so neither can start rendering a
+  // category the other hides.
+  assert.equal(slugs.includes(LEGACY_COARSE_ROOT_SLUG), false)
+  assert.equal(isRenderableRoot(root('music-gear', 'music')), false)
+  assert.equal(shelf.length, 14)
 
   // FAIL-CLOSED, not deny-listed. A root whose domain cannot be read, or whose
   // domain is one nobody has taught this function about, is dropped rather
@@ -93,14 +105,14 @@ test('PAN-86: the shelf is scoped by domain, and scope fails closed', () => {
     [...ROOTS, root('watches', 'horology'), root('unreadable', null)],
     PUBLIC_ROOT_IDS,
   )
-  assert.equal(withUnknowns.length, 15)
+  assert.equal(withUnknowns.length, 14)
 
   // A child category is not a root, however right its domain looks.
   const withChild = buildHomeCategories(
     [...ROOTS, root('solid-body', 'music', { parent_id: 'id:electric-guitars' })],
     PUBLIC_ROOT_IDS,
   )
-  assert.equal(withChild.length, 15)
+  assert.equal(withChild.length, 14)
 })
 
 test('PAN-86: a card never prints a number its destination cannot honour', () => {
@@ -138,10 +150,10 @@ test('PAN-86: empty roots reach the shelf, and the useful ones lead', () => {
 
   // Option 3, the product decision: emptiness is visible BEFORE the click.
   // Filtering these out is what /browse does, and it is the behaviour this
-  // shelf deliberately does not copy — eleven roots with nothing behind them
+  // shelf deliberately does not copy — ten roots with nothing behind them
   // still render, each able to say so.
   const empty = shelf.filter((c) => c.product_count === 0)
-  assert.equal(empty.length, 11)
+  assert.equal(empty.length, 10)
 
   // Order is total and locale-independent — populated first by count, then by
   // name_en — so the server and the client cannot disagree about it.
@@ -161,7 +173,6 @@ test('PAN-86: empty roots reach the shelf, and the useful ones lead', () => {
       'drums-and-percussion',
       'folk-instruments',
       'home-audio',
-      'music-gear',
       'parts',
     ],
   )

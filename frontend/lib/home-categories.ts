@@ -7,14 +7,24 @@
  *
  * TWO RULES, AND THEY ARE THE WHOLE FILE.
  *
- * 1. SCOPE IS THE DOMAIN AXIS, NOT A SLUG LIST. `kg_category` holds 20 roots;
- *    five of them (`danish-modern`, `design-objects`, `cycling`, `photography`,
- *    `tech`) are out-of-scope verticals whose rows stay inactive (CLAUDE.md
- *    preamble). They are excluded by `domain !== 'music'`, which is exact-match
- *    and fail-closed — a row whose domain cannot be read is dropped, so a new
+ * 1. WHICH ROOTS ARE REAL — `isRenderableRoot()` below, and it is the ONE
+ *    answer. Scope is the domain axis, not a slug list: `kg_category` holds 20
+ *    roots, and five of them (`danish-modern`, `design-objects`, `cycling`,
+ *    `photography`, `tech`) are out-of-scope verticals whose rows stay inactive
+ *    (CLAUDE.md preamble). They go by `domain !== 'music'`, which is exact-
+ *    match and fail-closed — a row whose domain cannot be read is dropped, so a
  *    vertical arriving with a domain nobody has taught this function about
- *    renders nothing rather than renders by default. A hardcoded deny-list
- *    would have the opposite failure mode.
+ *    renders nothing rather than renders by default. A deny-list would have the
+ *    opposite failure mode.
+ *
+ *    The one slug that IS named is `music-gear`, and it is named here, once, so
+ *    that `/browse` and the homepage cannot disagree about whether it exists.
+ *    It is the legacy coarse root meaning "all music gear" — it holds zero
+ *    `kg_product` rows, not merely zero public ones, and it is a peer of
+ *    nothing. `fetchMusicTaxonomy` in lib/browse.ts has excluded it from
+ *    `/browse` since long before this shelf existed; that call now reads
+ *    `LEGACY_COARSE_ROOT_SLUG` instead of repeating the literal, so the two
+ *    surfaces share one definition rather than two `.neq()`s that can drift.
  *
  * 2. THE COUNT IS THE ROWS THE NEXT PAGE WILL SERVE, DERIVED FROM THOSE ROWS.
  *    A card may never print a number its own destination cannot honour — the
@@ -33,6 +43,34 @@
 
 /** The one in-scope domain. Exact match — see rule 1. */
 export const HOME_CATEGORY_DOMAIN = 'music'
+
+/**
+ * The legacy coarse root. Owned here so `/browse` and the homepage share one
+ * definition — see rule 1. Not a general deny-list and must not become one:
+ * any second entry would mean the taxonomy has a shape this predicate no
+ * longer describes, and that is a data question, not a rendering one.
+ */
+export const LEGACY_COARSE_ROOT_SLUG = 'music-gear'
+
+/**
+ * May this `kg_category` row be rendered as a taxonomy root?
+ *
+ * Exact-match and fail-closed, like `isCanonical()` and `isMatchableProduct()`:
+ * a row whose domain or parentage cannot be read is ineligible. Takes the
+ * narrowest shape it can so a caller that has only these three fields — the
+ * `/browse` taxonomy query, for one — can still ask.
+ */
+export function isRenderableRoot(row: {
+  slug: string
+  domain: string | null
+  parent_id: string | null
+}): boolean {
+  return (
+    row.domain === HOME_CATEGORY_DOMAIN &&
+    row.parent_id === null &&
+    row.slug !== LEGACY_COARSE_ROOT_SLUG
+  )
+}
 
 /** A `kg_category` row, as much of it as the shelf needs. */
 export type HomeCategoryRow = {
@@ -83,7 +121,7 @@ export function buildHomeCategories(
   }
 
   return roots
-    .filter((row) => row.domain === HOME_CATEGORY_DOMAIN && row.parent_id === null)
+    .filter(isRenderableRoot)
     .map((row) => ({
       id: row.id,
       slug: row.slug,

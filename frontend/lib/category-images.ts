@@ -13,17 +13,22 @@
  * The stock CDN resizes and content-negotiates, so `?auto=format&fit=crop&
  * w=1200&q=80` is served as avif/webp at ~25-215 KB. The Supabase objects the
  * column pointed at are full-size originals with no transform in front of
- * them: `products/fender-jazz-bass.webp` is 1.9 MB, `products/ampex-atr-700
- * .webp` is 4.0 MB and `categories/music-gear.webp` is 3.9 MB. Roughly 30x,
- * for the same card. `images.unsplash.com` was already declared in
- * `next.config.mjs` remotePatterns; this adds no CDN.
+ * them: `products/fender-jazz-bass.webp` is 1.9 MB and `products/ampex-atr-700
+ * .webp` is 4.0 MB. Roughly 30x, for the same card.
+ * `images.unsplash.com` was already declared in `next.config.mjs`
+ * remotePatterns; this adds no CDN.
  *
- * THIRTEEN ENTRIES, NOT FIFTEEN, and that is deliberate. `acoustic-guitars`
- * and `electric-guitars` already hold correct Unsplash hotlinks in the column
- * (137 KB and 106 KB delivered), so they are absent here and resolve through
- * the fallback. The map supersedes the column in exactly two situations: the
- * ten roots where it is null, and the three where it points at a borrowed
- * multi-megabyte product photograph.
+ * TWELVE ENTRIES FOR FOURTEEN ROOTS, and that is deliberate.
+ * `acoustic-guitars` and `electric-guitars` already hold correct Unsplash
+ * hotlinks in the column (72.5 KB and 39.1 KB delivered at w=1200), so they
+ * are absent here and resolve through the fallback. The map supersedes the
+ * column in exactly two situations: the ten roots where it is null, and the
+ * two where it points at a borrowed multi-megabyte product photograph.
+ *
+ * `music-gear` has no entry because it is not a card — `isRenderableRoot()`
+ * excludes the legacy coarse root. Its 3.9 MB `categories/music-gear.webp` is
+ * still what `/browse` lends `keyboards-and-synths`, which this shelf does not
+ * do and which is not this ticket's to fix.
  *
  * PROVENANCE. Every URL below was fetched and visually checked on 2026-09-21.
  * The `unsplash.com/photos/...` page for each is recorded beside it — PAN-76
@@ -79,11 +84,6 @@ export const CATEGORY_IMAGES: Readonly<Record<string, string>> = {
   // Stacked rack of vintage analogue synthesizers. The column is null here and
   // lib/browse.ts lends /browse the 3.9 MB music-gear.webp instead.
   'keyboards-and-synths': photo('photo-1634041551278-a843c116ff28'),
-
-  // unsplash.com/photos/recording-studio-with-guitars-and-console-ptVBlniJi50
-  // Studio control room: console, outboard, guitars on the wall. Supersedes
-  // the 3.9 MB categories/music-gear.webp.
-  'music-gear': photo('photo-1598488035139-bdbb2231ce04'),
 
   // unsplash.com/photos/close-up-of-a-guitar-headstock-with-tuners-WKBQrLwfi6Y
   // Guitar headstock and machine heads.
