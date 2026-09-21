@@ -27,6 +27,17 @@ export const CATEGORY_LABELS_DA: Readonly<Record<string, string>> = {
   'drums-and-percussion': 'Trommer & percussion',
   amps: 'Forstærkere',
   'music-gear': 'Musikudstyr',
+  // PAN-86. The homepage shelf is the first surface to render ALL fifteen
+  // music roots, so the six this map never needed before now have to be here:
+  // without them a Danish visitor reads nine Danish labels next to six English
+  // ones, because `name_da` equals `name_en` for every one of them in
+  // production. Same reasoning as the block above, same non-write.
+  accessories: 'Tilbehør',
+  'band-and-orchestra': 'Blæsere & orkester',
+  'dj-and-lighting-gear': 'DJ & lys',
+  'folk-instruments': 'Folkeinstrumenter',
+  'home-audio': 'Hi-fi & hjemmelyd',
+  parts: 'Reservedele',
 }
 
 /**
@@ -43,6 +54,12 @@ export const CATEGORY_LABELS_EN: Readonly<Record<string, string>> = {
   'drums-and-percussion': 'Drums & Percussion',
   amps: 'Amplifiers',
   'music-gear': 'Music Gear',
+  accessories: 'Accessories',
+  'band-and-orchestra': 'Band & Orchestra',
+  'dj-and-lighting-gear': 'DJ & Lighting',
+  'folk-instruments': 'Folk Instruments',
+  'home-audio': 'Home Audio',
+  parts: 'Parts',
 }
 
 /**

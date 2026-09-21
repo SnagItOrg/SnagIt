@@ -7,6 +7,12 @@ import {
   assertSupportedCohortIsMusic,
   loadSupportedSlugs,
 } from '@/lib/catalogue'
+import {
+  HOME_CATEGORY_DOMAIN,
+  buildHomeCategories,
+  type HomeCategory,
+  type HomeCategoryRow,
+} from '@/lib/home-categories'
 
 export type BrowseProjectionRow = {
   id: string
@@ -188,6 +194,7 @@ type DiscoverProduct = {
 type DiscoverResponse = {
   legendary: DiscoverProduct[]
   popular: DiscoverProduct[]
+  categories: HomeCategory[]
 }
 
 const PROJECTION_SELECT = [
@@ -382,6 +389,33 @@ async function fetchMusicTaxonomy(admin: SupabaseClient) {
     subcategories: (subcategoriesRes.data ?? []) as SubcategoryRow[],
     musicGearImageUrl: ((musicGearRes.data ?? null) as MusicGearImageRow | null)?.image_url ?? null,
   }
+}
+
+/**
+ * Every in-scope root, for the homepage category shelf (PAN-86).
+ *
+ * Deliberately NOT `fetchMusicTaxonomy`. That function answers /browse's
+ * question and carries two exclusions the homepage must not inherit: it drops
+ * `music-gear` by slug, and it selects no `domain` or `parent_id`, so its
+ * caller could not re-check scope even if it wanted to. This one selects the
+ * two scope columns precisely so `buildHomeCategories` can assert on them
+ * rather than trust the filter — the query narrows for cost, the pure function
+ * decides for correctness, and a change to either alone cannot widen the
+ * shelf past the music domain.
+ */
+async function fetchHomeCategoryRoots(admin: SupabaseClient): Promise<HomeCategoryRow[]> {
+  const res = await admin
+    .from('kg_category')
+    .select('id, slug, name_da, name_en, domain, parent_id, image_url')
+    .eq('domain', HOME_CATEGORY_DOMAIN)
+    .is('parent_id', null)
+    .order('name_en')
+    .then((r) => r, () => {
+      throw new CatalogueUnavailableError('home_categories_transport')
+    })
+
+  if (res.error) throw new CatalogueUnavailableError('home_categories')
+  return (res.data ?? []) as HomeCategoryRow[]
 }
 
 /**
@@ -794,7 +828,21 @@ export async function buildBrowseLeafResponse(args: {
  * cleanly. WP-3 replaces both shelves with "Fulgt lige nu" and "Nye annoncer".
  */
 export async function buildDiscoverResponse(admin: SupabaseClient): Promise<DiscoverResponse> {
-  const publicRows = (await fetchPublicBrowseRows(admin)).sort(compareProducts)
+  // ONE ROW SET FEEDS BOTH THE SHELVES AND THE CATEGORY COUNTS (PAN-86).
+  //
+  // The counts could have come from their own query. They deliberately do not:
+  // a second query is a second predicate, and a second predicate is how a card
+  // comes to advertise a number its destination cannot honour. It is also
+  // three extra round trips — `fetchPublicBrowseRows` costs a supported-slug
+  // read, a domain probe and a projection page — on a page whose whole ticket
+  // is that it should load fast. The taxonomy read is the only addition, and
+  // it runs alongside rather than after.
+  const [publicRowsRaw, roots] = await Promise.all([
+    fetchPublicBrowseRows(admin),
+    fetchHomeCategoryRoots(admin),
+  ])
+  const publicRows = publicRowsRaw.sort(compareProducts)
+  const categories = buildHomeCategories(roots, publicRows.map((row) => row.root_category_id))
 
   const legendary = publicRows
     .filter((row) => row.tier === 'legendary')
@@ -824,5 +872,5 @@ export async function buildDiscoverResponse(admin: SupabaseClient): Promise<Disc
       active_listing_count: row.active_listing_count,
     }))
 
-  return { legendary, popular }
+  return { legendary, popular, categories }
 }

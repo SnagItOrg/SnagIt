@@ -66,6 +66,11 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',
+      // PAN-86: the homepage category shelf is the first surface to render the
+      // taxonomy itself rather than products, so domain scope and the "never
+      // print a count the destination cannot honour" rule are both exercised
+      // here, against an import-free module.
+      'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
       // because the failure is silent — a wrong median looks like a median.

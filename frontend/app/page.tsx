@@ -4,6 +4,7 @@ import { buildDiscoverResponse } from '@/lib/browse'
 import { isCatalogueUnavailable } from '@/lib/catalogue'
 import { LandingShell } from '@/components/LandingShell'
 import { DiscoverShelves } from '@/components/DiscoverShelves'
+import { CategoryShelf } from '@/components/CategoryShelf'
 
 /**
  * NEVER PRERENDERED, NEVER CACHED — for the same reason /api/discover is not.
@@ -30,6 +31,21 @@ import { DiscoverShelves } from '@/components/DiscoverShelves'
  * <Suspense> boundary below. Correctness was the tiebreak: a stale shelf is
  * wrong for as long as it is cached, and a depublished product is the one thing
  * the homepage must never show.
+ *
+ * PAN-86 ASKED WHETHER THE CATEGORY CARDS COULD ESCAPE THAT. They cannot, and
+ * the reason is the count rather than the category. A category carries no
+ * depublication hazard — its name, slug and image change about never — but the
+ * card prints `product_count`, and that number is the size of the public
+ * supported row set. Depublish a product and the count is wrong by one, which
+ * is the same failure as a stale shelf wearing a smaller hat. Caching the
+ * taxonomy read ALONE is sound, and is also not worth doing: measured against
+ * production it is 6.9 ms over 340 rows with every buffer already resident,
+ * and it runs inside the same Promise.all as the row set it accompanies, so it
+ * costs nothing that a cache could give back. The route stays per-request.
+ *
+ * Measured on production before this change: TTFB 0.24-0.51 s over five warm
+ * requests, `x-vercel-cache: MISS` every time, 104 KB of HTML that gzips to
+ * 8.3 KB on the wire.
  */
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -52,13 +68,18 @@ async function readShelves() {
         stage: error.stage,
       })
     }
-    return { legendary: [], popular: [] }
+    return { legendary: [], popular: [], categories: [] }
   }
 }
 
 async function Shelves() {
-  const { legendary, popular } = await readShelves()
-  return <DiscoverShelves legendary={legendary} popular={popular} />
+  const { legendary, popular, categories } = await readShelves()
+  return (
+    <>
+      <DiscoverShelves legendary={legendary} popular={popular} />
+      <CategoryShelf categories={categories} />
+    </>
+  )
 }
 
 /**

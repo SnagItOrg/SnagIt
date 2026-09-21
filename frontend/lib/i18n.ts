@@ -152,6 +152,18 @@ export const translations = {
     browseProducts: 'produkter',
     browseListings: 'til salg',
     browseAllCategories: 'Alle kategorier',
+    // PAN-86 — the homepage category shelf, and the page behind an empty card.
+    // `homeCategoryCount` counts PRODUCTS, not listings: it is the number the
+    // destination page can honour. The empty copy says what following is,
+    // because "ingen resultater" answers a question nobody asked here.
+    homeCategoriesHeading: 'Kategorier',
+    homeCategoriesSubtext: 'Alt Klup følger — og hvad vi endnu ikke følger',
+    homeCategoryCount: '{count} produkter',
+    homeCategoryCountOne: '1 produkt',
+    homeCategoryEmpty: 'Ikke fulgt endnu',
+    browseEmptyCategoryHeading: 'Klup følger ikke noget her endnu',
+    browseEmptyCategoryBody:
+      'Når Klup følger et produkt, henter vi annoncer fra DBA, Finn, Blocket, Kleinanzeigen og Reverb og viser dig, hvad det faktisk koster brugt. Denne kategori er ikke med endnu.',
     discoverLegendaryHeading: 'Legendarisk gear',
     discoverLegendarySubtext: 'Ikoniske instrumenter — dem alle kender',
     discoverPopularHeading: 'Populært lige nu',
@@ -517,6 +529,14 @@ export const translations = {
     browseProducts: 'products',
     browseListings: 'for sale',
     browseAllCategories: 'All categories',
+    homeCategoriesHeading: 'Categories',
+    homeCategoriesSubtext: 'Everything Klup follows — and what it does not follow yet',
+    homeCategoryCount: '{count} products',
+    homeCategoryCountOne: '1 product',
+    homeCategoryEmpty: 'Not followed yet',
+    browseEmptyCategoryHeading: 'Klup does not follow anything here yet',
+    browseEmptyCategoryBody:
+      'When Klup follows a product, we pull listings from DBA, Finn, Blocket, Kleinanzeigen and Reverb and show you what it actually costs used. This category is not covered yet.',
     discoverLegendaryHeading: 'Legendary gear',
     discoverLegendarySubtext: 'Iconic instruments — the ones everyone knows',
     discoverPopularHeading: 'Popular right now',
