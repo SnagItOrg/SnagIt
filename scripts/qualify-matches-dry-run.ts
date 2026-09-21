@@ -111,6 +111,8 @@ What the ratio IS good for is the opposite failure: A PART WHOSE TITLE READS LIK
   - if "product_median_dkk" is null or "adjudicated_n" is small, there is no comparison to draw. Decide from the words alone and do not invent a market level.
   - NEVER cite a bare price as your reason. Cite the words, and cite the ratio only as what made you look.
 
+A NORMAL RATIO IS NOT REASSURANCE, AND IT SETTLES NOTHING. A listing at 60%, 100% or 150% of the median has told you only that it is priced like the product. Two sub-models of one line usually trade at similar levels — that similarity is exactly why the catalogue cannot hold them under a single identity — so the ratio can never tell a "Les Paul Studio Session" from a "Les Paul Studio", or an "American Vintage '72 Thinline" from the generic "Telecaster Thinline". THE SUB-MODEL ABSTENTION RULE BELOW IS UNTOUCHED BY PRICE. If the title names a sub-model at a distinct market tier that the catalogue has no row for, abstain — at any ratio, however ordinary. Price context exists to catch parts priced like parts, and nothing else.
+
 VERDICTS
 
 "exact" — the listing offers this product. Finish, colour, year, serial number, fingerboard wood, handedness, condition, a bundled case or cable, a service history or a reversible modification do NOT make it a different product.

@@ -1,14 +1,22 @@
-# PAN-95 — qualify listings with a model, not a price threshold
+# PAN-95 — qualify listings with a model, and price as evidence not a rule
 
-**Status: a dry run and a measurement. Nothing has been written.**
-No `is_valid` was set, no migration ran, no apply path exists in the code this
-adds. Applying a pass is a separate action that needs the product owner's
+**Status: a design, two measurements, and no apply path.** The code here still
+holds no `.update`, `.insert` or `.upsert` and takes no `--apply` flag.
+Applying a pass is a separate action that needs the product owner's
 authorisation, each time (CLAUDE.md §2).
 
-Everything below is measured against production on **2026-09-20** by SELECT
-only. The backlog grows while scrapers run — two reads twenty minutes apart
-returned 1,764 and 1,769 unreviewed rows — so treat every count as a snapshot
-of its run, not a constant.
+**The 2026-09-20 pass WAS subsequently applied**, outside this branch: 1.254
+rows carry `is_valid = true` and 237 `is_valid = false` under
+`decision_source = 'pan-95/qualification-2026-09-20'`, read 2026-09-21. §7's
+reversal statement is therefore live, not hypothetical, and §5b's revision is
+measured against a database that already contains that pass. Five of its
+approvals have since been reversed by hand under
+`pan-95/price-context-review-2026-09-21`; those five are the fixture in §5b.
+
+Everything below is measured against production by SELECT only — §1–§6b on
+**2026-09-20**, §5b on **2026-09-21**. The backlog grows while scrapers run —
+two reads twenty minutes apart returned 1,764 and 1,769 unreviewed rows — so
+treat every count as a snapshot of its run, not a constant.
 
 ---
 
@@ -27,29 +35,27 @@ are already in the data:
 - **Expensive and not the product.** A Moog Model D ATA flightcase at 7.076 DKK
   clears any floor that would keep those three.
 
-There is also a plainer reason, which is the one that ends the argument:
+And the `kg_product` band is not a usable comparator anyway:
 
 > **5 of the 58 supported products carry a `price_min_dkk`/`price_max_dkk` band
-> at all.** For the other 53 a price rule has nothing to compare against.
+> at all.** For the other 53 it has nothing to compare against.
 
-And per the standing note on price evidence, the five bands that do exist are
-Reverb comps — asking-side US evidence, not Danish sold history. A threshold
-built on them would be a threshold built on another market.
+Per the standing note on price evidence, the five that do exist are Reverb
+comps — asking-side US evidence, not Danish sold history. A threshold built on
+them would be a threshold built on another market.
 
-So price is removed **by construction, not by instruction**.
-`buildIdentityPayload()` in `scripts/lib/match-qualification.ts` is the only
-thing that builds the judge's view, `MODEL_PAYLOAD_KEYS` enumerates every key
-it may contain, and a test fails if either admits a key matching
-`/price|dkk|currency|msrp|thomann|cost|value/`. A later edit that softens a
-sentence in the prompt cannot reintroduce the threshold; it would have to
-change a list that a test compares against a deny-list.
-
-Price still reaches the **manifest**, because the human vetoing a row should
-see it. It just cannot reach the judgement.
+**None of that is an argument for hiding price from the judge, and the first
+version of this design made exactly that mistake.** It removed price from
+`buildIdentityPayload()` by construction and pinned the removal with a test.
+That over-generalised: refusing to *threshold* on price and refusing to *show*
+it are different acts, and §5b measures what the second one cost. What replaces
+it is in §2b — the product's own **adjudicated** population, which is a real
+comparator on 49 of the 50 products with unreviewed rows, and which no code in
+this pass compares against a constant.
 
 ---
 
-## 2. What the judge sees instead
+## 2. What the judge sees
 
 Identity, and the competition for it:
 
@@ -61,6 +67,7 @@ Identity, and the competition for it:
 | `sibling_products` | **every other matchable row of the same brand** |
 | `matcher_method`, `matcher_score` | context, never a verdict |
 | `deterministic_signal` | `listing-intent`'s finding, if any — see §4 |
+| `price_context` | the listing's price against the product's own — see §2b |
 
 The sibling list is the part that fixes a live failure. Two
 *Fender American Ultra II Telecaster* listings sit unreviewed on
@@ -82,6 +89,45 @@ always does, because the pipeline exists to qualify rows that already exist.
 Re-pointing a persisted match needs both ends to move together and is specified
 in `docs/admin-match-deferred-disposition-contract.md`. It is not approximated
 here.
+
+---
+
+## 2b. Price context — evidence, never a rule
+
+`price_context` carries four things and a count:
+
+| field | source |
+|---|---|
+| `listing_price_dkk` | the listing's asking price, normalised. `0` is not a price — on dba.dk that is how a *byttes* / *vurderes solgt* row renders, and three sit in the 2026-09-20 manifest. It becomes `null`. |
+| `product_median_dkk` | median over listings a decision has already confirmed on this product (`is_valid = true` — PAN-93's `isPriceEvidence`), gated at `MIN_DESCRIPTIVE_MEDIAN_N` |
+| `product_q1_dkk`, `product_q3_dkk` | the same population's quartiles, gated at `MIN_BAND_N` |
+| `adjudicated_n` | how many confirmations the numbers rest on |
+| `listing_pct_of_median` | the ratio, one decimal |
+
+Both gates and the quantile estimator are the repo's own
+(`price-populations.ts`, `statistics.ts`), so this pass cannot show a number a
+product page would refuse to. Every field fails to `null` independently; none
+is ever substituted with a default that would read as a measurement.
+
+**Coverage, measured 2026-09-21.** Of the 50 products carrying unreviewed rows,
+**49 have an adjudicated median and 44 have n ≥ 8**. That is the comparator the
+`kg_product` band could not be: it exists, it is denominated in DKK, and it is
+built from decisions this catalogue actually made.
+
+**Nothing in the code thresholds on it.** There is no constant to compare a
+ratio against, in this module or in the manifest planner. The ratio is text in
+a payload; the prompt states in as many words that a low ratio is a reason to
+look harder at the title and never a reason to reject, and §5b measures whether
+that held.
+
+**It is bootstrapped, and that is worth stating plainly.** Because the
+2026-09-20 pass was applied, part of each product's adjudicated population is
+that pass's own output — for `gibson-les-paul-custom`,
+`gibson-les-paul-special`, `gibson-es-335-dot` and `fender-telecaster-thinline`,
+all of it. Excluding the pass moves the median by 0–5% on most products, 11% on
+`yamaha-dx7` and 27% on `roland-sh-101`. A median over n ≥ 8 is robust to the
+handful of errors such a pass contains, which is why this is usable; it is not
+an argument for letting a pass feed itself indefinitely without human sampling.
 
 ---
 
@@ -170,7 +216,8 @@ or of anything the judge can see.
 
 **Protocol.** Every row was hand-labelled **before the judge ran**, from the
 listing title, price, currency, source, condition and (where it mattered) the
-listing URL — evidence the judge is deliberately denied. Labels and one-line
+listing URL — evidence the judge was denied *in this run*; §5b re-measures the
+same 100 rows once price is given back. Labels and one-line
 reasons are in [`pan-95-handcheck-sample.tsv`](pan-95-handcheck-sample.tsv), so
 the labels can be vetoed as readily as the verdicts.
 
@@ -217,9 +264,11 @@ as an EPROM, and the two things that disambiguate it are the price and the
 Reverb URL, neither of which the judge is given. The correct verdict was
 abstain.
 
-The design accepts that trade deliberately: one high-value false reject that a
-human catches from the price column in the manifest, in exchange for immunity
-from the entire class of false rejects a threshold creates. It is also the row
+**Superseded by §5b.** The design used to accept that trade deliberately — one
+high-value false reject a human catches from the manifest, in exchange for
+immunity from the class a threshold creates. That was a false choice: given the
+price context this row comes back `exact` at 93.7% of median, and the immunity
+is kept because nothing thresholds. It is also the row
 where the guard's signal and the judge agreed — the hint propagated the guard's
 bias, which is worth watching if the signal is ever weighted more heavily.
 
@@ -231,6 +280,109 @@ The number is a real measurement of a real disagreement rate, but the owner
 should spot-check a block of the manifest before authorising anything — the two
 places to look are the low-confidence approvals and the rejections above 10.000
 DKK.
+
+---
+
+## 5b. The revision — what the price context changed
+
+Measured **2026-09-21**, same 100 rows, same hand labels, same model
+(`claude-opus-5`, adaptive thinking), same scoring. Re-run from this branch
+rather than quoted, so the before column is a run of mine and not the number in
+§5.
+
+| | approve n | approve precision | reject n | reject precision | abstain | recall on `exact` |
+|---|---|---|---|---|---|---|
+| §5, as published | 74 | 98.6% | 10 | 90.0% | 16 | 94.8% |
+| **before**, my run 1 | 73 | **100.0%** | 10 | **90.0%** | 17 | 94.8% |
+| **before**, my run 2 | 72 | **100.0%** | 10 | **90.0%** | 18 | 93.5% |
+| after, first prompt | 81 | 93.8% | 10 | 100.0% | 9 | 98.7% |
+| **after**, run 1 | 76 | **100.0%** | 9 | **100.0%** | 15 | **98.7%** |
+| **after**, run 2 | 76 | **100.0%** | 9 | **100.0%** | 15 | **98.7%** |
+
+The revision is **better on reject precision (90.0% → 100.0%), equal at ceiling
+on approve precision, and better on recall (94.8% → 98.7%)** while abstaining
+slightly less. Cost per 100 rows rises from $0.72 to $0.80 — input tokens
++26%, which extrapolates a full 1.764-row pass from ~$12.2 to ~$13.6.
+
+**The one reject that price fixed** is the row §5 named as the honest cost of
+withholding it: `Roland TR-909 Rhythm Composer eprom v4`, a complete TR-909 at
+42.224 DKK, rejected `accessory` at confidence 95 in both before runs. With the
+context it reads *93.7% of median* and comes back `exact`. That error was never
+the model's; it was the input's.
+
+### The middle row of that table is the finding
+
+The first prompt gave the judge price and lost approve precision — 93.8%, five
+bad approvals. Every one was a row hand-labelled `abstain`: *Les Paul Studio
+Session*, *Studio Deluxe II*, *FSR American Vintage '72 Thinline*, a Custom
+Shop *Hummingbird*. All sat at an ordinary ratio (60%, 102%, 116%, 157%), and
+the judge read *ordinary* as *confirmed*, abstaining on 9 rows where it had
+abstained on 17.
+
+That is a real hazard of showing price and it needed the mirror statement, not
+a tuning pass: **a normal ratio is not reassurance and settles nothing.** Two
+sub-models of one line trade at similar levels — that similarity is precisely
+why the catalogue cannot hold them under one identity — so the ratio can never
+separate them, and the sub-model abstention rule is untouched by price. With
+that sentence in the prompt the abstentions return (15) and both precisions sit
+at 100%, reproducibly across two runs.
+
+### The six held-back rows
+
+Five were adjudicated by hand after the pass — four `wrong`, one `accessory`,
+stamped `pan-95/price-context-review-2026-09-21`. The sixth, *Moog Source Mid
+1980's* at 1.305 DKK, was deliberately left unreviewed as undecidable.
+
+| row | DKK | % of median | before | after (both runs) |
+|---|---|---|---|---|
+| 1978 Gibson Les Paul Custom 1-ply Cream W/Bracket | 293 | 0.9% | `exact` 88 | **`accessory` 96** ✓ |
+| made in Canada Gibson Les Paul Special Single Cut | 913 | 7.9% | `exact` 58 | **`wrong` / `accessory`** ✓ |
+| Roland TR-808 Rhythm Composer 1982 - Black | 2.306 | 5.1% | `exact` 96 | `abstain` 70 |
+| Roland Juno-106 synthesizer med tangenter | 740 | 5.4% | `exact` 93 | `abstain` 72 |
+| Roland Juno-6 synthesizer keyboard | 740 | 5.1% | `exact` 95 | `abstain` 70 |
+| Moog Source Mid 1980's | 1.305 | 7.5% | `exact` 92 | **`abstain` 65** ✓ |
+
+**Before: six approvals out of six. After: none.** Three land on `abstain`
+where the human reached `wrong`, and the target — five rejections and one
+abstention — is not met.
+
+That gap should not be closed by prompt pressure, and this revision does not
+try. The judge's own stated reason on those three is that a bare title at 5% of
+median gives it nothing concrete to name; the human who wrote `wrong` had the
+listing page. "Very low ratio plus a bare title ⇒ reject" is a threshold
+wearing a sentence, and it is the rule that would start deleting the cheap
+genuine instrument again. An abstention writes nothing and leaves the row for
+that human. The material change is that **none of this class now enters the
+price evidence**, which is what the approvals were doing.
+
+### The cheap-but-genuine class is intact
+
+The sanity check the owner asked for, run on real rows rather than an invented
+one: all **21 approvals in the 2026-09-20 manifest that sit between 12% and 50%
+of their product's adjudicated median**.
+
+**Zero were rejected.** 17 came back `exact`, 4 abstained — and all four
+abstentions are sub-model rows (two *Telecaster Thinline* variants, a Limited
+Edition '72 *Telecaster Custom*, a sparse *Korg MS 20 Synthesizer*), the
+sub-model rule firing, not a price rejection. Among the approvals:
+
+| row | % of median | verdict |
+|---|---|---|
+| Roland SH-101 32-Key Monophonic Synthesizer 1982-1986 - Gray | 42.6% | `exact` 90 |
+| Yamaha DX7 FM-Synthesizer | 23.4% | `exact` 78 |
+| Roland TR-909 Rhythm Composer Drum Machine **BAD SHAPE For Parts / Repair** | 35.8% | `exact` 88 |
+| Roland Space Echo RE-201 | 37.3% | `exact` 90 |
+
+The TR-909 row is the one to read twice: a title that says *For Parts / Repair*
+at 36% of median is still the instrument, because condition is not identity.
+
+### On "should we use better models?"
+
+The numbers say the model was not the limit. `claude-opus-5` is the largest in
+the family and it is what both columns ran on — same model, same rows, same
+labels. Reject precision moved 90% → 100% and recall 94.8% → 98.7% because the
+input changed, not because the judge did. The TR-909 is the clearest single
+case: no amount of model capacity recovers a fact that was withheld.
 
 ---
 
@@ -395,21 +547,28 @@ not assumed away.
   `.update`, `.insert`, `.upsert`, `.delete` or `.rpc`, and no `--apply` flag.
 - **`listing-intent.ts` is not edited** — PAN-96 owns it.
 - **PAN-93 is assumed, not implemented.** This design is written for the world
-  where only `is_valid = true` prices a product. Applied *before* PAN-93 lands,
-  the 84 approvals in a 100-row pass change nothing (an unreviewed row is
-  already trusted) while the rejections take effect immediately — so the safe
-  order is PAN-93 first, then a pass, then the abstentions.
+  where only `is_valid = true` prices a product. It has since merged, which is
+  also what makes `price_context` well defined: the population it summarises is
+  exactly the one `isPriceEvidence()` admits. This branch predates that commit,
+  so the predicate is expressed as the server-side filter `is_valid = true` and
+  the import lands on rebase.
+- **No price threshold is introduced.** Price is given to the judge as evidence
+  and compared to no constant anywhere in this pass (§2b). The test that used
+  to fail on a money key now fails if the context is absent or misshaped — the
+  guarantee is inverted, not dropped.
 
 ## 9. Recommendation
 
 Proceed, with three conditions:
 
-1. **PAN-93 first.** Until only `true` prices a product, an abstention is not
-   actually safe — an unreviewed row is trusted today.
+1. **Re-run the backlog before applying anything further.** The manifest in
+   this PR was produced by the price-blind judge and has already been applied;
+   §5b shows that design approving a pickguard at 1% of median. A fresh pass is
+   what the revision is for.
 2. **Set an approval confidence floor at the apply step**, and have the owner
    spot-check the low-confidence approvals and the high-value rejections in the
-   manifest before the first pass. 70 is the number this sample supports; it
-   rests on one row.
+   manifest before the next pass. 70 is the number §5 supports; §5b's five bad
+   approvals under the first revised prompt also all sat at 70 or below.
 3. **Take the depth question to the product owner separately.** Roughly a sixth
    of the sample — and a much larger share of the 1.058 unreviewed guitar rows —
    is not a matcher problem at all. It is a catalogue that has one
