@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 async function verifyAdmin(): Promise<boolean> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return false
   const admin = getSupabaseAdmin()
@@ -18,8 +18,9 @@ async function verifyAdmin(): Promise<boolean> {
 // GET /api/admin/users/[id] — user detail (watchlists + saved)
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
+  const params = await ctx.params
   if (!(await verifyAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const admin = getSupabaseAdmin()
@@ -47,8 +48,9 @@ export async function GET(
 // DELETE /api/admin/users/[id] — delete user
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
+  const params = await ctx.params
   if (!(await verifyAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const admin = getSupabaseAdmin()
@@ -60,8 +62,9 @@ export async function DELETE(
 // POST /api/admin/users/[id] — actions (reset-password)
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
+  const params = await ctx.params
   if (!(await verifyAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { action } = await req.json()
@@ -74,7 +77,7 @@ export async function POST(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
     const { error } = await supabase.auth.resetPasswordForEmail(user.email)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ ok: true })

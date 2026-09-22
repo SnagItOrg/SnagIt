@@ -39,7 +39,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
  */
 
 async function verifyAdmin(): Promise<{ ok: true; userId: string } | { ok: false }> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false }
   const admin = getSupabaseAdmin()
@@ -64,8 +64,9 @@ function slugify(name: string): string {
 // Body: { action: 'approve' | 'reject' | 'merge', canonical_name?, model_name?, merge_product_id? }
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
+  const params = await ctx.params
   const auth = await verifyAdmin()
   if (!auth.ok) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 

@@ -23,8 +23,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { slug: string } },
+  ctx: { params: Promise<{ slug: string }> },
 ) {
+  const params = await ctx.params
   const denied = await requireAdminInRoute()
   if (denied) return denied
 

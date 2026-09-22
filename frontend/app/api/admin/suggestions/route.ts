@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 async function verifyAdmin(): Promise<{ ok: true; userId: string } | { ok: false }> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false }
   const admin = getSupabaseAdmin()

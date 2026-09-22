@@ -13,8 +13,9 @@ import { applyProductPageDecision } from '@/lib/admin-match-decision'
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { slug: string } },
+  ctx: { params: Promise<{ slug: string }> },
 ) {
+  const params = await ctx.params
   const denied = await requireAdminInRoute()
   if (denied) return denied
 

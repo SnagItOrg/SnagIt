@@ -196,11 +196,10 @@ async function loadCurationData(slug: string): Promise<CurationData | null> {
   return { header, thomann, synonyms, listings, prev, next }
 }
 
-export default async function AdminProductCurationPage({
-  params,
-}: {
-  params: { slug: string }
+export default async function AdminProductCurationPage(ctx: {
+  params: Promise<{ slug: string }>
 }) {
+  const params = await ctx.params
   const data = await loadCurationData(params.slug)
   if (!data) notFound()
   return <ProductCurationClient data={data} />

@@ -8,7 +8,7 @@ import { requireAdminInRoute } from '@/lib/admin-auth'
 export async function POST(
   req: NextRequest,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _ctx: { params: { slug: string } },
+  _ctx: { params: Promise<{ slug: string }> },
 ) {
   const denied = await requireAdminInRoute()
   if (denied) return denied

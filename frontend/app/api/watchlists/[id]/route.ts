@@ -3,9 +3,10 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
-  const supabase = createSupabaseServerClient()
+  const params = await ctx.params
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -24,9 +25,10 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
-  const supabase = createSupabaseServerClient()
+  const params = await ctx.params
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -56,9 +58,10 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
-  const supabase = createSupabaseServerClient()
+  const params = await ctx.params
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

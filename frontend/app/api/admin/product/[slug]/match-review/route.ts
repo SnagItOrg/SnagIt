@@ -24,8 +24,9 @@ export const fetchCache = 'force-no-store'
  */
 export async function GET(
   _req: Request,
-  { params }: { params: { slug: string } },
+  ctx: { params: Promise<{ slug: string }> },
 ) {
+  const params = await ctx.params
   const denied = await requireAdminInRoute()
   if (denied) return denied
 

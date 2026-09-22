@@ -10,8 +10,9 @@ export const revalidate = 0
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { root: string } },
+  ctx: { params: Promise<{ root: string }> },
 ) {
+  const params = await ctx.params
   const admin = getSupabaseAdmin()
   const rootSlug = params.root
   const debugRequested = req.nextUrl.searchParams.get('debug') === '1'

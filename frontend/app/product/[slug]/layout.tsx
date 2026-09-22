@@ -39,12 +39,14 @@ export default async function ProductSegmentLayout({
   params,
 }: {
   children: React.ReactNode
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }) {
+  const { slug } = await params
+
   // Family labels resolve first: they are public-but-unsupported rows that must
   // redirect, not 404. Empty until WP-2 fills lib/families.ts.
-  if (isFamilySlug(params.slug)) {
-    permanentRedirect(`/family/${params.slug}`)
+  if (isFamilySlug(slug)) {
+    permanentRedirect(`/family/${slug}`)
   }
 
   const admin = getSupabaseAdmin()
@@ -53,12 +55,12 @@ export default async function ProductSegmentLayout({
     admin
       .from('kg_product')
       .select('slug, status, support_state, browse_visibility')
-      .eq('slug', params.slug)
+      .eq('slug', slug)
       .maybeSingle(),
     admin
       .from('browse_product_projection')
       .select('slug, browse_domain')
-      .eq('slug', params.slug)
+      .eq('slug', slug)
       .maybeSingle(),
   ]).catch(() => {
     // Transport-level failure rejects rather than returning { error }.

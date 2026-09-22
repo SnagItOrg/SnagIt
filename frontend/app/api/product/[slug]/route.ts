@@ -156,7 +156,8 @@ function catalogueUnavailable() {
   )
 }
 
-export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
+  const params = await ctx.params
   try {
     return await handle(req, params.slug)
   } catch (error) {

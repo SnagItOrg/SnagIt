@@ -190,8 +190,9 @@ const loadFamilyView = cache(async (slug: string): Promise<FamilyView | null> =>
  * where a crawler should go next.
  */
 export async function generateMetadata(
-  { params }: { params: { slug: string } },
+  ctx: { params: Promise<{ slug: string }> },
 ): Promise<Metadata> {
+  const params = await ctx.params
   const view = await loadFamilyView(params.slug)
   if (!view) return { title: t.notFoundHeading, robots: { index: false, follow: false } }
 
@@ -203,7 +204,8 @@ export async function generateMetadata(
   }
 }
 
-export default async function FamilyPage({ params }: { params: { slug: string } }) {
+export default async function FamilyPage(ctx: { params: Promise<{ slug: string }> }) {
+  const params = await ctx.params
   const view = await loadFamilyView(params.slug)
   if (!view) notFound()
 
