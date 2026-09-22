@@ -23,6 +23,7 @@ import * as fs from 'fs'
 // handoff below type-checks against the same SupabaseClient identity.
 import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
 import { classifyIngestionRun, coverageIsComplete } from './lib/scrape-health'
+import { decodeHtmlEntities } from './lib/html-entities'
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
 
 // ── Load env ─────────────────────────────────────────────────────────────────
@@ -277,12 +278,22 @@ function buildRow(listing: ReverbListing) {
   const url = listing._links?.web?.href ?? null
   const location = listing.location?.display_location ?? null
 
+  /**
+   * The API is JSON, but its title field still arrives HTML-escaped now and
+   * then — `Manley SLAM! Limiter &amp; Microphone Preamp`, `2x6.5&quot;`.
+   * Decode once here so the column holds characters, not markup (PAN-114).
+   * `normalized_text` is derived from the same decoded string: taken from the
+   * escaped one it gains junk tokens (`amp`, `quot`) that the matcher then
+   * has to see through.
+   */
+  const title = decodeHtmlEntities(listing.title)
+
   return {
     external_id: String(listing.id),
     source: 'reverb' as const,
     platform: 'reverb' as const,
-    title: listing.title,
-    normalized_text: listing.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
+    title,
+    normalized_text: title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
     price: priceDkk,
     currency: 'DKK',
     country: 'US',
