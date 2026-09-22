@@ -14,7 +14,17 @@ import type { CatalogueTreeCategory } from '@/lib/catalogue-tree'
 
 interface Props {
   active: NavTab
-  onChange: (tab: NavTab) => void
+  /**
+   * Optional, so a SERVER component can mount the sidebar.
+   *
+   * Every nav item carries an `href` today and is active by pathname, so the
+   * tab-based branch below — the only caller — never runs, and all eight
+   * client pages pass `() => {}`. A server page may not hand a function across
+   * the RSC boundary at all, so /family/[slug] mounts `<SideNav active=… />`
+   * and this stays undefined. Making it optional is what lets that route reuse
+   * this chrome instead of growing a second shell.
+   */
+  onChange?: (tab: NavTab) => void
 }
 
 function ThemeToggle() {
@@ -321,7 +331,7 @@ export function SideNav({ active, onChange }: Props) {
             return (
               <button
                 key={tab}
-                onClick={() => tab !== undefined && onChange(tab)}
+                onClick={() => tab !== undefined && onChange?.(tab)}
                 className={itemClass}
                 style={itemStyle}
               >

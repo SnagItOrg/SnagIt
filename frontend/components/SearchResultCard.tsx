@@ -9,6 +9,7 @@ import { usePostHog } from 'posthog-js/react'
 import { formatOriginalPrice } from '@/lib/currency'
 import { classifyListing, firstSeenTimestamp, isApproximateDkk } from '@/lib/price-populations'
 import { TextField } from '@/components/TextField'
+import { SourceBadge } from '@/components/SourceBadge'
 
 // Country name → ISO code for flag emoji lookup
 const COUNTRY_CODES: Record<string, string> = {
@@ -108,7 +109,7 @@ interface Props {
  * whether to buy.
  *
  * IT OUTRANKS THE SOURCE BADGE — it did not used to. This badge rendered at
- * 11px in the same grey pill as `PlatformBadge`, which renders at 12px, so the
+ * 11px in the same grey pill as `SourceBadge`, which renders at 12px, so the
  * marketplace name was literally louder than the price judgement on a wall
  * meant to be scanned. Three things separate them now, and NONE of them is
  * colour: size (14px vs 12px), weight (semibold vs medium) and shape (a
@@ -170,30 +171,6 @@ function MarketVerdictBadge({
       {label}
     </span>
   )
-}
-
-function PlatformBadge({ listing, absolute }: { listing: Listing; absolute?: boolean }) {
-  const platform = listing.platform ?? listing.source
-
-  if (absolute) {
-    const base = 'absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-full'
-    if (platform === 'reverb')                         return <span className={`${base} text-white`} style={{ backgroundColor: '#EC5A2C' }}>Reverb</span>
-    if (platform === 'facebook' || platform === 'fb') return <span className={`${base} bg-blue-500 text-white`}>FB</span>
-    if (platform === 'thomann')                       return <span className={`${base} text-white`} style={{ backgroundColor: '#002D4C' }}>Thomann</span>
-    if (platform === 'finn')                           return <span className={`${base} text-white`} style={{ backgroundColor: '#06bffc' }}>Finn</span>
-    if (platform === 'blocket')                        return <span className={`${base} text-white`} style={{ backgroundColor: '#F71414' }}>Blocket</span>
-    if (platform === 'kleinanzeigen')                  return <span className={`${base} text-white`} style={{ backgroundColor: '#1D4B00' }}>KA</span>
-    return <span className={`${base} text-white`} style={{ backgroundColor: '#00098A' }}>DBA</span>
-  }
-
-  const cls = 'text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border'
-  if (platform === 'reverb')                         return <span className={cls}>Reverb</span>
-  if (platform === 'facebook' || platform === 'fb') return <span className={cls}>FB</span>
-  if (platform === 'thomann')                       return <span className={cls}>Thomann</span>
-  if (platform === 'finn')                           return <span className={cls}>Finn</span>
-  if (platform === 'blocket')                        return <span className={cls}>Blocket</span>
-  if (platform === 'kleinanzeigen')                  return <span className={cls}>Kleinanzeigen</span>
-  return <span className={cls}>DBA</span>
 }
 
 export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave, thomannPriceDkk, thomannUrl, productSlug, thomannImageUrl, marketVerdict, marketVerdictBasisLabel }: Props) {
@@ -333,7 +310,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
           )}
 
           {/* Platform badge */}
-          <PlatformBadge listing={listing} absolute />
+          <SourceBadge source={listing.platform ?? listing.source} variant="overlay" />
 
           {/* Discount badge */}
           {hasDiscount && (
@@ -484,7 +461,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
           <p className="text-sm font-medium text-foreground line-clamp-2 wrap-anywhere">{listing.title}</p>
 
           <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-            <PlatformBadge listing={listing} />
+            <SourceBadge source={listing.platform ?? listing.source} />
             {firstSeen && (
               <>
                 <span>·</span>

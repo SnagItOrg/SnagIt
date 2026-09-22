@@ -362,7 +362,9 @@ test('listings: a family aggregates its children’s listings, de-duplicated and
     { product_id: 'id-1', is_valid: false, listings: { id: 'L2', title: 'Rhodes pedal', source: 'dba', is_active: true } },
     // Delisted. Present in the match table, absent from the market.
     { product_id: 'id-2', is_valid: true, listings: { id: 'L3', title: 'Solgt Rhodes', source: 'dba', is_active: false } },
-    { product_id: 'id-2', is_valid: true, listings: { id: 'L4', title: 'Suitcase 73', source: 'reverb', is_active: true } },
+    // The one fixture row with a photo, so the thumbnail path is exercised and
+    // not merely typed. The rest have none, which is the common case.
+    { product_id: 'id-2', is_valid: true, listings: { id: 'L4', title: 'Suitcase 73', source: 'reverb', image_url: 'https://rvb-img.reverb.com/x.jpg', is_active: true } },
     // THE SAME LISTING, MATCHED TO TWO CHILDREN. It is one thing on the market
     // and must be counted once, under the FIRST child in reviewed order.
     { product_id: 'id-3', is_valid: null, listings: { id: 'L5', title: 'Rhodes 73', source: 'dba', is_active: true } },
@@ -390,16 +392,38 @@ test('listings: a family aggregates its children’s listings, de-duplicated and
   }
   assert.equal(view.listings.find((l) => l.id === 'L5')!.childSlug, first)
   assert.equal(view.listings.find((l) => l.id === 'L4')!.childLabel, 'Rhodes Mark I Suitcase 73')
+  // A photo survives the attribution; a row without one gets null rather than
+  // an empty string, so the route never has to decide what counts as an image.
+  assert.equal(view.listings.find((l) => l.id === 'L4')!.imageUrl, 'https://rvb-img.reverb.com/x.jpg')
+  assert.equal(view.listings.find((l) => l.id === 'L1')!.imageUrl, null)
 
   // PRICE ISOLATION, STRUCTURALLY — the PAN-56 assertion, extended to listings.
-  // Five keys and no sixth, so no asking price, band, median, verdict or sold
-  // population can cross the family boundary inside a listing. Widening this
-  // shape is the way the rule is lost.
+  // No asking price, band, median, verdict or sold population may cross the
+  // family boundary inside a listing. Widening this shape is the way the rule
+  // is lost, so the shape is pinned exactly and every key must also be
+  // checked for MEANING: this assertion used to be a count ("five keys and no
+  // sixth"), and a count cannot tell a price from a photo.
+  //
+  // `imageUrl` is the sixth key. It carries the seller's photo, which is
+  // provenance in the same class as `source` — it states no price, implies no
+  // band and settles no verdict, and /product/[slug] and /search already
+  // publish it for these same rows. The two assertions below are what the
+  // count was standing in for, now stated directly.
+  const priceShaped = /price|band|median|verdict|aggregate|count|currency|msrp/i
   for (const listing of view.listings) {
     assert.deepEqual(
       Object.keys(listing).sort(),
-      ['childLabel', 'childSlug', 'id', 'source', 'title'],
+      ['childLabel', 'childSlug', 'id', 'imageUrl', 'source', 'title'],
     )
+    for (const key of Object.keys(listing)) {
+      assert.equal(priceShaped.test(key), false, key)
+    }
+    // Not price-shaped, and still forbidden: an off-site link is how a
+    // navigation row would become an exit to an unverdicted marketplace price.
+    assert.equal(Object.prototype.hasOwnProperty.call(listing, 'url'), false)
+    // The photo is a photo — a string or null, never a number a price could be
+    // hiding in.
+    assert.equal(listing.imageUrl === null || typeof listing.imageUrl === 'string', true)
   }
 
   // A family with no canonical child aggregates nothing, whatever is matched to
