@@ -121,6 +121,34 @@ Existing assets are the baseline and are **never rebuilt by lifecycle work**.
 | Article | `kg_product.attributes` → `description`, `specs`, `history`, `external_links` |
 | Images | `kg_product.image_url` (auto-derived, usually Supabase Storage webp) and `kg_product.hero_image_url` (editorial override; wins) |
 
+### What a product image should be
+
+**A clean cut-out of the instrument on a plain background, front-on, whole,
+and nothing else in frame.**
+
+This was not a design decision. The catalogue arrived at it by accident and
+the product owner named it on 2026-09-22 after noticing two pages that broke
+it. It is written down because consistency is worth having, not because it was
+planned.
+
+What it rules out, all of which is live today:
+
+- a seller's photograph — a shelf, a room, a wooden floor. `kg_product.image_url`
+  is derived from a Reverb CSP for **34 of 49** public products, and a CSP image
+  is by construction a photograph taken by someone selling a used instrument;
+- another instrument in frame;
+- **another marketplace's watermark**. Reverb stamps its own. This is the one
+  that is not a matter of taste.
+
+Category images are a different thing and are not held to this. They are
+editorial photography — a mood, not a specification — and live in
+`frontend/lib/category-images.ts` with their provenance beside them.
+
+The gap between this standard and the catalogue is PAN-110. Do not close it by
+taking Thomann's product photography: PAN-76 established that the imprint
+forbids it, and that finding is quoted in
+`docs/pan-76-image-source-rights-memo.md`.
+
 ### Readiness is not identity
 
 A product can be verified and `supported` **while its copy and imagery are
