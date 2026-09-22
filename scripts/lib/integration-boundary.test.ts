@@ -48,6 +48,11 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/admin-review-hotfix.test.ts',
       'scripts/lib/baseline.test.ts',
       'scripts/lib/data-presentation.test.ts',
+      // PAN-114: entity decoding is the ingest boundary for every scraped
+      // title. It decodes exactly once — decode twice and a literal `&#39;`
+      // becomes an apostrophe, decode zero times and React escapes the
+      // markup a second time onto the page — so it carries its own suite.
+      'scripts/lib/html-entities.test.ts',
       'scripts/lib/integration-boundary.test.ts',
       'scripts/lib/intel-overview.test.ts',
       // Added by the KG suggestion integrity fix: brand normalisation and the

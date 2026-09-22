@@ -38,6 +38,7 @@ import {
   recoverKleinanzeigenPrice,
 } from '../frontend/lib/listing-price-integrity'
 import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
+import { decodeHtmlEntities } from './lib/html-entities'
 
 /**
  * Per-run price tally, emitted once at the end of the run.
@@ -157,17 +158,6 @@ function extractListingId(url: string): string {
   const match = url.match(/\/(\d+)\/?$/)
   if (match) return match[1]
   return url
-}
-
-function decodeHtmlEntities(input: string): string {
-  return input
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&uuml;/g, 'ü')
-    .replace(/&ouml;/g, 'ö')
-    .replace(/&auml;/g, 'ä')
 }
 
 function stripTags(input: string): string {
