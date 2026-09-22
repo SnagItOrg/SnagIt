@@ -72,6 +72,12 @@ test('integration: every package suite is registered exactly once', () => {
       // Added by the P2 integration: the seam between source-aware price
       // answers and admin review mode, which neither suite covers alone.
       'scripts/lib/p2-review-integration.test.ts',
+      // PAN-113: the monitored-platform row. Its own suite because "which
+      // marketplaces watch this product" must keep coming from the reviewed
+      // registry rather than from a component literal, and because an
+      // inactive platform has to stay distinguishable from an active one with
+      // colour ignored — both are silent failures if they regress.
+      'scripts/lib/pan113-monitored-platforms.test.ts',
       // PAN-17: the sidebar catalogue tree. Its own suite because "populated
       // branches only" and "no price in a navigation payload" are both
       // properties of a pure builder, and both are silent failures — an empty

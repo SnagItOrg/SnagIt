@@ -29,6 +29,7 @@ import {
   resolveSlugRole,
   type CatalogueStateRow,
 } from '@/lib/catalogue'
+import { monitoredSourcesFor } from '@/lib/source-monitoring'
 import {
   PUBLIC_LISTING_SELECT,
   PUBLIC_PRODUCT_SELECT,
@@ -697,8 +698,24 @@ async function handle(req: NextRequest, slug: string) {
         }
       : null
 
+  /**
+   * The marketplaces Klup watches for THIS product, so the page can render a
+   * watched-but-empty source as a state rather than as nothing at all (PAN-113).
+   *
+   * Resolved here rather than in the page because the registry is server-only:
+   * it holds every source's full monitored product set, and the browser has no
+   * business learning it. Only this product's answer crosses the wire.
+   *
+   * `reverb` sweeps active music-gear rather than querying per product, so its
+   * membership is the catalogue axis this route already resolved, not a slug
+   * lookup. No new query, and no second reading of monitoring.
+   */
+  const monitoredSources = monitoredSourcesFor(slug, {
+    inCatalogueSweep: state.status === 'active' && state.browse_domain === 'music',
+  })
+
   return NextResponse.json(
-    { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, awaitingReview, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, familyContext, adminPreview },
+    { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, awaitingReview, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, familyContext, adminPreview, monitoredSources },
     {
       headers: adminPreview
         // An unpublished product must never enter a shared cache.
