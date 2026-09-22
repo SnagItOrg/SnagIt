@@ -59,6 +59,10 @@ test('integration: every package suite is registered exactly once', () => {
       // extractor is the only thing standing between a discounted ad and a
       // listing with no price, so it carries its own suite.
       'scripts/lib/kleinanzeigen-price.test.ts',
+      // PAN-95: qualification decides which matches may price a product, and
+      // the promise it has to keep — no price in front of the judge, one
+      // reversible key on every write — is structural, not a model property.
+      'scripts/lib/match-qualification.test.ts',
       'scripts/lib/matcher-integrity.test.ts',
       // Added by the P2 integration: the seam between source-aware price
       // answers and admin review mode, which neither suite covers alone.

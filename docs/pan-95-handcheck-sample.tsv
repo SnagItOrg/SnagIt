@@ -1,0 +1,101 @@
+n	label	reason
+1	exact	ES-335 Dot named exactly; year and finish only
+2	exact	Am Pro II Strat; HSS is a pickup option of the same model
+3	wrong	PLG100-DX is a plug-in board, a different Yamaha product
+4	exact	Juno-60 named exactly
+5	exact	'57 R7 reissue IS a Les Paul Custom; Custom Shop is the division that builds it
+6	exact	Jim Root Jazzmaster named exactly
+7	exact	DX7 sold with softcase, cartridge and an OLED display mod
+8	abstain	American Vintage II 1972 reissue line against one generic Thinline row
+9	exact	Les Paul Studio with case
+10	abstain	Vintera II budget line against one generic Thinline row
+11	exact	Am Pro II Strat
+12	exact	Les Paul Custom with case
+13	exact	Les Paul Custom VOS
+14	exact	Am Pro II Strat
+15	wrong	MS-20 Mini is a separate 2013 product, not the MS-20
+16	exact	Les Paul Studio in Norwegian
+17	abstain	same title as row 8; same reason
+18	exact	Hummingbird Original is the standard Hummingbird
+19	exact	ES-335 Dot 1998
+20	exact	Juno-106
+21	exact	ES-335 Dot
+22	exact	Custom Shop VOS Les Paul Custom
+23	exact	Hummingbird Original
+24	exact	bare Les Paul Studio title
+25	exact	TR-606 Drumatix
+26	exact	Manley VOXBOX
+27	accessory	original power supply for a TR-707/727
+28	exact	Tube-Tech CL 1B
+29	exact	Prophet-10
+30	wrong	Hummingbird Studio EC is a separate Gibson model
+31	exact	Tube-Tech CL 1B
+32	exact	Hummingbird Standard is the Hummingbird
+33	exact	J-45 Standard
+34	abstain	Les Paul Studio Session is a named variant the catalogue does not carry
+35	exact	American Vintage '52 Telecaster
+36	exact	bare Les Paul Studio title
+37	exact	U 87 Ai
+38	exact	Am Pro II Strat
+39	exact	complete TR-909 carrying a v4 EPROM, not an EPROM
+40	exact	Am Pro II Strat
+41	wrong	MS-20 Mini limited edition, not the MS-20
+42	exact	Les Paul Studio
+43	exact	Hummingbird Standard
+44	abstain	Les Paul Studio Deluxe II is a named variant the catalogue does not carry
+45	exact	Jupiter-8, serviced
+46	exact	Les Paul Special
+47	exact	1978 Telecaster Custom
+48	exact	American Vintage '52 Telecaster, left handed
+49	exact	U 87 Ai with EA 87 mount
+50	accessory	PSU for a Juno-106
+51	exact	U 87 Ai
+52	exact	Portico II Master Buss Processor
+53	abstain	Custom Shop 1960s Hummingbird reissue against a generic Hummingbird row
+54	exact	ES-335 Dot, left handed
+55	exact	U 87 Ai Studio Set is the mic with its mount and case
+56	exact	TR-909
+57	exact	Polysix with a Kiwisix upgrade fitted
+58	wrong	DX7II-D is the successor instrument, not a DX7
+59	wrong	Les Paul Special Tribute is a separate budget model
+60	exact	ES-335 Dot
+61	exact	J-45 Original is the standard J-45
+62	exact	DX7
+63	abstain	Les Paul Studio Session again
+64	exact	Les Paul Special TV Yellow
+65	exact	TR-909
+66	exact	SJ-200 Original
+67	abstain	FSR American Vintage '72 limited-edition Thinline
+68	exact	Les Paul Standard '60s
+69	exact	J-45 Standard
+70	exact	Am Pro II Strat
+71	exact	J-45 50s Original
+72	exact	Rhodes Mark II Stage 73
+73	exact	U 87 Ai with EA 87 mount
+74	exact	a 1973 Minimoog Model D is the vintage Minimoog, not the 2016 Model D reissue sibling
+75	exact	Am Pro II Strat Roasted Pine
+76	exact	SJ-200 Original
+77	exact	1982 ES-335 Dot
+78	exact	Les Paul Studio Platinum is a finish
+79	abstain	Les Paul Custom Pro is a named Gibson USA variant; the title also says Custom Shop
+80	accessory	an ATA flightcase for a Model D, sold alone
+81	exact	Manley VOXBOX
+82	accessory	DX7 voice ROM cartridge
+83	exact	J-45 Standard
+84	exact	1982 AVRI '52 Telecaster
+85	exact	Juno-60
+86	exact	Memphis ES-335 Dot
+87	exact	U 87 Ai
+88	exact	1176LN reissue
+89	wrong	R8 is a 1958 Les Paul Standard reissue; Custom Shop names the division, not the model
+90	abstain	Les Paul Studio Session again
+91	exact	Am Pro II Strat limited colour
+92	exact	Gibson Custom ES-335 Dot
+93	wrong	Hummingbird Studio Rosewood is a separate Gibson model
+94	exact	ES-335 Dot
+95	exact	J-45 Standard
+96	exact	Les Paul Studio 100th Anniversary
+97	abstain	Custom Shop '50 Telecaster Thinline against one generic Thinline row
+98	exact	American Vintage '52 Telecaster
+99	exact	Les Paul Studio in German
+100	exact	Portico II Master Buss Processor
