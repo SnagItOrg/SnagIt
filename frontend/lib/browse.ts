@@ -14,6 +14,7 @@ import {
   type HomeCategory,
   type HomeCategoryRow,
 } from '@/lib/home-categories'
+import { buildCatalogueTree, type CatalogueTreeCategory } from '@/lib/catalogue-tree'
 
 export type BrowseProjectionRow = {
   id: string
@@ -715,6 +716,29 @@ export async function buildBrowseRootResponse(args: {
       orphan_summary: buildOrphanSummary(auditRows, supportedSlugs),
     },
   }
+}
+
+/**
+ * PAN-17 — the sidebar catalogue tree.
+ *
+ * ONE PREDICATE, NOT TWO. This reads `fetchPublicBrowseRows` — the same call
+ * `buildBrowseRootResponse` and `buildBrowseLeafResponse` make, which resolves
+ * support through `loadSupportedSlugs` and therefore through the one authority
+ * in `lib/catalogue.ts`. The sidebar cannot come to disagree with `/browse`
+ * about what exists, because neither of them owns a second answer.
+ *
+ * The taxonomy is NOT read. `fetchMusicTaxonomy` would hand back all fifteen
+ * roots and all 320 leaves, and the tree would then need a filter to throw
+ * away the 321 nodes it must not show. Building from the product rows instead
+ * makes D-IA-1 structural: an unpopulated branch contributes no row, so there
+ * is nothing to filter and nothing to forget. It is also one query rather than
+ * four.
+ */
+export async function buildCatalogueTreeResponse(
+  admin: SupabaseClient,
+): Promise<{ categories: CatalogueTreeCategory[] }> {
+  const rows = await fetchPublicBrowseRows(admin)
+  return { categories: buildCatalogueTree(rows) }
 }
 
 export async function buildBrowseLeafResponse(args: {

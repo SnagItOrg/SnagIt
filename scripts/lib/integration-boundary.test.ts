@@ -63,6 +63,12 @@ test('integration: every package suite is registered exactly once', () => {
       // Added by the P2 integration: the seam between source-aware price
       // answers and admin review mode, which neither suite covers alone.
       'scripts/lib/p2-review-integration.test.ts',
+      // PAN-17: the sidebar catalogue tree. Its own suite because "populated
+      // branches only" and "no price in a navigation payload" are both
+      // properties of a pure builder, and both are silent failures — an empty
+      // branch is a dead end nobody reports, and a price key is invisible
+      // until it renders.
+      'scripts/lib/pan17-catalogue-tree.test.ts',
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',
