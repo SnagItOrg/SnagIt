@@ -19,18 +19,13 @@
  */
 
 import { useLocale } from '@/components/LocaleProvider'
+import { fill } from '@/lib/i18n'
+import { EmptyState } from '@/components/EmptyState'
 import type { PopulationStats } from '@/lib/price-populations'
 
 function kr(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return '—'
   return `${Math.round(value).toLocaleString('da-DK')} kr`
-}
-
-function fill(template: string, values: Record<string, string | number>): string {
-  return Object.entries(values).reduce(
-    (acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)),
-    template,
-  )
 }
 
 function Headline({ label, value }: { label: string; value: number | null }) {
@@ -73,12 +68,19 @@ export function DanishMarketBlock({
   }
 
   if (stats.tier === 'none') {
+    // PAN-93. Both branches are empty; only one of them is a failure. An
+    // unreviewed wall means Klup IS watching and has not finished looking, so
+    // it renders as `monitoring` — an open eye at full ink — while a genuinely
+    // empty Danish market renders as `blank`. Before EmptyState the two were
+    // the same muted sentence and a visitor could not tell them apart.
     return (
       <div className="flex flex-col gap-1">
         <p className="type-label">{t.dkMarketHeading}</p>
-        <p className="type-body-secondary">
-          {awaitingReview > 0 ? t.dkMarketAwaitingReview : t.dkMarketNone}
-        </p>
+        <EmptyState
+          kind={awaitingReview > 0 ? 'monitoring' : 'blank'}
+          layout="inline"
+          title={awaitingReview > 0 ? t.dkMarketAwaitingReview : t.dkMarketNone}
+        />
       </div>
     )
   }

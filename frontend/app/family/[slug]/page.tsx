@@ -12,7 +12,7 @@ import {
   type FamilyListingRow,
   type FamilyView,
 } from '@/lib/families'
-import { translations } from '@/lib/i18n'
+import { translations, fill } from '@/lib/i18n'
 import { SITE_URL } from '@/lib/site-metadata'
 
 /**
@@ -276,7 +276,7 @@ export default async function FamilyPage({ params }: { params: { slug: string } 
           <section className="mt-10 flex flex-col gap-2">
             <p className="type-label" style={{ color: 'var(--muted-foreground)' }}>
               {listings.length > 0
-                ? t.familyListingsCount.replace('{count}', String(listings.length))
+                ? fill(t.familyListingsCount, { count: listings.length })
                 : t.familyNoListings}
             </p>
 

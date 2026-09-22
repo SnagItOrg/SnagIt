@@ -712,3 +712,29 @@ export const translations = {
 } as const
 
 export type TranslationKey = keyof typeof translations.da
+
+/**
+ * Substitute `{name}` placeholders in a translated string.
+ *
+ * The one interpolation path for copy. It replaced five separate
+ * implementations of the same idea — a private `fill()` in `PriceAnswer`, a
+ * private `fillTemplate()` on the product page, and three hand-written
+ * `.replace('{count}', String(n))` calls in `family`, `SideNav` and
+ * `CategoryShelf`.
+ *
+ * Whole sentences in, whole sentences out. A translator gets the complete
+ * string with the placeholder wherever their grammar needs it, and may move
+ * it: Danish "Se alle {count}" and a language that puts the number first are
+ * the same template with different word order. Concatenating a fragment to a
+ * value at a call site — `t.noListingsFound + ' ' + query` — cannot do that,
+ * which is why no call site should ever do it again.
+ *
+ * `replaceAll` rather than `replace`, so a template may use a placeholder
+ * twice; a locale that needs to repeat the noun is not a bug.
+ */
+export function fill(template: string, values: Record<string, string | number>): string {
+  return Object.entries(values).reduce(
+    (acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)),
+    template,
+  )
+}

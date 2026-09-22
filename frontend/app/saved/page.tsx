@@ -6,6 +6,7 @@ import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
 import { SearchResultCard } from '@/components/SearchResultCard'
 import { useLocale } from '@/components/LocaleProvider'
+import { EmptyState } from '@/components/EmptyState'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import type { Listing } from '@/lib/supabase'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
@@ -149,22 +150,14 @@ export default function SavedPage() {
         ) : rows.length === 0 ? (
           /* Empty state for authenticated users with no saved listings */
           <div className="flex flex-col items-center justify-center flex-1">
-            <div className="w-full max-w-sm flex flex-col items-center gap-6 text-center">
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: '72px', color: 'var(--muted-foreground)' }}
-              >
-                bookmark
-              </span>
-              <h1 className="text-xl font-bold text-foreground">{t.savedEmptyHeading}</h1>
-              <p className="text-sm text-muted-foreground">{t.savedEmptySubtext}</p>
-              <button
-                onClick={() => router.push('/search')}
-                className="w-full py-3 rounded-xl text-sm font-semibold transition-colors bg-primary text-bg hover:bg-primary/90"
-              >
-                {t.goToSearch}
-              </button>
-            </div>
+            <EmptyState
+              kind="blank"
+              icon="bookmark"
+              titleAs="h1"
+              title={t.savedEmptyHeading}
+              body={t.savedEmptySubtext}
+              action={{ label: t.goToSearch, onClick: () => router.push('/search') }}
+            />
           </div>
         ) : (
           <div className="flex flex-col gap-3 w-full">
