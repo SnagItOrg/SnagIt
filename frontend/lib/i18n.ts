@@ -384,6 +384,19 @@ export const translations = {
       flat: 'uforandret',
     },
 
+    /**
+     * Source coverage on a product page (PAN-113). Silence from a watched
+     * marketplace is a result, so `none` is a state and not an error — the
+     * same honest register as `dkMarketAwaitingReview`.
+     */
+    monitoredPlatforms: {
+      heading: 'Platforme vi overvåger',
+      note: 'Klup holder øje med alle platforme herover. En tom platform betyder, at der ikke er annoncer lige nu — ikke at vi er holdt op med at kigge.',
+      listingCount: '{count} annoncer',
+      listingCountOne: '1 annonce',
+      none: 'ingen lige nu',
+    },
+
     categoryNames: {
       'music-gear': 'Musikudstyr',
     },
@@ -708,6 +721,14 @@ export const translations = {
       rising: 'rising',
       falling: 'falling',
       flat: 'unchanged',
+    },
+
+    monitoredPlatforms: {
+      heading: 'Platforms we watch',
+      note: 'Klup watches every platform above. An empty one means there are no listings right now — not that we stopped looking.',
+      listingCount: '{count} listings',
+      listingCountOne: '1 listing',
+      none: 'none right now',
     },
 
     categoryNames: {

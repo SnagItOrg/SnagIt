@@ -9,6 +9,7 @@ import { SearchResultCard } from '@/components/SearchResultCard'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
+import { MonitoredPlatforms } from '@/components/MonitoredPlatforms'
 // Recharts: P2 replaced the area chart with a scatter of individual sold
 // observations, so the imports follow P2 rather than the pre-P2 area set.
 import { ResponsiveContainer, ScatterChart, Scatter, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
@@ -104,6 +105,11 @@ export default function ProductPage() {
   const [notFound, setNotFound]         = useState(false)
   const [imgError, setImgError]         = useState(false)
 
+  /** Marketplaces watching THIS product, resolved by the API from the
+   *  monitoring registry. Empty until the fetch lands, which is what keeps the
+   *  platform row from flashing an all-inactive state while loading. */
+  const [monitoredSources, setMonitoredSources] = useState<string[]>([])
+
   const [relatedProducts, setRelatedProducts] = useState<RelatedProduct[]>([])
 
   /** Null for a product with no family — six of the seven families, and every
@@ -184,6 +190,7 @@ export default function ProductPage() {
       setAwaitingReview(data.awaitingReview ?? 0)
       setSoldCounts(data.soldCounts ?? null)
       setRelatedProducts(data.relatedProducts ?? [])
+      setMonitoredSources(data.monitoredSources ?? [])
       setFamilyContext(data.familyContext ?? null)
     } catch {
       setNotFound(true)
@@ -819,6 +826,14 @@ export default function ProductPage() {
                   </div>
                 )}
 
+                {/*
+                  Source coverage, ABOVE the wall and OUTSIDE its
+                  `listings.length > 0` guard: a product with nothing is
+                  exactly the one whose visitor needs to know which
+                  marketplaces are being watched on its behalf.
+                */}
+                <MonitoredPlatforms monitoredSources={monitoredSources} listings={listings} />
+
                 {/* ── Active listings ───────────────────────────── */}
                 {listings.length > 0 && (
                   <div className="flex flex-col gap-3">
@@ -939,11 +954,15 @@ export default function ProductPage() {
                   </div>
                 )}
 
-                {listings.length === 0 && !loading && (
-                  <p className="text-sm text-muted-foreground py-4">
-                    Ingen aktive annoncer for dette produkt.
-                  </p>
-                )}
+                {/*
+                  The bare "Ingen aktive annoncer for dette produkt." that used
+                  to sit here is gone, not relocated. It was the third of three
+                  ways this page said "nothing" to the same visitor, and it was
+                  the least informative: the platform row above now says which
+                  marketplaces are watched and which of them are empty, which is
+                  the same fact with the coverage attached. Deleting it removes
+                  a repetition, not a statement.
+                */}
               </div>
             </>
           )}
