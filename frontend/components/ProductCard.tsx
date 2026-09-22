@@ -108,8 +108,14 @@ export function ProductCard({
 
       {/* Text area */}
       <div className="p-3 flex flex-col gap-0.5">
+        {/* Two lines, always: line-clamp-2 caps a long name and the matching
+            min-height keeps a one-line name occupying the same box, so every
+            card in a row ends on the same baseline. 2.48em is two lines of
+            .type-card-title (line-height 1.24) and is expressed in em so it
+            tracks that rule's fluid clamp() font-size instead of drifting
+            from it. */}
         <p
-          className="type-card-title"
+          className="type-card-title line-clamp-2 min-h-[2.48em]"
         >
           {canonicalName}
         </p>
