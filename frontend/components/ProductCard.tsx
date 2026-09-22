@@ -4,6 +4,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 
+import { useLocale } from '@/components/LocaleProvider'
+
 interface Props {
   slug: string
   canonicalName: string
@@ -25,6 +27,7 @@ export function ProductCard({
   tier,
   variant = 'grid',
 }: Props) {
+  const { t } = useLocale()
   const [imgError, setImgError] = useState(false)
 
   if (variant === 'list') {
@@ -86,7 +89,7 @@ export function ProductCard({
             style={{ background: 'var(--foreground)', color: 'var(--background)' }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 11 }}>workspace_premium</span>
-            {tier === 'legendary' ? 'Legendary' : 'Classic'}
+            {tier === 'legendary' ? t.tierLegendary : t.tierClassic}
           </span>
         )}
         {activeListingCount > 0 && (
