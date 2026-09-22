@@ -92,9 +92,13 @@ export function ProductCard({
             {tier === 'legendary' ? t.tierLegendary : t.tierClassic}
           </span>
         )}
+        {/* Opposite edge of the media box, not the opposite corner of the same row:
+            at 320-430px a shelf card is 152-163px wide and the two pills need
+            ~168px side by side, so any top row makes one of them clip or
+            ellipsize. aspect-[4/3] guarantees the height this relies on. */}
         {activeListingCount > 0 && (
           <span
-            className="absolute top-2 right-2 text-[11px] font-medium px-2 py-0.5 rounded-full"
+            className="absolute bottom-2 right-2 text-[11px] font-medium px-2 py-0.5 rounded-full"
             style={{ background: 'var(--card)', color: 'var(--foreground)' }}
           >
             {activeListingCount} til salg
