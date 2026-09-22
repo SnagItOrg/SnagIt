@@ -101,7 +101,7 @@ export function ProductCard({
             className="absolute bottom-2 right-2 text-[11px] font-medium px-2 py-0.5 rounded-full"
             style={{ background: 'var(--card)', color: 'var(--foreground)' }}
           >
-            {activeListingCount} til salg
+            {activeListingCount} {t.discoverForSale}
           </span>
         )}
       </div>
