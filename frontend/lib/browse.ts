@@ -822,6 +822,15 @@ export async function buildBrowseLeafResponse(args: {
 }
 
 /**
+ * How many cards each shelf can hold. Named rather than left inline because the
+ * homepage's loading placeholder has to reserve the same strip (PAN-104), and a
+ * placeholder sized by a second, independent copy of the number is how a
+ * skeleton comes to stop 204px short of the viewport.
+ */
+export const DISCOVER_LEGENDARY_LIMIT = 24
+export const DISCOVER_POPULAR_LIMIT = 20
+
+/**
  * Homepage shelves.
  *
  * SELECTION IS ON SUPPORT, NOT ON TIER. `is_public` alone would put
@@ -855,7 +864,7 @@ export async function buildDiscoverResponse(admin: SupabaseClient): Promise<Disc
 
   const legendary = publicRows
     .filter((row) => row.tier === 'legendary')
-    .slice(0, 24)
+    .slice(0, DISCOVER_LEGENDARY_LIMIT)
     .map((row) => ({
       slug: row.slug,
       canonical_name: row.canonical_name,
@@ -872,7 +881,7 @@ export async function buildDiscoverResponse(admin: SupabaseClient): Promise<Disc
       }
       return compareProducts(a, b)
     })
-    .slice(0, 20)
+    .slice(0, DISCOVER_POPULAR_LIMIT)
     .map((row) => ({
       slug: row.slug,
       canonical_name: row.canonical_name,
