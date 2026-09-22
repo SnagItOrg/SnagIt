@@ -2,6 +2,7 @@
 
 import { useLocale } from '@/components/LocaleProvider'
 import { ProductCard } from '@/components/ProductCard'
+import { Carousel } from '@/components/Carousel'
 import type { DiscoverProduct } from '@/app/api/discover/route'
 
 /**
@@ -45,21 +46,20 @@ export function DiscoverShelves({
               {t.discoverLegendarySubtext}
             </span>
           </div>
-          <div className="flex gap-3 overflow-x-auto px-6 pb-2 scrollbar-none">
+          <Carousel ariaLabel={t.discoverLegendaryHeading}>
             {legendary.map((p) => (
-              <div key={p.slug} className="flex-shrink-0 w-[clamp(9.5rem,38vw,12rem)]">
-                <ProductCard
-                  slug={p.slug}
-                  canonicalName={p.canonical_name}
-                  brandName={p.brand_name}
-                  subcategoryName=""
-                  activeListingCount={p.active_listing_count}
-                  imageUrl={p.image_url}
-                  tier="legendary"
-                />
-              </div>
+              <ProductCard
+                key={p.slug}
+                slug={p.slug}
+                canonicalName={p.canonical_name}
+                brandName={p.brand_name}
+                subcategoryName=""
+                activeListingCount={p.active_listing_count}
+                imageUrl={p.image_url}
+                tier="legendary"
+              />
             ))}
-          </div>
+          </Carousel>
         </section>
       )}
 
@@ -74,20 +74,19 @@ export function DiscoverShelves({
               {t.discoverPopularSubtext}
             </span>
           </div>
-          <div className="flex gap-3 overflow-x-auto px-6 pb-2 scrollbar-none">
+          <Carousel ariaLabel={t.discoverPopularHeading}>
             {popular.map((p) => (
-              <div key={p.slug} className="flex-shrink-0 w-[clamp(9.5rem,38vw,12rem)]">
-                <ProductCard
-                  slug={p.slug}
-                  canonicalName={p.canonical_name}
-                  brandName={p.brand_name}
-                  subcategoryName=""
-                  activeListingCount={p.active_listing_count}
-                  imageUrl={p.image_url}
-                />
-              </div>
+              <ProductCard
+                key={p.slug}
+                slug={p.slug}
+                canonicalName={p.canonical_name}
+                brandName={p.brand_name}
+                subcategoryName=""
+                activeListingCount={p.active_listing_count}
+                imageUrl={p.image_url}
+              />
             ))}
-          </div>
+          </Carousel>
         </section>
       )}
     </>
