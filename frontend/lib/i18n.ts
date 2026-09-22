@@ -174,6 +174,14 @@ export const translations = {
     discoverLegendarySubtext: 'Ikoniske instrumenter — dem alle kender',
     discoverPopularHeading: 'Populært lige nu',
     discoverPopularSubtext: 'Mest annonceret på markedet',
+    // Carousel (components/Carousel.tsx). The two rails take their region
+    // label from the headings above rather than from a third and fourth key
+    // that would have to be kept saying the same thing.
+    carouselRole: 'karrusel',
+    carouselSlideRole: 'slide',
+    carouselSlideLabel: 'Nr. {current} af {total}',
+    carouselPrevious: 'Rul til venstre',
+    carouselNext: 'Rul til højre',
     discoverForSale: 'til salg',
     tierLegendary: 'Legendarisk',
     tierClassic: 'Klassiker',
@@ -565,6 +573,14 @@ export const translations = {
     discoverLegendarySubtext: 'Iconic instruments — the ones everyone knows',
     discoverPopularHeading: 'Popular right now',
     discoverPopularSubtext: 'Most active on the market',
+    // Carousel (components/Carousel.tsx). The two rails take their region
+    // label from the headings above rather than from a third and fourth key
+    // that would have to be kept saying the same thing.
+    carouselRole: 'carousel',
+    carouselSlideRole: 'slide',
+    carouselSlideLabel: 'Slide {current} of {total}',
+    carouselPrevious: 'Scroll left',
+    carouselNext: 'Scroll right',
     discoverForSale: 'for sale',
     tierLegendary: 'Legendary',
     tierClassic: 'Classic',

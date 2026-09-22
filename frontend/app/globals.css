@@ -753,6 +753,99 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+
+  /* --- carousel rail ----------------------------------------------------
+     The scrolling half of components/Carousel.tsx. It lives here rather than
+     in arbitrary Tailwind values because the fade is four related gradients,
+     and inlining those as `[mask-image:...]` would repeat the ramp four times
+     at the call site.
+
+     THE GUTTER IS ONE NUMBER USED TWICE, which is the whole point. Astryx's
+     Carousel pairs `padding` with a matching `scroll-padding` on every step of
+     its spacing scale, because padding alone lets an item scroll into the
+     gutter while the snap point stays pinned to the container edge — so a
+     snapped card sits flush against the viewport and the gutter it was given
+     visually disappears. Declaring both from --carousel-gutter makes that
+     pairing impossible to break. 1.5rem is the 24px the .grid-wall below the
+     shelf already stops at.
+
+     THE FADE IS A MASK, NOT AN OVERLAY. `black` and `transparent` here are
+     alpha stops, not pigment: a mask multiplies the element's own alpha, so
+     nothing in this rule contributes a colour and the rail keeps working on
+     any surface under any theme. An overlay gradient would instead have to
+     know the canvas colour and re-declare it per theme, which is how a
+     "decorative gradient" gets into a system that forbids one. The mask is
+     functional — it says "there is more content this way" — which is the
+     distinction globals.css draws elsewhere.
+
+     The state lives in a data attribute because it is genuinely enumerated:
+     no fade, fade at the start, fade at the end, or fade at both. */
+  .carousel-rail {
+    --carousel-gutter: 1.5rem;
+    --carousel-fade: 2rem;
+    padding-inline: var(--carousel-gutter);
+    scroll-padding-inline: var(--carousel-gutter);
+  }
+
+  /* THE MASK EATS THE FOCUS RING, SO THE RING IS REDRAWN INSIDE.
+
+     Found with a keyboard, not by reading: the rail is a tab stop, tabbing to
+     it did set `:focus-visible` and the floor's outline computed correctly —
+     and nothing appeared. `mask-image` clips to the border box, and an
+     `outline` is painted outside it, so the mask removes the ring completely.
+     Every fade state except 'none' carries a mask, and a 3x-overflowing shelf
+     is never in the 'none' state, so the tab stop would have been permanently
+     invisible to the keyboard user it exists for.
+
+     The floor forces only `outline`, and says in as many words that a
+     component may draw its own box-shadow ring and render both. An inset
+     shadow is painted inside the border box, where the mask is fully opaque,
+     so it survives. It sits in the 24px gutter and never crosses a card. */
+  .carousel-rail:focus-visible {
+    box-shadow: inset 0 0 0 var(--ring-width) var(--ring);
+  }
+
+  .carousel-rail[data-fade='start'] {
+    mask-image: linear-gradient(to right, transparent 0, black var(--carousel-fade));
+  }
+
+  .carousel-rail[data-fade='end'] {
+    mask-image: linear-gradient(to left, transparent 0, black var(--carousel-fade));
+  }
+
+  .carousel-rail[data-fade='both'] {
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black var(--carousel-fade),
+      black calc(100% - var(--carousel-fade)),
+      transparent 100%
+    );
+  }
+
+  /* Mounted at all times, so the rail never reflows when a direction runs out,
+     and disabled rather than merely faded — a control that cannot be seen must
+     not still be reachable by Tab. */
+  .carousel-nav {
+    background-color: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--elevation-raised);
+    color: var(--text-primary);
+    transition:
+      opacity var(--duration-fast) var(--ease-standard),
+      border-color var(--duration-fast) var(--ease-standard);
+  }
+
+  @media (hover: hover) {
+    .carousel-nav:hover:not(:disabled) {
+      border-color: var(--border-strong);
+    }
+  }
+
+  .carousel-nav:disabled {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 /* --------------------------------------------------------------------------
