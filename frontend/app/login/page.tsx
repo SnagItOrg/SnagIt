@@ -99,8 +99,10 @@ export default function LoginPage() {
       >
         {/* Header */}
         <div className="flex flex-col gap-2 text-center">
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-2xl">🎯</span>
+          <div className="flex items-center justify-center gap-3 text-primary">
+            <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
+            </div>
             <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
           </div>
           <h1 className="type-title text-[1.75rem]">{t.welcomeBack}</h1>
