@@ -15,6 +15,7 @@ import {
   type HomeCategoryRow,
 } from '@/lib/home-categories'
 import { buildCatalogueTree, type CatalogueTreeCategory } from '@/lib/catalogue-tree'
+import { categoryImage } from '@/lib/category-images'
 
 export type BrowseProjectionRow = {
   id: string
@@ -60,10 +61,6 @@ type SubcategoryRow = {
   name_da: string
   name_en: string
   parent_id: string | null
-}
-
-type MusicGearImageRow = {
-  image_url: string | null
 }
 
 type CountSummary = {
@@ -134,7 +131,7 @@ export type BrowseRootResponse = {
     name_da: string
     name_en: string
     product_count: number
-    image_url: string
+    image_url: string | null
   }>
   debug?: {
     roots: RootDebugNode[]
@@ -236,10 +233,6 @@ type ExclusionReason =
   | 'qa_only'
   | 'hidden'
   | 'unsupported'
-
-function storageFallback(supabaseUrl: string, slug: string) {
-  return `${supabaseUrl}/storage/v1/object/public/onboarding-assets/categories/${slug}.webp`
-}
 
 function compareByNameEn<T extends { name_en: string }>(a: T, b: T) {
   return a.name_en.localeCompare(b.name_en, 'en')
@@ -359,7 +352,7 @@ function buildBrandBreakdown(rows: BrowseProjectionRow[]): BrandBreakdown[] {
 }
 
 async function fetchMusicTaxonomy(admin: SupabaseClient) {
-  const [rootsRes, subcategoriesRes, musicGearRes] = await Promise.all([
+  const [rootsRes, subcategoriesRes] = await Promise.all([
     admin
       .from('kg_category')
       .select('id, slug, name_da, name_en, image_url')
@@ -377,13 +370,6 @@ async function fetchMusicTaxonomy(admin: SupabaseClient) {
       .eq('domain', 'music')
       .not('parent_id', 'is', null)
       .order('name_en'),
-    admin
-      .from('kg_category')
-      .select('image_url')
-      // Not the exclusion — this reads the legacy root's IMAGE, which
-      // /browse lends to keyboards-and-synths a few lines below.
-      .eq('slug', LEGACY_COARSE_ROOT_SLUG)
-      .single(),
   ]).catch(() => {
     throw new CatalogueUnavailableError('browse_taxonomy_transport')
   })
@@ -395,7 +381,6 @@ async function fetchMusicTaxonomy(admin: SupabaseClient) {
   return {
     roots: (rootsRes.data ?? []) as RootCategoryRow[],
     subcategories: (subcategoriesRes.data ?? []) as SubcategoryRow[],
-    musicGearImageUrl: ((musicGearRes.data ?? null) as MusicGearImageRow | null)?.image_url ?? null,
   }
 }
 
@@ -668,11 +653,10 @@ function buildOrphanSummary(rows: BrowseProjectionRow[], supportedSlugs: Set<str
 
 export async function buildBrowseRootResponse(args: {
   admin: SupabaseClient
-  supabaseUrl: string
   includeDebug: boolean
 }): Promise<BrowseRootResponse> {
-  const { admin, supabaseUrl, includeDebug } = args
-  const [{ roots, subcategories, musicGearImageUrl }, publicRows] = await Promise.all([
+  const { admin, includeDebug } = args
+  const [{ roots, subcategories }, publicRows] = await Promise.all([
     fetchMusicTaxonomy(admin),
     fetchPublicBrowseRows(admin),
   ])
@@ -683,10 +667,16 @@ export async function buildBrowseRootResponse(args: {
   const categories = roots
     .map((root) => {
       const rootRows = publicRows.filter((row) => row.root_category_id === root.id)
-      const imageUrl =
-        root.slug === 'keyboards-and-synths' && musicGearImageUrl
-          ? musicGearImageUrl
-          : root.image_url ?? storageFallback(supabaseUrl, root.slug)
+
+      // The same resolution the homepage shelf uses, from the same module:
+      // reviewed map first, `kg_category.image_url` second, null last. What
+      // stood here instead was a hand-rolled fallback chain that guessed a
+      // storage path for a root with no column value — an object that does
+      // not exist for any music root, so the tile rendered as a flat
+      // rectangle — and lent `keyboards-and-synths` the legacy coarse root's
+      // 3.9 MB photograph. `null` is a real answer here: the tile renders its
+      // empty well rather than a broken image.
+      const imageUrl = categoryImage(root.slug, root.image_url)
 
       return {
         id: root.id,
