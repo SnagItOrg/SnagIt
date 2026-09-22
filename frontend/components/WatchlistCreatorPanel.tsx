@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { Watchlist } from '@/lib/supabase'
 import { MAX_WATCHLIST_PRICE } from '@/lib/constants'
+import { TextField } from '@/components/TextField'
 
 interface Props {
   onSave:  (watchlist: Watchlist) => void
@@ -85,21 +86,14 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
                   >
                     search
                   </span>
-                  <input
+                  <TextField
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                     placeholder="fx Mac Mini, Eames stol, vintagesynth..."
                     autoFocus
-                    className="w-full rounded-2xl pl-14 pr-5 py-4 text-lg font-medium outline-none transition-all placeholder:text-muted-foreground"
-                    style={{
-                      backgroundColor: 'var(--input-background)',
-                      border:          '1px solid var(--border)',
-                      color:           'var(--foreground)',
-                    }}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
-                    onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
+                    className="w-full rounded-2xl pl-14 pr-5 py-4 text-lg font-medium placeholder:text-muted-foreground"
                   />
                 </div>
               </div>

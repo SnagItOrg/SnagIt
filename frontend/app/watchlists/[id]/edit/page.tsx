@@ -6,6 +6,7 @@ import { SideNav } from '@/components/SideNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { PriceRangeSlider } from '@/components/PriceRangeSlider'
 import { MAX_WATCHLIST_PRICE } from '@/lib/constants'
+import { TextField } from '@/components/TextField'
 
 export default function EditWatchlistPage() {
   const router = useRouter()
@@ -105,20 +106,13 @@ export default function EditWatchlistPage() {
                       >
                         search
                       </span>
-                      <input
+                      <TextField
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="e.g. Mac Mini M4, Vintage Eames, cykel..."
                         autoFocus
-                        className="w-full rounded-2xl pl-14 pr-6 py-5 text-xl font-medium outline-none transition-all"
-                        style={{
-                          backgroundColor: 'var(--input-background)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--foreground)',
-                        }}
-                        onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
-                        onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
+                        className="w-full rounded-2xl pl-14 pr-6 py-5 text-xl font-medium"
                       />
                     </div>
                   </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/LocaleProvider'
+import { TextField } from '@/components/TextField'
 
 export function MobileSearchBar() {
   const router = useRouter()
@@ -25,19 +26,12 @@ export function MobileSearchBar() {
         >
           search
         </span>
-        <input
+        <TextField
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={t.searchInputPlaceholder}
-          className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium outline-none transition-all placeholder:opacity-40"
-          style={{
-            backgroundColor: 'var(--input-background)',
-            border: '1px solid var(--border)',
-            color: 'var(--foreground)',
-          }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
-          onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
+          className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium placeholder:opacity-40"
         />
       </div>
     </form>

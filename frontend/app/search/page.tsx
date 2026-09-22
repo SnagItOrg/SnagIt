@@ -7,6 +7,7 @@ import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
+import { TextField } from '@/components/TextField'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { track } from '@/lib/analytics'
 import {
@@ -324,7 +325,7 @@ function SearchPageInner() {
               >
                 search
               </span>
-              <input
+              <TextField
                 id="klup-search"
                 ref={inputRef}
                 type="search"
@@ -345,18 +346,7 @@ function SearchPageInner() {
                 }
                 // 16px minimum (text-base): anything smaller makes iOS Safari
                 // zoom the viewport on focus and the visitor loses the page.
-                className="w-full rounded-xl pl-9 pr-4 py-3 text-base font-medium outline-none transition-all placeholder:opacity-50"
-                style={{
-                  backgroundColor: 'var(--input-background)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--ring)'
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border)'
-                }}
+                className="w-full rounded-xl pl-9 pr-4 py-3 text-base font-medium placeholder:opacity-50"
               />
             </div>
             <button
@@ -593,7 +583,7 @@ function UnsupportedPanel({
             <label htmlFor="klup-demand-email" className="text-sm font-semibold text-foreground">
               {t.demandCta}
             </label>
-            <input
+            <TextField
               id="klup-demand-email"
               type="email"
               inputMode="email"
@@ -601,12 +591,7 @@ function UnsupportedPanel({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t.emailPlaceholder}
-              className="w-full rounded-xl px-3 py-3 text-base outline-none"
-              style={{
-                backgroundColor: 'var(--input-background)',
-                border: '1px solid var(--border)',
-                color: 'var(--foreground)',
-              }}
+              className="w-full rounded-xl px-3 py-3 text-base"
             />
             <button
               type="submit"

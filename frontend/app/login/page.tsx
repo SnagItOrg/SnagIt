@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import type { Locale } from '@/lib/i18n'
+import { TextField } from '@/components/TextField'
 
 type Tab = 'password' | 'magic'
 
@@ -68,12 +69,7 @@ export default function LoginPage() {
     setLoading(false)
   }
 
-  const inputClass = "w-full rounded-xl px-4 py-3 text-sm outline-none transition-all"
-  const inputStyle = {
-    backgroundColor: 'var(--input-background)',
-    border: '1px solid var(--border)',
-    color: 'var(--foreground)',
-  }
+  const inputClass = "w-full rounded-xl px-4 py-3 text-sm"
 
   return (
     <div
@@ -143,7 +139,7 @@ export default function LoginPage() {
               <label className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
                 {t.email}
               </label>
-              <input
+              <TextField
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -151,9 +147,6 @@ export default function LoginPage() {
                 autoComplete="email"
                 placeholder={t.emailPlaceholder}
                 className={inputClass}
-                style={inputStyle}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
-                onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
               />
             </div>
 
@@ -161,7 +154,7 @@ export default function LoginPage() {
               <label className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
                 {t.password}
               </label>
-              <input
+              <TextField
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -169,9 +162,6 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 placeholder={t.passwordPlaceholder}
                 className={inputClass}
-                style={inputStyle}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
-                onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
               />
             </div>
 
@@ -248,7 +238,7 @@ export default function LoginPage() {
               <label className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
                 {t.email}
               </label>
-              <input
+              <TextField
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -256,9 +246,6 @@ export default function LoginPage() {
                 autoComplete="email"
                 placeholder={t.emailPlaceholder}
                 className={inputClass}
-                style={inputStyle}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
-                onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
               />
             </div>
 
