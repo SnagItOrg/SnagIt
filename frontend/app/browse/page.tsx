@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
@@ -15,7 +16,7 @@ interface Category {
   name_da: string
   name_en: string
   product_count: number
-  image_url: string
+  image_url: string | null
 }
 
 interface BrowseRootData {
@@ -125,16 +126,30 @@ function BrowsePageInner() {
                   key={cat.id}
                   href={`/browse/${cat.slug}${debugEnabled ? '?debug=1' : ''}`}
                   className="relative rounded-xl overflow-hidden group"
-                  style={{ height: '200px', display: 'block' }}
+                  /* The tile's own surface, which used to be the second layer
+                     of the `background` shorthand. It is what a root with no
+                     image resolves to, and what shows while one loads. */
+                  style={{ height: '200px', display: 'block', background: 'var(--card)' }}
                 >
-                  {/* Background image */}
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-medium group-hover:scale-105"
-                    style={{
-                      backgroundImage: `url(${cat.image_url})`,
-                      background: `url(${cat.image_url}) center/cover, var(--card)`,
-                    }}
-                  />
+                  {/* PAN-103 — `next/image`, the same way the homepage shelf
+                      renders these very images. As a CSS `background-image`
+                      the browser had no srcset to choose from, so a 390px
+                      phone fetched byte-for-byte what a 1440px desktop did.
+
+                      Measured track widths rather than a device guess: the
+                      wall is 1-up and near full-bleed below 30rem (328-398px),
+                      2-up at 640 (298px), and from 48rem up the sidebar caps
+                      it at 271px at its widest — so 17rem is the ceiling, not
+                      a viewport fraction. */}
+                  {cat.image_url && (
+                    <Image
+                      src={cat.image_url}
+                      alt=""
+                      fill
+                      className="object-cover transition-transform duration-medium group-hover:scale-105"
+                      sizes="(max-width: 30rem) 95vw, (max-width: 48rem) 50vw, 17rem"
+                    />
+                  )}
                   {/* Dark gradient overlay */}
                   <div
                     className="absolute inset-0"

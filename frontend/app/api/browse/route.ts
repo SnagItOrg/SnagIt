@@ -14,7 +14,6 @@ export const revalidate = 0
 
 export async function GET(req: NextRequest) {
   const admin = getSupabaseAdmin()
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
   const debugRequested = req.nextUrl.searchParams.get('debug') === '1'
   let includeDebug = false
   if (debugRequested) {
@@ -26,7 +25,6 @@ export async function GET(req: NextRequest) {
   try {
     const response = await buildBrowseRootResponse({
       admin,
-      supabaseUrl,
       includeDebug,
     })
 
