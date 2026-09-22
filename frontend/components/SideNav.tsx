@@ -212,6 +212,18 @@ export function SideNav({ active, onChange }: Props) {
   const pathname = usePathname()
   const { locale, setLocale, t } = useLocale()
 
+  // Same mechanism BottomNav already uses to decide what an anonymous visitor
+  // sees. `null` means "still resolving", so the control stays absent until a
+  // session is confirmed rather than flashing and withdrawing.
+  const [authed, setAuthed] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient()
+    supabase.auth.getUser().then(({ data }) => {
+      setAuthed(!!data.user)
+    })
+  }, [])
+
   async function handleLogout() {
     const supabase = createSupabaseBrowserClient()
     await supabase.auth.signOut()
@@ -354,19 +366,21 @@ export function SideNav({ active, onChange }: Props) {
             ))}
           </div>
 
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full text-left transition-colors hover:bg-secondary"
-            style={{ color: 'var(--muted-foreground)' }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            <span>{t.logout}</span>
-          </button>
+          {/* Logout — only for a visitor who actually has a session to end. */}
+          {authed && (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full text-left transition-colors hover:bg-secondary"
+              style={{ color: 'var(--muted-foreground)' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>{t.logout}</span>
+            </button>
+          )}
         </div>
       </aside>
     </>

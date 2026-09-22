@@ -727,6 +727,25 @@
   .elevation-card    { box-shadow: var(--elevation-card); }
   .elevation-raised  { box-shadow: var(--elevation-raised); }
   .elevation-overlay { box-shadow: var(--elevation-overlay); }
+
+  /* Four horizontal rails already ask for this class and Tailwind has never
+     emitted it — there is no such core utility, no plugin and no package. It
+     is defined rather than deleted because all four call sites are
+     `overflow-x-auto` strips whose intent is unambiguous, and because on a
+     platform with classic (space-taking) scrollbars a permanent bar lands
+     inside the `pb-2`/`pb-4` the rails were spaced for.
+
+     Safe to hide here only because these rails do not depend on the scrollbar
+     to say they scroll: content is ~3x the viewport, so a card or chip is
+     always cut by the right edge. Do not put this on a rail that fits, and
+     never on a vertical container. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* --------------------------------------------------------------------------
