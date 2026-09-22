@@ -181,8 +181,9 @@ function databaseFailure(stage: DbStage, err: { code?: string } | null): NextRes
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
+  const params = await ctx.params
   const { userId, isAdmin } = await getCurrentAdminState()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

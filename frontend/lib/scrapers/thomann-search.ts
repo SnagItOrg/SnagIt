@@ -112,6 +112,7 @@ export async function scrapeThomannSearch(query: string): Promise<ThomannProduct
   const res = await fetch(url, {
     headers: HEADERS,
     signal: AbortSignal.timeout(TIMEOUT_MS),
+    next: { revalidate: 0 },
   })
 
   if (!res.ok) return []

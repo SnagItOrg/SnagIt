@@ -18,7 +18,7 @@ export async function requireAdminInRoute(): Promise<NextResponse | null> {
 }
 
 export async function getCurrentAdminState(): Promise<AdminState> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

@@ -3,9 +3,10 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
-  const supabase = createSupabaseServerClient()
+  const params = await ctx.params
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

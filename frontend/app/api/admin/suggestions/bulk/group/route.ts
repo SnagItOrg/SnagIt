@@ -19,7 +19,7 @@ import {
  */
 
 async function verifyAdmin(): Promise<boolean> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return false
   const admin = getSupabaseAdmin()

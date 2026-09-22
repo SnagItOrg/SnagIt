@@ -7,8 +7,9 @@ import { requireAdminInRoute } from '@/lib/admin-auth'
 // deleting another product's synonym by id.
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { slug: string; id: string } },
+  ctx: { params: Promise<{ slug: string; id: string }> },
 ) {
+  const params = await ctx.params
   const denied = await requireAdminInRoute()
   if (denied) return denied
 

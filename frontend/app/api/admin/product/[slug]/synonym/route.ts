@@ -6,8 +6,9 @@ import { requireAdminInRoute } from '@/lib/admin-auth'
 // Body: { alias: string, lang: string, priority: number }
 export async function POST(
   req: NextRequest,
-  { params }: { params: { slug: string } },
+  ctx: { params: Promise<{ slug: string }> },
 ) {
+  const params = await ctx.params
   const denied = await requireAdminInRoute()
   if (denied) return denied
 
