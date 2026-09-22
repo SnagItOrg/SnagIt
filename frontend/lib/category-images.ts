@@ -44,55 +44,67 @@ const photo = (id: string) => `https://images.unsplash.com/${id}?${TRANSFORM}`
 
 export const CATEGORY_IMAGES: Readonly<Record<string, string>> = {
   // unsplash.com/photos/a-close-up-of-a-guitar-pick-and-a-guitar-case--XFV7J2uao0
-  // Guitar strap and pick on a guitar body.
+  // Guitar strap and pick on a guitar body. Not owner-selected — this root has
+  // no supported products, so the card is empty either way.
   accessories: photo('photo-1643386156518-9efc679d9e57'),
 
-  // unsplash.com/photos/black-fender-amplifier-FR9Hm-xNRa8
-  // Black Fender combo amp beside a sunburst Stratocaster.
-  amps: photo('photo-1557855684-8aa6f40997df'),
+  // Owner-selected 2026-09-22, supplied as a CDN URL.
+  // Both hands on a dreadnought, warm amber, shallow focus. Supersedes the
+  // column's own Unsplash hotlink, which is a wider studio shot with no hands.
+  'acoustic-guitars': photo('photo-1510915361894-db8b60106cb1'),
 
-  // unsplash.com/photos/brass-trumpet-on-brown-wooden-table-r5jL69trU-s
-  // Silver cornet on a stand on a concert stage.
-  'band-and-orchestra': photo('photo-1613142659446-bf37da865799'),
+  // Owner-selected 2026-09-22, supplied as a CDN URL.
+  // Vintage Fender blackface combo — logo, grille cloth and control panel.
+  amps: photo('photo-1778607237788-802e0ccc129c'),
 
-  // unsplash.com/photos/brown-and-black-bass-guitars-G_3NA_UoVyo
-  // Sunburst Precision-style bass. Supersedes the borrowed 1.9 MB
-  // products/fender-jazz-bass.webp the column points at.
-  'bass-guitars': photo('photo-1543060749-aa3f115aad09'),
+  // unsplash.com/photos/person-playing-trumpet-during-night-time-A10y2Eq7OHY
+  // A hand on a trumpet in warm stage light. Owner-selected 2026-09-22 — the
+  // message carried a different photo id as the link TEXT and this one as the
+  // href; they are not the same image and this is the one that matches the
+  // stated direction.
+  'band-and-orchestra': photo('photo-1511192336575-5a79af67a629'),
 
-  // unsplash.com/photos/lighted-dj-mixer-ttv1pX6tk7o
-  // CDJ deck and mixer under blue club lighting.
-  'dj-and-lighting-gear': photo('photo-1544785349-c4a5301826fd'),
+  // unsplash.com/photos/person-playing-guitar-in-grayscale-photography-nUd7uq3i0qs
+  // A hand on a bass neck, warm sepia. Unsplash titles it "grayscale"; it is
+  // not. Supersedes the borrowed 1.9 MB products/fender-jazz-bass.webp.
+  'bass-guitars': photo('photo-1622316375172-11207007fba9'),
 
-  // unsplash.com/photos/gray-drum-set-6NpYOFB3VCI
-  // Full white drum kit on a riser.
-  'drums-and-percussion': photo('photo-1543443258-92b04ad5ec6b'),
+  // Owner-selected 2026-09-22, supplied as a CDN URL.
+  // DJ hands over a mixer, amber bokeh behind.
+  'dj-and-lighting-gear': photo('photo-1660211934853-e33d8a02201d'),
 
-  // unsplash.com/photos/assorted-colored-electric-guitar-effects-oiYgrDjSJhM
-  // Pedalboard of assorted effects pedals.
-  'effects-and-pedals': photo('photo-1550602003-c89e9c05f972'),
+  // Owner-selected 2026-09-22, supplied as a CDN URL.
+  // Kit in warm stage light, shallow focus across cymbals.
+  'drums-and-percussion': photo('photo-1602939444907-6e688c594a66'),
 
-  // unsplash.com/photos/shallow-focus-photo-banjo-on-brown-wicker-chair-yQQoQlGDX7k
-  // Resonator banjo on a wicker chair.
-  'folk-instruments': photo('photo-1568903457385-c38d34ffd37e'),
+  // unsplash.com/photos/a-screenshot-of-a-video-game-ci6TQb-4cRA
+  // A shop wall of guitar pedals. Unsplash's auto-title is wrong — it is not a
+  // video game, and the title would have been wrong to act on.
+  'effects-and-pedals': photo('photo-1662434243640-42988ab42db8'),
 
-  // unsplash.com/photos/black-turntable-on-brown-wooden-table-TcSckNRL9J8
-  // Turntable playing a record on a sideboard.
-  'home-audio': photo('photo-1526394931762-90052e97b376'),
+  // Owner-selected 2026-09-22, supplied as a CDN URL.
+  // Weathered hands on a zither.
+  'folk-instruments': photo('photo-1601712112487-5a284906b10f'),
 
-  // unsplash.com/photos/a-bunch-of-electronic-keyboards-sitting-next-to-each-other-11KDGL-cN5s
-  // Stacked rack of vintage analogue synthesizers. The column is null here and
-  // lib/browse.ts lends /browse the 3.9 MB music-gear.webp instead.
-  'keyboards-and-synths': photo('photo-1634041551278-a843c116ff28'),
+  // Owner-selected 2026-09-22, supplied as a CDN URL.
+  // Turntable with orange vinyl by a window, record sleeves beside it.
+  'home-audio': photo('photo-1496293455970-f8581aae0e3b'),
+
+  // Owner-selected 2026-09-22, supplied as a CDN URL.
+  // Moog modular wall with red and yellow patch cables over two keyboards.
+  // The column is null here and lib/browse.ts lends /browse the 3.9 MB
+  // music-gear.webp instead.
+  'keyboards-and-synths': photo('photo-1600148272607-7bbf03a40d3b'),
 
   // unsplash.com/photos/close-up-of-a-guitar-headstock-with-tuners-WKBQrLwfi6Y
-  // Guitar headstock and machine heads.
+  // Guitar headstock and machine heads. Not owner-selected — this root has no
+  // supported products, so the card is empty either way.
   parts: photo('photo-1744654296952-cf5b6b47556f'),
 
-  // unsplash.com/photos/close-up-photography-of-turned-on-audio-mixer-VRdZBLqnoMU
-  // Lit mixing desk — faders and meters. Supersedes the borrowed 4.0 MB
-  // products/ampex-atr-700.webp.
-  'pro-audio': photo('photo-1518972559570-7cc1309f3229'),
+  // Owner-selected 2026-09-22, supplied as a CDN URL.
+  // Mixing console, shallow focus across the faders. Supersedes the borrowed
+  // 4.0 MB products/ampex-atr-700.webp.
+  'pro-audio': photo('photo-1521450741901-ea1ad3399027'),
 }
 
 /**
