@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
+import { TextField } from '@/components/TextField'
 
 /**
  * The homepage shell: everything interactive, and nothing that needs the
@@ -77,18 +78,12 @@ export function LandingShell({ children }: { children: React.ReactNode }) {
                 >
                   search
                 </span>
-                <input
+                <TextField
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={t.searchInputPlaceholder}
-                  className="w-full rounded-2xl pl-14 pr-6 py-4 text-lg text-foreground outline-none transition-all"
-                  style={{
-                    backgroundColor: 'var(--input-background)',
-                    border: '1px solid var(--border)',
-                  }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
+                  className="w-full rounded-2xl pl-14 pr-6 py-4 text-lg text-foreground"
                   autoFocus
                 />
               </div>

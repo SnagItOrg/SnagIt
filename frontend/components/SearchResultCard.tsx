@@ -8,6 +8,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { usePostHog } from 'posthog-js/react'
 import { formatOriginalPrice } from '@/lib/currency'
 import { classifyListing, firstSeenTimestamp, isApproximateDkk } from '@/lib/price-populations'
+import { TextField } from '@/components/TextField'
 
 // Country name → ISO code for flag emoji lookup
 const COUNTRY_CODES: Record<string, string> = {
@@ -536,21 +537,14 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
             </div>
           ) : (
             <form onSubmit={handleCaptureSubmit} className="flex flex-col gap-1.5">
-              <input
+              <TextField
                 type="email"
                 value={captureEmail}
                 onChange={(e) => setCaptureEmail(e.target.value)}
                 placeholder={t.email}
                 required
                 autoFocus
-                className="w-full rounded-xl px-3 py-2 text-sm outline-none transition-colors"
-                style={{
-                  backgroundColor: 'var(--input-background)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)' }}
+                className="w-full rounded-xl px-3 py-2 text-sm"
               />
               <button
                 type="submit"

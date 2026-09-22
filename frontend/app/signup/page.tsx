@@ -6,6 +6,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import { OnboardingHeader } from '@/components/OnboardingHeader'
 import type { Locale } from '@/lib/i18n'
+import { TextField } from '@/components/TextField'
 
 export default function SignupPage() {
   const { locale, setLocale, t } = useLocale()
@@ -117,17 +118,14 @@ export default function SignupPage() {
                     >
                       {t.email}
                     </label>
-                    <input
+                    <TextField
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       autoComplete="email"
                       placeholder={t.emailPlaceholder}
-                      className="w-full rounded-2xl px-5 py-4 text-base outline-none transition-all"
-                      style={{ backgroundColor: 'var(--input-background)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
-                      onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
-                      onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
+                      className="w-full rounded-2xl px-5 py-4 text-base"
                     />
                   </div>
 
@@ -139,17 +137,14 @@ export default function SignupPage() {
                     >
                       {t.passwordOptionalLabel}
                     </label>
-                    <input
+                    <TextField
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       minLength={8}
                       autoComplete="new-password"
                       placeholder={t.passwordOptionalPlaceholder}
-                      className="w-full rounded-2xl px-5 py-4 text-base outline-none transition-all"
-                      style={{ backgroundColor: 'var(--input-background)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
-                      onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--ring)' }}
-                      onBlur={(e)  => { e.currentTarget.style.borderColor = 'var(--border)' }}
+                      className="w-full rounded-2xl px-5 py-4 text-base"
                     />
                     <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
                       {t.passwordOptionalHint}

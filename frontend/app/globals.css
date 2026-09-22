@@ -407,6 +407,47 @@
     transition-duration: var(--duration-fast-min);
   }
 
+  /* --- field ------------------------------------------------------------
+     The resting and focused appearance of a text input, in CSS.
+
+     Twelve inputs across nine files each carried the same three-property
+     inline style object and the same pair of handlers that painted the focus
+     border by writing to `e.currentTarget.style`. Three things were wrong with
+     that, beyond the repetition:
+
+       - the blur handler restores a hardcoded `var(--border)` rather than the
+         field's own resting value, so the pattern cannot be reused by a field
+         with a different resting border without silently resetting it;
+       - it writes to the `style` attribute React is also managing, which is
+         two owners for one property;
+       - every site paired it with `outline-none`, which the focus floor at the
+         bottom of this file then has to override with `!important`.
+
+     `:focus`, deliberately NOT `:focus-visible` — the handlers it replaces
+     fired for pointer focus too, and this is a like-for-like replacement, not
+     a behaviour change. The keyboard ring stays a separate layer, so the two
+     compose rather than compete.
+
+     Only `border-color` transitions. The utility this replaces was
+     `transition-all`, which sets `transition-property: all` — every animatable
+     property on the element, including padding, font-size and width. */
+  .field {
+    background-color: var(--input-background);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    transition: border-color var(--duration-fast) var(--ease-standard);
+  }
+
+  .field:focus {
+    border-color: var(--ring);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .field {
+      transition: none;
+    }
+  }
+
   /* Subordinate: inherits the level below its parent and casts nothing. */
   .surface-nested {
     background-color: var(--surface-2);
@@ -424,6 +465,67 @@
     .surface-interactive,
     .surface-interactive:hover,
     .surface-interactive:active {
+      transition: none;
+      transform: none;
+    }
+  }
+
+  /* --- dialog motion ----------------------------------------------------
+     The one entrance/exit in the product, and the only reason `--ease-exit`
+     exists. A dialog is the case Astryx's two curves were measured on.
+
+     Arriving, the panel decelerates into place: `--ease-standard` spends its
+     speed immediately and coasts, which is what settling looks like.
+
+     Leaving is NOT the entrance played backwards. `--ease-exit` accelerates
+     away from rest, so the panel is already moving within ~50ms and the close
+     reads as one departure rather than a hesitation and a snap. Astryx
+     measured the alternative: the decelerate curve put a sheet 90% off-screen
+     in 163ms of a 410ms close, finishing the travel before the eye followed it
+     and then spending the rest of the duration moving pixels below the fold.
+
+     `--duration-medium-min` rather than `--duration-medium`: this panel
+     travels 12px, not a screen height, and the medium band's own quick stop is
+     the right size for it. The exit shares the entrance's band, so only the
+     curve differs between the two directions.
+
+     The transform is a rise, which works for both shapes this dialog takes —
+     the bottom sheet under 768px and the centred panel above it. */
+  .dialog-backdrop {
+    opacity: 1;
+    transition: opacity var(--duration-medium-min) var(--ease-standard);
+  }
+
+  .dialog-panel {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity   var(--duration-medium-min) var(--ease-standard),
+      transform var(--duration-medium-min) var(--ease-standard);
+  }
+
+  .dialog-backdrop[data-state='entering'],
+  .dialog-backdrop[data-state='closing'] {
+    opacity: 0;
+  }
+
+  .dialog-panel[data-state='entering'],
+  .dialog-panel[data-state='closing'] {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  .dialog-panel[data-state='closing'],
+  .dialog-backdrop[data-state='closing'] {
+    transition-timing-function: var(--ease-exit);
+  }
+
+  /* Reduced motion removes the travel, not the dialog. The component reads the
+     same preference in JS and unmounts immediately, so nothing waits out a
+     duration that is no longer being spent. */
+  @media (prefers-reduced-motion: reduce) {
+    .dialog-backdrop,
+    .dialog-panel {
       transition: none;
       transform: none;
     }
