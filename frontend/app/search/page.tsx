@@ -438,7 +438,7 @@ function CandidateList({
   id: string
   options: SearchCandidate[]
   activeIndex: number
-  listRef: React.RefObject<HTMLUListElement>
+  listRef: React.RefObject<HTMLUListElement | null>
 }) {
   const { t } = useLocale()
   return (
@@ -515,7 +515,7 @@ function UnsupportedPanel({
   activeIndex,
 }: {
   outcome: SearchOutcome
-  listRef: React.RefObject<HTMLUListElement>
+  listRef: React.RefObject<HTMLUListElement | null>
   activeIndex: number
 }) {
   const { t } = useLocale()
