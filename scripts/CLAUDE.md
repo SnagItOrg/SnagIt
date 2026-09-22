@@ -78,6 +78,24 @@ A migration that creates a table in `public` must, in the same transaction,
 enable RLS and revoke `anon` / `authenticated` privileges — or create the table
 outside `public`.
 
+## `kg_category` labels are hand-maintained
+
+`name_en` is the source of truth for identity. `name_da` is **Danish**, and is
+maintained by hand — nothing derives it. It is not a fallback for `name_en`,
+and seeding it with the English string is how English reached the Danish
+`/browse` (PAN-107).
+
+Five render paths read the column raw — the `/browse` tiles, the
+`/browse/[root]` h1 and breadcrumb, the filter chips, the product-card
+subtitle and the sidebar leaves — so the column *is* the label authority.
+`frontend/lib/category-labels.ts` is a root-only workaround for the bad
+column, not a second source; it retires once the column is right.
+
+**An importer must never write `name_da` from an English field.**
+`scripts/seed-reverb-categories.ts` does exactly that today and upserts with
+`onConflict: 'slug', ignoreDuplicates: false`, so re-running it overwrites
+every hand-set Danish name. Fix that before the next run.
+
 ## Derived data artefacts
 
 `data/klup-product-candidate-registry.csv`, `klup-candidate-disposition.csv`,
