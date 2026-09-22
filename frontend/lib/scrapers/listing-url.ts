@@ -55,17 +55,18 @@ export type ScrapedListingResult = Omit<Listing, 'id' | 'scraped_at'>
 
 const FALLBACK_RATES: Record<string, number> = { USD: 7.1, EUR: 7.46, GBP: 8.8, DKK: 1.0 }
 
-// `revalidate: 0` is stated rather than inherited. Under Next 14 a `fetch` with
+// `force-cache` is stated rather than inherited. Under Next 14 a `fetch` with
 // no cache option defaulted to `force-cache`, so this rate was fetched once and
-// then reused until the next deploy — a conversion rate frozen at build time.
-// Next 15 flips that default to no-store. The directive pins the live read so
-// the behaviour is a decision in this file rather than a framework default that
-// could flip back. FALLBACK_RATES still covers an unreachable Frankfurter.
+// then reused until the next deploy. Next 15 flips that default to no-store,
+// which would have made the rate live per request and moved displayed prices.
+// Product-owner decision 2026-09-22: keep the Next 14 behaviour exactly. This
+// directive is what holds it, so the upgrade changes no price a visitor sees.
+// FALLBACK_RATES still covers an unreachable Frankfurter.
 async function fetchExchangeRates(): Promise<Record<string, number>> {
   try {
     const res = await fetch('https://api.frankfurter.app/latest?from=DKK&to=USD,EUR,GBP', {
       signal: AbortSignal.timeout(5_000),
-      next: { revalidate: 0 },
+      cache: 'force-cache',
     })
     if (!res.ok) return FALLBACK_RATES
     const data = await res.json() as { rates: Record<string, number> }
