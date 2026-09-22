@@ -80,8 +80,8 @@ async function Shelves() {
   const { legendary, popular, categories } = await readShelves()
   return (
     <>
-      <DiscoverShelves legendary={legendary} popular={popular} />
       <CategoryShelf categories={categories} />
+      <DiscoverShelves legendary={legendary} popular={popular} />
     </>
   )
 }
@@ -138,10 +138,27 @@ function ShelfFallback({ cards }: { cards: number }) {
  * y=2100 when the shelves resolved — a measured layout shift of 0.050 at 1440px
  * and 0.058 at 768px and 360px, all of it that one jump.
  *
- * The category shelf below them is deliberately NOT mirrored. Its height is a
- * row count over the taxonomy rather than a constant, so a placeholder for it
- * would be exactly the guess this change removes; two shelves already carry the
- * footer past the fold, which is what the shift was made of.
+ * The category shelf is deliberately NOT mirrored. Its height is a row count
+ * over the taxonomy rather than a constant, so a placeholder for it would be
+ * exactly the guess this change removes; two shelves already carry the footer
+ * past the fold, which is what the shift was made of.
+ *
+ * PAN-115 MOVED THE CATEGORY SHELF ABOVE THE SHELVES, AND THAT IS SAFE — which
+ * is not obvious, because the sentence above used to say "the category shelf
+ * BELOW them". Re-measured after the reorder: 0.0000 at 1440x900, 768x1024 and
+ * 360x844, unchanged from 0.0000 before it. The reason the order cannot matter
+ * is that a layout shift scores nodes present in BOTH frames. The skeletons are
+ * removed and the resolved sections are inserted, and neither counts; the only
+ * node that persists across the swap is the footer, and the fallback is
+ * unchanged, so it still starts below the fold and the resolved content is
+ * strictly taller. What would break this is a fallback TALLER than what
+ * replaces it, pulling the footer up into view — not a reordering underneath a
+ * fallback that already clears the viewport.
+ *
+ * The harness was proved able to see a shift before it was believed: reverting
+ * this to the one-placeholder form reproduced 0.0503 at 1440x900 and 0.0508 at
+ * 768x1024, against the 0.050/0.058 recorded above. At 360 it now reads 0.0012,
+ * so that viewport no longer has the sensitivity the original note implies.
  */
 function ShelvesFallback() {
   return (
