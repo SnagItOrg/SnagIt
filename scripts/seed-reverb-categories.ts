@@ -35,7 +35,10 @@ async function main() {
         {
           slug: c.root_slug,
           name_en: c.full_name.split(' / ')[0],
-          name_da: c.full_name.split(' / ')[0], // Danish translations TBD
+          // INVARIANT: name_en is the source, name_da is Danish. Seeding the
+          // English string here is what put English on the Danish /browse.
+          // The rows are hand-maintained after seeding — see scripts/CLAUDE.md.
+          name_da: c.full_name.split(' / ')[0],
           domain: 'music' as const,
           parent_id: null,
         },
@@ -75,7 +78,9 @@ async function main() {
   const subs = categories.map((c) => ({
     slug: `${c.root_slug}/${c.slug}`,
     name_en: c.name,
-    name_da: c.name, // Danish translations TBD
+    // INVARIANT: see above. This upsert is onConflict:'slug' with
+    // ignoreDuplicates:false, so a re-run overwrites a hand-set name_da.
+    name_da: c.name,
     domain: 'music' as const,
     parent_id: rootIdBySlug.get(c.root_slug) ?? null,
   }));
