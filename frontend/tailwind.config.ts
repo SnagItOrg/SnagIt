@@ -103,6 +103,28 @@ const config: Config = {
       spacing: {
         nav: "var(--shell-nav)",
       },
+      // Motion. DEFAULT is the load-bearing key: a bare `transition-colors`
+      // compiles `transition-duration: <DEFAULT>`, so overriding it moves the
+      // 137 call sites that never named a duration onto `--duration-fast` at
+      // once, without editing 137 files. The named keys exist for the places
+      // that genuinely mean something other than "fast".
+      transitionDuration: {
+        DEFAULT: "var(--duration-fast)",
+        "fast-min": "var(--duration-fast-min)",
+        fast: "var(--duration-fast)",
+        "fast-max": "var(--duration-fast-max)",
+        "medium-min": "var(--duration-medium-min)",
+        medium: "var(--duration-medium)",
+        "medium-max": "var(--duration-medium-max)",
+        "slow-min": "var(--duration-slow-min)",
+        slow: "var(--duration-slow)",
+        "slow-max": "var(--duration-slow-max)",
+      },
+      transitionTimingFunction: {
+        DEFAULT: "var(--ease-standard)",
+        standard: "var(--ease-standard)",
+        exit: "var(--ease-exit)",
+      },
     },
   },
   plugins: [],

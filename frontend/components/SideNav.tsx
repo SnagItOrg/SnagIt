@@ -9,7 +9,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import { categoryLabel } from '@/lib/category-labels'
 import type { NavTab } from '@/components/BottomNav'
-import type { Locale } from '@/lib/i18n'
+import { fill, type Locale } from '@/lib/i18n'
 import type { CatalogueTreeCategory } from '@/lib/catalogue-tree'
 
 interface Props {
@@ -191,7 +191,7 @@ function CatalogueTree() {
                             className="block pl-10 pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary"
                             style={{ color: 'var(--muted-foreground)' }}
                           >
-                            {t.catalogueTreeSeeAll.replace('{count}', String(sub.product_count))}
+                            {fill(t.catalogueTreeSeeAll, { count: sub.product_count })}
                           </Link>
                         </li>
                       )}

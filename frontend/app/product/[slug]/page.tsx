@@ -13,6 +13,7 @@ import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 // observations, so the imports follow P2 rather than the pre-P2 area set.
 import { ResponsiveContainer, ScatterChart, Scatter, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { useLocale } from '@/components/LocaleProvider'
+import { fill } from '@/lib/i18n'
 import { Toast } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
 import { DanishMarketBlock, ReferencePopulationBlock } from '@/components/PriceAnswer'
@@ -46,13 +47,6 @@ import type { FamilyContext, PricePoint, RelatedProduct } from '@/app/api/produc
  * named in the frame's source line instead of being split into series we do
  * not actually draw separately.
  */
-function fillTemplate(template: string, values: Record<string, string | number>): string {
-  return Object.entries(values).reduce(
-    (acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)),
-    template,
-  )
-}
-
 type ProductAttributes = {
   description?:     string
   specs?:           Record<string, string | boolean | number>
@@ -511,7 +505,7 @@ export default function ProductPage() {
                           ? t.priceDataUnavailable
                           : priceHistory.length === 0
                             ? undefined
-                            : fillTemplate(t.priceBandTooFew, { count: priceHistory.length })
+                            : fill(t.priceBandTooFew, { count: priceHistory.length })
                       }
                       legend={
                         enough ? (
@@ -525,7 +519,7 @@ export default function ProductPage() {
                         ) : undefined
                       }
                       source={soldCounts
-                        ? fillTemplate(t.soldCountsReconciled, {
+                        ? fill(t.soldCountsReconciled, {
                             filtered: soldCounts.filtered,
                             raw: soldCounts.raw,
                             excluded: soldCounts.excludedOutliers,

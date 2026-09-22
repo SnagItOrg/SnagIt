@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
+import { EmptyState } from '@/components/EmptyState'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { track } from '@/lib/analytics'
 import {
@@ -406,17 +407,13 @@ function SearchPageInner() {
             ) : showUnsupported ? (
               <UnsupportedPanel outcome={outcome!} listRef={listRef} activeIndex={activeIndex} />
             ) : (
-              <div className="flex flex-col items-center justify-center py-20 gap-3 text-center max-w-sm mx-auto">
-                <span
-                  aria-hidden="true"
-                  className="material-symbols-outlined"
-                  style={{ fontSize: '48px', color: 'var(--muted-foreground)', opacity: 0.4 }}
-                >
-                  manage_search
-                </span>
-                <p className="text-base font-semibold text-foreground">{t.searchEmptyHeading}</p>
-                <p className="text-sm text-muted-foreground">{t.searchEmptySubtext}</p>
-              </div>
+              <EmptyState
+                kind="blank"
+                icon="manage_search"
+                title={t.searchEmptyHeading}
+                body={t.searchEmptySubtext}
+                className="py-20"
+              />
             )}
           </div>
         </main>

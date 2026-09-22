@@ -152,6 +152,71 @@
   --space-16:  4rem;
   --space-20:  5rem;
 
+  /* --- motion -----------------------------------------------------------
+     Adopted from Astryx (facebook/astryx, MIT) — read, not imported. Nothing
+     is vendored; these are our tokens carrying values we measured in theirs.
+
+     Astryx's whole motion system is three base durations, one ratio and two
+     shipped curves. That restraint is the part worth copying. Measured at
+     clone time (packages/themes/neutral/src/neutralTheme.ts:101):
+
+         motion: {fast: 125, medium: 300, slow: 700, ratio: 0.75}
+
+     Astryx expands those into nine stops (expandMotionScale.ts):
+
+         min = round5(base x ratio)   base   max = round5(base / ratio)
+
+     The nine stops below are that expansion, recomputed and checked against
+     their own algorithm — not copied by eye. The full scale is emitted for
+     the same reason the radius and spacing scales above are: a partial scale
+     invites the next author to invent the missing stop inline.
+
+     Band meanings are Astryx's, restated because they are what makes the
+     scale usable: FAST is a micro-interaction the pointer is already on
+     (hover, press, toggle, focus ring). MEDIUM is an entrance or exit that
+     travels (overlay, sheet, disclosure). SLOW is continuous, not triggered.
+
+     Three values compete for "fast" in this codebase today — Tailwind's
+     implicit 150ms on 137 sites, 160ms in `.surface-interactive`, and 200ms
+     on three controls. One hover on a search-result card fires all three.
+     `--duration-fast` is now the one answer, wired as Tailwind's DEFAULT in
+     tailwind.config.ts so the 137 implicit sites resolve here without being
+     edited. */
+  --duration-ratio: 0.75;
+
+  --duration-fast-min:    95ms;   /* 125 x 0.75 = 93.75  -> 95  */
+  --duration-fast:       125ms;
+  --duration-fast-max:   165ms;   /* 125 / 0.75 = 166.67 -> 165 */
+  --duration-medium-min: 225ms;   /* 300 x 0.75 = 225          */
+  --duration-medium:     300ms;
+  --duration-medium-max: 400ms;   /* 300 / 0.75 = 400          */
+  --duration-slow-min:   525ms;   /* 700 x 0.75 = 525          */
+  --duration-slow:       700ms;
+  --duration-slow-max:   935ms;   /* 700 / 0.75 = 933.33 -> 935 */
+
+  /* Easing. Astryx ships exactly two curves in component source; we ship the
+     same two and no more.
+
+     `--ease-standard` is their `--ease-standard` verbatim, and is used at
+     five of their seven cubic-bezier sites. It decelerates: it spends its
+     speed immediately and coasts to rest. Right for arriving at a resting
+     state, and for every hover and press here.
+
+     `--ease-exit` accelerates away from rest. Astryx reached for it after
+     measuring the standard curve on a closing sheet — it put the sheet 90%
+     off-screen in 163ms of a 410ms close, so the travel finished before the
+     eye followed it and the remaining duration moved pixels below the fold
+     (BottomSheetPanel.tsx:158-175). An exit is its own motion, not the
+     entrance played backwards. It is deliberately gentle rather than a hard
+     `ease-in`, so a close reads as one departure and not a hesitation.
+
+     Astryx's docs mention a third curve, cubic-bezier(0.0, 0.0, 0.2, 1). We
+     did not adopt it: grepping their packages finds it only in a docstring
+     example and one unit test, never in a component. A token with no caller
+     is a guess wearing a name. */
+  --ease-standard: cubic-bezier(0.24, 1, 0.4, 1);
+  --ease-exit:     cubic-bezier(0.3, 0, 0.6, 0.6);
+
   /* --- shell ------------------------------------------------------------
      TWO container primitives, deliberately not one.
 
@@ -319,9 +384,9 @@
     border: 1px solid var(--border-subtle);
     box-shadow: var(--elevation-card);
     transition:
-      box-shadow 160ms ease,
-      border-color 160ms ease,
-      transform 160ms ease;
+      box-shadow    var(--duration-fast) var(--ease-standard),
+      border-color  var(--duration-fast) var(--ease-standard),
+      transform     var(--duration-fast) var(--ease-standard);
   }
 
   /* A precise lift, not a bloom: one elevation level and one pixel. */
@@ -333,10 +398,13 @@
     }
   }
 
+  /* The press returns faster than the lift arrived — a release should feel
+     answered, not waited out. That is the scale's own smallest stop rather
+     than a number picked by hand; it was 60ms, which named nothing. */
   .surface-interactive:active {
     box-shadow: var(--elevation-card);
     transform: translateY(0);
-    transition-duration: 60ms;
+    transition-duration: var(--duration-fast-min);
   }
 
   /* Subordinate: inherits the level below its parent and casts nothing. */

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
+import { EmptyState } from '@/components/EmptyState'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 type NotifPrefs = {
@@ -29,7 +29,7 @@ function Toggle({ on, onToggle, disabled }: { on: boolean; onToggle: () => void;
       aria-checked={on}
       onClick={onToggle}
       disabled={disabled}
-      className="relative flex-shrink-0 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
+      className="relative flex-shrink-0 rounded-full transition-colors duration-fast focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
       style={{
         width: '44px',
         height: '26px',
@@ -37,7 +37,7 @@ function Toggle({ on, onToggle, disabled }: { on: boolean; onToggle: () => void;
       }}
     >
       <span
-        className="absolute top-[3px] rounded-full shadow transition-all duration-200"
+        className="absolute top-[3px] rounded-full shadow transition-all duration-fast"
         style={{
           width: '20px',
           height: '20px',
@@ -239,16 +239,14 @@ export default function ProfilePage() {
             </div>
 
             {watchlists.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-4 text-center">
-                <p className="text-sm text-muted-foreground">Ingen overvågninger endnu.</p>
-                <Link
-                  href="/search"
-                  className="text-sm font-semibold transition-opacity hover:opacity-70"
-                  style={{ color: 'var(--foreground)' }}
-                >
-                  {t.goToSearch}
-                </Link>
-              </div>
+              <EmptyState
+                kind="blank"
+                icon="notifications_none"
+                title={t.noWatchlists}
+                body={t.noWatchlistsHint}
+                action={{ label: t.goToSearch, href: '/search' }}
+                className="py-4"
+              />
             ) : (
               <div className="flex flex-col gap-2">
                 {watchlists.map((w) => (

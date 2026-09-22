@@ -129,7 +129,7 @@ function BrowsePageInner() {
                 >
                   {/* Background image */}
                   <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
+                    className="absolute inset-0 bg-cover bg-center transition-transform duration-medium group-hover:scale-105"
                     style={{
                       backgroundImage: `url(${cat.image_url})`,
                       background: `url(${cat.image_url}) center/cover, var(--card)`,

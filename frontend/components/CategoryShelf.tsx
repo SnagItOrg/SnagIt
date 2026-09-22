@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { categoryLabel } from '@/lib/category-labels'
 import { categoryImage } from '@/lib/category-images'
 import { useLocale } from '@/components/LocaleProvider'
+import { fill } from '@/lib/i18n'
 import type { HomeCategory } from '@/lib/home-categories'
 
 /**
@@ -76,7 +77,7 @@ export function CategoryShelf({ categories }: { categories: HomeCategory[] }) {
           const count =
             category.product_count === 1
               ? t.homeCategoryCountOne
-              : t.homeCategoryCount.replace('{count}', String(category.product_count))
+              : fill(t.homeCategoryCount, { count: category.product_count })
 
           return (
             <Link

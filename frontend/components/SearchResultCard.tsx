@@ -320,7 +320,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               alt={listing.title}
               fill
               sizes="(min-width: 768px) 25vw, 100vw"
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              className="object-cover group-hover:scale-105 transition-transform duration-medium"
               onError={() => setImgError(true)}
             />
           ) : (

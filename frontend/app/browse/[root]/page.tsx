@@ -8,6 +8,7 @@ import { BottomNav } from '@/components/BottomNav'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { ProductCard } from '@/components/ProductCard'
 import { useLocale } from '@/components/LocaleProvider'
+import { EmptyState } from '@/components/EmptyState'
 import type { BrowseLeafResponse } from '@/lib/browse'
 
 interface Category {
@@ -238,16 +239,15 @@ function BrowseCategoryPageInner() {
                so the page has to finish the sentence: what following is, and
                that this category is not covered yet. The filtered-to-nothing
                case below keeps t.noResults, which is the right words for it. */
-            <div className="py-16 text-center">
-              <h2 className="type-heading">{t.browseEmptyCategoryHeading}</h2>
-              <p className="type-body-secondary type-measure mx-auto mt-2">
-                {t.browseEmptyCategoryBody}
-              </p>
-            </div>
+            <EmptyState
+              kind="unfollowed"
+              titleAs="h2"
+              title={t.browseEmptyCategoryHeading}
+              body={t.browseEmptyCategoryBody}
+              className="py-16"
+            />
           ) : filteredProducts.length === 0 ? (
-            <div className="py-16 text-center">
-              <p style={{ color: 'var(--muted-foreground)' }}>{t.noResults}</p>
-            </div>
+            <EmptyState kind="blank" title={t.noResults} className="py-16" />
           ) : (
             <div className="grid-wall">
               {filteredProducts.map((p) => (
