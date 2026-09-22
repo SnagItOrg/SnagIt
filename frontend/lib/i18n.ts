@@ -203,6 +203,10 @@ export const translations = {
     familyNoPublicChildren: 'Klup følger flere varianter i denne familie internt, men ingen af dem er offentlige endnu.',
     familyNoSupportedChildren: 'Klup følger ingen varianter i denne familie endnu.',
     familyBackToCatalogue: 'Se hele kataloget',
+    // The heading over the family's models. It names the ACTION the page
+    // exists for — choosing a variant — so the two links beneath it are not
+    // read as the first two rows of the listing feed further down.
+    familyChooseModel: 'Vælg model',
     // PAN-56: family context on the product page. The heading says "other
     // models", never "other prices" — each sibling carries its own evidence.
     familyOtherModels: 'Andre modeller i familien',
@@ -570,6 +574,7 @@ export const translations = {
     familyNoPublicChildren: 'Klup follows several variants in this family internally, but none of them is public yet.',
     familyNoSupportedChildren: 'Klup does not follow any variant in this family yet.',
     familyBackToCatalogue: 'See the whole catalogue',
+    familyChooseModel: 'Pick a model',
     familyOtherModels: 'Other models in this family',
     familyListingsCount: '{count} active listings on this family’s models',
     familyNoListings: 'No active listings on this family’s models right now.',

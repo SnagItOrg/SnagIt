@@ -1,7 +1,12 @@
 import { cache } from 'react'
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { BottomNav } from '@/components/BottomNav'
+import { MobileSearchBar } from '@/components/MobileSearchBar'
+import { SideNav } from '@/components/SideNav'
+import { SourceBadge } from '@/components/SourceBadge'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { CatalogueUnavailableError } from '@/lib/catalogue'
 import { fetchAllPages } from '@/lib/exhaustive-fetch'
@@ -28,9 +33,12 @@ import { SITE_URL } from '@/lib/site-metadata'
  * THE LISTING HALF AND THE PRICE HALF ARE ENFORCED DIFFERENTLY. Listings are a
  * feature: one query, and the count is the length of its result. Price is
  * structural: this file imports no price module, computes no band, and the
- * `listings` embed below selects `id, title, source, is_active` — no `price`,
- * no `price_dkk`, no `currency`. A price is not filtered out here, it is never
- * read, and `FamilyListing` has no field one could be written into.
+ * `listings` embed below selects `id, title, source, image_url, is_active` —
+ * no `price`, no `price_dkk`, no `currency`. A price is not filtered out here,
+ * it is never read, and `FamilyListing` has no field one could be written
+ * into. `image_url` is the seller's photo: it is provenance, like `source`,
+ * and states no price. `url` is deliberately absent too — a row here links to
+ * the MODEL, never off-site to a price with no verdict attached.
  *
  * IT DOES NOT READ THE BROWSE PROJECTION'S PRE-AGGREGATED ACTIVE-LISTING COUNT
  * — the column is named in the test that forbids it, not here, so the guard
@@ -158,7 +166,7 @@ const loadFamilyView = cache(async (slug: string): Promise<FamilyView | null> =>
       // above: unavailability is a throw, never an empty family.
       const res = await admin
         .from('listing_product_match')
-        .select('id, product_id, is_valid, listings(id, title, source, is_active)')
+        .select('id, product_id, is_valid, listings(id, title, source, image_url, is_active)')
         .in('product_id', childIds)
         .not('is_valid', 'is', false)
         .order('id', { ascending: true })
@@ -211,143 +219,246 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
 
   const { family, children, listings } = view
 
+  /*
+    THE SAME CHROME EVERY OTHER PUBLIC ROUTE HAS, AND NOT A SECOND SHELL.
+    `/browse`, `/product/[slug]` and `/search` each mount the same three client
+    components by hand — there is no AppShell in this repo to import — so this
+    route mounts them the same way, copying /browse's wrapper because a family
+    is a directory page. It renders no wordmark and no way home of its own: the
+    link home is SideNav's logo, in normal flow above the fold on mobile and in
+    the fixed sidebar on desktop (PAN-67).
+
+    A SERVER COMPONENT MAY MOUNT THEM. A client component imported into a
+    server component is an ordinary RSC boundary — `force-dynamic`,
+    `generateMetadata` and the robots directive are untouched. The one
+    constraint is that a function prop may not cross it, which is why
+    `SideNav`'s vestigial `onChange` is now optional rather than passed `() =>
+    {}` here.
+  */
   return (
-    <main
-      className="min-h-screen px-6 py-16 md:px-10"
-      style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
-    >
-      <div className="mx-auto flex w-full max-w-2xl flex-col">
-        <p className="type-label">
-          {family.brand}
-        </p>
-
-        <h1 className="type-title mt-2">
-          {family.label}
-        </h1>
-
-        {/*
-          The sentence that IS the product thesis. A family page exists to say
-          that these are separate markets — not to soften the fact that Klup
-          declines to average them.
-        */}
-        <p className="mt-6 text-base leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
-          {t.familyWhyNotOnePrice}
-        </p>
-
-        {children.length > 0 ? (
-          <section className="mt-10 flex flex-col gap-2">
-            {/*
-              Canonical-eligible children only. A child that is not canonical is
-              absent — no greyed card, no name, no "coming soon". Anything else
-              would advertise a URL that returns 404 and would put private
-              catalogue state on a public page.
-            */}
-            {children.map((child) => (
-              <Link
-                key={child.slug}
-                href={`/product/${child.slug}`}
-                className="rounded-2xl px-5 py-4 text-base font-semibold transition-opacity hover:opacity-80"
-                style={{ border: '1px solid var(--border)', color: 'var(--foreground)' }}
-              >
-                {child.label}
-              </Link>
-            ))}
-          </section>
-        ) : (
-          <p className="mt-4 text-base leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
-            {family.children.length > 0 ? t.familyNoPublicChildren : t.familyNoSupportedChildren}
+    <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
+      <SideNav active="hjem" />
+      <main className="md:ml-60 pb-24 md:pb-8">
+        <MobileSearchBar />
+        <div className="shell-reading flex flex-col pt-6 pb-10 md:pt-10">
+          <p className="type-label">
+            {family.brand}
           </p>
-        )}
 
-        {/*
-          ── The market under this family (PAN-94) ──────────────
-          The count is `listings.length`: the number printed and the rows
-          printed under it are the same array, so no read can disagree with
-          another. Rendered only where there is a model to attribute a listing
-          to — a family with no canonical child shows the demand form instead.
+          <h1 className="type-title mt-2">
+            {family.label}
+          </h1>
 
-          EACH ROW IS A NAVIGATION ROW, NOT A MARKETPLACE ROW. It carries the
-          seller's title, the source it came from, and the model it is matched
-          to — and the only link is INTO that model's page, where the market is
-          one market and Klup can answer the price question. There is no price
-          on this surface and no link that leaves for a marketplace carrying
-          none, because either would turn "too broad to combine" into a price
-          list the visitor combines themselves.
-        */}
-        {children.length > 0 && (
-          <section className="mt-10 flex flex-col gap-2">
-            <p className="type-label" style={{ color: 'var(--muted-foreground)' }}>
-              {listings.length > 0
-                ? fill(t.familyListingsCount, { count: listings.length })
-                : t.familyNoListings}
+          {/*
+            The sentence that IS the product thesis. A family page exists to say
+            that these are separate markets — not to soften the fact that Klup
+            declines to average them.
+          */}
+          <p className="type-measure mt-6 text-base leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+            {t.familyWhyNotOnePrice}
+          </p>
+
+          {children.length > 0 ? (
+            <section className="mt-10 flex flex-col gap-3">
+              {/*
+                THE CHILDREN ARE THE PAGE, so they are typeset as the page.
+
+                They used to be bordered text rows two-thirds the way down a
+                column of 71 identical bordered text rows, which made the one
+                destination a family exists to offer indistinguishable from the
+                fortieth listing. They now carry the heading that names the
+                action, the serif card title the rest of the product surface uses
+                for a destination, a lifting surface, and an arrow — four signals,
+                none of them colour, so the sparse-accent rule is untouched.
+
+                Canonical-eligible children only. A child that is not canonical is
+                absent — no greyed card, no name, no "coming soon". Anything else
+                would advertise a URL that returns 404 and would put private
+                catalogue state on a public page.
+              */}
+              <h2 className="type-label">{t.familyChooseModel}</h2>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {children.map((child) => (
+                  <Link
+                    key={child.slug}
+                    href={`/product/${child.slug}`}
+                    className="surface-interactive group flex items-center justify-between gap-4 rounded-2xl px-5 py-5 transition-colors"
+                  >
+                    <span className="type-card-title wrap-anywhere">{child.label}</span>
+                    <span
+                      aria-hidden="true"
+                      className="material-symbols-outlined flex-shrink-0 transition-transform group-hover:translate-x-0.5"
+                      style={{ fontSize: '20px', color: 'var(--text-muted)' }}
+                    >
+                      arrow_forward
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : (
+            <p className="mt-4 text-base leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+              {family.children.length > 0 ? t.familyNoPublicChildren : t.familyNoSupportedChildren}
             </p>
+          )}
 
-            {listings.map((listing) => (
-              <Link
-                key={listing.id}
-                href={`/product/${listing.childSlug}`}
-                className="flex flex-col gap-1 rounded-2xl px-5 py-4 transition-opacity hover:opacity-80"
-                style={{ border: '1px solid var(--border)', color: 'var(--foreground)' }}
+          {/*
+            ── The market under this family (PAN-94) ──────────────
+            The count is `listings.length`: the number printed and the rows
+            printed under it are the same array, so no read can disagree with
+            another. Rendered only where there is a model to attribute a listing
+            to — a family with no canonical child shows the demand form instead.
+
+            EACH ROW IS A NAVIGATION ROW, NOT A MARKETPLACE ROW. It carries the
+            seller's title, the source it came from, and the model it is matched
+            to — and the only link is INTO that model's page, where the market is
+            one market and Klup can answer the price question. There is no price
+            on this surface and no link that leaves for a marketplace carrying
+            none, because either would turn "too broad to combine" into a price
+            list the visitor combines themselves.
+          */}
+          {children.length > 0 && (
+            <section className="mt-12 flex flex-col gap-3">
+              <p className="type-label" style={{ color: 'var(--muted-foreground)' }}>
+                {listings.length > 0
+                  ? fill(t.familyListingsCount, { count: listings.length })
+                  : t.familyNoListings}
+              </p>
+
+              {/*
+                A WALL, NOT A COLUMN — and the only reason is legibility at this
+                length. 71 rows in one 42rem column measured 7,159px on desktop
+                and 9,081px on a phone, so the models at the top were six screens
+                from the bottom of their own directory. No row is dropped to
+                achieve that: the count above is still `listings.length`, and a
+                capped list under an uncapped count is the defect PAN-94 closed
+                wearing a different number.
+
+                THE ROW IS THE SAME IDIOM AS ListingCard AND DELIBERATELY NOT
+                ListingCard. That component fits everywhere except the three
+                places that matter here: it renders a price unconditionally — and
+                "Pris ikke oplyst" where there is none, which is a statement
+                about price either way; it links to `listing.url`, off-site to a
+                marketplace price with no verdict attached; and its prop is
+                `Listing`, which carries `price`, `price_dkk`, `currency` and
+                `url`, the exact shape `FamilyListing` exists to keep off this
+                surface. Reusing it would mean passing a fabricated `Listing` and
+                adding a flag to suppress the line it is built around. The
+                classes below are its classes, so the two rows still read as one
+                system, and `SourceBadge` is the shared chip /product/[slug]
+                renders through SearchResultCard.
+
+                WHAT THE ROW CARRIES: a photo, the seller's title, the model it
+                is matched to, and the marketplace it came from. No price, no
+                band, no median, no verdict, and no link that leaves Klup.
+              */}
+              <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                {listings.map((listing) => (
+                  <li key={listing.id} className="flex">
+                    <Link
+                      href={`/product/${listing.childSlug}`}
+                      className="surface-card flex w-full gap-3 rounded-2xl p-3 transition-colors hover:border-line-strong"
+                    >
+                      <div className="size-16 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
+                        {listing.imageUrl ? (
+                          <Image
+                            src={listing.imageUrl}
+                            /* The title is read out on the next line, so the
+                               photo is decorative and an alt would repeat it. */
+                            alt=""
+                            width={128}
+                            height={128}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <span
+                              aria-hidden="true"
+                              className="material-symbols-outlined"
+                              style={{ fontSize: '20px', color: 'var(--text-muted)' }}
+                            >
+                              image
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+                        <span className="line-clamp-2 text-sm font-medium leading-snug wrap-anywhere">
+                          {listing.title}
+                        </span>
+                        {/* One line, never two. The model name truncates and the
+                            chip keeps its width, so a long child label cannot
+                            silently add a 24px line to a row — measured on
+                            fender-telecaster, 22 of 71 rows were doing exactly
+                            that at 390px. */}
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <span className="type-meta truncate">{listing.childLabel}</span>
+                          <span className="flex-shrink-0">
+                            <SourceBadge source={listing.source} />
+                          </span>
+                        </span>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/*
+            Demand capture (§8.5), on the empty state only — once a family has a
+            public child, the useful action is to read that child's page.
+
+            It is a GET form to the resolver, pre-filled with the family term and
+            carrying `demand=family:<slug>`. WP-4 must honour that marker: a query
+            arriving WITH it is a demand submission and emits `search_unsupported`
+            + `demand_signal_submitted`; without it, the same term resolves to this
+            family and 302s back here. Submitting demand must never bounce the
+            visitor to the page they submitted it from. Recorded as a bounded
+            integration requirement in the WP-2 hand-off.
+
+            No email field, no analytics call: lib/analytics.ts is WP-5-owned and
+            the consent boundary deploys at R2. WP-2 emits nothing.
+          */}
+          {children.length === 0 && (
+            <form action="/search" method="get" className="mt-8 flex flex-col gap-3" data-demand-control="family">
+              <input type="hidden" name="demand" value={`family:${family.slug}`} />
+              <label className="flex flex-col gap-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                {t.searchNotFollowedBody}
+                <input
+                  type="text"
+                  name="q"
+                  defaultValue={family.label}
+                  className="rounded-2xl px-4 py-3 text-base outline-none"
+                  style={{
+                    backgroundColor: 'var(--input-background)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--foreground)',
+                  }}
+                />
+              </label>
+              <button
+                type="submit"
+                className="self-start rounded-2xl px-6 py-3 text-base font-semibold transition-opacity hover:opacity-90"
+                style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
               >
-                <span className="text-base wrap-anywhere">{listing.title}</span>
-                <span className="type-meta" style={{ color: 'var(--muted-foreground)' }}>
-                  {listing.source ? `${listing.childLabel} · ${listing.source}` : listing.childLabel}
-                </span>
-              </Link>
-            ))}
-          </section>
-        )}
+                {t.demandCta}
+              </button>
+            </form>
+          )}
 
-        {/*
-          Demand capture (§8.5), on the empty state only — once a family has a
-          public child, the useful action is to read that child's page.
-
-          It is a GET form to the resolver, pre-filled with the family term and
-          carrying `demand=family:<slug>`. WP-4 must honour that marker: a query
-          arriving WITH it is a demand submission and emits `search_unsupported`
-          + `demand_signal_submitted`; without it, the same term resolves to this
-          family and 302s back here. Submitting demand must never bounce the
-          visitor to the page they submitted it from. Recorded as a bounded
-          integration requirement in the WP-2 hand-off.
-
-          No email field, no analytics call: lib/analytics.ts is WP-5-owned and
-          the consent boundary deploys at R2. WP-2 emits nothing.
-        */}
-        {children.length === 0 && (
-          <form action="/search" method="get" className="mt-8 flex flex-col gap-3" data-demand-control="family">
-            <input type="hidden" name="demand" value={`family:${family.slug}`} />
-            <label className="flex flex-col gap-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-              {t.searchNotFollowedBody}
-              <input
-                type="text"
-                name="q"
-                defaultValue={family.label}
-                className="rounded-2xl px-4 py-3 text-base outline-none"
-                style={{
-                  backgroundColor: 'var(--input-background)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                }}
-              />
-            </label>
-            <button
-              type="submit"
-              className="self-start rounded-2xl px-6 py-3 text-base font-semibold transition-opacity hover:opacity-90"
-              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
-            >
-              {t.demandCta}
-            </button>
-          </form>
-        )}
-
-        <Link
-          href="/browse"
-          className="mt-12 self-start text-base underline underline-offset-4"
-          style={{ color: 'var(--foreground)' }}
-        >
-          {t.familyBackToCatalogue}
-        </Link>
-      </div>
-    </main>
+          <Link
+            href="/browse"
+            className="mt-12 self-start text-base underline underline-offset-4"
+            style={{ color: 'var(--foreground)' }}
+          >
+            {t.familyBackToCatalogue}
+          </Link>
+        </div>
+      </main>
+      <BottomNav />
+    </div>
   )
 }

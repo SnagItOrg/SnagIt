@@ -320,6 +320,8 @@ export interface FamilyListingRow {
     id?: string | null
     title?: string | null
     source?: string | null
+    /** The seller's photo. Provenance, not evidence — see `FamilyListing`. */
+    image_url?: string | null
     is_active?: boolean | null
   } | null
 }
@@ -327,17 +329,33 @@ export interface FamilyListingRow {
 /**
  * A listing the family route is allowed to render.
  *
- * FIVE KEYS, AND NO SIXTH. There is no field here a price, a band, a median, a
- * verdict or a sold population could travel in — the same structural guarantee
- * PAN-56 gives `RenderableChild`, extended to the listings PAN-94 admits.
- * `childSlug` is what makes the row a NAVIGATION row rather than a marketplace
- * row: it is the link target, and the price question is answered on the variant
- * page it leads to, where the market is one market.
+ * AN EXACT KEY SET, AND NOTHING PRICE-SHAPED IN IT. There is no field here a
+ * price, a band, a median, a verdict or a sold population could travel in —
+ * the same structural guarantee PAN-56 gives `RenderableChild`, extended to
+ * the listings PAN-94 admits. `childSlug` is what makes the row a NAVIGATION
+ * row rather than a marketplace row: it is the link target, and the price
+ * question is answered on the variant page it leads to, where the market is
+ * one market.
+ *
+ * `imageUrl` IS THE SIXTH KEY, AND IT IS PROVENANCE RATHER THAN EVIDENCE. The
+ * shape used to say "five keys and no sixth", which counted fields when the
+ * rule is about what a field can MEAN: a photo the seller uploaded states no
+ * price, implies no band and settles no verdict, and it is already published
+ * on /product/[slug] and /search for these same rows. The guard in
+ * scripts/lib/wp2-families.test.ts therefore now pins the exact key set AND
+ * asserts no key is price-shaped, so the count can move for a legible reason
+ * while the rule it was standing in for is checked directly.
+ *
+ * What still may NEVER appear: price, price_dkk, currency, msrp, a band, a
+ * median, a verdict, a sold population — or `url`, which would turn a
+ * navigation row into an exit to a marketplace price with no verdict attached.
  */
 export interface FamilyListing {
   id: string
   title: string
   source: string | null
+  /** The seller's photo, or null. Never a price, and never a link off-site. */
+  imageUrl: string | null
   /** The canonical child this listing is attributed to. */
   childSlug: string
   childLabel: string
@@ -467,12 +485,17 @@ function collectFamilyListings(
     const title = typeof listing.title === 'string' ? listing.title.trim() : ''
     if (id.length === 0 || title.length === 0) continue
 
+    // An empty string is not an image. Normalising here rather than at render
+    // keeps the route from deciding what counts as a photo.
+    const imageUrl = typeof listing.image_url === 'string' ? listing.image_url.trim() : ''
+
     attributed.push({
       order: owner.order,
       listing: {
         id,
         title,
         source: typeof listing.source === 'string' ? listing.source : null,
+        imageUrl: imageUrl.length > 0 ? imageUrl : null,
         childSlug: owner.child.slug,
         childLabel: owner.child.label,
       },
