@@ -63,9 +63,20 @@ test('integration: every package suite is registered exactly once', () => {
       // Added by the P2 integration: the seam between source-aware price
       // answers and admin review mode, which neither suite covers alone.
       'scripts/lib/p2-review-integration.test.ts',
+      // PAN-17: the sidebar catalogue tree. Its own suite because "populated
+      // branches only" and "no price in a navigation payload" are both
+      // properties of a pure builder, and both are silent failures — an empty
+      // branch is a dead end nobody reports, and a price key is invisible
+      // until it renders.
+      'scripts/lib/pan17-catalogue-tree.test.ts',
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',
+      // PAN-86: the homepage category shelf is the first surface to render the
+      // taxonomy itself rather than products, so domain scope and the "never
+      // print a count the destination cannot honour" rule are both exercised
+      // here, against an import-free module.
+      'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
       // because the failure is silent — a wrong median looks like a median.

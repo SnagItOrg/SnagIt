@@ -191,6 +191,13 @@ test('boundary: /search reaches only client-safe modules of our own', () => {
     'components/SideNav.tsx',
     'components/BottomNav.tsx',
     'components/LocaleProvider.tsx',
+    // PAN-17: `SideNav` renders the catalogue tree and needs the Danish root
+    // labels for it. `category-labels.ts` is import-free and holds nothing but
+    // two string maps — `CategoryShelf`, itself a client component, already
+    // reaches it. The tree's own module arrives as an `import type` and is
+    // erased, so `SideNav` gains no edge to lib/browse or the service-role
+    // client; the tree is fetched from /api/catalogue-tree at runtime.
+    'lib/category-labels.ts',
   ])
   const unexpected = closure.filter((m) => !allowed.has(m) && !m.startsWith('components/'))
   assert.deepEqual(unexpected, [], 'unreviewed module reachable from the search client')

@@ -231,6 +231,19 @@ function BrowseCategoryPageInner() {
             <div className="py-16 text-center">
               <p style={{ color: 'var(--muted-foreground)' }}>{error}</p>
             </div>
+          ) : (data?.total_public_products ?? 0) === 0 ? (
+            /* PAN-86. A root Klup follows nothing in is not "no results" —
+               nothing was searched for. The homepage now sends visitors here
+               on purpose, with the card already saying the category is empty,
+               so the page has to finish the sentence: what following is, and
+               that this category is not covered yet. The filtered-to-nothing
+               case below keeps t.noResults, which is the right words for it. */
+            <div className="py-16 text-center">
+              <h2 className="type-heading">{t.browseEmptyCategoryHeading}</h2>
+              <p className="type-body-secondary type-measure mx-auto mt-2">
+                {t.browseEmptyCategoryBody}
+              </p>
+            </div>
           ) : filteredProducts.length === 0 ? (
             <div className="py-16 text-center">
               <p style={{ color: 'var(--muted-foreground)' }}>{t.noResults}</p>
