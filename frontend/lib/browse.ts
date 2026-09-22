@@ -7,6 +7,14 @@ import {
   assertSupportedCohortIsMusic,
   loadSupportedSlugs,
 } from '@/lib/catalogue'
+import {
+  HOME_CATEGORY_DOMAIN,
+  LEGACY_COARSE_ROOT_SLUG,
+  buildHomeCategories,
+  type HomeCategory,
+  type HomeCategoryRow,
+} from '@/lib/home-categories'
+import { buildCatalogueTree, type CatalogueTreeCategory } from '@/lib/catalogue-tree'
 
 export type BrowseProjectionRow = {
   id: string
@@ -188,6 +196,7 @@ type DiscoverProduct = {
 type DiscoverResponse = {
   legendary: DiscoverProduct[]
   popular: DiscoverProduct[]
+  categories: HomeCategory[]
 }
 
 const PROJECTION_SELECT = [
@@ -356,7 +365,11 @@ async function fetchMusicTaxonomy(admin: SupabaseClient) {
       .select('id, slug, name_da, name_en, image_url')
       .eq('domain', 'music')
       .is('parent_id', null)
-      .neq('slug', 'music-gear')
+      // The same definition the homepage shelf uses, read from one place
+      // rather than repeated as a literal. PAN-86: two `.neq()`s naming the
+      // same legacy root is how two surfaces come to disagree about whether a
+      // category exists.
+      .neq('slug', LEGACY_COARSE_ROOT_SLUG)
       .order('name_en'),
     admin
       .from('kg_category')
@@ -367,7 +380,9 @@ async function fetchMusicTaxonomy(admin: SupabaseClient) {
     admin
       .from('kg_category')
       .select('image_url')
-      .eq('slug', 'music-gear')
+      // Not the exclusion — this reads the legacy root's IMAGE, which
+      // /browse lends to keyboards-and-synths a few lines below.
+      .eq('slug', LEGACY_COARSE_ROOT_SLUG)
       .single(),
   ]).catch(() => {
     throw new CatalogueUnavailableError('browse_taxonomy_transport')
@@ -382,6 +397,35 @@ async function fetchMusicTaxonomy(admin: SupabaseClient) {
     subcategories: (subcategoriesRes.data ?? []) as SubcategoryRow[],
     musicGearImageUrl: ((musicGearRes.data ?? null) as MusicGearImageRow | null)?.image_url ?? null,
   }
+}
+
+/**
+ * Every in-scope root, for the homepage category shelf (PAN-86).
+ *
+ * Deliberately NOT `fetchMusicTaxonomy`, whose select carries no `domain` or
+ * `parent_id` and whose caller therefore could not re-check scope even if it
+ * wanted to. This one selects both scope columns precisely so
+ * `isRenderableRoot()` can decide on the rows rather than trust the filter:
+ * the query narrows for cost, the pure predicate decides for correctness, and
+ * a change to either alone cannot widen the shelf.
+ *
+ * The legacy-root exclusion is NOT repeated here. It lives in
+ * `isRenderableRoot()`, which both this shelf and `fetchMusicTaxonomy` now
+ * defer to for the definition.
+ */
+async function fetchHomeCategoryRoots(admin: SupabaseClient): Promise<HomeCategoryRow[]> {
+  const res = await admin
+    .from('kg_category')
+    .select('id, slug, name_da, name_en, domain, parent_id, image_url')
+    .eq('domain', HOME_CATEGORY_DOMAIN)
+    .is('parent_id', null)
+    .order('name_en')
+    .then((r) => r, () => {
+      throw new CatalogueUnavailableError('home_categories_transport')
+    })
+
+  if (res.error) throw new CatalogueUnavailableError('home_categories')
+  return (res.data ?? []) as HomeCategoryRow[]
 }
 
 /**
@@ -674,6 +718,29 @@ export async function buildBrowseRootResponse(args: {
   }
 }
 
+/**
+ * PAN-17 — the sidebar catalogue tree.
+ *
+ * ONE PREDICATE, NOT TWO. This reads `fetchPublicBrowseRows` — the same call
+ * `buildBrowseRootResponse` and `buildBrowseLeafResponse` make, which resolves
+ * support through `loadSupportedSlugs` and therefore through the one authority
+ * in `lib/catalogue.ts`. The sidebar cannot come to disagree with `/browse`
+ * about what exists, because neither of them owns a second answer.
+ *
+ * The taxonomy is NOT read. `fetchMusicTaxonomy` would hand back all fifteen
+ * roots and all 320 leaves, and the tree would then need a filter to throw
+ * away the 321 nodes it must not show. Building from the product rows instead
+ * makes D-IA-1 structural: an unpopulated branch contributes no row, so there
+ * is nothing to filter and nothing to forget. It is also one query rather than
+ * four.
+ */
+export async function buildCatalogueTreeResponse(
+  admin: SupabaseClient,
+): Promise<{ categories: CatalogueTreeCategory[] }> {
+  const rows = await fetchPublicBrowseRows(admin)
+  return { categories: buildCatalogueTree(rows) }
+}
+
 export async function buildBrowseLeafResponse(args: {
   admin: SupabaseClient
   rootSlug: string
@@ -779,6 +846,15 @@ export async function buildBrowseLeafResponse(args: {
 }
 
 /**
+ * How many cards each shelf can hold. Named rather than left inline because the
+ * homepage's loading placeholder has to reserve the same strip (PAN-104), and a
+ * placeholder sized by a second, independent copy of the number is how a
+ * skeleton comes to stop 204px short of the viewport.
+ */
+export const DISCOVER_LEGENDARY_LIMIT = 24
+export const DISCOVER_POPULAR_LIMIT = 20
+
+/**
  * Homepage shelves.
  *
  * SELECTION IS ON SUPPORT, NOT ON TIER. `is_public` alone would put
@@ -794,11 +870,25 @@ export async function buildBrowseLeafResponse(args: {
  * cleanly. WP-3 replaces both shelves with "Fulgt lige nu" and "Nye annoncer".
  */
 export async function buildDiscoverResponse(admin: SupabaseClient): Promise<DiscoverResponse> {
-  const publicRows = (await fetchPublicBrowseRows(admin)).sort(compareProducts)
+  // ONE ROW SET FEEDS BOTH THE SHELVES AND THE CATEGORY COUNTS (PAN-86).
+  //
+  // The counts could have come from their own query. They deliberately do not:
+  // a second query is a second predicate, and a second predicate is how a card
+  // comes to advertise a number its destination cannot honour. It is also
+  // three extra round trips — `fetchPublicBrowseRows` costs a supported-slug
+  // read, a domain probe and a projection page — on a page whose whole ticket
+  // is that it should load fast. The taxonomy read is the only addition, and
+  // it runs alongside rather than after.
+  const [publicRowsRaw, roots] = await Promise.all([
+    fetchPublicBrowseRows(admin),
+    fetchHomeCategoryRoots(admin),
+  ])
+  const publicRows = publicRowsRaw.sort(compareProducts)
+  const categories = buildHomeCategories(roots, publicRows.map((row) => row.root_category_id))
 
   const legendary = publicRows
     .filter((row) => row.tier === 'legendary')
-    .slice(0, 24)
+    .slice(0, DISCOVER_LEGENDARY_LIMIT)
     .map((row) => ({
       slug: row.slug,
       canonical_name: row.canonical_name,
@@ -815,7 +905,7 @@ export async function buildDiscoverResponse(admin: SupabaseClient): Promise<Disc
       }
       return compareProducts(a, b)
     })
-    .slice(0, 20)
+    .slice(0, DISCOVER_POPULAR_LIMIT)
     .map((row) => ({
       slug: row.slug,
       canonical_name: row.canonical_name,
@@ -824,5 +914,5 @@ export async function buildDiscoverResponse(admin: SupabaseClient): Promise<Disc
       active_listing_count: row.active_listing_count,
     }))
 
-  return { legendary, popular }
+  return { legendary, popular, categories }
 }

@@ -152,6 +152,24 @@ export const translations = {
     browseProducts: 'produkter',
     browseListings: 'til salg',
     browseAllCategories: 'Alle kategorier',
+    // PAN-17 — the sidebar tree's overflow affordance. Only rendered when a
+    // leaf holds more products than the sidebar will enumerate, so the reader
+    // learns the leaf is larger than what is on screen instead of silently
+    // seeing part of it. Counts PRODUCTS, like every other count on a
+    // navigation surface.
+    catalogueTreeSeeAll: 'Se alle {count}',
+    // PAN-86 — the homepage category shelf, and the page behind an empty card.
+    // `homeCategoryCount` counts PRODUCTS, not listings: it is the number the
+    // destination page can honour. The empty copy says what following is,
+    // because "ingen resultater" answers a question nobody asked here.
+    homeCategoriesHeading: 'Kategorier',
+    homeCategoriesSubtext: 'Alt Klup følger — og hvad vi endnu ikke følger',
+    homeCategoryCount: '{count} produkter',
+    homeCategoryCountOne: '1 produkt',
+    homeCategoryEmpty: 'Ikke fulgt endnu',
+    browseEmptyCategoryHeading: 'Klup følger ikke noget her endnu',
+    browseEmptyCategoryBody:
+      'Når Klup følger et produkt, henter vi annoncer fra DBA, Finn, Blocket, Kleinanzeigen og Reverb og viser dig, hvad det faktisk koster brugt. Denne kategori er ikke med endnu.',
     discoverLegendaryHeading: 'Legendarisk gear',
     discoverLegendarySubtext: 'Ikoniske instrumenter — dem alle kender',
     discoverPopularHeading: 'Populært lige nu',
@@ -188,6 +206,11 @@ export const translations = {
     // PAN-56: family context on the product page. The heading says "other
     // models", never "other prices" — each sibling carries its own evidence.
     familyOtherModels: 'Andre modeller i familien',
+    // PAN-94: a family may aggregate listings, never prices. The count names
+    // ANNONCER, never a price or a spread, and {count} is the length of the
+    // rendered list rather than a separately queried total.
+    familyListingsCount: '{count} aktive annoncer på familiens modeller',
+    familyNoListings: 'Ingen aktive annoncer på familiens modeller lige nu.',
 
     // Price evidence (WP-3)
     priceBandMedian: 'median udbudspris',
@@ -215,6 +238,7 @@ export const translations = {
     // Price populations (P2) — each number names the population behind it.
     dkMarketHeading: 'Det danske marked',
     dkMarketNone: 'Ingen danske annoncer lige nu.',
+    dkMarketAwaitingReview: 'Vi overvåger danske annoncer for denne model, men ingen er gennemgået endnu. Derfor viser vi ingen typisk pris. Priserne herunder er de faktiske annoncer.',
     dkMarketCount: 'Klup har {count} gennemgået dansk annonce i prisgrundlaget',
     dkMarketCountPlural: 'Klup har {count} gennemgåede danske annoncer i prisgrundlaget',
     dkMarketMedianDescriptive: 'Median blandt {count} gennemgåede danske annoncer',
@@ -511,6 +535,15 @@ export const translations = {
     browseProducts: 'products',
     browseListings: 'for sale',
     browseAllCategories: 'All categories',
+    catalogueTreeSeeAll: 'See all {count}',
+    homeCategoriesHeading: 'Categories',
+    homeCategoriesSubtext: 'Everything Klup follows — and what it does not follow yet',
+    homeCategoryCount: '{count} products',
+    homeCategoryCountOne: '1 product',
+    homeCategoryEmpty: 'Not followed yet',
+    browseEmptyCategoryHeading: 'Klup does not follow anything here yet',
+    browseEmptyCategoryBody:
+      'When Klup follows a product, we pull listings from DBA, Finn, Blocket, Kleinanzeigen and Reverb and show you what it actually costs used. This category is not covered yet.',
     discoverLegendaryHeading: 'Legendary gear',
     discoverLegendarySubtext: 'Iconic instruments — the ones everyone knows',
     discoverPopularHeading: 'Popular right now',
@@ -538,6 +571,8 @@ export const translations = {
     familyNoSupportedChildren: 'Klup does not follow any variant in this family yet.',
     familyBackToCatalogue: 'See the whole catalogue',
     familyOtherModels: 'Other models in this family',
+    familyListingsCount: '{count} active listings on this family’s models',
+    familyNoListings: 'No active listings on this family’s models right now.',
 
     priceBandMedian: 'median asking price',
     priceBandRange: 'typical range (p25–p75)',
@@ -562,6 +597,7 @@ export const translations = {
 
     dkMarketHeading: 'The Danish market',
     dkMarketNone: 'No Danish listings right now.',
+    dkMarketAwaitingReview: 'We monitor Danish listings for this model, but none has been reviewed yet. So we show no typical price. The prices below are the actual listings.',
     dkMarketCount: 'Klup has {count} reviewed Danish listing in the price basis',
     dkMarketCountPlural: 'Klup has {count} reviewed Danish listings in the price basis',
     dkMarketMedianDescriptive: 'Median across {count} reviewed Danish listings',
