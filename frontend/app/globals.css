@@ -344,7 +344,14 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
-    padding-bottom: env(safe-area-inset-bottom);
+    /* The consent banner is position:fixed at the bottom of every route, so
+       without reserved space it covers whatever the document ends with -- on
+       /login at 390x844 that was the only "opret konto" link. ConsentBanner
+       publishes its measured height here while it is on screen, and removes
+       it once answered, so the reservation costs nothing afterwards. */
+    padding-bottom: calc(
+      env(safe-area-inset-bottom) + var(--consent-banner-height, 0px)
+    );
   }
 
   input,

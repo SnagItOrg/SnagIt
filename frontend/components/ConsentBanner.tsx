@@ -27,9 +27,19 @@
  * not a modal and not an overlay: no scroll lock, no focus trap, no blur, and
  * no dimmed content behind it. Every page works while it is showing, which is
  * the same guarantee rejection carries (§12.4.3).
+ *
+ * AND NOTHING IS COVERED BY IT EITHER. Being position:fixed, it used to sit on
+ * top of whatever the document ended with -- at 390x844 on /login that was the
+ * "opret gratis konto" link, the only route to creating an account, cut in
+ * half. It now publishes its measured height as --consent-banner-height, which
+ * globals.css adds to the body's padding-bottom, so the page reserves exactly
+ * the space the bar occupies and every element can be scrolled clear of it.
+ * That is a layout fix and nothing more: the bar is not dismissed, not
+ * shortened, not delayed and not made easier to ignore.
  */
 
 import Link from 'next/link'
+import { useEffect, useRef } from 'react'
 
 import { useConsent } from '@/components/ConsentProvider'
 import { useLocale } from '@/components/LocaleProvider'
@@ -51,11 +61,47 @@ const ACTION_STYLE: React.CSSProperties = {
 export function ConsentBanner() {
   const { state, hydrated, grant, reject } = useConsent()
   const { t } = useLocale()
+  const bannerRef = useRef<HTMLDivElement>(null)
+
+  // Only the effect below needs this as a value. The render guard further down
+  // is deliberately NOT rewritten to use it: that exact expression is pinned by
+  // wp5-consent-analytics.test.ts as the "no re-prompt after a no" guarantee,
+  // and a layout fix has no business restating a consent contract.
+  const visible = hydrated && state === 'undecided'
+
+  // Measured rather than assumed: the bar is one row on sm and up and two
+  // stacked rows below it, and the copy is translated, so no constant is
+  // correct at every width in both locales. The custom property exists only
+  // while the bar does -- once answered it is removed and the body reverts to
+  // its safe-area padding alone.
+  useEffect(() => {
+    const root = document.documentElement
+    const el = bannerRef.current
+
+    if (!visible || !el) {
+      root.style.removeProperty('--consent-banner-height')
+      return
+    }
+
+    const publish = () => {
+      root.style.setProperty('--consent-banner-height', `${el.offsetHeight}px`)
+    }
+
+    publish()
+    const observer = new ResizeObserver(publish)
+    observer.observe(el)
+
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty('--consent-banner-height')
+    }
+  }, [visible])
 
   if (!hydrated || state !== 'undecided') return null
 
   return (
     <div
+      ref={bannerRef}
       role="region"
       aria-label={t.consentHeading}
       data-testid="consent-banner"
