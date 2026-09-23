@@ -132,6 +132,12 @@ test('integration: every package suite is registered exactly once', () => {
       // import-free for the same reason — 320 leaves and 13 duplicated leaf
       // names are a data property, not a React one.
       'scripts/lib/pan97-subcategory-picker.test.ts',
+      // PAN-133: the product-image precedence has one authority. Two columns
+      // encode one concept — curated and ingested — and each surface deciding
+      // its own precedence produced the same defect twice, in opposite
+      // directions (PAN-110, PAN-133). Its own suite because it guards a
+      // repository-wide rule, not one module's behaviour.
+      'scripts/lib/product-image-authority.test.ts',
       // PAN-107: the category seeder must never write `name_da` on a row that
       // already exists. The column is hand-maintained Danish, one re-run used
       // to revert all 23 corrected rows, and nothing about that failure is

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { resolveProductImage } from '@/lib/product-image-source'
 import ProductCurationClient, {
   type CurationData,
   type MatchedListing,
@@ -189,7 +190,8 @@ async function loadCurationData(slug: string): Promise<CurationData | null> {
     brand_name: brandName,
     tier: product.tier,
     year_released: product.year_released,
-    image_url: product.hero_image_url ?? product.image_url ?? null,
+    // PAN-133: one authority for the precedence, shared with the public page.
+    image_url: resolveProductImage(product).url,
     reverb_csp_id: product.reverb_csp_id,
   }
 

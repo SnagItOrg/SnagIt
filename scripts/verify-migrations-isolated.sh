@@ -408,5 +408,111 @@ grep -q '056_rollback REFUSED' scripts/migrations/056_rollback.sql \
 grep -q 'keep_identities' scripts/migrations/056_rollback.sql \
   && pass "keep_identities escape documented" || fail "missing keep_identities escape"
 
+# =============================================================================
+# 15. Migration 058 — browse_product_projection resolves the curated image
+#
+# Runs in its OWN database inside the same disposable cluster. Migration 036
+# UPDATEs browse_visibility for classic/legendary rows, which would move the
+# canonical checksum sections 1-14 depend on; and kg_migration_fixture.sql has
+# neither image column, no kg_category and no view, so 036 cannot be applied to
+# it at all. A separate database keeps the two state machines apart.
+#
+# This section reproduces the DEFECT before fixing it: a row with a curated
+# hero_image_url and no image_url must be invisible through the 036 projection
+# and visible through the 058 one. An assertion that only checked the "after"
+# would pass against a view that was never broken.
+# =============================================================================
+echo
+echo "── 15. migration 058: the projection resolves the curated image ──"
+
+BDB=klupbrowse
+createdb "$BDB"
+bq()   { psql -d "$BDB" -tAX -c "$1"; }
+brun() { psql -d "$BDB" -v ON_ERROR_STOP=1 -q -f "$1" 2>&1; }
+# "<url>/<t|f>" for one slug — the two things the ticket says disagree.
+bstate() { bq "SELECT coalesce(image_url,'<null>')||'/'||has_image FROM browse_product_projection WHERE slug='$1'"; }
+
+psql -d "$BDB" -v ON_ERROR_STOP=1 -q -f scripts/fixtures/browse_projection_fixture.sql
+
+# ── 15a. the projection as migration 036 leaves it: the bug, reproduced ──
+brun scripts/migrations/036_browse_visibility_projection.sql >/dev/null
+[ -n "$(bq "SELECT 1 FROM pg_views WHERE viewname='browse_product_projection'")" ] \
+  && pass "036 applied: browse_product_projection exists" || fail "036 did not create the view"
+
+B_HERO_BEFORE="$(bstate hero-only)"
+echo "  BEFORE  hero-only     -> $B_HERO_BEFORE"
+[ "$B_HERO_BEFORE" = "<null>/false" ] \
+  && pass "DEFECT REPRODUCED: a curated-only row reports no url and has_image=false" \
+  || fail "expected '<null>/false' for hero-only under 036, got '$B_HERO_BEFORE'"
+
+B_BOTH_BEFORE="$(bstate both-differ)"
+echo "  BEFORE  both-differ   -> $B_BOTH_BEFORE"
+[ "$B_BOTH_BEFORE" = "https://cdn.example/stale.webp/true" ] \
+  && pass "DEFECT REPRODUCED: a curated row with an old image reports the STALE one" \
+  || fail "expected the stale url for both-differ under 036, got '$B_BOTH_BEFORE'"
+
+# ── 15b. apply 058 ──
+OUT="$(brun scripts/migrations/058_browse_projection_resolves_curated_image.sql)"
+echo "$OUT" | grep -q "state=PRE" && pass "058 detected PRE and applied" || fail "058 did not detect PRE: $OUT"
+
+B_HERO_AFTER="$(bstate hero-only)"
+echo "  AFTER   hero-only     -> $B_HERO_AFTER"
+[ "$B_HERO_AFTER" = "https://cdn.example/hero-only.webp/true" ] \
+  && pass "FIXED: the curated image is reported, and has_image is true" \
+  || fail "expected the hero url and has_image=true, got '$B_HERO_AFTER'"
+
+B_BOTH_AFTER="$(bstate both-differ)"
+echo "  AFTER   both-differ   -> $B_BOTH_AFTER"
+[ "$B_BOTH_AFTER" = "https://cdn.example/curated.webp/true" ] \
+  && pass "FIXED: the curated image beats the stale ingested one" \
+  || fail "expected the curated url for both-differ, got '$B_BOTH_AFTER'"
+
+# Rows that were already right must be untouched — this is a read-path change,
+# not a redefinition of what an image is.
+[ "$(bstate ingested-only)" = "https://cdn.example/ingested-only.webp/true" ] \
+  && pass "an ingested-only row is unchanged" || fail "ingested-only regressed: $(bstate ingested-only)"
+[ "$(bstate no-image)" = "<null>/false" ] \
+  && pass "a genuinely image-less row still reports none" || fail "no-image regressed: $(bstate no-image)"
+[ "$(bstate blank-hero)" = "https://cdn.example/fallback.webp/true" ] \
+  && pass "a blank hero falls THROUGH to the ingested image" || fail "blank-hero resolved wrongly: $(bstate blank-hero)"
+
+# has_image must agree with image_url on every row, by construction.
+[ "$(bq "SELECT count(*) FROM browse_product_projection WHERE has_image <> (image_url IS NOT NULL)")" = "0" ] \
+  && pass "has_image and image_url cannot disagree" || fail "has_image disagrees with image_url"
+
+# NO DML: the migration must not have touched the columns it reads.
+[ "$(bq "SELECT count(*) FROM kg_product WHERE image_url IS NOT NULL")" = "3" ] \
+  && pass "058 wrote no image_url (still 3 non-null)" || fail "058 performed a backfill"
+[ "$(bq "SELECT count(*) FROM kg_product WHERE hero_image_url IS NOT NULL")" = "3" ] \
+  && pass "058 wrote no hero_image_url (still 3 non-null)" || fail "058 performed a backfill"
+
+# The shape the view's consumers depend on must be intact.
+[ "$(bq "SELECT count(*) FROM information_schema.columns WHERE table_name='browse_product_projection'")" = "27" ] \
+  && pass "the projection still exposes 27 columns" || fail "the projection's column list changed"
+
+# ── 15c. POST is a successful no-op ──
+OUT="$(brun scripts/migrations/058_browse_projection_resolves_curated_image.sql)"
+echo "$OUT" | grep -q "state=POST" && pass "058 re-run detects POST" || fail "058 re-run did not detect POST: $OUT"
+[ "$(bstate hero-only)" = "https://cdn.example/hero-only.webp/true" ] \
+  && pass "058 is idempotent" || fail "058 re-run changed the result"
+
+# ── 15d. rollback restores the 036 behaviour exactly ──
+brun scripts/migrations/058_rollback.sql >/dev/null
+[ "$(bstate hero-only)" = "$B_HERO_BEFORE" ] && [ "$(bstate both-differ)" = "$B_BOTH_BEFORE" ] \
+  && pass "058_rollback returns every row to its 036 value" || fail "058_rollback did not restore the 036 behaviour"
+OUT="$(brun scripts/migrations/058_rollback.sql)"
+echo "$OUT" | grep -q "state=POST" && pass "058_rollback re-run is a no-op" || fail "058_rollback is not idempotent: $OUT"
+
+# ── 15e. drift aborts before mutating ──
+psql -d "$BDB" -q -c "DROP VIEW browse_product_projection" >/dev/null
+# `brun` exits non-zero on a raised exception, and `set -o pipefail` would turn
+# that into a failed pipeline even when grep matched. Capture, then match.
+OUT="$(brun scripts/migrations/058_browse_projection_resolves_curated_image.sql || true)"
+if printf '%s' "$OUT" | grep -q '058 ABORT'; then
+  pass "058 refuses when the view is absent, instead of inventing one"
+else
+  fail "058 did not abort on a missing view: $OUT"
+fi
+
 echo
 if [ "$FAILED" = "0" ]; then echo "ALL ISOLATED CHECKS PASSED"; else echo "SOME CHECKS FAILED"; exit 1; fi

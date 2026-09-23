@@ -20,6 +20,7 @@ import { DanishMarketBlock, ReferencePopulationBlock } from '@/components/PriceA
 import type { PopulationKey, PopulationStats } from '@/lib/price-populations'
 import { orderByVerdictRank } from '@/lib/listing-value-order'
 import { stripDecorativeEmoji } from '@/lib/listing-title'
+import { resolveProductImage } from '@/lib/product-image-source'
 import {
   ProductReviewControls,
   type MatchReviewStatus,
@@ -261,6 +262,12 @@ export default function ProductPage() {
     setCreating(false)
   }, [])
 
+  // PAN-133: the precedence is not decided here. `hero_image_url ?? image_url`
+  // used to be written inline twice in the hero below — correct, but a third
+  // copy of a sentence that had already forked once (PAN-110) and once more in
+  // the browse projection.
+  const productImage = product ? resolveProductImage(product).url : null
+
   return (
     <>
       {/*
@@ -327,9 +334,9 @@ export default function ProductPage() {
 
                   {/* Left — product image */}
                   <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted flex-shrink-0">
-                    {(product.hero_image_url ?? product.image_url) && !imgError ? (
+                    {productImage && !imgError ? (
                       <Image
-                        src={(product.hero_image_url ?? product.image_url)!}
+                        src={productImage}
                         alt={product.canonical_name}
                         fill
                         className="object-cover"

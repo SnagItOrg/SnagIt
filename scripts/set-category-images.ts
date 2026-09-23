@@ -19,6 +19,7 @@
 import * as path from 'path'
 import * as fs from 'fs'
 import { createClient } from '@supabase/supabase-js'
+import { resolveProductImage } from '../frontend/lib/product-image-source'
 
 for (const p of [
   path.resolve(__dirname, '../frontend/.env.local'),
@@ -117,8 +118,12 @@ async function main() {
     if (hasImage)                 return 1
     return 0
   }
+  // PAN-133: the precedence lives in one place. `score()` above deliberately
+  // still distinguishes the two columns — that is a RANKING question ("how
+  // good is this product's picture?"), not the "which picture does it show?"
+  // question the resolver owns.
   function bestImage(p: typeof products[0]): string | null {
-    return p.hero_image_url ?? p.image_url ?? null
+    return resolveProductImage(p).url
   }
 
   // Reject known-bad image URLs: sbpics (Thomann staff photos), 72x72 thumbnails
