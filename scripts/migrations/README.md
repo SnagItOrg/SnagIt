@@ -17,8 +17,10 @@ These are raw `.sql` files applied manually via the Supabase Studio SQL editor
 
 > **These are applied. This section is a record, not a queue.** It was headed
 > "Active queue" until 2026-08-13; the heading was wrong and is corrected here.
-> **There is no pending queue.** Everything through 057 is applied — see the
-> 053–056 and 057 sections at the end of this file.
+> **Everything through 057 is applied** — see the 053–056 and 057 sections at
+> the end of this file. **058 is written and rehearsed but NOT applied**; it is
+> the one pending item, and it needs an explicit product-owner authorisation.
+> See the 058 section at the end of this file.
 
 | File | Action | Notes |
 |---|---|---|
@@ -279,4 +281,49 @@ database — see the superseded notice in
 [`../../DEPLOYMENT_GUIDE.md`](../../DEPLOYMENT_GUIDE.md).
 
 Verify the whole package against a disposable local cluster with
-`bash scripts/verify-migrations-isolated.sh` (81 PASS + 1 documented BOUNDARY).
+`bash scripts/verify-migrations-isolated.sh` (99 PASS + 1 documented BOUNDARY,
+harness sections 1–15).
+
+
+## 058 — curated images reach the browse surfaces. WRITTEN, REHEARSED, **NOT APPLIED**.
+
+`058_browse_projection_resolves_curated_image.sql` (PAN-133) is the only
+migration in this repository that has **not** been applied to production. It
+needs an explicit product-owner authorisation, each time, like any other
+production DDL.
+
+`kg_product` carries two image columns that mean different things —
+`hero_image_url` is CURATED (written by `/admin/image`) and `image_url` is
+INGESTED (a Reverb pull or a storage upload). The product page renders
+`hero_image_url ?? image_url`. The projection defined by migration 036 selects
+`p.image_url` alone, and derives `has_image` from that column alone. So
+`/browse`, `/search`, the homepage shelves and every card read a column the
+curation flow never writes.
+
+Measured on production 2026-09-23 over the 50 public products: **16 carry a
+`hero_image_url` and all 16 are wrong on every card** — 13 have no `image_url`
+at all (the card renders nothing, and `has_image` is FALSE for a row that
+demonstrably has an image), 3 render a stale picture. 14 of the 16 are the
+owner's own curation.
+
+058 redefines the view so `image_url` and `has_image` both read one value
+computed in an `image_resolved` LATERAL: the curated image wins, the ingested
+one is the fallback, and a blank string counts as absent in both columns.
+
+| Property | |
+|---|---|
+| DML | **none.** No backfill, no re-curation. The 16 values are already in the table and become visible the moment the view changes. |
+| Columns retired | **none.** Curated and ingested mean different things; PAN-42's provenance work is what will make that legible. |
+| Shape | unchanged — the same 27 output columns, asserted before and after. |
+| Method | `CREATE OR REPLACE VIEW`, **never DROP + CREATE** — dropping would strip the anon/authenticated SELECT that PostgREST needs and blank `/browse`. |
+| Rollback | `058_rollback.sql`, which restores the 036 definition verbatim. It does **not** refuse: there is no evidence to destroy and no security posture to undo. Running it simply puts the 16 products back to showing nothing or a stale picture. |
+
+The precedence is now written exactly twice — the LATERAL in this migration and
+`resolveProductImage()` in `frontend/lib/product-image-source.ts`.
+`scripts/lib/product-image-authority.test.ts` fails closed if a third appears.
+
+Harness section **15** rehearses it in its own database inside the disposable
+cluster (fixture: `scripts/fixtures/browse_projection_fixture.sql`) and
+**reproduces the defect before fixing it** — a curated-only row reports
+`<null>/false` through the 036 projection and
+`https://cdn.example/hero-only.webp/true` through the 058 one.

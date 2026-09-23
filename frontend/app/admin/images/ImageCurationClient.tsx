@@ -7,7 +7,7 @@ import { fill } from '@/lib/i18n'
 export type ImageRow = {
   slug: string
   name: string
-  /** `hero_image_url ?? image_url` — what the product page actually renders. */
+  /** `resolveProductImage()` — what every surface renders. PAN-133. */
   currentImage: string | null
   /** True when a human has already curated a hero for this product. */
   isCurated: boolean

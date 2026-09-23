@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { isSupportedMusicProduct, CANONICAL_VISIBILITY } from '@/lib/catalogue'
+import { resolveProductImage } from '@/lib/product-image-source'
 import ImageCurationClient, { type ImageRow } from './ImageCurationClient'
 
 /**
@@ -30,12 +31,6 @@ type ProductRow = {
   attributes: Record<string, unknown> | null
 }
 
-function trimmed(v: string | null): string | null {
-  if (typeof v !== 'string') return null
-  const t = v.trim()
-  return t.length > 0 ? t : null
-}
-
 export default async function AdminImagesPage() {
   const db = getSupabaseAdmin()
 
@@ -63,8 +58,10 @@ export default async function AdminImagesPage() {
     const browse_domain = domainBySlug.get(p.slug) ?? null
     if (!isSupportedMusicProduct({ ...p, browse_domain })) continue
 
-    const hero = trimmed(p.hero_image_url)
-    const base = trimmed(p.image_url)
+    // PAN-133: the precedence AND the "is this curated?" question are both
+    // answered by the one resolver, so this page can never badge a row as
+    // curated while showing the ingested picture.
+    const resolved = resolveProductImage(p)
     const provenance = (p.attributes ?? {})['image_provenance'] as
       | { source_url?: unknown }
       | undefined
@@ -72,8 +69,8 @@ export default async function AdminImagesPage() {
     rows.push({
       slug: p.slug,
       name: p.canonical_name ?? p.slug,
-      currentImage: hero ?? base,
-      isCurated: hero !== null,
+      currentImage: resolved.url,
+      isCurated: resolved.source === 'curated',
       isPublic: p.browse_visibility === CANONICAL_VISIBILITY,
       provenanceSourceUrl:
         typeof provenance?.source_url === 'string' ? provenance.source_url : null,
