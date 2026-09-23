@@ -78,6 +78,9 @@ test('integration: every package suite is registered exactly once', () => {
       // inactive platform has to stay distinguishable from an active one with
       // colour ignored — both are silent failures if they regress.
       'scripts/lib/pan113-monitored-platforms.test.ts',
+      // PAN-121: the position signal, and the count-equals-rendered invariant
+      // PAN-98 exists because nobody asserted.
+      'scripts/lib/pan121-position-signal.test.ts',
       'scripts/lib/pan122-toast.test.ts',
       // PAN-17: the sidebar catalogue tree. Its own suite because "populated
       // branches only" and "no price in a navigation payload" are both

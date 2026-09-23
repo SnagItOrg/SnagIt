@@ -6,7 +6,9 @@ import { notFound } from 'next/navigation'
 import { BottomNav } from '@/components/BottomNav'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { SideNav } from '@/components/SideNav'
+import { PositionSignal } from '@/components/PositionSignal'
 import { SourceBadge } from '@/components/SourceBadge'
+import { buildPositionSignal } from '@/lib/position-signal'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { CatalogueUnavailableError } from '@/lib/catalogue'
 import { fetchAllPages } from '@/lib/exhaustive-fetch'
@@ -248,6 +250,28 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
           <h1 className="type-title mt-2">
             {family.label}
           </h1>
+
+          {/*
+            PAN-121 — the position signal, in the same place as on the other
+            three public listing surfaces.
+
+            `children` is the array mapped into cards below, so the number is
+            the number of destinations actually offered. It is deliberately not
+            `family.children.length`, which is the *configured* child list and
+            includes children this view found ineligible — advertising that
+            would be the PAN-98 mistake with a different column.
+
+            No removable filter: a family is the scope, not a narrowing, and
+            `onRemoveFilter` is therefore omitted rather than passed a no-op.
+            That is also what lets a server component mount this, the same way
+            `SideNav`'s optional `onChange` does (PAN-116).
+          */}
+          <PositionSignal
+            signal={buildPositionSignal({
+              // No `scope`: `family.label` is the <h1> immediately above.
+              renderedRows: children,
+            })}
+          />
 
           {/*
             The sentence that IS the product thesis. A family page exists to say

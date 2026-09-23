@@ -8,7 +8,10 @@ import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
 import { TextField } from '@/components/TextField'
+import { PositionSignal } from '@/components/PositionSignal'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { buildPositionSignal } from '@/lib/position-signal'
+import { fill } from '@/lib/i18n'
 import { track } from '@/lib/analytics'
 import {
   demandSignalPayload,
@@ -267,6 +270,23 @@ function SearchPageInner() {
   }
 
   /**
+   * PAN-121 — remove the query filter.
+   *
+   * Clearing the term is the one removable filter this surface has, so it must
+   * leave the page in the state it has before any search: no outcome, no
+   * highlight, no `?q=` in the URL for a reload to resurrect. `replace` rather
+   * than `push`, matching `handleSubmit`, so removing a filter does not build
+   * a back-button trail of half-searches.
+   */
+  function handleClearQuery() {
+    setInputValue('')
+    setOutcome(null)
+    setActiveIndex(-1)
+    router.replace('/search')
+    inputRef.current?.focus()
+  }
+
+  /**
    * Keyboard traversal over the candidate set.
    *
    * ArrowDown/ArrowUp move, Enter opens the highlighted option or submits when
@@ -361,6 +381,39 @@ function SearchPageInner() {
         </div>
 
         <main className="shell-reading flex-1 pt-5 pb-24 md:pb-10">
+          {/*
+            PAN-121 — the position signal.
+
+            `options` and not `outcome.candidates`: the memo above is already
+            defined as "everything the visitor may click, in render order", and
+            it is what both branches below render — `CandidateList` gets it
+            directly when there are candidates, and `UnsupportedPanel` renders
+            `outcome.suggestions` through the same list, which is what `options`
+            falls back to. Counting `candidates` would therefore claim 0 on the
+            unsupported screen while three suggestions sat on it.
+
+            Search navigates *within* the supported catalogue, so the scope is
+            the catalogue rather than a category, and the query is the thing
+            narrowing it — removable, which is the property that turns this
+            from wayfinding into navigation.
+          */}
+          {!loading && outcome !== null && (
+            <PositionSignal
+              signal={buildPositionSignal({
+                scope: t.positionSignalAllCategories,
+                renderedRows: options,
+                filters: [
+                  {
+                    id: 'q',
+                    kind: 'query' as const,
+                    label: fill(t.positionSignalQueryFilter, { query: outcome.queryNorm }),
+                  },
+                ],
+              })}
+              onRemoveFilter={handleClearQuery}
+            />
+          )}
+
           <div aria-live="polite" aria-atomic="true">
             {loading ? (
               <div className="flex flex-col gap-3 max-w-2xl">
