@@ -325,7 +325,7 @@ function SearchPageInner() {
     <div className="min-h-screen bg-bg md:flex">
       <SideNav active="soeg" onChange={() => {}} />
 
-      <div className="flex-1 min-w-0 flex flex-col md:ml-60">
+      <div className="flex-1 min-w-0 flex flex-col shell-offset">
         <div className="shell-reading pt-6 pb-2">
           <h1 className="type-title">{t.searchPageHeading}</h1>
           <p className="type-meta mt-1">{t.searchPageSubtext}</p>

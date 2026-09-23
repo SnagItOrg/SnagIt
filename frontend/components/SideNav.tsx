@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, Suspense, useState, useEffect } from 'react'
+import { Fragment, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
@@ -27,7 +27,7 @@ interface Props {
   onChange?: (tab: NavTab) => void
 }
 
-function ThemeToggle() {
+function ThemeToggle({ collapsed }: { collapsed: boolean }) {
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -36,7 +36,9 @@ function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-      className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full text-left transition-colors hover:bg-secondary"
+      className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full text-left transition-colors hover:bg-secondary ${
+        collapsed ? 'justify-center' : ''
+      }`}
       style={{ color: 'var(--muted-foreground)' }}
       aria-label="Toggle theme"
     >
@@ -44,7 +46,7 @@ function ThemeToggle() {
         ? <Sun size={20} strokeWidth={1.8} />
         : <Moon size={20} strokeWidth={1.8} />
       }
-      <span>{resolvedTheme === 'dark' ? 'Lystema' : 'Mørkt tema'}</span>
+      {!collapsed && <span>{resolvedTheme === 'dark' ? 'Lystema' : 'Mørkt tema'}</span>}
     </button>
   )
 }
@@ -156,10 +158,16 @@ function CatalogueTree() {
           <details key={category.slug} open className="group">
             <summary
               /* pl-3/gap-1.5 and a 16px chevron rather than the nav items'
-                 px-3/gap-3/20px: at w-60 the longest Danish root label
-                 ("Western- & akustiske guitarer") needs every pixel before the
-                 truncation, and a branch label that cannot be read is worse
-                 navigation than one sitting 10px left of the item above it. */
+                 px-3/gap-3/20px: the longest Danish root label ("Western- &
+                 akustiske guitarer") needs every pixel it can get, and a branch
+                 label that cannot be read is worse navigation than one sitting
+                 10px left of the item above it.
+
+                 PAN-120 corrected the claim that used to stand here. This said
+                 `w-60` was the width at which that label fits; measured, it is
+                 not — the text needs 184px and gets 173px at 240, so it has
+                 been ellipsing all along. `SIDEBAR_MIN_WIDTH` is now the
+                 measured floor, and these paddings are why it is not larger. */
               /* PAN-121 — the current branch, marked without colour.
                  A rail, a fill and a weight step. The sparse-accent rule is
                  exhaustive, so green is not available to a nav item; and
@@ -283,10 +291,211 @@ function CatalogueTree() {
   )
 }
 
+/**
+ * PAN-120 — the sidebar's width bounds, in resolved pixels.
+ *
+ * `SIDEBAR_MIN_WIDTH` IS A MEASURED FLOOR, AND THE MEASUREMENT CONTRADICTS THE
+ * COMMENT IT REPLACES.
+ *
+ * The tree's `<summary>` has said since PAN-17 that `w-60` — 240px — "is where
+ * the longest Danish root label fits". Measured in a real browser for this
+ * ticket, it is not. "Western- & akustiske guitarer" needs **184px** of text
+ * width; inside a 240px sidebar, after the chevron, the gap and the padding, it
+ * gets **173px**, and it has been quietly ellipsing for as long as the sidebar
+ * has existed. The first width at which it renders in full is **250px**.
+ *
+ * So the floor is 16rem: six pixels of slack over the measured 250, and on the
+ * 16px arrow-key grid so `Home` lands exactly on it. A sidebar whose minimum
+ * truncates Klup's own category names is not a minimum, it is a default nobody
+ * checked.
+ *
+ * It never *wraps* at any width, which is the property the ticket asked about —
+ * but that is true by construction rather than by fit: the label is `truncate`,
+ * so `white-space: nowrap` makes wrapping impossible and ellipsis the only
+ * failure mode available. Wrapping was never the risk; silent truncation was.
+ *
+ * The resize may go up from here and never down, which is the clamp order
+ * Astryx's "maximum wins when resolved bounds conflict" describes.
+ *
+ * `SIDEBAR_COLLAPSED_WIDTH` is not on this scale at all: collapsed is a
+ * different mode rather than a narrow width, and it shows icons with accessible
+ * names instead of truncated Danish.
+ */
+const SIDEBAR_MIN_WIDTH = 256
+const SIDEBAR_MAX_WIDTH = 480
+const SIDEBAR_COLLAPSED_WIDTH = 72
+/** One arrow press. Coarse enough to be useful, fine enough to aim. */
+const SIDEBAR_RESIZE_STEP = 16
+
+const SIDEBAR_WIDTH_KEY = 'klup.sidebar.width'
+const SIDEBAR_COLLAPSED_KEY = 'klup.sidebar.collapsed'
+
+const clampWidth = (px: number) =>
+  Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, Math.round(px)))
+
+/**
+ * The resize handle — a real `separator`, not a div with a drag listener.
+ *
+ * Astryx's `Resizable.spec.md` is the reference and none of it is imported. The
+ * parts worth copying are the semantics: `role="separator"` carrying
+ * `aria-valuemin` / `aria-valuemax` / `aria-valuenow` in **resolved pixels**, an
+ * orientation, a name, and — the part most implementations skip — a tab stop
+ * with keyboard interaction. A resize control a keyboard cannot reach is
+ * decoration.
+ *
+ * THE HIT TARGET AND THE PAINTED AFFORDANCE ARE DIFFERENT SIZES ON PURPOSE.
+ * The grab zone is 16px wide and invisible, straddling the border; the grip
+ * inside it is a 2px bar that only appears on hover or focus. A 2px pointer
+ * target is a dexterity test, and a permanently visible grip is furniture on a
+ * surface that is mostly text.
+ */
+function SidebarResizeHandle({
+  width,
+  label,
+  onResize,
+  onCommit,
+}: {
+  width: number
+  label: string
+  onResize: (px: number) => void
+  onCommit: (px: number) => void
+}) {
+  const dragging = useRef(false)
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    let next: number | null = null
+    if (e.key === 'ArrowLeft') next = width - SIDEBAR_RESIZE_STEP
+    else if (e.key === 'ArrowRight') next = width + SIDEBAR_RESIZE_STEP
+    else if (e.key === 'Home') next = SIDEBAR_MIN_WIDTH
+    else if (e.key === 'End') next = SIDEBAR_MAX_WIDTH
+    if (next === null) return
+    // The arrows would otherwise scroll the sidebar's own overflow container.
+    e.preventDefault()
+    const clamped = clampWidth(next)
+    onResize(clamped)
+    onCommit(clamped)
+  }
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    dragging.current = true
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragging.current) return
+    // The sidebar is pinned to the left edge, so the pointer's viewport x IS
+    // the candidate width. No offset bookkeeping to drift.
+    onResize(clampWidth(e.clientX))
+  }
+
+  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragging.current) return
+    dragging.current = false
+    e.currentTarget.releasePointerCapture(e.pointerId)
+    onCommit(clampWidth(e.clientX))
+  }
+
+  return (
+    <div
+      role="separator"
+      tabIndex={0}
+      aria-orientation="vertical"
+      aria-label={label}
+      aria-valuemin={SIDEBAR_MIN_WIDTH}
+      aria-valuemax={SIDEBAR_MAX_WIDTH}
+      aria-valuenow={width}
+      onKeyDown={handleKeyDown}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      className="group absolute inset-y-0 -right-2 z-50 w-4 cursor-col-resize"
+    >
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-1/2 h-10 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+        style={{
+          background: 'var(--border-strong, var(--border))',
+          transitionDuration: 'var(--duration-fast)',
+          transitionTimingFunction: 'var(--ease-standard)',
+        }}
+      />
+    </div>
+  )
+}
+
 export function SideNav({ active, onChange }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const { locale, setLocale, t } = useLocale()
+
+  /**
+   * PAN-120 — collapsed by default, and the hydration question that creates.
+   *
+   * `localStorage` appeared nowhere in this file before this ticket, and the
+   * file already had one reason to diverge between server and client: the theme
+   * toggle's `mounted` guard, which returns `null` server-side because
+   * `resolvedTheme` is unknowable there. Adding a persisted width is a second
+   * reason, and the two must be handled the same way or the sidebar renders one
+   * width on the server and another on the client's first paint — which is a
+   * hydration mismatch, not a flash.
+   *
+   * So the FIRST CLIENT RENDER IS IDENTICAL TO THE SERVER RENDER by
+   * construction: both use the declared defaults — collapsed, at the minimum
+   * width. Only after mount does the effect below read what was stored and
+   * apply it. React therefore never compares two different trees.
+   *
+   * The cost is honest and small: a visitor who expanded the sidebar sees it
+   * collapsed for one frame. The alternative — a blocking inline script in
+   * `<head>` — buys that frame with a render-blocking script on every page, and
+   * `app/layout.tsx` belongs to another worker tonight.
+   */
+  const [mounted, setMounted] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
+  const [width, setWidth] = useState(SIDEBAR_MIN_WIDTH)
+
+  useEffect(() => {
+    setMounted(true)
+    try {
+      const storedWidth = Number(window.localStorage.getItem(SIDEBAR_WIDTH_KEY))
+      if (Number.isFinite(storedWidth) && storedWidth > 0) setWidth(clampWidth(storedWidth))
+      // Only an explicit "false" expands: an absent key means a first-time
+      // visitor, and the default is collapsed.
+      if (window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'false') setCollapsed(false)
+    } catch {
+      // Private mode, or storage disabled. The declared defaults still apply.
+    }
+  }, [])
+
+  const resolvedWidth = collapsed ? SIDEBAR_COLLAPSED_WIDTH : width
+
+  /**
+   * Publish the resolved width so the content area can follow it.
+   *
+   * Every page offsets its main column by the sidebar. That offset was
+   * `md:ml-60` — 240px hardcoded in nine places — which a resizable sidebar
+   * makes wrong by definition. `--sidebar-width` on the root element is the one
+   * number both sides read, and `.shell-offset` in `globals.css` is how the
+   * content consumes it.
+   */
+  useEffect(() => {
+    document.documentElement.style.setProperty('--sidebar-width', `${resolvedWidth}px`)
+  }, [resolvedWidth])
+
+  const persistWidth = useCallback((px: number) => {
+    try {
+      window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(px))
+    } catch { /* storage unavailable; the session still resizes */ }
+  }, [])
+
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((prev) => {
+      const next = !prev
+      try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next))
+      } catch { /* storage unavailable; the session still toggles */ }
+      return next
+    })
+  }, [])
 
   // Same mechanism BottomNav already uses to decide what an anonymous visitor
   // sees. `null` means "still resolving", so the control stays absent until a
@@ -307,50 +516,95 @@ export function SideNav({ active, onChange }: Props) {
     router.refresh()
   }
 
-  // Items with `href` are route-based (active via pathname); others are tab-based.
-  const navItems: { tab?: NavTab; href?: string; label: string; icon: React.ReactNode }[] = [
+  /**
+   * PAN-120 — the flat list becomes headed groups.
+   *
+   * Astryx's `SideNavSection` is "section grouping with an optional title,
+   * subtitle and end content", and the grouping is the cheap, useful half of
+   * "navigation headers": five equal-weight rows become two named groups, so a
+   * visitor scanning for "where do I manage my own stuff" has somewhere to look.
+   *
+   * `SideNavHeading`'s menu popover is DELIBERATELY NOT BUILT. It is a
+   * product/account lockup with a menu of actions, and Klup has no actions to
+   * put in it — the wordmark goes home and that is the whole interaction. The
+   * ticket's own instruction is that a popover with two items is worse than two
+   * links, so the wordmark stays a link and there is no menu.
+   *
+   * `icon` is a function of the selected state, which is Astryx's
+   * `icon`/`selectedIcon` pair. The current item is marked by WEIGHT, never by
+   * colour — green is exhaustive and navigation is not on the list.
+   */
+  const navSections: {
+    title: string
+    subtitle?: string
+    items: { tab?: NavTab; href?: string; label: string; icon: (selected: boolean) => React.ReactNode }[]
+  }[] = [
     {
-      href: '/search',
-      label: t.navSearch,
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8" />
-          <path d="M21 21l-4.35-4.35" />
-        </svg>
-      ),
+      title: t.sidebarSectionDiscover,
+      subtitle: t.sidebarSectionDiscoverSubtitle,
+      items: [
+        {
+          href: '/search',
+          label: t.navSearch,
+          // A FILLED MAGNIFIER IS A BLOB, so this one takes weight rather than
+          // fill. Same principle, legible result: the selected state is a
+          // heavier stroke, not a different hue.
+          icon: (selected) => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={selected ? 2.6 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+          ),
+        },
+        {
+          href: '/browse',
+          label: t.navBrowse,
+          icon: (selected) => (
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: '20px', fontVariationSettings: selected ? "'FILL' 1" : "'FILL' 0" }}
+            >
+              grid_view
+            </span>
+          ),
+        },
+      ],
     },
     {
-      href: '/browse',
-      label: t.navBrowse,
-      icon: (
-        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>grid_view</span>
-      ),
-    },
-    {
-      href: '/saved',
-      label: t.navSaved,
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-        </svg>
-      ),
-    },
-    {
-      href: '/watchlists',
-      label: t.navNotifications,
-      icon: (
-        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>notifications</span>
-      ),
-    },
-    {
-      href: '/profile',
-      label: t.navProfile,
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="8" r="4" />
-          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-        </svg>
-      ),
+      title: t.sidebarSectionYours,
+      items: [
+        {
+          href: '/saved',
+          label: t.navSaved,
+          icon: (selected) => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill={selected ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+            </svg>
+          ),
+        },
+        {
+          href: '/watchlists',
+          label: t.navNotifications,
+          icon: (selected) => (
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: '20px', fontVariationSettings: selected ? "'FILL' 1" : "'FILL' 0" }}
+            >
+              notifications
+            </span>
+          ),
+        },
+        {
+          href: '/profile',
+          label: t.navProfile,
+          icon: (selected) => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill={selected ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+          ),
+        },
+      ],
     },
   ]
 
@@ -368,85 +622,172 @@ export function SideNav({ active, onChange }: Props) {
         </Link>
       </header>
 
-      <aside className="hidden md:flex flex-col w-60 fixed top-0 left-0 h-full border-r border-border bg-card z-40">
+      {/* `hidden md:flex` STAYS VIEWPORT-KEYED, deliberately. "Is this a phone"
+          is a viewport question, and converting this to a container query would
+          be a bug — see the responsive note in the PR. Only the *width* becomes
+          dynamic; the show/hide does not. */}
+      <aside
+        className="hidden md:flex flex-col fixed top-0 left-0 h-full border-r border-border bg-card z-40"
+        style={{
+          width: `${resolvedWidth}px`,
+          // Not animated while dragging: a transition on width turns a drag
+          // into a rubber band that lags the pointer.
+          transition: mounted ? 'none' : undefined,
+        }}
+      >
         {/* Logo — also the way home (PAN-67) */}
-        <Link href="/" className="block px-6 py-6 border-b border-border">
+        <Link
+          href="/"
+          className={`block border-b border-border ${collapsed ? 'px-4 py-6' : 'px-6 py-6'}`}
+          aria-label={collapsed ? 'Klup.dk' : undefined}
+        >
           <div className="flex items-center gap-3 text-primary">
             <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
               <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
             </div>
-            <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
+            {!collapsed && <span className="text-lg font-semibold tracking-tight">Klup.dk</span>}
           </div>
         </Link>
 
-        {/* Nav items */}
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
-          {navItems.map(({ tab, href, label, icon }) => {
-            const isActive = href
-              ? pathname === href
-              : tab !== undefined && active === tab
-            const itemStyle = {
-              color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
-              backgroundColor: isActive ? 'var(--secondary)' : 'transparent',
-            }
-            const itemClass = "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors w-full text-left"
+        {/* The collapse control. A button, above the nav, so it is the first
+            thing Tab reaches inside the sidebar rather than the last. */}
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? t.sidebarExpand : t.sidebarCollapse}
+          title={collapsed ? t.sidebarExpand : t.sidebarCollapse}
+          className={`flex items-center gap-3 mx-3 mt-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors hover:bg-secondary ${
+            collapsed ? 'justify-center' : ''
+          }`}
+          style={{
+            color: 'var(--muted-foreground)',
+            transitionDuration: 'var(--duration-fast)',
+            transitionTimingFunction: 'var(--ease-standard)',
+          }}
+        >
+          <span
+            className="material-symbols-outlined flex-shrink-0"
+            style={{ fontSize: '20px' }}
+            aria-hidden="true"
+          >
+            {collapsed ? 'left_panel_open' : 'left_panel_close'}
+          </span>
+          {!collapsed && <span>{t.sidebarCollapse}</span>}
+        </button>
 
-            if (href) {
-              return (
-                <Fragment key={href}>
-                  {/* PAN-121 — the top-level section, announced as well as
-                      painted. `isActive` has styled this item since PAN-73;
-                      `aria-current` is what makes the same fact reach a screen
-                      reader, and `SideNav` carried none anywhere before this. */}
-                  <Link
-                    href={href}
-                    aria-current={isActive ? 'page' : undefined}
+        {/* Nav items, in headed sections (PAN-120). */}
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
+          {navSections.map((section) => (
+            <Fragment key={section.title}>
+              {/* SideNavSection's title and optional subtitle. Hidden when
+                  collapsed — a 72px rail has no room for a heading, and the
+                  items keep their own accessible names there, so nothing is
+                  lost but the grouping label. */}
+              {!collapsed && (
+                <div className="px-3 pt-3 pb-1 first:pt-0">
+                  <p
+                    className="text-[11px] font-semibold uppercase tracking-wide"
+                    style={{ color: 'var(--muted-foreground)' }}
+                  >
+                    {section.title}
+                  </p>
+                  {section.subtitle && (
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+                      {section.subtitle}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {section.items.map(({ tab, href, label, icon }) => {
+                const isActive = href
+                  ? pathname === href
+                  : tab !== undefined && active === tab
+                const itemStyle = {
+                  color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
+                  backgroundColor: isActive ? 'var(--secondary)' : 'transparent',
+                }
+                /* `font-semibold` when selected: the icon swaps outline for
+                   fill and the label gains weight, so the current item stays
+                   legible with colour ignored entirely. */
+                const itemClass = `flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-colors w-full text-left ${
+                  isActive ? 'font-semibold' : 'font-medium'
+                } ${collapsed ? 'justify-center' : ''}`
+
+                if (href) {
+                  return (
+                    <Fragment key={href}>
+                      {/* PAN-121 — the top-level section, announced as well as
+                          painted. `isActive` has styled this item since PAN-73;
+                          `aria-current` is what makes the same fact reach a
+                          screen reader, and `SideNav` carried none before it.
+
+                          PAN-120 — COLLAPSED MUST NOT MEAN NAMELESS. The visible
+                          label goes away at 72px, so `aria-label` carries the
+                          same string and `title` gives a pointer visitor the
+                          tooltip. Every nav target keeps an accessible name in
+                          both states. */}
+                      <Link
+                        href={href}
+                        aria-current={isActive ? 'page' : undefined}
+                        aria-label={collapsed ? label : undefined}
+                        title={collapsed ? label : undefined}
+                        className={itemClass}
+                        style={itemStyle}
+                      >
+                        {icon(isActive)}
+                        {!collapsed && <span>{label}</span>}
+                      </Link>
+                      {/* The catalogue hangs off the Katalog item rather than
+                          under a heading of its own: the item already says
+                          "Katalog" and already goes to /browse, so a second
+                          label would name the same thing twice.
+
+                          Absent when collapsed: it is a tree of Danish product
+                          names and there is nowhere to put them at 72px. */}
+                      {/* `CatalogueTree` reads `?sub=` to mark the current leaf,
+                          and `useSearchParams` opts a statically-rendered page
+                          into client rendering unless it sits behind a boundary.
+                          The sidebar mounts on eight pages, several of them
+                          static, so the boundary lives here rather than being
+                          pushed onto every one of them. `null` is the honest
+                          fallback: the tree already renders nothing until its
+                          fetch resolves. */}
+                      {href === '/browse' && !collapsed && (
+                        <Suspense fallback={null}>
+                          <CatalogueTree />
+                        </Suspense>
+                      )}
+                    </Fragment>
+                  )
+                }
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => tab !== undefined && onChange?.(tab)}
+                    aria-label={collapsed ? label : undefined}
+                    title={collapsed ? label : undefined}
                     className={itemClass}
                     style={itemStyle}
                   >
-                    {icon}
-                    <span>{label}</span>
-                  </Link>
-                  {/* The catalogue hangs off the Katalog item rather than
-                      under a heading of its own: the item already says
-                      "Katalog" and already goes to /browse, so a second label
-                      would name the same thing twice. */}
-                  {/* `CatalogueTree` reads `?sub=` to mark the current leaf, and
-                      `useSearchParams` opts a statically-rendered page into
-                      client rendering unless it sits behind a boundary. The
-                      sidebar mounts on eight pages, several of them static, so
-                      the boundary lives here rather than being pushed onto every
-                      one of them. `null` is the honest fallback: the tree
-                      already renders nothing until its fetch resolves. */}
-                  {href === '/browse' && (
-                    <Suspense fallback={null}>
-                      <CatalogueTree />
-                    </Suspense>
-                  )}
-                </Fragment>
-              )
-            }
-            return (
-              <button
-                key={tab}
-                onClick={() => tab !== undefined && onChange?.(tab)}
-                className={itemClass}
-                style={itemStyle}
-              >
-                {icon}
-                <span>{label}</span>
-              </button>
-            )
-          })}
+                    {icon(isActive)}
+                    {!collapsed && <span>{label}</span>}
+                  </button>
+                )
+              })}
+            </Fragment>
+          ))}
         </nav>
 
         {/* Bottom: theme toggle + locale toggle + logout */}
         <div className="px-3 pb-6 pt-2 border-t border-border flex flex-col gap-1">
           {/* Theme toggle */}
-          <ThemeToggle />
+          <ThemeToggle collapsed={collapsed} />
 
-          {/* Locale toggle */}
-          <div className="flex gap-1 px-3 py-2">
+          {/* Locale toggle. Two-letter codes, so they fit the collapsed rail
+              without abbreviation; only the row centres. */}
+          <div className={`flex gap-1 px-3 py-2 ${collapsed ? 'justify-center' : ''}`}>
             {(['da', 'en'] as Locale[]).map((l) => (
               <button
                 key={l}
@@ -474,10 +815,27 @@ export function SideNav({ active, onChange }: Props) {
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
-              <span>{t.logout}</span>
+              {!collapsed && <span>{t.logout}</span>}
             </button>
           )}
         </div>
+
+        {/* THE RESIZE HANDLE, and only when there is a width to change.
+
+            Collapsed is a mode rather than a narrow width, so dragging its edge
+            would mean nothing: the answer to "too narrow" there is the expand
+            control, not a separator whose `aria-valuenow` would sit outside its
+            own min/max. Astryx's rule — "maximum wins when resolved bounds
+            conflict" — is about reconciling bounds, not about inventing a value
+            below the minimum, so the handle is simply absent while collapsed. */}
+        {!collapsed && (
+          <SidebarResizeHandle
+            width={width}
+            label={t.sidebarResize}
+            onResize={setWidth}
+            onCommit={persistWidth}
+          />
+        )}
       </aside>
     </>
   )

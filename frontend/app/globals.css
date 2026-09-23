@@ -835,6 +835,95 @@
     padding-inline: var(--shell-gutter);
   }
 
+  /* PAN-120 — the content area follows the sidebar's actual width.
+
+     Nine pages offset their main column by the sidebar, and every one of them
+     hardcoded `md:ml-60` / `md:pl-60` — 240px, stated nine times. A resizable
+     sidebar makes all nine wrong the moment the handle moves, so the offset
+     becomes one number: `--sidebar-width`, written to the root element by
+     `SideNav` and read here.
+
+     THE FALLBACK IS THE COLLAPSED WIDTH, AND THAT IS DELIBERATE. `SideNav`
+     renders collapsed on the server and on its first client render, so the
+     value a page uses before the variable exists must match — otherwise the
+     content jumps sideways on hydration. 4.5rem is `SIDEBAR_COLLAPSED_WIDTH`.
+
+     The MEDIA QUERY STAYS. "Is there a sidebar at all" is a viewport question
+     — below 768px the `<aside>` is `hidden` and the content is full-bleed —
+     and converting this to a container query would be a bug. Only the width
+     inside it is dynamic. */
+  .shell-offset {
+    margin-left: 0;
+  }
+
+  .shell-offset-pad {
+    padding-left: 0;
+  }
+
+  @media (min-width: 768px) {
+    .shell-offset {
+      margin-left: var(--sidebar-width, 4.5rem);
+    }
+
+    .shell-offset-pad {
+      padding-left: var(--sidebar-width, 4.5rem);
+    }
+  }
+
+  /* PAN-120 — the content-density rules that a resizable sidebar genuinely
+     breaks, and there are TWO of them, not 97.
+
+     MEASURED, and the ticket's figures are off. 98 breakpoint utilities across
+     28 files (md 72, sm 15, xl 10, lg 1), of which two are inside comments — so
+     96 live across 27 files, not 97/27/71. More importantly the headline is
+     misleading: 39 are viewport chrome that MUST stay viewport-keyed, 28 are
+     cosmetic padding steps, 3 are text-size steps, 11 are alignment companions,
+     and only 15 change layout. Three of those are in the private /intel tool
+     and five in /admin, both of which have their own shells rather than this
+     sidebar. On the public product surface, the rules that change a COLUMN
+     COUNT inside the main content area are these two.
+
+     NO `@tailwindcss/container-queries`. The ticket says a build plugin for a
+     handful of rules is the wrong trade, and a handful is what the measurement
+     found. `@container` is native CSS in every browser Klup supports; the
+     plugin only buys `@md:` utility syntax, which two rules do not justify.
+
+     THE REST OF THE WALL NEEDED NOTHING, which is the real finding. `.grid-wall`,
+     `.grid-fluid*`, `.grid-bento` and `.grid-hero` are all
+     `repeat(auto-fill|auto-fit, minmax(min(<floor>, 100%), 1fr))`, which resolves
+     against the element's own inline size. The product walls, the category grid
+     and the shelves are container-responsive by construction and carry no
+     breakpoint utility at all. */
+  .cq-pane {
+    container-type: inline-size;
+  }
+
+  .grid-family-models {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .grid-family-listings {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  @container (min-width: 40rem) {
+    .grid-family-models {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-family-listings {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container (min-width: 64rem) {
+    .grid-family-listings {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
   /* Wall grid. auto-FILL, never auto-fit: a wall with three cards must leave
      the rest of the row empty rather than stretch three cards across 2256px.
      That distinction is the whole reason the product listing wall looked

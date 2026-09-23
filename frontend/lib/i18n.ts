@@ -483,6 +483,14 @@ export const translations = {
     positionSignalQueryFilter: 'Søgning: {query}',
     positionSignalRemoveFilter: 'Fjern filter: {label}',
     positionSignalFilterRemoved: 'Filter fjernet: {label}',
+
+    // PAN-120 — the resizable, headed, collapsible sidebar.
+    sidebarCollapse: 'Skjul menu',
+    sidebarExpand: 'Vis menu',
+    sidebarResize: 'Tilpas menubredde',
+    sidebarSectionDiscover: 'Find',
+    sidebarSectionDiscoverSubtitle: 'Søg og gennemse kataloget',
+    sidebarSectionYours: 'Dit Klup',
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -906,6 +914,14 @@ export const translations = {
     positionSignalQueryFilter: 'Search: {query}',
     positionSignalRemoveFilter: 'Remove filter: {label}',
     positionSignalFilterRemoved: 'Filter removed: {label}',
+
+    // PAN-120 — the resizable, headed, collapsible sidebar.
+    sidebarCollapse: 'Collapse menu',
+    sidebarExpand: 'Expand menu',
+    sidebarResize: 'Resize menu',
+    sidebarSectionDiscover: 'Discover',
+    sidebarSectionDiscoverSubtitle: 'Search and browse the catalogue',
+    sidebarSectionYours: 'Your Klup',
   },
 } as const
 

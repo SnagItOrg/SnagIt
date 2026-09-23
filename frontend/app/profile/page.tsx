@@ -122,7 +122,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-bg text-foreground md:flex">
       <SideNav active="profil" onChange={() => {}} />
 
-      <main className="flex-1 md:pl-60 flex flex-col px-4 pt-6 pb-24 md:pb-10 md:px-8">
+      <main className="flex-1 shell-offset-pad flex flex-col px-4 pt-6 pb-24 md:pb-10 md:px-8">
         <div className="w-full max-w-2xl flex flex-col gap-5">
 
           {/* ── Section 1: Account ─────────────────────────────────────── */}
