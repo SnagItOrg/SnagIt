@@ -61,7 +61,7 @@ export default function LoginPage() {
       },
     })
     if (error) {
-      setError(t.loginError)
+      setError(t.magicLinkError)
       setLoading(false)
       return
     }
