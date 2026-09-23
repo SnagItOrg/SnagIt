@@ -158,6 +158,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
         <div ref={menuRef} className="absolute top-2 right-2 z-50">
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
+            aria-label={t.watchlistCardMenu}
             className="surface-card rounded-full p-1.5 text-muted-foreground hover:text-foreground transition-colors"
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>more_vert</span>
