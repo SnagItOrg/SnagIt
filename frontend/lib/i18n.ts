@@ -439,6 +439,32 @@ export const translations = {
       errorStorage: 'Billedet kunne ikke gemmes. Prøv igen.',
       errorGeneric: 'Billedet kunne ikke behandles.',
     },
+
+    /* ── Product page ──────────────────────────────────────────
+       The jsonb keys under attributes->'specs' are English
+       IDENTIFIERS, not copy. They are not renamed in the database;
+       `specLabels` turns an identifier into a display label, and an
+       unmapped key falls back to the humanised identifier at the
+       call site so a new key never renders blank. */
+    relatedGear: 'Relateret udstyr',
+    specifications: 'Specifikationer',
+    productHistory: 'Produkthistorie',
+    specYes: 'Ja',
+    specNo: 'Nej',
+    specLabels: {
+      arpeggiator: 'Arpeggiator',
+      control: 'Styring',
+      filter: 'Filter',
+      keys: 'Tangenter',
+      lfo: 'LFO',
+      memory: 'Hukommelse',
+      midi: 'MIDI',
+      oscillators: 'Oscillatorer',
+      polyphony: 'Polyfoni',
+      production_years: 'Produktionsår',
+      vca: 'VCA',
+      weight_kg: 'Vægt (kg)',
+    },
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -822,6 +848,27 @@ export const translations = {
       errorTooSmall: 'The image is too small.',
       errorStorage: 'The image could not be stored. Try again.',
       errorGeneric: 'The image could not be processed.',
+    },
+
+    /* ── Product page ─────────────────────────────────────────── */
+    relatedGear: 'Related gear',
+    specifications: 'Specifications',
+    productHistory: 'Product history',
+    specYes: 'Yes',
+    specNo: 'No',
+    specLabels: {
+      arpeggiator: 'Arpeggiator',
+      control: 'Control',
+      filter: 'Filter',
+      keys: 'Keys',
+      lfo: 'LFO',
+      memory: 'Memory',
+      midi: 'MIDI',
+      oscillators: 'Oscillators',
+      polyphony: 'Polyphony',
+      production_years: 'Production years',
+      vca: 'VCA',
+      weight_kg: 'Weight (kg)',
     },
   },
 } as const

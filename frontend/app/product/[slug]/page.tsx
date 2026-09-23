@@ -20,6 +20,7 @@ import { useToast } from '@/lib/use-toast'
 import { DanishMarketBlock, ReferencePopulationBlock } from '@/components/PriceAnswer'
 import type { PopulationKey, PopulationStats } from '@/lib/price-populations'
 import { orderByVerdictRank } from '@/lib/listing-value-order'
+import { stripDecorativeEmoji } from '@/lib/listing-title'
 import {
   ProductReviewControls,
   type MatchReviewStatus,
@@ -264,7 +265,15 @@ export default function ProductPage() {
     <div className="min-h-screen bg-background text-foreground md:flex">
       <SideNav active="soeg" onChange={() => {}} />
 
-      <main className="flex-1 md:pl-60 flex flex-col pb-24 md:pb-10">
+      {/*
+        pb-10, not pb-24. The mobile pb-24 was clearance for the fixed
+        BottomNav, but <main> is not the last thing on the page — the consent
+        footer follows it and carries its own pb-24 for exactly that reason.
+        So the clearance was being paid twice, and the second payment landed
+        between the last card and the privacy link: measured 116px at 390x844
+        against 60px at 1440x900. Both are 60px now.
+      */}
+      <main className="flex-1 md:pl-60 flex flex-col pb-10">
         <MobileSearchBar />
 
         <div className="flex flex-col pt-4 md:pt-8 w-full">
@@ -620,18 +629,31 @@ export default function ProductPage() {
                       {/* Specs card */}
                       {hasSpecs && (
                         <div className="rounded-2xl border border-border p-6">
-                          <p className="text-sm font-semibold text-foreground mb-4">Specifications</p>
+                          <p className="text-sm font-semibold text-foreground mb-4">{t.specifications}</p>
                           <dl className="divide-y divide-border">
                             {Object.entries(product.attributes!.specs!)
                               .filter(([k, v]) => k !== '_source' && v !== '' && v !== null && v !== undefined)
-                              .map(([key, value]) => (
-                                <div key={key} className="flex justify-between gap-4 py-2.5 min-w-0">
-                                  <dt className="text-sm text-muted-foreground capitalize min-w-0">{key.replace(/_/g, ' ')}</dt>
-                                  <dd className="text-sm text-foreground text-right min-w-0 wrap-anywhere">
-                                    {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
-                                  </dd>
-                                </div>
-                              ))}
+                              .map(([key, value]) => {
+                                /*
+                                  The jsonb key is an identifier, so the label
+                                  comes from the map rather than from the data.
+                                  An unmapped key keeps exactly today's
+                                  rendering — humanised and `capitalize`d — so
+                                  a spec key nobody has translated yet still
+                                  reads, and never renders blank.
+                                */
+                                const label = (t.specLabels as Record<string, string | undefined>)[key]
+                                return (
+                                  <div key={key} className="flex justify-between gap-4 py-2.5 min-w-0">
+                                    <dt className={`text-sm text-muted-foreground min-w-0${label ? '' : ' capitalize'}`}>
+                                      {label ?? key.replace(/_/g, ' ')}
+                                    </dt>
+                                    <dd className="text-sm text-foreground text-right min-w-0 wrap-anywhere">
+                                      {typeof value === 'boolean' ? (value ? t.specYes : t.specNo) : String(value)}
+                                    </dd>
+                                  </div>
+                                )
+                              })}
                           </dl>
                         </div>
                       )}
@@ -639,7 +661,7 @@ export default function ProductPage() {
                       {/* History card */}
                       {hasHistory && (
                         <div className="rounded-2xl border border-border p-6">
-                          <p className="text-sm font-semibold text-foreground mb-4">Product History</p>
+                          <p className="text-sm font-semibold text-foreground mb-4">{t.productHistory}</p>
                           <div className="flex flex-col">
                             {product.attributes!.history!.map((milestone, i) => (
                               <div key={i} className="flex gap-4">
@@ -721,10 +743,33 @@ export default function ProductPage() {
                   </div>
                 )}
 
-                {/* ── Related products ──────────────────────────── */}
-                {relatedProducts.length > 0 && (
+                {/*
+                  ── Related products ────────────────────────────
+
+                  TWO IS THE SMALLEST NUMBER THAT IS A SHELF. `grid-fluid-sm`
+                  lays out auto-fill columns of min 9.5rem, so at 1440px a
+                  single survivor sits in the first of eight columns with the
+                  rest of the row empty — a heading promising related gear
+                  above what reads as a grid that failed to load.
+
+                  This is the normal case, not an edge case, because related
+                  links are resolved through isCanonical() and most authored
+                  targets are qa_only. Measured on production 2026-09-23 over
+                  the seven products that author related_products at all:
+                  four resolve to 0 canonical targets (fender-stratocaster,
+                  fender-telecaster, gibson-es-335, gibson-les-paul) and
+                  already render nothing; roland-juno-106 and roland-juno-60
+                  resolve to exactly 1; only roland-jupiter-8 resolves to 2.
+
+                  So the shelf is suppressed below two rather than restyled:
+                  the single-item layout would be a new visual case built for
+                  two pages, and the threshold is self-healing — when a target
+                  becomes canonical the shelf returns on its own, with no data
+                  change and no flag. The cost is two links on two pages.
+                */}
+                {relatedProducts.length > 1 && (
                   <div className="flex flex-col gap-3 mb-10">
-                    <p className="text-sm font-medium text-foreground">Related gear</p>
+                    <p className="text-sm font-medium text-foreground">{t.relatedGear}</p>
                     <div className="grid-fluid-sm gap-3">
                       {relatedProducts.map((rel) => (
                         <a
@@ -881,7 +926,7 @@ export default function ProductPage() {
                       <ListingErrorBoundary key={listing.id} listingId={listing.id}>
                         <div className="flex flex-col">
                           <SearchResultCard
-                            listing={listing}
+                            listing={{ ...listing, title: stripDecorativeEmoji(listing.title) }}
                             marketVerdict={(listing as ListingWithVerdict).marketVerdict}
                             marketVerdictBasisLabel={(listing as ListingWithVerdict).marketVerdictBasisLabel}
                             onCreateWatchlist={handleCreateWatchlist}
