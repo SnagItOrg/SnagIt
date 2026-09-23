@@ -15,7 +15,7 @@ import { MonitoredPlatforms } from '@/components/MonitoredPlatforms'
 import { ResponsiveContainer, ScatterChart, Scatter, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { useLocale } from '@/components/LocaleProvider'
 import { fill } from '@/lib/i18n'
-import { Toast } from '@/components/Toast'
+import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
 import { DanishMarketBlock, ReferencePopulationBlock } from '@/components/PriceAnswer'
 import type { PopulationKey, PopulationStats } from '@/lib/price-populations'
@@ -141,7 +141,7 @@ export default function ProductPage() {
    * than on the card: a rejected or moved card unmounts, and a message that
    * unmounts with it cannot report what happened to it.
    */
-  const [toast, showToast] = useToast()
+  const { toasts, showToast, dismissToast } = useToast()
   const reviewMode = isAdmin && reviewRequested
 
   useEffect(() => {
@@ -989,7 +989,7 @@ export default function ProductPage() {
                                 void loadProduct()
                                 void loadMatchStatuses()
                               }}
-                              onFailed={(message) => showToast(message)}
+                              onFailed={(message) => showToast(message, { type: 'error' })}
                             />
                           )}
                         </div>
@@ -1023,7 +1023,7 @@ export default function ProductPage() {
         initialQuery={modalQuery}
         creating={creating}
       />
-      {toast && <Toast message={toast} />}
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }

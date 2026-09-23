@@ -78,6 +78,7 @@ test('integration: every package suite is registered exactly once', () => {
       // inactive platform has to stay distinguishable from an active one with
       // colour ignored — both are silent failures if they regress.
       'scripts/lib/pan113-monitored-platforms.test.ts',
+      'scripts/lib/pan122-toast.test.ts',
       // PAN-17: the sidebar catalogue tree. Its own suite because "populated
       // branches only" and "no price in a navigation payload" are both
       // properties of a pure builder, and both are silent failures — an empty

@@ -22,7 +22,7 @@ import {
   type MatchProduct,
   type MatchState,
 } from './match-state'
-import { Toast } from '@/components/Toast'
+import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
 import { isApproval, isRejection, type Disposition } from './dispositions'
 
@@ -92,7 +92,7 @@ function AdminMatchPageInner() {
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Aborts the sweep that is no longer wanted. Paired with the request id. */
   const inFlight = useRef<AbortController | null>(null)
-  const [toast, showToast] = useToast()
+  const { toasts, showToast, dismissToast } = useToast()
 
   const { selectedProduct, candidateRequest, candidates, localDecisions, sourceSelection } = state
   const counts = decisionCounts(state)
@@ -261,16 +261,20 @@ function AdminMatchPageInner() {
         // the decisions stay on screen so the operator can act on the message.
         const message = data.error ?? `Kunne ikke gemme (${res.status})`
         dispatch({ type: 'save_failed', message })
-        showToast(res.status === 409 ? message : `Fejl: ${data.error ?? res.status}`)
+        showToast(res.status === 409 ? message : `Fejl: ${data.error ?? res.status}`, {
+          type: 'error',
+        })
         return
       }
       // Only rows the server confirms are removed. A decision that did not
       // reach the database must never look decided.
       dispatch({ type: 'save_succeeded', savedIds: data.saved_listing_ids ?? submitted })
-      showToast(`✅ ${data.saved ?? 0} gemt`)
+      // No ✅: green is exhaustive (Kup-rating, "Aktiv", `under typisk`) and a
+      // save confirmation is not one of Klup's judgements.
+      showToast(`${data.saved ?? 0} gemt`)
     } catch {
       dispatch({ type: 'save_failed', message: 'Kunne ikke gemme' })
-      showToast('Fejl: netværk')
+      showToast('Fejl: netværk', { type: 'error' })
     }
   }
 
@@ -785,11 +789,10 @@ function AdminMatchPageInner() {
         </p>
       )}
 
-      {/* Toast — the shared component now, not an inline copy. The hardcoded
-          #1a1a1a it used is replaced by the `surface-overlay` token, which
-          globals.css already designates for toasts; frontend/CLAUDE.md forbids
-          hardcoded colour values. */}
-      {toast && <Toast message={toast} />}
+      {/* Toast — the shared viewport now, not an inline copy. Failures pass
+          `type: 'error'` so they persist until the operator dismisses them:
+          a save that did not happen must not scroll past on a timer. */}
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }

@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { ToastViewport } from '@/components/Toast'
+import { useToast } from '@/lib/use-toast'
 
 type Brand = {
   id: string
@@ -49,7 +51,7 @@ export default function BulkReviewPage() {
   const [groups, setGroups] = useState<GroupState[]>([])
   const [total, setTotal] = useState(0)
 
-  const [toast, setToast] = useState<string | null>(null)
+  const { toasts, showToast, dismissToast } = useToast()
 
   // Manual merge search — only one group open at a time
   const [mergingIdx, setMergingIdx] = useState<number | null>(null)
@@ -57,11 +59,6 @@ export default function BulkReviewPage() {
   const [mergeResults, setMergeResults] = useState<KgProduct[]>([])
   const [mergeSearching, setMergeSearching] = useState(false)
   const mergeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(null), 3000)
-  }
 
   useEffect(() => {
     fetch('/api/admin/suggestions/bulk/brands')
@@ -84,7 +81,7 @@ export default function BulkReviewPage() {
 
     if (!res.ok) {
       const data = await res.json()
-      showToast(data.error ?? 'Fejl ved AI-gruppering')
+      showToast(data.error ?? 'Fejl ved AI-gruppering', { type: 'error' })
       setGrouping(false)
       return
     }
@@ -509,14 +506,7 @@ export default function BulkReviewPage() {
         </div>
       )}
 
-      {toast && (
-        <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl text-sm font-semibold shadow-xl z-50"
-          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
-        >
-          {toast}
-        </div>
-      )}
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }

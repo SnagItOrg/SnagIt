@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import { ToastViewport } from '@/components/Toast'
+import { useToast } from '@/lib/use-toast'
 
 type Product = {
   id: string
@@ -15,13 +17,8 @@ export default function AdminMsrpPage() {
   const [results, setResults] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const { toasts, showToast, dismissToast } = useToast()
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(null), 3000)
-  }
 
   const search = useCallback((q: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -58,7 +55,7 @@ export default function AdminMsrpPage() {
       }))
       showToast('Gemt')
     } else {
-      showToast('Fejl ved gemning')
+      showToast('Fejl ved gemning', { type: 'error' })
     }
     setSaving(null)
   }
@@ -106,14 +103,7 @@ export default function AdminMsrpPage() {
         <p className="text-sm text-muted-foreground">Ingen produkter fundet.</p>
       )}
 
-      {toast && (
-        <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl text-sm font-semibold shadow-xl z-50"
-          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
-        >
-          {toast}
-        </div>
-      )}
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }

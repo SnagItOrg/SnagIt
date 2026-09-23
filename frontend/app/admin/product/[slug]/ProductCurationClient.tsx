@@ -17,6 +17,8 @@ import {
   type ScrapedListingPayload,
 } from '@/components/admin/ScrapeSection'
 import Link from 'next/link'
+import { ToastViewport } from '@/components/Toast'
+import { useToast } from '@/lib/use-toast'
 
 export type ProductHeaderData = {
   id: string
@@ -112,12 +114,7 @@ export default function ProductCurationClient({ data }: { data: CurationData }) 
   const [synonyms, setSynonyms] = useState<SynonymRow[]>(data.synonyms)
   const [listings, setListings] = useState<MatchedListing[]>(data.listings)
   const [filter, setFilter] = useState<string>('all')
-  const [toast, setToast] = useState<string | null>(null)
-
-  function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(null), 3000)
-  }
+  const { toasts, showToast, dismissToast } = useToast()
 
   const filteredListings = useMemo(() => {
     const opt = FILTER_OPTS.find((f) => f.key === filter)
@@ -200,14 +197,7 @@ export default function ProductCurationClient({ data }: { data: CurationData }) 
         }}
       />
 
-      {toast && (
-        <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl text-sm font-semibold shadow-xl z-50"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
-        >
-          {toast}
-        </div>
-      )}
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }

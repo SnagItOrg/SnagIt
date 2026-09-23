@@ -465,6 +465,11 @@ export const translations = {
       vca: 'VCA',
       weight_kg: 'Vægt (kg)',
     },
+    // PAN-122 — Toast. Three keys, all of them structural rather than
+    // message copy: the messages themselves still come from their callers.
+    toastRegionLabel: 'Beskeder',
+    toastErrorLabel: 'Fejl',
+    toastDismiss: 'Luk besked',
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -870,6 +875,11 @@ export const translations = {
       vca: 'VCA',
       weight_kg: 'Weight (kg)',
     },
+    // PAN-122 — Toast. Three keys, all of them structural rather than
+    // message copy: the messages themselves still come from their callers.
+    toastRegionLabel: 'Notifications',
+    toastErrorLabel: 'Error',
+    toastDismiss: 'Dismiss message',
   },
 } as const
 

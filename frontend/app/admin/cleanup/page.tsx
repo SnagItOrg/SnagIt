@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { ToastViewport } from '@/components/Toast'
+import { useToast } from '@/lib/use-toast'
 
 type BrandOption = {
   name: string
@@ -55,15 +57,10 @@ export default function CleanupPage() {
   const [totalPending, setTotalPending] = useState(0)
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [toast, setToast] = useState<string | null>(null)
+  const { toasts, showToast, dismissToast } = useToast()
   const [brands, setBrands] = useState<BrandOption[]>([])
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null)
   const perPage = 20
-
-  function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(null), 3000)
-  }
 
   // Fetch brand list once on mount
   useEffect(() => {
@@ -454,14 +451,7 @@ export default function CleanupPage() {
         </div>
       )}
 
-      {toast && (
-        <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl text-sm font-semibold shadow-xl z-50"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
-        >
-          {toast}
-        </div>
-      )}
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }

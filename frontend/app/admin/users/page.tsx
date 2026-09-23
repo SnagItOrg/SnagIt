@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { ToastViewport } from '@/components/Toast'
+import { useToast } from '@/lib/use-toast'
 
 type User = {
   id: string
@@ -22,7 +24,7 @@ export default function AdminUsersPage() {
   const [detail, setDetail] = useState<UserDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const { toasts, showToast, dismissToast } = useToast()
 
   useEffect(() => {
     fetch('/api/admin/users')
@@ -31,11 +33,6 @@ export default function AdminUsersPage() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
-
-  function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(null), 3000)
-  }
 
   async function selectUser(id: string) {
     if (selectedId === id) { setSelectedId(null); return }
@@ -56,7 +53,7 @@ export default function AdminUsersPage() {
       if (selectedId === id) setSelectedId(null)
       showToast('Bruger slettet')
     } else {
-      showToast('Fejl ved sletning')
+      showToast('Fejl ved sletning', { type: 'error' })
     }
     setActionLoading(null)
   }
@@ -69,7 +66,7 @@ export default function AdminUsersPage() {
       body: JSON.stringify({ action: 'reset-password' }),
     })
     if (res.ok) showToast('Reset-link sendt')
-    else showToast('Fejl ved afsendelse')
+    else showToast('Fejl ved afsendelse', { type: 'error' })
     setActionLoading(null)
   }
 
@@ -199,14 +196,7 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {toast && (
-        <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl text-sm font-semibold shadow-xl z-50"
-          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
-        >
-          {toast}
-        </div>
-      )}
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }
