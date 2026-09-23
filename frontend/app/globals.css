@@ -843,10 +843,14 @@
      becomes one number: `--sidebar-width`, written to the root element by
      `SideNav` and read here.
 
-     THE FALLBACK IS THE COLLAPSED WIDTH, AND THAT IS DELIBERATE. `SideNav`
-     renders collapsed on the server and on its first client render, so the
-     value a page uses before the variable exists must match — otherwise the
-     content jumps sideways on hydration. 4.5rem is `SIDEBAR_COLLAPSED_WIDTH`.
+     THE FALLBACK IS THE SIDEBAR'S DECLARED DEFAULT WIDTH, AND IT MOVES WITH
+     IT. `SideNav` renders its declared defaults on the server and on its first
+     client render, so the value a page uses before the variable exists must
+     match — otherwise the content jumps sideways on hydration. It was 4.5rem
+     while the shell defaulted to collapsed; PAN-132 opened the shell, so it is
+     16rem, which is `SIDEBAR_MIN_WIDTH`. If the declared default ever changes
+     again, this number changes in the same commit — `pan120-sidebar.test.ts`
+     fails if it does not.
 
      The MEDIA QUERY STAYS. "Is there a sidebar at all" is a viewport question
      — below 768px the `<aside>` is `hidden` and the content is full-bleed —
@@ -862,11 +866,11 @@
 
   @media (min-width: 768px) {
     .shell-offset {
-      margin-left: var(--sidebar-width, 4.5rem);
+      margin-left: var(--sidebar-width, 16rem);
     }
 
     .shell-offset-pad {
-      padding-left: var(--sidebar-width, 4.5rem);
+      padding-left: var(--sidebar-width, 16rem);
     }
   }
 
