@@ -11,6 +11,7 @@ import { TextField } from '@/components/TextField'
 import { PositionSignal } from '@/components/PositionSignal'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { buildPositionSignal } from '@/lib/position-signal'
+import { classifyOtpError, type OtpErrorKey } from '@/lib/otp-error'
 import { fill } from '@/lib/i18n'
 import { track } from '@/lib/analytics'
 import {
@@ -577,6 +578,7 @@ function UnsupportedPanel({
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [otpError, setOtpError] = useState<OtpErrorKey | null>(null)
 
   async function submitDemand(e: React.FormEvent) {
     e.preventDefault()
@@ -586,24 +588,36 @@ function UnsupportedPanel({
     // The e-mail address goes to Supabase through the existing magic-link path
     // — a user-initiated service request — and NEVER to PostHog. The analytics
     // payload carries a boolean (build plan §8.5, §12.2).
+    let failure: OtpErrorKey | null = null
     if (address.length > 0) {
       try {
         const supabase = createSupabaseBrowserClient()
-        await supabase.auth.signInWithOtp({
+        // signInWithOtp RETURNS its failures rather than throwing them — a
+        // rate limit, a rejected address and even a network error all come
+        // back as `{ error }` (see lib/otp-error.ts). So this catch was never
+        // reached in the common case, and the visitor was told a link was on
+        // its way when none was. The catch stays for the residue that does
+        // throw; both paths now feed the same message.
+        const { error } = await supabase.auth.signInWithOtp({
           email: address,
           options: {
             shouldCreateUser: true,
             emailRedirectTo: `${window.location.origin}/auth/confirm`,
           },
         })
+        failure = classifyOtpError(error)
       } catch {
-        // A failed send must not lose the demand signal; it is still recorded.
+        failure = 'otpErrorGeneric'
       }
     }
 
+    // A failed send must not lose the demand signal; it is still recorded.
+    // Unchanged, and deliberately outside the branch above: the signal is the
+    // point of this panel, and the address is NOT in this payload.
     emit('demand_signal_submitted', demandSignalPayload(outcome, address))
 
     setBusy(false)
+    setOtpError(failure)
     setSent(true)
   }
 
@@ -630,7 +644,17 @@ function UnsupportedPanel({
         className="surface-card rounded-2xl p-4"
       >
         {sent ? (
-          <p className="text-sm font-semibold text-foreground">{t.demandThanks}</p>
+          // The thanks is still true — the signal was recorded either way.
+          // What is added on failure is the part that was being claimed
+          // falsely: that a login link went out.
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">{t.demandThanks}</p>
+            {otpError && (
+              <p role="alert" className="text-sm" style={{ color: 'var(--destructive-text)' }}>
+                {t.demandNoLinkSent} {t[otpError]}
+              </p>
+            )}
+          </div>
         ) : open ? (
           <form onSubmit={submitDemand} className="flex flex-col gap-2">
             <label htmlFor="klup-demand-email" className="text-sm font-semibold text-foreground">

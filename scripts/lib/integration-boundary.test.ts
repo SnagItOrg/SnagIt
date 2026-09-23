@@ -133,6 +133,10 @@ test('integration: every package suite is registered exactly once', () => {
       // to revert all 23 corrected rows, and nothing about that failure is
       // loud — so the insert-only semantics carry their own suite.
       'scripts/lib/reverb-category-seed.test.ts',
+      // The magic-link send on the public funnel. Its own suite because
+      // signInWithOtp RETURNS its failures instead of throwing them, so a
+      // success state set unconditionally is invisible to every other gate.
+      'scripts/lib/signup-otp-failure.test.ts',
       // PAN-72: the watchlist notification step decides whether `notified_at`
       // may be stamped at all, and its provider-failure path is what used to
       // produce a marker for a mail that never went out.

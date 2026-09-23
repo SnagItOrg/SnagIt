@@ -8,6 +8,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { usePostHog } from 'posthog-js/react'
 import { formatOriginalPrice } from '@/lib/currency'
 import { classifyListing, firstSeenTimestamp, isApproximateDkk } from '@/lib/price-populations'
+import { classifyOtpError, type OtpErrorKey } from '@/lib/otp-error'
 import { TextField } from '@/components/TextField'
 import { SourceBadge } from '@/components/SourceBadge'
 
@@ -182,6 +183,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
   const [captureEmail,   setCaptureEmail]  = useState('')
   const [captureLoading, setCaptureLoading] = useState(false)
   const [captureSent,    setCaptureSent]   = useState(false)
+  const [captureError,   setCaptureError]  = useState<OtpErrorKey | null>(null)
 
   const priceFormatted = listing.price != null
     ? formatOriginalPrice(listing.price, listing.currency)
@@ -260,16 +262,34 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
       max_price: null,
     }))
 
+    // signInWithOtp RETURNS its failures — a rate limit, a rejected address
+    // and even a network error all arrive as `{ error }` rather than as a
+    // throw (see lib/otp-error.ts). Setting the sent state unconditionally,
+    // as this did, told the visitor a mail was on its way when none was.
+    // The try/catch is for the residue that genuinely throws, such as a
+    // blocked localStorage during the PKCE challenge; without it a throw
+    // would leave the button disabled and spinning for good.
     const supabase = createSupabaseBrowserClient()
-    await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo: window.location.origin + '/auth/confirm',
-      },
-    })
+    let failure: OtpErrorKey | null
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: window.location.origin + '/auth/confirm',
+        },
+      })
+      failure = classifyOtpError(error)
+    } catch {
+      failure = 'otpErrorGeneric'
+    }
+
     setCaptureLoading(false)
-    setCaptureSent(true)
+    // On failure the form stays open with the address still in it, because
+    // the useful next action is to correct it or retry — not to stare at a
+    // dead-end confirmation.
+    setCaptureError(failure)
+    if (!failure) setCaptureSent(true)
   }
 
   const imgSrc = listing.image_url ?? thomannImageUrl ?? null
@@ -514,6 +534,15 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
             </div>
           ) : (
             <form onSubmit={handleCaptureSubmit} className="flex flex-col gap-1.5">
+              {captureError && (
+                <p
+                  role="alert"
+                  className="text-[11px] rounded-lg px-2 py-1.5 bg-destructive-subtle"
+                  style={{ color: 'var(--destructive-text)' }}
+                >
+                  {t[captureError]}
+                </p>
+              )}
               <TextField
                 type="email"
                 value={captureEmail}
