@@ -497,6 +497,10 @@ export const translations = {
     positionSignalRemoveFilter: 'Fjern filter: {label}',
     positionSignalFilterRemoved: 'Filter fjernet: {label}',
 
+    // PAN-124 — the breadcrumb. Its own contiguous block, for the same reason
+    // the block above is one: this file has several writers at a time.
+    breadcrumbLabel: 'Brødkrummesti',
+
     // PAN-120 — the resizable, headed, collapsible sidebar.
     sidebarCollapse: 'Skjul menu',
     sidebarExpand: 'Vis menu',
@@ -933,6 +937,10 @@ export const translations = {
     positionSignalQueryFilter: 'Search: {query}',
     positionSignalRemoveFilter: 'Remove filter: {label}',
     positionSignalFilterRemoved: 'Filter removed: {label}',
+
+    // PAN-124 — the breadcrumb. Its own contiguous block, for the same reason
+    // the block above is one: this file has several writers at a time.
+    breadcrumbLabel: 'Breadcrumb',
 
     // PAN-120 — the resizable, headed, collapsible sidebar.
     sidebarCollapse: 'Collapse menu',

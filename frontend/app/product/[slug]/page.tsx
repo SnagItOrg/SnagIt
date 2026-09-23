@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
+import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
 import { SearchResultCard } from '@/components/SearchResultCard'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
@@ -318,22 +319,12 @@ export default function ProductPage() {
                   siblings are one click away.
                 */}
                 {familyContext && (
-                  <nav aria-label={t.familyOtherModels} className="mb-4">
-                    <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 type-meta text-muted-foreground">
-                      <li>
-                        <a
-                          href={`/family/${familyContext.slug}`}
-                          className="hover:text-foreground transition-colors underline underline-offset-2"
-                        >
-                          {familyContext.label}
-                        </a>
-                      </li>
-                      <li aria-hidden="true">/</li>
-                      <li aria-current="page" className="text-foreground wrap-anywhere">
-                        {product.canonical_name}
-                      </li>
-                    </ol>
-                  </nav>
+                  <Breadcrumb className="mb-4">
+                    <BreadcrumbItem href={`/family/${familyContext.slug}`}>
+                      {familyContext.label}
+                    </BreadcrumbItem>
+                    <BreadcrumbItem>{product.canonical_name}</BreadcrumbItem>
+                  </Breadcrumb>
                 )}
 
                 {/* ── Hero: image + info ────────────────────────── */}

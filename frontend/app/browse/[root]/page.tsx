@@ -2,8 +2,8 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { SideNav } from '@/components/SideNav'
+import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
 import { BottomNav } from '@/components/BottomNav'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { ProductCard } from '@/components/ProductCard'
@@ -207,24 +207,11 @@ function BrowseCategoryPageInner() {
 
         <div className="shell-wall">
 
-          {/* Breadcrumb */}
-          <div className="pt-4">
-            <Link
-              href="/browse"
-              className="text-sm"
-              style={{ color: 'var(--muted-foreground)' }}
-            >
-              {t.browseAllCategories}
-            </Link>
-            {!loading && data?.category && (
-              <span className="text-sm mx-1.5" style={{ color: 'var(--muted-foreground)' }}>/</span>
-            )}
-            {!loading && data?.category && (
-              <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                {categoryName}
-              </span>
-            )}
-          </div>
+          {/* Breadcrumb (PAN-124) */}
+          <Breadcrumb className="pt-4">
+            <BreadcrumbItem href="/browse">{t.browseAllCategories}</BreadcrumbItem>
+            {!loading && data?.category && <BreadcrumbItem>{categoryName}</BreadcrumbItem>}
+          </Breadcrumb>
 
           {/* Heading */}
           <div className="pt-3 pb-4">

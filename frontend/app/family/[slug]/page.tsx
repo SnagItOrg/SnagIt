@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import { BottomNav } from '@/components/BottomNav'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { SideNav } from '@/components/SideNav'
+import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
 import { PositionSignal } from '@/components/PositionSignal'
 import { SourceBadge } from '@/components/SourceBadge'
 import { buildPositionSignal } from '@/lib/position-signal'
@@ -243,6 +244,37 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
       <main className="shell-offset pb-24 md:pb-8">
         <MobileSearchBar />
         <div className="cq-pane shell-reading flex flex-col pt-6 pb-10 md:pt-10">
+          {/*
+            PAN-124 — the breadcrumb, and why it stops at two crumbs.
+
+            The Trunk Test fails here today: a visitor who arrives from search
+            (lib/search-resolver.ts returns /family/<slug> for a family hit)
+            gets a brand, a title and no statement of where that sits. This is
+            the fix for "where am I in the hierarchy", and nothing more.
+
+            IT DOES NOT NAME THE CATEGORY, even though `family.categoryRoot`
+            is right here in scope and would make a third crumb free of any
+            query. That is a deliberate stop, not an oversight — see the note
+            on PAN-124 for the evidence. Briefly: the comment on the product
+            breadcrumb forbids exactly that crumb, citing "PAN-52 D5(a)" and a
+            "§6", neither of which can be produced from docs/; while three
+            historical documents list "name, brand, category" as what a family
+            page shows, and the experience spec §6.3 specifies a FOUR-level
+            product breadcrumb including the category. The two readings
+            contradict each other and both rest on records CLAUDE.md §7 calls
+            historical. Choosing between them is a taxonomy decision for a
+            product owner, so this ships the crumb that is true under either:
+            a family is in the catalogue, and /browse is where it goes back to.
+
+            /browse is also already this route's only outbound link in the
+            empty-family `noindex,follow` case, so the sentence in
+            `generateMetadata` above stays true rather than needing amendment.
+          */}
+          <Breadcrumb className="mb-4">
+            <BreadcrumbItem href="/browse">{t.browseAllCategories}</BreadcrumbItem>
+            <BreadcrumbItem>{family.label}</BreadcrumbItem>
+          </Breadcrumb>
+
           <p className="type-label">
             {family.brand}
           </p>
