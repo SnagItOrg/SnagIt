@@ -11,6 +11,7 @@ import { classifyListing, firstSeenTimestamp, isApproximateDkk } from '@/lib/pri
 import { classifyOtpError, type OtpErrorKey } from '@/lib/otp-error'
 import { TextField } from '@/components/TextField'
 import { SourceBadge } from '@/components/SourceBadge'
+import { Icon } from '@/components/Icon'
 
 // Country name → ISO code for flag emoji lookup
 const COUNTRY_CODES: Record<string, string> = {
@@ -166,9 +167,7 @@ function MarketVerdictBadge({
       aria-label={basis ? `${label}. ${basis}` : label}
     >
       {/* Direction as a shape, so the three states differ without colour. */}
-      <span aria-hidden="true" className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-        {tone.glyph}
-      </span>
+      <Icon name={tone.glyph} style={{ fontSize: '16px' }} />
       {label}
     </span>
   )
@@ -323,9 +322,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--muted-foreground)' }}>
-                image
-              </span>
+              <Icon name="image" style={{ fontSize: '32px', color: 'var(--muted-foreground)' }} />
             </div>
           )}
 
@@ -372,7 +369,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-auto pt-1">
             {getLocationDisplay(listing) && (
               <>
-                <span className="material-symbols-outlined flex-shrink-0" style={{ fontSize: '12px' }}>location_on</span>
+                <Icon name="location_on" className="flex-shrink-0" style={{ fontSize: '12px' }} />
                 <span className="truncate">{getLocationDisplay(listing)}</span>
                 <span>·</span>
               </>
@@ -426,9 +423,10 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="material-symbols-outlined" style={{ fontSize: '36px', color: 'var(--muted-foreground)', opacity: 0.4 }}>
-                image
-              </span>
+              <Icon
+                name="image"
+                style={{ fontSize: '36px', color: 'var(--muted-foreground)', opacity: 0.4 }}
+              />
             </div>
           )}
         </div>
@@ -518,12 +516,10 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
           captureSent ? (
             <div className="flex flex-col gap-1 py-1">
               <div className="flex items-center gap-1.5">
-                <span
-                  className="material-symbols-outlined"
+                <Icon
+                  name="mark_email_read"
                   style={{ fontSize: '16px', color: 'var(--foreground)' }}
-                >
-                  mark_email_read
-                </span>
+                />
                 <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
                   {t.checkInbox}
                 </span>
@@ -588,7 +584,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors"
               style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
+              <Icon name="open_in_new" style={{ fontSize: '14px' }} />
               {t.viewListing}
             </a>
             {/* Heart — save listing */}
@@ -611,7 +607,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
             >
-              <span aria-hidden="true" className="material-symbols-outlined" style={{ fontSize: '14px' }}>notifications</span>
+              <Icon name="notifications" style={{ fontSize: '14px' }} />
               {t.createWatchlist}
             </button>
             {productSlug && (

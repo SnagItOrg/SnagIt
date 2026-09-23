@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useLocale } from '@/components/LocaleProvider'
 import { fill } from '@/lib/i18n'
 import type { PositionFilter, PositionSignal as PositionSignalModel } from '@/lib/position-signal'
+import { Icon } from '@/components/Icon'
 
 /**
  * PAN-121 — one position signal, in the same place on every public listing
@@ -117,13 +118,7 @@ export function PositionSignal({
                     transitionTimingFunction: 'var(--ease-standard)',
                   }}
                 >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: '16px' }}
-                    aria-hidden="true"
-                  >
-                    close
-                  </span>
+                  <Icon name="close" style={{ fontSize: '16px' }} />
                 </button>
               )}
             </span>

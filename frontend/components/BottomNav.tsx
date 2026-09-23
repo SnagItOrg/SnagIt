@@ -7,6 +7,7 @@ import { useTheme } from 'next-themes'
 import { Sun, Moon } from 'lucide-react'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { Icon } from '@/components/Icon'
 
 // Kept for SideNav compatibility
 export type NavTab = 'hjem' | 'overvaagninger' | 'soeg' | 'gemt' | 'profil'
@@ -83,7 +84,7 @@ export function BottomNav() {
           label={t.navBrowse}
           active={isBrowse}
           href="/browse"
-          icon={<span className="material-symbols-outlined" style={{ fontSize: '24px' }}>grid_view</span>}
+          icon={<Icon name="grid_view" style={{ fontSize: '24px' }} />}
         />
 
         {/* Theme toggle */}
@@ -129,7 +130,7 @@ export function BottomNav() {
         label={t.navBrowse}
         active={isBrowse}
         href="/browse"
-        icon={<span className="material-symbols-outlined" style={{ fontSize: '24px' }}>grid_view</span>}
+        icon={<Icon name="grid_view" style={{ fontSize: '24px' }} />}
       />
 
       {/* Saved */}
@@ -150,7 +151,7 @@ export function BottomNav() {
         active={isNotifications}
         href="/watchlists"
         icon={
-          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>notifications</span>
+          <Icon name="notifications" style={{ fontSize: '24px' }} />
         }
       />
 

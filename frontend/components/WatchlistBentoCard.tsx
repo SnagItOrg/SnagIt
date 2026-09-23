@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import type { Watchlist } from '@/lib/supabase'
 import { useLocale } from '@/components/LocaleProvider'
+import { Icon } from '@/components/Icon'
 
 function getDisplayName(query: string): string {
   if (!query.startsWith('http')) return query
@@ -95,12 +96,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: '48px', color: 'var(--muted-foreground)' }}
-            >
-              search
-            </span>
+            <Icon name="search" style={{ fontSize: '48px', color: 'var(--muted-foreground)' }} />
           </div>
         )}
 
@@ -158,9 +154,10 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
         <div ref={menuRef} className="absolute top-2 right-2 z-50">
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
+            aria-label={t.watchlistCardMenu}
             className="surface-card rounded-full p-1.5 text-muted-foreground hover:text-foreground transition-colors"
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>more_vert</span>
+            <Icon name="more_vert" style={{ fontSize: '18px' }} />
           </button>
 
           {menuOpen && (
@@ -173,7 +170,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
                 }}
                 className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
+                <Icon name="edit" style={{ fontSize: '16px' }} />
                 Rediger
               </button>
               <button
@@ -184,7 +181,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
                 }}
                 className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-destructive-text hover:bg-secondary transition-colors"
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
+                <Icon name="delete" style={{ fontSize: '16px' }} />
                 Slet
               </button>
             </div>

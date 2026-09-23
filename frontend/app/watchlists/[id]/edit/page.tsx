@@ -7,6 +7,7 @@ import { useLocale } from '@/components/LocaleProvider'
 import { PriceRangeSlider } from '@/components/PriceRangeSlider'
 import { MAX_WATCHLIST_PRICE } from '@/lib/constants'
 import { TextField } from '@/components/TextField'
+import { Icon } from '@/components/Icon'
 
 export default function EditWatchlistPage() {
   const router = useRouter()
@@ -100,12 +101,11 @@ export default function EditWatchlistPage() {
                       Hvad leder du efter?
                     </label>
                     <div className="relative">
-                      <span
-                        className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none"
+                      <Icon
+                        name="search"
+                        className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none"
                         style={{ color: 'var(--muted-foreground)', fontSize: '24px' }}
-                      >
-                        search
-                      </span>
+                      />
                       <TextField
                         type="text"
                         value={query}
@@ -178,9 +178,10 @@ export default function EditWatchlistPage() {
                     {saving ? '…' : (
                       <>
                         Gem ændringer
-                        <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
-                          arrow_forward
-                        </span>
+                        <Icon
+                          name="arrow_forward"
+                          className="transition-transform group-hover:translate-x-1"
+                        />
                       </>
                     )}
                   </button>
@@ -203,7 +204,7 @@ export default function EditWatchlistPage() {
                 className="flex items-center gap-2 font-bold transition-colors"
                 style={{ color: 'var(--muted-foreground)' }}
               >
-                <span className="material-symbols-outlined">arrow_back</span>
+                <Icon name="arrow_back" />
                 Tilbage
               </button>
             </div>
@@ -212,7 +213,7 @@ export default function EditWatchlistPage() {
 
         <footer className="py-10 text-center">
           <div className="inline-flex items-center gap-2" style={{ color: 'var(--muted-foreground)' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>security</span>
+            <Icon name="security" style={{ fontSize: '16px' }} />
             <span className="text-[10px] font-bold uppercase tracking-widest">{t.securityNote}</span>
           </div>
         </footer>

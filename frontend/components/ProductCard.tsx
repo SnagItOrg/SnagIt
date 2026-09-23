@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 import { useLocale } from '@/components/LocaleProvider'
+import { Icon } from '@/components/Icon'
 
 interface Props {
   slug: string
@@ -77,9 +78,10 @@ export function ProductCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="material-symbols-outlined" style={{ fontSize: 36, color: 'var(--muted-foreground)', opacity: 0.4 }}>
-              piano
-            </span>
+            <Icon
+              name="piano"
+              style={{ fontSize: 36, color: 'var(--muted-foreground)', opacity: 0.4 }}
+            />
           </div>
         )}
         {/* Tier badge */}
@@ -88,7 +90,7 @@ export function ProductCard({
             className="absolute top-2 left-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
             style={{ background: 'var(--foreground)', color: 'var(--background)' }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 11 }}>workspace_premium</span>
+            <Icon name="workspace_premium" style={{ fontSize: 11 }} />
             {tier === 'legendary' ? t.tierLegendary : t.tierClassic}
           </span>
         )}

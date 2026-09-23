@@ -502,6 +502,10 @@ export const translations = {
     // the block above is one: this file has several writers at a time.
     breadcrumbLabel: 'Brødkrummesti',
 
+    // PAN-126 — the one icon-only control on the public surface whose
+    // accessible name was the ligature word `more_vert`.
+    watchlistCardMenu: 'Handlinger for overvågning',
+
     // PAN-120 — the resizable, headed, collapsible sidebar.
     sidebarCollapse: 'Skjul menu',
     sidebarExpand: 'Vis menu',
@@ -943,6 +947,10 @@ export const translations = {
     // PAN-124 — the breadcrumb. Its own contiguous block, for the same reason
     // the block above is one: this file has several writers at a time.
     breadcrumbLabel: 'Breadcrumb',
+
+    // PAN-126 — the one icon-only control on the public surface whose
+    // accessible name was the ligature word `more_vert`.
+    watchlistCardMenu: 'Watchlist actions',
 
     // PAN-120 — the resizable, headed, collapsible sidebar.
     sidebarCollapse: 'Collapse menu',

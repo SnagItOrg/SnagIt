@@ -3,6 +3,7 @@
 import { Children, useCallback, useEffect, useRef, useState } from 'react'
 import { useLocale } from '@/components/LocaleProvider'
 import { fill } from '@/lib/i18n'
+import { Icon } from '@/components/Icon'
 
 /**
  * A horizontal rail with fade edges, navigation, snap and a keyboard path.
@@ -196,9 +197,7 @@ function NavButton({
         side === 'start' ? 'left-2' : 'right-2'
       }`}
     >
-      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-        {side === 'start' ? 'chevron_left' : 'chevron_right'}
-      </span>
+      <Icon name={side === 'start' ? 'chevron_left' : 'chevron_right'} style={{ fontSize: 20 }} />
     </button>
   )
 }

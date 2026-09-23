@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/LocaleProvider'
 import { TextField } from '@/components/TextField'
+import { Icon } from '@/components/Icon'
 
 export function MobileSearchBar() {
   const router = useRouter()
@@ -20,12 +21,11 @@ export function MobileSearchBar() {
   return (
     <form onSubmit={handleSubmit} className="hidden md:block px-4 pt-4 pb-2">
       <div className="relative">
-        <span
-          className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+        <Icon
+          name="search"
+          className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
           style={{ fontSize: '18px', color: 'var(--muted-foreground)' }}
-        >
-          search
-        </span>
+        />
         <TextField
           type="text"
           value={value}

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import { TextField } from '@/components/TextField'
+import { Icon } from '@/components/Icon'
 
 /**
  * The homepage shell: everything interactive, and nothing that needs the
@@ -54,7 +55,7 @@ export function LandingShell({ children }: { children: React.ReactNode }) {
             className="size-8 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: 'var(--secondary)' }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
+            <Icon name="radar" style={{ fontSize: '20px' }} />
           </div>
           <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
         </div>
@@ -72,12 +73,11 @@ export function LandingShell({ children }: { children: React.ReactNode }) {
             </p>
             <form onSubmit={handleSubmit} className="w-full mt-8">
               <div className="relative w-full">
-                <span
-                  className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none"
+                <Icon
+                  name="search"
+                  className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none"
                   style={{ fontSize: '22px', color: 'var(--muted-foreground)' }}
-                >
-                  search
-                </span>
+                />
                 <TextField
                   type="text"
                   value={query}

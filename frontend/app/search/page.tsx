@@ -23,6 +23,7 @@ import {
   type SearchInputMethod,
   type SearchOutcome,
 } from '@/lib/search-contract'
+import { Icon } from '@/components/Icon'
 
 /**
  * Restricted catalogue search.
@@ -339,13 +340,11 @@ function SearchPageInner() {
               {t.searchPageHeading}
             </label>
             <div className="relative">
-              <span
-                aria-hidden="true"
-                className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              <Icon
+                name="search"
+                className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
                 style={{ fontSize: '18px', color: 'var(--muted-foreground)' }}
-              >
-                search
-              </span>
+              />
               <TextField
                 id="klup-search"
                 ref={inputRef}
@@ -542,13 +541,11 @@ function CandidateList({
               </span>
               <span className="block text-xs text-muted-foreground truncate">{option.brand}</span>
             </span>
-            <span
-              aria-hidden="true"
-              className="material-symbols-outlined shrink-0"
+            <Icon
+              name="chevron_right"
+              className="shrink-0"
               style={{ fontSize: 18, color: 'var(--muted-foreground)' }}
-            >
-              chevron_right
-            </span>
+            />
           </Link>
         </li>
       ))}
@@ -686,9 +683,7 @@ function UnsupportedPanel({
             onClick={() => setOpen(true)}
             className="flex items-center gap-2 min-h-[44px] text-sm font-semibold text-foreground"
           >
-            <span aria-hidden="true" className="material-symbols-outlined" style={{ fontSize: 18 }}>
-              notifications
-            </span>
+            <Icon name="notifications" style={{ fontSize: 18 }} />
             {t.demandCta}
           </button>
         )}

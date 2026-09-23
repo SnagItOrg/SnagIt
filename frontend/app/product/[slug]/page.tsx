@@ -42,6 +42,7 @@ import type { Listing } from '@/lib/supabase'
 // value. A `type` edge is erased at compile time, so the family CONFIGURATION
 // never enters this bundle — only the canonical siblings the server filtered.
 import type { FamilyContext, PricePoint, RelatedProduct } from '@/app/api/product/[slug]/route'
+import { Icon } from '@/components/Icon'
 
 /**
  * The entity key for the sold-price series.
@@ -296,12 +297,10 @@ export default function ProductPage() {
 
             /* ── Not found ──────────────────────────────────── */
             <div className="shell-reading flex flex-col items-center justify-center py-24 gap-3 text-center">
-              <span
-                className="material-symbols-outlined"
+              <Icon
+                name="search_off"
                 style={{ fontSize: '48px', color: 'var(--muted-foreground)' }}
-              >
-                search_off
-              </span>
+              />
               <p className="text-muted-foreground">Produkt ikke fundet</p>
             </div>
           ) : (
@@ -343,12 +342,10 @@ export default function ProductPage() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <span
-                          className="material-symbols-outlined"
+                        <Icon
+                          name="piano"
                           style={{ fontSize: 72, color: 'var(--muted-foreground)' }}
-                        >
-                          piano
-                        </span>
+                        />
                       </div>
                     )}
                   </div>
@@ -372,7 +369,7 @@ export default function ProductPage() {
                             className="mt-1 shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
                             style={{ background: 'var(--foreground)', color: 'var(--background)' }}
                           >
-                            <span className="material-symbols-outlined" style={{ fontSize: 12 }}>workspace_premium</span>
+                            <Icon name="workspace_premium" style={{ fontSize: 12 }} />
                             {product.tier === 'legendary' ? 'Legendary' : 'Classic'}
                           </span>
                         )}
@@ -692,12 +689,7 @@ export default function ProductPage() {
                         rel="noopener noreferrer"
                         className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
                       >
-                        <span
-                          className="material-symbols-outlined"
-                          style={{ fontSize: 14 }}
-                        >
-                          open_in_new
-                        </span>
+                        <Icon name="open_in_new" style={{ fontSize: 14 }} />
                         {link.label}
                       </a>
                     ))}
@@ -770,12 +762,10 @@ export default function ProductPage() {
                         >
                           <div className="aspect-square bg-muted relative">
                             <div className="absolute inset-0 flex items-center justify-center">
-                              <span
-                                className="material-symbols-outlined"
+                              <Icon
+                                name="piano"
                                 style={{ fontSize: 32, color: 'var(--muted-foreground)' }}
-                              >
-                                piano
-                              </span>
+                              />
                             </div>
                             {rel.image_url && (
                               <Image
