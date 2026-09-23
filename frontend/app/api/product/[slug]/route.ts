@@ -547,6 +547,28 @@ async function handle(req: NextRequest, slug: string) {
   } satisfies Record<PopulationKey, PopulationStats>
 
   /**
+   * THE ACTUAL DANISH ASKING PRICES — PAN-119.
+   *
+   * `PopulationStats` redacts every statistic the tier may not show, which is
+   * what stops a template rendering a median at n=2. But below
+   * `MIN_DESCRIPTIVE_MEDIAN_N` there is still something true to say, and it is
+   * the thing the visitor came for: the price the item is actually listed at
+   * in Denmark right now. Measured 2026-09-23, eight of the fifty public
+   * products have exactly one adjudicated Danish listing, and the page was
+   * rendering a sentence about it while showing an international median in
+   * bold beside it.
+   *
+   * These are OBSERVATIONS, not a statistic: no median, no quartiles, no
+   * verdict. They are drawn from `grouped`, so they inherit the one price-
+   * evidence predicate (`isPriceEvidence`) and can never include an unreviewed
+   * row from the wall. Sorted ascending purely so the render is stable.
+   */
+  const dkAskingPrices = grouped.byPopulation['dk-asking']
+    .map((row) => (row.price_dkk == null ? null : Number(row.price_dkk)))
+    .filter((v): v is number => v != null && Number.isFinite(v) && v > 0)
+    .sort((a, b) => a - b)
+
+  /**
    * One reconciled explanation of the two sold counts the page used to show.
    * Null when the sold read was truncated — a partial raw count reads exactly
    * like a real one.
@@ -715,7 +737,7 @@ async function handle(req: NextRequest, slug: string) {
   })
 
   return NextResponse.json(
-    { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, awaitingReview, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, familyContext, adminPreview, monitoredSources },
+    { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, dkAskingPrices, awaitingReview, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, familyContext, adminPreview, monitoredSources },
     {
       headers: adminPreview
         // An unpublished product must never enter a shared cache.

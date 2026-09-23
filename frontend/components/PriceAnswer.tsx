@@ -52,9 +52,20 @@ function Headline({ label, value }: { label: string; value: number | null }) {
 export function DanishMarketBlock({
   stats,
   awaitingReview = 0,
+  askingPrices = [],
 }: {
   stats: PopulationStats
   awaitingReview?: number
+  /**
+   * The adjudicated Danish asking prices themselves, ascending — PAN-119.
+   *
+   * Used ONLY by the `listings-only` tier, where there is no statistic to
+   * show but there is still a real price the visitor came for. These are
+   * observations, never a statistic: the block renders them verbatim and
+   * derives nothing from them, so no median or range can appear below
+   * `MIN_DESCRIPTIVE_MEDIAN_N` by way of this prop.
+   */
+  askingPrices?: readonly number[]
 }) {
   const { t } = useLocale()
 
@@ -91,11 +102,36 @@ export function DanishMarketBlock({
   )
 
   if (stats.tier === 'listings-only') {
+    /**
+     * PAN-119. The local price is the one the visitor is most interested in,
+     * so at this tier it is the headline — as the OBSERVED prices, not as a
+     * statistic derived from them. Previously this branch described the
+     * listings in prose while the international median rendered in bold
+     * beside it, which made the only number on the page the foreign one.
+     *
+     * Falls back to the old count-only form when the prices are unavailable,
+     * so a caller that does not pass them still renders something true.
+     */
+    const observed = askingPrices.filter((p) => Number.isFinite(p) && p > 0)
+    if (observed.length === 0) {
+      return (
+        <div className="flex flex-col gap-1">
+          <p className="type-label">{t.dkMarketHeading}</p>
+          <p className="type-body">{countLine}</p>
+          <p className="type-meta">{t.dkMarketThinNote}</p>
+        </div>
+      )
+    }
     return (
       <div className="flex flex-col gap-1">
-        <p className="type-label">{t.dkMarketHeading}</p>
-        <p className="type-body">{countLine}</p>
-        <p className="type-meta">{t.dkMarketThinNote}</p>
+        <p className="type-label">{t.dkMarketAskingNow}</p>
+        <p className="text-[clamp(1.75rem,1.2rem+2.2vw,2.5rem)] font-semibold tracking-tight text-foreground tabular-nums wrap-anywhere">
+          {observed.map((p) => kr(p)).join(' · ')}
+        </p>
+        <p className="type-meta">
+          {observed.length === 1 ? t.dkMarketAskingNowNote : t.dkMarketAskingNowNotePlural}
+        </p>
+        <p className="type-meta">{countLine}</p>
       </div>
     )
   }

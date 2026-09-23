@@ -102,6 +102,8 @@ export default function ProductPage() {
   const [populations, setPopulations]   = useState<Record<PopulationKey, PopulationStats> | null>(null)
   /** Danish wall listings still awaiting adjudication — see DanishMarketBlock. */
   const [awaitingReview, setAwaitingReview] = useState(0)
+  /** Adjudicated Danish asking prices, ascending — see DanishMarketBlock. */
+  const [dkAskingPrices, setDkAskingPrices] = useState<number[]>([])
   const [soldCounts, setSoldCounts]     = useState<{ raw: number; filtered: number; excludedOutliers: number } | null>(null)
   const [loading, setLoading]           = useState(true)
   const [notFound, setNotFound]         = useState(false)
@@ -190,6 +192,7 @@ export default function ProductPage() {
       setPriceHistory(data.priceHistory ?? [])
       setPopulations(data.populations ?? null)
       setAwaitingReview(data.awaitingReview ?? 0)
+      setDkAskingPrices(data.dkAskingPrices ?? [])
       setSoldCounts(data.soldCounts ?? null)
       setRelatedProducts(data.relatedProducts ?? [])
       setMonitoredSources(data.monitoredSources ?? [])
@@ -394,6 +397,7 @@ export default function ProductPage() {
                         <DanishMarketBlock
                           stats={populations['dk-asking']}
                           awaitingReview={awaitingReview}
+                          askingPrices={dkAskingPrices}
                         />
 
                         {(populations['reverb-sold'].tier === 'band' ||
