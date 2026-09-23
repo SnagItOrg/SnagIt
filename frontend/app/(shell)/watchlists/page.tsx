@@ -15,6 +15,7 @@ import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { Icon } from '@/components/Icon'
+import { Button } from '@/components/Button'
 
 export default function WatchlistsPage() {
   const router = useRouter()
@@ -166,13 +167,13 @@ export default function WatchlistsPage() {
                   <p className="text-sm leading-relaxed text-muted-foreground">
                     {t.watchlistTeaserSubtext}
                   </p>
-                  <button
+                  <Button
+                    variant="primary"
                     onClick={() => router.push('/login')}
                     className="w-full rounded-2xl py-4 px-8 font-black text-sm transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
                   >
                     {t.watchlistTeaserCta}
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : watchlists.length === 0 ? (

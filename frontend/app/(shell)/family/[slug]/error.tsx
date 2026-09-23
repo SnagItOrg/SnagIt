@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { useLocale } from '@/components/LocaleProvider'
+import { Button } from '@/components/Button'
 
 /**
  * Family-route error boundary.
@@ -48,13 +49,13 @@ export default function FamilyError({
       </p>
 
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <button
+        <Button
+          variant="primary"
           onClick={reset}
           className="rounded-2xl px-6 py-3 text-base font-semibold transition-opacity hover:opacity-90"
-          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
         >
           {t.errorRetry}
-        </button>
+        </Button>
         <Link
           href="/browse"
           className="rounded-2xl px-6 py-3 text-base transition-opacity hover:opacity-90"

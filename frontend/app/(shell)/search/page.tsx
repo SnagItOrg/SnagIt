@@ -22,6 +22,7 @@ import {
   type SearchOutcome,
 } from '@/lib/search-contract'
 import { Icon } from '@/components/Icon'
+import { Button } from '@/components/Button'
 
 /**
  * Restricted catalogue search.
@@ -364,13 +365,13 @@ function SearchPageInner() {
               className="w-full rounded-xl pl-9 pr-4 py-3 text-base font-medium placeholder:opacity-50"
             />
           </div>
-          <button
+          <Button
+            variant="primary"
             type="submit"
             className="mt-2 w-full min-h-[44px] rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90 md:w-auto md:px-6"
-            style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
           >
             {t.search}
-          </button>
+          </Button>
         </form>
         </div>
       </div>
@@ -659,14 +660,14 @@ function UnsupportedPanel({
               placeholder={t.emailPlaceholder}
               className="w-full rounded-xl px-3 py-3 text-base"
             />
-            <button
+            <Button
+              variant="primary"
               type="submit"
               disabled={busy}
               className="w-full min-h-[44px] rounded-xl text-sm font-semibold transition-opacity disabled:opacity-50"
-              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
               {t.sendLoginLink}
-            </button>
+            </Button>
             <p className="text-[11px] text-center text-muted-foreground">{t.noPasswordNeeded}</p>
           </form>
         ) : (

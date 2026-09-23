@@ -7,6 +7,7 @@ import { PriceRangeSlider } from '@/components/PriceRangeSlider'
 import { MAX_WATCHLIST_PRICE } from '@/lib/constants'
 import { TextField } from '@/components/TextField'
 import { Icon } from '@/components/Icon'
+import { Button } from '@/components/Button'
 
 export default function EditWatchlistPage() {
   const router = useRouter()
@@ -162,14 +163,11 @@ export default function EditWatchlistPage() {
                 )}
 
                 {/* Save button */}
-                <button
+                <Button
+                  variant="primary"
                   onClick={handleSave}
                   disabled={saving || !query.trim()}
                   className="w-full py-6 rounded-2xl font-black text-xl tracking-tight transition-all flex items-center justify-center gap-3 group disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{
-                    backgroundColor: 'var(--primary)',
-                    color: 'var(--primary-foreground)',
-                  }}
                 >
                   {saving ? '…' : (
                     <>
@@ -180,7 +178,7 @@ export default function EditWatchlistPage() {
                       />
                     </>
                   )}
-                </button>
+                </Button>
 
                 {/* Delete */}
                 <button

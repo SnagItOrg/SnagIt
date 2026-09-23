@@ -13,6 +13,7 @@ import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
 import { Icon } from '@/components/Icon'
+import { Button } from '@/components/Button'
 
 type SavedRow = {
   listing_id: string
@@ -114,13 +115,13 @@ export default function SavedPage() {
                 style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
               >
                 <h2 className="text-xl font-black text-foreground">{t.savedTeaserHeading}</h2>
-                <button
+                <Button
+                  variant="primary"
                   onClick={() => router.push('/login')}
                   className="w-full rounded-2xl py-4 px-8 font-black text-sm transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
                 >
                   {t.savedTeaserCta}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Icon } from '@/components/Icon'
+import { Button } from '@/components/Button'
 
 /* ==========================================================================
    EmptyState — the consumer-facing "there is nothing here" primitive.
@@ -123,9 +124,9 @@ function ActionControl({ action }: { action: Action }) {
     )
   }
   return (
-    <button type="button" onClick={action.onClick} className={className} style={style}>
+    <Button variant="primary" onClick={action.onClick} className={className}>
       {action.label}
-    </button>
+    </Button>
   )
 }
 

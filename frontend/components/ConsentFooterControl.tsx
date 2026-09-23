@@ -26,16 +26,11 @@ import { usePathname } from 'next/navigation'
 import { useConsent } from '@/components/ConsentProvider'
 import { useLocale } from '@/components/LocaleProvider'
 import { isSuppressedSurface } from '@/lib/analytics'
+import { Button } from '@/components/Button'
 
 const CONTROL_CLASS =
   'shrink-0 rounded-xl px-4 py-2 text-sm font-semibold ' +
   'transition-opacity hover:opacity-90 min-h-[44px]'
-
-const CONTROL_STYLE: React.CSSProperties = {
-  backgroundColor: 'var(--secondary)',
-  color: 'var(--secondary-foreground)',
-  border: '1px solid var(--border)',
-}
 
 export function ConsentFooterControl() {
   const { state, hydrated, grant, withdraw } = useConsent()
@@ -82,27 +77,25 @@ export function ConsentFooterControl() {
         </p>
 
         {decided && granted && (
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             data-testid="consent-withdraw"
             onClick={withdraw}
             className={CONTROL_CLASS}
-            style={CONTROL_STYLE}
           >
             {t.consentWithdraw}
-          </button>
+          </Button>
         )}
 
         {decided && !granted && (
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             data-testid="consent-grant"
             onClick={grant}
             className={CONTROL_CLASS}
-            style={CONTROL_STYLE}
           >
             {t.consentGrantLater}
-          </button>
+          </Button>
         )}
       </div>
     </footer>

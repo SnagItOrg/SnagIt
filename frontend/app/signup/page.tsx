@@ -8,6 +8,7 @@ import { OnboardingHeader } from '@/components/OnboardingHeader'
 import type { Locale } from '@/lib/i18n'
 import { TextField } from '@/components/TextField'
 import { Icon } from '@/components/Icon'
+import { Button } from '@/components/Button'
 
 export default function SignupPage() {
   const { locale, setLocale, t } = useLocale()
@@ -160,14 +161,11 @@ export default function SignupPage() {
                   )}
 
                   {/* Submit */}
-                  <button
+                  <Button
+                    variant="primary"
                     type="submit"
                     disabled={loading}
                     className="w-full py-5 rounded-2xl font-semibold text-lg transition-all flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: 'var(--primary)',
-                      color: 'var(--primary-foreground)',
-                    }}
                   >
                     {loading ? t.loginLoading : (
                       <>
@@ -178,7 +176,7 @@ export default function SignupPage() {
                         />
                       </>
                     )}
-                  </button>
+                  </Button>
                 </form>
               </div>
 
