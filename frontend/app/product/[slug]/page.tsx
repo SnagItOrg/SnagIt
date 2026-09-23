@@ -20,6 +20,7 @@ import { useToast } from '@/lib/use-toast'
 import { DanishMarketBlock, ReferencePopulationBlock } from '@/components/PriceAnswer'
 import type { PopulationKey, PopulationStats } from '@/lib/price-populations'
 import { orderByVerdictRank } from '@/lib/listing-value-order'
+import { stripDecorativeEmoji } from '@/lib/listing-title'
 import {
   ProductReviewControls,
   type MatchReviewStatus,
@@ -917,7 +918,7 @@ export default function ProductPage() {
                       <ListingErrorBoundary key={listing.id} listingId={listing.id}>
                         <div className="flex flex-col">
                           <SearchResultCard
-                            listing={listing}
+                            listing={{ ...listing, title: stripDecorativeEmoji(listing.title) }}
                             marketVerdict={(listing as ListingWithVerdict).marketVerdict}
                             marketVerdictBasisLabel={(listing as ListingWithVerdict).marketVerdictBasisLabel}
                             onCreateWatchlist={handleCreateWatchlist}
