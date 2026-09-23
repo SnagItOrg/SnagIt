@@ -1,5 +1,7 @@
 /**
- * PAN-120 — the resizable, headed, collapsed-by-default sidebar.
+ * PAN-120 — the resizable, headed sidebar. PAN-132 flipped its default from
+ * collapsed to open; these tests were written for PAN-120 and now pin the
+ * default in whichever direction the source declares it.
  *
  * These pin the properties a reviewer cannot see by reading a screenshot: that
  * the handle is a real `separator` with live bounds rather than a div with a
@@ -28,6 +30,17 @@ const strip = (s: string) =>
 const SIDENAV = read('components', 'SideNav.tsx')
 const SIDENAV_CODE = strip(SIDENAV)
 const CSS = read('app', 'globals.css')
+
+/**
+ * The shell's declared collapsed state, read from the source.
+ *
+ * Two separate things have to agree with it — the `localStorage` comparison
+ * and the CSS fallback width — and both assertions below derive from this
+ * rather than restating a literal, so a future flip of the default cannot
+ * satisfy one and silently break the other.
+ */
+const DECLARED_COLLAPSED_DEFAULT =
+  /const \[collapsed, setCollapsed\] = useState\((true|false)\)/.exec(SIDENAV_CODE)?.[1]
 
 test('the handle is a separator with live bounds in resolved pixels', () => {
   assert.match(SIDENAV_CODE, /role="separator"/)
@@ -81,15 +94,22 @@ test('the minimum width is the measured Danish-label floor', () => {
   )
 })
 
-test('collapsed is the default, persisted, and never costs an accessible name', () => {
-  // Collapsed by default: the declared initial state, not a stored one.
-  assert.match(SIDENAV_CODE, /useState\(true\)/)
+test('the shell opens by default, persists a choice, and never costs an accessible name', () => {
+  // PAN-132 — OPEN by default, and it is the declared initial state rather
+  // than a stored one, which is what keeps hydration honest.
+  const declared = DECLARED_COLLAPSED_DEFAULT
+  assert.equal(declared, 'false', 'PAN-132: the sidebar shell is open by default')
   assert.match(SIDENAV_CODE, /SIDEBAR_COLLAPSED_KEY/)
   assert.match(SIDENAV_CODE, /SIDEBAR_WIDTH_KEY/)
 
-  // Only an explicit "false" expands, so an absent key means a first-time
-  // visitor and the default stands.
-  assert.match(SIDENAV_CODE, /SIDEBAR_COLLAPSED_KEY\) === 'false'/)
+  // THE STORAGE COMPARISON MUST BE THE OPPOSITE OF THE DECLARED DEFAULT.
+  // Reading back the same value the default already has makes every stored
+  // choice a no-op: a visitor who collapsed the sidebar would get it open
+  // again on every reload, and no screenshot of either state would show it.
+  // Derived rather than written out, so flipping the default without flipping
+  // this fails here instead of in production.
+  const stored = declared === 'true' ? 'false' : 'true'
+  assert.match(SIDENAV_CODE, new RegExp(`SIDEBAR_COLLAPSED_KEY\\) === '${stored}'`))
 
   // Every nav target keeps a name at 72px, where the visible label is gone.
   assert.match(SIDENAV_CODE, /aria-label=\{collapsed \? label : undefined\}/)
@@ -117,12 +137,21 @@ test('server and first client render agree, so there is no hydration mismatch', 
     'storage must never be read during render',
   )
 
-  // The CSS fallback must equal the collapsed width for the same reason: a page
-  // rendered before the variable exists must not jump sideways on hydration.
-  const collapsed = Number(/const SIDEBAR_COLLAPSED_WIDTH = (\d+)/.exec(SIDENAV)?.[1])
+  // The CSS fallback must equal the width the DECLARED DEFAULT resolves to,
+  // for the same reason: a page rendered before the variable exists must not
+  // jump sideways on hydration. It was the collapsed width while the shell
+  // defaulted to collapsed; PAN-132 opened the shell, so it is the minimum.
+  // Which one it should be is DERIVED from the declared default, so changing
+  // the default without moving the fallback fails here — the frame where the
+  // content sits at one width and the sidebar paints at another is the exact
+  // regression this assertion exists to catch, and it is invisible in a
+  // settled screenshot.
+  const collapsedWidth = Number(/const SIDEBAR_COLLAPSED_WIDTH = (\d+)/.exec(SIDENAV)?.[1])
+  const minWidth = Number(/const SIDEBAR_MIN_WIDTH = (\d+)/.exec(SIDENAV)?.[1])
+  const expected = DECLARED_COLLAPSED_DEFAULT === 'true' ? collapsedWidth : minWidth
   const fallback = /--sidebar-width,\s*([\d.]+)rem/.exec(CSS)
   assert.ok(fallback, 'the offset utility needs a fallback width')
-  assert.equal(Number(fallback![1]) * 16, collapsed)
+  assert.equal(Number(fallback![1]) * 16, expected)
 })
 
 test('the content offset is one number, not nine copies of 240px', () => {

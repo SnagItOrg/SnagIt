@@ -164,20 +164,45 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
         const isCurrentBranch =
           current?.kind === 'branch' && current.categorySlug === category.slug
 
+        /**
+         * PAN-132 — does this branch CONTAIN the current node?
+         *
+         * Deliberately not `isCurrentBranch`, and the difference is the whole
+         * point. `isCurrentBranch` is false on `?sub=` and on a product page by
+         * design, because the deeper node is the one that claims to be current
+         * — so opening on it would close the branch holding the marked row and
+         * hide the mark on exactly the two routes where it is most precise.
+         * Containment is the question a disclosure has to answer, and marking
+         * is a different one.
+         */
+        const holdsCurrentNode = current !== null && current.categorySlug === category.slug
+
         return (
           // Native disclosure. `<details>` needs no state, keeps keyboard and
           // screen-reader semantics, and survives a client-side route change
           // without a store.
           //
-          // OPEN BY DEFAULT IS A PRODUCT DECISION, AND A REVERSIBLE ONE.
-          // "Jeg vil ogsaa gerne have produkter i sub kategorier naar det er
-          // muligt" is an instruction to show them, not to hide them one click
-          // away, so every category starts open: 6 categories, 14 leaves and
-          // 49 products — 69 rows, roughly 1,800px, in a container that
-          // already scrolls. The collapse is the control if that becomes too
-          // much, and `open` -> a route-derived condition is a one-line change
-          // if the default should instead be "only the branch I am in".
-          <details key={category.slug} open className="group">
+          // ONLY THE BRANCH THE VISITOR IS STANDING IN IS OPEN (PAN-132), and
+          // this comment used to argue the opposite. Every category started
+          // open, on the reading that "Jeg vil ogsaa gerne have produkter i sub
+          // kategorier naar det er muligt" was an instruction to show products
+          // rather than hide them one click away. The product owner has since
+          // reversed it: the branches are what collapses, not the shell.
+          //
+          // The cost that argument accepted is what settles it. Measured on
+          // this catalogue: 6 categories, 14 leaves and 50 products — 70 rows,
+          // every one of them open, in a container that scrolls. That was
+          // survivable only while the shell was collapsed and the tree never
+          // rendered at all; now that the shell opens by default it is the
+          // first thing a visitor meets. One branch is the answer to "where am
+          // I", 70 rows is the answer to nothing.
+          //
+          // `holdsCurrentNode` is a CONTAINMENT test, not the marking test —
+          // see above. Nothing else changes: this is still a native
+          // `<details>`, so keyboard, find-in-page and the screen reader's
+          // expanded state all still come from the element rather than from
+          // state, and a visitor can open any other branch with one click.
+          <details key={category.slug} open={holdsCurrentNode} className="group">
             <summary
               /* pl-3/gap-1.5 and a 16px chevron rather than the nav items'
                  px-3/gap-3/20px: the longest Danish root label ("Western- &
@@ -427,12 +452,15 @@ const snapWidth = (px: number): { collapsed: boolean; width: number } =>
  * target is a dexterity test, and a permanently visible grip is furniture on a
  * surface that is mostly text.
  *
- * IT IS PRESENT WHILE COLLAPSED, which the first cut got wrong. Collapsed is
- * now the default, so removing the handle there meant the state every visitor
- * starts in had no resize control at all and a keyboard visitor tabbing through
- * met no separator until they had already expanded. `aria-valuenow` reports the
- * resolved width in both states — 72 collapsed — and dragging or arrowing right
- * out of the collapsed state expands it.
+ * IT IS PRESENT WHILE COLLAPSED, which the first cut got wrong. Removing the
+ * handle there left a visitor who had collapsed the sidebar with no resize
+ * control at all, and a keyboard visitor tabbing through met no separator until
+ * they had already expanded. That argument was sharper while collapsed was the
+ * default (PAN-120) than it is now that it is not (PAN-132), but it is the same
+ * argument and it still holds: collapsed is a state a visitor can be in, and a
+ * control that disappears in one of its own states is a trap. `aria-valuenow`
+ * reports the resolved width in both states — 72 collapsed — and dragging or
+ * arrowing right out of the collapsed state expands it.
  */
 function SidebarResizeHandle({
   width,
@@ -524,28 +552,38 @@ export function SideNav({ active, onChange }: Props) {
   const { locale, setLocale, t } = useLocale()
 
   /**
-   * PAN-120 — collapsed by default, and the hydration question that creates.
+   * PAN-132 — OPEN by default, and the hydration question that creates.
    *
-   * `localStorage` appeared nowhere in this file before this ticket, and the
-   * file already had one reason to diverge between server and client: the theme
+   * PAN-120 shipped this collapsed. Reading that ticket back, none of its
+   * reasoning argued that collapsed was the RIGHT default — it argued that a
+   * declared default is the only thing safe to hydrate against, which is still
+   * true and is still what this comment is about. The product intent was always
+   * that the *branches* collapse; the shell was the wrong thing to close.
+   *
+   * `localStorage` appeared nowhere in this file before PAN-120, and the file
+   * already had one reason to diverge between server and client: the theme
    * toggle's `mounted` guard, which returns `null` server-side because
-   * `resolvedTheme` is unknowable there. Adding a persisted width is a second
-   * reason, and the two must be handled the same way or the sidebar renders one
-   * width on the server and another on the client's first paint — which is a
+   * `resolvedTheme` is unknowable there. A persisted width is a second reason,
+   * and the two must be handled the same way or the sidebar renders one width
+   * on the server and another on the client's first paint — which is a
    * hydration mismatch, not a flash.
    *
    * So the FIRST CLIENT RENDER IS IDENTICAL TO THE SERVER RENDER by
-   * construction: both use the declared defaults — collapsed, at the minimum
+   * construction: both use the declared defaults — expanded, at the minimum
    * width. Only after mount does the effect below read what was stored and
    * apply it. React therefore never compares two different trees.
    *
-   * The cost is honest and small: a visitor who expanded the sidebar sees it
-   * collapsed for one frame. The alternative — a blocking inline script in
-   * `<head>` — buys that frame with a render-blocking script on every page, and
-   * `app/layout.tsx` belongs to another worker tonight.
+   * THE COST INVERTED WITH THE DEFAULT, and so did the `--sidebar-width`
+   * fallback in `globals.css`, which has to name whatever this renders before
+   * the effect runs or the content column starts at one width and jumps to
+   * another. It is now a visitor who *collapsed* the sidebar who sees it
+   * expanded for one frame — a smaller population than before, since it is
+   * exactly the visitors who went out of their way to change it. The
+   * alternative, a blocking inline script in `<head>`, buys that frame with a
+   * render-blocking script on every page.
    */
   const [mounted, setMounted] = useState(false)
-  const [collapsed, setCollapsed] = useState(true)
+  const [collapsed, setCollapsed] = useState(false)
   const [width, setWidth] = useState(SIDEBAR_MIN_WIDTH)
 
   useEffect(() => {
@@ -553,9 +591,13 @@ export function SideNav({ active, onChange }: Props) {
     try {
       const storedWidth = Number(window.localStorage.getItem(SIDEBAR_WIDTH_KEY))
       if (Number.isFinite(storedWidth) && storedWidth > 0) setWidth(clampWidth(storedWidth))
-      // Only an explicit "false" expands: an absent key means a first-time
-      // visitor, and the default is collapsed.
-      if (window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'false') setCollapsed(false)
+      // Only an explicit "true" collapses: an absent key means a first-time
+      // visitor, and the default is expanded. This comparison HAS to invert
+      // with the default — left reading 'false' it would have quietly ignored
+      // every stored choice, so a visitor who collapsed the sidebar would have
+      // got it back open on every reload and the persistence PAN-120 built
+      // would have been dead code that still looked correct in a screenshot.
+      if (window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true') setCollapsed(true)
     } catch {
       // Private mode, or storage disabled. The declared defaults still apply.
     }
@@ -615,7 +657,12 @@ export function SideNav({ active, onChange }: Props) {
    *
    * Reported by the tree itself, so there is no second copy of the rule here
    * that could drift from the one in `lib/catalogue-tree.ts`. False whenever
-   * the tree is not mounted, which is the collapsed default.
+   * the tree is not mounted — while the sidebar is collapsed, and before the
+   * tree's fetch resolves. Since PAN-132 opened the shell by default that is no
+   * longer the state a first-time visitor starts in, so this fallback now fires
+   * mainly for a visitor who chose collapsed and on routes the tree has no node
+   * for. It is not dead: those are still the cases where the section mark is
+   * the only orientation the sidebar can offer.
    */
   const [treeMarked, setTreeMarked] = useState(false)
   const handleTreeMarked = useCallback((marked: boolean) => setTreeMarked(marked), [])
@@ -970,8 +1017,8 @@ export function SideNav({ active, onChange }: Props) {
             the conclusion was wrong: collapsed is only outside the range if you
             leave snapping out, and Astryx's spec lists snapping and collapse as
             one concern. With the collapsed width as `aria-valuemin`, the value
-            is valid in both states — and since collapsed is the default, this is
-            the difference between a visitor meeting a resizable sidebar and
+            is valid in both states — which is the difference between a visitor
+            who has collapsed the sidebar still meeting a resize control and
             meeting one that cannot be resized until they find the expand
             button. A keyboard visitor met no separator at all. */}
         <SidebarResizeHandle
