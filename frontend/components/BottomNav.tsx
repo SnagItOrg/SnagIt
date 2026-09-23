@@ -13,6 +13,7 @@ import { Icon } from '@/components/Icon'
 export type NavTab = 'hjem' | 'overvaagninger' | 'soeg' | 'gemt' | 'profil'
 
 function ThemeToggle() {
+  const { t } = useLocale()
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -23,7 +24,7 @@ function ThemeToggle() {
       onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
       className="flex flex-col items-center justify-center gap-0.5 min-w-[48px] min-h-[48px] py-2 px-2 transition-colors"
       style={{ color: 'var(--muted-foreground)' }}
-      aria-label="Toggle theme"
+      aria-label={t.toggleTheme}
     >
       {resolvedTheme === 'dark'
         ? <Sun size={22} strokeWidth={1.8} />

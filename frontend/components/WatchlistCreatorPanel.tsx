@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { Watchlist } from '@/lib/supabase'
 import { MAX_WATCHLIST_PRICE } from '@/lib/constants'
+import { useLocale } from '@/components/LocaleProvider'
 import { TextField } from '@/components/TextField'
 import { Icon } from '@/components/Icon'
 
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
+  const { t } = useLocale()
   const [query,    setQuery]    = useState('')
   const [maxPrice, setMaxPrice] = useState(4500)
   const [saving,   setSaving]   = useState(false)
@@ -49,12 +51,12 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
         className="flex items-center justify-between px-8 py-5 border-b"
         style={{ borderColor: 'var(--border)' }}
       >
-        <h2 className="type-heading">Ny overvågning</h2>
+        <h2 className="type-heading">{t.newWatchlistHeading}</h2>
         <button
           onClick={onClose}
           className="flex items-center justify-center w-9 h-9 rounded-xl transition-colors hover:bg-secondary"
           style={{ color: 'var(--muted-foreground)' }}
-          aria-label="Luk"
+          aria-label={t.dismiss}
         >
           <Icon name="close" style={{ fontSize: '20px' }} />
         </button>

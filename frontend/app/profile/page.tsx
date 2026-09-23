@@ -264,7 +264,7 @@ export default function ProfilePage() {
                       onClick={() => handleDeleteWatchlist(w.id)}
                       disabled={deleting === w.id}
                       className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg transition-opacity hover:opacity-70 disabled:opacity-30"
-                      aria-label="Slet overvågning"
+                      aria-label={t.deleteWatchlist}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--muted-foreground)' }}>
                         <polyline points="3 6 5 6 21 6" />
