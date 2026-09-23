@@ -408,6 +408,37 @@ export const translations = {
     categoryNames: {
       'music-gear': 'Musikudstyr',
     },
+
+    // PAN-100 — admin billedkuratering. Se noten i den engelske blok.
+    adminImages: {
+      title: 'Billeder',
+      intro:
+        'Indsæt en offentlig billedadresse. Billedet hentes på serveren, konverteres til webp og gemmes som produktets hero-billede.',
+      summary: '{missing} af {total} offentlige produkter mangler et billede',
+      missingHeading: 'Mangler billede',
+      hasImageHeading: 'Har allerede et billede',
+      missingBadge: 'Mangler billede',
+      curatedBadge: 'Kurateret',
+      currentImage: 'Nuværende billede',
+      pasteLabel: 'Billedadresse',
+      pastePlaceholder: 'https://…',
+      preview: 'Forhåndsvisning',
+      previewFailed: 'Adressen kunne ikke vises som et billede.',
+      attachesTo: 'Tilknyttes',
+      confirm: 'Gem billede',
+      cancel: 'Fortryd',
+      saving: 'Gemmer…',
+      saved: 'Gemt',
+      sourceLabel: 'Kilde',
+      heroNote: 'Skriver hero_image_url. Det automatiske image_url røres ikke.',
+      errorInvalidUrl: 'Det er ikke en brugbar adresse.',
+      errorUnreachable: 'Adressen kunne ikke nås.',
+      errorNotAnImage: 'Adressen peger ikke på et billede.',
+      errorTooLarge: 'Billedet er for stort.',
+      errorTooSmall: 'Billedet er for lille.',
+      errorStorage: 'Billedet kunne ikke gemmes. Prøv igen.',
+      errorGeneric: 'Billedet kunne ikke behandles.',
+    },
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -749,6 +780,48 @@ export const translations = {
 
     categoryNames: {
       'music-gear': 'Music gear',
+    },
+
+    /**
+     * PAN-100 — admin image curation.
+     *
+     * NOTE ON A CONFLICT, LEFT VISIBLE RATHER THAN RESOLVED SILENTLY.
+     * `app/admin/match/page.tsx` records a deliberate decision that `/admin/*`
+     * is Danish-only and imports no i18n, on the reasoning that translating
+     * operator jargon for one page makes that page the odd one out. These keys
+     * take the opposite side, because the work package for this surface
+     * required both locales explicitly. Both positions are defensible and only
+     * a product owner can settle which one `/admin/*` follows; until then this
+     * is the only admin surface with an English translation.
+     */
+    adminImages: {
+      title: 'Images',
+      intro:
+        'Paste a public image address. The image is fetched server-side, converted to webp and stored as the product hero image.',
+      summary: '{missing} of {total} public products have no image',
+      missingHeading: 'No image',
+      hasImageHeading: 'Already has an image',
+      missingBadge: 'No image',
+      curatedBadge: 'Curated',
+      currentImage: 'Current image',
+      pasteLabel: 'Image address',
+      pastePlaceholder: 'https://…',
+      preview: 'Preview',
+      previewFailed: 'That address could not be displayed as an image.',
+      attachesTo: 'Attaches to',
+      confirm: 'Save image',
+      cancel: 'Cancel',
+      saving: 'Saving…',
+      saved: 'Saved',
+      sourceLabel: 'Source',
+      heroNote: 'Writes hero_image_url. The automated image_url is left alone.',
+      errorInvalidUrl: 'That is not a usable address.',
+      errorUnreachable: 'The address could not be reached.',
+      errorNotAnImage: 'That address does not point at an image.',
+      errorTooLarge: 'The image is too large.',
+      errorTooSmall: 'The image is too small.',
+      errorStorage: 'The image could not be stored. Try again.',
+      errorGeneric: 'The image could not be processed.',
     },
   },
 } as const
