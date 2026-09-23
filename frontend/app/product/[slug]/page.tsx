@@ -265,7 +265,15 @@ export default function ProductPage() {
     <div className="min-h-screen bg-background text-foreground md:flex">
       <SideNav active="soeg" onChange={() => {}} />
 
-      <main className="flex-1 md:pl-60 flex flex-col pb-24 md:pb-10">
+      {/*
+        pb-10, not pb-24. The mobile pb-24 was clearance for the fixed
+        BottomNav, but <main> is not the last thing on the page — the consent
+        footer follows it and carries its own pb-24 for exactly that reason.
+        So the clearance was being paid twice, and the second payment landed
+        between the last card and the privacy link: measured 116px at 390x844
+        against 60px at 1440x900. Both are 60px now.
+      */}
+      <main className="flex-1 md:pl-60 flex flex-col pb-10">
         <MobileSearchBar />
 
         <div className="flex flex-col pt-4 md:pt-8 w-full">

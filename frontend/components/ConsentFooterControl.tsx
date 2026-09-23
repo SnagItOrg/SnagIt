@@ -28,7 +28,7 @@ import { useLocale } from '@/components/LocaleProvider'
 import { isSuppressedSurface } from '@/lib/analytics'
 
 const CONTROL_CLASS =
-  'shrink-0 self-start rounded-xl px-4 py-2 text-sm font-semibold ' +
+  'shrink-0 rounded-xl px-4 py-2 text-sm font-semibold ' +
   'transition-opacity hover:opacity-90 min-h-[44px]'
 
 const CONTROL_STYLE: React.CSSProperties = {
@@ -53,7 +53,19 @@ export function ConsentFooterControl() {
       className="border-t px-4 pb-24 pt-5 text-sm md:px-8 md:pb-8"
       style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
     >
-      <div className="mx-auto flex max-w-4xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      {/*
+        ONE ALIGNMENT, AND IT IS CENTRED. This row used to be
+        `sm:justify-between` inside a centred max-w-4xl block, so on a 1440px
+        viewport the privacy link began at x=272 — neither centred nor aligned
+        to anything else on the page. On `/` the landing footer sits directly
+        above it with its single line centred at x≈692, which put two
+        different alignments within 100px of each other.
+
+        Centring this row is the smaller of the two corrections: it settles
+        every public page at once, and it holds in all three consent states
+        rather than only the one with no button.
+      */}
+      <div className="mx-auto flex max-w-4xl flex-col items-center gap-3 text-center sm:flex-row sm:justify-center sm:gap-4">
         <p className="min-w-0">
           {decided && (
             <span data-testid="consent-status">
