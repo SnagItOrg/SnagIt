@@ -165,14 +165,14 @@ test('the content offset is one number, not nine copies of 240px', () => {
 
   // No page may reintroduce a hardcoded offset.
   const pages = [
-    ['app', 'browse', 'page.tsx'],
-    ['app', 'browse', '[root]', 'page.tsx'],
-    ['app', 'search', 'page.tsx'],
-    ['app', 'family', '[slug]', 'page.tsx'],
-    ['app', 'saved', 'page.tsx'],
-    ['app', 'profile', 'page.tsx'],
-    ['app', 'watchlists', 'page.tsx'],
-    ['app', 'product', '[slug]', 'page.tsx'],
+    ['app', '(shell)', 'browse', 'page.tsx'],
+    ['app', '(shell)', 'browse', '[root]', 'page.tsx'],
+    ['app', '(shell)', 'search', 'page.tsx'],
+    ['app', '(shell)', 'family', '[slug]', 'page.tsx'],
+    ['app', '(shell)', 'saved', 'page.tsx'],
+    ['app', '(shell)', 'profile', 'page.tsx'],
+    ['app', '(shell)', 'watchlists', 'page.tsx'],
+    ['app', '(shell)', 'product', '[slug]', 'page.tsx'],
   ]
   for (const parts of pages) {
     const src = read(...parts)

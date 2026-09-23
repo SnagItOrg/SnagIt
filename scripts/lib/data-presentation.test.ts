@@ -706,7 +706,7 @@ test('eligibility: two non-eligible rows drop a Danish band to median-only', () 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const PRODUCT_PAGE = join(__dirname, '..', '..', 'frontend', 'app', 'product', '[slug]', 'page.tsx')
+const PRODUCT_PAGE = join(__dirname, '..', '..', 'frontend', 'app', '(shell)', 'product', '[slug]', 'page.tsx')
 
 test('chart: sales are drawn as unconnected observations', () => {
   const src = codeOf(PRODUCT_PAGE)

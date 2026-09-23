@@ -1,7 +1,7 @@
 /**
  * Stage 3 WP-4a — the restricted-search client/server module boundary.
  *
- * THE DEFECT THIS LOCKS OUT. `app/search/page.tsx` is a client component. It
+ * THE DEFECT THIS LOCKS OUT. `app/(shell)/search/page.tsx` is a client component. It
  * imported `lib/search-resolver.ts` for its analytics payload builders, and
  * that module value-imports `lib/search-index.ts` — the build artefact holding
  * all 48 supported identities, 34 of them UNPUBLISHED, which throws at module
@@ -153,7 +153,7 @@ test('boundary: the client entry set is non-empty and includes /search', () => {
   // A walker that found nothing would pass every assertion below vacuously.
   assert.ok(CLIENT_ENTRIES.length > 5, `expected many client modules, found ${CLIENT_ENTRIES.length}`)
   assert.ok(
-    CLIENT_ENTRIES.some((f) => f.endsWith(join('app', 'search', 'page.tsx'))),
+    CLIENT_ENTRIES.some((f) => f.endsWith(join('app', '(shell)', 'search', 'page.tsx'))),
     '/search must still be a client component',
   )
 })
@@ -171,7 +171,7 @@ test('boundary: no client module has a VALUE-import path to a server-only module
 })
 
 test('boundary: /search reaches only client-safe modules of our own', () => {
-  const page = CLIENT_ENTRIES.find((f) => f.endsWith(join('app', 'search', 'page.tsx')))!
+  const page = CLIENT_ENTRIES.find((f) => f.endsWith(join('app', '(shell)', 'search', 'page.tsx')))!
   const closure = [...valueClosure([page]).keys()].sort()
   // Whitelist, not blacklist: a new edge has to be added here deliberately.
   const allowed = new Set([
@@ -217,7 +217,7 @@ test('boundary: /search reaches only client-safe modules of our own', () => {
 })
 
 test('boundary: the client imports the contract, and the contract imports no catalogue', () => {
-  const page = readFileSync(join(FRONTEND, 'app', 'search', 'page.tsx'), 'utf8')
+  const page = readFileSync(join(FRONTEND, 'app', '(shell)', 'search', 'page.tsx'), 'utf8')
   assert.match(page, /from '@\/lib\/search-contract'/)
   assert.equal(page.includes("from '@/lib/search-resolver'"), false)
   assert.equal(page.includes("from '@/lib/search-index'"), false)
@@ -382,7 +382,7 @@ test('typed analytics boundary: no cast or suppression survives the split', () =
       assert.equal(src.includes(escape), false, `"${escape}" is not permitted in ${mod}`)
     }
   }
-  const page = stripComments(readFileSync(join(FRONTEND, 'app', 'search', 'page.tsx'), 'utf8'))
+  const page = stripComments(readFileSync(join(FRONTEND, 'app', '(shell)', 'search', 'page.tsx'), 'utf8'))
   for (const escape of ['as never', 'as any', '@ts-ignore', '@ts-expect-error']) {
     assert.equal(page.includes(escape), false, `"${escape}" is not permitted on /search`)
   }
@@ -401,7 +401,7 @@ test('the new contract module invokes no scraper and writes nothing', () => {
 })
 
 test('/api/search/resolve remains the only runtime crossing', () => {
-  const page = readFileSync(join(FRONTEND, 'app', 'search', 'page.tsx'), 'utf8')
+  const page = readFileSync(join(FRONTEND, 'app', '(shell)', 'search', 'page.tsx'), 'utf8')
   const fetched = [...page.matchAll(/fetch\(\s*[`'"]([^`'"$]*)/g)].map((m) => m[1])
   assert.deepEqual(
     [...new Set(fetched)],
@@ -418,7 +418,7 @@ test('/api/search/resolve remains the only runtime crossing', () => {
  * ------------------------------------------------------------------ */
 
 test('demand: ?demand=family:<slug> is honoured without resolving the family term', () => {
-  const page = readFileSync(join(FRONTEND, 'app', 'search', 'page.tsx'), 'utf8')
+  const page = readFileSync(join(FRONTEND, 'app', '(shell)', 'search', 'page.tsx'), 'utf8')
   assert.match(page, /const DEMAND_FAMILY_PREFIX = 'family:'/)
   // Demand mode returns BEFORE any resolve call, so the family term can never
   // be sent to the resolver and 302'd back to the page it came from.
@@ -430,7 +430,7 @@ test('demand: ?demand=family:<slug> is honoured without resolving the family ter
 })
 
 test('demand: the seeded term survives without reading family configuration', () => {
-  const page = readFileSync(join(FRONTEND, 'app', 'search', 'page.tsx'), 'utf8')
+  const page = readFileSync(join(FRONTEND, 'app', '(shell)', 'search', 'page.tsx'), 'utf8')
   assert.ok(page.includes('initialQuery || familyTermFromSlug(demandFamilySlug)'))
   assert.ok(page.includes('initialQuery || familyPrefill'))
   // Code only: the prose above `familyTermFromSlug` records what was removed

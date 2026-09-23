@@ -313,8 +313,8 @@ test('G7: the server-side product gate exists', () => {
   // Reachability without the gate is a soft 404 on 3,976 slugs. The data-gated
   // classification is only truthful while this file is present (§15.8).
   assert.ok(
-    existsSync(join(APP_DIR, 'product', '[slug]', 'layout.tsx')),
-    'app/product/[slug]/layout.tsx is the server-side eligibility gate and must exist ' +
+    existsSync(join(APP_DIR, '(shell)', 'product', '[slug]', 'layout.tsx')),
+    'app/(shell)/product/[slug]/layout.tsx is the server-side eligibility gate and must exist ' +
       'unless WP-3 has folded it into the server shell under §15.8 H1-H7',
   )
 })

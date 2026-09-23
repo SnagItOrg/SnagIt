@@ -484,7 +484,7 @@ test('indexability: publishing ONE child flips the family, with no code change',
 
 test('indexability: one threshold drives index, sitemap, nav and search together', () => {
   assert.equal(FAMILY_MIN_CANONICAL_CHILDREN, 1)
-  const page = readRepoFile('app/family/[slug]/page.tsx')
+  const page = readRepoFile('app/(shell)/family/[slug]/page.tsx')
   // robots.index is the view's own `published`, never a second rule.
   assert.match(page, /robots:\s*\{\s*index:\s*view\.published,\s*follow:\s*true\s*\}/)
 })
@@ -502,7 +502,7 @@ test('empty: a family with no configured children can never become published', (
  * ------------------------------------------------------------------ */
 
 test('route: the family page imports and computes nothing price-shaped', () => {
-  const page = readRepoFile('app/family/[slug]/page.tsx')
+  const page = readRepoFile('app/(shell)/family/[slug]/page.tsx')
   for (const forbidden of [
     'price-band',
     // PAN-94 REMOVED `listing_product_match` FROM THIS LIST AND KEPT
@@ -543,7 +543,7 @@ test('route: the family page imports and computes nothing price-shaped', () => {
 })
 
 test('route: the demand control is present on the empty state only', () => {
-  const page = readRepoFile('app/family/[slug]/page.tsx')
+  const page = readRepoFile('app/(shell)/family/[slug]/page.tsx')
   assert.match(page, /data-demand-control="family"/)
   assert.match(page, /t\.demandCta/)
   assert.match(page, /children\.length === 0 && \(/)
@@ -558,7 +558,7 @@ test('route: the demand control is present on the empty state only', () => {
 test('route: unknown family slugs 404 rather than rendering an empty family', () => {
   assert.equal(getFamily('gibson-flying-v'), null)
   assert.equal(isFamilySlug('gibson-flying-v'), false)
-  const page = readRepoFile('app/family/[slug]/page.tsx')
+  const page = readRepoFile('app/(shell)/family/[slug]/page.tsx')
   assert.match(page, /if \(!view\) notFound\(\)/)
   // A slug that is not a family is also not redirected INTO the family route.
   assert.equal(familyRedirectTarget('/product/gibson-flying-v'), null)
@@ -600,10 +600,10 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
    * The gate is ASSERTED below rather than trusted, so deleting it fails this
    * test instead of silently turning the breadcrumb into an unconditional link.
    */
-  const GATED_LINKER = join('app', 'product', '[slug]', 'page.tsx')
+  const GATED_LINKER = join('app', '(shell)', 'product', '[slug]', 'page.tsx')
 
   for (const file of [...walk(join(FRONTEND, 'app')), ...walk(join(FRONTEND, 'components'))]) {
-    if (file.includes(join('app', 'family'))) continue          // the route itself
+    if (file.includes(join('app', '(shell)', 'family'))) continue          // the route itself
     const rel = file.replace(FRONTEND, 'frontend')
     for (const line of readFileSync(file, 'utf8').split('\n')) {
       if (!line.includes('/family/')) continue
@@ -621,7 +621,7 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
   )
 
   // The one admitted linker, pinned on both sides of the seam.
-  const productPage = readRepoFile('app/product/[slug]/page.tsx')
+  const productPage = readRepoFile('app/(shell)/product/[slug]/page.tsx')
   assert.match(
     productPage,
     /\{familyContext && \(/,
@@ -637,8 +637,10 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
   assert.deepEqual(
     [...new Set(redirectors)].sort(),
     [
+      // Sorted, and PAN-131 reordered them: the gate moved into the `(shell)`
+      // route group, and `(` sorts before `a`.
+      'frontend/app/(shell)/product/[slug]/layout.tsx',
       'frontend/app/api/product/[slug]/route.ts',
-      'frontend/app/product/[slug]/layout.tsx',
     ],
   )
 })
@@ -701,7 +703,7 @@ test('hierarchy: familyForChild resolves a product to its family, and nothing el
 })
 
 test('navigation: the family route links only to /browse and to canonical children', () => {
-  const page = readRepoFile('app/family/[slug]/page.tsx')
+  const page = readRepoFile('app/(shell)/family/[slug]/page.tsx')
   const hrefs = [...page.matchAll(/href=(?:\{`|["'])([^"'`]+)/g)].map((m) => m[1])
   assert.equal(hrefs.length > 0, true, 'expected at least one link')
   for (const href of hrefs) {

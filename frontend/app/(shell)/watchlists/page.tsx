@@ -7,8 +7,6 @@ import type { Watchlist } from '@/lib/supabase'
 import { WatchlistBentoCard } from '@/components/WatchlistBentoCard'
 import { AddWatchlistCard } from '@/components/AddWatchlistCard'
 import { WatchlistCreatorPanel } from '@/components/WatchlistCreatorPanel'
-import { SideNav } from '@/components/SideNav'
-import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
@@ -128,9 +126,7 @@ export default function WatchlistsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg md:flex">
-      <SideNav active={'hjem'} onChange={() => router.push('/')} />
-
+    <>
       <div className="flex-1 flex flex-col shell-offset">
         <MobileSearchBar />
         {showCreator ? (
@@ -212,10 +208,9 @@ export default function WatchlistsPage() {
         )}
       </div>
 
-      <BottomNav />
 
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
-    </div>
+    </>
   )
 }
 

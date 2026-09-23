@@ -27,10 +27,10 @@ const ROOT = join(__dirname, '..', '..')
 const read = (...parts: string[]) => readFileSync(join(ROOT, 'frontend', ...parts), 'utf8')
 
 const ROUTES = {
-  browse: read('app', 'browse', 'page.tsx'),
-  browseRoot: read('app', 'browse', '[root]', 'page.tsx'),
-  search: read('app', 'search', 'page.tsx'),
-  family: read('app', 'family', '[slug]', 'page.tsx'),
+  browse: read('app', '(shell)', 'browse', 'page.tsx'),
+  browseRoot: read('app', '(shell)', 'browse', '[root]', 'page.tsx'),
+  search: read('app', '(shell)', 'search', 'page.tsx'),
+  family: read('app', '(shell)', 'family', '[slug]', 'page.tsx'),
 }
 const COMPONENT = read('components', 'PositionSignal.tsx')
 const MODULE = read('lib', 'position-signal.ts')

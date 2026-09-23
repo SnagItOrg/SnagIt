@@ -3,8 +3,6 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { SideNav } from '@/components/SideNav'
-import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
 import { TextField } from '@/components/TextField'
@@ -324,145 +322,139 @@ function SearchPageInner() {
     outcome !== null && (outcome.outcome === 'unsupported' || outcome.outcome === 'no_result')
 
   return (
-    <div className="min-h-screen bg-bg md:flex">
-      <SideNav active="soeg" onChange={() => {}} />
-
-      <div className="flex-1 min-w-0 flex flex-col shell-offset">
-        <div className="shell-reading pt-6 pb-2">
-          <h1 className="type-title">{t.searchPageHeading}</h1>
-          <p className="type-meta mt-1">{t.searchPageSubtext}</p>
-        </div>
-
-        <div className="sticky top-0 z-30 w-full bg-bg border-b border-border py-3">
-          <div className="shell-reading">
-          <form onSubmit={handleSubmit} role="search">
-            <label htmlFor="klup-search" className="sr-only">
-              {t.searchPageHeading}
-            </label>
-            <div className="relative">
-              <Icon
-                name="search"
-                className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ fontSize: '18px', color: 'var(--muted-foreground)' }}
-              />
-              <TextField
-                id="klup-search"
-                ref={inputRef}
-                type="search"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={t.searchInputPlaceholder}
-                enterKeyHint="search"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="none"
-                spellCheck={false}
-                role="combobox"
-                aria-expanded={options.length > 0}
-                aria-controls="klup-search-options"
-                aria-activedescendant={
-                  activeIndex >= 0 ? `klup-search-option-${activeIndex}` : undefined
-                }
-                // 16px minimum (text-base): anything smaller makes iOS Safari
-                // zoom the viewport on focus and the visitor loses the page.
-                className="w-full rounded-xl pl-9 pr-4 py-3 text-base font-medium placeholder:opacity-50"
-              />
-            </div>
-            <button
-              type="submit"
-              className="mt-2 w-full min-h-[44px] rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90 md:w-auto md:px-6"
-              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
-            >
-              {t.search}
-            </button>
-          </form>
-          </div>
-        </div>
-
-        <main className="shell-reading flex-1 pt-5 pb-24 md:pb-10">
-          {/*
-            PAN-121 — the position signal.
-
-            `options` and not `outcome.candidates`: the memo above is already
-            defined as "everything the visitor may click, in render order", and
-            it is what both branches below render — `CandidateList` gets it
-            directly when there are candidates, and `UnsupportedPanel` renders
-            `outcome.suggestions` through the same list, which is what `options`
-            falls back to. Counting `candidates` would therefore claim 0 on the
-            unsupported screen while three suggestions sat on it.
-
-            Search navigates *within* the supported catalogue, so the scope is
-            the catalogue rather than a category, and the query is the thing
-            narrowing it — removable, which is the property that turns this
-            from wayfinding into navigation.
-          */}
-          {!loading && outcome !== null && (
-            <PositionSignal
-              signal={buildPositionSignal({
-                scope: t.positionSignalAllCategories,
-                renderedRows: options,
-                filters: [
-                  {
-                    id: 'q',
-                    kind: 'query' as const,
-                    label: fill(t.positionSignalQueryFilter, { query: outcome.queryNorm }),
-                  },
-                ],
-              })}
-              onRemoveFilter={handleClearQuery}
-            />
-          )}
-
-          <div aria-live="polite" aria-atomic="true">
-            {loading ? (
-              <div className="flex flex-col gap-3 max-w-2xl">
-                {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="h-16 rounded-2xl bg-card border border-border animate-pulse"
-                  />
-                ))}
-              </div>
-            ) : error ? (
-              <div
-                className="rounded-xl px-4 py-3 text-sm max-w-2xl"
-                style={{
-                  backgroundColor: 'rgba(239,68,68,0.1)',
-                  border: '1px solid rgba(239,68,68,0.2)',
-                  color: 'var(--foreground)',
-                }}
-              >
-                {error}
-              </div>
-            ) : showCandidates ? (
-              <section className="max-w-2xl">
-                <h2 className="text-base font-semibold text-foreground mb-3">
-                  {t.searchAmbiguousHeading}
-                </h2>
-                <CandidateList
-                  id="klup-search-options"
-                  listRef={listRef}
-                  options={outcome!.candidates}
-                  activeIndex={activeIndex}
-                />
-              </section>
-            ) : showUnsupported ? (
-              <UnsupportedPanel outcome={outcome!} listRef={listRef} activeIndex={activeIndex} />
-            ) : (
-              <EmptyState
-                kind="blank"
-                icon="manage_search"
-                title={t.searchEmptyHeading}
-                body={t.searchEmptySubtext}
-                className="py-20"
-              />
-            )}
-          </div>
-        </main>
+    <div className="flex-1 min-w-0 flex flex-col shell-offset">
+      <div className="shell-reading pt-6 pb-2">
+        <h1 className="type-title">{t.searchPageHeading}</h1>
+        <p className="type-meta mt-1">{t.searchPageSubtext}</p>
       </div>
 
-      <BottomNav />
+      <div className="sticky top-0 z-30 w-full bg-bg border-b border-border py-3">
+        <div className="shell-reading">
+        <form onSubmit={handleSubmit} role="search">
+          <label htmlFor="klup-search" className="sr-only">
+            {t.searchPageHeading}
+          </label>
+          <div className="relative">
+            <Icon
+              name="search"
+              className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ fontSize: '18px', color: 'var(--muted-foreground)' }}
+            />
+            <TextField
+              id="klup-search"
+              ref={inputRef}
+              type="search"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t.searchInputPlaceholder}
+              enterKeyHint="search"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              role="combobox"
+              aria-expanded={options.length > 0}
+              aria-controls="klup-search-options"
+              aria-activedescendant={
+                activeIndex >= 0 ? `klup-search-option-${activeIndex}` : undefined
+              }
+              // 16px minimum (text-base): anything smaller makes iOS Safari
+              // zoom the viewport on focus and the visitor loses the page.
+              className="w-full rounded-xl pl-9 pr-4 py-3 text-base font-medium placeholder:opacity-50"
+            />
+          </div>
+          <button
+            type="submit"
+            className="mt-2 w-full min-h-[44px] rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90 md:w-auto md:px-6"
+            style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+          >
+            {t.search}
+          </button>
+        </form>
+        </div>
+      </div>
+
+      <main className="shell-reading flex-1 pt-5 pb-24 md:pb-10">
+        {/*
+          PAN-121 — the position signal.
+
+          `options` and not `outcome.candidates`: the memo above is already
+          defined as "everything the visitor may click, in render order", and
+          it is what both branches below render — `CandidateList` gets it
+          directly when there are candidates, and `UnsupportedPanel` renders
+          `outcome.suggestions` through the same list, which is what `options`
+          falls back to. Counting `candidates` would therefore claim 0 on the
+          unsupported screen while three suggestions sat on it.
+
+          Search navigates *within* the supported catalogue, so the scope is
+          the catalogue rather than a category, and the query is the thing
+          narrowing it — removable, which is the property that turns this
+          from wayfinding into navigation.
+        */}
+        {!loading && outcome !== null && (
+          <PositionSignal
+            signal={buildPositionSignal({
+              scope: t.positionSignalAllCategories,
+              renderedRows: options,
+              filters: [
+                {
+                  id: 'q',
+                  kind: 'query' as const,
+                  label: fill(t.positionSignalQueryFilter, { query: outcome.queryNorm }),
+                },
+              ],
+            })}
+            onRemoveFilter={handleClearQuery}
+          />
+        )}
+
+        <div aria-live="polite" aria-atomic="true">
+          {loading ? (
+            <div className="flex flex-col gap-3 max-w-2xl">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-16 rounded-2xl bg-card border border-border animate-pulse"
+                />
+              ))}
+            </div>
+          ) : error ? (
+            <div
+              className="rounded-xl px-4 py-3 text-sm max-w-2xl"
+              style={{
+                backgroundColor: 'rgba(239,68,68,0.1)',
+                border: '1px solid rgba(239,68,68,0.2)',
+                color: 'var(--foreground)',
+              }}
+            >
+              {error}
+            </div>
+          ) : showCandidates ? (
+            <section className="max-w-2xl">
+              <h2 className="text-base font-semibold text-foreground mb-3">
+                {t.searchAmbiguousHeading}
+              </h2>
+              <CandidateList
+                id="klup-search-options"
+                listRef={listRef}
+                options={outcome!.candidates}
+                activeIndex={activeIndex}
+              />
+            </section>
+          ) : showUnsupported ? (
+            <UnsupportedPanel outcome={outcome!} listRef={listRef} activeIndex={activeIndex} />
+          ) : (
+            <EmptyState
+              kind="blank"
+              icon="manage_search"
+              title={t.searchEmptyHeading}
+              body={t.searchEmptySubtext}
+              className="py-20"
+            />
+          )}
+        </div>
+      </main>
     </div>
   )
 }

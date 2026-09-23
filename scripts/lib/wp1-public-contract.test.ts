@@ -369,7 +369,7 @@ test('failure: the API answers 503 for unavailability and 404 only for absence',
 })
 
 test('failure: the page gate throws instead of calling notFound()', () => {
-  const src = readCode('app', 'product', '[slug]', 'layout.tsx')
+  const src = readCode('app', '(shell)', 'product', '[slug]', 'layout.tsx')
   assert.ok(src.includes("throw new CatalogueUnavailableError('product_gate_lookup')"))
   assert.ok(src.includes("throw new CatalogueUnavailableError('projection_gate_lookup')"))
   const gateIdx = src.indexOf('productRes.error')

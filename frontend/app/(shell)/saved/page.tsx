@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { SideNav } from '@/components/SideNav'
-import { BottomNav } from '@/components/BottomNav'
 import { SearchResultCard } from '@/components/SearchResultCard'
 import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
@@ -100,9 +98,7 @@ export default function SavedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg text-foreground md:flex">
-      <SideNav active="gemt" onChange={() => {}} />
-
+    <>
       <main className="flex-1 shell-offset-pad flex flex-col pb-24 md:pb-6">
         <MobileSearchBar />
         <div className="shell-wall flex flex-col pt-2 md:pt-6 flex-1">
@@ -185,7 +181,6 @@ export default function SavedPage() {
         </div>
       </main>
 
-      <BottomNav />
 
       <CreateWatchlistModal
         isOpen={showModal}
@@ -196,7 +191,7 @@ export default function SavedPage() {
       />
 
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
-    </div>
+    </>
   )
 }
 

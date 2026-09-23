@@ -766,7 +766,7 @@ const rvCodeOf = (...seg: string[]) =>
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, '')
 
-const RV_PRODUCT_PAGE = ['app', 'product', '[slug]', 'page.tsx']
+const RV_PRODUCT_PAGE = ['app', '(shell)', 'product', '[slug]', 'page.tsx']
 const RV_CONTROLS = ['components', 'admin', 'ProductReviewControls.tsx']
 const RV_DECISION_LIB = ['lib', 'admin-match-decision.ts']
 const RV_REVIEW_ROUTE = ['app', 'api', 'admin', 'product', '[slug]', 'match-review', 'route.ts']
