@@ -734,8 +734,31 @@ export default function ProductPage() {
                   </div>
                 )}
 
-                {/* ── Related products ──────────────────────────── */}
-                {relatedProducts.length > 0 && (
+                {/*
+                  ── Related products ────────────────────────────
+
+                  TWO IS THE SMALLEST NUMBER THAT IS A SHELF. `grid-fluid-sm`
+                  lays out auto-fill columns of min 9.5rem, so at 1440px a
+                  single survivor sits in the first of eight columns with the
+                  rest of the row empty — a heading promising related gear
+                  above what reads as a grid that failed to load.
+
+                  This is the normal case, not an edge case, because related
+                  links are resolved through isCanonical() and most authored
+                  targets are qa_only. Measured on production 2026-09-23 over
+                  the seven products that author related_products at all:
+                  four resolve to 0 canonical targets (fender-stratocaster,
+                  fender-telecaster, gibson-es-335, gibson-les-paul) and
+                  already render nothing; roland-juno-106 and roland-juno-60
+                  resolve to exactly 1; only roland-jupiter-8 resolves to 2.
+
+                  So the shelf is suppressed below two rather than restyled:
+                  the single-item layout would be a new visual case built for
+                  two pages, and the threshold is self-healing — when a target
+                  becomes canonical the shelf returns on its own, with no data
+                  change and no flag. The cost is two links on two pages.
+                */}
+                {relatedProducts.length > 1 && (
                   <div className="flex flex-col gap-3 mb-10">
                     <p className="text-sm font-medium text-foreground">{t.relatedGear}</p>
                     <div className="grid-fluid-sm gap-3">
