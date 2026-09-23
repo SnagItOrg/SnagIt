@@ -81,6 +81,10 @@ test('integration: every package suite is registered exactly once', () => {
       // extractor is the only thing standing between a discounted ad and a
       // listing with no price, so it carries its own suite.
       'scripts/lib/kleinanzeigen-price.test.ts',
+      // Decoration stripped from a listing title at render. Its own suite
+      // because the risk is one-sided: over-stripping removes the seller's
+      // own words from three public surfaces, and the module had no test.
+      'scripts/lib/listing-title.test.ts',
       // PAN-95: qualification decides which matches may price a product, and
       // the promise it has to keep — no price in front of the judge, one
       // reversible key on every write — is structural, not a model property.
