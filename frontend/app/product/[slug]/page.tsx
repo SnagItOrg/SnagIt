@@ -620,18 +620,31 @@ export default function ProductPage() {
                       {/* Specs card */}
                       {hasSpecs && (
                         <div className="rounded-2xl border border-border p-6">
-                          <p className="text-sm font-semibold text-foreground mb-4">Specifications</p>
+                          <p className="text-sm font-semibold text-foreground mb-4">{t.specifications}</p>
                           <dl className="divide-y divide-border">
                             {Object.entries(product.attributes!.specs!)
                               .filter(([k, v]) => k !== '_source' && v !== '' && v !== null && v !== undefined)
-                              .map(([key, value]) => (
-                                <div key={key} className="flex justify-between gap-4 py-2.5 min-w-0">
-                                  <dt className="text-sm text-muted-foreground capitalize min-w-0">{key.replace(/_/g, ' ')}</dt>
-                                  <dd className="text-sm text-foreground text-right min-w-0 wrap-anywhere">
-                                    {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
-                                  </dd>
-                                </div>
-                              ))}
+                              .map(([key, value]) => {
+                                /*
+                                  The jsonb key is an identifier, so the label
+                                  comes from the map rather than from the data.
+                                  An unmapped key keeps exactly today's
+                                  rendering — humanised and `capitalize`d — so
+                                  a spec key nobody has translated yet still
+                                  reads, and never renders blank.
+                                */
+                                const label = (t.specLabels as Record<string, string | undefined>)[key]
+                                return (
+                                  <div key={key} className="flex justify-between gap-4 py-2.5 min-w-0">
+                                    <dt className={`text-sm text-muted-foreground min-w-0${label ? '' : ' capitalize'}`}>
+                                      {label ?? key.replace(/_/g, ' ')}
+                                    </dt>
+                                    <dd className="text-sm text-foreground text-right min-w-0 wrap-anywhere">
+                                      {typeof value === 'boolean' ? (value ? t.specYes : t.specNo) : String(value)}
+                                    </dd>
+                                  </div>
+                                )
+                              })}
                           </dl>
                         </div>
                       )}
@@ -639,7 +652,7 @@ export default function ProductPage() {
                       {/* History card */}
                       {hasHistory && (
                         <div className="rounded-2xl border border-border p-6">
-                          <p className="text-sm font-semibold text-foreground mb-4">Product History</p>
+                          <p className="text-sm font-semibold text-foreground mb-4">{t.productHistory}</p>
                           <div className="flex flex-col">
                             {product.attributes!.history!.map((milestone, i) => (
                               <div key={i} className="flex gap-4">
