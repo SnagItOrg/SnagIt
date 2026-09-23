@@ -1,13 +1,12 @@
 /**
  * Stock category photography for the music taxonomy roots (PAN-86).
  *
- * WHY A CODE MAP AND NOT A PRODUCTION WRITE — the same reason, and the same
- * shape, as `category-labels.ts`. `kg_category.image_url` is the authority for
- * a category image and it is read first by `/browse`; correcting the column is
- * a production write and therefore a product-owner decision. This map is the
- * reviewed candidate set, applied at render time only. Promote it into the
- * column whenever you like and delete the entry — the fallback argument means
- * the column shows through the moment the map stops answering.
+ * WHY A CODE MAP AND NOT A PRODUCTION WRITE. `kg_category.image_url` is the
+ * authority for a category image and it is read first by `/browse`; correcting
+ * the column is a production write and therefore a product-owner decision.
+ * This map is the reviewed candidate set, applied at render time only. Promote
+ * it into the column whenever you like and delete the entry — the fallback
+ * argument means the column shows through the moment the map stops answering.
  *
  * WHY HOTLINKS AND NOT SUPABASE STORAGE — measured on production, not assumed.
  * The stock CDN resizes and content-negotiates, so `?auto=format&fit=crop&
@@ -112,9 +111,6 @@ export const CATEGORY_IMAGES: Readonly<Record<string, string>> = {
  *
  * Reviewed map first, `kg_category.image_url` second, `null` last — a root
  * with neither renders the empty image well rather than a broken `<img>`.
- * Mirrors `categoryLabel(slug, locale, fallback)` exactly, on purpose: two
- * render-time corrections for two columns nobody is authorised to write, with
- * one shape between them.
  */
 export function categoryImage(slug: string, fallback?: string | null): string | null {
   return CATEGORY_IMAGES[slug] ?? fallback ?? null

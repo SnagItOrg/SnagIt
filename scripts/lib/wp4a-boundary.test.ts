@@ -191,13 +191,6 @@ test('boundary: /search reaches only client-safe modules of our own', () => {
     'components/SideNav.tsx',
     'components/BottomNav.tsx',
     'components/LocaleProvider.tsx',
-    // PAN-17: `SideNav` renders the catalogue tree and needs the Danish root
-    // labels for it. `category-labels.ts` is import-free and holds nothing but
-    // two string maps — `CategoryShelf`, itself a client component, already
-    // reaches it. The tree's own module arrives as an `import type` and is
-    // erased, so `SideNav` gains no edge to lib/browse or the service-role
-    // client; the tree is fetched from /api/catalogue-tree at runtime.
-    'lib/category-labels.ts',
     // PAN-121: the position signal's derivation. Import-free by design, like
     // `catalogue.ts` and `publication.ts` — it counts an array it is handed and
     // resolves nothing, so it reaches no catalogue state and no service-role
@@ -216,7 +209,7 @@ test('boundary: /search reaches only client-safe modules of our own', () => {
     // safe for the reason the module was written import-free in the first
     // place — it imports NOTHING, so it cannot carry `lib/browse` or the
     // service-role client along with it, which is the edge this boundary
-    // actually guards. Same class as `category-labels.ts` above.
+    // actually guards. Same class as `position-signal.ts` above.
     'lib/catalogue-tree.ts',
   ])
   const unexpected = closure.filter((m) => !allowed.has(m) && !m.startsWith('components/'))

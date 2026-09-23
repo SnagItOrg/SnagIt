@@ -175,8 +175,7 @@ function BrowseCategoryPageInner() {
    * the rows themselves and there is no argument the total could be passed as.
    *
    * The category name comes from the API's `kg_category.name_da` / `name_en`,
-   * which is the single label authority since PAN-107. Nothing here consults
-   * `category-labels.ts`.
+   * which is the single label authority since PAN-107.
    */
   const activeSubcategory = activeSubcat
     ? (data?.subcategories ?? []).find((s) => s.slug === activeSubcat)
