@@ -91,10 +91,16 @@ subtitle and the sidebar leaves — so the column *is* the label authority.
 `frontend/lib/category-labels.ts` is a root-only workaround for the bad
 column, not a second source; it retires once the column is right.
 
-**An importer must never write `name_da` from an English field.**
-`scripts/seed-reverb-categories.ts` does exactly that today and upserts with
-`onConflict: 'slug', ignoreDuplicates: false`, so re-running it overwrites
-every hand-set Danish name. Fix that before the next run.
+**An importer must never write `name_da` on a row that already exists.**
+`scripts/seed-reverb-categories.ts` used to write it from the English field and
+upsert with `onConflict: 'slug', ignoreDuplicates: false`, so one re-run
+reverted all 23 hand-corrected rows. It now writes each level with two
+statements: the full row with `ignoreDuplicates: true` (`DO NOTHING`, which
+establishes `name_da` only for a slug that did not exist), then
+`refreshPayload()` with `ignoreDuplicates: false` (`DO UPDATE` over every
+seeded column *except* `name_da`, which cannot be overwritten because it is
+never sent). See `scripts/lib/reverb-category-seed.ts`; the invariant is
+asserted by `scripts/lib/reverb-category-seed.test.ts`.
 
 ## Derived data artefacts
 

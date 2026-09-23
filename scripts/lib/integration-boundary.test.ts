@@ -100,6 +100,11 @@ test('integration: every package suite is registered exactly once', () => {
       // import-free for the same reason — 320 leaves and 13 duplicated leaf
       // names are a data property, not a React one.
       'scripts/lib/pan97-subcategory-picker.test.ts',
+      // PAN-107: the category seeder must never write `name_da` on a row that
+      // already exists. The column is hand-maintained Danish, one re-run used
+      // to revert all 23 corrected rows, and nothing about that failure is
+      // loud — so the insert-only semantics carry their own suite.
+      'scripts/lib/reverb-category-seed.test.ts',
       // PAN-72: the watchlist notification step decides whether `notified_at`
       // may be stamped at all, and its provider-failure path is what used to
       // produce a marker for a mail that never went out.
