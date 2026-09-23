@@ -7,7 +7,6 @@ import { useTheme } from 'next-themes'
 import { Sun, Moon } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
-import { categoryLabel } from '@/lib/category-labels'
 import type { NavTab } from '@/components/BottomNav'
 import { fill, type Locale } from '@/lib/i18n'
 import { currentCatalogueNode, type CatalogueTreeCategory } from '@/lib/catalogue-tree'
@@ -150,11 +149,7 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
   return (
     <div className="mt-0.5 mb-1 flex flex-col gap-0.5">
       {categories.map((category) => {
-        const label = categoryLabel(
-          category.slug,
-          locale,
-          locale === 'da' ? category.name_da : category.name_en,
-        )
+        const label = locale === 'da' ? category.name_da : category.name_en
 
         /**
          * PAN-121 — is this the branch the visitor is standing in?

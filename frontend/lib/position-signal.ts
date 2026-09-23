@@ -28,8 +28,7 @@
  * `lib/browse.ts` owns which rows a state yields, and this module only counts
  * the rows it is handed. It resolves no label: `kg_category.name_da` is the
  * single authority since PAN-107, so callers pass the already-resolved,
- * already-localised string and nothing here routes through the root-only
- * `category-labels.ts` workaround.
+ * already-localised string.
  */
 
 /**

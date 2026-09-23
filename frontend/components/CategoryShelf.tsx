@@ -2,7 +2,6 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { categoryLabel } from '@/lib/category-labels'
 import { categoryImage } from '@/lib/category-images'
 import { useLocale } from '@/components/LocaleProvider'
 import { fill } from '@/lib/i18n'
@@ -34,9 +33,9 @@ import type { HomeCategory } from '@/lib/home-categories'
  * 'use client' marks where hydration begins, not where rendering happens: the
  * labels need `useLocale()`, but this shelf still server-renders into the
  * first HTML response along with the product shelves above it. `HomeCategory`
- * is an `import type` and `category-images` / `category-labels` are both
- * import-free, so this module gains no edge to lib/browse or the service-role
- * client — which `wp4a-boundary.test.ts` fails on.
+ * is an `import type` and `category-images` is import-free, so this module
+ * gains no edge to lib/browse or the service-role client — which
+ * `wp4a-boundary.test.ts` fails on.
  */
 export function CategoryShelf({ categories }: { categories: HomeCategory[] }) {
   const { t, locale } = useLocale()
@@ -67,11 +66,7 @@ export function CategoryShelf({ categories }: { categories: HomeCategory[] }) {
         style={{ '--wall-card-min': 'clamp(9rem, 18vw, 16rem)' } as React.CSSProperties}
       >
         {categories.map((category) => {
-          const label = categoryLabel(
-            category.slug,
-            locale,
-            locale === 'da' ? category.name_da : category.name_en,
-          )
+          const label = locale === 'da' ? category.name_da : category.name_en
           const src = categoryImage(category.slug, category.image_url)
           const followed = category.product_count > 0
           const count =
