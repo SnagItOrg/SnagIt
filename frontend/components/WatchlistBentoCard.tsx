@@ -110,7 +110,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
       <div className="flex-shrink-0 px-3 pb-3 pt-2 border-t border-border/40">
         {confirming ? (
           <div onClick={(e) => e.stopPropagation()}>
-            <p className="text-xs text-muted-foreground mb-2">Slet overvågning?</p>
+            <p className="text-xs text-muted-foreground mb-2">{t.deleteWatchlistConfirm}</p>
             <div className="flex gap-2">
               <button
                 onClick={(e) => {
@@ -119,13 +119,13 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
                 }}
                 className="flex-1 py-1.5 min-h-[44px] rounded-lg bg-destructive hover:bg-destructive-hover text-destructive-foreground text-sm font-bold transition-colors"
               >
-                Ja, slet
+                {t.deleteWatchlistConfirmYes}
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setConfirming(false) }}
                 className="flex-1 py-1.5 min-h-[44px] rounded-lg text-muted-foreground text-sm hover:text-foreground hover:bg-secondary transition-colors"
               >
-                Annuller
+                {t.cancel}
               </button>
             </div>
           </div>
