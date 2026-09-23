@@ -43,18 +43,31 @@ import { BottomNav } from '@/components/BottomNav'
  * would hand a search field to three routes that never had one, which is a
  * product decision and not this ticket's.
  *
- * The wrapper is `min-h-screen` and nothing else. The nine pages spelled this
- * five different ways — `bg-bg`, `bg-background`, an inline
- * `background: var(--background)`, with and without `text-foreground` — and
- * every one of those was already redundant, because `globals.css` sets both
- * `background-color: var(--background)` and `color: var(--foreground)` on
- * `body`. The `md:flex` that six of them carried was a no-op too: at `md` the
+ * THE WRAPPER IS `min-h-screen md:flex`, and the `md:flex` is load-bearing —
+ * this was measured, not reasoned. The nine pages spelled the wrapper five
+ * different ways: `bg-bg`, `bg-background`, an inline
+ * `background: var(--background)`, with and without `text-foreground`, and six
+ * of the nine with `md:flex`. The colour halves really were redundant —
+ * `globals.css` already sets `background-color: var(--background)` and
+ * `color: var(--foreground)` on `body`.
+ *
+ * `md:flex` is not. The first cut dropped it on the argument that at `md` the
  * `<aside>` is `position: fixed` and the mobile header is `md:hidden`, so the
- * flex container never had more than one in-flow child.
+ * flex container never has more than one in-flow child — true, and beside the
+ * point. The child is `flex-1`, and what it was taking from the flex container
+ * was HEIGHT: `align-items: stretch` grows it to the full `min-h-screen`, which
+ * is what every `flex-1 items-center` inside it centres against. Without it
+ * `/saved`'s signed-out teaser collapsed to its own content height and rose
+ * from the middle of the page to the top. A before/after screenshot caught it;
+ * a width-and-offset measurement did not.
+ *
+ * So the flex context is declared once, here, and the three pages that did not
+ * previously have one — `/browse`, `/browse/[root]` and `/family/[slug]` —
+ * carry `flex-1 min-w-0` on their main column to stay unchanged under it.
  */
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen md:flex">
       <SideNav />
       {children}
       <BottomNav />

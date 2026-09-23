@@ -69,7 +69,7 @@ function BrowsePageInner() {
   }, [debugEnabled])
 
   return (
-    <main className="shell-offset pb-24 md:pb-8">
+    <main className="flex-1 min-w-0 shell-offset pb-24 md:pb-8">
       <MobileSearchBar />
 
       <div className="shell-wall">
