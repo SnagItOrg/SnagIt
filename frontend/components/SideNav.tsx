@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
@@ -10,7 +10,7 @@ import { useLocale } from '@/components/LocaleProvider'
 import { categoryLabel } from '@/lib/category-labels'
 import type { NavTab } from '@/components/BottomNav'
 import { fill, type Locale } from '@/lib/i18n'
-import type { CatalogueTreeCategory } from '@/lib/catalogue-tree'
+import { currentCatalogueNode, type CatalogueTreeCategory } from '@/lib/catalogue-tree'
 
 interface Props {
   active: NavTab
@@ -92,7 +92,7 @@ function ThemeToggle({ collapsed }: { collapsed: boolean }) {
  * unreadable catalogue renders no tree at all — the primary nav above is
  * untouched, which is the same degradation `/browse` already performs.
  */
-function CatalogueTree() {
+function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) => void }) {
   const { t, locale } = useLocale()
   const pathname = usePathname()
   /**
@@ -118,6 +118,33 @@ function CatalogueTree() {
     return () => { cancelled = true }
   }, [])
 
+  /**
+   * The one current node, decided once by `lib/catalogue-tree.ts`.
+   *
+   * Every level below compares itself against this single answer instead of
+   * re-deriving its own predicate, so "exactly one `aria-current` in the tree"
+   * is structural rather than three booleans that happen not to overlap.
+   */
+  const current = useMemo(
+    () => currentCatalogueNode(categories, pathname, activeSub),
+    [categories, pathname, activeSub],
+  )
+
+  /**
+   * Tell the sidebar whether the tree is carrying the mark.
+   *
+   * When it is not — collapsed, still loading, or standing somewhere the tree
+   * has no node for, such as a family page — the Katalog item marks the section
+   * instead, so a visitor inside the catalogue is never told nothing at all.
+   * The cleanup matters as much as the effect: collapsing unmounts this
+   * component, and without it the sidebar would keep believing a node it can no
+   * longer see is still marked.
+   */
+  useEffect(() => {
+    onMarkedChange(current !== null)
+    return () => onMarkedChange(false)
+  }, [current, onMarkedChange])
+
   if (categories.length === 0) return null
 
   return (
@@ -139,8 +166,8 @@ function CatalogueTree() {
          * `aria-current="page"` in the tree at a time is the point — a screen
          * reader announcing two current pages is no better than announcing none.
          */
-        const isCurrentRoot = pathname === `/browse/${category.slug}`
-        const isCurrentBranch = isCurrentRoot && activeSub === null
+        const isCurrentBranch =
+          current?.kind === 'branch' && current.categorySlug === category.slug
 
         return (
           // Native disclosure. `<details>` needs no state, keeps keyboard and
@@ -204,7 +231,10 @@ function CatalogueTree() {
                    the value the filter chips write into `?sub=`. The sidebar and
                    the chips therefore compare the same string — no second
                    normalisation here that could drift from the route's. */
-                const isCurrentSub = isCurrentRoot && activeSub === sub.slug
+                const isCurrentSub =
+                  current?.kind === 'subcategory' &&
+                  current.categorySlug === category.slug &&
+                  current.subcategorySlug === sub.slug
                 return (
                   <li key={sub.slug}>
                     {/* PAN-121 — a subcategory IS a destination now.
@@ -235,7 +265,8 @@ function CatalogueTree() {
                     <ul className="flex flex-col">
                       {sub.products.map((product) => {
                         const href = `/product/${product.slug}`
-                        const isHere = pathname === href
+                        const isHere =
+                          current?.kind === 'product' && current.productSlug === product.slug
                         return (
                           <li key={product.slug}>
                             <Link
@@ -317,10 +348,45 @@ function CatalogueTree() {
  * The resize may go up from here and never down, which is the clamp order
  * Astryx's "maximum wins when resolved bounds conflict" describes.
  *
- * `SIDEBAR_COLLAPSED_WIDTH` is not on this scale at all: collapsed is a
- * different mode rather than a narrow width, and it shows icons with accessible
- * names instead of truncated Danish.
+ * `SIDEBAR_COLLAPSED_WIDTH` IS ON THIS SCALE, and the first cut had it wrong.
+ * It was treated as a separate mode sitting outside the range, which is why the
+ * separator was removed while collapsed — `aria-valuenow="72"` under
+ * `aria-valuemin="256"` would have been invalid. But collapsed being outside
+ * the range was the choice, not a constraint: Astryx's spec lists "persistence,
+ * snapping and collapse" as one concern owned by the hook, and snapping is the
+ * part that was left out. With it, collapsed is simply the bottom of the range.
+ *
+ * The range is deliberately DISCONTINUOUS: {72} union [256, 480]. Nothing
+ * resolves between those, so every expanded width still clears the measured
+ * Danish-label floor, and `aria-valuenow` is always inside min and max. The gap
+ * is a snap zone — released inside it, the width falls to whichever end is
+ * nearer.
  */
+/**
+ * Which top-level section a path belongs to.
+ *
+ * Only the catalogue needs one, because it is the only section with pages
+ * beneath its own href: `/browse/<root>` and `/product/<slug>` are inside
+ * Katalog and neither equals `/browse`. Everything else in the nav is a single
+ * page, where an exact match is the truth.
+ *
+ * This is coarse ON PURPOSE. It is the fallback the sidebar uses when the tree
+ * cannot mark a precise node, and the honest coarse answer is the section.
+ *
+ * A FAMILY ROUTE IS DELIBERATELY NOT IN HERE. It was, briefly, and WP-2's
+ * navigation guard caught it: `/family/<slug>` is `noindex` and reachable only
+ * by the legacy redirects and a gated breadcrumb, so nothing may treat it as an
+ * ordinary catalogue destination. Production agrees it is consistent rather
+ * than broken — the family route marks nothing in either sidebar state, which
+ * is the same answer before and after this change. The orientation gap there is
+ * real, it is the one PAN-121's Trunk Test flagged, and it belongs to PAN-124's
+ * breadcrumb rather than to a nav highlight invented here.
+ */
+const isCataloguePath = (pathname: string) =>
+  pathname === '/browse' ||
+  pathname.startsWith('/browse/') ||
+  pathname.startsWith('/product/')
+
 const SIDEBAR_MIN_WIDTH = 256
 const SIDEBAR_MAX_WIDTH = 480
 const SIDEBAR_COLLAPSED_WIDTH = 72
@@ -330,8 +396,25 @@ const SIDEBAR_RESIZE_STEP = 16
 const SIDEBAR_WIDTH_KEY = 'klup.sidebar.width'
 const SIDEBAR_COLLAPSED_KEY = 'klup.sidebar.collapsed'
 
+/** An expanded width, clamped into the readable band. */
 const clampWidth = (px: number) =>
   Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, Math.round(px)))
+
+/**
+ * Resolve any candidate width to a state the sidebar can actually be in.
+ *
+ * The snap threshold is the midpoint of the gap between collapsed and the
+ * minimum readable width, so a drag that ends inside the gap falls to whichever
+ * end it was closer to. Below it the sidebar collapses; above it, it expands to
+ * at least the Danish-label floor. There is no third outcome, which is what
+ * keeps `aria-valuenow` honest.
+ */
+const SIDEBAR_SNAP_THRESHOLD = Math.round((SIDEBAR_COLLAPSED_WIDTH + SIDEBAR_MIN_WIDTH) / 2)
+
+const snapWidth = (px: number): { collapsed: boolean; width: number } =>
+  px < SIDEBAR_SNAP_THRESHOLD
+    ? { collapsed: true, width: SIDEBAR_MIN_WIDTH }
+    : { collapsed: false, width: clampWidth(px) }
 
 /**
  * The resize handle — a real `separator`, not a div with a drag listener.
@@ -348,32 +431,49 @@ const clampWidth = (px: number) =>
  * inside it is a 2px bar that only appears on hover or focus. A 2px pointer
  * target is a dexterity test, and a permanently visible grip is furniture on a
  * surface that is mostly text.
+ *
+ * IT IS PRESENT WHILE COLLAPSED, which the first cut got wrong. Collapsed is
+ * now the default, so removing the handle there meant the state every visitor
+ * starts in had no resize control at all and a keyboard visitor tabbing through
+ * met no separator until they had already expanded. `aria-valuenow` reports the
+ * resolved width in both states — 72 collapsed — and dragging or arrowing right
+ * out of the collapsed state expands it.
  */
 function SidebarResizeHandle({
   width,
+  collapsed,
   label,
-  onResize,
-  onCommit,
+  onResolve,
 }: {
+  /** The resolved width, which is the collapsed width while collapsed. */
   width: number
+  collapsed: boolean
   label: string
-  onResize: (px: number) => void
-  onCommit: (px: number) => void
+  /** Commit a snapped state. Persistence belongs to the caller. */
+  onResolve: (next: { collapsed: boolean; width: number }, commit: boolean) => void
 }) {
   const dragging = useRef(false)
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     let next: number | null = null
-    if (e.key === 'ArrowLeft') next = width - SIDEBAR_RESIZE_STEP
-    else if (e.key === 'ArrowRight') next = width + SIDEBAR_RESIZE_STEP
-    else if (e.key === 'Home') next = SIDEBAR_MIN_WIDTH
+    // THE GAP IS CROSSED IN ONE STEP, IN BOTH DIRECTIONS. Neither 72 + 16 nor
+    // 256 - 16 is a width the sidebar can be, so an arrow that would land
+    // inside the gap goes all the way over instead. Without the second case a
+    // keyboard visitor could expand from the separator but never collapse from
+    // it — the pointer can, by dragging across, and the two must match.
+    if (e.key === 'ArrowLeft') {
+      next = collapsed || width <= SIDEBAR_MIN_WIDTH
+        ? SIDEBAR_COLLAPSED_WIDTH
+        : width - SIDEBAR_RESIZE_STEP
+    } else if (e.key === 'ArrowRight') {
+      next = collapsed ? SIDEBAR_MIN_WIDTH : width + SIDEBAR_RESIZE_STEP
+    }
+    else if (e.key === 'Home') next = SIDEBAR_COLLAPSED_WIDTH
     else if (e.key === 'End') next = SIDEBAR_MAX_WIDTH
     if (next === null) return
     // The arrows would otherwise scroll the sidebar's own overflow container.
     e.preventDefault()
-    const clamped = clampWidth(next)
-    onResize(clamped)
-    onCommit(clamped)
+    onResolve(snapWidth(next), true)
   }
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
@@ -385,14 +485,14 @@ function SidebarResizeHandle({
     if (!dragging.current) return
     // The sidebar is pinned to the left edge, so the pointer's viewport x IS
     // the candidate width. No offset bookkeeping to drift.
-    onResize(clampWidth(e.clientX))
+    onResolve(snapWidth(e.clientX), false)
   }
 
   function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
     if (!dragging.current) return
     dragging.current = false
     e.currentTarget.releasePointerCapture(e.pointerId)
-    onCommit(clampWidth(e.clientX))
+    onResolve(snapWidth(e.clientX), true)
   }
 
   return (
@@ -401,7 +501,7 @@ function SidebarResizeHandle({
       tabIndex={0}
       aria-orientation="vertical"
       aria-label={label}
-      aria-valuemin={SIDEBAR_MIN_WIDTH}
+      aria-valuemin={SIDEBAR_COLLAPSED_WIDTH}
       aria-valuemax={SIDEBAR_MAX_WIDTH}
       aria-valuenow={width}
       onKeyDown={handleKeyDown}
@@ -481,11 +581,29 @@ export function SideNav({ active, onChange }: Props) {
     document.documentElement.style.setProperty('--sidebar-width', `${resolvedWidth}px`)
   }, [resolvedWidth])
 
-  const persistWidth = useCallback((px: number) => {
-    try {
-      window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(px))
-    } catch { /* storage unavailable; the session still resizes */ }
-  }, [])
+  /**
+   * Apply a snapped state, and persist it when the interaction settles.
+   *
+   * Both axes move together because a snap can change both at once — dragging
+   * from 300px down past the threshold collapses the sidebar AND leaves a width
+   * to come back to. Writing them through one function is what stops a reload
+   * restoring half of a gesture.
+   *
+   * `commit` is false during a drag and true on release or on a key press, so
+   * storage is written once per interaction rather than once per pointer event.
+   */
+  const applySidebarState = useCallback(
+    (next: { collapsed: boolean; width: number }, commit: boolean) => {
+      setCollapsed(next.collapsed)
+      setWidth(next.width)
+      if (!commit) return
+      try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next.collapsed))
+        window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(next.width))
+      } catch { /* storage unavailable; the session still resizes */ }
+    },
+    [],
+  )
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => {
@@ -496,6 +614,16 @@ export function SideNav({ active, onChange }: Props) {
       return next
     })
   }, [])
+
+  /**
+   * Does the catalogue tree currently carry the `aria-current` mark?
+   *
+   * Reported by the tree itself, so there is no second copy of the rule here
+   * that could drift from the one in `lib/catalogue-tree.ts`. False whenever
+   * the tree is not mounted, which is the collapsed default.
+   */
+  const [treeMarked, setTreeMarked] = useState(false)
+  const handleTreeMarked = useCallback((marked: boolean) => setTreeMarked(marked), [])
 
   // Same mechanism BottomNav already uses to decide what an anonymous visitor
   // sees. `null` means "still resolving", so the control stays absent until a
@@ -701,8 +829,24 @@ export function SideNav({ active, onChange }: Props) {
               )}
 
               {section.items.map(({ tab, href, label, icon }) => {
+                /**
+                 * PAN-125 — the section carries the mark when the tree cannot.
+                 *
+                 * Measured on production: in the collapsed default, nothing in
+                 * the sidebar was marked on `/browse/<root>`, on `?sub=` or on
+                 * `/product/<slug>`. The tree holds the precise mark for those
+                 * routes and the tree does not render at 72px, so the state
+                 * every first-time visitor starts in said nothing at all —
+                 * which is the owner's "you are here" quietly not firing.
+                 *
+                 * Katalog now marks the section whenever the visitor is inside
+                 * the catalogue and the tree is not marking something more
+                 * specific. Exactly one node still claims to be current: this
+                 * defers to the tree, and the tree defers to nobody.
+                 */
                 const isActive = href
-                  ? pathname === href
+                  ? pathname === href ||
+                    (href === '/browse' && isCataloguePath(pathname) && !treeMarked)
                   : tab !== undefined && active === tab
                 const itemStyle = {
                   color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
@@ -756,7 +900,7 @@ export function SideNav({ active, onChange }: Props) {
                           fetch resolves. */}
                       {href === '/browse' && !collapsed && (
                         <Suspense fallback={null}>
-                          <CatalogueTree />
+                          <CatalogueTree onMarkedChange={handleTreeMarked} />
                         </Suspense>
                       )}
                     </Fragment>
@@ -820,22 +964,24 @@ export function SideNav({ active, onChange }: Props) {
           )}
         </div>
 
-        {/* THE RESIZE HANDLE, and only when there is a width to change.
+        {/* THE RESIZE HANDLE, IN BOTH STATES.
 
-            Collapsed is a mode rather than a narrow width, so dragging its edge
-            would mean nothing: the answer to "too narrow" there is the expand
-            control, not a separator whose `aria-valuenow` would sit outside its
-            own min/max. Astryx's rule — "maximum wins when resolved bounds
-            conflict" — is about reconciling bounds, not about inventing a value
-            below the minimum, so the handle is simply absent while collapsed. */}
-        {!collapsed && (
-          <SidebarResizeHandle
-            width={width}
-            label={t.sidebarResize}
-            onResize={setWidth}
-            onCommit={persistWidth}
-          />
-        )}
+            It used to be rendered only while expanded, on the reasoning that
+            collapsed is a mode rather than a width and a separator reporting 72
+            under a minimum of 256 would be invalid. The premise was right and
+            the conclusion was wrong: collapsed is only outside the range if you
+            leave snapping out, and Astryx's spec lists snapping and collapse as
+            one concern. With the collapsed width as `aria-valuemin`, the value
+            is valid in both states — and since collapsed is the default, this is
+            the difference between a visitor meeting a resizable sidebar and
+            meeting one that cannot be resized until they find the expand
+            button. A keyboard visitor met no separator at all. */}
+        <SidebarResizeHandle
+          width={resolvedWidth}
+          collapsed={collapsed}
+          label={t.sidebarResize}
+          onResolve={applySidebarState}
+        />
       </aside>
     </>
   )

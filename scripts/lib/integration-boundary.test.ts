@@ -106,6 +106,10 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-98 exists because nobody asserted.
       'scripts/lib/pan121-position-signal.test.ts',
       'scripts/lib/pan122-toast.test.ts',
+      // PAN-125: the two gaps a production probe found after 120/121 merged —
+      // the sidenav "you are here" and the resize separator both existed only
+      // in the expanded state, and collapsed is the default.
+      'scripts/lib/pan125-sidenav-current.test.ts',
       // PAN-17: the sidebar catalogue tree. Its own suite because "populated
       // branches only" and "no price in a navigation payload" are both
       // properties of a pure builder, and both are silent failures — an empty

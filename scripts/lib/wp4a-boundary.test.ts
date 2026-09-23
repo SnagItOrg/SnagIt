@@ -210,6 +210,14 @@ test('boundary: /search reaches only client-safe modules of our own', () => {
     // state and no service-role client. `/search` gains the edge because the
     // demand panel must stop claiming a link was sent when the send failed.
     'lib/otp-error.ts',
+    // PAN-125: `currentCatalogueNode`, which decides which sidebar node is the
+    // current page. `SideNav` used to reach this module by `import type` only,
+    // so the edge was erased; taking the function makes it a real one. That is
+    // safe for the reason the module was written import-free in the first
+    // place — it imports NOTHING, so it cannot carry `lib/browse` or the
+    // service-role client along with it, which is the edge this boundary
+    // actually guards. Same class as `category-labels.ts` above.
+    'lib/catalogue-tree.ts',
   ])
   const unexpected = closure.filter((m) => !allowed.has(m) && !m.startsWith('components/'))
   assert.deepEqual(unexpected, [], 'unreviewed module reachable from the search client')
