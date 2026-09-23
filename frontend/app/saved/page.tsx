@@ -12,6 +12,8 @@ import type { Listing } from '@/lib/supabase'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
+import { ToastViewport } from '@/components/Toast'
+import { useToast } from '@/lib/use-toast'
 
 type SavedRow = {
   listing_id: string
@@ -28,7 +30,7 @@ export default function SavedPage() {
   const [authed,             setAuthed]           = useState<boolean | null>(null)
   const [rows,               setRows]             = useState<SavedRow[]>([])
   const [loading,            setLoading]          = useState(true)
-  const [toast,              setToast]            = useState<string | null>(null)
+  const { toasts, showToast, dismissToast } = useToast()
   const [showModal,          setShowModal]        = useState(false)
   const [modalQuery,         setModalQuery]       = useState('')
   const [creating,           setCreating]         = useState(false)
@@ -52,11 +54,6 @@ export default function SavedPage() {
       setRows(data)
     }
     setLoading(false)
-  }
-
-  function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(null), 3000)
   }
 
   function handleCreateWatchlist(listingTitle?: string) {
@@ -197,14 +194,7 @@ export default function SavedPage() {
         creating={creating}
       />
 
-      {toast && (
-        <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl text-sm font-semibold shadow-xl z-50"
-          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
-        >
-          {toast}
-        </div>
-      )}
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }

@@ -537,6 +537,184 @@
       transform: none;
     }
   }
+
+  /* --- toast ------------------------------------------------------------
+     PAN-122. The overlay family's second member, deliberately sharing the
+     dialog's tokens and its two curves rather than inventing a third motion.
+
+     POSITION. Bottom, inline-start, as a column stack — newest nearest the
+     edge it entered from. NOTHING HERE IS VIEWPORT-RELATIVE: the old toast
+     used `left-1/2 -translate-x-1/2` and `max-w-[92vw]`, both of which are
+     centred on the window, and PAN-120's resizable sidebar makes the window
+     and the content area stop sharing a centre. The stack spans the inline
+     axis and the card is capped in `rem`, so there is no `vw` left to go
+     wrong. `--toast-inset-inline-start` is the one seam PAN-120 may set to
+     push the stack clear of a sidebar; it is 0 until they do, and nothing
+     here reads their code.
+
+     Because the viewport SPANS the inline axis, `align-items` is explicit.
+     Astryx measured what happens when it is not: a shrink-wrapped box cannot
+     honour both inset-inline edges, so it resolves at content width against
+     the start edge and an end-aligned toast lands inside it — "438px box at
+     x=0, end-positioned toast landing at x=19" at 1200px wide.
+
+     THE CONSENT BANNER. `ConsentBanner` is `position: fixed` at the bottom of
+     every public route and publishes its measured height as
+     `--consent-banner-height` (body already reserves space with it). A
+     bottom-anchored toast would otherwise land on top of the banner for
+     exactly the visitors this primitive is now being built for — the ones who
+     have not answered consent yet. The block-end padding clears it, and costs
+     nothing once the variable is removed.
+
+     THE WIDTH CAP IS A RECORDED FIX, not a preference. Review messages name a
+     listing AND a product; with `whitespace-nowrap` they exceeded 360px and
+     pushed the page into horizontal scroll. `min-width: 0` plus
+     `overflow-wrap: anywhere` keeps that true down to 320px, including for a
+     single unbroken token like a URL.
+
+     COLOUR. The error card tints its fill with `--destructive-subtle` and its
+     rule with `--destructive-border`, and the glyph is `--destructive-text` —
+     the destructive tokens, never a raw `red-*`. The MESSAGE stays
+     `--text-primary` on both types: PAN-113 shipped a chip at 2.61:1 because
+     a fade composited ink and fill toward the canvas together, and the way to
+     not repeat it is to leave the ink alone and tint only behind it.
+
+     There is no success variant and no green anywhere in this file. Green is
+     exhaustive — Kup-rating, "Aktiv", `under typisk` — and a confirmation
+     that something saved is not one of Klup's judgements. */
+  .toast-viewport {
+    position: fixed;
+    z-index: 60; /* above .dialog-panel's 50: a watchlist is created IN a dialog */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    inset-block-end: 0;
+    inset-inline-start: var(--toast-inset-inline-start, 0px);
+    inset-inline-end: 0;
+    padding-block-start: max(var(--space-4), env(safe-area-inset-top, 0px));
+    padding-block-end: calc(
+      max(var(--space-4), env(safe-area-inset-bottom, 0px)) +
+      var(--consent-banner-height, 0px)
+    );
+    padding-inline-start: max(var(--space-4), env(safe-area-inset-left, 0px));
+    padding-inline-end: max(var(--space-4), env(safe-area-inset-right, 0px));
+    /* The stack spans the axis, so it must not swallow clicks beside a card. */
+    pointer-events: none;
+  }
+
+  .toast {
+    pointer-events: auto;
+    box-sizing: border-box;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    width: 100%;
+    max-width: 26rem;
+    min-width: 0;
+    padding-block: var(--space-3);
+    padding-inline: var(--space-4) var(--space-2);
+    border-radius: 0.75rem;
+    background-color: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--elevation-overlay);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity   var(--duration-medium-min) var(--ease-standard),
+      transform var(--duration-medium-min) var(--ease-standard);
+  }
+
+  .toast[data-state='entering'],
+  .toast[data-state='closing'] {
+    opacity: 0;
+    /* A rise, from the edge the stack is anchored to. */
+    transform: translateY(12px);
+  }
+
+  .toast[data-state='closing'] {
+    transition-timing-function: var(--ease-exit);
+  }
+
+  .toast--error {
+    /* The tint layers OVER the opaque surface; it does not replace it.
+       `--destructive-subtle` is 9% alpha, so setting it as `background-color`
+       would drop the opaque base and composite the card against whatever the
+       page happens to put behind it — a card, a photo, the canvas — and the
+       measured contrast would then be a different number on every route.
+       That is the PAN-113 failure mode exactly: a fade that composites ink and
+       fill toward the canvas together. With the base kept, the fill is a fixed
+       colour and the figures below hold everywhere. */
+    background-color: var(--surface-raised);
+    background-image: linear-gradient(
+      var(--destructive-subtle),
+      var(--destructive-subtle)
+    );
+    border-color: var(--destructive-border);
+  }
+
+  .toast__icon {
+    flex: none;
+    font-size: 20px;
+    line-height: 1.4;
+    color: var(--destructive-text);
+  }
+
+  .toast__message {
+    flex: 1 1 auto;
+    min-width: 0;
+    /* The recorded fix: a long review message wraps instead of widening the
+       page. `anywhere` rather than `break-word` so one unbroken token — a
+       pasted URL — cannot overflow either. */
+    overflow-wrap: anywhere;
+  }
+
+  .toast__dismiss {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: none;
+    border-radius: 0.375rem;
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color var(--duration-fast) var(--ease-standard);
+  }
+
+  .toast__dismiss:hover {
+    color: var(--text-primary);
+  }
+
+  .toast__dismiss .material-symbols-outlined {
+    font-size: 18px;
+  }
+
+  /* Reduced motion removes the travel, not the toast. The component reads the
+     same preference in JS and unmounts immediately, so nothing waits out a
+     duration that is no longer being spent. */
+  @media (prefers-reduced-motion: reduce) {
+    .toast {
+      transition: none;
+      transform: none;
+    }
+
+    /* No travel and no fade: the toast is simply there, and on the way out JS
+       unmounts it on the same tick rather than holding an invisible row. */
+    .toast[data-state='entering'],
+    .toast[data-state='closing'] {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 /* ==========================================================================

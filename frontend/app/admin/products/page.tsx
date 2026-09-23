@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useId, useMemo, useRef } from 'react'
 import Link from 'next/link'
 
-import { Toast } from '@/components/Toast'
+import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
 import {
   PUBLICATION_STATE_ACTION,
@@ -126,7 +126,7 @@ export default function AdminProductsPage() {
   const [saving, setSaving] = useState<string | null>(null)
   const [yearEditing, setYearEditing] = useState<string | null>(null)
   const [yearDraft, setYearDraft] = useState('')
-  const [toast, showToast] = useToast()
+  const { toasts, showToast, dismissToast } = useToast()
   const [subcategories, setSubcategories] = useState<Subcategory[] | null>(null)
   const [subcatError, setSubcatError] = useState<string | null>(null)
   const [taxEditing, setTaxEditing] = useState<string | null>(null)
@@ -142,7 +142,10 @@ export default function AdminProductsPage() {
       // "Ingen produkter fundet" must never stand in for a failed request.
       setProducts([])
       setSubcatError(null)
-      showToast(data.error ? `Kunne ikke hente produkter: ${data.error}` : 'Kunne ikke hente produkter.')
+      showToast(
+        data.error ? `Kunne ikke hente produkter: ${data.error}` : 'Kunne ikke hente produkter.',
+        { type: 'error' },
+      )
       setLoading(false)
       return
     }
@@ -197,7 +200,7 @@ export default function AdminProductsPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        showToast(data.message ?? data.error ?? 'Kunne ikke gemme.')
+        showToast(data.message ?? data.error ?? 'Kunne ikke gemme.', { type: 'error' })
         return false
       }
       setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, ...patch } : p)))
@@ -207,7 +210,7 @@ export default function AdminProductsPage() {
       void search(query)
       return true
     } catch {
-      showToast('Kunne ikke gemme. Prøv igen.')
+      showToast('Kunne ikke gemme. Prøv igen.', { type: 'error' })
       return false
     } finally {
       setSaving(null)
@@ -485,7 +488,7 @@ export default function AdminProductsPage() {
                       )
                     ) : (
                       <button
-                        onClick={() => { setTaxEditing(p.id); if (subcatError) showToast(subcatError) }}
+                        onClick={() => { setTaxEditing(p.id); if (subcatError) showToast(subcatError, { type: 'error' }) }}
                         disabled={saving === p.id}
                         className="text-xs px-2.5 py-1 rounded-lg disabled:opacity-50"
                         style={{ background: 'var(--secondary)', color: 'var(--foreground)' }}
@@ -505,7 +508,7 @@ export default function AdminProductsPage() {
           )}
         </div>
       )}
-      {toast && <Toast message={toast} />}
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }

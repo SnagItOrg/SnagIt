@@ -235,7 +235,14 @@ test('a provider 404 becomes one static, actionable message', () => {
 })
 
 test('the UI renders that message and nothing else', () => {
-  assert.ok(/showToast\(data\.error \?\? 'Fejl ved AI-gruppering'\)/.test(BULK_PAGE))
+  // PAN-122 gave the toast a type. The message is unchanged — still the
+  // server's static one, still not `String(e)` — but it is now raised as an
+  // error, so it persists until the operator dismisses it instead of
+  // disappearing on a 5s timer. A grouping failure is precisely the case the
+  // asymmetry exists for.
+  assert.ok(
+    /showToast\(data\.error \?\? 'Fejl ved AI-gruppering', \{ type: 'error' \}\)/.test(BULK_PAGE),
+  )
   assert.ok(!/String\(e\)/.test(BULK_PAGE))
 })
 

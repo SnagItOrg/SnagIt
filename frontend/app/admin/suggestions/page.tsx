@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { ToastViewport } from '@/components/Toast'
+import { useToast } from '@/lib/use-toast'
 
 type Suggestion = {
   id: string
@@ -39,7 +41,7 @@ export default function AdminSuggestionsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
-  const [toast, setToast] = useState<string | null>(null)
+  const { toasts, showToast, dismissToast } = useToast()
 
   // Duplicate detection
   const [duplicates, setDuplicates] = useState<Record<string, DuplicateInfo>>({})
@@ -54,11 +56,6 @@ export default function AdminSuggestionsPage() {
   const [mergeResults, setMergeResults] = useState<KgProduct[]>([])
   const [mergeSearching, setMergeSearching] = useState(false)
   const mergeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(null), 3000)
-  }
 
   const load = useCallback(async (status: Tab, off: number) => {
     setLoading(true)
@@ -107,7 +104,7 @@ export default function AdminSuggestionsPage() {
     })
     if (!res.ok) {
       setRows(prevRows)
-      showToast('Fejl ved opdatering')
+      showToast('Fejl ved opdatering', { type: 'error' })
     } else {
       showToast('Navn opdateret')
     }
@@ -136,7 +133,7 @@ export default function AdminSuggestionsPage() {
       showToast(`"${s.canonical_name}" godkendt`)
     } else {
       const data = await res.json()
-      showToast(data.error ?? 'Fejl')
+      showToast(data.error ?? 'Fejl', { type: 'error' })
     }
     setApprovingId(null)
     setActionLoading(null)
@@ -191,7 +188,7 @@ export default function AdminSuggestionsPage() {
       showToast('Merget')
     } else {
       const data = await res.json()
-      showToast(data.error ?? 'Fejl')
+      showToast(data.error ?? 'Fejl', { type: 'error' })
     }
     setMergingId(null)
     setActionLoading(null)
@@ -213,7 +210,7 @@ export default function AdminSuggestionsPage() {
       removeRow(s.id)
       showToast('Sendt tilbage til pending')
     } else {
-      showToast('Fejl')
+      showToast('Fejl', { type: 'error' })
     }
     setActionLoading(null)
   }
@@ -504,14 +501,7 @@ export default function AdminSuggestionsPage() {
         </>
       )}
 
-      {toast && (
-        <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl text-sm font-semibold shadow-xl z-50"
-          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
-        >
-          {toast}
-        </div>
-      )}
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }

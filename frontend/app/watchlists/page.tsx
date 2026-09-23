@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePostHog } from 'posthog-js/react'
 import type { Watchlist } from '@/lib/supabase'
@@ -13,7 +13,8 @@ import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { loadOnboarding, clearOnboarding, fireEvent } from '@/lib/onboarding'
-import { Toast } from '@/components/Toast'
+import { ToastViewport } from '@/components/Toast'
+import { useToast } from '@/lib/use-toast'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 
 export default function WatchlistsPage() {
@@ -24,8 +25,7 @@ export default function WatchlistsPage() {
   const [watchlists,   setWatchlists]   = useState<Watchlist[]>([])
   const [loading,      setLoading]      = useState(true)
   const [showCreator,  setShowCreator]  = useState(false)
-  const [toast,        setToast]        = useState<string | null>(null)
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { toasts, showToast, dismissToast } = useToast()
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
@@ -50,12 +50,6 @@ export default function WatchlistsPage() {
     const res = await fetch('/api/watchlists')
     if (res.ok) setWatchlists(await res.json())
     setLoading(false)
-  }
-
-  function showToast(msg: string) {
-    setToast(msg)
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setToast(null), 3000)
   }
 
   // Sync onboarding data saved anonymously before sign-up.
@@ -219,7 +213,7 @@ export default function WatchlistsPage() {
 
       <BottomNav />
 
-      {toast && <Toast message={toast} />}
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }
