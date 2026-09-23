@@ -198,6 +198,12 @@ test('boundary: /search reaches only client-safe modules of our own', () => {
     // erased, so `SideNav` gains no edge to lib/browse or the service-role
     // client; the tree is fetched from /api/catalogue-tree at runtime.
     'lib/category-labels.ts',
+    // PAN-121: the position signal's derivation. Import-free by design, like
+    // `catalogue.ts` and `publication.ts` — it counts an array it is handed and
+    // resolves nothing, so it reaches no catalogue state and no service-role
+    // client. `/search` gains the edge through `PositionSignal`, which is how
+    // the query and the rendered candidate count reach the page.
+    'lib/position-signal.ts',
   ])
   const unexpected = closure.filter((m) => !allowed.has(m) && !m.startsWith('components/'))
   assert.deepEqual(unexpected, [], 'unreviewed module reachable from the search client')

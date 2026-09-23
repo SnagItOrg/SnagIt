@@ -1,7 +1,7 @@
 'use client'
 
-import { Fragment, useState, useEffect } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { Fragment, Suspense, useState, useEffect } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { Sun, Moon } from 'lucide-react'
@@ -93,6 +93,16 @@ function ThemeToggle() {
 function CatalogueTree() {
   const { t, locale } = useLocale()
   const pathname = usePathname()
+  /**
+   * PAN-121 — the sidebar reads the same facet the chips write.
+   *
+   * `/browse/[root]` now keeps its subcategory in `?sub=<slug>`, so "where you
+   * are" is a fact both surfaces can read rather than one component's private
+   * state. Reading it here is what makes the sidebar indicator and the filter
+   * chips agree instead of telling two half-stories.
+   */
+  const searchParams = useSearchParams()
+  const activeSub = searchParams.get('sub')
   const [categories, setCategories] = useState<CatalogueTreeCategory[]>([])
 
   useEffect(() => {
@@ -117,6 +127,19 @@ function CatalogueTree() {
           locale === 'da' ? category.name_da : category.name_en,
         )
 
+        /**
+         * PAN-121 — is this the branch the visitor is standing in?
+         *
+         * `isCurrentRoot` is the whole `/browse/<root>` page; `isCurrentBranch`
+         * additionally requires that no facet is narrowing it, so a visitor
+         * filtered down to one subcategory sees the *subcategory* marked as the
+         * current node rather than two nodes both claiming to be it. Exactly one
+         * `aria-current="page"` in the tree at a time is the point — a screen
+         * reader announcing two current pages is no better than announcing none.
+         */
+        const isCurrentRoot = pathname === `/browse/${category.slug}`
+        const isCurrentBranch = isCurrentRoot && activeSub === null
+
         return (
           // Native disclosure. `<details>` needs no state, keeps keyboard and
           // screen-reader semantics, and survives a client-side route change
@@ -137,8 +160,23 @@ function CatalogueTree() {
                  ("Western- & akustiske guitarer") needs every pixel before the
                  truncation, and a branch label that cannot be read is worse
                  navigation than one sitting 10px left of the item above it. */
-              className="flex items-center gap-1.5 pl-3 pr-2 py-2 rounded-xl text-[13px] font-medium cursor-pointer list-none [&::-webkit-details-marker]:hidden transition-colors hover:bg-secondary"
-              style={{ color: 'var(--muted-foreground)' }}
+              /* PAN-121 — the current branch, marked without colour.
+                 A rail, a fill and a weight step. The sparse-accent rule is
+                 exhaustive, so green is not available to a nav item; and
+                 PAN-113 measured an opacity-based state treatment at 2.61:1,
+                 so transparency is not available either. All three signals
+                 here are full-strength semantic tokens. */
+              aria-current={isCurrentBranch ? 'page' : undefined}
+              className={`flex items-center gap-1.5 pr-2 py-2 rounded-xl text-[13px] cursor-pointer list-none [&::-webkit-details-marker]:hidden transition-colors hover:bg-secondary ${
+                isCurrentBranch
+                  ? 'pl-2 border-l-2 font-semibold'
+                  : 'pl-3 font-medium'
+              }`}
+              style={{
+                color: isCurrentBranch ? 'var(--foreground)' : 'var(--muted-foreground)',
+                backgroundColor: isCurrentBranch ? 'var(--secondary)' : 'transparent',
+                borderLeftColor: isCurrentBranch ? 'var(--foreground)' : 'transparent',
+              }}
             >
               <span
                 className="material-symbols-outlined flex-shrink-0 transition-transform group-open:rotate-90"
@@ -153,19 +191,39 @@ function CatalogueTree() {
             <ul className="flex flex-col">
               {category.subcategories.map((sub) => {
                 const subLabel = locale === 'da' ? sub.name_da : sub.name_en
+                /* `sub.slug` is documented in `catalogue-tree.ts` as the bare
+                   leaf slug "as `/browse/<root>` reports it", which is exactly
+                   the value the filter chips write into `?sub=`. The sidebar and
+                   the chips therefore compare the same string — no second
+                   normalisation here that could drift from the route's. */
+                const isCurrentSub = isCurrentRoot && activeSub === sub.slug
                 return (
                   <li key={sub.slug}>
-                    {/* A subcategory is a grouping label, not a destination:
-                        `/browse/<root>` filters by subcategory in client state
-                        rather than in the URL, so there is no honest href to
-                        give this row today. */}
-                    <p
-                      className="pl-10 pr-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wide truncate"
-                      style={{ color: 'var(--muted-foreground)' }}
+                    {/* PAN-121 — a subcategory IS a destination now.
+
+                        It used to be an inert `<p>`, and the comment here said
+                        why: "`/browse/<root>` filters by subcategory in client
+                        state rather than in the URL, so there is no honest href
+                        to give this row today." That premise is gone — the facet
+                        is `?sub=<slug>` — so the row becomes the link it always
+                        wanted to be, and the same click the chip performs is now
+                        available from the sidebar. This is also the only reason
+                        the sidebar can mark the current subcategory at all. */}
+                    <Link
+                      href={`/browse/${category.slug}?sub=${encodeURIComponent(sub.slug)}`}
+                      aria-current={isCurrentSub ? 'page' : undefined}
+                      className={`block pr-3 pt-2 pb-1 text-[11px] uppercase tracking-wide truncate rounded-lg transition-colors hover:bg-secondary ${
+                        isCurrentSub ? 'pl-9 border-l-2 font-bold' : 'pl-10 font-semibold'
+                      }`}
+                      style={{
+                        color: isCurrentSub ? 'var(--foreground)' : 'var(--muted-foreground)',
+                        backgroundColor: isCurrentSub ? 'var(--secondary)' : 'transparent',
+                        borderLeftColor: isCurrentSub ? 'var(--foreground)' : 'transparent',
+                      }}
                       title={subLabel}
                     >
                       {subLabel}
-                    </p>
+                    </Link>
                     <ul className="flex flex-col">
                       {sub.products.map((product) => {
                         const href = `/product/${product.slug}`
@@ -174,10 +232,18 @@ function CatalogueTree() {
                           <li key={product.slug}>
                             <Link
                               href={href}
-                              className="block pl-10 pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary"
+                              /* PAN-121 — `isHere` already painted this row;
+                                 nothing told a screen reader about it. The
+                                 visual state and the announced state now come
+                                 from the same boolean. */
+                              aria-current={isHere ? 'page' : undefined}
+                              className={`block pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary ${
+                                isHere ? 'pl-9 border-l-2 font-semibold' : 'pl-10'
+                              }`}
                               style={{
                                 color: isHere ? 'var(--foreground)' : 'var(--muted-foreground)',
                                 backgroundColor: isHere ? 'var(--secondary)' : 'transparent',
+                                borderLeftColor: isHere ? 'var(--foreground)' : 'transparent',
                               }}
                               title={product.label}
                             >
@@ -328,7 +394,16 @@ export function SideNav({ active, onChange }: Props) {
             if (href) {
               return (
                 <Fragment key={href}>
-                  <Link href={href} className={itemClass} style={itemStyle}>
+                  {/* PAN-121 — the top-level section, announced as well as
+                      painted. `isActive` has styled this item since PAN-73;
+                      `aria-current` is what makes the same fact reach a screen
+                      reader, and `SideNav` carried none anywhere before this. */}
+                  <Link
+                    href={href}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={itemClass}
+                    style={itemStyle}
+                  >
                     {icon}
                     <span>{label}</span>
                   </Link>
@@ -336,7 +411,18 @@ export function SideNav({ active, onChange }: Props) {
                       under a heading of its own: the item already says
                       "Katalog" and already goes to /browse, so a second label
                       would name the same thing twice. */}
-                  {href === '/browse' && <CatalogueTree />}
+                  {/* `CatalogueTree` reads `?sub=` to mark the current leaf, and
+                      `useSearchParams` opts a statically-rendered page into
+                      client rendering unless it sits behind a boundary. The
+                      sidebar mounts on eight pages, several of them static, so
+                      the boundary lives here rather than being pushed onto every
+                      one of them. `null` is the honest fallback: the tree
+                      already renders nothing until its fetch resolves. */}
+                  {href === '/browse' && (
+                    <Suspense fallback={null}>
+                      <CatalogueTree />
+                    </Suspense>
+                  )}
                 </Fragment>
               )
             }

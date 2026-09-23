@@ -470,6 +470,19 @@ export const translations = {
     toastRegionLabel: 'Beskeder',
     toastErrorLabel: 'Fejl',
     toastDismiss: 'Luk besked',
+
+    // PAN-121 — the position signal. One contiguous block, because three
+    // workers are adding keys to this file tonight.
+    positionSignalRegion: 'Hvor du er',
+    positionSignalUnfiltered: 'Ingen filtre aktive',
+    positionSignalAllCategories: 'Alle kategorier',
+    positionSignalResultOne: '{count} resultat',
+    positionSignalResultMany: '{count} resultater',
+    positionSignalCategoryOne: '{count} kategori',
+    positionSignalCategoryMany: '{count} kategorier',
+    positionSignalQueryFilter: 'Søgning: {query}',
+    positionSignalRemoveFilter: 'Fjern filter: {label}',
+    positionSignalFilterRemoved: 'Filter fjernet: {label}',
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -880,6 +893,19 @@ export const translations = {
     toastRegionLabel: 'Notifications',
     toastErrorLabel: 'Error',
     toastDismiss: 'Dismiss message',
+
+    // PAN-121 — the position signal. One contiguous block, because three
+    // workers are adding keys to this file tonight.
+    positionSignalRegion: 'Where you are',
+    positionSignalUnfiltered: 'No filters active',
+    positionSignalAllCategories: 'All categories',
+    positionSignalResultOne: '{count} result',
+    positionSignalResultMany: '{count} results',
+    positionSignalCategoryOne: '{count} category',
+    positionSignalCategoryMany: '{count} categories',
+    positionSignalQueryFilter: 'Search: {query}',
+    positionSignalRemoveFilter: 'Remove filter: {label}',
+    positionSignalFilterRemoved: 'Filter removed: {label}',
   },
 } as const
 

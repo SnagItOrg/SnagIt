@@ -8,6 +8,8 @@ import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { useLocale } from '@/components/LocaleProvider'
+import { PositionSignal } from '@/components/PositionSignal'
+import { buildPositionSignal } from '@/lib/position-signal'
 import type { BrowseRootResponse } from '@/lib/browse'
 
 interface Category {
@@ -99,6 +101,19 @@ function BrowsePageInner() {
               </button>
             )}
           </div>
+
+          {/* PAN-121 — the catalogue root is the one surface with nothing
+              narrowing it, so the signal says so rather than rendering an empty
+              bar. The number counts the tiles actually rendered below. */}
+          {!loading && !error && (
+            <PositionSignal
+              signal={buildPositionSignal({
+                scope: t.positionSignalAllCategories,
+                renderedRows: data.categories,
+                countKind: 'categories',
+              })}
+            />
+          )}
 
           {loading ? (
             <div className="grid-wall">

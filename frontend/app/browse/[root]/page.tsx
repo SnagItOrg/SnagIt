@@ -9,6 +9,8 @@ import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { ProductCard } from '@/components/ProductCard'
 import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
+import { PositionSignal } from '@/components/PositionSignal'
+import { buildPositionSignal } from '@/lib/position-signal'
 import type { BrowseLeafResponse } from '@/lib/browse'
 
 interface Category {
@@ -56,10 +58,37 @@ function BrowseCategoryPageInner() {
   const [data, setData] = useState<BrowseData | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [activeSubcat, setActiveSubcat] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const debugEnabled = searchParams.get('debug') === '1'
+
+  /**
+   * PAN-121 — the subcategory filter lives in the URL now, as `?sub=<slug>`.
+   *
+   * It was `useState`, and that was the reason the sidebar could not mark where
+   * you are: `SideNav` is a sibling component with no access to this page's
+   * local state, so the comment on the sidebar's subcategory rows read "there
+   * is no honest href to give this row today". With the filter in the URL there
+   * is one, and the two surfaces can state the same truth instead of two half
+   * ones — which is exactly what the owner's scope change asks for.
+   *
+   * Three things come free with the move, and each was a real defect: the
+   * filtered view is now linkable, the back button now undoes a filter, and a
+   * reload no longer silently drops it.
+   *
+   * `replace`, not `push`, and `scroll: false` — toggling a facet is a
+   * refinement of one view, not a new page, and it must not build a back-button
+   * trail of every chip the visitor tried.
+   */
+  const activeSubcat = searchParams.get('sub')
+
+  const setActiveSubcat = useCallback((slug: string | null) => {
+    const next = new URLSearchParams(searchParams.toString())
+    if (slug) next.set('sub', slug)
+    else next.delete('sub')
+    const qs = next.toString()
+    router.replace(`/browse/${params.root}${qs ? `?${qs}` : ''}`, { scroll: false })
+  }, [params.root, router, searchParams])
 
   useEffect(() => {
     fetch('/api/admin/me')
@@ -101,7 +130,9 @@ function BrowseCategoryPageInner() {
 
   useEffect(() => {
     if (!params.root) return
-    setActiveSubcat(null)
+    // No `setActiveSubcat(null)` here any more: the URL owns the facet, and a
+    // different root is a different URL that carries no `?sub=`. Resetting it
+    // from an effect would now mean a router write on every page load.
     setLoading(true)
     setError(null)
     fetchPage(1, false)
@@ -132,6 +163,40 @@ function BrowseCategoryPageInner() {
   const categoryName = data?.category
     ? locale === 'da' ? data.category.name_da : data.category.name_en
     : ''
+
+  /**
+   * PAN-121 — the position signal.
+   *
+   * `filteredProducts` and not `data.total_public_products`. The projection
+   * total counts the whole root across every page and ignores the subcategory
+   * chip entirely; `filteredProducts` is the array three lines below this one
+   * maps into cards. PAN-98 is the ticket where those two numbers were allowed
+   * to differ — 187 advertised, 75 rendered — so `buildPositionSignal` takes
+   * the rows themselves and there is no argument the total could be passed as.
+   *
+   * The category name comes from the API's `kg_category.name_da` / `name_en`,
+   * which is the single label authority since PAN-107. Nothing here consults
+   * `category-labels.ts`.
+   */
+  const activeSubcategory = activeSubcat
+    ? (data?.subcategories ?? []).find((s) => s.slug === activeSubcat)
+    : undefined
+
+  const positionSignal = buildPositionSignal({
+    // No `scope`: `categoryName` is already the <h1> directly above, and
+    // already the last crumb of the breadcrumb above that. A third copy made
+    // the visitor choose which of three position statements to read.
+    renderedRows: filteredProducts,
+    filters: activeSubcategory
+      ? [
+          {
+            id: activeSubcategory.slug,
+            kind: 'subcategory' as const,
+            label: locale === 'da' ? activeSubcategory.name_da : activeSubcategory.name_en,
+          },
+        ]
+      : [],
+  })
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)' }}>
@@ -185,6 +250,14 @@ function BrowseCategoryPageInner() {
               </div>
             )}
           </div>
+
+          {/* PAN-121 — where you are, and what is narrowing it. */}
+          {!loading && !error && data && (
+            <PositionSignal
+              signal={positionSignal}
+              onRemoveFilter={() => setActiveSubcat(null)}
+            />
+          )}
 
           {/* Subcategory filter chips */}
           {!loading && (data?.subcategories ?? []).length > 0 && (
