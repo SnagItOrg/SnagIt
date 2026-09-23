@@ -356,7 +356,7 @@ test('integration: no private catalogue slug reaches a client bundle', (t) => {
 })
 
 test('integration: the client search page cannot reach the family children', () => {
-  const page = readFileSync(join(FRONTEND, 'app', 'search', 'page.tsx'), 'utf8')
+  const page = readFileSync(join(FRONTEND, 'app', '(shell)', 'search', 'page.tsx'), 'utf8')
   assert.ok(page.startsWith("'use client'"), 'the search page is a client component')
   assert.equal(
     /from '@\/lib\/families'/.test(page),
@@ -391,7 +391,7 @@ test('integration: the client search page cannot reach the family children', () 
 /* ── Point 4: one taxonomy, connected through the real generic ───────────── */
 
 test('integration: the analytics seam is WP-5 track(), with no second taxonomy', () => {
-  const page = readFileSync(join(FRONTEND, 'app', 'search', 'page.tsx'), 'utf8')
+  const page = readFileSync(join(FRONTEND, 'app', '(shell)', 'search', 'page.tsx'), 'utf8')
   const pageCode = code(page)
 
   assert.match(pageCode, /import \{ track \} from '@\/lib\/analytics'/)
@@ -432,11 +432,11 @@ test('integration: the analytics seam is WP-5 track(), with no second taxonomy',
 /* ── Point 5: the family demand marker survives both packages ────────────── */
 
 test('integration: demand=family:<slug> is produced and honoured', () => {
-  const familyPage = readFileSync(join(FRONTEND, 'app', 'family', '[slug]', 'page.tsx'), 'utf8')
+  const familyPage = readFileSync(join(FRONTEND, 'app', '(shell)', 'family', '[slug]', 'page.tsx'), 'utf8')
   assert.match(familyPage, /name="demand" value=\{`family:\$\{family\.slug\}`\}/)
   assert.match(familyPage, /action="\/search"/)
 
-  const search = readFileSync(join(FRONTEND, 'app', 'search', 'page.tsx'), 'utf8')
+  const search = readFileSync(join(FRONTEND, 'app', '(shell)', 'search', 'page.tsx'), 'utf8')
   assert.match(search, /DEMAND_FAMILY_PREFIX = 'family:'/)
   assert.match(search, /demandParam\.startsWith\(DEMAND_FAMILY_PREFIX\)/)
   // The demand outcome must never navigate back to the family it came from.

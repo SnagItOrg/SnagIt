@@ -749,7 +749,7 @@ test('families never aggregate: a family candidate carries no price, listing or 
  * 8b. Family-originated demand capture — ?demand=family:<slug>
  * ------------------------------------------------------------------ */
 
-const PAGE_SRC = readSource('app', 'search', 'page.tsx')
+const PAGE_SRC = readSource('app', '(shell)', 'search', 'page.tsx')
 
 test('demand mode: the family parameter is parsed and honoured', () => {
   assert.ok(PAGE_SRC.includes("DEMAND_FAMILY_PREFIX = 'family:'"), 'the prefix must be explicit')
@@ -1003,7 +1003,7 @@ test('every href a result can produce points at /product or /family only', () =>
  * ------------------------------------------------------------------ */
 
 const SEARCH_SOURCES: Array<[string, string]> = [
-  ['app/search/page.tsx', readSource('app', 'search', 'page.tsx')],
+  ['app/(shell)/search/page.tsx', readSource('app', '(shell)', 'search', 'page.tsx')],
   ['app/api/search/resolve/route.ts', readSource('app', 'api', 'search', 'resolve', 'route.ts')],
   ['lib/search-resolver.ts', readSource('lib', 'search-resolver.ts')],
   ['lib/search-index.ts', readSource('lib', 'search-index.ts')],
@@ -1071,7 +1071,7 @@ test('the resolver route reads only, and only from catalogue sources', () => {
 })
 
 test('the demand control never sends an email address to analytics', () => {
-  const src = readSource('app', 'search', 'page.tsx')
+  const src = readSource('app', '(shell)', 'search', 'page.tsx')
   // The payload is built by `demandSignalPayload`, so the property set is
   // fixed by its return type; this asserts the page never adds one.
   assert.ok(
@@ -1192,7 +1192,7 @@ test('the admin scrape workflow is preserved exactly', () => {
   assert.ok(section.includes('scrape-platform'), 'admin curation must still call scrape-platform')
   for (const host of [
     ['app', 'admin', 'product', '[slug]', 'ProductCurationClient.tsx'],
-    ['app', 'product', '[slug]', 'page.tsx'],
+    ['app', '(shell)', 'product', '[slug]', 'page.tsx'],
   ]) {
     assert.ok(
       readCode(...host).includes('ScrapeSection'),
@@ -1206,7 +1206,7 @@ test('the admin scrape workflow is preserved exactly', () => {
  * ------------------------------------------------------------------ */
 
 test('acceptance 9: no listing grid, source chips or sort control remain on /search', () => {
-  const src = readSource('app', 'search', 'page.tsx')
+  const src = readSource('app', '(shell)', 'search', 'page.tsx')
   const removed: Array<[string, string]> = [
     ['SearchResultCard', 'the listing card'],
     ['ALL_SOURCES', 'the source toggle chips'],
@@ -1226,13 +1226,13 @@ test('acceptance 9: no listing grid, source chips or sort control remain on /sea
 })
 
 test('/search renders no listing type at all', () => {
-  const src = readSource('app', 'search', 'page.tsx')
+  const src = readSource('app', '(shell)', 'search', 'page.tsx')
   assert.equal(/from '@\/lib\/supabase'/.test(src), false, 'the Listing type must not be imported')
   assert.equal(src.includes('listings'), false, 'no listing collection may be rendered')
 })
 
 test('/search uses i18n keys, never a hardcoded Danish string', () => {
-  const src = readCode('app', 'search', 'page.tsx')
+  const src = readCode('app', '(shell)', 'search', 'page.tsx')
   // Danish-specific characters outside a comment would mean inline copy.
   const withoutComments = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
   const danish = withoutComments.match(/["'`][^"'`]*[æøåÆØÅ][^"'`]*["'`]/g) ?? []
@@ -1244,17 +1244,25 @@ test('/search uses i18n keys, never a hardcoded Danish string', () => {
  * ------------------------------------------------------------------ */
 
 test('mobile: the search field cannot trigger an iOS zoom, and targets are tappable', () => {
-  const src = readCode('app', 'search', 'page.tsx')
+  const src = readCode('app', '(shell)', 'search', 'page.tsx')
   assert.ok(src.includes('text-base'), 'the input must be >=16px or iOS Safari zooms on focus')
   assert.ok(src.includes('min-h-[44px]'), 'primary controls need a 44px touch target')
   assert.ok(src.includes('min-h-[56px]'), 'candidate rows need a comfortable touch target')
   assert.ok(src.includes('enterKeyHint="search"'), 'the soft keyboard must offer a search action')
-  assert.ok(src.includes('<BottomNav'), 'mobile navigation must remain on the page')
+  // PAN-131 moved the chrome up a level: `BottomNav` is mounted once by the
+  // shell layout instead of nine times by the pages. The property this test
+  // guards is unchanged — /search must still carry mobile navigation — so the
+  // assertion follows the element to the file that now renders it rather than
+  // being dropped.
+  assert.ok(
+    readCode('app', '(shell)', 'layout.tsx').includes('<BottomNav'),
+    'mobile navigation must remain on the page',
+  )
   assert.ok(src.includes('pb-24'), 'content must clear the fixed bottom navigation')
 })
 
 test('keyboard: the candidate set is fully operable without a pointer', () => {
-  const src = readCode('app', 'search', 'page.tsx')
+  const src = readCode('app', '(shell)', 'search', 'page.tsx')
   for (const token of [
     "role=\"combobox\"",
     'aria-expanded',
@@ -1275,7 +1283,7 @@ test('keyboard: the candidate set is fully operable without a pointer', () => {
 })
 
 test('decorative icons are hidden from assistive technology', () => {
-  const src = readCode('app', 'search', 'page.tsx')
+  const src = readCode('app', '(shell)', 'search', 'page.tsx')
   const icons = src.match(/material-symbols-outlined/g) ?? []
   const hidden = src.match(/aria-hidden="true"/g) ?? []
   assert.ok(hidden.length >= icons.length, 'every ligature icon must be aria-hidden')
@@ -1619,7 +1627,7 @@ test('search_submitted: exact keys, derived lengths, declared enums', () => {
 })
 
 test('search_submitted: family-prefill and manual typing map differently', () => {
-  const src = readSource('app', 'search', 'page.tsx')
+  const src = readSource('app', '(shell)', 'search', 'page.tsx')
   // An unedited family prefill came from the URL; an edited one is the
   // visitor's own. Reporting both as `typed` would inflate manual intent.
   assert.ok(src.includes("q === prefillSeed.current ? 'url_param' : 'typed'"))
@@ -1724,7 +1732,7 @@ test('demand_signal_submitted: inline_email vs notify_button, exact keys', () =>
 
 test('the retired email/anonymous vocabulary is gone everywhere', () => {
   const sources = [
-    readSource('app', 'search', 'page.tsx'),
+    readSource('app', '(shell)', 'search', 'page.tsx'),
     readSource('lib', 'search-resolver.ts'),
   ]
   for (const src of sources) {
@@ -1734,7 +1742,7 @@ test('the retired email/anonymous vocabulary is gone everywhere', () => {
 })
 
 test('no discovery_product_clicked emission remains in search', () => {
-  const src = readSource('app', 'search', 'page.tsx')
+  const src = readSource('app', '(shell)', 'search', 'page.tsx')
   assert.equal(src.includes('discovery_product_clicked'), false)
   for (const shelf of ['browse_grid', 'related', 'followed', 'recent', 'search_disambiguation', 'search_nearest']) {
     assert.equal(src.includes(shelf), false, `search must not label a click as "${shelf}"`)
@@ -1744,7 +1752,7 @@ test('no discovery_product_clicked emission remains in search', () => {
 })
 
 test('the page can emit only the four declared events, with no escape hatch', () => {
-  const src = readSource('app', 'search', 'page.tsx')
+  const src = readSource('app', '(shell)', 'search', 'page.tsx')
   const emitted = [...src.matchAll(/emit\(\s*'([a-z_]+)'/g)].map((m) => m[1])
   assert.deepEqual(
     [...new Set(emitted)].sort(),

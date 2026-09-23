@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { SideNav } from '@/components/SideNav'
-import { BottomNav } from '@/components/BottomNav'
 import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
 import { SearchResultCard } from '@/components/SearchResultCard'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
@@ -264,9 +262,7 @@ export default function ProductPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-background text-foreground md:flex">
-      <SideNav active="soeg" onChange={() => {}} />
-
+    <>
       {/*
         pb-10, not pb-24. The mobile pb-24 was clearance for the fixed
         BottomNav, but <main> is not the last thing on the page — the consent
@@ -995,7 +991,6 @@ export default function ProductPage() {
         </div>
       </main>
 
-      <BottomNav />
 
       <CreateWatchlistModal
         isOpen={showModal}
@@ -1005,6 +1000,6 @@ export default function ProductPage() {
         creating={creating}
       />
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
-    </div>
+    </>
   )
 }

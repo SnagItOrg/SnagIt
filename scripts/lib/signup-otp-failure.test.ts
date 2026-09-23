@@ -32,7 +32,7 @@ import { translations } from '../../frontend/lib/i18n'
 const FRONTEND = join(__dirname, '..', '..', 'frontend')
 
 const CARD = readFileSync(join(FRONTEND, 'components', 'SearchResultCard.tsx'), 'utf8')
-const SEARCH = readFileSync(join(FRONTEND, 'app', 'search', 'page.tsx'), 'utf8')
+const SEARCH = readFileSync(join(FRONTEND, 'app', '(shell)', 'search', 'page.tsx'), 'utf8')
 
 /** Strip comments, so prose explaining the old shape cannot satisfy a check. */
 const code = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')

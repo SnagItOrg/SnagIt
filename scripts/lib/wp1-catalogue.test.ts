@@ -264,7 +264,7 @@ test('families: the shape is intact and every entry is well formed', () => {
   // This test previously asserted `NAVIGATION_FAMILIES.length === 0`, pinning
   // the R1-to-R3 intermediate state in which the six legacy /product URLs 404
   // because their family routes do not exist yet. That state ended when WP-2
-  // landed app/family/[slug] and filled the config, so the assertion was
+  // landed app/(shell)/family/[slug] and filled the config, so the assertion was
   // pinning a fact with an expiry date rather than an invariant.
   //
   // Nothing is weakened: the shape checks below are unchanged, the three

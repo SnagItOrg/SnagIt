@@ -29,7 +29,7 @@ const FRONTEND = join(__dirname, '..', '..', 'frontend')
 const codeOf = (...seg: string[]) => readFileSync(join(FRONTEND, ...seg), 'utf8')
 const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
 
-const PAGE = ['app', 'product', '[slug]', 'page.tsx']
+const PAGE = ['app', '(shell)', 'product', '[slug]', 'page.tsx']
 const ROUTE = ['app', 'api', 'product', '[slug]', 'route.ts']
 
 const obs = (n: number[]) => n.map((v) => ({ price: v, price_dkk: v })) as never

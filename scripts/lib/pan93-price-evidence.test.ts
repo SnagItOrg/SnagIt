@@ -178,7 +178,7 @@ test('PAN-93/3: an unadjudicated product renders as monitored, not as zero', asy
   )
   assert.ok(route.includes('awaitingReview,'), 'the route ships it')
 
-  const page = strip(codeOf('app', 'product', '[slug]', 'page.tsx'))
+  const page = strip(codeOf('app', '(shell)', 'product', '[slug]', 'page.tsx'))
   assert.ok(page.includes('setAwaitingReview(data.awaitingReview ?? 0)'), 'the page reads it')
   assert.ok(page.includes('awaitingReview={awaitingReview}'), 'the page passes it')
 })

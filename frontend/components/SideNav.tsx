@@ -7,27 +7,35 @@ import { useTheme } from 'next-themes'
 import { Sun, Moon } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
-import type { NavTab } from '@/components/BottomNav'
+import { Icon } from '@/components/Icon'
 import { fill, type Locale } from '@/lib/i18n'
 import { currentCatalogueNode, type CatalogueTreeCategory } from '@/lib/catalogue-tree'
 
-interface Props {
-  active: NavTab
-  /**
-   * Optional, so a SERVER component can mount the sidebar.
-   *
-   * Every nav item carries an `href` today and is active by pathname, so the
-   * tab-based branch below — the only caller — never runs, and all eight
-   * client pages pass `() => {}`. A server page may not hand a function across
-   * the RSC boundary at all, so /family/[slug] mounts `<SideNav active=… />`
-   * and this stays undefined. Making it optional is what lets that route reuse
-   * this chrome instead of growing a second shell.
-   */
-  onChange?: (tab: NavTab) => void
-}
+/**
+ * PAN-131 — THE SIDEBAR TAKES NO PROPS, BECAUSE A LAYOUT CANNOT SUPPLY THEM.
+ *
+ * `active: NavTab` and `onChange?: (tab) => void` used to arrive from each of
+ * the nine pages. Both are gone, and neither was carrying anything:
+ *
+ *   `active` was read in exactly ONE place — `isActive = href ? … : active ===
+ *   tab` — and every item in `navSections` carries an `href`, so the tab arm
+ *   never ran. The nine call sites disagreed about the value anyway
+ *   (`/product/<slug>` said "soeg", `/family/<slug>` said "hjem"), which is
+ *   what a prop nothing reads looks like from the outside.
+ *
+ *   `onChange` fed that same dead arm: `() => {}` on six pages, a
+ *   `router.push` on two that could therefore never fire, and absent on
+ *   `/family/[slug]` because a server component may not hand a function across
+ *   the RSC boundary at all.
+ *
+ * The selected item is derived from `usePathname()` and always was. With no
+ * props left, the tab arm and its `<button>` are unreachable by construction
+ * rather than by inspection, so they are deleted along with them.
+ */
 
 function ThemeToggle({ collapsed }: { collapsed: boolean }) {
   const { resolvedTheme, setTheme } = useTheme()
+  const { t } = useLocale()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   if (!mounted) return null
@@ -39,7 +47,10 @@ function ThemeToggle({ collapsed }: { collapsed: boolean }) {
         collapsed ? 'justify-center' : ''
       }`}
       style={{ color: 'var(--muted-foreground)' }}
-      aria-label="Toggle theme"
+      /* PAN-126 — the last hardcoded string on this surface. It was English on
+         a Danish-first product, and `t.toggleTheme` already existed and was
+         already used by `BottomNav` for this same control. */
+      aria-label={t.toggleTheme}
     >
       {resolvedTheme === 'dark'
         ? <Sun size={20} strokeWidth={1.8} />
@@ -47,6 +58,60 @@ function ThemeToggle({ collapsed }: { collapsed: boolean }) {
       }
       {!collapsed && <span>{resolvedTheme === 'dark' ? 'Lystema' : 'Mørkt tema'}</span>}
     </button>
+  )
+}
+
+/**
+ * How many placeholder rows the tree reserves while it loads.
+ *
+ * Six, because six roots is what the catalogue has, so on `/browse` — where no
+ * branch is open — the skeleton is the exact height of the tree that replaces
+ * it. It is an ESTIMATE and nothing depends on it being right: a seventh root
+ * would cost one row of settle, not a broken layout. It is not read from the
+ * payload for the obvious reason that the payload is the thing being waited
+ * for.
+ */
+const CATALOGUE_SKELETON_ROWS = 6
+
+/**
+ * PAN-131 — the tree reserves its space instead of not existing.
+ *
+ * `CatalogueTree` used to answer `if (categories.length === 0) return null`,
+ * which conflated two states that deserve opposite answers. While the fetch is
+ * in flight the tree is COMING, and saying nothing makes the sidebar rebuild
+ * itself in front of the visitor — the owner's *"ui elements reload instead of
+ * persisting"*. Once the fetch has ANSWERED and there is nothing to show, the
+ * tree is genuinely absent and `null` is correct: that is the honest
+ * degradation PAN-17 chose for an unreadable catalogue, and a placeholder that
+ * never resolves would be a lie that pulses. So the skeleton is keyed on
+ * "unanswered", never on "empty".
+ *
+ * Nielsen 1, visibility of system status: a skeleton screen is the named
+ * remedy for exactly this. It is `aria-hidden` because what it communicates is
+ * GEOMETRY — a screen reader does not perceive the reflow the skeleton exists
+ * to prevent, and announcing it would mean inventing copy for a visual
+ * problem. The rows carry no text for the same reason.
+ *
+ * `h-9` is the measured height of a closed `<summary>` (36px: a 20px line box
+ * inside `py-2`), and `box-border` is Tailwind's default, so the padding is
+ * inside that 36. The bars are `bg-muted`, matching the twenty-odd
+ * `animate-pulse` skeletons already in this codebase. No `--accent`: green is
+ * exhaustive and a placeholder is not one of the three.
+ *
+ * `motion-reduce:animate-none` is Tailwind's own `prefers-reduced-motion`
+ * variant, scoped to this skeleton. The repo's other skeletons pulse
+ * unconditionally; fixing those is a separate, repo-wide decision.
+ */
+function CatalogueTreeSkeleton() {
+  return (
+    <div className="mt-0.5 mb-1 flex flex-col gap-0.5" aria-hidden="true">
+      {Array.from({ length: CATALOGUE_SKELETON_ROWS }, (_, i) => (
+        <div key={i} className="flex h-9 items-center gap-1.5 pl-3 pr-2">
+          <div className="h-4 w-4 flex-shrink-0 rounded bg-muted animate-pulse motion-reduce:animate-none" />
+          <div className="h-3 flex-1 rounded bg-muted animate-pulse motion-reduce:animate-none" />
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -86,10 +151,17 @@ function ThemeToggle({ collapsed }: { collapsed: boolean }) {
  * route to it — so it is deliberately NOT duplicated into `BottomNav`, where
  * a 69-row tree would be a worse control than the page it shortcuts.
  *
- * Fetched rather than passed: all eight pages that mount `SideNav` are client
- * components, so there is no server boundary to hand props through. An
- * unreadable catalogue renders no tree at all — the primary nav above is
- * untouched, which is the same degradation `/browse` already performs.
+ * Fetched rather than passed. It used to be because all eight client pages
+ * that mounted `SideNav` had no server boundary to hand props through; since
+ * PAN-131 there IS one — `app/(shell)/layout.tsx` is a server component — and
+ * the fetch stays here anyway. Handing the tree down as a prop would make
+ * every route under the shell wait on the catalogue query before its own HTML
+ * could be sent, to populate a secondary navigation aid. The tree arriving a
+ * moment after the page is the right trade; the skeleton is what makes that
+ * moment legible instead of a hole.
+ *
+ * An unreadable catalogue still renders no tree at all — the primary nav above
+ * is untouched, which is the same degradation `/browse` already performs.
  */
 function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) => void }) {
   const { t, locale } = useLocale()
@@ -105,15 +177,40 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
   const searchParams = useSearchParams()
   const activeSub = searchParams.get('sub')
   const [categories, setCategories] = useState<CatalogueTreeCategory[]>([])
+  /**
+   * Has the fetch ANSWERED yet — not "did it succeed", and not "is there
+   * anything to show". It is the only thing that separates the skeleton from
+   * the honest empty state below, so a failure sets it too: a request that
+   * errored has answered, and the answer is "no tree".
+   */
+  const [answered, setAnswered] = useState(false)
 
+  /**
+   * PAN-131 — ONE FETCH PER SESSION, and the empty dependency array is now
+   * telling the truth.
+   *
+   * This effect never changed; what changed is where the component lives. Nine
+   * page components mounted `SideNav`, and in the App Router a page unmounts on
+   * every route change, so `[]` meant "once per mount" and a mount happened on
+   * every single click. The sidebar now mounts in `app/(shell)/layout.tsx`,
+   * which does not unmount across navigations between the routes under it, so
+   * `[]` finally means what it reads as.
+   *
+   * NO CACHE, DELIBERATELY. With the remount gone there is one request per
+   * page load and nothing left for a cache to save. Adding `sessionStorage`
+   * here would be speculative: the measurement that justified it is exactly
+   * the measurement this change removes.
+   */
   useEffect(() => {
     let cancelled = false
     fetch('/api/catalogue-tree')
       .then(async (r) => (r.ok ? await r.json() : null))
       .then((d: { categories?: CatalogueTreeCategory[] } | null) => {
-        if (!cancelled && d?.categories) setCategories(d.categories)
+        if (cancelled) return
+        if (d?.categories) setCategories(d.categories)
+        setAnswered(true)
       })
-      .catch(() => {})
+      .catch(() => { if (!cancelled) setAnswered(true) })
     return () => { cancelled = true }
   }, [])
 
@@ -144,7 +241,10 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
     return () => onMarkedChange(false)
   }, [current, onMarkedChange])
 
-  if (categories.length === 0) return null
+  // Coming, versus not there. See `CatalogueTreeSkeleton` for why these two
+  // must not share an answer.
+  if (categories.length === 0) return answered ? null : <CatalogueTreeSkeleton />
+
 
   return (
     <div className="mt-0.5 mb-1 flex flex-col gap-0.5">
@@ -233,13 +333,11 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                 borderLeftColor: isCurrentBranch ? 'var(--foreground)' : 'transparent',
               }}
             >
-              <span
-                className="material-symbols-outlined flex-shrink-0 transition-transform group-open:rotate-90"
+              <Icon
+                name="chevron_right"
+                className="flex-shrink-0 transition-transform group-open:rotate-90"
                 style={{ fontSize: '16px' }}
-                aria-hidden="true"
-              >
-                chevron_right
-              </span>
+              />
               <span className="truncate" title={label}>{label}</span>
             </summary>
 
@@ -546,7 +644,7 @@ function SidebarResizeHandle({
   )
 }
 
-export function SideNav({ active, onChange }: Props) {
+export function SideNav() {
   const router = useRouter()
   const pathname = usePathname()
   const { locale, setLocale, t } = useLocale()
@@ -707,7 +805,7 @@ export function SideNav({ active, onChange }: Props) {
   const navSections: {
     title: string
     subtitle?: string
-    items: { tab?: NavTab; href?: string; label: string; icon: (selected: boolean) => React.ReactNode }[]
+    items: { href: string; label: string; icon: (selected: boolean) => React.ReactNode }[]
   }[] = [
     {
       title: t.sidebarSectionDiscover,
@@ -730,12 +828,10 @@ export function SideNav({ active, onChange }: Props) {
           href: '/browse',
           label: t.navBrowse,
           icon: (selected) => (
-            <span
-              className="material-symbols-outlined"
+            <Icon
+              name="grid_view"
               style={{ fontSize: '20px', fontVariationSettings: selected ? "'FILL' 1" : "'FILL' 0" }}
-            >
-              grid_view
-            </span>
+            />
           ),
         },
       ],
@@ -756,12 +852,10 @@ export function SideNav({ active, onChange }: Props) {
           href: '/watchlists',
           label: t.navNotifications,
           icon: (selected) => (
-            <span
-              className="material-symbols-outlined"
+            <Icon
+              name="notifications"
               style={{ fontSize: '20px', fontVariationSettings: selected ? "'FILL' 1" : "'FILL' 0" }}
-            >
-              notifications
-            </span>
+            />
           ),
         },
         {
@@ -786,7 +880,7 @@ export function SideNav({ active, onChange }: Props) {
       <header className="md:hidden border-b border-border bg-card">
         <Link href="/" className="flex items-center gap-3 px-4 min-h-[44px] text-primary">
           <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
+            <Icon name="radar" style={{ fontSize: '20px' }} />
           </div>
           <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
         </Link>
@@ -813,7 +907,7 @@ export function SideNav({ active, onChange }: Props) {
         >
           <div className="flex items-center gap-3 text-primary">
             <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
+              <Icon name="radar" style={{ fontSize: '20px' }} />
             </div>
             {!collapsed && <span className="text-lg font-semibold tracking-tight">Klup.dk</span>}
           </div>
@@ -836,13 +930,11 @@ export function SideNav({ active, onChange }: Props) {
             transitionTimingFunction: 'var(--ease-standard)',
           }}
         >
-          <span
-            className="material-symbols-outlined flex-shrink-0"
+          <Icon
+            name={collapsed ? 'left_panel_open' : 'left_panel_close'}
+            className="flex-shrink-0"
             style={{ fontSize: '20px' }}
-            aria-hidden="true"
-          >
-            {collapsed ? 'left_panel_open' : 'left_panel_close'}
-          </span>
+          />
           {!collapsed && <span>{t.sidebarCollapse}</span>}
         </button>
 
@@ -873,7 +965,7 @@ export function SideNav({ active, onChange }: Props) {
                 </div>
               )}
 
-              {section.items.map(({ tab, href, label, icon }) => {
+              {section.items.map(({ href, label, icon }) => {
                 /**
                  * PAN-125 — the section carries the mark when the tree cannot.
                  *
@@ -889,10 +981,9 @@ export function SideNav({ active, onChange }: Props) {
                  * specific. Exactly one node still claims to be current: this
                  * defers to the tree, and the tree defers to nobody.
                  */
-                const isActive = href
-                  ? pathname === href ||
-                    (href === '/browse' && isCataloguePath(pathname) && !treeMarked)
-                  : tab !== undefined && active === tab
+                const isActive =
+                  pathname === href ||
+                  (href === '/browse' && isCataloguePath(pathname) && !treeMarked)
                 const itemStyle = {
                   color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
                   backgroundColor: isActive ? 'var(--secondary)' : 'transparent',
@@ -904,65 +995,50 @@ export function SideNav({ active, onChange }: Props) {
                   isActive ? 'font-semibold' : 'font-medium'
                 } ${collapsed ? 'justify-center' : ''}`
 
-                if (href) {
-                  return (
-                    <Fragment key={href}>
-                      {/* PAN-121 — the top-level section, announced as well as
-                          painted. `isActive` has styled this item since PAN-73;
-                          `aria-current` is what makes the same fact reach a
-                          screen reader, and `SideNav` carried none before it.
-
-                          PAN-120 — COLLAPSED MUST NOT MEAN NAMELESS. The visible
-                          label goes away at 72px, so `aria-label` carries the
-                          same string and `title` gives a pointer visitor the
-                          tooltip. Every nav target keeps an accessible name in
-                          both states. */}
-                      <Link
-                        href={href}
-                        aria-current={isActive ? 'page' : undefined}
-                        aria-label={collapsed ? label : undefined}
-                        title={collapsed ? label : undefined}
-                        className={itemClass}
-                        style={itemStyle}
-                      >
-                        {icon(isActive)}
-                        {!collapsed && <span>{label}</span>}
-                      </Link>
-                      {/* The catalogue hangs off the Katalog item rather than
-                          under a heading of its own: the item already says
-                          "Katalog" and already goes to /browse, so a second
-                          label would name the same thing twice.
-
-                          Absent when collapsed: it is a tree of Danish product
-                          names and there is nowhere to put them at 72px. */}
-                      {/* `CatalogueTree` reads `?sub=` to mark the current leaf,
-                          and `useSearchParams` opts a statically-rendered page
-                          into client rendering unless it sits behind a boundary.
-                          The sidebar mounts on eight pages, several of them
-                          static, so the boundary lives here rather than being
-                          pushed onto every one of them. `null` is the honest
-                          fallback: the tree already renders nothing until its
-                          fetch resolves. */}
-                      {href === '/browse' && !collapsed && (
-                        <Suspense fallback={null}>
-                          <CatalogueTree onMarkedChange={handleTreeMarked} />
-                        </Suspense>
-                      )}
-                    </Fragment>
-                  )
-                }
                 return (
-                  <button
-                    key={tab}
-                    onClick={() => tab !== undefined && onChange?.(tab)}
-                    aria-label={collapsed ? label : undefined}
-                    title={collapsed ? label : undefined}
-                    className={itemClass}
-                    style={itemStyle}
-                  >
-                    {icon(isActive)}
-                    {!collapsed && <span>{label}</span>}
-                  </button>
+                  <Fragment key={href}>
+                    {/* PAN-121 — the top-level section, announced as well as
+                        painted. `isActive` has styled this item since PAN-73;
+                        `aria-current` is what makes the same fact reach a
+                        screen reader, and `SideNav` carried none before it.
+
+                        PAN-120 — COLLAPSED MUST NOT MEAN NAMELESS. The visible
+                        label goes away at 72px, so `aria-label` carries the
+                        same string and `title` gives a pointer visitor the
+                        tooltip. Every nav target keeps an accessible name in
+                        both states. */}
+                    <Link
+                      href={href}
+                      aria-current={isActive ? 'page' : undefined}
+                      aria-label={collapsed ? label : undefined}
+                      title={collapsed ? label : undefined}
+                      className={itemClass}
+                      style={itemStyle}
+                    >
+                      {icon(isActive)}
+                      {!collapsed && <span>{label}</span>}
+                    </Link>
+                    {/* The catalogue hangs off the Katalog item rather than
+                        under a heading of its own: the item already says
+                        "Katalog" and already goes to /browse, so a second
+                        label would name the same thing twice.
+
+                        Absent when collapsed: it is a tree of Danish product
+                        names and there is nowhere to put them at 72px. */}
+                    {/* `CatalogueTree` reads `?sub=` to mark the current leaf,
+                        and `useSearchParams` opts a statically-rendered route
+                        into client rendering unless it sits behind a boundary.
+                        Since PAN-131 the sidebar mounts once, in
+                        `app/(shell)/layout.tsx`, which is an ancestor of all
+                        nine of those routes — so the boundary has to live here
+                        rather than leak the opt-in upwards into the layout and
+                        out across every page under it. */}
+                    {href === '/browse' && !collapsed && (
+                      <Suspense fallback={<CatalogueTreeSkeleton />}>
+                        <CatalogueTree onMarkedChange={handleTreeMarked} />
+                      </Suspense>
+                    )}
+                  </Fragment>
                 )
               })}
             </Fragment>

@@ -231,7 +231,7 @@ test('A11: the two rows never share a conflict key, and never touch a third prod
 /* ── 11-20: Bug B — one explicit state machine ─────────────────────────────── */
 
 const CONTROLS = ['components', 'admin', 'ProductReviewControls.tsx']
-const PAGE = ['app', 'product', '[slug]', 'page.tsx']
+const PAGE = ['app', '(shell)', 'product', '[slug]', 'page.tsx']
 const PANEL = ['components', 'admin', 'ReassignPanel.tsx']
 
 async function actions() {
