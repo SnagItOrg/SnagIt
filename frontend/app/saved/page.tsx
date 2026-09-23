@@ -14,6 +14,7 @@ import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
 import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
+import { Icon } from '@/components/Icon'
 
 type SavedRow = {
   listing_id: string
@@ -203,9 +204,7 @@ function FakeSavedCard() {
   return (
     <div className="flex gap-3 p-3 rounded-2xl bg-card border border-border">
       <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-muted flex items-center justify-center">
-        <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--muted-foreground)' }}>
-          piano
-        </span>
+        <Icon name="piano" style={{ fontSize: '28px', color: 'var(--muted-foreground)' }} />
       </div>
       <div className="flex-1 flex flex-col gap-1">
         <p className="text-sm font-semibold text-foreground">Roland Juno-106</p>

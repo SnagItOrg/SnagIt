@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import type { Locale } from '@/lib/i18n'
 import { TextField } from '@/components/TextField'
+import { Icon } from '@/components/Icon'
 
 type Tab = 'password' | 'magic'
 
@@ -101,7 +102,7 @@ export default function LoginPage() {
         <div className="flex flex-col gap-2 text-center">
           <div className="flex items-center justify-center gap-3 text-primary">
             <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
+              <Icon name="radar" style={{ fontSize: '20px' }} />
             </div>
             <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
           </div>
@@ -212,12 +213,7 @@ export default function LoginPage() {
         ) : sent ? (
           /* Magic link sent state */
           <div className="flex flex-col items-center gap-4 py-4 text-center">
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: '48px', color: 'var(--foreground)' }}
-            >
-              mark_email_read
-            </span>
+            <Icon name="mark_email_read" style={{ fontSize: '48px', color: 'var(--foreground)' }} />
             <div className="flex flex-col gap-1">
               <p className="font-semibold">{t.checkInbox}</p>
               <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>

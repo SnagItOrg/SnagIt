@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Icon } from '@/components/Icon'
 
 /* ==========================================================================
    EmptyState — the consumer-facing "there is nothing here" primitive.
@@ -137,13 +138,11 @@ export function EmptyState(props: Props) {
     return (
       <div className={`flex items-start gap-2 ${className}`}>
         {icon && (
-          <span
-            aria-hidden="true"
-            className="material-symbols-outlined shrink-0"
+          <Icon
+            name={icon}
+            className="shrink-0"
             style={{ fontSize: '18px', color: 'var(--text-muted)', opacity: kind.opacity }}
-          >
-            {icon}
-          </span>
+          />
         )}
         <div className="flex flex-col gap-1">
           <p className="type-body-secondary">{title}</p>
@@ -158,13 +157,10 @@ export function EmptyState(props: Props) {
       className={`flex flex-col items-center justify-center gap-3 text-center max-w-sm mx-auto ${className}`}
     >
       {icon && (
-        <span
-          aria-hidden="true"
-          className="material-symbols-outlined"
+        <Icon
+          name={icon}
           style={{ fontSize: '48px', color: 'var(--text-muted)', opacity: kind.opacity }}
-        >
-          {icon}
-        </span>
+        />
       )}
       <Title className="text-base font-semibold text-foreground text-balance">{title}</Title>
       {/* No `type-measure` here. 68ch is a measure for left-aligned prose; a

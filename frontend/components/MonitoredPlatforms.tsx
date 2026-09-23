@@ -33,6 +33,7 @@
 import { SourceBadge } from '@/components/SourceBadge'
 import { useLocale } from '@/components/LocaleProvider'
 import { fill } from '@/lib/i18n'
+import { Icon } from '@/components/Icon'
 
 export function MonitoredPlatforms({
   monitoredSources,
@@ -80,13 +81,10 @@ export function MonitoredPlatforms({
                 </span>
               ) : (
                 <span className="flex items-center gap-1 type-meta">
-                  <span
-                    aria-hidden="true"
-                    className="material-symbols-outlined"
+                  <Icon
+                    name="visibility"
                     style={{ fontSize: '16px', color: 'var(--text-muted)' }}
-                  >
-                    visibility
-                  </span>
+                  />
                   {t.monitoredPlatforms.none}
                 </span>
               )}

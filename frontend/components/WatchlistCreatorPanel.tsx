@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { Watchlist } from '@/lib/supabase'
 import { MAX_WATCHLIST_PRICE } from '@/lib/constants'
 import { TextField } from '@/components/TextField'
+import { Icon } from '@/components/Icon'
 
 interface Props {
   onSave:  (watchlist: Watchlist) => void
@@ -55,7 +56,7 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
           style={{ color: 'var(--muted-foreground)' }}
           aria-label="Luk"
         >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
+          <Icon name="close" style={{ fontSize: '20px' }} />
         </button>
       </div>
 
@@ -80,12 +81,11 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
                   Hvad leder du efter?
                 </label>
                 <div className="relative">
-                  <span
-                    className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  <Icon
+                    name="search"
+                    className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none"
                     style={{ color: 'var(--muted-foreground)', fontSize: '22px' }}
-                  >
-                    search
-                  </span>
+                  />
                   <TextField
                     type="text"
                     value={query}
@@ -163,9 +163,10 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
                 {saving ? '…' : (
                   <>
                     Gem overvågning
-                    <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
-                      arrow_forward
-                    </span>
+                    <Icon
+                      name="arrow_forward"
+                      className="transition-transform group-hover:translate-x-1"
+                    />
                   </>
                 )}
               </button>

@@ -16,6 +16,7 @@ import { loadOnboarding, clearOnboarding, fireEvent } from '@/lib/onboarding'
 import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
+import { Icon } from '@/components/Icon'
 
 export default function WatchlistsPage() {
   const router = useRouter()
@@ -227,12 +228,7 @@ function FakeWatchlistCard() {
       {/* Image area */}
       <div className="relative flex-1 overflow-hidden rounded-t-2xl" style={{ backgroundColor: 'var(--card)' }}>
         <div className="w-full h-full flex items-center justify-center">
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: '56px', color: 'var(--muted-foreground)' }}
-          >
-            piano
-          </span>
+          <Icon name="piano" style={{ fontSize: '56px', color: 'var(--muted-foreground)' }} />
         </div>
       </div>
 

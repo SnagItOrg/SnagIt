@@ -7,6 +7,7 @@ import { BottomNav } from '@/components/BottomNav'
 import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { Icon } from '@/components/Icon'
 
 type NotifPrefs = {
   email_enabled: boolean
@@ -128,12 +129,11 @@ export default function ProfilePage() {
           {/* ── Section 1: Account ─────────────────────────────────────── */}
           <div className={cardClass} style={cardStyle}>
             <div className="flex items-center gap-3">
-              <span
-                className="material-symbols-outlined flex-shrink-0"
+              <Icon
+                name="account_circle"
+                className="flex-shrink-0"
                 style={{ fontSize: '48px', color: 'var(--muted-foreground)' }}
-              >
-                account_circle
-              </span>
+              />
               <div className="flex flex-col gap-0.5 min-w-0">
                 <p className="text-xs text-muted-foreground">{t.email}</p>
                 <p className="text-sm font-semibold text-foreground truncate">{email ?? '—'}</p>
@@ -159,9 +159,7 @@ export default function ProfilePage() {
           {/* ── Section 2: Password ───────────────────────────────────── */}
           <div className={cardClass} style={cardStyle}>
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--foreground)' }}>
-                lock
-              </span>
+              <Icon name="lock" style={{ fontSize: '20px', color: 'var(--foreground)' }} />
               <h2 className="text-base font-bold text-foreground">{t.changePassword}</h2>
             </div>
 
@@ -177,7 +175,7 @@ export default function ProfilePage() {
                 className="flex items-center gap-2 text-sm font-medium w-fit transition-opacity hover:opacity-70 disabled:opacity-40"
                 style={{ color: 'var(--muted-foreground)' }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>send</span>
+                <Icon name="send" style={{ fontSize: '16px' }} />
                 {resetLoading ? '…' : t.sendResetLink}
               </button>
             )}
@@ -186,9 +184,7 @@ export default function ProfilePage() {
           {/* ── Section 3: Notifications ───────────────────────────────── */}
           <div className={cardClass} style={cardStyle}>
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--foreground)' }}>
-                notifications
-              </span>
+              <Icon name="notifications" style={{ fontSize: '20px', color: 'var(--foreground)' }} />
               <h2 className="text-base font-bold text-foreground">Notifikationer</h2>
             </div>
 
@@ -232,9 +228,10 @@ export default function ProfilePage() {
           {/* ── Section 4: Watchlists ──────────────────────────────────── */}
           <div className={cardClass} style={cardStyle}>
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--foreground)' }}>
-                notifications_active
-              </span>
+              <Icon
+                name="notifications_active"
+                style={{ fontSize: '20px', color: 'var(--foreground)' }}
+              />
               <h2 className="text-base font-bold text-foreground">{t.watchlists}</h2>
             </div>
 

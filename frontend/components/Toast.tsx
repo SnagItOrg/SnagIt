@@ -80,6 +80,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocale } from '@/components/LocaleProvider'
 import type { ToastEntry } from '@/lib/use-toast'
+import { Icon } from '@/components/Icon'
 
 /** Milliseconds in a CSS duration token, read from the cascade. */
 function durationOf(token: string): number {
@@ -208,9 +209,7 @@ function ToastRow({ entry, isExiting, onDismiss }: RowProps) {
         <>
           {/* Colour is never the only signal: the glyph carries the
               distinction for anyone who cannot separate the two fills. */}
-          <span className="material-symbols-outlined toast__icon" aria-hidden="true">
-            error
-          </span>
+          <Icon name="error" className="toast__icon" />
           <span className="sr-only">{t.toastErrorLabel}</span>
         </>
       )}
@@ -223,9 +222,7 @@ function ToastRow({ entry, isExiting, onDismiss }: RowProps) {
         disabled={isExiting}
         onClick={() => onDismiss(entry.id)}
       >
-        <span className="material-symbols-outlined" aria-hidden="true">
-          close
-        </span>
+        <Icon name="close" />
       </button>
     </div>
   )

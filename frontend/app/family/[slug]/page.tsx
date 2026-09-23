@@ -22,6 +22,7 @@ import {
 } from '@/lib/families'
 import { translations, fill } from '@/lib/i18n'
 import { SITE_URL } from '@/lib/site-metadata'
+import { Icon } from '@/components/Icon'
 
 /**
  * Navigation-family route.
@@ -342,13 +343,11 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
                     className="surface-interactive group flex items-center justify-between gap-4 rounded-2xl px-5 py-5 transition-colors"
                   >
                     <span className="type-card-title wrap-anywhere">{child.label}</span>
-                    <span
-                      aria-hidden="true"
-                      className="material-symbols-outlined flex-shrink-0 transition-transform group-hover:translate-x-0.5"
+                    <Icon
+                      name="arrow_forward"
+                      className="flex-shrink-0 transition-transform group-hover:translate-x-0.5"
                       style={{ fontSize: '20px', color: 'var(--text-muted)' }}
-                    >
-                      arrow_forward
-                    </span>
+                    />
                   </Link>
                 ))}
               </div>
@@ -429,13 +428,10 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center">
-                            <span
-                              aria-hidden="true"
-                              className="material-symbols-outlined"
+                            <Icon
+                              name="image"
                               style={{ fontSize: '20px', color: 'var(--text-muted)' }}
-                            >
-                              image
-                            </span>
+                            />
                           </div>
                         )}
                       </div>

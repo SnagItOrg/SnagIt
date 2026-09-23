@@ -7,6 +7,7 @@ import { useLocale } from '@/components/LocaleProvider'
 import { OnboardingHeader } from '@/components/OnboardingHeader'
 import type { Locale } from '@/lib/i18n'
 import { TextField } from '@/components/TextField'
+import { Icon } from '@/components/Icon'
 
 export default function SignupPage() {
   const { locale, setLocale, t } = useLocale()
@@ -75,12 +76,10 @@ export default function SignupPage() {
           {sent ? (
             /* Success state */
             <div className="text-center flex flex-col items-center gap-5">
-              <span
-                className="material-symbols-outlined"
+              <Icon
+                name="mark_email_read"
                 style={{ fontSize: '64px', color: 'var(--foreground)' }}
-              >
-                mark_email_read
-              </span>
+              />
               <div>
                 <h1 className="type-title mb-2">
                   {t.checkInbox}
@@ -173,9 +172,10 @@ export default function SignupPage() {
                     {loading ? t.loginLoading : (
                       <>
                         {t.sendLoginLink}
-                        <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
-                          arrow_forward
-                        </span>
+                        <Icon
+                          name="arrow_forward"
+                          className="transition-transform group-hover:translate-x-1"
+                        />
                       </>
                     )}
                   </button>
@@ -201,7 +201,7 @@ export default function SignupPage() {
       {/* Footer */}
       <footer className="py-10 text-center">
         <div className="inline-flex items-center gap-2" style={{ color: 'var(--muted-foreground)' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>security</span>
+          <Icon name="security" style={{ fontSize: '16px' }} />
           <span className="text-[10px] font-bold uppercase tracking-widest">{t.securityNote}</span>
         </div>
       </footer>

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/LocaleProvider'
+import { Icon } from '@/components/Icon'
 
 interface Props {
   currentStep?: 1 | 2 | 3 | 4
@@ -23,7 +24,7 @@ export function OnboardingHeader({ currentStep, showSkip = false, showProgress =
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 min-h-[44px] text-primary">
             <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
+              <Icon name="radar" style={{ fontSize: '20px' }} />
             </div>
             <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
           </Link>
