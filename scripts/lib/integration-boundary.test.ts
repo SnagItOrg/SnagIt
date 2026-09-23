@@ -99,6 +99,11 @@ test('integration: every package suite is registered exactly once', () => {
       // inactive platform has to stay distinguishable from an active one with
       // colour ignored — both are silent failures if they regress.
       'scripts/lib/pan113-monitored-platforms.test.ts',
+      // PAN-119: the local price is shown first and as an OBSERVATION. Its own
+      // suite because the fix hands the block a raw price array, and the risk
+      // is that the array becomes a back door for the median the tier gate
+      // forbids at n=1..2 — a silent failure that no layout test would catch.
+      'scripts/lib/pan119-local-price-first.test.ts',
       // PAN-120: the resizable, headed, collapsed-by-default sidebar, and the
       // one offset variable that replaced nine hardcoded copies of 240px.
       'scripts/lib/pan120-sidebar.test.ts',

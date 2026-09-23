@@ -266,6 +266,10 @@ export const translations = {
     dkMarketCount: 'Klup har {count} gennemgået dansk annonce i prisgrundlaget',
     dkMarketCountPlural: 'Klup har {count} gennemgåede danske annoncer i prisgrundlaget',
     dkMarketMedianDescriptive: 'Median blandt {count} gennemgåede danske annoncer',
+    /** PAN-119. The observed asking prices themselves — never a median. */
+    dkMarketAskingNow: 'Udbudt i Danmark nu',
+    dkMarketAskingNowNote: 'Den faktiske udbudspris, ikke et prisniveau.',
+    dkMarketAskingNowNotePlural: 'De faktiske udbudspriser, ikke et prisniveau.',
     dkMarketTypical: 'Typisk dansk udbudspris',
     dkMarketThinNote: 'For få danske annoncer til et typisk spænd. Priserne herunder er de faktiske annoncer.',
     reverbSoldHeading: 'Bekræftede internationale salg på Reverb',
@@ -759,6 +763,10 @@ export const translations = {
     dkMarketCount: 'Klup has {count} reviewed Danish listing in the price basis',
     dkMarketCountPlural: 'Klup has {count} reviewed Danish listings in the price basis',
     dkMarketMedianDescriptive: 'Median across {count} reviewed Danish listings',
+    /** PAN-119. The observed asking prices themselves — never a median. */
+    dkMarketAskingNow: 'Asking in Denmark now',
+    dkMarketAskingNowNote: 'The actual asking price, not a price level.',
+    dkMarketAskingNowNotePlural: 'The actual asking prices, not a price level.',
     dkMarketTypical: 'Typical Danish asking price',
     dkMarketThinNote: 'Too few Danish listings for a typical range. The prices below are the actual listings.',
     reverbSoldHeading: 'Confirmed international sales on Reverb',
