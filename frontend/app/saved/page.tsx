@@ -102,7 +102,7 @@ export default function SavedPage() {
     <div className="min-h-screen bg-bg text-foreground md:flex">
       <SideNav active="gemt" onChange={() => {}} />
 
-      <main className="flex-1 md:pl-60 flex flex-col pb-24 md:pb-6">
+      <main className="flex-1 shell-offset-pad flex flex-col pb-24 md:pb-6">
         <MobileSearchBar />
         <div className="shell-wall flex flex-col pt-2 md:pt-6 flex-1">
         {authed === false ? (

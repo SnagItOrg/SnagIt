@@ -78,6 +78,9 @@ test('integration: every package suite is registered exactly once', () => {
       // inactive platform has to stay distinguishable from an active one with
       // colour ignored — both are silent failures if they regress.
       'scripts/lib/pan113-monitored-platforms.test.ts',
+      // PAN-120: the resizable, headed, collapsed-by-default sidebar, and the
+      // one offset variable that replaced nine hardcoded copies of 240px.
+      'scripts/lib/pan120-sidebar.test.ts',
       // PAN-121: the position signal, and the count-equals-rendered invariant
       // PAN-98 exists because nobody asserted.
       'scripts/lib/pan121-position-signal.test.ts',

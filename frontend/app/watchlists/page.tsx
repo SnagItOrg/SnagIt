@@ -130,7 +130,7 @@ export default function WatchlistsPage() {
     <div className="min-h-screen bg-bg md:flex">
       <SideNav active={'hjem'} onChange={() => router.push('/')} />
 
-      <div className="flex-1 flex flex-col md:ml-60">
+      <div className="flex-1 flex flex-col shell-offset">
         <MobileSearchBar />
         {showCreator ? (
           <WatchlistCreatorPanel

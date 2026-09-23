@@ -240,9 +240,9 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
       <SideNav active="hjem" />
-      <main className="md:ml-60 pb-24 md:pb-8">
+      <main className="shell-offset pb-24 md:pb-8">
         <MobileSearchBar />
-        <div className="shell-reading flex flex-col pt-6 pb-10 md:pt-10">
+        <div className="cq-pane shell-reading flex flex-col pt-6 pb-10 md:pt-10">
           <p className="type-label">
             {family.brand}
           </p>
@@ -302,7 +302,7 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
               */}
               <h2 className="type-label">{t.familyChooseModel}</h2>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid-family-models">
                 {children.map((child) => (
                   <Link
                     key={child.slug}
@@ -377,7 +377,7 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
                 is matched to, and the marketplace it came from. No price, no
                 band, no median, no verdict, and no link that leaves Klup.
               */}
-              <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              <ul className="grid-family-listings">
                 {listings.map((listing) => (
                   <li key={listing.id} className="flex">
                     <Link

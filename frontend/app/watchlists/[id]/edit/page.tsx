@@ -65,7 +65,7 @@ export default function EditWatchlistPage() {
     <div className="min-h-screen bg-bg md:flex">
       <SideNav active={'hjem'} onChange={() => router.push('/watchlists')} />
 
-      <div className="flex-1 flex flex-col md:ml-60">
+      <div className="flex-1 flex flex-col shell-offset">
         <main className="flex-1 flex items-center justify-center px-6 py-10">
           <div className="w-full max-w-2xl">
             {/* Heading */}

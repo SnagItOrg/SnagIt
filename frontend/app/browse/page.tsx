@@ -74,7 +74,7 @@ function BrowsePageInner() {
     <div className="min-h-screen" style={{ background: 'var(--background)' }}>
       <SideNav active="hjem" onChange={() => {}} />
 
-      <main className="md:ml-60 pb-24 md:pb-8">
+      <main className="shell-offset pb-24 md:pb-8">
         <MobileSearchBar />
 
         <div className="shell-wall">
