@@ -6,6 +6,7 @@ import { MAX_WATCHLIST_PRICE } from '@/lib/constants'
 import { useLocale } from '@/components/LocaleProvider'
 import { TextField } from '@/components/TextField'
 import { Icon } from '@/components/Icon'
+import { Button } from '@/components/Button'
 
 interface Props {
   onSave:  (watchlist: Watchlist) => void
@@ -153,14 +154,11 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
               )}
 
               {/* Save */}
-              <button
+              <Button
+                variant="primary"
                 onClick={handleSave}
                 disabled={saving || !query.trim()}
                 className="w-full py-4 rounded-2xl font-semibold text-base transition-all flex items-center justify-center gap-2 group disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: 'var(--primary)',
-                  color:           'var(--primary-foreground)',
-                }}
               >
                 {saving ? '…' : (
                   <>
@@ -171,7 +169,7 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
                     />
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

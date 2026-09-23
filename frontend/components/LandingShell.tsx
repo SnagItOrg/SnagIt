@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import { TextField } from '@/components/TextField'
 import { Icon } from '@/components/Icon'
+import { Button } from '@/components/Button'
 
 /**
  * The homepage shell: everything interactive, and nothing that needs the
@@ -87,13 +88,13 @@ export function LandingShell({ children }: { children: React.ReactNode }) {
                   autoFocus
                 />
               </div>
-              <button
+              <Button
+                variant="primary"
                 type="submit"
                 className="w-full mt-3 rounded-2xl px-8 py-4 text-base font-semibold transition-opacity hover:opacity-90 active:opacity-100"
-                style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
               >
                 {t.search}
-              </button>
+              </Button>
             </form>
           </div>
         </div>

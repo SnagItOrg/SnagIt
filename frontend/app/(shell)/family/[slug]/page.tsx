@@ -21,6 +21,7 @@ import {
 import { translations, fill } from '@/lib/i18n'
 import { SITE_URL } from '@/lib/site-metadata'
 import { Icon } from '@/components/Icon'
+import { Button } from '@/components/Button'
 
 /**
  * Navigation-family route.
@@ -487,13 +488,13 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
                 }}
               />
             </label>
-            <button
+            <Button
+              variant="primary"
               type="submit"
               className="self-start rounded-2xl px-6 py-3 text-base font-semibold transition-opacity hover:opacity-90"
-              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
               {t.demandCta}
-            </button>
+            </Button>
           </form>
         )}
 

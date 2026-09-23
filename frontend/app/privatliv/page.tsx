@@ -41,6 +41,7 @@ import Link from 'next/link'
 
 import { useConsent } from '@/components/ConsentProvider'
 import { useLocale } from '@/components/LocaleProvider'
+import { Button } from '@/components/Button'
 
 const PRIVACY_CONTACT_EMAIL = 'privatliv@klup.dk'
 
@@ -255,48 +256,33 @@ export default function PrivacyPage() {
           </p>
           <div className="flex flex-wrap gap-2">
             {state === 'granted' ? (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
                 data-testid="privacy-consent-withdraw"
                 onClick={withdraw}
                 className="min-h-[44px] rounded-xl px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
-                style={{
-                  backgroundColor: 'var(--secondary)',
-                  color: 'var(--secondary-foreground)',
-                  border: '1px solid var(--border)',
-                }}
               >
                 {t.consentWithdraw}
-              </button>
+              </Button>
             ) : (
               <>
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
                   data-testid="privacy-consent-grant"
                   onClick={grant}
                   className="min-h-[44px] rounded-xl px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
-                  style={{
-                    backgroundColor: 'var(--secondary)',
-                    color: 'var(--secondary-foreground)',
-                    border: '1px solid var(--border)',
-                  }}
                 >
                   {t.consentGrantLater}
-                </button>
+                </Button>
                 {state === 'undecided' && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
                     data-testid="privacy-consent-reject"
                     onClick={reject}
                     className="min-h-[44px] rounded-xl px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
-                    style={{
-                      backgroundColor: 'var(--secondary)',
-                      color: 'var(--secondary-foreground)',
-                      border: '1px solid var(--border)',
-                    }}
                   >
                     {t.consentReject}
-                  </button>
+                  </Button>
                 )}
               </>
             )}

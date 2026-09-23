@@ -12,6 +12,7 @@ import { classifyOtpError, type OtpErrorKey } from '@/lib/otp-error'
 import { TextField } from '@/components/TextField'
 import { SourceBadge } from '@/components/SourceBadge'
 import { Icon } from '@/components/Icon'
+import { Button } from '@/components/Button'
 
 // Country name → ISO code for flag emoji lookup
 const COUNTRY_CODES: Record<string, string> = {
@@ -548,14 +549,14 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
                 autoFocus
                 className="w-full rounded-xl px-3 py-2 text-sm"
               />
-              <button
+              <Button
+                variant="primary"
                 type="submit"
                 disabled={captureLoading || !captureEmail.trim()}
                 className="w-full rounded-xl py-2 min-h-[44px] text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
               >
                 {captureLoading ? '...' : t.sendLoginLink}
-              </button>
+              </Button>
               <p className="text-[11px] text-center text-muted-foreground">
                 {t.noPasswordNeeded}
               </p>
@@ -601,15 +602,15 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               {isSaved ? 'Gemt' : 'Gem'}
             </button>
             {/* Bell — create watchlist alert */}
-            <button
+            <Button
+              variant="secondary"
               onClick={(e) => { e.stopPropagation(); handleWatchlistClick() }}
               disabled={creating}
               className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: 'var(--secondary-foreground)' }}
             >
               <Icon name="notifications" style={{ fontSize: '14px' }} />
               {t.createWatchlist}
-            </button>
+            </Button>
             {productSlug && (
               <a
                 href={`/product/${productSlug}`}

@@ -5,6 +5,7 @@ import { PriceRangeSlider } from '@/components/PriceRangeSlider'
 import { Dialog } from '@/components/Dialog'
 import { MAX_WATCHLIST_PRICE } from '@/lib/constants'
 import { TextField } from '@/components/TextField'
+import { Button } from '@/components/Button'
 
 interface Props {
   isOpen:        boolean
@@ -99,14 +100,14 @@ export function CreateWatchlistModal({ isOpen, onClose, onConfirm, initialQuery 
       </div>
 
       {/* CTA */}
-      <button
+      <Button
+        variant="primary"
         onClick={handleConfirm}
         disabled={!query.trim() || creating}
         className="w-full py-4 rounded-2xl font-semibold text-base transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-        style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
       >
         {creating ? '…' : 'Start jagten ⚡'}
-      </button>
+      </Button>
 
       <button
         onClick={onClose}
