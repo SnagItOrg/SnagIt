@@ -446,6 +446,7 @@ export const translations = {
        `specLabels` turns an identifier into a display label, and an
        unmapped key falls back to the humanised identifier at the
        call site so a new key never renders blank. */
+    relatedGear: 'Relateret udstyr',
     specifications: 'Specifikationer',
     productHistory: 'Produkthistorie',
     specYes: 'Ja',
@@ -850,6 +851,7 @@ export const translations = {
     },
 
     /* ── Product page ─────────────────────────────────────────── */
+    relatedGear: 'Related gear',
     specifications: 'Specifications',
     productHistory: 'Product history',
     specYes: 'Yes',

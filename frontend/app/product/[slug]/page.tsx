@@ -737,7 +737,7 @@ export default function ProductPage() {
                 {/* ── Related products ──────────────────────────── */}
                 {relatedProducts.length > 0 && (
                   <div className="flex flex-col gap-3 mb-10">
-                    <p className="text-sm font-medium text-foreground">Related gear</p>
+                    <p className="text-sm font-medium text-foreground">{t.relatedGear}</p>
                     <div className="grid-fluid-sm gap-3">
                       {relatedProducts.map((rel) => (
                         <a
