@@ -20,13 +20,30 @@ import { ROUTE_ACCESS, classifyPath } from '../../frontend/lib/route-access'
 const REPO = join(__dirname, '..', '..')
 const FRONTEND = join(REPO, 'frontend')
 
-/* ── Point 1: the root test script is a union, not a replacement ─────────── */
+/* ── Point 1: every suite on disk runs, and the inventory is named ───────── */
 
 test('integration: every package suite is registered exactly once', () => {
   const pkg = JSON.parse(readFileSync(join(REPO, 'package.json'), 'utf8')) as {
     scripts: Record<string, string>
   }
-  const suites = pkg.scripts.test.split(/\s+/).filter((t) => t.endsWith('.test.ts'))
+
+  // The root script used to name all 36 suites on one line. That made it a
+  // merge bottleneck — N workers each adding a test produced N−1 conflicts on
+  // the same line — and it let a suite that existed on disk but was missing
+  // from the line run never and fail nothing. It is a glob now, so that
+  // orphan mode is gone structurally and no longer needs asserting.
+  assert.match(
+    pkg.scripts.test,
+    /tsx --test scripts\/lib\/\*\.test\.ts/,
+    'the root script must glob scripts/lib, not name suites one by one',
+  )
+
+  // A glob does not catch the other direction: a suite DELETED from disk just
+  // stops running, and nothing fails. So the inventory stays hand-maintained
+  // and is now compared against the directory itself.
+  const suites = readdirSync(join(REPO, 'scripts', 'lib'))
+    .filter((f) => f.endsWith('.test.ts'))
+    .map((f) => `scripts/lib/${f}`)
 
   assert.deepEqual(
     [...suites].sort(),
@@ -64,6 +81,10 @@ test('integration: every package suite is registered exactly once', () => {
       // extractor is the only thing standing between a discounted ad and a
       // listing with no price, so it carries its own suite.
       'scripts/lib/kleinanzeigen-price.test.ts',
+      // Decoration stripped from a listing title at render. Its own suite
+      // because the risk is one-sided: over-stripping removes the seller's
+      // own words from three public surfaces, and the module had no test.
+      'scripts/lib/listing-title.test.ts',
       // PAN-95: qualification decides which matches may price a product, and
       // the promise it has to keep — no price in front of the judge, one
       // reversible key on every write — is structural, not a model property.
@@ -112,6 +133,10 @@ test('integration: every package suite is registered exactly once', () => {
       // to revert all 23 corrected rows, and nothing about that failure is
       // loud — so the insert-only semantics carry their own suite.
       'scripts/lib/reverb-category-seed.test.ts',
+      // The magic-link send on the public funnel. Its own suite because
+      // signInWithOtp RETURNS its failures instead of throwing them, so a
+      // success state set unconditionally is invisible to every other gate.
+      'scripts/lib/signup-otp-failure.test.ts',
       // PAN-72: the watchlist notification step decides whether `notified_at`
       // may be stamped at all, and its provider-failure path is what used to
       // produce a marker for a mail that never went out.
@@ -126,10 +151,6 @@ test('integration: every package suite is registered exactly once', () => {
     ],
     'a package suite was dropped or duplicated by a merge resolution',
   )
-  assert.equal(suites.length, new Set(suites).size, 'a suite is listed twice')
-  for (const suite of suites) {
-    assert.ok(existsSync(join(REPO, suite)), `registered but missing: ${suite}`)
-  }
 })
 
 test('integration: no script was lost resolving the package.json conflicts', () => {

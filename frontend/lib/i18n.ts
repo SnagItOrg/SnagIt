@@ -301,6 +301,18 @@ export const translations = {
     demandCta: 'Giv besked når Klup følger dette',
     demandThanks: 'Tak — vi har noteret det.',
 
+    // A magic-link send that FAILED. Each one has to tell the reader what to
+    // do next, because "Noget gik galt" tells them nothing: rate-limited means
+    // wait and check spam, a rejected address means fix the address, and only
+    // the third is genuinely "try again".
+    otpErrorRateLimited: 'Vi har lige sendt et link til den adresse. Kig i din indbakke og i spam — og prøv igen om et par minutter.',
+    otpErrorInvalidAddress: 'Vi kan ikke sende til den adresse. Tjek, om den er stavet rigtigt.',
+    otpErrorGeneric: 'Vi kunne ikke sende linket lige nu. Prøv igen om et øjeblik — skriv til os, hvis det bliver ved.',
+    // The demand signal IS recorded even when the mail fails, so this sits
+    // under the thanks rather than replacing it. Nothing was lost; only the
+    // link did not go out.
+    demandNoLinkSent: 'Vi kunne dog ikke sende dig et login-link:',
+
     // Consent and privacy (WP-5)
     consentHeading: 'Må vi måle, hvordan Klup bliver brugt?',
     consentBody: 'Vi bruger PostHog (EU) og Vercel Speed Insights til at forstå, hvad der virker. Siger du nej, virker hele Klup præcis som før.',
@@ -759,6 +771,11 @@ export const translations = {
     searchKindFamily: 'All models',
     demandCta: 'Tell me when Klup follows this',
     demandThanks: 'Thanks — we have noted it.',
+
+    otpErrorRateLimited: 'We just sent a link to that address. Check your inbox and your spam folder — and try again in a couple of minutes.',
+    otpErrorInvalidAddress: 'We cannot send to that address. Check that it is spelled correctly.',
+    otpErrorGeneric: 'We could not send the link just now. Try again in a moment — write to us if it keeps happening.',
+    demandNoLinkSent: 'We could not send you a login link, though:',
 
     consentHeading: 'May we measure how Klup is used?',
     consentBody: 'We use PostHog (EU) and Vercel Speed Insights to understand what works. If you say no, all of Klup works exactly as before.',

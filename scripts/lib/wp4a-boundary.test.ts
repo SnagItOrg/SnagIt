@@ -204,6 +204,12 @@ test('boundary: /search reaches only client-safe modules of our own', () => {
     // client. `/search` gains the edge through `PositionSignal`, which is how
     // the query and the rendered candidate count reach the page.
     'lib/position-signal.ts',
+    // The magic-link failure classifier. Import-free by design, like
+    // `catalogue.ts` and `publication.ts`: it is handed a status and a code
+    // and returns an i18n key, so it resolves nothing, reaches no catalogue
+    // state and no service-role client. `/search` gains the edge because the
+    // demand panel must stop claiming a link was sent when the send failed.
+    'lib/otp-error.ts',
   ])
   const unexpected = closure.filter((m) => !allowed.has(m) && !m.startsWith('components/'))
   assert.deepEqual(unexpected, [], 'unreviewed module reachable from the search client')
