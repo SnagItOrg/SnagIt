@@ -20,6 +20,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { buildPositionSignal } from '../../frontend/lib/position-signal'
+import { currentCatalogueNode } from '../../frontend/lib/catalogue-tree'
 import { translations } from '../../frontend/lib/i18n'
 
 const ROOT = join(__dirname, '..', '..')
@@ -293,12 +294,35 @@ test('the sidebar and the filter chips read the same facet', () => {
 
   // Both sides compare the bare leaf slug, with no second normalisation in the
   // sidebar that could drift from the route's.
-  assert.match(SIDENAV_CODE, /activeSub === sub\.slug/)
   assert.match(SIDENAV_CODE, /\?sub=\$\{encodeURIComponent\(sub\.slug\)\}/)
 
-  // Exactly one node may claim to be the current page: a filtered view marks
-  // the subcategory, and the root stops claiming it.
-  assert.match(SIDENAV_CODE, /isCurrentRoot && activeSub === null/)
+  // PAN-125 moved the predicate out of the renderer and into
+  // `lib/catalogue-tree.ts`, so the property is asserted where it now lives —
+  // behaviourally, against the real function, rather than by matching the
+  // source that used to hold it. A filtered view marks the subcategory and the
+  // branch stops claiming it: exactly one node, still.
+  const cats = [{
+    slug: 'keyboards-and-synths',
+    name_da: 'Synthesizere & keyboards',
+    name_en: 'Keyboards and Synths',
+    product_count: 26,
+    subcategories: [{
+      slug: 'analog-synths',
+      name_da: 'Analoge synths',
+      name_en: 'Analog Synths',
+      product_count: 13,
+      products: [{ slug: 'roland-juno-106', label: 'Roland Juno-106' }],
+    }],
+  }]
+
+  assert.deepEqual(
+    currentCatalogueNode(cats, '/browse/keyboards-and-synths', null),
+    { kind: 'branch', categorySlug: 'keyboards-and-synths' },
+  )
+  assert.deepEqual(
+    currentCatalogueNode(cats, '/browse/keyboards-and-synths', 'analog-synths'),
+    { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'analog-synths' },
+  )
 
   // The facet must not reappear as component state beside the URL.
   assert.equal(

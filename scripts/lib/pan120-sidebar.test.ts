@@ -32,7 +32,11 @@ const CSS = read('app', 'globals.css')
 test('the handle is a separator with live bounds in resolved pixels', () => {
   assert.match(SIDENAV_CODE, /role="separator"/)
   assert.match(SIDENAV_CODE, /aria-orientation="vertical"/)
-  assert.match(SIDENAV_CODE, /aria-valuemin=\{SIDEBAR_MIN_WIDTH\}/)
+  // PAN-125 changed this from `SIDEBAR_MIN_WIDTH`. Collapsed is now the bottom
+  // of the range rather than a mode outside it, which is what lets the handle
+  // exist while collapsed with a valid `aria-valuenow`. See the collapsed-state
+  // test below.
+  assert.match(SIDENAV_CODE, /aria-valuemin=\{SIDEBAR_COLLAPSED_WIDTH\}/)
   assert.match(SIDENAV_CODE, /aria-valuemax=\{SIDEBAR_MAX_WIDTH\}/)
   // `aria-valuenow` must track the live width, not a constant.
   assert.match(SIDENAV_CODE, /aria-valuenow=\{width\}/)
