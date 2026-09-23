@@ -132,6 +132,12 @@ test('integration: every package suite is registered exactly once', () => {
       // import-free for the same reason — 320 leaves and 13 duplicated leaf
       // names are a data property, not a React one.
       'scripts/lib/pan97-subcategory-picker.test.ts',
+      // PAN-99: the Reverb CSP ordering rule. Its own suite because the
+      // resolver's scoring is recall-only and saturates at 1.0 for every
+      // superset title, so identity was settled by `used_total` — and an
+      // accessory with more used listings than the base model is a silent
+      // failure that only surfaces as a wrong photograph.
+      'scripts/lib/pan99-csp-ranking.test.ts',
       // PAN-133: the product-image precedence has one authority. Two columns
       // encode one concept — curated and ingested — and each surface deciding
       // its own precedence produced the same defect twice, in opposite

@@ -24,8 +24,13 @@
  *     resolved_at: "2026-04-27T..."
  *   }
  *
- * Ambiguous matches (low confidence) ALSO store top-3 candidates under
- * `attributes.reverb_csp_candidates` for later human or Haiku review.
+ * `attributes.reverb_csp_candidates` holds THE RUNNERS-UP ONLY — ranks 2..3 of
+ * the ranked list, never the chosen CSP (`candidates: ranked.slice(1)` below).
+ * It is written on every resolution, not only ambiguous ones. So the attached
+ * CSP is absent from that list BY CONSTRUCTION, and a row carrying an
+ * exact-slug entry in `reverb_csp_candidates` is by definition a row where the
+ * exact-slug CSP lost. PAN-99 read that list as the full candidate set and as
+ * evidence of a selection rate; it is neither.
  *
  * Usage:
  *   npm run enrich-from-reverb-csp
@@ -40,6 +45,14 @@ import 'dotenv/config'
 import * as path from 'path'
 import * as fs from 'fs'
 import { createClient } from '@supabase/supabase-js'
+// PAN-99: scoring and the candidate ordering rule live in scripts/lib so they
+// can be unit-tested — this module loads env and calls main() at import time.
+import {
+  tokenize,
+  scoreMatch,
+  classifyConfidence,
+  rankCandidates,
+} from './lib/reverb-csp-ranking'
 
 // ── Load env ──────────────────────────────────────────────────────────────────
 for (const p of [
@@ -107,34 +120,6 @@ async function searchCsps(query: string, makeSlug: string | null): Promise<Rever
     console.warn(`    Reverb fetch error: ${(err as Error).message}`)
     return []
   }
-}
-
-// ── Match scoring ─────────────────────────────────────────────────────────────
-function tokenize(s: string): string[] {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(Boolean)
-}
-
-// Score = |canonical tokens ∩ csp title tokens| / |canonical tokens|
-// Bonus +0.1 if canonical is a contiguous prefix of CSP title.
-function scoreMatch(canonical: string, cspTitle: string): number {
-  const canTokens = tokenize(canonical)
-  if (canTokens.length === 0) return 0
-  const cspTokens = new Set(tokenize(cspTitle))
-  const overlap   = canTokens.filter(t => cspTokens.has(t)).length
-  let score = overlap / canTokens.length
-  // Prefix bonus: CSP title starts with the canonical name (after normalization)
-  const canNorm = tokenize(canonical).join(' ')
-  const cspNorm = tokenize(cspTitle).join(' ')
-  if (cspNorm.startsWith(canNorm)) score = Math.min(1.0, score + 0.1)
-  return Math.round(score * 100) / 100
-}
-
-function classifyConfidence(score: number, canonicalTokens: number): 'high' | 'medium' | 'low' | 'none' {
-  if (canonicalTokens < 2) return 'low'    // single-token canonical names (e.g. just "Fender") are too generic
-  if (score >= 0.95) return 'high'
-  if (score >= 0.75) return 'medium'
-  if (score >= 0.5)  return 'low'
-  return 'none'
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -221,7 +206,7 @@ async function resolveOne(p: ProductRow, brandSlug: string | null): Promise<{
   const now = new Date().toISOString()
   const canTokens = tokenize(p.canonical_name).length
 
-  const ranked: ResolutionRecord[] = csps.slice(0, 3).map(c => {
+  const scored: ResolutionRecord[] = csps.slice(0, 3).map(c => {
     const score = scoreMatch(p.canonical_name, c.title)
     const lowPriceUsd = c.used_low_price?.currency === 'USD'
       ? parseFloat(String(c.used_low_price.amount))
@@ -237,7 +222,9 @@ async function resolveOne(p: ProductRow, brandSlug: string | null): Promise<{
       confidence:         classifyConfidence(score, canTokens),
       resolved_at:        now,
     }
-  }).sort((a, b) => b.score - a.score || b.used_total - a.used_total)
+  })
+
+  const ranked = rankCandidates(p.slug, p.canonical_name, scored)
 
   return { resolution: ranked[0] ?? null, candidates: ranked.slice(1) }
 }
