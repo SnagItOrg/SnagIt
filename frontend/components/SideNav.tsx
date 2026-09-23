@@ -7,6 +7,7 @@ import { useTheme } from 'next-themes'
 import { Sun, Moon } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
+import { Icon } from '@/components/Icon'
 import { fill, type Locale } from '@/lib/i18n'
 import { currentCatalogueNode, type CatalogueTreeCategory } from '@/lib/catalogue-tree'
 
@@ -34,6 +35,7 @@ import { currentCatalogueNode, type CatalogueTreeCategory } from '@/lib/catalogu
 
 function ThemeToggle({ collapsed }: { collapsed: boolean }) {
   const { resolvedTheme, setTheme } = useTheme()
+  const { t } = useLocale()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   if (!mounted) return null
@@ -45,7 +47,10 @@ function ThemeToggle({ collapsed }: { collapsed: boolean }) {
         collapsed ? 'justify-center' : ''
       }`}
       style={{ color: 'var(--muted-foreground)' }}
-      aria-label="Toggle theme"
+      /* PAN-126 — the last hardcoded string on this surface. It was English on
+         a Danish-first product, and `t.toggleTheme` already existed and was
+         already used by `BottomNav` for this same control. */
+      aria-label={t.toggleTheme}
     >
       {resolvedTheme === 'dark'
         ? <Sun size={20} strokeWidth={1.8} />
@@ -328,13 +333,11 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                 borderLeftColor: isCurrentBranch ? 'var(--foreground)' : 'transparent',
               }}
             >
-              <span
-                className="material-symbols-outlined flex-shrink-0 transition-transform group-open:rotate-90"
+              <Icon
+                name="chevron_right"
+                className="flex-shrink-0 transition-transform group-open:rotate-90"
                 style={{ fontSize: '16px' }}
-                aria-hidden="true"
-              >
-                chevron_right
-              </span>
+              />
               <span className="truncate" title={label}>{label}</span>
             </summary>
 
@@ -825,12 +828,10 @@ export function SideNav() {
           href: '/browse',
           label: t.navBrowse,
           icon: (selected) => (
-            <span
-              className="material-symbols-outlined"
+            <Icon
+              name="grid_view"
               style={{ fontSize: '20px', fontVariationSettings: selected ? "'FILL' 1" : "'FILL' 0" }}
-            >
-              grid_view
-            </span>
+            />
           ),
         },
       ],
@@ -851,12 +852,10 @@ export function SideNav() {
           href: '/watchlists',
           label: t.navNotifications,
           icon: (selected) => (
-            <span
-              className="material-symbols-outlined"
+            <Icon
+              name="notifications"
               style={{ fontSize: '20px', fontVariationSettings: selected ? "'FILL' 1" : "'FILL' 0" }}
-            >
-              notifications
-            </span>
+            />
           ),
         },
         {
@@ -881,7 +880,7 @@ export function SideNav() {
       <header className="md:hidden border-b border-border bg-card">
         <Link href="/" className="flex items-center gap-3 px-4 min-h-[44px] text-primary">
           <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
+            <Icon name="radar" style={{ fontSize: '20px' }} />
           </div>
           <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
         </Link>
@@ -908,7 +907,7 @@ export function SideNav() {
         >
           <div className="flex items-center gap-3 text-primary">
             <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>radar</span>
+              <Icon name="radar" style={{ fontSize: '20px' }} />
             </div>
             {!collapsed && <span className="text-lg font-semibold tracking-tight">Klup.dk</span>}
           </div>
@@ -931,13 +930,11 @@ export function SideNav() {
             transitionTimingFunction: 'var(--ease-standard)',
           }}
         >
-          <span
-            className="material-symbols-outlined flex-shrink-0"
+          <Icon
+            name={collapsed ? 'left_panel_open' : 'left_panel_close'}
+            className="flex-shrink-0"
             style={{ fontSize: '20px' }}
-            aria-hidden="true"
-          >
-            {collapsed ? 'left_panel_open' : 'left_panel_close'}
-          </span>
+          />
           {!collapsed && <span>{t.sidebarCollapse}</span>}
         </button>
 
