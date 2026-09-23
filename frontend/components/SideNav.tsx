@@ -805,7 +805,10 @@ export function SideNav({ active, onChange }: Props) {
         </button>
 
         {/* Nav items, in headed sections (PAN-120). */}
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto">
+        <nav
+          aria-label={t.navSidebarLabel}
+          className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto"
+        >
           {navSections.map((section) => (
             <Fragment key={section.title}>
               {/* SideNavSection's title and optional subtitle. Hidden when
