@@ -169,7 +169,6 @@ export const translations = {
     // learns the leaf is larger than what is on screen instead of silently
     // seeing part of it. Counts PRODUCTS, like every other count on a
     // navigation surface.
-    catalogueTreeSeeAll: 'Se alle {count}',
     // PAN-86 — the homepage category shelf, and the page behind an empty card.
     // `homeCategoryCount` counts PRODUCTS, not listings: it is the number the
     // destination page can honour. The empty copy says what following is,
@@ -688,7 +687,6 @@ export const translations = {
     browseProducts: 'products',
     browseListings: 'for sale',
     browseAllCategories: 'All categories',
-    catalogueTreeSeeAll: 'See all {count}',
     homeCategoriesHeading: 'Categories',
     homeCategoriesSubtext: 'Everything Klup follows — and what it does not follow yet',
     homeCategoryCount: '{count} products',

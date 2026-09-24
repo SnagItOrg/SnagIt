@@ -286,9 +286,11 @@ const SIDENAV_CODE = stripComments(read('components', 'SideNav.tsx'))
 
 test('the sidebar marks where you are, with aria-current="page"', () => {
   // There was not one occurrence anywhere in this file before this ticket.
+  // Three levels carry it since round 3 removed product rows: the top-level
+  // item, the root and the kind.
   const occurrences = SIDENAV_CODE.match(/aria-current=/g) ?? []
   assert.ok(
-    occurrences.length >= 4,
+    occurrences.length >= 3,
     `expected aria-current at every level of the tree, found ${occurrences.length}`,
   )
 
@@ -325,10 +327,9 @@ test('the sidebar and the filter chips read the same facet', () => {
       name_da: 'Trommemaskiner',
       name_en: 'Drum Machines',
       product_count: 6,
-      products: [{ slug: 'roland-tr-808', label: 'Roland TR-808' }],
+      product_slugs: ['roland-tr-808'],
     }],
-    direct_product_count: 16,
-    products: [{ slug: 'roland-juno-106', label: 'Roland Juno-106' }],
+    product_slugs: ['roland-juno-106', 'roland-tr-808'],
   }]
 
   assert.deepEqual(

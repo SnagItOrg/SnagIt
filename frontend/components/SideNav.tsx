@@ -8,7 +8,7 @@ import { Sun, Moon } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import { Icon } from '@/components/Icon'
-import { fill, type Locale } from '@/lib/i18n'
+import { type Locale } from '@/lib/i18n'
 import { currentCatalogueNode, type CatalogueTreeCategory } from '@/lib/catalogue-tree'
 
 /**
@@ -124,10 +124,10 @@ function CatalogueTreeSkeleton() {
  * it, so the job was deciding how little to show, not designing a hierarchy.
  * The tree is built from the product rows themselves (`buildCatalogueTree`),
  * which makes "populated branches only" structural rather than a filter — an
- * empty music root contributes no row and so cannot render (D-IA-1). Two
- * levels, then products. Form factor and technology are filters and never
- * levels (D-IA-2); `Accessories` and `Parts` hold nothing and are therefore
- * absent by construction (D-IA-3).
+ * empty music root contributes no row and so cannot render (D-IA-1). Roots,
+ * then kinds — no facets and no products (catalogue-tree.ts rules 2 and 3,
+ * PAN-121 rounds 2 and 3); products live on the page grid. `Accessories` and
+ * `Parts` hold nothing and are therefore absent by construction (D-IA-3).
  *
  * The homepage shelf (PAN-86) shows all fourteen roots INCLUDING the empty
  * ones. That is not a contradiction: it answers "what does Klup cover", and
@@ -137,8 +137,9 @@ function CatalogueTreeSkeleton() {
  * rows rather than filtered down to them.
  *
  * NO PRICE, BAND, MEDIAN OR VERDICT. Guaranteed by the payload rather than by
- * this component's restraint: a product node is `{ label, slug }` and has no
- * field a price could travel in. Asserted structurally in
+ * this component's restraint: the tree carries no product nodes, and a node's
+ * product membership is bare slugs with no field a price could travel in.
+ * Asserted structurally in
  * scripts/lib/pan17-catalogue-tree.test.ts, the way PAN-56 asserts it.
  *
  * ON A PHONE THIS RENDERS NOTHING, AND NOTHING IS LOST. The whole `<aside>` is
@@ -241,135 +242,60 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
     return () => onMarkedChange(false)
   }, [current, onMarkedChange])
 
-  /**
-   * PAN-121 — a "you are here" mark nobody can see says nothing.
-   *
-   * Measured at 1440x900 on `/product/roland-juno-106`: the marked row sat
-   * below the fold of the sidebar, before this ticket and after it, so the one
-   * place that named the product was off-screen. When the current node
-   * changes, bring it into view. `block: 'nearest'` scrolls only if the row is
-   * not already visible, so a visitor who scrolled the tree themselves and
-   * clicked a row in view is not moved.
-   *
-   * It is the TREE that scrolls, not the whole catalogue zone: scrolling the
-   * zone to reach the row carried Søg and Katalog off the top with it, which
-   * traded one Trunk Test question (where am I) for another (what are the
-   * major sections). The tree is the only part tall enough to need it.
-   */
-  const treeRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    treeRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' })
-  }, [current])
-
-  /**
-   * One product row, at one of two depths: under a KIND leaf, or directly
-   * under its root because its leaf is a facet (catalogue-tree.ts rule 2). A
-   * root product sits in the kind headers' column — it is their sibling, not
-   * their child — and a kind's product sits one step in from that.
-   */
-  const productRow = (product: { slug: string; label: string }, depth: 'root' | 'kind') => {
-    const isHere = current?.kind === 'product' && current.productSlug === product.slug
-    const indent = depth === 'kind'
-      ? (isHere ? 'pl-11' : 'pl-12')
-      : (isHere ? 'pl-9' : 'pl-10')
-    return (
-      <li key={product.slug}>
-        <Link
-          href={`/product/${product.slug}`}
-          /* PAN-121 — `isHere` already painted this row; nothing told a
-             screen reader about it. The visual state and the announced state
-             now come from the same boolean. */
-          aria-current={isHere ? 'page' : undefined}
-          className={`block pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary ${indent} ${
-            isHere ? 'border-l-2 font-semibold' : ''
-          }`}
-          style={{
-            color: isHere ? 'var(--here)' : 'var(--muted-foreground)',
-            backgroundColor: isHere ? 'var(--here-subtle)' : 'transparent',
-            borderLeftColor: isHere ? 'var(--here)' : 'transparent',
-          }}
-          title={product.label}
-        >
-          {product.label}
-        </Link>
-      </li>
-    )
-  }
-
   // Coming, versus not there. See `CatalogueTreeSkeleton` for why these two
   // must not share an answer.
   if (categories.length === 0) return answered ? null : <CatalogueTreeSkeleton />
 
-
   return (
-    <div ref={treeRef} className="mt-0.5 mb-1 flex flex-1 min-h-0 flex-col gap-0.5 overflow-y-auto">
+    <div className="mt-0.5 mb-1 flex flex-col gap-0.5">
       {categories.map((category) => {
         const label = locale === 'da' ? category.name_da : category.name_en
 
         /**
          * PAN-121 — is this the branch the visitor is standing in?
          *
-         * `isCurrentRoot` is the whole `/browse/<root>` page; `isCurrentBranch`
-         * additionally requires that no facet is narrowing it, so a visitor
-         * filtered down to one subcategory sees the *subcategory* marked as the
-         * current node rather than two nodes both claiming to be it. Exactly one
-         * `aria-current="page"` in the tree at a time is the point — a screen
-         * reader announcing two current pages is no better than announcing none.
+         * True on `/browse/<root>`, on a facet `?sub=` (a facet has no node),
+         * and on a product page whose product has no kind. False when a KIND
+         * is narrowing it, so the kind is marked instead and exactly one
+         * `aria-current="page"` stays in the tree.
          */
         const isCurrentBranch =
           current?.kind === 'branch' && current.categorySlug === category.slug
 
         /**
-         * PAN-132 — does this branch CONTAIN the current node?
-         *
-         * Deliberately not `isCurrentBranch`, and the difference is the whole
-         * point. `isCurrentBranch` is false on `?sub=` and on a product page by
-         * design, because the deeper node is the one that claims to be current
-         * — so opening on it would close the branch holding the marked row and
-         * hide the mark on exactly the two routes where it is most precise.
-         * Containment is the question a disclosure has to answer, and marking
-         * is a different one.
+         * PAN-132 — does this branch CONTAIN the current node? Containment,
+         * not marking: on a kind `?sub=` and on a product under a kind the
+         * branch is not the marked node, but it still has to show the kind
+         * that is.
          */
         const holdsCurrentNode = current !== null && current.categorySlug === category.slug
 
+        /**
+         * PAN-121 round 3 — a root row is a LINK, and its kinds show when the
+         * visitor stands in it.
+         *
+         * It was a native `<details>` whose body was mostly products. With
+         * products gone from the tree (catalogue-tree.ts rule 3), three of the
+         * six roots — El-guitarer, Western- & akustiske guitarer, Basguitarer —
+         * hold no kind at all, so their disclosure would have opened onto
+         * nothing: a click that does nothing. So every root now does the same
+         * thing, which is go to its page, and the kinds of the branch the
+         * visitor is in are listed beneath it. PAN-132's rule survives
+         * unchanged: only the current branch is open. The chevron is a state
+         * indicator on roots that have kinds, not a control.
+         */
+        const hasKinds = category.subcategories.length > 0
+
         return (
-          // Native disclosure. `<details>` needs no state, keeps keyboard and
-          // screen-reader semantics, and survives a client-side route change
-          // without a store.
-          //
-          // ONLY THE BRANCH THE VISITOR IS STANDING IN IS OPEN (PAN-132), and
-          // this comment used to argue the opposite. Every category started
-          // open, on the reading that "Jeg vil ogsaa gerne have produkter i sub
-          // kategorier naar det er muligt" was an instruction to show products
-          // rather than hide them one click away. The product owner has since
-          // reversed it: the branches are what collapses, not the shell.
-          //
-          // The cost that argument accepted is what settles it. Measured on
-          // this catalogue: 6 categories, 14 leaves and 50 products — 70 rows,
-          // every one of them open, in a container that scrolls. That was
-          // survivable only while the shell was collapsed and the tree never
-          // rendered at all; now that the shell opens by default it is the
-          // first thing a visitor meets. One branch is the answer to "where am
-          // I", 70 rows is the answer to nothing.
-          //
-          // `holdsCurrentNode` is a CONTAINMENT test, not the marking test —
-          // see above. Nothing else changes: this is still a native
-          // `<details>`, so keyboard, find-in-page and the screen reader's
-          // expanded state all still come from the element rather than from
-          // state, and a visitor can open any other branch with one click.
-          <details key={category.slug} open={holdsCurrentNode} className="group">
-            <summary
+          <div key={category.slug}>
+            <Link
+              href={`/browse/${category.slug}`}
               /* pl-3/gap-1.5 and a 16px chevron rather than the nav items'
                  px-3/gap-3/20px: the longest Danish root label ("Western- &
                  akustiske guitarer") needs every pixel it can get, and a branch
                  label that cannot be read is worse navigation than one sitting
-                 10px left of the item above it.
-
-                 PAN-120 corrected the claim that used to stand here. This said
-                 `w-60` was the width at which that label fits; measured, it is
-                 not — the text needs 184px and gets 173px at 240, so it has
-                 been ellipsing all along. `SIDEBAR_MIN_WIDTH` is now the
-                 measured floor, and these paddings are why it is not larger. */
+                 10px left of the item above it. `SIDEBAR_MIN_WIDTH` is the
+                 measured floor (PAN-120). */
               /* PAN-121 — the current branch: a rail, a fill and a weight
                  step, all in `--here`, the one "you are here" colour (see
                  frontend/CLAUDE.md for where else it may appear). Not green —
@@ -377,23 +303,7 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                  PAN-113 measured an opacity state at 2.61:1. The weight step
                  is what survives grayscale. */
               aria-current={isCurrentBranch ? 'page' : undefined}
-              /* STICKY, so the root stays on screen while its branch scrolls
-                 beneath it — on a product page the marked row can sit forty
-                 rows down, and without its root above it the tree answers
-                 "where am I" with half a path. A sticky header needs an opaque
-                 surface, so the fill is the opaque `--zone-group` and the
-                 current branch's tint is laid over it as an image rather than
-                 replacing it. */
-              /* ROUND 2 — a root is a GROUP of products, so it sits on
-                 `--zone-group`, one step deeper than the catalogue surface
-                 in the same grey family (the owner: "a different shade of
-                 the same colour, insinuating affinity with their parent").
-                 The rest state lives in classes, not inline style, so the
-                 hover can actually win — an inline `backgroundColor` beat
-                 `hover:bg-secondary` here before. Hover moves the row toward
-                 the catalogue surface, which is lighter in light mode and
-                 darker in dark. */
-              className={`sticky top-0 z-10 flex items-center gap-1.5 pr-2 py-2 rounded-xl text-[13px] cursor-pointer list-none [&::-webkit-details-marker]:hidden transition-colors bg-[color:var(--zone-group)] ${
+              className={`flex items-center gap-1.5 pr-2 py-2 rounded-xl text-[13px] transition-colors bg-[color:var(--zone-group)] ${
                 isCurrentBranch
                   ? 'pl-2 border-l-2 font-semibold'
                   : 'pl-3 font-medium text-ink-secondary hover:bg-surface-2'
@@ -410,112 +320,48 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
             >
               <Icon
                 name="chevron_right"
-                className="flex-shrink-0 transition-transform group-open:rotate-90"
+                aria-hidden="true"
+                className={`flex-shrink-0 transition-transform ${holdsCurrentNode ? 'rotate-90' : ''} ${hasKinds ? '' : 'invisible'}`}
                 style={{ fontSize: '16px' }}
               />
               <span className="truncate" title={label}>{label}</span>
-            </summary>
+            </Link>
 
-            {/* PAN-121 — the levels must read in grayscale, before any colour.
-                A root is 13px in `--text-secondary`, the darkest ink in the
-                tree; a subcategory is an 11px uppercase label in muted ink,
-                one step lighter in weight than it used to be — at semibold it
-                out-shouted the root it sits under; a product is 12px regular,
-                indented one step past its subcategory instead of sharing its
-                column. Colour, when it arrives, only says "you are here". */}
-            <ul className="flex flex-col">
-              {/* ROUND 2 — the products whose leaf is a facet, directly under
-                  the root (catalogue-tree.ts rule 2), BEFORE the kinds.
-
-                  Both orders were built and screenshotted. With the kinds
-                  first, the root's own products followed the last kind's
-                  products with nothing between them but 8px of indent, so
-                  "ARP 2600" read as an electric piano — and on a product page
-                  the mark scrolls to a row whose kind header is off-screen,
-                  so the Juno-106 appeared to sit under "El-pianoer". A list
-                  after an open group header reads as belonging to it. With
-                  the products first, every kind header starts a group and
-                  nothing follows a group that is not in it. The cost is that
-                  the kinds sit below the root's products; the page's facet
-                  row still lists them at the top of `/browse/<root>`. */}
-              {category.products.map((product) => productRow(product, 'root'))}
-              {category.products.length === 0 && category.direct_product_count > 0 && (
-                <li>
-                  <Link
-                    href={`/browse/${category.slug}`}
-                    className="block pl-10 pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary"
-                    style={{ color: 'var(--muted-foreground)' }}
-                  >
-                    {fill(t.catalogueTreeSeeAll, { count: category.direct_product_count })}
-                  </Link>
-                </li>
-              )}
-              {category.subcategories.map((sub) => {
-                const subLabel = locale === 'da' ? sub.name_da : sub.name_en
-                /* `sub.slug` is documented in `catalogue-tree.ts` as the bare
-                   leaf slug "as `/browse/<root>` reports it", which is exactly
-                   the value the filter chips write into `?sub=`. The sidebar and
-                   the chips therefore compare the same string — no second
-                   normalisation here that could drift from the route's. */
-                const isCurrentSub =
-                  current?.kind === 'subcategory' &&
-                  current.categorySlug === category.slug &&
-                  current.subcategorySlug === sub.slug
-                return (
-                  <li key={sub.slug}>
-                    {/* PAN-121 — a subcategory IS a destination now.
-
-                        It used to be an inert `<p>`, and the comment here said
-                        why: "`/browse/<root>` filters by subcategory in client
-                        state rather than in the URL, so there is no honest href
-                        to give this row today." That premise is gone — the facet
-                        is `?sub=<slug>` — so the row becomes the link it always
-                        wanted to be, and the same click the chip performs is now
-                        available from the sidebar. This is also the only reason
-                        the sidebar can mark the current subcategory at all. */}
-                    <Link
-                      href={`/browse/${category.slug}?sub=${encodeURIComponent(sub.slug)}`}
-                      aria-current={isCurrentSub ? 'page' : undefined}
-                      className={`block pr-3 pt-2 pb-1 text-[11px] uppercase tracking-wide truncate rounded-lg transition-colors hover:bg-secondary ${
-                        isCurrentSub ? 'pl-9 border-l-2 font-semibold' : 'pl-10 font-medium'
-                      }`}
-                      style={{
-                        color: isCurrentSub ? 'var(--here)' : 'var(--muted-foreground)',
-                        backgroundColor: isCurrentSub ? 'var(--here-subtle)' : 'transparent',
-                        borderLeftColor: isCurrentSub ? 'var(--here)' : 'transparent',
-                      }}
-                      title={subLabel}
-                    >
-                      {subLabel}
-                    </Link>
-                    <ul className="flex flex-col">
-                      {sub.products.map((product) => productRow(product, 'kind'))}
-
-                      {/* The threshold, made visible. `products` is empty
-                          exactly when the leaf holds more than
-                          LEAF_PRODUCT_LIMIT, so the reader is told the leaf is
-                          bigger than the sidebar rather than shown an
-                          unannounced slice of it. No leaf reaches this today —
-                          the largest is 9 — and that is the point: it is here
-                          before it is needed. */}
-                      {sub.products.length === 0 && (
-                        <li>
-                          <Link
-                            href={`/browse/${category.slug}`}
-                            className="block pl-12 pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary"
-                            style={{ color: 'var(--muted-foreground)' }}
-                          >
-                            {fill(t.catalogueTreeSeeAll, { count: sub.product_count })}
-                          </Link>
-                        </li>
-                      )}
-                    </ul>
-                  </li>
-                )
-              })}
-
-            </ul>
-          </details>
+            {holdsCurrentNode && hasKinds && (
+              <ul className="flex flex-col">
+                {category.subcategories.map((sub) => {
+                  const subLabel = locale === 'da' ? sub.name_da : sub.name_en
+                  /* `sub.slug` is documented in `catalogue-tree.ts` as the bare
+                     leaf slug "as `/browse/<root>` reports it", which is exactly
+                     the value the filter chips write into `?sub=`. The sidebar
+                     and the chips therefore compare the same string. */
+                  const isCurrentSub =
+                    current?.kind === 'subcategory' &&
+                    current.categorySlug === category.slug &&
+                    current.subcategorySlug === sub.slug
+                  return (
+                    <li key={sub.slug}>
+                      <Link
+                        href={`/browse/${category.slug}?sub=${encodeURIComponent(sub.slug)}`}
+                        aria-current={isCurrentSub ? 'page' : undefined}
+                        className={`block pr-3 pt-2 pb-1 text-[11px] uppercase tracking-wide truncate rounded-lg transition-colors hover:bg-secondary ${
+                          isCurrentSub ? 'pl-9 border-l-2 font-semibold' : 'pl-10 font-medium'
+                        }`}
+                        style={{
+                          color: isCurrentSub ? 'var(--here)' : 'var(--muted-foreground)',
+                          backgroundColor: isCurrentSub ? 'var(--here-subtle)' : 'transparent',
+                          borderLeftColor: isCurrentSub ? 'var(--here)' : 'transparent',
+                        }}
+                        title={subLabel}
+                      >
+                        {subLabel}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
         )
       })}
     </div>

@@ -33,8 +33,8 @@
  *    cover", the sidebar answers "where can I go", and an empty branch is a
  *    dead end in a navigation tree.
  *
- * 2. TWO LEVELS AT MOST, PLUS PRODUCTS — AND ONLY A KIND IS A LEVEL.
- *    Category and immediate subcategory, and nothing finer. Generation, year
+ * 2. TWO LEVELS AT MOST, AND ONLY A KIND IS A LEVEL. Category and immediate
+ *    subcategory, and nothing finer — and no products (rule 3). Generation, year
  *    and colour are filters; a family is a navigation concept owned by
  *    `lib/families.ts` and is not a taxonomy level.
  *    PAN-121 round 2 SUPERSEDES the old D-IA-2, which made form factor a
@@ -46,20 +46,25 @@
  *        node in the tree.
  *      - a FACET is an attribute of a thing — body shape, string count,
  *        construction, synthesis technology. A visitor filters by it, so it
- *        is not a node: its products hang directly under their root, and the
- *        facet lives only as a chip on `/browse/<root>` (`?sub=` unchanged).
+ *        is not a node: it lives only as a chip on `/browse/<root>` (`?sub=`
+ *        unchanged), and its products belong to the root.
  *    `FACET_SUBCATEGORIES` below is the hand-maintained list. An unlisted
  *    leaf is a KIND, so a newly published leaf behaves exactly as before and
  *    nothing disappears from the navigation silently.
  *
- * 3. A LEAF STOPS ENUMERATING AT `LEAF_PRODUCT_LIMIT`, VISIBLY. See the
- *    constant below.
+ * 3. NO PRODUCTS ARE NODES (PAN-121 round 3). Products live on the page
+ *    grid; the tree is categories and kinds. It still has to know WHICH
+ *    products each node holds, because on `/product/<slug>` the sidebar marks
+ *    the product's kind (or its root) and the breadcrumb names the product.
+ *    So each node carries `product_slugs` — membership for that one lookup,
+ *    never rendered, and without a label. This retired `LEAF_PRODUCT_LIMIT`:
+ *    nothing enumerates products any more, so there is nothing to cap.
  *
  * 4. NO PRICE REACHES THIS PAYLOAD. Not a band, not a median, not a deal
- *    verdict. A product node is `{ label, slug }` and has no field a price
- *    could travel in — the same structural guarantee `FamilyListing` gives in
- *    `families.ts`, asserted the same way PAN-56 asserts it, by the shape of
- *    the object rather than by comparing a value.
+ *    verdict. A node's product membership is a list of bare slugs, which has
+ *    no field a price could travel in — the same structural guarantee
+ *    `FamilyListing` gives in `families.ts`, asserted the same way PAN-56
+ *    asserts it, by the shape of the object rather than by comparing a value.
  *
  * WHAT THIS MODULE DELIBERATELY DOES NOT DO: decide eligibility. It is handed
  * rows and places them. `isCanonical()` remains the one authority for what may
@@ -67,26 +72,6 @@
  * `lib/browse.ts` — the same call `/browse` and `/browse/<root>` make. One
  * predicate, so the tree and the browse pages cannot drift about what exists.
  */
-
-/**
- * How many products a leaf may enumerate before it collapses to a link.
- *
- * MEASURED, NOT GUESSED. Against production on 2026-09-21 the largest leaf is
- * `keyboards-and-synths/analog-synths` at 13, and the whole public catalogue
- * is 49 products across 14 leaves — so every leaf enumerates today and this
- * constant changes nothing that is currently on screen. It grew from 9 and 31
- * during the few hours this ticket took, which is the argument for having the
- * threshold now rather than when a leaf first overruns.
- *
- * It exists because the catalogue grows and a sidebar must not. 30 is roughly
- * one viewport of leaf rows at the sidebar's type size; past it the list stops
- * being navigation and becomes a page. Crossing the threshold is VISIBLE — the
- * leaf keeps its name and its count and offers "see all", which is a statement
- * the reader can act on. The failure mode this avoids is the silent one: a
- * leaf that quietly renders its first 30 of 47 with no ordering anybody chose
- * and no sign that 17 are missing.
- */
-export const LEAF_PRODUCT_LIMIT = 30
 
 /**
  * PAN-121 round 2 — the subcategories that are FACETS, not kinds (rule 2).
@@ -131,38 +116,26 @@ export type CatalogueTreeRow = {
   subcategory_name_en: string | null
 }
 
-/** Two keys, and rule 4 is the reason there are only two. */
-export type CatalogueTreeProduct = {
-  slug: string
-  label: string
-}
-
 export type CatalogueTreeSubcategory = {
   /** The bare leaf slug (`analog-synths`), as `/browse/<root>` reports it. */
   slug: string
   name_da: string
   name_en: string
-  /** Always the true total, even when `products` is empty. See rule 3. */
   product_count: number
-  /** Empty exactly when `product_count > LEAF_PRODUCT_LIMIT`. */
-  products: CatalogueTreeProduct[]
+  /** Membership only, for `currentCatalogueNode` (rule 3). Never rendered. */
+  product_slugs: string[]
 }
 
 export type CatalogueTreeCategory = {
   slug: string
   name_da: string
   name_en: string
-  /** Every product under the root: its kinds plus its direct products. */
+  /** Every product under the root, in its kinds and its facets alike. */
   product_count: number
   /** KINDS only (rule 2). A facet leaf never appears here. */
   subcategories: CatalogueTreeSubcategory[]
-  /**
-   * Products whose leaf is a facet, hung directly under the root. The same
-   * contract as a leaf's pair, rule 3 included: always the true total, and
-   * `products` is empty exactly when that total exceeds `LEAF_PRODUCT_LIMIT`.
-   */
-  direct_product_count: number
-  products: CatalogueTreeProduct[]
+  /** Membership only — every product under the root (rule 3). Never rendered. */
+  product_slugs: string[]
 }
 
 /** `subcategory_slug` is stored as `<root>/<leaf>`; the route uses the leaf. */
@@ -183,9 +156,7 @@ function bareLeafSlug(slug: string): string {
  * ORDER is populated-first by descending count, then `name_en` — the same rule
  * `buildHomeCategories` uses, so the two navigation surfaces cannot present
  * the same categories in two different orders. It is total and
- * locale-independent, so the server and the client agree about it. Products
- * inside a leaf sort by name, because no other order is meaningful once price
- * is off the table.
+ * locale-independent, so the server and the client agree about it.
  */
 export function buildCatalogueTree(rows: CatalogueTreeRow[]): CatalogueTreeCategory[] {
   const byRoot = new Map<string, CatalogueTreeCategory>()
@@ -204,19 +175,16 @@ export function buildCatalogueTree(rows: CatalogueTreeRow[]): CatalogueTreeCateg
         name_en: row.root_category_name_en ?? rootSlug,
         product_count: 0,
         subcategories: [],
-        direct_product_count: 0,
-        products: [],
+        product_slugs: [],
       }
       byRoot.set(rootSlug, root)
     }
 
-    // Rule 2: a facet is not a node, so its product attaches to the root.
-    if (FACET_SUBCATEGORIES.has(subSlug)) {
-      root.product_count += 1
-      root.direct_product_count += 1
-      root.products.push({ slug: row.slug, label: row.canonical_name })
-      continue
-    }
+    root.product_count += 1
+    root.product_slugs.push(row.slug)
+
+    // Rule 2: a facet is not a node, so its product belongs to the root alone.
+    if (FACET_SUBCATEGORIES.has(subSlug)) continue
 
     const leafKey = `${rootSlug} ${subSlug}`
     let leaf = leaves.get(leafKey)
@@ -227,15 +195,14 @@ export function buildCatalogueTree(rows: CatalogueTreeRow[]): CatalogueTreeCateg
         name_da: row.subcategory_name_da ?? bare,
         name_en: row.subcategory_name_en ?? bare,
         product_count: 0,
-        products: [],
+        product_slugs: [],
       }
       leaves.set(leafKey, leaf)
       root.subcategories.push(leaf)
     }
 
-    root.product_count += 1
     leaf.product_count += 1
-    leaf.products.push({ slug: row.slug, label: row.canonical_name })
+    leaf.product_slugs.push(row.slug)
   }
 
   const byCountThenName = (
@@ -246,25 +213,9 @@ export function buildCatalogueTree(rows: CatalogueTreeRow[]): CatalogueTreeCateg
     return a.name_en.localeCompare(b.name_en, 'en')
   }
 
-  for (const leaf of Array.from(leaves.values())) {
-    // Rule 3. All-or-nothing rather than a first-30 slice: an arbitrary
-    // truncation of an arbitrary order is the silent degradation the threshold
-    // exists to prevent. The count survives either way, so the leaf can always
-    // say how big it is.
-    leaf.products =
-      leaf.product_count > LEAF_PRODUCT_LIMIT
-        ? []
-        : leaf.products.sort((a, b) => a.label.localeCompare(b.label, 'en'))
-  }
-
   const categories = Array.from(byRoot.values())
   for (const root of categories) {
     root.subcategories.sort(byCountThenName)
-    // Rule 3 applies to a root's direct products exactly as to a leaf's.
-    root.products =
-      root.direct_product_count > LEAF_PRODUCT_LIMIT
-        ? []
-        : root.products.sort((a, b) => a.label.localeCompare(b.label, 'en'))
   }
 
   return categories.sort(byCountThenName)
@@ -296,20 +247,14 @@ export function buildCatalogueTree(rows: CatalogueTreeRow[]): CatalogueTreeCateg
  * `null` rather than a guess. The caller then marks the section, which is true
  * at a coarser resolution, instead of marking a node that is not there.
  *
- * EVERY VARIANT CARRIES `categorySlug`, INCLUDING THE PRODUCT (PAN-132). The
- * product node used to carry only its own slug, which was enough to *mark* the
- * row but not to say which branch holds it. Once branches collapse by default
- * that becomes the deciding question — a marked row inside a closed branch is
- * not visible, so the tree has to know the containing category, not just the
- * node. It costs nothing to answer here: the lookup below already walks the
- * categories to decide whether the product is one the tree carries, so it now
- * reports what it found instead of discarding it. Deriving it a second time in
- * the renderer would be exactly the drift this function exists to prevent.
+ * EVERY VARIANT CARRIES `categorySlug` (PAN-132): the branch that holds the
+ * mark must open, so the renderer needs the containing category and must not
+ * derive it a second time. Since round 3 there is no product variant — a
+ * product page answers with the kind or the root that holds the product.
  */
 export type CurrentCatalogueNode =
   | { kind: 'branch'; categorySlug: string }
   | { kind: 'subcategory'; categorySlug: string; subcategorySlug: string }
-  | { kind: 'product'; categorySlug: string; productSlug: string }
   | null
 
 export function currentCatalogueNode(
@@ -317,14 +262,18 @@ export function currentCatalogueNode(
   pathname: string,
   activeSub: string | null,
 ): CurrentCatalogueNode {
+  // PAN-121 round 3: a product is not a node, so a product page marks the
+  // node that holds it — its kind if it has one, otherwise its root. The
+  // breadcrumb is what names the product itself.
   const productMatch = /^\/product\/([^/]+)\/?$/.exec(pathname)
   if (productMatch) {
     const slug = decodeURIComponent(productMatch[1])
-    const holder = categories.find((category) =>
-      category.products.some((p) => p.slug === slug) ||
-      category.subcategories.some((sub) => sub.products.some((p) => p.slug === slug)),
-    )
-    return holder ? { kind: 'product', categorySlug: holder.slug, productSlug: slug } : null
+    const holder = categories.find((category) => category.product_slugs.includes(slug))
+    if (!holder) return null
+    const kind = holder.subcategories.find((sub) => sub.product_slugs.includes(slug))
+    return kind
+      ? { kind: 'subcategory', categorySlug: holder.slug, subcategorySlug: kind.slug }
+      : { kind: 'branch', categorySlug: holder.slug }
   }
 
   const browseMatch = /^\/browse\/([^/]+)\/?$/.exec(pathname)
