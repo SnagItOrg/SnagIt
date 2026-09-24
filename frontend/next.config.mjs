@@ -83,6 +83,13 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'images.unsplash.com',
       },
+      // Pexels (editorial hero photos). Only roland-tr-909's hero today; without
+      // it the optimiser answered 400 on /browse/keyboards-and-synths.
+      {
+        protocol: 'https',
+        hostname: 'images.pexels.com',
+        pathname: '/photos/**',
+      },
     ],
   },
 };
