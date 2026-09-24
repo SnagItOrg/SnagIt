@@ -557,6 +557,18 @@ export const translations = {
       circuit: 'Elektronik',
       polar_pattern: 'Karakteristik',
     },
+    // PAN-140 — the facet editor on /admin/product/[slug].
+    adminFacets: {
+      heading: 'Facetter',
+      intro: 'Sæt kun det, du har tjekket i en kilde. Tomt betyder “ikke kurateret”, ikke “nej”.',
+      pickOne: 'Vælg én',
+      pickMany: 'Vælg alle, den kan',
+      notSet: 'Ikke sat',
+      setBy: 'Sat af {who} · {when}',
+      saved: '{axis} gemt',
+      cleared: '{axis} fjernet',
+      error: '{axis} kunne ikke gemmes. Prøv igen.',
+    },
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -1039,6 +1051,18 @@ export const translations = {
       capsule: 'Type',
       circuit: 'Electronics',
       polar_pattern: 'Polar pattern',
+    },
+    // PAN-140 — the facet editor on /admin/product/[slug].
+    adminFacets: {
+      heading: 'Facets',
+      intro: 'Set only what you have checked against a source. Empty means “not curated”, not “no”.',
+      pickOne: 'Pick one',
+      pickMany: 'Pick every one it can do',
+      notSet: 'Not set',
+      setBy: 'Set by {who} · {when}',
+      saved: '{axis} saved',
+      cleared: '{axis} cleared',
+      error: '{axis} could not be saved. Try again.',
     },
   },
 } as const

@@ -74,6 +74,7 @@
     "/api/admin/product/subcategories": "admin_api",
     "/api/admin/product/[slug]/reassign-match": "admin_api",
     "/api/admin/product/[slug]/approve-match": "admin_api",
+    "/api/admin/product/[slug]/facets": "admin_api",
     "/api/admin/product/[slug]/image": "admin_api",
     "/api/admin/product/[slug]/match-review": "admin_api",
     "/api/admin/product/[slug]/reject-match": "admin_api",
