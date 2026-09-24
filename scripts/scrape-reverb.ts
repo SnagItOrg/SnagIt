@@ -296,7 +296,10 @@ function buildRow(listing: ReverbListing) {
     normalized_text: title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
     price: priceDkk,
     currency: 'DKK',
-    country: 'US',
+    // Unknown, not 'US' (PAN-134). The search endpoint returns no `location`
+    // (0 of 394 measured), and Reverb sells worldwide. Price populations
+    // file Reverb by source, never by country.
+    country: null,
     price_dkk: priceDkk,
     url,
     image_url: imageUrl,

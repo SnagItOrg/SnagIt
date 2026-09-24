@@ -24,7 +24,8 @@
  * national market is never inferred for it from its source alone.
  *
  * WHY REVERB IS EXEMPT. `buildRow()` in `scripts/scrape-reverb.ts` stores
- * `price: <converted DKK>, currency: 'DKK', country: 'US'` — every active
+ * `price: <converted DKK>, currency: 'DKK', country: null` (it wrote a false
+ * 'US' before PAN-134, and older rows still carry 'US' or 'DK') — every active
  * Reverb row is an already-converted USD price wearing a DKK label. Any rule
  * that read `currency` would classify 39,926 international listings as Danish
  * market data. `currency` is therefore never consulted in this file.
