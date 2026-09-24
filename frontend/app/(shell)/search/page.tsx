@@ -376,7 +376,7 @@ function SearchPageInner() {
         </div>
       </div>
 
-      <main className="shell-reading flex-1 pt-5 pb-24 md:pb-10">
+      <main id="main-content" className="shell-reading flex-1 pt-5 pb-24 md:pb-10">
         {/*
           PAN-121 — the position signal.
 

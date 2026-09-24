@@ -100,7 +100,7 @@ export default function SavedPage() {
 
   return (
     <>
-      <main className="flex-1 shell-offset-pad flex flex-col pb-24 md:pb-6">
+      <main id="main-content" className="flex-1 shell-offset-pad flex flex-col pb-24 md:pb-6">
         <MobileSearchBar />
         <div className="shell-wall flex flex-col pt-2 md:pt-6 flex-1">
         {authed === false ? (

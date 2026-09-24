@@ -1,5 +1,6 @@
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
+import { SkipLink } from '@/components/SkipLink'
 
 /**
  * PAN-131 — the application shell. The sidebar mounts HERE, once.
@@ -68,6 +69,7 @@ import { BottomNav } from '@/components/BottomNav'
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen md:flex">
+      <SkipLink />
       <SideNav />
       {children}
       <BottomNav />

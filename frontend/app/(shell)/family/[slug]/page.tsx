@@ -239,7 +239,7 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
     {}` here.
   */
   return (
-    <main className="flex-1 min-w-0 shell-offset pb-24 md:pb-8">
+    <main id="main-content" className="flex-1 min-w-0 shell-offset pb-24 md:pb-8">
       <MobileSearchBar />
       <div className="cq-pane shell-reading flex flex-col pt-6 pb-10 md:pt-10">
         {/*

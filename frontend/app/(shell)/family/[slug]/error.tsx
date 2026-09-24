@@ -37,6 +37,7 @@ export default function FamilyError({
 
   return (
     <main
+      id="main-content"
       className="min-h-screen flex flex-col items-center justify-center px-6 text-center"
       style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
     >

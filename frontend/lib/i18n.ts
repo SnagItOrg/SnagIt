@@ -530,6 +530,9 @@ export const translations = {
     sidebarSectionDiscoverSubtitle: 'Søg og gennemse kataloget',
     sidebarSectionYours: 'Dit Klup',
 
+    // PAN-142 — the skip link, first focusable element in the public shell.
+    skipToContent: 'Spring til indhold',
+
     // PAN-136 — creating a brand from the new-product form.
     adminBrand: {
       createOption: 'Opret brand “{name}”',
@@ -1005,6 +1008,9 @@ export const translations = {
     sidebarSectionDiscover: 'Discover',
     sidebarSectionDiscoverSubtitle: 'Search and browse the catalogue',
     sidebarSectionYours: 'Your Klup',
+
+    // PAN-142 — the skip link, first focusable element in the public shell.
+    skipToContent: 'Skip to content',
 
     // PAN-136 — creating a brand from the new-product form.
     adminBrand: {

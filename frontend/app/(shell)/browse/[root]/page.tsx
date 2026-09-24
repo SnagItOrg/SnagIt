@@ -225,7 +225,7 @@ function BrowseCategoryPageInner() {
   })
 
   return (
-    <main className="flex-1 min-w-0 shell-offset pb-24 md:pb-8">
+    <main id="main-content" className="flex-1 min-w-0 shell-offset pb-24 md:pb-8">
       <MobileSearchBar />
 
       <div className="shell-wall">
