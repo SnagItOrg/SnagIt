@@ -23,6 +23,7 @@ is an alias. Add a semantic alias; never add a second literal.
 | Accent | `--accent` · `--accent-hover` · `--accent-text` · `--accent-subtle` · `--accent-border` · `--accent-foreground` |
 | Destructive | `--destructive` · `--destructive-hover` · `--destructive-text` · `--destructive-subtle` · `--destructive-border` · `--destructive-foreground` |
 | You are here | `--here` · `--here-subtle` · `--here-border` — see "Design rules" for the exhaustive list of uses |
+| Sidebar zones | `--zone-catalogue` · `--zone-group` · `--zone-yours` — aliases onto the neutral ramp, SideNav only |
 | Focus | `--ring` · `--ring-width` · `--ring-offset-width` |
 | Elevation | `--rim` · `--shadow-1..3` · `--elevation-card` / `-raised` / `-overlay` |
 
@@ -90,6 +91,15 @@ locale switch, the theme toggle, the admin debug chip: selection is not
 location, and they stay neutral (`--secondary` / `--foreground`). A location
 mark is never colour alone: it always carries a weight step too, so it survives
 grayscale. The list is exhaustive; extending it is a product-owner call.
+
+**The sidebar's zones are told apart by grey, never by hue** (PAN-121 round 2).
+Three tones of the one neutral family: `--zone-catalogue` (the sidebar surface),
+`--zone-group` one step deeper for a row that holds products (a catalogue
+root), and `--zone-yours` recessed for Dit Klup and the utilities. `--here`
+must stay AA on all three — measured: text 7.00 / 5.45 / 6.36 in light and
+8.09 / 6.69 / 8.84 in dark; on its own tint over the group tone, 4.72 light
+and 4.92 dark, the tightest pair. Pick a new tone from the ramp only after
+re-measuring that pair.
 
 Why violet: every other hue is already spoken for — green is Klup's judgement,
 red is destructive, blue is the focus ring and the DBA/Thomann badges, cyan is

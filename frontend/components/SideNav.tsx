@@ -346,21 +346,32 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                  beneath it — on a product page the marked row can sit forty
                  rows down, and without its root above it the tree answers
                  "where am I" with half a path. A sticky header needs an opaque
-                 surface, so the fill is `--card` and the current branch's tint
-                 is laid over it as an image rather than replacing it. */
-              className={`sticky top-0 z-10 flex items-center gap-1.5 pr-2 py-2 rounded-xl text-[13px] cursor-pointer list-none [&::-webkit-details-marker]:hidden transition-colors hover:bg-secondary ${
+                 surface, so the fill is the opaque `--zone-group` and the
+                 current branch's tint is laid over it as an image rather than
+                 replacing it. */
+              /* ROUND 2 — a root is a GROUP of products, so it sits on
+                 `--zone-group`, one step deeper than the catalogue surface
+                 in the same grey family (the owner: "a different shade of
+                 the same colour, insinuating affinity with their parent").
+                 The rest state lives in classes, not inline style, so the
+                 hover can actually win — an inline `backgroundColor` beat
+                 `hover:bg-secondary` here before. Hover moves the row toward
+                 the catalogue surface, which is lighter in light mode and
+                 darker in dark. */
+              className={`sticky top-0 z-10 flex items-center gap-1.5 pr-2 py-2 rounded-xl text-[13px] cursor-pointer list-none [&::-webkit-details-marker]:hidden transition-colors bg-[color:var(--zone-group)] ${
                 isCurrentBranch
                   ? 'pl-2 border-l-2 font-semibold'
-                  : 'pl-3 font-medium'
+                  : 'pl-3 font-medium text-ink-secondary hover:bg-surface-2'
               }`}
-              style={{
-                color: isCurrentBranch ? 'var(--here)' : 'var(--text-secondary)',
-                backgroundColor: 'var(--card)',
-                backgroundImage: isCurrentBranch
-                  ? 'linear-gradient(var(--here-subtle), var(--here-subtle))'
-                  : undefined,
-                borderLeftColor: isCurrentBranch ? 'var(--here)' : 'transparent',
-              }}
+              style={
+                isCurrentBranch
+                  ? {
+                      color: 'var(--here)',
+                      backgroundImage: 'linear-gradient(var(--here-subtle), var(--here-subtle))',
+                      borderLeftColor: 'var(--here)',
+                    }
+                  : undefined
+              }
             >
               <Icon
                 name="chevron_right"
@@ -932,7 +943,7 @@ export function SideNav() {
           be a bug — see the responsive note in the PR. Only the *width* becomes
           dynamic; the show/hide does not. */}
       <aside
-        className="hidden md:flex flex-col fixed top-0 left-0 h-full border-r border-border bg-card z-40"
+        className="hidden md:flex flex-col fixed top-0 left-0 h-full border-r border-border bg-[color:var(--zone-catalogue)] z-40"
         style={{
           width: `${resolvedWidth}px`,
           // Not animated while dragging: a transition on width turns a drag
@@ -985,7 +996,7 @@ export function SideNav() {
             The owner: visitors forage listings and "keep track of them in the
             bottom of the sidenav"; the catalogue is the top. So the catalogue
             zone takes the free height and scrolls, and the visitor's own zone
-            is pinned below it on the recessed `--canvas` surface, which the
+            is pinned below it on the recessed `--zone-yours` surface, which the
             utilities strip beneath shares. Two measurable reasons, not taste:
             with a branch open the tree used to push Gemt/Alerts/Profil below
             a 900px fold (PAN-121's own Trunk Test), and one scrolling list
@@ -1008,7 +1019,7 @@ export function SideNav() {
                   ? 'shrink-0 py-3 border-t border-border'
                   : 'flex-1 min-h-0 py-4 overflow-y-auto' /* the tree scrolls inside; this is the short-window fallback */
               }`}
-              style={section.zone === 'yours' ? { backgroundColor: 'var(--canvas)' } : undefined}
+              style={section.zone === 'yours' ? { backgroundColor: 'var(--zone-yours)' } : undefined}
             >
               {/* SideNavSection's title and optional subtitle. Hidden when
                   collapsed — a 72px rail has no room for a heading, and the
@@ -1119,7 +1130,7 @@ export function SideNav() {
             third of the sidebar reads as one place: yours. */}
         <div
           className="px-3 pb-6 pt-2 border-t border-border flex flex-col gap-1"
-          style={{ backgroundColor: 'var(--canvas)' }}
+          style={{ backgroundColor: 'var(--zone-yours)' }}
         >
           {/* Theme toggle */}
           <ThemeToggle collapsed={collapsed} />
