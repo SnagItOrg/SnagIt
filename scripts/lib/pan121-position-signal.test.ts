@@ -156,7 +156,9 @@ test('an active filter is removable by keyboard and announces what it removed', 
   assert.match(ROUTES.browseRoot, /<PositionSignal signal=\{positionSignal\} filtersShownByPage \/>/)
   // PAN-138: the chips are display slugs (a group is one chip), so the model
   // and the pressed state read the resolved facet, not the raw `?sub=`.
-  assert.match(ROUTES.browseRoot, /filters: activeChip/)
+  // PAN-140: the attribute facets in force join it in the same array.
+  assert.match(ROUTES.browseRoot, /filters: \[\s*\.\.\.\(activeChip/)
+  assert.match(ROUTES.browseRoot, /kind: 'attribute' as const/)
   assert.match(ROUTES.browseRoot, /aria-pressed=\{activeSub === null\}/)
   assert.match(ROUTES.browseRoot, /aria-pressed=\{activeSub === chip\.slug\}/)
   assert.match(COMPONENT_CODE, /filtersShownByPage \? \(\s*<p aria-live="polite"/)

@@ -206,3 +206,68 @@ export function applyFacetWrite(
   else base.facets = facets
   return base
 }
+
+// ─── Browse: the chip row ────────────────────────────────────────────────────
+
+/** One value per axis, from the URL (`?circuit=tube&polar_pattern=figure-8`). */
+export type ActiveFacets = Partial<Record<FacetKey, string>>
+
+/** Read the URL, keeping only applicable axes and vocabulary values. */
+export function readActiveFacets(
+  params: { get(name: string): string | null },
+  keys: readonly FacetKey[],
+): ActiveFacets {
+  const out: ActiveFacets = {}
+  for (const key of keys) {
+    const value = params.get(key)
+    if (value && vocabulary(key).includes(value)) out[key] = value
+  }
+  return out
+}
+
+type FacetedRow = { facets?: ProductFacetValues }
+
+function matches(row: FacetedRow, active: ActiveFacets, except?: FacetKey): boolean {
+  return (Object.entries(active) as [FacetKey, string][]).every(
+    ([key, value]) => key === except || (row.facets?.[key] ?? []).includes(value),
+  )
+}
+
+/** "Can do": a row passes when every active axis value is among its values. */
+export function filterByFacets<Row extends FacetedRow>(rows: readonly Row[], active: ActiveFacets): Row[] {
+  return rows.filter((row) => matches(row, active))
+}
+
+export type FacetChipAxis = {
+  key: FacetKey
+  values: Array<{ value: string; label: string; active: boolean }>
+}
+
+/**
+ * The chips worth showing. For each axis the base set is `rows` narrowed by
+ * every OTHER active axis; a value is shown only when it narrows that set
+ * (matches some rows but not all) or is the one in force, so it can be
+ * removed. An axis with nothing to show is omitted.
+ *
+ * No counts are returned: under "can do" they overlap, and a sum of them would
+ * be a number no rendered set has.
+ */
+export function facetChipAxes(
+  rows: readonly FacetedRow[],
+  keys: readonly FacetKey[],
+  active: ActiveFacets,
+): FacetChipAxis[] {
+  const axes: FacetChipAxis[] = []
+  for (const key of keys) {
+    const base = rows.filter((row) => matches(row, active, key))
+    const values = vocabulary(key)
+      .filter((value) => {
+        if (active[key] === value) return true
+        const hits = base.filter((row) => (row.facets?.[key] ?? []).includes(value)).length
+        return hits > 0 && hits < base.length
+      })
+      .map((value) => ({ value, label: facetValueLabel(key, value), active: active[key] === value }))
+    if (values.length > 0) axes.push({ key, values })
+  }
+  return axes
+}

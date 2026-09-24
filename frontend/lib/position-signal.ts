@@ -34,12 +34,13 @@
 /**
  * What kind of narrowing a chip represents.
  *
- * `subcategory` is `/browse/[root]`'s chip row; `query` is `/search`'s term.
+ * `subcategory` is `/browse/[root]`'s chip row; `attribute` is its facet row
+ * (PAN-140: capsule, electronics, polar pattern); `query` is `/search`'s term.
  * A category or family is the *scope*, not a filter — it is where you are
  * rather than something you added, and removing it would mean leaving the
  * page rather than widening the set.
  */
-export type PositionFilterKind = 'subcategory' | 'query'
+export type PositionFilterKind = 'subcategory' | 'attribute' | 'query'
 
 export type PositionFilter = {
   /** Stable identity, for the React key and for the remove callback. */

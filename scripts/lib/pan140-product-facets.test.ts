@@ -11,16 +11,22 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 import {
   PRODUCT_ATTRIBUTE_FACETS,
   applyFacetWrite,
+  facetChipAxes,
   facetKeysFor,
+  filterByFacets,
+  readActiveFacets,
   readFacetEntries,
   readFacets,
   validateFacetWrite,
 } from '../../frontend/lib/product-facets'
 import { translations } from '../../frontend/lib/i18n'
+import { buildPositionSignal } from '../../frontend/lib/position-signal'
 
 const MICS = 'pro-audio/microphones'
 const PROVENANCE = { set_by: '6b1c2d3e-0000-4000-8000-000000000001', set_at: '2026-09-24T15:00:00.000Z' }
@@ -90,4 +96,96 @@ test('vocabulary: only known axes and values, on the product\'s own leaf, at the
     assert.ok(translations.en.productFacets[key], `en heading for ${key}`)
   }
   assert.deepEqual(Object.values(translations.da.productFacets), ['Type', 'Elektronik', 'Karakteristik'])
+})
+
+// ─── The browse chip row ─────────────────────────────────────────────────────
+
+const ROOT = join(__dirname, '..', '..', 'frontend')
+const stripComments = (source: string) =>
+  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '')
+
+/** The three public mics, with the values the spike measured. */
+const U87 = { slug: 'neumann-u87ai', facets: { capsule: ['condenser'], circuit: ['solid-state'], polar_pattern: ['omni', 'cardioid', 'figure-8'] } }
+const REF_C = { slug: 'manley-ref-c', facets: { capsule: ['condenser'], circuit: ['tube'], polar_pattern: ['cardioid'] } }
+const REF_GOLD = { slug: 'manley-reference-gold', facets: { capsule: ['condenser'], circuit: ['tube'], polar_pattern: ['omni', 'cardioid', 'figure-8'] } }
+const UNCURATED = { slug: 'some-new-mic', facets: {} }
+const MIC_ROWS = [U87, REF_C, REF_GOLD, UNCURATED]
+const MIC_KEYS = facetKeysFor(MICS)
+
+test('with a facet chip in force the count is the rendered rows, under "can do"', () => {
+  // Figure-8 "can do": both multi-pattern mics, not the fixed cardioid, and
+  // not the uncurated row (a missing value is "unknown", never a match).
+  const figure8 = filterByFacets(MIC_ROWS, readActiveFacets(new URLSearchParams('polar_pattern=figure-8'), MIC_KEYS))
+  assert.deepEqual(figure8.map((r) => r.slug), ['neumann-u87ai', 'manley-reference-gold'])
+  assert.equal(buildPositionSignal({ renderedRows: figure8 }).count, figure8.length)
+
+  // Omni is the same two rows: one mic sits under several chips of one axis,
+  // which is why a sum of chip counts would be a number no rendered set has.
+  const omni = filterByFacets(MIC_ROWS, { polar_pattern: 'omni' })
+  assert.deepEqual(omni.map((r) => r.slug), figure8.map((r) => r.slug))
+
+  // Two axes are AND: tube and figure-8 is the Reference Gold alone.
+  const both = filterByFacets(MIC_ROWS, readActiveFacets(new URLSearchParams('circuit=tube&polar_pattern=figure-8'), MIC_KEYS))
+  assert.deepEqual(both.map((r) => r.slug), ['manley-reference-gold'])
+  assert.equal(buildPositionSignal({ renderedRows: both }).count, 1)
+
+  // A value outside the vocabulary, or an axis that does not apply, is ignored.
+  assert.deepEqual(readActiveFacets(new URLSearchParams('circuit=FET&diaphragm=large'), MIC_KEYS), {})
+  assert.deepEqual(readActiveFacets(new URLSearchParams('circuit=tube'), facetKeysFor('pro-audio/recording')), {})
+
+  // Only chips that narrow. Among the three curated mics, all condenser, the
+  // capsule axis is absent and Cardioid (all three) is hidden — the spike's
+  // measured case. An uncurated row changes that honestly: Condenser and
+  // Cardioid then exclude it, so they narrow and are shown.
+  const curatedAxes = facetChipAxes([U87, REF_C, REF_GOLD], MIC_KEYS, {})
+  assert.deepEqual(curatedAxes.map((a) => a.key), ['circuit', 'polar_pattern'])
+  assert.deepEqual(
+    curatedAxes.find((a) => a.key === 'polar_pattern')!.values.map((v) => v.value),
+    ['omni', 'figure-8'],
+  )
+  const withUncurated = facetChipAxes(MIC_ROWS, MIC_KEYS, {})
+  assert.deepEqual(withUncurated.map((a) => a.key), ['capsule', 'circuit', 'polar_pattern'])
+  assert.deepEqual(
+    withUncurated.find((a) => a.key === 'polar_pattern')!.values.map((v) => v.value),
+    ['omni', 'cardioid', 'figure-8'],
+  )
+  // The value in force is always shown, so it can be removed, even though
+  // within its own filtered set it no longer narrows.
+  const inForce = facetChipAxes([U87, REF_C, REF_GOLD], MIC_KEYS, { circuit: 'tube' })
+  assert.deepEqual(inForce.find((a) => a.key === 'circuit')!.values, [
+    { value: 'tube', label: 'Tube', active: true },
+    { value: 'solid-state', label: 'Solid-state', active: false },
+  ])
+
+  // The page wires the chip row and the count to the same array: the facet
+  // filter produces `filteredProducts`, which the signal counts and the grid
+  // maps (the latter two also pinned by pan121-position-signal.test).
+  const page = stripComments(readFileSync(join(ROOT, 'app', '(shell)', 'browse', '[root]', 'page.tsx'), 'utf8'))
+  assert.match(page, /const filteredProducts = filterByFacets\(subcategoryProducts, activeFacets\)/)
+  assert.match(page, /facetChipAxes\(subcategoryProducts, /)
+  assert.match(page, /renderedRows: filteredProducts/)
+  assert.match(page, /\{filteredProducts\.map\(/)
+})
+
+test('the public browse payload carries facet values, never who set them', () => {
+  const stored = {
+    facets: {
+      circuit: { values: ['tube'], ...PROVENANCE },
+      polar_pattern: { values: ['cardioid'], ...PROVENANCE },
+    },
+    reverb_csp: { csp_id: 1865 },
+  }
+  const publicFacets = readFacets(stored, MICS)
+  assert.deepEqual(publicFacets, { circuit: ['tube'], polar_pattern: ['cardioid'] })
+  const json = JSON.stringify(publicFacets)
+  for (const leak of ['set_by', 'set_at', PROVENANCE.set_by, 'reverb_csp']) {
+    assert.equal(json.includes(leak), false, `public facets must not carry ${leak}`)
+  }
+
+  // The browse builder reaches the column only through readFacets, and
+  // selects only the facets sub-object, never the whole attributes blob.
+  const browse = stripComments(readFileSync(join(ROOT, 'lib', 'browse.ts'), 'utf8'))
+  assert.match(browse, /\.select\('slug, facets:attributes->facets'\)/)
+  assert.match(browse, /out\.set\(row\.slug, readFacets\(/)
+  assert.equal(/select\([^)]*\battributes\b(?!->)/.test(browse), false, 'browse must not select attributes whole')
 })
