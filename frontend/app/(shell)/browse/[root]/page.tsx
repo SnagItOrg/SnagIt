@@ -13,6 +13,7 @@ import {
   SUBCATEGORY_GROUPS,
   displaySubcategorySlug,
   isSubcategoryGroup,
+  sortKindsByLabel,
 } from '@/lib/catalogue-tree'
 import type { BrowseLeafResponse } from '@/lib/browse'
 
@@ -163,8 +164,10 @@ function BrowseCategoryPageInner() {
    * PAN-138 — the chip row is DISPLAY slugs, not leaf slugs. Grouped leaves
    * (analog + digital synths) collapse into one chip, through the same
    * `displaySubcategorySlug` the sidebar tree is built with, so the two cannot
-   * disagree about which leaves are one place. A group takes the position of
-   * its first member in the API's order; every other chip keeps its own.
+   * disagree about which leaves are one place.
+   *
+   * PAN-141 — the chips are in the sidebar's order, by `sortKindsByLabel`:
+   * alphabetical by the label shown, so a group sorts under its own label.
    *
    * `activeSub` is `?sub=` resolved the same way, so an old
    * `?sub=analog-synths` link selects the group instead of half of it.
@@ -182,12 +185,13 @@ function BrowseCategoryPageInner() {
     return locale === 'da' ? name_da : name_en
   }
 
-  const chips: Array<{ slug: string; label: string }> = []
+  const kinds: Array<{ slug: string; label: string }> = []
   for (const s of data?.subcategories ?? []) {
     const slug = displaySubcategorySlug(params.root, s.slug)
-    if (chips.some((chip) => chip.slug === slug)) continue
-    chips.push({ slug, label: displaySubcategoryLabel(s.slug, s.name_da, s.name_en) })
+    if (kinds.some((chip) => chip.slug === slug)) continue
+    kinds.push({ slug, label: displaySubcategoryLabel(s.slug, s.name_da, s.name_en) })
   }
+  const chips = sortKindsByLabel(kinds, (chip) => chip.label, locale)
 
   const filteredProducts = activeSub
     ? (data?.products ?? []).filter(
