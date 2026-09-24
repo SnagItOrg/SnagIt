@@ -73,6 +73,9 @@ export const FAMILY_LABEL_SLUGS: readonly string[] = [
   // creation, instead of after someone notices a single band averaging a Stage
   // against a Suitcase.
   'rhodes',
+  // PAN-141. The Boss lines are the same case as `rhodes`: no row today.
+  'boss-ce-chorus',
+  'boss-dm-delay',
 ]
 
 const FAMILY_LABEL_SLUG_SET = new Set<string>(FAMILY_LABEL_SLUGS)

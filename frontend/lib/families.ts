@@ -206,6 +206,44 @@ export const NAVIGATION_FAMILIES: readonly NavigationFamily[] = [
      */
     aliases: ['fender rhodes'],
   },
+  /*
+   * PAN-141 — the two Boss lines, product-owner decision 2026-09-24. Like
+   * `rhodes`, both are navigation concepts only: neither slug is a `kg_product`
+   * row (SELECT, 2026-09-24) and neither may ever become one, or
+   * `familyRedirectTarget` would 308 its product page away.
+   *
+   * A Waza Craft reissue (`-2w`) is a MEMBER, not a `successor` edge. The `W`
+   * is identity-forming (PAN-52 D6), so CE-2W keeps its own row and its own
+   * price evidence; this file only groups it for navigation, which is what a
+   * family is for. Each reissue sits beside the circuit it reissues.
+   *
+   * Members are the canonical rows, SELECT-verified active + supported +
+   * public + music on 2026-09-24. The two listing-title duplicates
+   * (`boss-boss-boss-ce-3-…-1987`, `boss-boss-ceb-3-bass-chorus`) are never
+   * members: merge-not-create. `boss-ceb-3` is left out because a bass chorus
+   * is a different instrument market.
+   *
+   * No aliases. The label and slug produce the family's own keys; `boss
+   * chorus` or `boss delay` would capture queries for pedals outside the line.
+   * The labels are not a child's name, so the family stays choosable in a
+   * disambiguation set (see `rhodes` above).
+   */
+  {
+    slug: 'boss-ce-chorus',
+    label: 'Boss CE Chorus',
+    brand: 'Boss',
+    categoryRoot: 'effects-and-pedals',
+    children: ['boss-ce-1', 'boss-ce-2', 'boss-ce-2w', 'boss-ce-3', 'boss-ce-5'],
+    aliases: [],
+  },
+  {
+    slug: 'boss-dm-delay',
+    label: 'Boss DM Delay',
+    brand: 'Boss',
+    categoryRoot: 'effects-and-pedals',
+    children: ['boss-dm-2', 'boss-dm-2w'],
+    aliases: [],
+  },
 ]
 
 const FAMILY_BY_SLUG = new Map<string, NavigationFamily>(
