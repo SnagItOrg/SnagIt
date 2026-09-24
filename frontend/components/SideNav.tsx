@@ -804,11 +804,14 @@ export function SideNav() {
    * and does not list navigation.
    */
   const navSections: {
+    /** Which of the sidebar's two places this section is (see the `<nav>`). */
+    zone: 'catalogue' | 'yours'
     title: string
     subtitle?: string
     items: { href: string; label: string; icon: (selected: boolean) => React.ReactNode }[]
   }[] = [
     {
+      zone: 'catalogue',
       title: t.sidebarSectionDiscover,
       subtitle: t.sidebarSectionDiscoverSubtitle,
       items: [
@@ -838,6 +841,7 @@ export function SideNav() {
       ],
     },
     {
+      zone: 'yours',
       title: t.sidebarSectionYours,
       items: [
         {
@@ -939,20 +943,45 @@ export function SideNav() {
           {!collapsed && <span>{t.sidebarCollapse}</span>}
         </button>
 
-        {/* Nav items, in headed sections (PAN-120). */}
-        <nav
-          aria-label={t.navSidebarLabel}
-          className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto"
-        >
+        {/* Nav items, in headed sections (PAN-120) — and, since PAN-121, in two
+            PLACES rather than one running list.
+
+            The owner: visitors forage listings and "keep track of them in the
+            bottom of the sidenav"; the catalogue is the top. So the catalogue
+            zone takes the free height and scrolls, and the visitor's own zone
+            is pinned below it on the recessed `--canvas` surface, which the
+            utilities strip beneath shares. Two measurable reasons, not taste:
+            with a branch open the tree used to push Gemt/Alerts/Profil below
+            a 900px fold (PAN-121's own Trunk Test), and one scrolling list
+            gave the two places no edge between them. Astryx's SideNav has the
+            same split — scrollable children, sticky footer.
+
+            Each zone is a labelled `role="group"`, Astryx's `SideNavSection`
+            semantics, so the edge exists for a screen reader too. The label
+            is the visible heading when there is one, and `aria-label` on the
+            72px rail where the heading is hidden. */}
+        <nav aria-label={t.navSidebarLabel} className="flex-1 min-h-0 flex flex-col">
           {navSections.map((section) => (
-            <Fragment key={section.title}>
+            <div
+              key={section.zone}
+              role="group"
+              aria-labelledby={collapsed ? undefined : `sidenav-zone-${section.zone}`}
+              aria-label={collapsed ? section.title : undefined}
+              className={`flex flex-col gap-1 px-3 ${
+                section.zone === 'yours'
+                  ? 'shrink-0 py-3 border-t border-border'
+                  : 'flex-1 min-h-0 py-4 overflow-y-auto'
+              }`}
+              style={section.zone === 'yours' ? { backgroundColor: 'var(--canvas)' } : undefined}
+            >
               {/* SideNavSection's title and optional subtitle. Hidden when
                   collapsed — a 72px rail has no room for a heading, and the
                   items keep their own accessible names there, so nothing is
                   lost but the grouping label. */}
               {!collapsed && (
-                <div className="px-3 pt-3 pb-1 first:pt-0">
+                <div className="px-3 pb-1">
                   <p
+                    id={`sidenav-zone-${section.zone}`}
                     className="text-[11px] font-semibold uppercase tracking-wide"
                     style={{ color: 'var(--muted-foreground)' }}
                   >
@@ -1042,12 +1071,17 @@ export function SideNav() {
                   </Fragment>
                 )
               })}
-            </Fragment>
+            </div>
           ))}
         </nav>
 
-        {/* Bottom: theme toggle + locale toggle + logout */}
-        <div className="px-3 pb-6 pt-2 border-t border-border flex flex-col gap-1">
+        {/* Bottom: theme toggle + locale toggle + logout — on the same
+            recessed surface as the visitor's zone above it, so the lower
+            third of the sidebar reads as one place: yours. */}
+        <div
+          className="px-3 pb-6 pt-2 border-t border-border flex flex-col gap-1"
+          style={{ backgroundColor: 'var(--canvas)' }}
+        >
           {/* Theme toggle */}
           <ThemeToggle collapsed={collapsed} />
 
