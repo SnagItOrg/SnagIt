@@ -548,6 +548,15 @@ export const translations = {
       errorSlug: 'Slug må kun indeholde små bogstaver, tal og bindestreger.',
       errorGeneric: 'Brandet kunne ikke oprettes. Prøv igen.',
     },
+
+    // PAN-140 — attribute facet axis headings, keyed by the facet key in
+    // lib/product-facets.ts. The VALUES (Condenser, Tube, Figure-8…) are
+    // catalogue vocabulary in studio English and live in that module.
+    productFacets: {
+      capsule: 'Type',
+      circuit: 'Elektronik',
+      polar_pattern: 'Karakteristik',
+    },
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -1023,6 +1032,13 @@ export const translations = {
       errorName: 'Enter the brand name.',
       errorSlug: 'Slug may only contain lowercase letters, digits and hyphens.',
       errorGeneric: 'The brand could not be created. Try again.',
+    },
+
+    // PAN-140 — attribute facet axis headings (see the `da` block).
+    productFacets: {
+      capsule: 'Type',
+      circuit: 'Electronics',
+      polar_pattern: 'Polar pattern',
     },
   },
 } as const
