@@ -287,10 +287,14 @@ export function placeInCatalogue(
  * visitor can actually stand, instead of inventing an "Other" branch the
  * taxonomy does not have.
  *
- * ORDER is populated-first by descending count, then `name_en` — the same rule
- * `buildHomeCategories` uses, so the two navigation surfaces cannot present
- * the same categories in two different orders. It is total and
+ * CATEGORY ORDER is populated-first by descending count, then `name_en` — the
+ * same rule `buildHomeCategories` uses, so the two navigation surfaces cannot
+ * present the same categories in two different orders. It is total and
  * locale-independent, so the server and the client agree about it.
+ *
+ * KINDS ARE NOT ORDERED HERE (PAN-141). Their order is by the label the
+ * visitor reads, which depends on the locale, so it is applied where the
+ * label is: `sortKindsByLabel`, at render.
  */
 export function buildCatalogueTree(
   rows: CatalogueTreeRow[],
@@ -335,12 +339,27 @@ export function buildCatalogueTree(
     return a.name_en.localeCompare(b.name_en, 'en')
   }
 
-  const categories = Array.from(byRoot.values())
-  for (const root of categories) {
-    root.subcategories.sort(byCountThenName)
-  }
+  return Array.from(byRoot.values()).sort(byCountThenName)
+}
 
-  return categories.sort(byCountThenName)
+/**
+ * PAN-141 — the one order a category's kinds are listed in, in the sidebar and
+ * in the chip row on `/browse/<root>`: alphabetical by the label the visitor
+ * reads. The two used to disagree on one page (the sidebar by product count,
+ * the chips by English leaf name), so both call this and neither states an
+ * order of its own.
+ *
+ * By the DISPLAYED label, so it takes the locale: a grouped kind (PAN-138)
+ * sorts under its group's label, and Danish sorts with Danish collation.
+ * Count is deliberately not a key, so the order stays put as products are
+ * published. The chip row's "Alle" is not a kind and stays first.
+ */
+export function sortKindsByLabel<T>(
+  kinds: readonly T[],
+  labelOf: (kind: T) => string,
+  locale: 'da' | 'en',
+): T[] {
+  return [...kinds].sort((a, b) => labelOf(a).localeCompare(labelOf(b), locale))
 }
 
 /**

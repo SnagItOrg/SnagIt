@@ -45,6 +45,9 @@ export const FAMILY_LABEL_SLUGS = [
   // PAN-85. Unlike the six above, `rhodes` guards no existing row: the family
   // has no `kg_product` row and must never be given one. See lib/catalogue.ts.
   'rhodes',
+  // PAN-141. The Boss lines, the same case as `rhodes`.
+  'boss-ce-chorus',
+  'boss-dm-delay',
 ]
 
 /** The fields each action writes. Nothing else is ever touched. */

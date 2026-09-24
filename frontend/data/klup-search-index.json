@@ -639,6 +639,24 @@
         "rhodes",
         "rhodeselectricpiano"
       ]
+    },
+    {
+      "kind": "family",
+      "slug": "boss-ce-chorus",
+      "label": "Boss CE Chorus",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bosscechorus"
+      ]
+    },
+    {
+      "kind": "family",
+      "slug": "boss-dm-delay",
+      "label": "Boss DM Delay",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossdmdelay"
+      ]
     }
   ]
 }

@@ -9,7 +9,11 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import { Icon } from '@/components/Icon'
 import { type Locale } from '@/lib/i18n'
-import { currentCatalogueNode, type CatalogueTreeCategory } from '@/lib/catalogue-tree'
+import {
+  currentCatalogueNode,
+  sortKindsByLabel,
+  type CatalogueTreeCategory,
+} from '@/lib/catalogue-tree'
 import { scrollFade, useScrollEdges } from '@/components/use-scroll-edges'
 
 /**
@@ -341,7 +345,12 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                 A current kind lays its 2px `--here` rail over the guide. */}
             {holdsCurrentNode && hasKinds && (
               <ul className="ml-[19px] mt-0.5 mb-1 flex flex-col border-l border-line">
-                {category.subcategories.map((sub) => {
+                {/* PAN-141 — the same order as the chip row on the page. */}
+                {sortKindsByLabel(
+                  category.subcategories,
+                  (sub) => (locale === 'da' ? sub.name_da : sub.name_en),
+                  locale,
+                ).map((sub) => {
                   const subLabel = locale === 'da' ? sub.name_da : sub.name_en
                   /* `sub.slug` is documented in `catalogue-tree.ts` as the bare
                      leaf slug "as `/browse/<root>` reports it", which is exactly

@@ -44,9 +44,13 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import {
   FACET_SUBCATEGORIES,
   buildCatalogueTree,
+  sortKindsByLabel,
   type CatalogueTreeRow,
   type SubcategoryGroupNames,
 } from '../../frontend/lib/catalogue-tree'
@@ -135,11 +139,24 @@ test('PAN-17: an unpopulated branch cannot render, and depth stops at two', () =
   // populated leaf and none of the 29 empty ones.
   const effects = tree.find((c) => c.slug === 'effects-and-pedals')
   assert.deepEqual(effects?.subcategories.map((s) => s.slug), ['reverb'])
-  // Two levels of ordering, both populated-first: pro-audio's four leaves sort
-  // by count and then by name, never by the taxonomy's own alphabet.
+  // PAN-141: kinds are listed alphabetically by the label shown, never by
+  // count — pro-audio's 3/1/1/1 must not put compressors first. Both the
+  // sidebar and the chip row order through `sortKindsByLabel` (asserted below).
+  const byLabel = (slug: string, locale: 'da' | 'en') =>
+    sortKindsByLabel(
+      tree.find((c) => c.slug === slug)!.subcategories,
+      (s) => (locale === 'da' ? s.name_da : s.name_en),
+      locale,
+    ).map((s) => s.slug)
   assert.deepEqual(
-    tree.find((c) => c.slug === 'pro-audio')?.subcategories.map((s) => s.slug),
-    ['compressors-and-limiters', 'channel-strips', 'microphones', 'recording'],
+    byLabel('pro-audio', 'en'),
+    ['channel-strips', 'compressors-and-limiters', 'microphones', 'recording'],
+  )
+  // A grouped kind (PAN-138) sorts under its own label, not at its first
+  // member's position: "Synthesizere" after "drum-machines" and "electric-pianos".
+  assert.deepEqual(
+    byLabel('keyboards-and-synths', 'da'),
+    ['drum-machines', 'electric-pianos', 'synthesizers'],
   )
   for (const category of tree) {
     for (const sub of category.subcategories) {
@@ -260,4 +277,13 @@ test('PAN-17: no price, band, median or verdict can reach the sidebar', () => {
   ], NAMES)
   assert.deepEqual(withPrice[0].product_slugs, ['juno-106'])
   assert.equal(JSON.stringify(withPrice).includes('4500'), false)
+})
+
+test('PAN-141: the sidebar and the chip row share one kind order', () => {
+  // One function, called by both surfaces, so the same list cannot appear in
+  // two orders on one page again.
+  const frontend = join(__dirname, '..', '..', 'frontend')
+  for (const file of ['components/SideNav.tsx', 'app/(shell)/browse/[root]/page.tsx']) {
+    assert.match(readFileSync(join(frontend, file), 'utf8'), /sortKindsByLabel\(/, file)
+  }
 })

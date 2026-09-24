@@ -52,8 +52,11 @@ const GUITAR_FAMILIES = [
   'fender-precision-bass',
 ]
 
-/** The six, plus `rhodes` (PAN-85) — the first family with canonical children. */
-const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes']
+/** The two Boss lines (PAN-141). Navigation-only, like `rhodes`. */
+const BOSS_FAMILIES = ['boss-ce-chorus', 'boss-dm-delay']
+
+/** The six, plus `rhodes` (PAN-85) — the first family with canonical children — and the Boss lines. */
+const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES]
 
 /**
  * Production state of every configured child, SELECT-verified 2026-08-28:
@@ -116,6 +119,11 @@ test('families: children match the reviewed §6.3 map', () => {
       'rhodes-mark-ii-stage-73',
       'rhodes-mark-i-stage-88',
     ],
+    // PAN-141. SELECT-verified active+supported+public+music on 2026-09-24.
+    // The listing-title duplicates `boss-boss-boss-ce-3-…-1987` and
+    // `boss-boss-ceb-3-bass-chorus` are never members.
+    'boss-ce-chorus': ['boss-ce-1', 'boss-ce-2', 'boss-ce-2w', 'boss-ce-3', 'boss-ce-5'],
+    'boss-dm-delay': ['boss-dm-2', 'boss-dm-2w'],
   }
   for (const family of NAVIGATION_FAMILIES) {
     assert.deepEqual([...family.children].sort(), [...expected[family.slug]].sort(), family.slug)
@@ -156,8 +164,9 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   // is a 308 after it. That falls out of deriving the map from the family list
   // rather than restating it, and it is the desired behaviour: a family slug
   // must never resolve as a product, at any gate.
+  // The Boss lines (PAN-141) are the same case as `rhodes`.
   assert.equal(GUITAR_FAMILIES.length, 6)
-  assert.equal(EXPECTED_FAMILIES.length, 7)
+  assert.equal(EXPECTED_FAMILIES.length, 9)
 })
 
 test('redirects: nothing else is redirected', () => {
