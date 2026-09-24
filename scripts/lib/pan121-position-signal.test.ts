@@ -360,7 +360,10 @@ test('the sidebar indicator is weight, fill and a rail — never green', () => {
   // non-colour signals have to be present.
   assert.match(SIDENAV_CODE, /border-l-2/)
   assert.match(SIDENAV_CODE, /font-(semibold|bold)/)
-  assert.match(SIDENAV_CODE, /backgroundColor: isCurrent(Branch|Sub) \? 'var\(--here-subtle\)'/)
+  // Round 3: the fill exists ONLY in the current state's style — fill means
+  // selected, so a row at rest has none (the owner: greys "look clicked").
+  assert.match(SIDENAV_CODE, /isCurrent(Branch|Sub)\s*\?\s*\{[^}]*backgroundColor: 'var\(--here-subtle\)'/)
+  assert.equal(/zone-group/.test(SIDENAV_CODE), false, 'a catalogue row must not carry a rest fill')
 
   for (const token of ['--accent', '#13ec6d', '#16d96b']) {
     assert.equal(

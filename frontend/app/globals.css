@@ -99,20 +99,17 @@
   --here-subtle:     rgb(116 56 184 / 0.10);
   --here-border:     rgb(116 56 184 / 0.70);
 
-  /* --- semantic: sidebar zones — three tones of the one neutral family ---
-     PAN-121 round 2. Grey, not a hue: `--here` stays the only wayfinding
-     pigment and green the only brand pigment. Aliases only — no new literal.
-       --zone-catalogue  the catalogue's base surface (the sidebar itself).
-       --zone-group      a row that holds products (a catalogue root), one
-                         step deeper in the same family: kin to its parent,
-                         read as a container.
+  /* --- semantic: sidebar zones — two tones of the one neutral family ----
+     PAN-121. Grey, not a hue: `--here` stays the only wayfinding pigment and
+     green the only brand pigment. Aliases only — no new literal. A tinted
+     REGION reads as a place; a tinted ROW reads as clicked, so rows get no
+     tone of their own (round 3 retired `--zone-group` for exactly that).
+       --zone-catalogue  the catalogue's surface (the sidebar itself).
        --zone-yours      Dit Klup and the utilities under it, recessed.
-     Light: white / #e1e3e7 / #f3f4f6. Dark: #151618 / #25272b / #0a0a0c —
-     dark inverts the recess (the canvas is darker than the card), so the
-     yours zone reads as recessed in both themes. `--here` on each: see
-     frontend/CLAUDE.md. */
+     Light: white / #f3f4f6. Dark: #151618 / #0a0a0c — the canvas is the
+     darker one in dark, so the yours zone reads as recessed in both themes.
+     `--here` on each: see frontend/CLAUDE.md. */
   --zone-catalogue:  var(--surface-1);
-  --zone-group:      var(--surface-3);
   --zone-yours:      var(--canvas);
 
   /* --- semantic: focus --------------------------------------------------- */

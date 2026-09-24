@@ -302,17 +302,24 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                  the sparse-accent rule is exhaustive — and not opacity:
                  PAN-113 measured an opacity state at 2.61:1. The weight step
                  is what survives grayscale. */
+              /* ROUND 3 — NO FILL AT REST. The owner: the round-2 greys "look
+                 like they have been clicked". Fill means selected (Apple,
+                 Material, Astryx's SideNav), so in this tree fill belongs to
+                 `--here` alone. A root is told apart from its kinds by weight
+                 and ink — semibold `--text-primary` — plus the chevron, and
+                 hover is an underline rather than a grey that would read as a
+                 second selection. */
               aria-current={isCurrentBranch ? 'page' : undefined}
-              className={`flex items-center gap-1.5 pr-2 py-2 rounded-xl text-[13px] transition-colors bg-[color:var(--zone-group)] ${
+              className={`flex items-center gap-1.5 pr-2 py-2 rounded-xl text-[13px] font-semibold transition-colors ${
                 isCurrentBranch
-                  ? 'pl-2 border-l-2 font-semibold'
-                  : 'pl-3 font-medium text-ink-secondary hover:bg-surface-2'
+                  ? 'pl-2 border-l-2'
+                  : 'pl-3 text-ink hover:underline underline-offset-2'
               }`}
               style={
                 isCurrentBranch
                   ? {
                       color: 'var(--here)',
-                      backgroundImage: 'linear-gradient(var(--here-subtle), var(--here-subtle))',
+                      backgroundColor: 'var(--here-subtle)',
                       borderLeftColor: 'var(--here)',
                     }
                   : undefined
@@ -327,8 +334,12 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
               <span className="truncate" title={label}>{label}</span>
             </Link>
 
+            {/* ROUND 3 — kinds hang off a thin guide line in the neutral
+                border tone, under the root's chevron (VS Code / Notion /
+                Linear): the line, not a fill, says "these belong to that".
+                A current kind lays its 2px `--here` rail over the guide. */}
             {holdsCurrentNode && hasKinds && (
-              <ul className="flex flex-col">
+              <ul className="ml-[19px] mt-0.5 mb-1 flex flex-col border-l border-line">
                 {category.subcategories.map((sub) => {
                   const subLabel = locale === 'da' ? sub.name_da : sub.name_en
                   /* `sub.slug` is documented in `catalogue-tree.ts` as the bare
@@ -344,14 +355,20 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                       <Link
                         href={`/browse/${category.slug}?sub=${encodeURIComponent(sub.slug)}`}
                         aria-current={isCurrentSub ? 'page' : undefined}
-                        className={`block pr-3 pt-2 pb-1 text-[11px] uppercase tracking-wide truncate rounded-lg transition-colors hover:bg-secondary ${
-                          isCurrentSub ? 'pl-9 border-l-2 font-semibold' : 'pl-10 font-medium'
+                        className={`-ml-px block pl-3 pr-3 py-1.5 text-[13px] truncate rounded-r-lg border-l-2 transition-colors ${
+                          isCurrentSub
+                            ? 'font-semibold'
+                            : 'border-transparent text-ink-secondary hover:underline underline-offset-2'
                         }`}
-                        style={{
-                          color: isCurrentSub ? 'var(--here)' : 'var(--muted-foreground)',
-                          backgroundColor: isCurrentSub ? 'var(--here-subtle)' : 'transparent',
-                          borderLeftColor: isCurrentSub ? 'var(--here)' : 'transparent',
-                        }}
+                        style={
+                          isCurrentSub
+                            ? {
+                                color: 'var(--here)',
+                                backgroundColor: 'var(--here-subtle)',
+                                borderLeftColor: 'var(--here)',
+                              }
+                            : undefined
+                        }
                         title={subLabel}
                       >
                         {subLabel}

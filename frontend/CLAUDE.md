@@ -23,7 +23,7 @@ is an alias. Add a semantic alias; never add a second literal.
 | Accent | `--accent` · `--accent-hover` · `--accent-text` · `--accent-subtle` · `--accent-border` · `--accent-foreground` |
 | Destructive | `--destructive` · `--destructive-hover` · `--destructive-text` · `--destructive-subtle` · `--destructive-border` · `--destructive-foreground` |
 | You are here | `--here` · `--here-subtle` · `--here-border` — see "Design rules" for the exhaustive list of uses |
-| Sidebar zones | `--zone-catalogue` · `--zone-group` · `--zone-yours` — aliases onto the neutral ramp, SideNav only |
+| Sidebar zones | `--zone-catalogue` · `--zone-yours` — aliases onto the neutral ramp, SideNav only |
 | Focus | `--ring` · `--ring-width` · `--ring-offset-width` |
 | Elevation | `--rim` · `--shadow-1..3` · `--elevation-card` / `-raised` / `-overlay` |
 
@@ -76,9 +76,10 @@ loosening — the list is exhaustive, and extending it is a product-owner call.
 colour for the current location, repeated at every place that states it, so a
 visitor learns it once. Exactly these uses are permitted:
 
-1. `SideNav` — the current node: a catalogue branch, subcategory or product row,
-   or a top-level item (Søg, Katalog, Gemt, Alerts, Profil) when it is the
-   location. Text, icon, 2px rail and `--here-subtle` fill.
+1. `SideNav` — the current node: a catalogue root or kind row (on a product
+   page, the node that holds the product), or a top-level item (Søg, Katalog,
+   Gemt, Alerts, Profil) when it is the location. Text, icon, 2px rail and
+   `--here-subtle` fill.
 2. `Breadcrumb` — the current crumb, the one carrying `aria-current="page"`.
 3. `/browse/[root]` — the subcategory facet chip in force (`Alle` when none is).
 4. `PositionSignal` — the active filter chip(s).
@@ -92,14 +93,16 @@ location, and they stay neutral (`--secondary` / `--foreground`). A location
 mark is never colour alone: it always carries a weight step too, so it survives
 grayscale. The list is exhaustive; extending it is a product-owner call.
 
-**The sidebar's zones are told apart by grey, never by hue** (PAN-121 round 2).
-Three tones of the one neutral family: `--zone-catalogue` (the sidebar surface),
-`--zone-group` one step deeper for a row that holds products (a catalogue
-root), and `--zone-yours` recessed for Dit Klup and the utilities. `--here`
-must stay AA on all three — measured: text 7.00 / 5.45 / 6.36 in light and
-8.09 / 6.69 / 8.84 in dark; on its own tint over the group tone, 4.72 light
-and 4.92 dark, the tightest pair. Pick a new tone from the ramp only after
-re-measuring that pair.
+**The sidebar's zones are told apart by grey, never by hue** (PAN-121).
+Two tones of the one neutral family: `--zone-catalogue` (the sidebar surface)
+and `--zone-yours` recessed for Dit Klup and the utilities — a tinted region
+reads as a place. **Rows get no fill at rest**: fill means selected, so in the
+sidebar it belongs to `--here` alone (round 3 retired the grey category row,
+which read as clicked). A root is semibold `--text-primary` with a chevron;
+its kinds hang off a 1px `--border-subtle` guide line. `--here` must stay AA on
+both zones — measured: text 7.00 / 6.36 light, 8.09 / 8.84 dark; on its own
+tint 6.00 / 5.47 light, 6.07 / 6.93 dark (tightest: 5.47, Gemt in light). Pick
+a new tone from the ramp only after re-measuring those pairs.
 
 Why violet: every other hue is already spoken for — green is Klup's judgement,
 red is destructive, blue is the focus ring and the DBA/Thomann badges, cyan is
