@@ -219,6 +219,50 @@ function bareLeafSlug(slug: string): string {
   return slug.split('/')[1] ?? slug
 }
 
+type CatalogueNodeLabel = { slug: string; name_da: string; name_en: string }
+
+/**
+ * Where one product stands in the catalogue: its category, and its kind when
+ * it has one — `null` for a facet leaf (rule 2), the group for a grouped leaf
+ * (PAN-138). Derived from the product's OWN subcategory and nothing else;
+ * PAN-52 §6 forbids reaching a category through a family.
+ */
+export type ProductPlacement = { category: CatalogueNodeLabel; kind: CatalogueNodeLabel | null }
+
+/**
+ * The one placement rule, shared by the sidebar tree and the product-page
+ * breadcrumb (PAN-121) so the node the sidebar marks and the crumbs the page
+ * prints cannot disagree. `null` when the row cannot be placed — the same
+ * fail-closed answer the tree gives by dropping it.
+ */
+export function placeInCatalogue(
+  row: Omit<CatalogueTreeRow, 'slug' | 'canonical_name'>,
+  groupNames: SubcategoryGroupNames,
+): ProductPlacement | null {
+  const rootSlug = row.root_category_slug
+  const subSlug = row.subcategory_slug
+  if (!rootSlug || !subSlug) return null
+
+  const category = {
+    slug: rootSlug,
+    name_da: row.root_category_name_da ?? rootSlug,
+    name_en: row.root_category_name_en ?? rootSlug,
+  }
+  if (FACET_SUBCATEGORIES.has(subSlug)) return { category, kind: null }
+
+  // PAN-138: a grouped leaf stands in its group, so two leaves are one kind.
+  const group = GROUP_OF_LEAF.get(subSlug)
+  const kindSlug = group ?? bareLeafSlug(subSlug)
+  return {
+    category,
+    kind: {
+      slug: kindSlug,
+      name_da: group ? groupNames[group].name_da : row.subcategory_name_da ?? kindSlug,
+      name_en: group ? groupNames[group].name_en : row.subcategory_name_en ?? kindSlug,
+    },
+  }
+}
+
 /**
  * Build the sidebar tree from the rows the public catalogue serves.
  *
@@ -242,43 +286,25 @@ export function buildCatalogueTree(
   const leaves = new Map<string, CatalogueTreeSubcategory>()
 
   for (const row of rows) {
-    const rootSlug = row.root_category_slug
-    const subSlug = row.subcategory_slug
-    if (!rootSlug || !subSlug) continue
+    const place = placeInCatalogue(row, groupNames)
+    if (!place) continue
 
-    let root = byRoot.get(rootSlug)
+    let root = byRoot.get(place.category.slug)
     if (!root) {
-      root = {
-        slug: rootSlug,
-        name_da: row.root_category_name_da ?? rootSlug,
-        name_en: row.root_category_name_en ?? rootSlug,
-        product_count: 0,
-        subcategories: [],
-        product_slugs: [],
-      }
-      byRoot.set(rootSlug, root)
+      root = { ...place.category, product_count: 0, subcategories: [], product_slugs: [] }
+      byRoot.set(root.slug, root)
     }
 
     root.product_count += 1
     root.product_slugs.push(row.slug)
 
     // Rule 2: a facet is not a node, so its product belongs to the root alone.
-    if (FACET_SUBCATEGORIES.has(subSlug)) continue
+    if (!place.kind) continue
 
-    // PAN-138: a grouped leaf joins its group's node, so two leaves are one
-    // row here and one chip on the page.
-    const group = GROUP_OF_LEAF.get(subSlug)
-    const nodeSlug = group ?? bareLeafSlug(subSlug)
-    const leafKey = `${rootSlug} ${nodeSlug}`
+    const leafKey = `${root.slug}/${place.kind.slug}`
     let leaf = leaves.get(leafKey)
     if (!leaf) {
-      leaf = {
-        slug: nodeSlug,
-        name_da: group ? groupNames[group].name_da : row.subcategory_name_da ?? nodeSlug,
-        name_en: group ? groupNames[group].name_en : row.subcategory_name_en ?? nodeSlug,
-        product_count: 0,
-        product_slugs: [],
-      }
+      leaf = { ...place.kind, product_count: 0, product_slugs: [] }
       leaves.set(leafKey, leaf)
       root.subcategories.push(leaf)
     }

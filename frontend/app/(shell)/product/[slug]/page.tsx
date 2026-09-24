@@ -41,6 +41,7 @@ import type { Listing } from '@/lib/supabase'
 // value. A `type` edge is erased at compile time, so the family CONFIGURATION
 // never enters this bundle — only the canonical siblings the server filtered.
 import type { FamilyContext, PricePoint, RelatedProduct } from '@/app/api/product/[slug]/route'
+import type { ProductPlacement } from '@/lib/catalogue-tree'
 import { Icon } from '@/components/Icon'
 
 /**
@@ -119,6 +120,9 @@ export default function ProductPage() {
   /** Null for a product with no family — six of the seven families, and every
    *  product outside one. The UI renders nothing at all in that case. */
   const [familyContext, setFamilyContext] = useState<FamilyContext | null>(null)
+  /** The product's own category and kind (PAN-121), for the breadcrumb a
+   *  product outside a family renders. Null when it cannot be placed. */
+  const [catalogueContext, setCatalogueContext] = useState<ProductPlacement | null>(null)
 
   const [showModal,  setShowModal]  = useState(false)
   const [modalQuery, setModalQuery] = useState('')
@@ -197,6 +201,7 @@ export default function ProductPage() {
       setRelatedProducts(data.relatedProducts ?? [])
       setMonitoredSources(data.monitoredSources ?? [])
       setFamilyContext(data.familyContext ?? null)
+      setCatalogueContext(data.catalogueContext ?? null)
     } catch {
       setNotFound(true)
     } finally {
@@ -328,6 +333,32 @@ export default function ProductPage() {
                     <BreadcrumbItem href={`/family/${familyContext.slug}`}>
                       {familyContext.label}
                     </BreadcrumbItem>
+                    <BreadcrumbItem>{product.canonical_name}</BreadcrumbItem>
+                  </Breadcrumb>
+                )}
+
+                {/*
+                  ── Catalogue breadcrumb (PAN-121) ──────────────
+                  For a product OUTSIDE a family, which otherwise had nothing
+                  naming it in the navigation. Built from the product's own
+                  subcategory (`catalogueContext`, the sidebar tree's placement
+                  rule), never through a family — PAN-52 §6. A facet leaf adds
+                  no crumb; a grouped leaf crumbs as its group ("Synthesizere").
+                  A family member keeps the family breadcrumb above.
+                */}
+                {!familyContext && catalogueContext && (
+                  <Breadcrumb className="mb-4">
+                    <BreadcrumbItem href="/browse">{t.browseAllCategories}</BreadcrumbItem>
+                    <BreadcrumbItem href={`/browse/${catalogueContext.category.slug}`}>
+                      {locale === 'da' ? catalogueContext.category.name_da : catalogueContext.category.name_en}
+                    </BreadcrumbItem>
+                    {catalogueContext.kind && (
+                      <BreadcrumbItem
+                        href={`/browse/${catalogueContext.category.slug}?sub=${encodeURIComponent(catalogueContext.kind.slug)}`}
+                      >
+                        {locale === 'da' ? catalogueContext.kind.name_da : catalogueContext.kind.name_en}
+                      </BreadcrumbItem>
+                    )}
                     <BreadcrumbItem>{product.canonical_name}</BreadcrumbItem>
                   </Breadcrumb>
                 )}

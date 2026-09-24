@@ -31,6 +31,13 @@ import {
 } from '@/lib/catalogue'
 import { monitoredSourcesFor } from '@/lib/source-monitoring'
 import {
+  placeInCatalogue,
+  subcategoryGroupNames,
+  type CatalogueTreeRow,
+  type ProductPlacement,
+} from '@/lib/catalogue-tree'
+import { translations } from '@/lib/i18n'
+import {
   PUBLIC_LISTING_SELECT,
   PUBLIC_PRODUCT_SELECT,
   PUBLIC_RELATED_SELECT,
@@ -206,9 +213,11 @@ async function handle(req: NextRequest, slug: string) {
     // The music axis lives on the projection, not on kg_product. The four
     // supported rows with no subcategory still resolve browse_domain='music'
     // via the view's COALESCE, so this guard costs no canonical product.
+    // PAN-121: the taxonomy columns ride along for `catalogueContext` below —
+    // the same row, so the breadcrumb costs no query.
     admin
       .from('browse_product_projection')
-      .select('slug, browse_domain')
+      .select('slug, browse_domain, root_category_slug, root_category_name_da, root_category_name_en, subcategory_slug, subcategory_name_da, subcategory_name_en')
       .eq('slug', slug)
       .maybeSingle(),
   ]).catch(() => {
@@ -732,12 +741,31 @@ async function handle(req: NextRequest, slug: string) {
    * membership is the catalogue axis this route already resolved, not a slug
    * lookup. No new query, and no second reading of monitoring.
    */
+  /**
+   * PAN-121 — where the product stands in the catalogue, for the breadcrumb a
+   * product OUTSIDE a family renders (a family member keeps PAN-56's family
+   * breadcrumb; the page chooses).
+   *
+   * From the product's OWN subcategory on the projection row read above, never
+   * through `family`: PAN-52 §6 — taxonomy is not ancestry. `placeInCatalogue`
+   * is the rule the sidebar tree is built with, so the crumbs and the sidebar
+   * mark name the same kind: a facet leaf yields no kind crumb, a grouped leaf
+   * yields its group. Null when the row cannot be placed, so no crumb is
+   * invented.
+   */
+  const catalogueContext: ProductPlacement | null = projectionRes.data
+    ? placeInCatalogue(
+        projectionRes.data as Omit<CatalogueTreeRow, 'slug' | 'canonical_name'>,
+        subcategoryGroupNames(translations),
+      )
+    : null
+
   const monitoredSources = monitoredSourcesFor(slug, {
     inCatalogueSweep: state.status === 'active' && state.browse_domain === 'music',
   })
 
   return NextResponse.json(
-    { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, dkAskingPrices, awaitingReview, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, familyContext, adminPreview, monitoredSources },
+    { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, dkAskingPrices, awaitingReview, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, familyContext, catalogueContext, adminPreview, monitoredSources },
     {
       headers: adminPreview
         // An unpublished product must never enter a shared cache.
