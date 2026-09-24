@@ -166,18 +166,18 @@ export default function NewProductForm() {
       const data = await res.json()
 
       if (res.status === 409) {
-        setError('Slug already exists. Choose a different name.')
+        setError('Sluggen findes allerede. Vælg en anden.')
         return
       }
       if (!res.ok) {
         if (data.field) setFieldError(data.field)
-        setError(data.error ?? 'Could not create product')
+        setError(data.error ?? 'Produktet kunne ikke oprettes.')
         return
       }
 
       router.push(`/admin/product/${data.slug}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Network error')
+      setError(err instanceof Error ? err.message : 'Netværksfejl')
     } finally {
       setSubmitting(false)
     }
@@ -218,7 +218,7 @@ export default function NewProductForm() {
           highlight={fieldError === 'brand_id'}
         >
           <SearchableSelect
-            placeholder={brandsLoading ? 'Loading brands…' : 'Vælg brand…'}
+            placeholder={brandsLoading ? 'Henter…' : 'Vælg brand…'}
             search={brandSearch}
             onSearchChange={(v) => { setBrandSearch(v); setBrandOpen(true) }}
             open={brandOpen}
@@ -244,9 +244,9 @@ export default function NewProductForm() {
 
         {/* Canonical name */}
         <Field
-          label="Canonical name"
+          label="Kanonisk navn"
           required
-          helper="Always Brand + Model. Example: Roland Juno-60"
+          helper="Altid brand + model. Eksempel: Roland Juno-60"
           highlight={fieldError === 'canonical_name'}
         >
           <input
@@ -265,9 +265,9 @@ export default function NewProductForm() {
 
         {/* Model name */}
         <Field
-          label="Model name"
+          label="Modelnavn"
           required
-          helper="Short model token used for matching. Example: Juno-60"
+          helper="Kort modelbetegnelse, der bruges til matching. Eksempel: Juno-60"
           highlight={fieldError === 'model_name'}
         >
           <input
@@ -292,7 +292,7 @@ export default function NewProductForm() {
               className="text-[11px] mt-1 self-start"
               style={{ color: 'var(--muted-foreground)' }}
             >
-              ↻ auto-derive again
+              ↻ udled automatisk igen
             </button>
           )}
         </Field>
@@ -316,7 +316,7 @@ export default function NewProductForm() {
             }}
           />
           <p className="text-[11px] mt-1" style={{ color: 'var(--muted-foreground)' }}>
-            Preview: <span className="font-mono">klup.dk/product/{slug || '…'}</span>
+            Forhåndsvisning: <span className="font-mono">klup.dk/product/{slug || '…'}</span>
             {slugTouched && (
               <button
                 type="button"
@@ -324,7 +324,7 @@ export default function NewProductForm() {
                 className="ml-2"
                 style={{ color: 'var(--muted-foreground)' }}
               >
-                ↻ auto-derive
+                ↻ udled automatisk
               </button>
             )}
           </p>
@@ -354,7 +354,7 @@ export default function NewProductForm() {
         </Field>
 
         {/* Year released */}
-        <Field label="Year released" highlight={fieldError === 'year_released'}>
+        <Field label="Årstal" highlight={fieldError === 'year_released'}>
           <input
             type="number"
             value={yearReleased}
@@ -396,12 +396,12 @@ export default function NewProductForm() {
 
         {/* Subcategory */}
         <Field
-          label="Subcategory"
+          label="Underkategori"
           highlight={fieldError === 'subcategory_id'}
-          helper="Vælg leaf-kategori (parent → child)."
+          helper="Vises som hovedkategori → underkategori."
         >
           <SearchableSelect
-            placeholder={subcatsLoading ? 'Loading subcategories…' : 'Vælg subcategory…'}
+            placeholder={subcatsLoading ? 'Henter…' : 'Søg underkategori…'}
             search={subcatSearch}
             onSearchChange={(v) => { setSubcatSearch(v); setSubcatOpen(true) }}
             open={subcatOpen}
