@@ -14,8 +14,9 @@
    The neutral ramp carries a slight cool bias (B channel runs 2-7 above R on
    surfaces, 9-13 on text and borders) so it does not read as flat concrete —
    but it stays neutral. Calibrated against Linear's neutrals, whose surfaces
-   sit at b-r 2 and whose muted text sits at 14. Green is the only pigment in
-   the system; blue appears only under the focus ring, during interaction.
+   sit at b-r 2 and whose muted text sits at 14. Green is the only brand
+   pigment; violet (`--here`) marks only where the visitor is; blue appears
+   only under the focus ring, during interaction.
    Every body-text pair below meets WCAG AA.
    ========================================================================== */
 
@@ -45,6 +46,11 @@
   --ramp-red-on:    #ffffff;
 
   --ramp-focus:     #3b6fa8;
+
+  /* "You are here" (PAN-121). Violet because every other hue is spoken for:
+     green is Klup's judgement, red is destructive, blue is the focus ring and
+     DBA/Thomann, cyan is Finn, orange is Reverb. See `--here` below. */
+  --ramp-here:      #7438b8;
 
   /* shadow ink — a hair cool, not a blue slate */
   --shadow-ink:     16 17 20;
@@ -76,6 +82,35 @@
   --destructive-text:  var(--ramp-red-ink);
   --destructive-subtle: rgb(220 38 38 / 0.09);
   --destructive-border: rgb(220 38 38 / 0.30);
+
+  /* --- semantic: here — "you are here", and nothing else ----------------
+     The one colour for the visitor's current location, repeated at every
+     place that marks it. Astryx's colour roles, read and not imported: a
+     tinted fill with coloured text is its QUIET emphasis (the categorical
+     badge), a solid fill its LOUD one (status). Location is quiet. The
+     permitted uses are an exhaustive list in frontend/CLAUDE.md.
+       --here         text, icon and the 2px rail. 7.00:1 on the sidebar,
+                      6.36:1 on the canvas, 6.00:1 on its own fill.
+       --here-subtle  the fill behind a marked row or chip.
+       --here-border  a marked chip's edge. 3.4:1 against the canvas.
+     Never a selected toggle (locale, theme, debug): selection is not
+     location, and Astryx keeps those apart too. */
+  --here:            var(--ramp-here);
+  --here-subtle:     rgb(116 56 184 / 0.10);
+  --here-border:     rgb(116 56 184 / 0.70);
+
+  /* --- semantic: sidebar zones — two tones of the one neutral family ----
+     PAN-121. Grey, not a hue: `--here` stays the only wayfinding pigment and
+     green the only brand pigment. Aliases only — no new literal. A tinted
+     REGION reads as a place; a tinted ROW reads as clicked, so rows get no
+     tone of their own (round 3 retired `--zone-group` for exactly that).
+       --zone-catalogue  the catalogue's surface (the sidebar itself).
+       --zone-yours      Dit Klup and the utilities under it, recessed.
+     Light: white / #f3f4f6. Dark: #151618 / #0a0a0c — the canvas is the
+     darker one in dark, so the yours zone reads as recessed in both themes.
+     `--here` on each: see frontend/CLAUDE.md. */
+  --zone-catalogue:  var(--surface-1);
+  --zone-yours:      var(--canvas);
 
   /* --- semantic: focus --------------------------------------------------- */
   --ring:            var(--ramp-focus);
@@ -300,12 +335,18 @@
 
   --ramp-focus:     #6c8cb5;
 
+  --ramp-here:      #c59cf0;
+
   --shadow-ink:     0 0 0;
 
   --accent-subtle:      rgb(22 217 107 / 0.13);
   --accent-border:      rgb(22 217 107 / 0.34);
   --destructive-subtle: rgb(248 113 113 / 0.13);
   --destructive-border: rgb(248 113 113 / 0.32);
+  /* `--here` in dark: 8.09:1 on the sidebar, 6.07:1 on its own fill; the
+     border is 3.76:1 against the canvas. */
+  --here-subtle:        rgb(197 156 240 / 0.16);
+  --here-border:        rgb(197 156 240 / 0.60);
 
   /* Elevation in dark is carried by the rim and by depth of cast, not by
      lightening the surface — the ramp already separates the levels. */

@@ -8,7 +8,7 @@ import { Sun, Moon } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import { Icon } from '@/components/Icon'
-import { fill, type Locale } from '@/lib/i18n'
+import { type Locale } from '@/lib/i18n'
 import { currentCatalogueNode, type CatalogueTreeCategory } from '@/lib/catalogue-tree'
 
 /**
@@ -124,10 +124,10 @@ function CatalogueTreeSkeleton() {
  * it, so the job was deciding how little to show, not designing a hierarchy.
  * The tree is built from the product rows themselves (`buildCatalogueTree`),
  * which makes "populated branches only" structural rather than a filter — an
- * empty music root contributes no row and so cannot render (D-IA-1). Two
- * levels, then products. Form factor and technology are filters and never
- * levels (D-IA-2); `Accessories` and `Parts` hold nothing and are therefore
- * absent by construction (D-IA-3).
+ * empty music root contributes no row and so cannot render (D-IA-1). Roots,
+ * then kinds — no facets and no products (catalogue-tree.ts rules 2 and 3,
+ * PAN-121 rounds 2 and 3); products live on the page grid. `Accessories` and
+ * `Parts` hold nothing and are therefore absent by construction (D-IA-3).
  *
  * The homepage shelf (PAN-86) shows all fourteen roots INCLUDING the empty
  * ones. That is not a contradiction: it answers "what does Klup cover", and
@@ -137,8 +137,9 @@ function CatalogueTreeSkeleton() {
  * rows rather than filtered down to them.
  *
  * NO PRICE, BAND, MEDIAN OR VERDICT. Guaranteed by the payload rather than by
- * this component's restraint: a product node is `{ label, slug }` and has no
- * field a price could travel in. Asserted structurally in
+ * this component's restraint: the tree carries no product nodes, and a node's
+ * product membership is bare slugs with no field a price could travel in.
+ * Asserted structurally in
  * scripts/lib/pan17-catalogue-tree.test.ts, the way PAN-56 asserts it.
  *
  * ON A PHONE THIS RENDERS NOTHING, AND NOTHING IS LOST. The whole `<aside>` is
@@ -245,7 +246,6 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
   // must not share an answer.
   if (categories.length === 0) return answered ? null : <CatalogueTreeSkeleton />
 
-
   return (
     <div className="mt-0.5 mb-1 flex flex-col gap-0.5">
       {categories.map((category) => {
@@ -254,186 +254,131 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
         /**
          * PAN-121 — is this the branch the visitor is standing in?
          *
-         * `isCurrentRoot` is the whole `/browse/<root>` page; `isCurrentBranch`
-         * additionally requires that no facet is narrowing it, so a visitor
-         * filtered down to one subcategory sees the *subcategory* marked as the
-         * current node rather than two nodes both claiming to be it. Exactly one
-         * `aria-current="page"` in the tree at a time is the point — a screen
-         * reader announcing two current pages is no better than announcing none.
+         * True on `/browse/<root>`, on a facet `?sub=` (a facet has no node),
+         * and on a product page whose product has no kind. False when a KIND
+         * is narrowing it, so the kind is marked instead and exactly one
+         * `aria-current="page"` stays in the tree.
          */
         const isCurrentBranch =
           current?.kind === 'branch' && current.categorySlug === category.slug
 
         /**
-         * PAN-132 — does this branch CONTAIN the current node?
-         *
-         * Deliberately not `isCurrentBranch`, and the difference is the whole
-         * point. `isCurrentBranch` is false on `?sub=` and on a product page by
-         * design, because the deeper node is the one that claims to be current
-         * — so opening on it would close the branch holding the marked row and
-         * hide the mark on exactly the two routes where it is most precise.
-         * Containment is the question a disclosure has to answer, and marking
-         * is a different one.
+         * PAN-132 — does this branch CONTAIN the current node? Containment,
+         * not marking: on a kind `?sub=` and on a product under a kind the
+         * branch is not the marked node, but it still has to show the kind
+         * that is.
          */
         const holdsCurrentNode = current !== null && current.categorySlug === category.slug
 
+        /**
+         * PAN-121 round 3 — a root row is a LINK, and its kinds show when the
+         * visitor stands in it.
+         *
+         * It was a native `<details>` whose body was mostly products. With
+         * products gone from the tree (catalogue-tree.ts rule 3), three of the
+         * six roots — El-guitarer, Western- & akustiske guitarer, Basguitarer —
+         * hold no kind at all, so their disclosure would have opened onto
+         * nothing: a click that does nothing. So every root now does the same
+         * thing, which is go to its page, and the kinds of the branch the
+         * visitor is in are listed beneath it. PAN-132's rule survives
+         * unchanged: only the current branch is open. The chevron is a state
+         * indicator on roots that have kinds, not a control.
+         */
+        const hasKinds = category.subcategories.length > 0
+
         return (
-          // Native disclosure. `<details>` needs no state, keeps keyboard and
-          // screen-reader semantics, and survives a client-side route change
-          // without a store.
-          //
-          // ONLY THE BRANCH THE VISITOR IS STANDING IN IS OPEN (PAN-132), and
-          // this comment used to argue the opposite. Every category started
-          // open, on the reading that "Jeg vil ogsaa gerne have produkter i sub
-          // kategorier naar det er muligt" was an instruction to show products
-          // rather than hide them one click away. The product owner has since
-          // reversed it: the branches are what collapses, not the shell.
-          //
-          // The cost that argument accepted is what settles it. Measured on
-          // this catalogue: 6 categories, 14 leaves and 50 products — 70 rows,
-          // every one of them open, in a container that scrolls. That was
-          // survivable only while the shell was collapsed and the tree never
-          // rendered at all; now that the shell opens by default it is the
-          // first thing a visitor meets. One branch is the answer to "where am
-          // I", 70 rows is the answer to nothing.
-          //
-          // `holdsCurrentNode` is a CONTAINMENT test, not the marking test —
-          // see above. Nothing else changes: this is still a native
-          // `<details>`, so keyboard, find-in-page and the screen reader's
-          // expanded state all still come from the element rather than from
-          // state, and a visitor can open any other branch with one click.
-          <details key={category.slug} open={holdsCurrentNode} className="group">
-            <summary
+          <div key={category.slug}>
+            <Link
+              href={`/browse/${category.slug}`}
               /* pl-3/gap-1.5 and a 16px chevron rather than the nav items'
                  px-3/gap-3/20px: the longest Danish root label ("Western- &
                  akustiske guitarer") needs every pixel it can get, and a branch
                  label that cannot be read is worse navigation than one sitting
-                 10px left of the item above it.
-
-                 PAN-120 corrected the claim that used to stand here. This said
-                 `w-60` was the width at which that label fits; measured, it is
-                 not — the text needs 184px and gets 173px at 240, so it has
-                 been ellipsing all along. `SIDEBAR_MIN_WIDTH` is now the
-                 measured floor, and these paddings are why it is not larger. */
-              /* PAN-121 — the current branch, marked without colour.
-                 A rail, a fill and a weight step. The sparse-accent rule is
-                 exhaustive, so green is not available to a nav item; and
-                 PAN-113 measured an opacity-based state treatment at 2.61:1,
-                 so transparency is not available either. All three signals
-                 here are full-strength semantic tokens. */
+                 10px left of the item above it. `SIDEBAR_MIN_WIDTH` is the
+                 measured floor (PAN-120). */
+              /* PAN-121 — the current branch: a rail, a fill and a weight
+                 step, all in `--here`, the one "you are here" colour (see
+                 frontend/CLAUDE.md for where else it may appear). Not green —
+                 the sparse-accent rule is exhaustive — and not opacity:
+                 PAN-113 measured an opacity state at 2.61:1. The weight step
+                 is what survives grayscale. */
+              /* ROUND 3 — NO FILL AT REST. The owner: the round-2 greys "look
+                 like they have been clicked". Fill means selected (Apple,
+                 Material, Astryx's SideNav), so in this tree fill belongs to
+                 `--here` alone. A root is told apart from its kinds by weight
+                 and ink — semibold `--text-primary` — plus the chevron, and
+                 hover is an underline rather than a grey that would read as a
+                 second selection. */
               aria-current={isCurrentBranch ? 'page' : undefined}
-              className={`flex items-center gap-1.5 pr-2 py-2 rounded-xl text-[13px] cursor-pointer list-none [&::-webkit-details-marker]:hidden transition-colors hover:bg-secondary ${
+              className={`flex items-center gap-1.5 pr-2 py-2 rounded-xl text-[13px] font-semibold transition-colors ${
                 isCurrentBranch
-                  ? 'pl-2 border-l-2 font-semibold'
-                  : 'pl-3 font-medium'
+                  ? 'pl-2 border-l-2'
+                  : 'pl-3 text-ink hover:underline underline-offset-2'
               }`}
-              style={{
-                color: isCurrentBranch ? 'var(--foreground)' : 'var(--muted-foreground)',
-                backgroundColor: isCurrentBranch ? 'var(--secondary)' : 'transparent',
-                borderLeftColor: isCurrentBranch ? 'var(--foreground)' : 'transparent',
-              }}
+              style={
+                isCurrentBranch
+                  ? {
+                      color: 'var(--here)',
+                      backgroundColor: 'var(--here-subtle)',
+                      borderLeftColor: 'var(--here)',
+                    }
+                  : undefined
+              }
             >
               <Icon
                 name="chevron_right"
-                className="flex-shrink-0 transition-transform group-open:rotate-90"
+                aria-hidden="true"
+                className={`flex-shrink-0 transition-transform ${holdsCurrentNode ? 'rotate-90' : ''} ${hasKinds ? '' : 'invisible'}`}
                 style={{ fontSize: '16px' }}
               />
               <span className="truncate" title={label}>{label}</span>
-            </summary>
+            </Link>
 
-            <ul className="flex flex-col">
-              {category.subcategories.map((sub) => {
-                const subLabel = locale === 'da' ? sub.name_da : sub.name_en
-                /* `sub.slug` is documented in `catalogue-tree.ts` as the bare
-                   leaf slug "as `/browse/<root>` reports it", which is exactly
-                   the value the filter chips write into `?sub=`. The sidebar and
-                   the chips therefore compare the same string — no second
-                   normalisation here that could drift from the route's. */
-                const isCurrentSub =
-                  current?.kind === 'subcategory' &&
-                  current.categorySlug === category.slug &&
-                  current.subcategorySlug === sub.slug
-                return (
-                  <li key={sub.slug}>
-                    {/* PAN-121 — a subcategory IS a destination now.
-
-                        It used to be an inert `<p>`, and the comment here said
-                        why: "`/browse/<root>` filters by subcategory in client
-                        state rather than in the URL, so there is no honest href
-                        to give this row today." That premise is gone — the facet
-                        is `?sub=<slug>` — so the row becomes the link it always
-                        wanted to be, and the same click the chip performs is now
-                        available from the sidebar. This is also the only reason
-                        the sidebar can mark the current subcategory at all. */}
-                    <Link
-                      href={`/browse/${category.slug}?sub=${encodeURIComponent(sub.slug)}`}
-                      aria-current={isCurrentSub ? 'page' : undefined}
-                      className={`block pr-3 pt-2 pb-1 text-[11px] uppercase tracking-wide truncate rounded-lg transition-colors hover:bg-secondary ${
-                        isCurrentSub ? 'pl-9 border-l-2 font-bold' : 'pl-10 font-semibold'
-                      }`}
-                      style={{
-                        color: isCurrentSub ? 'var(--foreground)' : 'var(--muted-foreground)',
-                        backgroundColor: isCurrentSub ? 'var(--secondary)' : 'transparent',
-                        borderLeftColor: isCurrentSub ? 'var(--foreground)' : 'transparent',
-                      }}
-                      title={subLabel}
-                    >
-                      {subLabel}
-                    </Link>
-                    <ul className="flex flex-col">
-                      {sub.products.map((product) => {
-                        const href = `/product/${product.slug}`
-                        const isHere =
-                          current?.kind === 'product' && current.productSlug === product.slug
-                        return (
-                          <li key={product.slug}>
-                            <Link
-                              href={href}
-                              /* PAN-121 — `isHere` already painted this row;
-                                 nothing told a screen reader about it. The
-                                 visual state and the announced state now come
-                                 from the same boolean. */
-                              aria-current={isHere ? 'page' : undefined}
-                              className={`block pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary ${
-                                isHere ? 'pl-9 border-l-2 font-semibold' : 'pl-10'
-                              }`}
-                              style={{
-                                color: isHere ? 'var(--foreground)' : 'var(--muted-foreground)',
-                                backgroundColor: isHere ? 'var(--secondary)' : 'transparent',
-                                borderLeftColor: isHere ? 'var(--foreground)' : 'transparent',
-                              }}
-                              title={product.label}
-                            >
-                              {product.label}
-                            </Link>
-                          </li>
-                        )
-                      })}
-
-                      {/* The threshold, made visible. `products` is empty
-                          exactly when the leaf holds more than
-                          LEAF_PRODUCT_LIMIT, so the reader is told the leaf is
-                          bigger than the sidebar rather than shown an
-                          unannounced slice of it. No leaf reaches this today —
-                          the largest is 9 — and that is the point: it is here
-                          before it is needed. */}
-                      {sub.products.length === 0 && (
-                        <li>
-                          <Link
-                            href={`/browse/${category.slug}`}
-                            className="block pl-10 pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary"
-                            style={{ color: 'var(--muted-foreground)' }}
-                          >
-                            {fill(t.catalogueTreeSeeAll, { count: sub.product_count })}
-                          </Link>
-                        </li>
-                      )}
-                    </ul>
-                  </li>
-                )
-              })}
-            </ul>
-          </details>
+            {/* ROUND 3 — kinds hang off a thin guide line in the neutral
+                border tone, under the root's chevron (VS Code / Notion /
+                Linear): the line, not a fill, says "these belong to that".
+                A current kind lays its 2px `--here` rail over the guide. */}
+            {holdsCurrentNode && hasKinds && (
+              <ul className="ml-[19px] mt-0.5 mb-1 flex flex-col border-l border-line">
+                {category.subcategories.map((sub) => {
+                  const subLabel = locale === 'da' ? sub.name_da : sub.name_en
+                  /* `sub.slug` is documented in `catalogue-tree.ts` as the bare
+                     leaf slug "as `/browse/<root>` reports it", which is exactly
+                     the value the filter chips write into `?sub=`. The sidebar
+                     and the chips therefore compare the same string. */
+                  const isCurrentSub =
+                    current?.kind === 'subcategory' &&
+                    current.categorySlug === category.slug &&
+                    current.subcategorySlug === sub.slug
+                  return (
+                    <li key={sub.slug}>
+                      <Link
+                        href={`/browse/${category.slug}?sub=${encodeURIComponent(sub.slug)}`}
+                        aria-current={isCurrentSub ? 'page' : undefined}
+                        className={`-ml-px block pl-3 pr-3 py-1.5 text-[13px] truncate rounded-r-lg border-l-2 transition-colors ${
+                          isCurrentSub
+                            ? 'font-semibold'
+                            : 'border-transparent text-ink-secondary hover:underline underline-offset-2'
+                        }`}
+                        style={
+                          isCurrentSub
+                            ? {
+                                color: 'var(--here)',
+                                backgroundColor: 'var(--here-subtle)',
+                                borderLeftColor: 'var(--here)',
+                              }
+                            : undefined
+                        }
+                        title={subLabel}
+                      >
+                        {subLabel}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
         )
       })}
     </div>
@@ -799,15 +744,19 @@ export function SideNav() {
    * links, so the wordmark stays a link and there is no menu.
    *
    * `icon` is a function of the selected state, which is Astryx's
-   * `icon`/`selectedIcon` pair. The current item is marked by WEIGHT, never by
-   * colour — green is exhaustive and navigation is not on the list.
+   * `icon`/`selectedIcon` pair. The current item is marked by weight and icon
+   * fill first, and by `--here` on top — never by green, which is exhaustive
+   * and does not list navigation.
    */
   const navSections: {
+    /** Which of the sidebar's two places this section is (see the `<nav>`). */
+    zone: 'catalogue' | 'yours'
     title: string
     subtitle?: string
     items: { href: string; label: string; icon: (selected: boolean) => React.ReactNode }[]
   }[] = [
     {
+      zone: 'catalogue',
       title: t.sidebarSectionDiscover,
       subtitle: t.sidebarSectionDiscoverSubtitle,
       items: [
@@ -837,6 +786,7 @@ export function SideNav() {
       ],
     },
     {
+      zone: 'yours',
       title: t.sidebarSectionYours,
       items: [
         {
@@ -891,7 +841,7 @@ export function SideNav() {
           be a bug — see the responsive note in the PR. Only the *width* becomes
           dynamic; the show/hide does not. */}
       <aside
-        className="hidden md:flex flex-col fixed top-0 left-0 h-full border-r border-border bg-card z-40"
+        className="hidden md:flex flex-col fixed top-0 left-0 h-full border-r border-border bg-[color:var(--zone-catalogue)] z-40"
         style={{
           width: `${resolvedWidth}px`,
           // Not animated while dragging: a transition on width turns a drag
@@ -938,20 +888,45 @@ export function SideNav() {
           {!collapsed && <span>{t.sidebarCollapse}</span>}
         </button>
 
-        {/* Nav items, in headed sections (PAN-120). */}
-        <nav
-          aria-label={t.navSidebarLabel}
-          className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto"
-        >
+        {/* Nav items, in headed sections (PAN-120) — and, since PAN-121, in two
+            PLACES rather than one running list.
+
+            The owner: visitors forage listings and "keep track of them in the
+            bottom of the sidenav"; the catalogue is the top. So the catalogue
+            zone takes the free height and scrolls, and the visitor's own zone
+            is pinned below it on the recessed `--zone-yours` surface, which the
+            utilities strip beneath shares. Two measurable reasons, not taste:
+            with a branch open the tree used to push Gemt/Alerts/Profil below
+            a 900px fold (PAN-121's own Trunk Test), and one scrolling list
+            gave the two places no edge between them. Astryx's SideNav has the
+            same split — scrollable children, sticky footer.
+
+            Each zone is a labelled `role="group"`, Astryx's `SideNavSection`
+            semantics, so the edge exists for a screen reader too. The label
+            is the visible heading when there is one, and `aria-label` on the
+            72px rail where the heading is hidden. */}
+        <nav aria-label={t.navSidebarLabel} className="flex-1 min-h-0 flex flex-col">
           {navSections.map((section) => (
-            <Fragment key={section.title}>
+            <div
+              key={section.zone}
+              role="group"
+              aria-labelledby={collapsed ? undefined : `sidenav-zone-${section.zone}`}
+              aria-label={collapsed ? section.title : undefined}
+              className={`flex flex-col gap-1 px-3 ${
+                section.zone === 'yours'
+                  ? 'shrink-0 py-3 border-t border-border'
+                  : 'flex-1 min-h-0 py-4 overflow-y-auto' /* the tree scrolls inside; this is the short-window fallback */
+              }`}
+              style={section.zone === 'yours' ? { backgroundColor: 'var(--zone-yours)' } : undefined}
+            >
               {/* SideNavSection's title and optional subtitle. Hidden when
                   collapsed — a 72px rail has no room for a heading, and the
                   items keep their own accessible names there, so nothing is
                   lost but the grouping label. */}
               {!collapsed && (
-                <div className="px-3 pt-3 pb-1 first:pt-0">
+                <div className="px-3 pb-1">
                   <p
+                    id={`sidenav-zone-${section.zone}`}
                     className="text-[11px] font-semibold uppercase tracking-wide"
                     style={{ color: 'var(--muted-foreground)' }}
                   >
@@ -985,8 +960,11 @@ export function SideNav() {
                   pathname === href ||
                   (href === '/browse' && isCataloguePath(pathname) && !treeMarked)
                 const itemStyle = {
-                  color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
-                  backgroundColor: isActive ? 'var(--secondary)' : 'transparent',
+                  // `--text-secondary` at rest, not muted: a top-level item
+                  // must not read lighter than the catalogue roots beneath it
+                  // (PAN-121's grayscale ladder).
+                  color: isActive ? 'var(--here)' : 'var(--text-secondary)',
+                  backgroundColor: isActive ? 'var(--here-subtle)' : 'transparent',
                 }
                 /* `font-semibold` when selected: the icon swaps outline for
                    fill and the label gains weight, so the current item stays
@@ -1041,12 +1019,17 @@ export function SideNav() {
                   </Fragment>
                 )
               })}
-            </Fragment>
+            </div>
           ))}
         </nav>
 
-        {/* Bottom: theme toggle + locale toggle + logout */}
-        <div className="px-3 pb-6 pt-2 border-t border-border flex flex-col gap-1">
+        {/* Bottom: theme toggle + locale toggle + logout — on the same
+            recessed surface as the visitor's zone above it, so the lower
+            third of the sidebar reads as one place: yours. */}
+        <div
+          className="px-3 pb-6 pt-2 border-t border-border flex flex-col gap-1"
+          style={{ backgroundColor: 'var(--zone-yours)' }}
+        >
           {/* Theme toggle */}
           <ThemeToggle collapsed={collapsed} />
 

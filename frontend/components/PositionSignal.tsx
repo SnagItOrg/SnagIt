@@ -19,9 +19,9 @@ import { Icon } from '@/components/Icon'
  *
  * Green is exhaustive — Kup-rating, the "Aktiv" badge and `under typisk`. An
  * active filter is the visitor's own narrowing, not a Klup judgement about a
- * price, so it may not borrow the accent. The active state is carried by
- * weight, fill and border instead: a filled `--secondary` well, a real border
- * and medium weight against the unfilled surface around it.
+ * price, so it may not borrow the accent. It is where the visitor IS, so it
+ * takes `--here` (PAN-121): a tinted fill, a real border and semibold weight —
+ * the same colour the sidebar and the breadcrumb use for the same fact.
  *
  * It is also not carried by transparency. PAN-113's worker measured an
  * `opacity-60` treatment at 2.61:1 — below AA — and replaced it with an
@@ -35,9 +35,26 @@ import { Icon } from '@/components/Icon'
 export function PositionSignal({
   signal,
   onRemoveFilter,
+  filtersShownByPage = false,
 }: {
   signal: PositionSignalModel
   onRemoveFilter?: (filter: PositionFilter) => void
+  /**
+   * PAN-121 round 2 — the page renders its own control for these filters.
+   *
+   * On `/browse/[root]` the facet row states the active subcategory one line
+   * below where this chip stated it again: two anchors for one fact. There the
+   * facet row is the anchor — its active chip is `aria-pressed` and in
+   * `--here`, and "Alle" removes the filter — so this renders the count alone.
+   * The model is untouched: `filters` still carries the facet and `unfiltered`
+   * stays false, so nothing here can claim "no filters" while one is in force.
+   *
+   * The count becomes a polite live region in this mode because the removal
+   * announcement it replaces lived on the chip that is no longer rendered.
+   * Toggling a facet is announced twice over: the pressed state of the button
+   * that has focus, and the new count.
+   */
+  filtersShownByPage?: boolean
 }) {
   const { t } = useLocale()
 
@@ -92,17 +109,22 @@ export function PositionSignal({
       )}
 
       {/* THE NARROWING LINE — what is filtering, and how many rows that yields. */}
+      {filtersShownByPage ? (
+        <p aria-live="polite" aria-atomic="true" className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+          {countLabel}
+        </p>
+      ) : (
       <div className="flex flex-wrap items-center gap-2">
         {signal.filters.map((filter) => {
           const removable = onRemoveFilter !== undefined
           return (
             <span
               key={filter.id}
-              className="inline-flex items-center gap-1 rounded-full pl-3 pr-1 py-1 text-sm font-medium"
+              className="inline-flex items-center gap-1 rounded-full pl-3 pr-1 py-1 text-sm font-semibold"
               style={{
-                background: 'var(--secondary)',
-                border: '1px solid var(--border)',
-                color: 'var(--foreground)',
+                background: 'var(--here-subtle)',
+                border: '1px solid var(--here-border)',
+                color: 'var(--here)',
               }}
             >
               {filter.label}
@@ -137,6 +159,7 @@ export function PositionSignal({
           {'·'} {countLabel}
         </span>
       </div>
+      )}
 
       <span aria-live="polite" aria-atomic="true" className="sr-only">
         {lastRemoved ?? ''}

@@ -119,8 +119,8 @@ export function BottomNav() {
           </svg>
         </Link>
         <span
-          className="text-[11px] font-medium mt-0.5"
-          style={{ color: isSearch ? 'var(--foreground)' : 'var(--muted-foreground)' }}
+          className={`text-[11px] mt-0.5 ${isSearch ? 'font-semibold' : 'font-medium'}`}
+          style={{ color: isSearch ? 'var(--here)' : 'var(--muted-foreground)' }}
         >
           {t.navSearch}
         </span>
@@ -183,14 +183,17 @@ function NavItem({
   icon: React.ReactNode
   href?: string
 }) {
-  const color     = active ? 'var(--foreground)' : 'var(--muted-foreground)'
+  // PAN-121 — the active tab is where the visitor IS: `--here`, plus a weight
+  // step so it survives grayscale. On a phone this is the only nav mark there is.
+  const color     = active ? 'var(--here)' : 'var(--muted-foreground)'
   const className = "flex flex-col items-center justify-center gap-0.5 min-w-[48px] min-h-[48px] py-2 px-2 transition-colors"
+  const labelClass = `text-[11px] leading-none ${active ? 'font-semibold' : 'font-medium'}`
 
   if (href) {
     return (
       <Link href={href} className={className} style={{ color }} aria-label={label}>
         {icon}
-        <span className="text-[11px] font-medium leading-none">{label}</span>
+        <span className={labelClass}>{label}</span>
       </Link>
     )
   }
@@ -198,7 +201,7 @@ function NavItem({
   return (
     <div className={className} style={{ color }} aria-label={label}>
       {icon}
-      <span className="text-[11px] font-medium leading-none">{label}</span>
+      <span className={labelClass}>{label}</span>
     </div>
   )
 }

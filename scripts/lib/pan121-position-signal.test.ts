@@ -16,7 +16,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { buildPositionSignal } from '../../frontend/lib/position-signal'
@@ -149,6 +149,18 @@ test('an active filter is removable by keyboard and announces what it removed', 
   assert.match(COMPONENT, /positionSignalFilterRemoved/)
   assert.match(COMPONENT_CODE, /setLastRemoved\(/)
 
+  // Round 2: on `/browse/[root]` the facet row is the one anchor and the chip
+  // is not rendered. The facet must still reach the model — dropping it would
+  // make the signal claim "no filters" while one is in force — and the row
+  // that replaced the chip must expose its state and announce the change.
+  assert.match(ROUTES.browseRoot, /<PositionSignal signal=\{positionSignal\} filtersShownByPage \/>/)
+  assert.match(ROUTES.browseRoot, /filters: activeSubcategory/)
+  assert.match(ROUTES.browseRoot, /aria-pressed=\{activeSubcat === null\}/)
+  assert.match(ROUTES.browseRoot, /aria-pressed=\{activeSubcat === s\.slug\}/)
+  assert.match(COMPONENT_CODE, /filtersShownByPage \? \(\s*<p aria-live="polite"/)
+  // `/search` keeps its removable query chip: nothing else on that page removes it.
+  assert.match(ROUTES.search, /onRemoveFilter=\{handleClearQuery\}/)
+
   // The removal handler runs before the caller's, so the announcement is not
   // lost to a re-render that unmounts the chip.
   const handler = COMPONENT.slice(COMPONENT.indexOf('function handleRemove'))
@@ -170,11 +182,13 @@ test('the signal is never green, and never signals state with opacity', () => {
   }
 
   // PAN-113 measured an opacity-60 state treatment at 2.61:1 and failed it.
-  // Active state here is weight, fill and border, all full-strength tokens.
+  // Active state here is weight, fill and border — since the owner's
+  // 2026-09-24 comment, all three in `--here`, the one "you are here" colour.
   assert.equal(/opacity-\d/.test(COMPONENT_CODE), false, 'state must not be carried by opacity')
-  assert.match(COMPONENT_CODE, /background: 'var\(--secondary\)'/)
-  assert.match(COMPONENT_CODE, /border: '1px solid var\(--border\)'/)
-  assert.match(COMPONENT_CODE, /font-medium/)
+  assert.match(COMPONENT_CODE, /background: 'var\(--here-subtle\)'/)
+  assert.match(COMPONENT_CODE, /border: '1px solid var\(--here-border\)'/)
+  assert.match(COMPONENT_CODE, /color: 'var\(--here\)'/)
+  assert.match(COMPONENT_CODE, /font-semibold/)
 
   // Motion comes from the existing tokens, never a new literal.
   assert.match(COMPONENT_CODE, /var\(--duration-fast\)/)
@@ -272,9 +286,11 @@ const SIDENAV_CODE = stripComments(read('components', 'SideNav.tsx'))
 
 test('the sidebar marks where you are, with aria-current="page"', () => {
   // There was not one occurrence anywhere in this file before this ticket.
+  // Three levels carry it since round 3 removed product rows: the top-level
+  // item, the root and the kind.
   const occurrences = SIDENAV_CODE.match(/aria-current=/g) ?? []
   assert.ok(
-    occurrences.length >= 4,
+    occurrences.length >= 3,
     `expected aria-current at every level of the tree, found ${occurrences.length}`,
   )
 
@@ -305,14 +321,15 @@ test('the sidebar and the filter chips read the same facet', () => {
     slug: 'keyboards-and-synths',
     name_da: 'Synthesizere & keyboards',
     name_en: 'Keyboards and Synths',
-    product_count: 26,
+    product_count: 27,
     subcategories: [{
-      slug: 'analog-synths',
-      name_da: 'Analoge synths',
-      name_en: 'Analog Synths',
-      product_count: 13,
-      products: [{ slug: 'roland-juno-106', label: 'Roland Juno-106' }],
+      slug: 'drum-machines',
+      name_da: 'Trommemaskiner',
+      name_en: 'Drum Machines',
+      product_count: 6,
+      product_slugs: ['roland-tr-808'],
     }],
+    product_slugs: ['roland-juno-106', 'roland-tr-808'],
   }]
 
   assert.deepEqual(
@@ -320,8 +337,14 @@ test('the sidebar and the filter chips read the same facet', () => {
     { kind: 'branch', categorySlug: 'keyboards-and-synths' },
   )
   assert.deepEqual(
+    currentCatalogueNode(cats, '/browse/keyboards-and-synths', 'drum-machines'),
+    { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'drum-machines' },
+  )
+  // Round 2: a facet `?sub=` still filters the page, but the sidebar marks the
+  // root — the facet is not a node. Still exactly one mark.
+  assert.deepEqual(
     currentCatalogueNode(cats, '/browse/keyboards-and-synths', 'analog-synths'),
-    { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'analog-synths' },
+    { kind: 'branch', categorySlug: 'keyboards-and-synths' },
   )
 
   // The facet must not reappear as component state beside the URL.
@@ -337,7 +360,10 @@ test('the sidebar indicator is weight, fill and a rail — never green', () => {
   // non-colour signals have to be present.
   assert.match(SIDENAV_CODE, /border-l-2/)
   assert.match(SIDENAV_CODE, /font-(semibold|bold)/)
-  assert.match(SIDENAV_CODE, /backgroundColor: isCurrent(Branch|Sub) \? 'var\(--secondary\)'/)
+  // Round 3: the fill exists ONLY in the current state's style — fill means
+  // selected, so a row at rest has none (the owner: greys "look clicked").
+  assert.match(SIDENAV_CODE, /isCurrent(Branch|Sub)\s*\?\s*\{[^}]*backgroundColor: 'var\(--here-subtle\)'/)
+  assert.equal(/zone-group/.test(SIDENAV_CODE), false, 'a catalogue row must not carry a rest fill')
 
   for (const token of ['--accent', '#13ec6d', '#16d96b']) {
     assert.equal(
@@ -354,4 +380,49 @@ test('the facet in the URL keeps the filtered view linkable and reversible', () 
   // is not arriving at a new page.
   assert.match(ROUTES.browseRoot, /router\.replace\(/)
   assert.match(ROUTES.browseRoot, /scroll: false/)
+})
+
+/**
+ * `--here` is exhaustive, like green — so the list is asserted, not trusted.
+ *
+ * The owner asked for ONE "you are here" colour, "used consistently and
+ * mindfully". A colour that marks location stops meaning location the first
+ * time it lands on a button, which is exactly how a helpful next agent would
+ * spread it. This fails the moment any file outside the list in
+ * frontend/CLAUDE.md reads the token, and when a listed file stops using it
+ * altogether (so the list cannot rot into a superset).
+ */
+test('the "you are here" colour appears only at its permitted sites', () => {
+  const PERMITTED = [
+    'app/globals.css',
+    'components/SideNav.tsx',
+    'components/Breadcrumb.tsx',
+    'components/PositionSignal.tsx',
+    'components/BottomNav.tsx',
+    'app/(shell)/browse/[root]/page.tsx',
+  ]
+  const frontend = join(ROOT, 'frontend')
+  const users: string[] = []
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      if (name === 'node_modules' || name.startsWith('.')) continue
+      const full = join(dir, name)
+      if (statSync(full).isDirectory()) walk(full)
+      else if (/\.(tsx?|css)$/.test(name) && /--here\b/.test(stripComments(readFileSync(full, 'utf8')))) {
+        users.push(full.slice(frontend.length + 1))
+      }
+    }
+  }
+  for (const top of ['app', 'components', 'lib']) walk(join(frontend, top))
+
+  assert.deepEqual(users.sort(), [...PERMITTED].sort())
+
+  // Never beside green: a location mark is not a Klup judgement.
+  for (const file of PERMITTED.filter((f) => f.endsWith('.tsx'))) {
+    for (const line of stripComments(read(...file.split('/'))).split('\n')) {
+      if (line.includes('--here')) {
+        assert.equal(/--accent|#13ec6d|#16d96b/.test(line), false, `${file}: --here beside green`)
+      }
+    }
+  }
 })

@@ -42,16 +42,19 @@ const TREE: CatalogueTreeCategory[] = [
     slug: 'keyboards-and-synths',
     name_da: 'Synthesizere & keyboards',
     name_en: 'Keyboards and Synths',
-    product_count: 26,
+    product_count: 27,
+    // PAN-121 round 2: a KIND is a node; a FACET's products (analog-synths is
+    // one) hang directly under the root and have no node of their own.
     subcategories: [
       {
-        slug: 'analog-synths',
-        name_da: 'Analoge synths',
-        name_en: 'Analog Synths',
-        product_count: 13,
-        products: [{ slug: 'roland-juno-106', label: 'Roland Juno-106' }],
+        slug: 'drum-machines',
+        name_da: 'Trommemaskiner',
+        name_en: 'Drum Machines',
+        product_count: 6,
+        product_slugs: ['roland-tr-808'],
       },
     ],
+    product_slugs: ['roland-juno-106', 'roland-tr-808'],
   },
 ]
 
@@ -61,21 +64,34 @@ test('one function decides the current node, and it picks exactly one', () => {
     categorySlug: 'keyboards-and-synths',
   })
 
-  // A facet narrows it. The branch must stop claiming to be current, or a
+  // A KIND narrows it. The branch must stop claiming to be current, or a
   // screen reader hears two current pages.
   assert.deepEqual(
+    currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'drum-machines'),
+    { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'drum-machines' },
+  )
+  // A FACET has no node (round 2), so the root is where the visitor stands.
+  assert.deepEqual(
     currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'analog-synths'),
-    { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'analog-synths' },
+    { kind: 'branch', categorySlug: 'keyboards-and-synths' },
   )
 
   // PAN-132 — the product node names its category too. Marking the row only
   // needs the product slug; OPENING the branch that holds it needs to know
   // which branch that is, and re-deriving that in the renderer is the drift
   // this function exists to prevent.
+  //
+  // PAN-121 round 3: a product is no longer a node. A product page marks the
+  // node that holds it — the root when its leaf is a facet…
   assert.deepEqual(currentCatalogueNode(TREE, '/product/roland-juno-106', null), {
-    kind: 'product',
+    kind: 'branch',
     categorySlug: 'keyboards-and-synths',
-    productSlug: 'roland-juno-106',
+  })
+  // …and its kind when it has one. Still exactly one node.
+  assert.deepEqual(currentCatalogueNode(TREE, '/product/roland-tr-808', null), {
+    kind: 'subcategory',
+    categorySlug: 'keyboards-and-synths',
+    subcategorySlug: 'drum-machines',
   })
 })
 
@@ -217,8 +233,8 @@ test('snapping keeps the range discontinuous, so the label floor still holds', (
 test('a branch opens when it CONTAINS the current node, not when it IS it', () => {
   // All three kinds name their category, so one containment test serves them.
   const branch = currentCatalogueNode(TREE, '/browse/keyboards-and-synths', null)
-  const sub = currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'analog-synths')
-  const product = currentCatalogueNode(TREE, '/product/roland-juno-106', null)
+  const sub = currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'drum-machines')
+  const product = currentCatalogueNode(TREE, '/product/roland-tr-808', null)
   const cases = [
     ['branch', branch],
     ['subcategory', sub],
@@ -235,21 +251,21 @@ test('a branch opens when it CONTAINS the current node, not when it IS it', () =
   // Only the marking predicate narrows; containment does not.
   assert.equal(branch?.kind, 'branch')
   assert.equal(sub?.kind, 'subcategory')
-  assert.equal(product?.kind, 'product')
+  // Round 3: a product under a kind marks the kind, so the branch stays shut
+  // on the marking test and open on containment.
+  assert.equal(product?.kind, 'subcategory')
 
-  // The disclosure reads containment, and no branch is open unconditionally.
+  // The branch's kinds show on containment, and no branch is open
+  // unconditionally. Round 3 replaced the `<details>` (its body was mostly
+  // products, and three roots have no kind at all), so the same two rules are
+  // asserted on the list that replaced it.
   assert.match(
     SIDENAV_CODE,
     /const holdsCurrentNode = current !== null && current\.categorySlug === category\.slug/,
   )
-  assert.match(SIDENAV_CODE, /<details key=\{category\.slug\} open=\{holdsCurrentNode\}/)
+  assert.match(SIDENAV_CODE, /\{holdsCurrentNode && hasKinds && \(/)
   assert.equal(
-    /<details[^>]*\sopen\s/.test(SIDENAV_CODE),
-    false,
-    'no branch may be open unconditionally',
-  )
-  assert.equal(
-    /open=\{isCurrentBranch\}/.test(SIDENAV_CODE),
+    /\{isCurrentBranch && hasKinds/.test(SIDENAV_CODE),
     false,
     'the marking predicate is not the containment predicate',
   )
@@ -259,16 +275,16 @@ test('a branch opens when it CONTAINS the current node, not when it IS it', () =
   assert.equal(currentCatalogueNode(TREE, '/search', null), null)
   assert.equal(currentCatalogueNode(TREE, '/family/fender-telecaster', null), null)
 
-  // It stays a NATIVE disclosure: keyboard and find-in-page come from the
-  // element, so no React state may be introduced to replace it.
+  // What is open is DERIVED from the route, never held in component state:
+  // a root row is a link, and the location decides which kinds show.
   const treeSource = SIDENAV_CODE.slice(
     SIDENAV_CODE.indexOf('function CatalogueTree'),
     SIDENAV_CODE.indexOf('const SIDEBAR_MIN_WIDTH'),
   )
-  assert.match(treeSource, /<summary/)
+  assert.match(treeSource, /href=\{`\/browse\/\$\{category\.slug\}`\}/)
   assert.equal(
     /useState[^)]*(open|expanded)/i.test(treeSource),
     false,
-    'the disclosure must stay native, not become component state',
+    'what is open must follow the route, not become component state',
   )
 })
