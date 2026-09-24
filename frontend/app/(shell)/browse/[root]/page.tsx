@@ -9,6 +9,11 @@ import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
 import { PositionSignal } from '@/components/PositionSignal'
 import { buildPositionSignal } from '@/lib/position-signal'
+import {
+  SUBCATEGORY_GROUPS,
+  displaySubcategorySlug,
+  isSubcategoryGroup,
+} from '@/lib/catalogue-tree'
 import type { BrowseLeafResponse } from '@/lib/browse'
 
 interface Category {
@@ -154,8 +159,34 @@ function BrowseCategoryPageInner() {
     setLoadingMore(false)
   }
 
-  const filteredProducts = activeSubcat
-    ? (data?.products ?? []).filter((p) => p.subcategory_slug === activeSubcat)
+  /**
+   * PAN-138 — the chip row is DISPLAY slugs, not leaf slugs. Grouped leaves
+   * (analog + digital synths) collapse into one chip, through the same
+   * `displaySubcategorySlug` the sidebar tree is built with, so the two cannot
+   * disagree about which leaves are one place. A group takes the position of
+   * its first member in the API's order; every other chip keeps its own.
+   *
+   * `activeSub` is `?sub=` resolved the same way, so an old
+   * `?sub=analog-synths` link selects the group instead of half of it.
+   */
+  const activeSub = activeSubcat ? displaySubcategorySlug(params.root, activeSubcat) : null
+
+  const chips: Array<{ slug: string; label: string }> = []
+  for (const s of data?.subcategories ?? []) {
+    const slug = displaySubcategorySlug(params.root, s.slug)
+    if (chips.some((chip) => chip.slug === slug)) continue
+    chips.push({
+      slug,
+      label: isSubcategoryGroup(slug)
+        ? t[SUBCATEGORY_GROUPS[slug].labelKey]
+        : locale === 'da' ? s.name_da : s.name_en,
+    })
+  }
+
+  const filteredProducts = activeSub
+    ? (data?.products ?? []).filter(
+        (p) => displaySubcategorySlug(params.root, p.subcategory_slug) === activeSub,
+      )
     : (data?.products ?? [])
 
   const categoryName = data?.category
@@ -175,23 +206,15 @@ function BrowseCategoryPageInner() {
    * The category name comes from the API's `kg_category.name_da` / `name_en`,
    * which is the single label authority since PAN-107.
    */
-  const activeSubcategory = activeSubcat
-    ? (data?.subcategories ?? []).find((s) => s.slug === activeSubcat)
-    : undefined
+  const activeChip = activeSub ? chips.find((chip) => chip.slug === activeSub) : undefined
 
   const positionSignal = buildPositionSignal({
     // No `scope`: `categoryName` is already the <h1> directly above, and
     // already the last crumb of the breadcrumb above that. A third copy made
     // the visitor choose which of three position statements to read.
     renderedRows: filteredProducts,
-    filters: activeSubcategory
-      ? [
-          {
-            id: activeSubcategory.slug,
-            kind: 'subcategory' as const,
-            label: locale === 'da' ? activeSubcategory.name_da : activeSubcategory.name_en,
-          },
-        ]
+    filters: activeChip
+      ? [{ id: activeChip.slug, kind: 'subcategory' as const, label: activeChip.label }]
       : [],
   })
 
@@ -248,39 +271,39 @@ function BrowseCategoryPageInner() {
             Since round 2 this row is the ONLY statement of the facet, so its
             state has to reach a screen reader too: `aria-pressed` on each
             chip, and "Alle" is the removal. */}
-        {!loading && (data?.subcategories ?? []).length > 0 && (
+        {!loading && chips.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none">
             <button
               type="button"
-              aria-pressed={activeSubcat === null}
+              aria-pressed={activeSub === null}
               onClick={() => setActiveSubcat(null)}
               className={`shrink-0 text-sm px-3.5 py-1.5 rounded-full transition-colors ${
-                activeSubcat === null ? 'font-semibold' : 'font-medium'
+                activeSub === null ? 'font-semibold' : 'font-medium'
               }`}
               style={{
-                background: activeSubcat === null ? 'var(--here-subtle)' : 'var(--card)',
-                color: activeSubcat === null ? 'var(--here)' : 'var(--foreground)',
-                border: `1px solid ${activeSubcat === null ? 'var(--here-border)' : 'var(--border)'}`,
+                background: activeSub === null ? 'var(--here-subtle)' : 'var(--card)',
+                color: activeSub === null ? 'var(--here)' : 'var(--foreground)',
+                border: `1px solid ${activeSub === null ? 'var(--here-border)' : 'var(--border)'}`,
               }}
             >
               Alle
             </button>
-            {(data?.subcategories ?? []).map((s) => (
+            {chips.map((chip) => (
               <button
-                key={s.id}
+                key={chip.slug}
                 type="button"
-                aria-pressed={activeSubcat === s.slug}
-                onClick={() => setActiveSubcat(activeSubcat === s.slug ? null : s.slug)}
+                aria-pressed={activeSub === chip.slug}
+                onClick={() => setActiveSubcat(activeSub === chip.slug ? null : chip.slug)}
                 className={`shrink-0 text-sm px-3.5 py-1.5 rounded-full transition-colors ${
-                  activeSubcat === s.slug ? 'font-semibold' : 'font-medium'
+                  activeSub === chip.slug ? 'font-semibold' : 'font-medium'
                 }`}
                 style={{
-                  background: activeSubcat === s.slug ? 'var(--here-subtle)' : 'var(--card)',
-                  color: activeSubcat === s.slug ? 'var(--here)' : 'var(--foreground)',
-                  border: `1px solid ${activeSubcat === s.slug ? 'var(--here-border)' : 'var(--border)'}`,
+                  background: activeSub === chip.slug ? 'var(--here-subtle)' : 'var(--card)',
+                  color: activeSub === chip.slug ? 'var(--here)' : 'var(--foreground)',
+                  border: `1px solid ${activeSub === chip.slug ? 'var(--here-border)' : 'var(--border)'}`,
                 }}
               >
-                {locale === 'da' ? s.name_da : s.name_en}
+                {chip.label}
               </button>
             ))}
           </div>

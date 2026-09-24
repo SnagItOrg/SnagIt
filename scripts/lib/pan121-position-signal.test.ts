@@ -154,9 +154,11 @@ test('an active filter is removable by keyboard and announces what it removed', 
   // make the signal claim "no filters" while one is in force — and the row
   // that replaced the chip must expose its state and announce the change.
   assert.match(ROUTES.browseRoot, /<PositionSignal signal=\{positionSignal\} filtersShownByPage \/>/)
-  assert.match(ROUTES.browseRoot, /filters: activeSubcategory/)
-  assert.match(ROUTES.browseRoot, /aria-pressed=\{activeSubcat === null\}/)
-  assert.match(ROUTES.browseRoot, /aria-pressed=\{activeSubcat === s\.slug\}/)
+  // PAN-138: the chips are display slugs (a group is one chip), so the model
+  // and the pressed state read the resolved facet, not the raw `?sub=`.
+  assert.match(ROUTES.browseRoot, /filters: activeChip/)
+  assert.match(ROUTES.browseRoot, /aria-pressed=\{activeSub === null\}/)
+  assert.match(ROUTES.browseRoot, /aria-pressed=\{activeSub === chip\.slug\}/)
   assert.match(COMPONENT_CODE, /filtersShownByPage \? \(\s*<p aria-live="polite"/)
   // `/search` keeps its removable query chip: nothing else on that page removes it.
   assert.match(ROUTES.search, /onRemoveFilter=\{handleClearQuery\}/)
@@ -341,9 +343,10 @@ test('the sidebar and the filter chips read the same facet', () => {
     { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'drum-machines' },
   )
   // Round 2: a facet `?sub=` still filters the page, but the sidebar marks the
-  // root — the facet is not a node. Still exactly one mark.
+  // root — the facet is not a node. Still exactly one mark. (PAN-138 made
+  // `analog-synths` a grouped kind, so a guitar facet stands in for it here.)
   assert.deepEqual(
-    currentCatalogueNode(cats, '/browse/keyboards-and-synths', 'analog-synths'),
+    currentCatalogueNode(cats, '/browse/keyboards-and-synths', 'solid-body'),
     { kind: 'branch', categorySlug: 'keyboards-and-synths' },
   )
 

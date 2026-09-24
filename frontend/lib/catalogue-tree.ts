@@ -45,12 +45,15 @@
  *        visitor navigates BY it ("I want a drum machine"), so it stays a
  *        node in the tree.
  *      - a FACET is an attribute of a thing — body shape, string count,
- *        construction, synthesis technology. A visitor filters by it, so it
- *        is not a node: it lives only as a chip on `/browse/<root>` (`?sub=`
- *        unchanged), and its products belong to the root.
+ *        construction. A visitor filters by it, so it is not a node: it lives
+ *        only as a chip on `/browse/<root>` (`?sub=` unchanged), and its
+ *        products belong to the root.
  *    `FACET_SUBCATEGORIES` below is the hand-maintained list. An unlisted
  *    leaf is a KIND, so a newly published leaf behaves exactly as before and
  *    nothing disappears from the navigation silently.
+ *    PAN-138: some kinds are two leaves shown as one (`SUBCATEGORY_GROUPS`) —
+ *    analog and digital synths are one "Synthesizere" node, because the
+ *    technology split is not a line a visitor can use.
  *
  * 3. NO PRODUCTS ARE NODES (PAN-121 round 3). Products live on the page
  *    grid; the tree is categories and kinds. It still has to know WHICH
@@ -82,10 +85,10 @@
  * filter by is an editorial judgement, and there are 14 live leaves — a
  * database column would be machinery for a list a person reads in one glance.
  *
- * `analog-synths` / `digital-synths` are contestable (a technology, not a
- * kind — and the Juno-106 is filed under digital), which is exactly why they
- * are here: a filed-wrong product under a filter is a filter miss; under a
- * navigation node it is a signpost pointing the wrong way.
+ * `analog-synths` / `digital-synths` used to be here. PAN-138 took them out:
+ * the owner decided analog/digital is not a clear axis (modern synths are
+ * hybrids, and the Juno-106 is DCO), so they are not a filter either — they
+ * are one kind, displayed through `SUBCATEGORY_GROUPS` below.
  *
  * DEFAULT IS KIND. Adding a leaf here removes it from the sidebar; forgetting
  * to add one leaves it where it always was.
@@ -96,9 +99,79 @@ export const FACET_SUBCATEGORIES: ReadonlySet<string> = new Set([
   'bass-guitars/4-string',
   'electric-guitars/solid-body',
   'electric-guitars/semi-hollow',
-  'keyboards-and-synths/analog-synths',
-  'keyboards-and-synths/digital-synths',
 ])
+
+/**
+ * PAN-138 — leaves DISPLAYED as one kind.
+ *
+ * Presentation only. The data is untouched: products keep `analog-synths` /
+ * `digital-synths` as their `subcategory_id`, because `is_public` requires
+ * `taxonomy_state = 'classified'` and a nulled or moved leaf would unpublish
+ * them. The merge happens here, on the way out, and nowhere else — the tree
+ * (`buildCatalogueTree`, `currentCatalogueNode`) and the chip row on
+ * `/browse/<root>` both go through `displaySubcategorySlug`, so the sidebar
+ * and the chips cannot drift about which leaves are one place.
+ *
+ * The group slug is what `?sub=` carries (`?sub=synthesizers`). A member's own
+ * slug resolves to its group, so an old `?sub=analog-synths` link lands on the
+ * group rather than on an empty grid.
+ *
+ * `labelKey` names the copy in `lib/i18n.ts`: no `kg_category` row exists for
+ * a group, so this is the one deliberate exception to PAN-107's single label
+ * authority. It is a string literal rather than an import so this module stays
+ * import-free; tsc still rejects a key `i18n.ts` does not have, wherever `t` is
+ * indexed with it.
+ *
+ * A group slug must not equal a real leaf slug under the same root, or `?sub=`
+ * could not tell them apart. `synthesizers` is not a Reverb leaf.
+ */
+export const SUBCATEGORY_GROUPS = {
+  synthesizers: {
+    labelKey: 'subcategoryGroupSynthesizers',
+    leaves: ['keyboards-and-synths/analog-synths', 'keyboards-and-synths/digital-synths'],
+  },
+} as const
+
+export type SubcategoryGroupSlug = keyof typeof SUBCATEGORY_GROUPS
+type SubcategoryGroupLabelKey = (typeof SUBCATEGORY_GROUPS)[SubcategoryGroupSlug]['labelKey']
+
+/** Each group's display names, resolved from i18n by a caller that may import it. */
+export type SubcategoryGroupNames = Record<SubcategoryGroupSlug, { name_da: string; name_en: string }>
+
+const GROUP_OF_LEAF: ReadonlyMap<string, SubcategoryGroupSlug> = new Map(
+  (Object.keys(SUBCATEGORY_GROUPS) as SubcategoryGroupSlug[]).flatMap((group) =>
+    SUBCATEGORY_GROUPS[group].leaves.map((leaf) => [leaf, group] as const),
+  ),
+)
+
+export function isSubcategoryGroup(slug: string): slug is SubcategoryGroupSlug {
+  return Object.prototype.hasOwnProperty.call(SUBCATEGORY_GROUPS, slug)
+}
+
+/**
+ * The slug a bare leaf is displayed under on `/browse/<root>`: its group's when
+ * it has one, otherwise its own. A group slug or an unknown slug passes through
+ * unchanged, so this is safe to apply to whatever `?sub=` holds.
+ */
+export function displaySubcategorySlug(rootSlug: string, bareLeaf: string): string {
+  return GROUP_OF_LEAF.get(`${rootSlug}/${bareLeaf}`) ?? bareLeaf
+}
+
+/**
+ * Every group's names, read from a `translations`-shaped object. Taken as an
+ * argument rather than imported so this module stays import-free; the server
+ * caller passes `translations` from `lib/i18n.ts`.
+ */
+export function subcategoryGroupNames(
+  copy: Record<'da' | 'en', Record<SubcategoryGroupLabelKey, string>>,
+): SubcategoryGroupNames {
+  const names = {} as SubcategoryGroupNames
+  for (const group of Object.keys(SUBCATEGORY_GROUPS) as SubcategoryGroupSlug[]) {
+    const key = SUBCATEGORY_GROUPS[group].labelKey
+    names[group] = { name_da: copy.da[key], name_en: copy.en[key] }
+  }
+  return names
+}
 
 /**
  * A `browse_product_projection` row, narrowed to the seven fields the tree
@@ -117,7 +190,10 @@ export type CatalogueTreeRow = {
 }
 
 export type CatalogueTreeSubcategory = {
-  /** The bare leaf slug (`analog-synths`), as `/browse/<root>` reports it. */
+  /**
+   * The bare leaf slug (`drum-machines`), as `/browse/<root>` reports it — or,
+   * for a grouped kind, the group slug (`synthesizers`) the chip row writes.
+   */
   slug: string
   name_da: string
   name_en: string
@@ -158,7 +234,10 @@ function bareLeafSlug(slug: string): string {
  * the same categories in two different orders. It is total and
  * locale-independent, so the server and the client agree about it.
  */
-export function buildCatalogueTree(rows: CatalogueTreeRow[]): CatalogueTreeCategory[] {
+export function buildCatalogueTree(
+  rows: CatalogueTreeRow[],
+  groupNames: SubcategoryGroupNames,
+): CatalogueTreeCategory[] {
   const byRoot = new Map<string, CatalogueTreeCategory>()
   const leaves = new Map<string, CatalogueTreeSubcategory>()
 
@@ -186,14 +265,17 @@ export function buildCatalogueTree(rows: CatalogueTreeRow[]): CatalogueTreeCateg
     // Rule 2: a facet is not a node, so its product belongs to the root alone.
     if (FACET_SUBCATEGORIES.has(subSlug)) continue
 
-    const leafKey = `${rootSlug} ${subSlug}`
+    // PAN-138: a grouped leaf joins its group's node, so two leaves are one
+    // row here and one chip on the page.
+    const group = GROUP_OF_LEAF.get(subSlug)
+    const nodeSlug = group ?? bareLeafSlug(subSlug)
+    const leafKey = `${rootSlug} ${nodeSlug}`
     let leaf = leaves.get(leafKey)
     if (!leaf) {
-      const bare = bareLeafSlug(subSlug)
       leaf = {
-        slug: bare,
-        name_da: row.subcategory_name_da ?? bare,
-        name_en: row.subcategory_name_en ?? bare,
+        slug: nodeSlug,
+        name_da: group ? groupNames[group].name_da : row.subcategory_name_da ?? nodeSlug,
+        name_en: group ? groupNames[group].name_en : row.subcategory_name_en ?? nodeSlug,
         product_count: 0,
         product_slugs: [],
       }
@@ -284,9 +366,11 @@ export function currentCatalogueNode(
   if (!category) return null
 
   // A KIND narrows the answer: the subcategory is where the visitor is, and
-  // the branch stops claiming to be. Exactly one, never both.
-  if (activeSub && category.subcategories.some((sub) => sub.slug === activeSub)) {
-    return { kind: 'subcategory', categorySlug, subcategorySlug: activeSub }
+  // the branch stops claiming to be. Exactly one, never both. A grouped leaf
+  // (`?sub=analog-synths`, an old link) resolves to its group first (PAN-138).
+  const sub = activeSub ? displaySubcategorySlug(categorySlug, activeSub) : null
+  if (sub && category.subcategories.some((node) => node.slug === sub)) {
+    return { kind: 'subcategory', categorySlug, subcategorySlug: sub }
   }
 
   // A FACET `?sub=` (rule 2) has no node, so the root is where the visitor
