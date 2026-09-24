@@ -3,8 +3,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useLocale } from '@/components/LocaleProvider'
+import { ToastViewport } from '@/components/Toast'
+import { useToast } from '@/lib/use-toast'
+import { fill } from '@/lib/i18n'
+import { brandKey, brandSlug, findBrandNearMatches, type BrandRow } from '@/lib/brand-identity'
+import NewBrandDialog from './NewBrandDialog'
 
-type Brand = { id: string; name: string }
+type Brand = BrandRow
 type Subcategory = { id: string; name: string; parent_name: string | null }
 type Tier = 'legendary' | 'classic' | 'standard'
 type Status = 'active' | 'inactive'
@@ -38,6 +44,8 @@ function deriveModelName(canonicalName: string, brandName: string | null): strin
 
 export default function NewProductForm() {
   const router = useRouter()
+  const { t } = useLocale()
+  const { toasts, showToast, dismissToast } = useToast()
 
   const [brands, setBrands] = useState<Brand[]>([])
   const [subcategories, setSubcategories] = useState<Subcategory[]>([])
@@ -47,6 +55,7 @@ export default function NewProductForm() {
   const [brandId, setBrandId] = useState<string>('')
   const [brandSearch, setBrandSearch] = useState('')
   const [brandOpen, setBrandOpen] = useState(false)
+  const [brandDialogOpen, setBrandDialogOpen] = useState(false)
 
   const [canonicalName, setCanonicalName] = useState('')
   const [modelName, setModelName] = useState('')
@@ -97,11 +106,29 @@ export default function NewProductForm() {
     if (!modelTouched) setModelName(deriveModelName(canonicalName, selectedBrand?.name ?? null))
   }, [canonicalName, selectedBrand, modelTouched])
 
+  // Separator-insensitive, so `microtech gefell` finds `Microtech-Gefell`.
   const filteredBrands = useMemo(() => {
-    const q = brandSearch.trim().toLowerCase()
+    const q = brandKey(brandSearch)
     if (!q) return brands
-    return brands.filter((b) => b.name.toLowerCase().includes(q))
+    return brands.filter((b) => brandKey(b.name).includes(q))
   }, [brandSearch, brands])
+
+  // Offer creation only when nothing we hold is the same brand. The server
+  // enforces the same rule; this keeps the operator from reaching the refusal.
+  const canOfferNewBrand =
+    brandKey(brandSearch) !== '' &&
+    findBrandNearMatches({ name: brandSearch, slug: brandSlug(brandSearch) }, brands).length === 0
+
+  function selectBrand(b: Brand) {
+    setBrands((prev) =>
+      prev.some((x) => x.id === b.id)
+        ? prev
+        : [...prev, b].sort((x, y) => x.name.localeCompare(y.name)),
+    )
+    setBrandId(b.id)
+    setBrandSearch('')
+    setBrandOpen(false)
+  }
 
   const filteredSubcats = useMemo(() => {
     const q = subcatSearch.trim().toLowerCase()
@@ -201,12 +228,16 @@ export default function NewProductForm() {
             options={filteredBrands.map((b) => ({
               key: b.id,
               label: b.name,
-              onSelect: () => {
-                setBrandId(b.id)
-                setBrandSearch('')
-                setBrandOpen(false)
-              },
+              onSelect: () => selectBrand(b),
             }))}
+            action={
+              canOfferNewBrand
+                ? {
+                    label: fill(t.adminBrand.createOption, { name: brandSearch.trim() }),
+                    onSelect: () => { setBrandOpen(false); setBrandDialogOpen(true) },
+                  }
+                : undefined
+            }
             disabled={brandsLoading}
           />
         </Field>
@@ -418,6 +449,18 @@ export default function NewProductForm() {
           </Link>
         </div>
       </form>
+
+      <NewBrandDialog
+        open={brandDialogOpen}
+        initialName={brandSearch.trim()}
+        onClose={() => setBrandDialogOpen(false)}
+        onResolved={(b, created) => {
+          selectBrand(b)
+          setBrandDialogOpen(false)
+          if (created) showToast(fill(t.adminBrand.created, { name: b.name }))
+        }}
+      />
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }
@@ -467,6 +510,7 @@ function SearchableSelect({
   selectedLabel,
   onClear,
   options,
+  action,
   disabled,
 }: {
   placeholder: string
@@ -477,6 +521,8 @@ function SearchableSelect({
   selectedLabel: string | null
   onClear: () => void
   options: { key: string; label: string; onSelect: () => void }[]
+  /** An extra row after the options, e.g. creating what the search did not find. */
+  action?: { label: string; onSelect: () => void }
   disabled?: boolean
 }) {
   if (selectedLabel) {
@@ -520,7 +566,7 @@ function SearchableSelect({
           color: 'var(--foreground)',
         }}
       />
-      {open && options.length > 0 && (
+      {open && (options.length > 0 || action) && (
         <div
           className="absolute z-20 left-0 right-0 mt-1 rounded-xl overflow-hidden max-h-60 overflow-y-auto"
           style={{
@@ -540,9 +586,20 @@ function SearchableSelect({
               {o.label}
             </button>
           ))}
+          {action && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={action.onSelect}
+              className="w-full text-left text-sm font-semibold px-4 py-2 hover:opacity-80"
+              style={{ color: 'var(--foreground)', borderTop: options.length > 0 ? '1px solid var(--border)' : undefined }}
+            >
+              + {action.label}
+            </button>
+          )}
         </div>
       )}
-      {open && options.length === 0 && (
+      {open && options.length === 0 && !action && (
         <div
           className="absolute z-20 left-0 right-0 mt-1 rounded-xl px-4 py-3 text-xs"
           style={{

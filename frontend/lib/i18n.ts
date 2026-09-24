@@ -527,6 +527,25 @@ export const translations = {
     sidebarSectionDiscover: 'Find',
     sidebarSectionDiscoverSubtitle: 'Søg og gennemse kataloget',
     sidebarSectionYours: 'Dit Klup',
+
+    // PAN-136 — creating a brand from the new-product form.
+    adminBrand: {
+      createOption: 'Opret brand “{name}”',
+      dialogTitle: 'Nyt brand',
+      dialogIntro: 'Opretter kun brandet. Intet produkt, ingen overvågning, intet offentligt.',
+      nameLabel: 'Navn',
+      slugLabel: 'Slug',
+      create: 'Opret brand',
+      creating: 'Opretter…',
+      cancel: 'Annuller',
+      existsHeading: 'Brandet findes allerede',
+      existsBody: 'Navnet adskiller sig kun i store/små bogstaver, mellemrum eller tegn fra et brand vi har. Intet er oprettet.',
+      useExisting: 'Brug {name}',
+      created: 'Brand oprettet: {name}',
+      errorName: 'Skriv brandets navn.',
+      errorSlug: 'Slug må kun indeholde små bogstaver, tal og bindestreger.',
+      errorGeneric: 'Brandet kunne ikke oprettes. Prøv igen.',
+    },
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -984,6 +1003,25 @@ export const translations = {
     sidebarSectionDiscover: 'Discover',
     sidebarSectionDiscoverSubtitle: 'Search and browse the catalogue',
     sidebarSectionYours: 'Your Klup',
+
+    // PAN-136 — creating a brand from the new-product form.
+    adminBrand: {
+      createOption: 'Create brand “{name}”',
+      dialogTitle: 'New brand',
+      dialogIntro: 'Creates the brand only. No product, no monitoring, nothing public.',
+      nameLabel: 'Name',
+      slugLabel: 'Slug',
+      create: 'Create brand',
+      creating: 'Creating…',
+      cancel: 'Cancel',
+      existsHeading: 'This brand already exists',
+      existsBody: 'The name differs only by case, spacing or punctuation from a brand we hold. Nothing was created.',
+      useExisting: 'Use {name}',
+      created: 'Brand created: {name}',
+      errorName: 'Enter the brand name.',
+      errorSlug: 'Slug may only contain lowercase letters, digits and hyphens.',
+      errorGeneric: 'The brand could not be created. Try again.',
+    },
   },
 } as const
 
