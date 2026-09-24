@@ -149,6 +149,18 @@ test('an active filter is removable by keyboard and announces what it removed', 
   assert.match(COMPONENT, /positionSignalFilterRemoved/)
   assert.match(COMPONENT_CODE, /setLastRemoved\(/)
 
+  // Round 2: on `/browse/[root]` the facet row is the one anchor and the chip
+  // is not rendered. The facet must still reach the model — dropping it would
+  // make the signal claim "no filters" while one is in force — and the row
+  // that replaced the chip must expose its state and announce the change.
+  assert.match(ROUTES.browseRoot, /<PositionSignal signal=\{positionSignal\} filtersShownByPage \/>/)
+  assert.match(ROUTES.browseRoot, /filters: activeSubcategory/)
+  assert.match(ROUTES.browseRoot, /aria-pressed=\{activeSubcat === null\}/)
+  assert.match(ROUTES.browseRoot, /aria-pressed=\{activeSubcat === s\.slug\}/)
+  assert.match(COMPONENT_CODE, /filtersShownByPage \? \(\s*<p aria-live="polite"/)
+  // `/search` keeps its removable query chip: nothing else on that page removes it.
+  assert.match(ROUTES.search, /onRemoveFilter=\{handleClearQuery\}/)
+
   // The removal handler runs before the caller's, so the announcement is not
   // lost to a re-render that unmounts the chip.
   const handler = COMPONENT.slice(COMPONENT.indexOf('function handleRemove'))

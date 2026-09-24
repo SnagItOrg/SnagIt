@@ -35,9 +35,26 @@ import { Icon } from '@/components/Icon'
 export function PositionSignal({
   signal,
   onRemoveFilter,
+  filtersShownByPage = false,
 }: {
   signal: PositionSignalModel
   onRemoveFilter?: (filter: PositionFilter) => void
+  /**
+   * PAN-121 round 2 — the page renders its own control for these filters.
+   *
+   * On `/browse/[root]` the facet row states the active subcategory one line
+   * below where this chip stated it again: two anchors for one fact. There the
+   * facet row is the anchor — its active chip is `aria-pressed` and in
+   * `--here`, and "Alle" removes the filter — so this renders the count alone.
+   * The model is untouched: `filters` still carries the facet and `unfiltered`
+   * stays false, so nothing here can claim "no filters" while one is in force.
+   *
+   * The count becomes a polite live region in this mode because the removal
+   * announcement it replaces lived on the chip that is no longer rendered.
+   * Toggling a facet is announced twice over: the pressed state of the button
+   * that has focus, and the new count.
+   */
+  filtersShownByPage?: boolean
 }) {
   const { t } = useLocale()
 
@@ -92,6 +109,11 @@ export function PositionSignal({
       )}
 
       {/* THE NARROWING LINE — what is filtering, and how many rows that yields. */}
+      {filtersShownByPage ? (
+        <p aria-live="polite" aria-atomic="true" className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+          {countLabel}
+        </p>
+      ) : (
       <div className="flex flex-wrap items-center gap-2">
         {signal.filters.map((filter) => {
           const removable = onRemoveFilter !== undefined
@@ -137,6 +159,7 @@ export function PositionSignal({
           {'·'} {countLabel}
         </span>
       </div>
+      )}
 
       <span aria-live="polite" aria-atomic="true" className="sr-only">
         {lastRemoved ?? ''}

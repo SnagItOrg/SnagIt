@@ -232,22 +232,27 @@ function BrowseCategoryPageInner() {
           )}
         </div>
 
-        {/* PAN-121 — where you are, and what is narrowing it. */}
+        {/* PAN-121 — where you are, and how many rows that yields. The facet
+            row below is what names and removes the filter (round 2: one
+            anchor, not a chip restating it one line above). */}
         {!loading && !error && data && (
-          <PositionSignal
-            signal={positionSignal}
-            onRemoveFilter={() => setActiveSubcat(null)}
-          />
+          <PositionSignal signal={positionSignal} filtersShownByPage />
         )}
 
         {/* Subcategory filter chips. The one in force is where the visitor IS,
             so it takes `--here` (PAN-121) — the same colour the sidebar row
-            and the PositionSignal chip use for the same `?sub=`. It used to be
+            uses for the same `?sub=`. It used to be
             an inverted solid fill, the loudest thing on the page for the
-            quietest fact on it. */}
+            quietest fact on it.
+
+            Since round 2 this row is the ONLY statement of the facet, so its
+            state has to reach a screen reader too: `aria-pressed` on each
+            chip, and "Alle" is the removal. */}
         {!loading && (data?.subcategories ?? []).length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none">
             <button
+              type="button"
+              aria-pressed={activeSubcat === null}
               onClick={() => setActiveSubcat(null)}
               className={`shrink-0 text-sm px-3.5 py-1.5 rounded-full transition-colors ${
                 activeSubcat === null ? 'font-semibold' : 'font-medium'
@@ -263,6 +268,8 @@ function BrowseCategoryPageInner() {
             {(data?.subcategories ?? []).map((s) => (
               <button
                 key={s.id}
+                type="button"
+                aria-pressed={activeSubcat === s.slug}
                 onClick={() => setActiveSubcat(activeSubcat === s.slug ? null : s.slug)}
                 className={`shrink-0 text-sm px-3.5 py-1.5 rounded-full transition-colors ${
                   activeSubcat === s.slug ? 'font-semibold' : 'font-medium'
