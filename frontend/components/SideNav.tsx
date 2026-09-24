@@ -10,6 +10,7 @@ import { useLocale } from '@/components/LocaleProvider'
 import { Icon } from '@/components/Icon'
 import { type Locale } from '@/lib/i18n'
 import { currentCatalogueNode, type CatalogueTreeCategory } from '@/lib/catalogue-tree'
+import { scrollFade, useScrollEdges } from '@/components/use-scroll-edges'
 
 /**
  * PAN-131 — THE SIDEBAR TAKES NO PROPS, BECAUSE A LAYOUT CANNOT SUPPLY THEM.
@@ -43,7 +44,7 @@ function ThemeToggle({ collapsed }: { collapsed: boolean }) {
   return (
     <button
       onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-      className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full text-left transition-colors hover:bg-secondary ${
+      className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium w-full text-left transition-colors hover:bg-secondary ${
         collapsed ? 'justify-center' : ''
       }`}
       style={{ color: 'var(--muted-foreground)' }}
@@ -709,6 +710,9 @@ export function SideNav() {
    */
   const [treeMarked, setTreeMarked] = useState(false)
   const handleTreeMarked = useCallback((marked: boolean) => setTreeMarked(marked), [])
+  /** PAN-121 — the catalogue zone's fade edges, so a short window that has to
+   *  scroll says so. The Carousel's measurement, on the other axis. */
+  const catalogueScroll = useScrollEdges<HTMLDivElement>('y')
 
   // Same mechanism BottomNav already uses to decide what an anonymous visitor
   // sees. `null` means "still resolving", so the control stays absent until a
@@ -852,7 +856,7 @@ export function SideNav() {
         {/* Logo — also the way home (PAN-67) */}
         <Link
           href="/"
-          className={`block border-b border-border ${collapsed ? 'px-4 py-6' : 'px-6 py-6'}`}
+          className={`block border-b border-border ${collapsed ? 'px-4 py-4' : 'px-6 py-4'}`}
           aria-label={collapsed ? 'Klup.dk' : undefined}
         >
           <div className="flex items-center gap-3 text-primary">
@@ -912,113 +916,122 @@ export function SideNav() {
               role="group"
               aria-labelledby={collapsed ? undefined : `sidenav-zone-${section.zone}`}
               aria-label={collapsed ? section.title : undefined}
-              className={`flex flex-col gap-1 px-3 ${
+              /* The catalogue scrolls inside at a short window, and fades at
+                 the edge it can scroll towards (`.scroll-fade-y`, the
+                 Carousel's mask on the other axis) so that it visibly can.
+                 The content sits in an inner box because that box's height,
+                 not the scroller's, is what changes when the tree answers. */
+              ref={section.zone === 'catalogue' ? catalogueScroll.ref : undefined}
+              data-fade={section.zone === 'catalogue' ? scrollFade(catalogueScroll.edges) : undefined}
+              className={
                 section.zone === 'yours'
-                  ? 'shrink-0 py-3 border-t border-border'
-                  : 'flex-1 min-h-0 py-4 overflow-y-auto' /* the tree scrolls inside; this is the short-window fallback */
-              }`}
+                  ? 'shrink-0 border-t border-border'
+                  : 'scroll-fade-y flex-1 min-h-0 overflow-y-auto'
+              }
               style={section.zone === 'yours' ? { backgroundColor: 'var(--zone-yours)' } : undefined}
             >
-              {/* SideNavSection's title and optional subtitle. Hidden when
-                  collapsed — a 72px rail has no room for a heading, and the
-                  items keep their own accessible names there, so nothing is
-                  lost but the grouping label. */}
-              {!collapsed && (
-                <div className="px-3 pb-1">
-                  <p
-                    id={`sidenav-zone-${section.zone}`}
-                    className="text-[11px] font-semibold uppercase tracking-wide"
-                    style={{ color: 'var(--muted-foreground)' }}
-                  >
-                    {section.title}
-                  </p>
-                  {section.subtitle && (
-                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
-                      {section.subtitle}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {section.items.map(({ href, label, icon }) => {
-                /**
-                 * PAN-125 — the section carries the mark when the tree cannot.
-                 *
-                 * Measured on production: in the collapsed default, nothing in
-                 * the sidebar was marked on `/browse/<root>`, on `?sub=` or on
-                 * `/product/<slug>`. The tree holds the precise mark for those
-                 * routes and the tree does not render at 72px, so the state
-                 * every first-time visitor starts in said nothing at all —
-                 * which is the owner's "you are here" quietly not firing.
-                 *
-                 * Katalog now marks the section whenever the visitor is inside
-                 * the catalogue and the tree is not marking something more
-                 * specific. Exactly one node still claims to be current: this
-                 * defers to the tree, and the tree defers to nobody.
-                 */
-                const isActive =
-                  pathname === href ||
-                  (href === '/browse' && isCataloguePath(pathname) && !treeMarked)
-                const itemStyle = {
-                  // `--text-secondary` at rest, not muted: a top-level item
-                  // must not read lighter than the catalogue roots beneath it
-                  // (PAN-121's grayscale ladder).
-                  color: isActive ? 'var(--here)' : 'var(--text-secondary)',
-                  backgroundColor: isActive ? 'var(--here-subtle)' : 'transparent',
-                }
-                /* `font-semibold` when selected: the icon swaps outline for
-                   fill and the label gains weight, so the current item stays
-                   legible with colour ignored entirely. */
-                const itemClass = `flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-colors w-full text-left ${
-                  isActive ? 'font-semibold' : 'font-medium'
-                } ${collapsed ? 'justify-center' : ''}`
-
-                return (
-                  <Fragment key={href}>
-                    {/* PAN-121 — the top-level section, announced as well as
-                        painted. `isActive` has styled this item since PAN-73;
-                        `aria-current` is what makes the same fact reach a
-                        screen reader, and `SideNav` carried none before it.
-
-                        PAN-120 — COLLAPSED MUST NOT MEAN NAMELESS. The visible
-                        label goes away at 72px, so `aria-label` carries the
-                        same string and `title` gives a pointer visitor the
-                        tooltip. Every nav target keeps an accessible name in
-                        both states. */}
-                    <Link
-                      href={href}
-                      aria-current={isActive ? 'page' : undefined}
-                      aria-label={collapsed ? label : undefined}
-                      title={collapsed ? label : undefined}
-                      className={itemClass}
-                      style={itemStyle}
+              <div className={`flex flex-col gap-1 px-3 ${section.zone === 'yours' ? 'py-2' : 'py-4'}`}>
+                {/* SideNavSection's title and optional subtitle. Hidden when
+                    collapsed — a 72px rail has no room for a heading, and the
+                    items keep their own accessible names there, so nothing is
+                    lost but the grouping label. */}
+                {!collapsed && (
+                  <div className="px-3 pb-1">
+                    <p
+                      id={`sidenav-zone-${section.zone}`}
+                      className="text-[11px] font-semibold uppercase tracking-wide"
+                      style={{ color: 'var(--muted-foreground)' }}
                     >
-                      {icon(isActive)}
-                      {!collapsed && <span>{label}</span>}
-                    </Link>
-                    {/* The catalogue hangs off the Katalog item rather than
-                        under a heading of its own: the item already says
-                        "Katalog" and already goes to /browse, so a second
-                        label would name the same thing twice.
-
-                        Absent when collapsed: it is a tree of Danish product
-                        names and there is nowhere to put them at 72px. */}
-                    {/* `CatalogueTree` reads `?sub=` to mark the current leaf,
-                        and `useSearchParams` opts a statically-rendered route
-                        into client rendering unless it sits behind a boundary.
-                        Since PAN-131 the sidebar mounts once, in
-                        `app/(shell)/layout.tsx`, which is an ancestor of all
-                        nine of those routes — so the boundary has to live here
-                        rather than leak the opt-in upwards into the layout and
-                        out across every page under it. */}
-                    {href === '/browse' && !collapsed && (
-                      <Suspense fallback={<CatalogueTreeSkeleton />}>
-                        <CatalogueTree onMarkedChange={handleTreeMarked} />
-                      </Suspense>
+                      {section.title}
+                    </p>
+                    {section.subtitle && (
+                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+                        {section.subtitle}
+                      </p>
                     )}
-                  </Fragment>
-                )
-              })}
+                  </div>
+                )}
+
+                {section.items.map(({ href, label, icon }) => {
+                  /**
+                   * PAN-125 — the section carries the mark when the tree cannot.
+                   *
+                   * Measured on production: in the collapsed default, nothing in
+                   * the sidebar was marked on `/browse/<root>`, on `?sub=` or on
+                   * `/product/<slug>`. The tree holds the precise mark for those
+                   * routes and the tree does not render at 72px, so the state
+                   * every first-time visitor starts in said nothing at all —
+                   * which is the owner's "you are here" quietly not firing.
+                   *
+                   * Katalog now marks the section whenever the visitor is inside
+                   * the catalogue and the tree is not marking something more
+                   * specific. Exactly one node still claims to be current: this
+                   * defers to the tree, and the tree defers to nobody.
+                   */
+                  const isActive =
+                    pathname === href ||
+                    (href === '/browse' && isCataloguePath(pathname) && !treeMarked)
+                  const itemStyle = {
+                    // `--text-secondary` at rest, not muted: a top-level item
+                    // must not read lighter than the catalogue roots beneath it
+                    // (PAN-121's grayscale ladder).
+                    color: isActive ? 'var(--here)' : 'var(--text-secondary)',
+                    backgroundColor: isActive ? 'var(--here-subtle)' : 'transparent',
+                  }
+                  /* `font-semibold` when selected: the icon swaps outline for
+                     fill and the label gains weight, so the current item stays
+                     legible with colour ignored entirely. */
+                  const itemClass = `flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors w-full text-left ${
+                    isActive ? 'font-semibold' : 'font-medium'
+                  } ${collapsed ? 'justify-center' : ''}`
+
+                  return (
+                    <Fragment key={href}>
+                      {/* PAN-121 — the top-level section, announced as well as
+                          painted. `isActive` has styled this item since PAN-73;
+                          `aria-current` is what makes the same fact reach a
+                          screen reader, and `SideNav` carried none before it.
+
+                          PAN-120 — COLLAPSED MUST NOT MEAN NAMELESS. The visible
+                          label goes away at 72px, so `aria-label` carries the
+                          same string and `title` gives a pointer visitor the
+                          tooltip. Every nav target keeps an accessible name in
+                          both states. */}
+                      <Link
+                        href={href}
+                        aria-current={isActive ? 'page' : undefined}
+                        aria-label={collapsed ? label : undefined}
+                        title={collapsed ? label : undefined}
+                        className={itemClass}
+                        style={itemStyle}
+                      >
+                        {icon(isActive)}
+                        {!collapsed && <span>{label}</span>}
+                      </Link>
+                      {/* The catalogue hangs off the Katalog item rather than
+                          under a heading of its own: the item already says
+                          "Katalog" and already goes to /browse, so a second
+                          label would name the same thing twice.
+
+                          Absent when collapsed: it is a tree of Danish product
+                          names and there is nowhere to put them at 72px. */}
+                      {/* `CatalogueTree` reads `?sub=` to mark the current leaf,
+                          and `useSearchParams` opts a statically-rendered route
+                          into client rendering unless it sits behind a boundary.
+                          Since PAN-131 the sidebar mounts once, in
+                          `app/(shell)/layout.tsx`, which is an ancestor of all
+                          nine of those routes — so the boundary has to live here
+                          rather than leak the opt-in upwards into the layout and
+                          out across every page under it. */}
+                      {href === '/browse' && !collapsed && (
+                        <Suspense fallback={<CatalogueTreeSkeleton />}>
+                          <CatalogueTree onMarkedChange={handleTreeMarked} />
+                        </Suspense>
+                      )}
+                    </Fragment>
+                  )
+                })}
+              </div>
             </div>
           ))}
         </nav>
@@ -1027,35 +1040,40 @@ export function SideNav() {
             recessed surface as the visitor's zone above it, so the lower
             third of the sidebar reads as one place: yours. */}
         <div
-          className="px-3 pb-6 pt-2 border-t border-border flex flex-col gap-1"
+          className="px-3 pb-4 pt-2 border-t border-border flex flex-col gap-1"
           style={{ backgroundColor: 'var(--zone-yours)' }}
         >
-          {/* Theme toggle */}
-          <ThemeToggle collapsed={collapsed} />
+          {/* Theme and locale share one row when expanded (PAN-121): both are
+              display preferences, and a row of their own cost the catalogue
+              44px it needed at 1440×900. Stacked on the 72px rail, where two
+              controls side by side do not fit. */}
+          <div className={`flex gap-1 ${collapsed ? 'flex-col' : 'items-center'}`}>
+            <ThemeToggle collapsed={collapsed} />
 
-          {/* Locale toggle. Two-letter codes, so they fit the collapsed rail
-              without abbreviation; only the row centres. */}
-          <div className={`flex gap-1 px-3 py-2 ${collapsed ? 'justify-center' : ''}`}>
-            {(['da', 'en'] as Locale[]).map((l) => (
-              <button
-                key={l}
-                onClick={() => setLocale(l)}
-                className="text-xs font-medium px-2.5 py-1.5 rounded-md transition-colors"
-                style={{
-                  color: locale === l ? 'var(--foreground)' : 'var(--muted-foreground)',
-                  backgroundColor: locale === l ? 'var(--secondary)' : 'transparent',
-                }}
-              >
-                {l.toUpperCase()}
-              </button>
-            ))}
+            {/* Locale toggle. Two-letter codes, so they fit the collapsed rail
+                without abbreviation; only the row centres. */}
+            <div className={`flex gap-1 ${collapsed ? 'justify-center px-3 py-2' : 'shrink-0 pr-2'}`}>
+              {(['da', 'en'] as Locale[]).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLocale(l)}
+                  className="text-xs font-medium px-2.5 py-1.5 rounded-md transition-colors"
+                  style={{
+                    color: locale === l ? 'var(--foreground)' : 'var(--muted-foreground)',
+                    backgroundColor: locale === l ? 'var(--secondary)' : 'transparent',
+                  }}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Logout — only for a visitor who actually has a session to end. */}
           {authed && (
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium w-full text-left transition-colors hover:bg-secondary"
+              className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium w-full text-left transition-colors hover:bg-secondary"
               style={{ color: 'var(--muted-foreground)' }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

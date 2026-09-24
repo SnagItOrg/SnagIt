@@ -1,7 +1,8 @@
 'use client'
 
-import { Children, useCallback, useEffect, useRef, useState } from 'react'
+import { Children } from 'react'
 import { useLocale } from '@/components/LocaleProvider'
+import { scrollFade, useScrollEdges } from '@/components/use-scroll-edges'
 import { fill } from '@/lib/i18n'
 import { Icon } from '@/components/Icon'
 
@@ -59,11 +60,6 @@ import { Icon } from '@/components/Icon'
  */
 const ITEM_WIDTH = 'w-[clamp(9.5rem,38vw,12rem)]'
 
-/** Astryx's own tolerance. A sub-pixel scroll offset is not an overflow. */
-const TOLERANCE = 1
-
-type Edges = { start: boolean; end: boolean }
-
 export function Carousel({
   ariaLabel,
   children,
@@ -72,39 +68,9 @@ export function Carousel({
   children: React.ReactNode
 }) {
   const { t } = useLocale()
-  const railRef = useRef<HTMLDivElement>(null)
-  const [edges, setEdges] = useState<Edges>({ start: false, end: false })
-
-  /**
-   * `Math.abs` on scrollLeft is not decoration: in a right-to-left writing
-   * mode it counts down from zero, and the absolute value is the same logical
-   * distance from the start in both directions.
-   *
-   * Returning `prev` unchanged when nothing crossed a threshold matters more
-   * than it looks — this runs on every scroll event, and a setState per frame
-   * would re-render the whole shelf while the user is dragging it.
-   */
-  const measure = useCallback(() => {
-    const el = railRef.current
-    if (!el) return
-    const max = el.scrollWidth - el.clientWidth
-    const start = Math.abs(el.scrollLeft) > TOLERANCE
-    const end = Math.abs(el.scrollLeft) < max - TOLERANCE
-    setEdges((prev) => (prev.start === start && prev.end === end ? prev : { start, end }))
-  }, [])
-
-  useEffect(() => {
-    const el = railRef.current
-    if (!el) return
-    measure()
-    el.addEventListener('scroll', measure, { passive: true })
-    const observer = new ResizeObserver(measure)
-    observer.observe(el)
-    return () => {
-      el.removeEventListener('scroll', measure)
-      observer.disconnect()
-    }
-  }, [measure])
+  // The edge measurement (tolerance, RTL, no setState per frame) lives in
+  // `useScrollEdges`, shared with the sidebar catalogue since PAN-121.
+  const { ref: railRef, edges } = useScrollEdges<HTMLDivElement>('x')
 
   /**
    * A page, less half a card, floored at one card.
@@ -134,7 +100,7 @@ export function Carousel({
    * what actually rendered rather than the number of child slots written.
    */
   const slides = Children.toArray(children)
-  const fade = edges.start && edges.end ? 'both' : edges.start ? 'start' : edges.end ? 'end' : 'none'
+  const fade = scrollFade(edges)
 
   return (
     // aria-roledescription is SPOKEN, so it is copy and obeys the same rule as
