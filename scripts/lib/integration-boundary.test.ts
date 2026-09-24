@@ -115,6 +115,9 @@ test('integration: every package suite is registered exactly once', () => {
       // the sidenav "you are here" and the resize separator both existed only
       // in the expanded state, and collapsed is the default.
       'scripts/lib/pan125-sidenav-current.test.ts',
+      // PAN-135: set-hero-images.ts keeps a curated hero unless --force, and
+      // writes nothing without --apply.
+      'scripts/lib/pan135-hero-guard.test.ts',
       // PAN-136: a new brand that differs from one we hold only by case,
       // whitespace or separator is refused and shown, never created.
       'scripts/lib/pan136-brand-near-match.test.ts',

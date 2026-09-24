@@ -1,16 +1,23 @@
 /**
  * scripts/set-hero-images.ts
  *
- * One-shot: writes hero_image_url to specific kg_product rows from
+ * Writes hero_image_url to specific kg_product rows from
  * editorially-chosen Unsplash photos. CDN URLs are clean (no watermark
  * overlay params) at 1200px wide.
  *
- * Run: npx tsx scripts/set-hero-images.ts
+ * PAN-135: a row that already has a hero image is never overwritten unless
+ * --force is passed, and nothing is written unless --apply is passed. The
+ * decision lives in scripts/lib/hero-image-guard.ts.
+ *
+ * Run: npx tsx scripts/set-hero-images.ts                   (dry run, the default)
+ *      npx tsx scripts/set-hero-images.ts --apply           (fill empty rows only)
+ *      npx tsx scripts/set-hero-images.ts --apply --force   (also overwrite)
  */
 
 import * as path from 'path'
 import * as fs from 'fs'
 import { createClient } from '@supabase/supabase-js'
+import { parseHeroFlags, setHeroImages } from './lib/hero-image-guard'
 
 for (const p of [
   path.resolve(__dirname, '../frontend/.env.local'),
@@ -50,33 +57,27 @@ const UPDATES: Record<string, string> = {
 }
 
 async function main() {
-  // First: check which slugs actually exist
-  const { data: rows } = await supabase
+  const flags = parseHeroFlags(process.argv.slice(2))
+
+  const { data: rows, error } = await supabase
     .from('kg_product')
-    .select('slug, canonical_name, hero_image_url')
+    .select('slug, hero_image_url')
     .in('slug', Object.keys(UPDATES))
+  if (error) throw new Error(error.message)
 
-  const found = new Set((rows ?? []).map(r => r.slug))
-  const missing = Object.keys(UPDATES).filter(s => !found.has(s))
-  if (missing.length) {
-    console.warn(`⚠  Slugs not found in kg_product: ${missing.join(', ')}`)
-  }
-
-  for (const row of rows ?? []) {
-    const newUrl = UPDATES[row.slug]
-    const { error } = await supabase
-      .from('kg_product')
-      .update({ hero_image_url: newUrl })
-      .eq('slug', row.slug)
-
-    if (error) {
-      console.error(`✗ ${row.slug}: ${error.message}`)
-    } else {
-      const prev = row.hero_image_url ? '(was set)' : '(was null)'
-      console.log(`✓ ${row.slug.padEnd(22)} ${prev}`)
-      console.log(`  → ${newUrl}`)
-    }
-  }
+  const lines = await setHeroImages(
+    (rows ?? []).map(r => ({ slug: r.slug, current: r.hero_image_url })),
+    UPDATES,
+    flags,
+    async (slug, before, after) => {
+      // Compare-and-set: only overwrite the value that was read and reported.
+      const q = supabase.from('kg_product').update({ hero_image_url: after }).eq('slug', slug)
+      const { data, error } = await (before === null ? q.is('hero_image_url', null) : q.eq('hero_image_url', before)).select('slug')
+      if (error) throw new Error(`${slug}: ${error.message}`)
+      return (data ?? []).length > 0
+    },
+  )
+  for (const line of lines) console.log(line)
 }
 
 main().catch(err => { console.error(err); process.exit(1) })
