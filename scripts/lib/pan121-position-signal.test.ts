@@ -16,7 +16,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { buildPositionSignal } from '../../frontend/lib/position-signal'
@@ -170,11 +170,13 @@ test('the signal is never green, and never signals state with opacity', () => {
   }
 
   // PAN-113 measured an opacity-60 state treatment at 2.61:1 and failed it.
-  // Active state here is weight, fill and border, all full-strength tokens.
+  // Active state here is weight, fill and border — since the owner's
+  // 2026-09-24 comment, all three in `--here`, the one "you are here" colour.
   assert.equal(/opacity-\d/.test(COMPONENT_CODE), false, 'state must not be carried by opacity')
-  assert.match(COMPONENT_CODE, /background: 'var\(--secondary\)'/)
-  assert.match(COMPONENT_CODE, /border: '1px solid var\(--border\)'/)
-  assert.match(COMPONENT_CODE, /font-medium/)
+  assert.match(COMPONENT_CODE, /background: 'var\(--here-subtle\)'/)
+  assert.match(COMPONENT_CODE, /border: '1px solid var\(--here-border\)'/)
+  assert.match(COMPONENT_CODE, /color: 'var\(--here\)'/)
+  assert.match(COMPONENT_CODE, /font-semibold/)
 
   // Motion comes from the existing tokens, never a new literal.
   assert.match(COMPONENT_CODE, /var\(--duration-fast\)/)
@@ -337,7 +339,7 @@ test('the sidebar indicator is weight, fill and a rail — never green', () => {
   // non-colour signals have to be present.
   assert.match(SIDENAV_CODE, /border-l-2/)
   assert.match(SIDENAV_CODE, /font-(semibold|bold)/)
-  assert.match(SIDENAV_CODE, /backgroundColor: isCurrent(Branch|Sub) \? 'var\(--secondary\)'/)
+  assert.match(SIDENAV_CODE, /backgroundColor: isCurrent(Branch|Sub) \? 'var\(--here-subtle\)'/)
 
   for (const token of ['--accent', '#13ec6d', '#16d96b']) {
     assert.equal(
@@ -354,4 +356,49 @@ test('the facet in the URL keeps the filtered view linkable and reversible', () 
   // is not arriving at a new page.
   assert.match(ROUTES.browseRoot, /router\.replace\(/)
   assert.match(ROUTES.browseRoot, /scroll: false/)
+})
+
+/**
+ * `--here` is exhaustive, like green — so the list is asserted, not trusted.
+ *
+ * The owner asked for ONE "you are here" colour, "used consistently and
+ * mindfully". A colour that marks location stops meaning location the first
+ * time it lands on a button, which is exactly how a helpful next agent would
+ * spread it. This fails the moment any file outside the list in
+ * frontend/CLAUDE.md reads the token, and when a listed file stops using it
+ * altogether (so the list cannot rot into a superset).
+ */
+test('the "you are here" colour appears only at its permitted sites', () => {
+  const PERMITTED = [
+    'app/globals.css',
+    'components/SideNav.tsx',
+    'components/Breadcrumb.tsx',
+    'components/PositionSignal.tsx',
+    'components/BottomNav.tsx',
+    'app/(shell)/browse/[root]/page.tsx',
+  ]
+  const frontend = join(ROOT, 'frontend')
+  const users: string[] = []
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      if (name === 'node_modules' || name.startsWith('.')) continue
+      const full = join(dir, name)
+      if (statSync(full).isDirectory()) walk(full)
+      else if (/\.(tsx?|css)$/.test(name) && /--here\b/.test(stripComments(readFileSync(full, 'utf8')))) {
+        users.push(full.slice(frontend.length + 1))
+      }
+    }
+  }
+  for (const top of ['app', 'components', 'lib']) walk(join(frontend, top))
+
+  assert.deepEqual(users.sort(), [...PERMITTED].sort())
+
+  // Never beside green: a location mark is not a Klup judgement.
+  for (const file of PERMITTED.filter((f) => f.endsWith('.tsx'))) {
+    for (const line of stripComments(read(...file.split('/'))).split('\n')) {
+      if (line.includes('--here')) {
+        assert.equal(/--accent|#13ec6d|#16d96b/.test(line), false, `${file}: --here beside green`)
+      }
+    }
+  }
 })

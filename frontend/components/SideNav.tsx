@@ -315,12 +315,12 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                  not — the text needs 184px and gets 173px at 240, so it has
                  been ellipsing all along. `SIDEBAR_MIN_WIDTH` is now the
                  measured floor, and these paddings are why it is not larger. */
-              /* PAN-121 — the current branch, marked without colour.
-                 A rail, a fill and a weight step. The sparse-accent rule is
-                 exhaustive, so green is not available to a nav item; and
-                 PAN-113 measured an opacity-based state treatment at 2.61:1,
-                 so transparency is not available either. All three signals
-                 here are full-strength semantic tokens. */
+              /* PAN-121 — the current branch: a rail, a fill and a weight
+                 step, all in `--here`, the one "you are here" colour (see
+                 frontend/CLAUDE.md for where else it may appear). Not green —
+                 the sparse-accent rule is exhaustive — and not opacity:
+                 PAN-113 measured an opacity state at 2.61:1. The weight step
+                 is what survives grayscale. */
               aria-current={isCurrentBranch ? 'page' : undefined}
               className={`flex items-center gap-1.5 pr-2 py-2 rounded-xl text-[13px] cursor-pointer list-none [&::-webkit-details-marker]:hidden transition-colors hover:bg-secondary ${
                 isCurrentBranch
@@ -328,9 +328,9 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                   : 'pl-3 font-medium'
               }`}
               style={{
-                color: isCurrentBranch ? 'var(--foreground)' : 'var(--muted-foreground)',
-                backgroundColor: isCurrentBranch ? 'var(--secondary)' : 'transparent',
-                borderLeftColor: isCurrentBranch ? 'var(--foreground)' : 'transparent',
+                color: isCurrentBranch ? 'var(--here)' : 'var(--muted-foreground)',
+                backgroundColor: isCurrentBranch ? 'var(--here-subtle)' : 'transparent',
+                borderLeftColor: isCurrentBranch ? 'var(--here)' : 'transparent',
               }}
             >
               <Icon
@@ -372,9 +372,9 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                         isCurrentSub ? 'pl-9 border-l-2 font-bold' : 'pl-10 font-semibold'
                       }`}
                       style={{
-                        color: isCurrentSub ? 'var(--foreground)' : 'var(--muted-foreground)',
-                        backgroundColor: isCurrentSub ? 'var(--secondary)' : 'transparent',
-                        borderLeftColor: isCurrentSub ? 'var(--foreground)' : 'transparent',
+                        color: isCurrentSub ? 'var(--here)' : 'var(--muted-foreground)',
+                        backgroundColor: isCurrentSub ? 'var(--here-subtle)' : 'transparent',
+                        borderLeftColor: isCurrentSub ? 'var(--here)' : 'transparent',
                       }}
                       title={subLabel}
                     >
@@ -398,9 +398,9 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                                 isHere ? 'pl-9 border-l-2 font-semibold' : 'pl-10'
                               }`}
                               style={{
-                                color: isHere ? 'var(--foreground)' : 'var(--muted-foreground)',
-                                backgroundColor: isHere ? 'var(--secondary)' : 'transparent',
-                                borderLeftColor: isHere ? 'var(--foreground)' : 'transparent',
+                                color: isHere ? 'var(--here)' : 'var(--muted-foreground)',
+                                backgroundColor: isHere ? 'var(--here-subtle)' : 'transparent',
+                                borderLeftColor: isHere ? 'var(--here)' : 'transparent',
                               }}
                               title={product.label}
                             >
@@ -799,8 +799,9 @@ export function SideNav() {
    * links, so the wordmark stays a link and there is no menu.
    *
    * `icon` is a function of the selected state, which is Astryx's
-   * `icon`/`selectedIcon` pair. The current item is marked by WEIGHT, never by
-   * colour — green is exhaustive and navigation is not on the list.
+   * `icon`/`selectedIcon` pair. The current item is marked by weight and icon
+   * fill first, and by `--here` on top — never by green, which is exhaustive
+   * and does not list navigation.
    */
   const navSections: {
     title: string
@@ -985,8 +986,8 @@ export function SideNav() {
                   pathname === href ||
                   (href === '/browse' && isCataloguePath(pathname) && !treeMarked)
                 const itemStyle = {
-                  color: isActive ? 'var(--foreground)' : 'var(--muted-foreground)',
-                  backgroundColor: isActive ? 'var(--secondary)' : 'transparent',
+                  color: isActive ? 'var(--here)' : 'var(--muted-foreground)',
+                  backgroundColor: isActive ? 'var(--here-subtle)' : 'transparent',
                 }
                 /* `font-semibold` when selected: the icon swaps outline for
                    fill and the label gains weight, so the current item stays

@@ -19,9 +19,9 @@ import { Icon } from '@/components/Icon'
  *
  * Green is exhaustive — Kup-rating, the "Aktiv" badge and `under typisk`. An
  * active filter is the visitor's own narrowing, not a Klup judgement about a
- * price, so it may not borrow the accent. The active state is carried by
- * weight, fill and border instead: a filled `--secondary` well, a real border
- * and medium weight against the unfilled surface around it.
+ * price, so it may not borrow the accent. It is where the visitor IS, so it
+ * takes `--here` (PAN-121): a tinted fill, a real border and semibold weight —
+ * the same colour the sidebar and the breadcrumb use for the same fact.
  *
  * It is also not carried by transparency. PAN-113's worker measured an
  * `opacity-60` treatment at 2.61:1 — below AA — and replaced it with an
@@ -98,11 +98,11 @@ export function PositionSignal({
           return (
             <span
               key={filter.id}
-              className="inline-flex items-center gap-1 rounded-full pl-3 pr-1 py-1 text-sm font-medium"
+              className="inline-flex items-center gap-1 rounded-full pl-3 pr-1 py-1 text-sm font-semibold"
               style={{
-                background: 'var(--secondary)',
-                border: '1px solid var(--border)',
-                color: 'var(--foreground)',
+                background: 'var(--here-subtle)',
+                border: '1px solid var(--here-border)',
+                color: 'var(--here)',
               }}
             >
               {filter.label}

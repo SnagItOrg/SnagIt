@@ -35,7 +35,7 @@ export function BreadcrumbItem({
 }) {
   if (href === undefined) {
     return (
-      <li aria-current="page" className="wrap-anywhere text-foreground">
+      <li aria-current="page" className="wrap-anywhere font-medium" style={{ color: 'var(--here)' }}>
         {children}
       </li>
     )
@@ -62,9 +62,10 @@ export function BreadcrumbItem({
  * items here means `aria-hidden` cannot be forgotten, because there is no
  * longer anywhere to forget it.
  *
- * Green is exhaustive and a breadcrumb is not one of the three permitted uses,
- * so the only hierarchy signals are colour weight (muted ancestors against a
- * `text-foreground` current page) and an underline on the links.
+ * Green is exhaustive and a breadcrumb is not one of the three permitted uses.
+ * The current page takes `--here`, the one "you are here" colour (PAN-121),
+ * plus a weight step so it survives grayscale; the ancestors stay muted and
+ * underlined, which is what marks them as links.
  */
 export function Breadcrumb({
   children,

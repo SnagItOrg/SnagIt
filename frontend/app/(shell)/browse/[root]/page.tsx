@@ -240,16 +240,22 @@ function BrowseCategoryPageInner() {
           />
         )}
 
-        {/* Subcategory filter chips */}
+        {/* Subcategory filter chips. The one in force is where the visitor IS,
+            so it takes `--here` (PAN-121) — the same colour the sidebar row
+            and the PositionSignal chip use for the same `?sub=`. It used to be
+            an inverted solid fill, the loudest thing on the page for the
+            quietest fact on it. */}
         {!loading && (data?.subcategories ?? []).length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none">
             <button
               onClick={() => setActiveSubcat(null)}
-              className="shrink-0 text-sm font-medium px-3.5 py-1.5 rounded-full transition-colors"
+              className={`shrink-0 text-sm px-3.5 py-1.5 rounded-full transition-colors ${
+                activeSubcat === null ? 'font-semibold' : 'font-medium'
+              }`}
               style={{
-                background: activeSubcat === null ? 'var(--foreground)' : 'var(--card)',
-                color: activeSubcat === null ? 'var(--background)' : 'var(--foreground)',
-                border: '1px solid var(--border)',
+                background: activeSubcat === null ? 'var(--here-subtle)' : 'var(--card)',
+                color: activeSubcat === null ? 'var(--here)' : 'var(--foreground)',
+                border: `1px solid ${activeSubcat === null ? 'var(--here-border)' : 'var(--border)'}`,
               }}
             >
               Alle
@@ -258,11 +264,13 @@ function BrowseCategoryPageInner() {
               <button
                 key={s.id}
                 onClick={() => setActiveSubcat(activeSubcat === s.slug ? null : s.slug)}
-                className="shrink-0 text-sm font-medium px-3.5 py-1.5 rounded-full transition-colors"
+                className={`shrink-0 text-sm px-3.5 py-1.5 rounded-full transition-colors ${
+                  activeSubcat === s.slug ? 'font-semibold' : 'font-medium'
+                }`}
                 style={{
-                  background: activeSubcat === s.slug ? 'var(--foreground)' : 'var(--card)',
-                  color: activeSubcat === s.slug ? 'var(--background)' : 'var(--foreground)',
-                  border: '1px solid var(--border)',
+                  background: activeSubcat === s.slug ? 'var(--here-subtle)' : 'var(--card)',
+                  color: activeSubcat === s.slug ? 'var(--here)' : 'var(--foreground)',
+                  border: `1px solid ${activeSubcat === s.slug ? 'var(--here-border)' : 'var(--border)'}`,
                 }}
               >
                 {locale === 'da' ? s.name_da : s.name_en}
