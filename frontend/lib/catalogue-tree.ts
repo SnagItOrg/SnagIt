@@ -124,11 +124,25 @@ export const FACET_SUBCATEGORIES: ReadonlySet<string> = new Set([
  *
  * A group slug must not equal a real leaf slug under the same root, or `?sub=`
  * could not tell them apart. `synthesizers` is not a Reverb leaf.
+ *
+ * `synthesizers` holds every Reverb leaf that is a whole synthesizer, whatever
+ * its form factor: desktop, keyboard, rack, or a complete modular system. A
+ * form factor is not a kind a visitor navigates by, the same reasoning that
+ * merged analog and digital. Left out on purpose: `eurorack` and
+ * `synth-modules` (single modules, most of which make no sound alone),
+ * modular cases and accessories, MIDI controllers, vocoders, workstations.
  */
 export const SUBCATEGORY_GROUPS = {
   synthesizers: {
     labelKey: 'subcategoryGroupSynthesizers',
-    leaves: ['keyboards-and-synths/analog-synths', 'keyboards-and-synths/digital-synths'],
+    leaves: [
+      'keyboards-and-synths/analog-synths',
+      'keyboards-and-synths/digital-synths',
+      'keyboards-and-synths/desktop-synths',
+      'keyboards-and-synths/keyboard-synths',
+      'keyboards-and-synths/rackmount-synths',
+      'keyboards-and-synths/complete-modular-synth-systems',
+    ],
   },
 } as const
 

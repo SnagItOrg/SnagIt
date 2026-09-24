@@ -742,9 +742,9 @@ async function handle(req: NextRequest, slug: string) {
    * lookup. No new query, and no second reading of monitoring.
    */
   /**
-   * PAN-121 — where the product stands in the catalogue, for the breadcrumb a
-   * product OUTSIDE a family renders (a family member keeps PAN-56's family
-   * breadcrumb; the page chooses).
+   * PAN-121 — where the product stands in the catalogue, for the breadcrumb's
+   * catalogue crumbs. PAN-138: a family member gets them too, ahead of its
+   * family crumb.
    *
    * From the product's OWN subcategory on the projection row read above, never
    * through `family`: PAN-52 §6 — taxonomy is not ancestry. `placeInCatalogue`

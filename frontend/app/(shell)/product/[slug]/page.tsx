@@ -118,10 +118,10 @@ export default function ProductPage() {
   const [relatedProducts, setRelatedProducts] = useState<RelatedProduct[]>([])
 
   /** Null for a product with no family — six of the seven families, and every
-   *  product outside one. The UI renders nothing at all in that case. */
+   *  product outside one. The breadcrumb then has no family crumb. */
   const [familyContext, setFamilyContext] = useState<FamilyContext | null>(null)
-  /** The product's own category and kind (PAN-121), for the breadcrumb a
-   *  product outside a family renders. Null when it cannot be placed. */
+  /** The product's own category and kind (PAN-121), for the breadcrumb's
+   *  catalogue crumbs. Null when it cannot be placed. */
   const [catalogueContext, setCatalogueContext] = useState<ProductPlacement | null>(null)
 
   const [showModal,  setShowModal]  = useState(false)
@@ -319,44 +319,38 @@ export default function ProductPage() {
               <div className="shell-reading flex flex-col">
 
                 {/*
-                  ── Family breadcrumb (PAN-56) ──────────────────
-                  TWO LEVELS, because two is the whole ratified hierarchy:
-                  PAN-52 D5(a) admitted no intermediate, and §6 states that
-                  category/subcategory is browse taxonomy and NOT family
-                  ancestry — so a third crumb would be an invented level.
-                  The current product is the last crumb and is not a link, so
-                  which page you are on is unmistakable even though its
-                  siblings are one click away.
-                */}
-                {familyContext && (
-                  <Breadcrumb className="mb-4">
-                    <BreadcrumbItem href={`/family/${familyContext.slug}`}>
-                      {familyContext.label}
-                    </BreadcrumbItem>
-                    <BreadcrumbItem>{product.canonical_name}</BreadcrumbItem>
-                  </Breadcrumb>
-                )}
-
-                {/*
-                  ── Catalogue breadcrumb (PAN-121) ──────────────
-                  For a product OUTSIDE a family, which otherwise had nothing
-                  naming it in the navigation. Built from the product's own
+                  ── Breadcrumb (PAN-121, PAN-56, PAN-138) ───────
+                  One trail: Alle kategorier / category / kind / family /
+                  product. The catalogue crumbs come from the product's OWN
                   subcategory (`catalogueContext`, the sidebar tree's placement
-                  rule), never through a family — PAN-52 §6. A facet leaf adds
-                  no crumb; a grouped leaf crumbs as its group ("Synthesizere").
-                  A family member keeps the family breadcrumb above.
+                  rule), never from its family: PAN-52 §6, taxonomy is not
+                  ancestry. A facet leaf adds no kind crumb; a grouped leaf
+                  crumbs as its group ("Synthesizere"). The family crumb is
+                  gated on `familyContext`, which the API emits only for a
+                  published family. The product is the last crumb and not a
+                  link. Each crumb is a direct child: `Breadcrumb` places its
+                  separators between children, so a Fragment would lose them.
                 */}
-                {!familyContext && catalogueContext && (
+                {(catalogueContext || familyContext) && (
                   <Breadcrumb className="mb-4">
-                    <BreadcrumbItem href="/browse">{t.browseAllCategories}</BreadcrumbItem>
-                    <BreadcrumbItem href={`/browse/${catalogueContext.category.slug}`}>
-                      {locale === 'da' ? catalogueContext.category.name_da : catalogueContext.category.name_en}
-                    </BreadcrumbItem>
-                    {catalogueContext.kind && (
+                    {catalogueContext && (
+                      <BreadcrumbItem href="/browse">{t.browseAllCategories}</BreadcrumbItem>
+                    )}
+                    {catalogueContext && (
+                      <BreadcrumbItem href={`/browse/${catalogueContext.category.slug}`}>
+                        {locale === 'da' ? catalogueContext.category.name_da : catalogueContext.category.name_en}
+                      </BreadcrumbItem>
+                    )}
+                    {catalogueContext?.kind && (
                       <BreadcrumbItem
                         href={`/browse/${catalogueContext.category.slug}?sub=${encodeURIComponent(catalogueContext.kind.slug)}`}
                       >
                         {locale === 'da' ? catalogueContext.kind.name_da : catalogueContext.kind.name_en}
+                      </BreadcrumbItem>
+                    )}
+                    {familyContext && (
+                      <BreadcrumbItem href={`/family/${familyContext.slug}`}>
+                        {familyContext.label}
                       </BreadcrumbItem>
                     )}
                     <BreadcrumbItem>{product.canonical_name}</BreadcrumbItem>
