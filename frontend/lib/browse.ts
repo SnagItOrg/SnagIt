@@ -21,6 +21,7 @@ import {
 } from '@/lib/catalogue-tree'
 import { translations } from '@/lib/i18n'
 import { categoryImage } from '@/lib/category-images'
+import { facetKeysFor, readFacets, type ProductFacetValues } from '@/lib/product-facets'
 
 export type BrowseProjectionRow = {
   id: string
@@ -167,6 +168,8 @@ export type BrowseLeafResponse = {
     subcategory_name_en: string
     subcategory_slug: string
     active_listing_count: number
+    /** PAN-140 — curated facet VALUES only; provenance never leaves admin. */
+    facets: ProductFacetValues
   }>
   page: number
   page_size: number
@@ -565,7 +568,7 @@ async function fetchAuditBrowseRows(
   })
 }
 
-function shapeLeafProduct(row: BrowseProjectionRow) {
+function shapeLeafProduct(row: BrowseProjectionRow, facets: ProductFacetValues) {
   const bareSlug = row.subcategory_slug?.split('/')[1] ?? row.subcategory_slug ?? ''
   return {
     slug: row.slug,
@@ -577,7 +580,44 @@ function shapeLeafProduct(row: BrowseProjectionRow) {
     subcategory_name_en: row.subcategory_name_en ?? '',
     subcategory_slug: bareSlug,
     active_listing_count: row.active_listing_count,
+    facets,
   }
+}
+
+/**
+ * PAN-140 — facet values for the rows about to be served, keyed by slug.
+ *
+ * The projection has no `attributes`, so this is one slug-keyed read of
+ * `attributes->facets` over the page's rows — and only over rows whose leaf
+ * has facet axes at all, so a root with none (every root but pro-audio today)
+ * costs no query. `readFacets` is the only path from the column to the
+ * payload: it validates against the vocabulary and the row's own leaf and
+ * returns values without `set_by` / `set_at`.
+ */
+async function fetchLeafFacets(
+  admin: SupabaseClient,
+  rows: BrowseProjectionRow[],
+): Promise<Map<string, ProductFacetValues>> {
+  const out = new Map<string, ProductFacetValues>()
+  const faceted = rows.filter((row) => facetKeysFor(row.subcategory_slug).length > 0)
+  if (faceted.length === 0) return out
+
+  const { data, error } = await admin
+    .from('kg_product')
+    .select('slug, facets:attributes->facets')
+    .in('slug', faceted.map((row) => row.slug))
+    .then((r) => r, () => {
+      throw new CatalogueUnavailableError('product_facets_transport')
+    })
+  if (error) throw new CatalogueUnavailableError('product_facets')
+
+  const bySlug = new Map(
+    ((data ?? []) as Array<{ slug: string; facets: unknown }>).map((r) => [r.slug, r.facets]),
+  )
+  for (const row of faceted) {
+    out.set(row.slug, readFacets({ facets: bySlug.get(row.slug) }, row.subcategory_slug))
+  }
+  return out
 }
 
 function buildRootDebugNodes(
@@ -784,6 +824,7 @@ export async function buildBrowseLeafResponse(args: {
   const publicRows = (await fetchPublicBrowseRows(admin, rootCat.id)).sort(compareProducts)
   const start = (page - 1) * pageSize
   const pagedRows = publicRows.slice(start, start + pageSize)
+  const facetsBySlug = await fetchLeafFacets(admin, pagedRows)
 
   const response: BrowseLeafResponse = {
     category: rootCat,
@@ -796,7 +837,7 @@ export async function buildBrowseLeafResponse(args: {
         name_da: sub.name_da,
         name_en: sub.name_en,
       })),
-    products: pagedRows.map(shapeLeafProduct),
+    products: pagedRows.map((row) => shapeLeafProduct(row, facetsBySlug.get(row.slug) ?? {})),
     page,
     page_size: pageSize,
     total_public_products: publicRows.length,

@@ -81,7 +81,9 @@ visitor learns it once. Exactly these uses are permitted:
    Gemt, Alerts, Profil) when it is the location. Text, icon, 2px rail and
    `--here-subtle` fill.
 2. `Breadcrumb` — the current crumb, the one carrying `aria-current="page"`.
-3. `/browse/[root]` — the subcategory facet chip in force (`Alle` when none is).
+3. `/browse/[root]` — the subcategory facet chip in force (`Alle` when none is),
+   and the attribute facet chip(s) in force (PAN-140: Type · Elektronik ·
+   Karakteristik). Both rows are the page-rendered form of use 4.
 4. `PositionSignal` — the active filter chip(s).
 5. `BottomNav` — the active tab's icon and label.
 

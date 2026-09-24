@@ -19,6 +19,15 @@ import {
 import Link from 'next/link'
 import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
+import { Button } from '@/components/Button'
+import { useLocale } from '@/components/LocaleProvider'
+import { fill } from '@/lib/i18n'
+import {
+  PRODUCT_ATTRIBUTE_FACETS,
+  type FacetEntry,
+  type FacetKey,
+  type StoredFacets,
+} from '@/lib/product-facets'
 
 export type ProductHeaderData = {
   id: string
@@ -53,6 +62,13 @@ export type NeighborProduct = {
   canonical_name: string
 }
 
+/** PAN-140. `setters` maps an admin user id to the email shown for it. */
+export type FacetCurationData = {
+  keys: FacetKey[]
+  entries: StoredFacets
+  setters: Record<string, string>
+}
+
 export type CurationData = {
   header: ProductHeaderData
   thomann: ThomannEntry
@@ -60,6 +76,7 @@ export type CurationData = {
   listings: MatchedListing[]
   prev: NeighborProduct | null
   next: NeighborProduct | null
+  facets: FacetCurationData
 }
 
 
@@ -132,6 +149,15 @@ export default function ProductCurationClient({ data }: { data: CurationData }) 
         next={next}
         onSaved={showToast}
       />
+
+      {/* PAN-140 — facets. Only where the product's leaf has axes. */}
+      {data.facets.keys.length > 0 && (
+        <FacetSection
+          slug={header.slug}
+          facets={data.facets}
+          onToast={showToast}
+        />
+      )}
 
       {/* Section 2 — synonyms */}
       <SynonymSection
@@ -424,6 +450,133 @@ function RetailSourceForm({
         </p>
       )}
     </div>
+  )
+}
+
+// ─── PAN-140 — facets ────────────────────────────────────────────────────────
+/**
+ * One toggle per vocabulary value; every click writes that one axis through
+ * `PUT /api/admin/product/[slug]/facets`, the only writer. A single-valued axis
+ * replaces its value, a multi-valued one toggles membership, and clearing the
+ * last value unsets the axis. Selected is neutral (`primary`), never `--here`:
+ * selection is not location.
+ */
+function FacetSection({
+  slug,
+  facets,
+  onToast,
+}: {
+  slug: string
+  facets: FacetCurationData
+  onToast: ReturnType<typeof useToast>['showToast']
+}) {
+  const { t, locale } = useLocale()
+  const [entries, setEntries] = useState<StoredFacets>(facets.entries)
+  const [busyKey, setBusyKey] = useState<FacetKey | null>(null)
+
+  const formatWhen = new Intl.DateTimeFormat(locale === 'da' ? 'da-DK' : 'en-GB', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Europe/Copenhagen',
+  })
+
+  async function save(key: FacetKey, values: string[]) {
+    const axis = t.productFacets[key]
+    setBusyKey(key)
+    try {
+      const res = await fetch(`/api/admin/product/${slug}/facets`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, values }),
+      })
+      const body = (await res.json().catch(() => null)) as { entry?: FacetEntry | null } | null
+      if (!res.ok || !body) {
+        onToast(fill(t.adminFacets.error, { axis }), { type: 'error' })
+        return
+      }
+      setEntries((prev) => {
+        const next = { ...prev }
+        if (body.entry) next[key] = body.entry
+        else delete next[key]
+        return next
+      })
+      onToast(fill(body.entry ? t.adminFacets.saved : t.adminFacets.cleared, { axis }))
+    } catch {
+      onToast(fill(t.adminFacets.error, { axis }), { type: 'error' })
+    } finally {
+      setBusyKey(null)
+    }
+  }
+
+  function toggle(key: FacetKey, value: string) {
+    const current = entries[key]?.values ?? []
+    const next = current.includes(value)
+      ? current.filter((v) => v !== value)
+      : PRODUCT_ATTRIBUTE_FACETS[key].multi
+        ? [...current, value]
+        : [value]
+    void save(key, next)
+  }
+
+  return (
+    <section
+      className="rounded-2xl p-5 flex flex-col gap-5"
+      style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+    >
+      <div className="flex flex-col gap-1">
+        <h2 className="text-base font-bold" style={{ color: 'var(--foreground)' }}>
+          {t.adminFacets.heading}
+        </h2>
+        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+          {t.adminFacets.intro}
+        </p>
+      </div>
+
+      {facets.keys.map((key) => {
+        const entry = entries[key]
+        const facet = PRODUCT_ATTRIBUTE_FACETS[key]
+        const headingId = `facet-heading-${key}`
+        return (
+          <div key={key} className="flex flex-col gap-2">
+            <div className="flex items-baseline gap-2">
+              <h3 id={headingId} className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+                {t.productFacets[key]}
+              </h3>
+              <span className="text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
+                {facet.multi ? t.adminFacets.pickMany : t.adminFacets.pickOne}
+              </span>
+            </div>
+            <div role="group" aria-labelledby={headingId} className="flex flex-wrap gap-2">
+              {facet.values.map(([value, label]) => {
+                const pressed = entry?.values.includes(value) ?? false
+                return (
+                  <Button
+                    key={value}
+                    variant={pressed ? 'primary' : 'secondary'}
+                    aria-pressed={pressed}
+                    disabled={busyKey === key}
+                    onClick={() => toggle(key, value)}
+                    className={`text-xs px-3 py-1.5 rounded-full disabled:opacity-40 ${
+                      pressed ? 'font-semibold' : 'font-medium'
+                    }`}
+                  >
+                    {label}
+                  </Button>
+                )
+              })}
+            </div>
+            <p className="text-[11px]" style={{ color: 'var(--muted-foreground)' }}>
+              {entry
+                ? fill(t.adminFacets.setBy, {
+                    who: facets.setters[entry.set_by] ?? entry.set_by.slice(0, 8),
+                    when: formatWhen.format(new Date(entry.set_at)),
+                  })
+                : t.adminFacets.notSet}
+            </p>
+          </div>
+        )
+      })}
+    </section>
   )
 }
 

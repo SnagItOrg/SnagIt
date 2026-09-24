@@ -192,6 +192,7 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   { route: '/api/admin/product/new', access: 'admin_api' },
   { route: '/api/admin/product/subcategories', access: 'admin_api' },
   { route: '/api/admin/product/[slug]/approve-match', access: 'admin_api' },
+  { route: '/api/admin/product/[slug]/facets', access: 'admin_api' },
   { route: '/api/admin/product/[slug]/image', access: 'admin_api' },
   { route: '/api/admin/product/[slug]/match-review', access: 'admin_api' },
   { route: '/api/admin/product/[slug]/reassign-match', access: 'admin_api' },

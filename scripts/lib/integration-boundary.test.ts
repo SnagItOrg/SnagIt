@@ -121,6 +121,10 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-136: a new brand that differs from one we hold only by case,
       // whitespace or separator is refused and shown, never created.
       'scripts/lib/pan136-brand-near-match.test.ts',
+      // PAN-140: microphone attribute facets. The vocabulary is closed and
+      // read fail-closed, a facet chip keeps the count equal to the rendered
+      // rows, and the public payload carries values but never provenance.
+      'scripts/lib/pan140-product-facets.test.ts',
       // PAN-17: the sidebar catalogue tree. Its own suite because "populated
       // branches only" and "no price in a navigation payload" are both
       // properties of a pure builder, and both are silent failures — an empty

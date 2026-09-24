@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { resolveProductImage } from '@/lib/product-image-source'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { facetKeysFor, readFacetEntries } from '@/lib/product-facets'
 import ProductCurationClient, {
   type CurationData,
   type MatchedListing,
@@ -8,6 +10,7 @@ import ProductCurationClient, {
   type ProductHeaderData,
   type NeighborProduct,
   type ThomannEntry,
+  type FacetCurationData,
 } from './ProductCurationClient'
 
 type ProductRow = {
@@ -20,6 +23,7 @@ type ProductRow = {
   year_released: number | null
   attributes: Record<string, unknown> | null
   reverb_csp_id: number | null
+  subcategory_id: string | null
   thomann_url: string | null
   thomann_price_dkk: number | string | null
   thomann_price_updated_at: string | null
@@ -66,7 +70,7 @@ async function loadCurationData(slug: string): Promise<CurationData | null> {
   const { data: productRow, error: productError } = await admin
     .from('kg_product')
     .select(
-      'id, slug, canonical_name, tier, image_url, hero_image_url, year_released, attributes, reverb_csp_id, thomann_url, thomann_price_dkk, thomann_price_updated_at, kg_brand!inner(name)',
+      'id, slug, canonical_name, tier, image_url, hero_image_url, year_released, attributes, reverb_csp_id, subcategory_id, thomann_url, thomann_price_dkk, thomann_price_updated_at, kg_brand!inner(name)',
     )
     .eq('slug', slug)
     .maybeSingle()
@@ -195,7 +199,53 @@ async function loadCurationData(slug: string): Promise<CurationData | null> {
     reverb_csp_id: product.reverb_csp_id,
   }
 
-  return { header, thomann, synonyms, listings, prev, next }
+  const facets = await loadFacetCuration(admin, product)
+
+  return { header, thomann, synonyms, listings, prev, next, facets }
+}
+
+/**
+ * PAN-140 — the product's facet entries, WITH provenance: this is the admin
+ * surface, the one place who set a value and when is shown. The leaf is the
+ * product's own `subcategory_id`, the same one the write route validates
+ * against, so the editor offers exactly the axes the route will accept.
+ */
+async function loadFacetCuration(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  product: ProductRow,
+): Promise<FacetCurationData> {
+  let leafSlug: string | null = null
+  if (product.subcategory_id) {
+    const { data: leaf, error } = await admin
+      .from('kg_category')
+      .select('slug')
+      .eq('id', product.subcategory_id)
+      .maybeSingle()
+    if (error) throw new Error(`Failed to load subcategory: ${error.message}`)
+    leafSlug = (leaf?.slug as string | undefined) ?? null
+  }
+
+  const entries = readFacetEntries(product.attributes, leafSlug)
+
+  // Who set each value, as an email the owner recognises rather than a UUID.
+  // The signed-in admin is included so a value set in this session reads the
+  // same way without a reload.
+  const setters: Record<string, string> = {}
+  const {
+    data: { user },
+  } = await (await createSupabaseServerClient()).auth.getUser()
+  if (user?.email) setters[user.id] = user.email
+  const unresolved = Array.from(new Set(Object.values(entries).map((e) => e.set_by))).filter(
+    (id) => !setters[id],
+  )
+  await Promise.all(
+    unresolved.map(async (id) => {
+      const { data } = await admin.auth.admin.getUserById(id)
+      if (data.user?.email) setters[id] = data.user.email
+    }),
+  )
+
+  return { keys: facetKeysFor(leafSlug), entries, setters }
 }
 
 export default async function AdminProductCurationPage(ctx: {

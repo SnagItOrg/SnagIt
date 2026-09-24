@@ -15,6 +15,16 @@ import {
   isSubcategoryGroup,
 } from '@/lib/catalogue-tree'
 import type { BrowseLeafResponse } from '@/lib/browse'
+import {
+  PRODUCT_ATTRIBUTE_FACETS,
+  facetChipAxes,
+  facetKeysFor,
+  facetValueLabel,
+  filterByFacets,
+  readActiveFacets,
+  type FacetKey,
+  type ProductFacetValues,
+} from '@/lib/product-facets'
 
 interface Category {
   id: string
@@ -40,6 +50,7 @@ interface Product {
   subcategory_name_en: string
   subcategory_slug: string
   active_listing_count: number
+  facets?: ProductFacetValues
 }
 
 interface BrowseData {
@@ -89,6 +100,22 @@ function BrowseCategoryPageInner() {
     const next = new URLSearchParams(searchParams.toString())
     if (slug) next.set('sub', slug)
     else next.delete('sub')
+    // PAN-140: attribute facets belong to one leaf. Changing the leaf drops
+    // them, so no filter can stay in force without a chip showing it.
+    for (const key of Object.keys(PRODUCT_ATTRIBUTE_FACETS)) next.delete(key)
+    const qs = next.toString()
+    router.replace(`/browse/${params.root}${qs ? `?${qs}` : ''}`, { scroll: false })
+  }, [params.root, router, searchParams])
+
+  /**
+   * PAN-140 — attribute facets live in the URL too, one param per axis
+   * (`?sub=microphones&circuit=tube`), for the same three reasons `?sub=` does:
+   * linkable, undone by Back, kept on reload. Same `replace` + `scroll: false`.
+   */
+  const setFacet = useCallback((key: FacetKey, value: string | null) => {
+    const next = new URLSearchParams(searchParams.toString())
+    if (value) next.set(key, value)
+    else next.delete(key)
     const qs = next.toString()
     router.replace(`/browse/${params.root}${qs ? `?${qs}` : ''}`, { scroll: false })
   }, [params.root, router, searchParams])
@@ -189,11 +216,25 @@ function BrowseCategoryPageInner() {
     chips.push({ slug, label: displaySubcategoryLabel(s.slug, s.name_da, s.name_en) })
   }
 
-  const filteredProducts = activeSub
+  const subcategoryProducts = activeSub
     ? (data?.products ?? []).filter(
         (p) => displaySubcategorySlug(params.root, p.subcategory_slug) === activeSub,
       )
     : (data?.products ?? [])
+
+  /**
+   * PAN-140 — the attribute facet row, over the SAME array.
+   *
+   * Axes exist only for a leaf that has them (`pro-audio/microphones`), so
+   * the row appears only once that chip is in force. A URL value that is not
+   * in the vocabulary, or an axis that does not apply here, is ignored.
+   * Semantics are "can do": a multi-pattern mic passes both Omni and Figure-8.
+   * `facetChipAxes` hides a value that would not narrow the visible set.
+   */
+  const facetKeys = activeSub ? facetKeysFor(`${params.root}/${activeSub}`) : []
+  const activeFacets = readActiveFacets(searchParams, facetKeys)
+  const facetAxes = facetChipAxes(subcategoryProducts, facetKeys, activeFacets)
+  const filteredProducts = filterByFacets(subcategoryProducts, activeFacets)
 
   const categoryName = data?.category
     ? locale === 'da' ? data.category.name_da : data.category.name_en
@@ -219,9 +260,16 @@ function BrowseCategoryPageInner() {
     // already the last crumb of the breadcrumb above that. A third copy made
     // the visitor choose which of three position statements to read.
     renderedRows: filteredProducts,
-    filters: activeChip
-      ? [{ id: activeChip.slug, kind: 'subcategory' as const, label: activeChip.label }]
-      : [],
+    filters: [
+      ...(activeChip
+        ? [{ id: activeChip.slug, kind: 'subcategory' as const, label: activeChip.label }]
+        : []),
+      ...(Object.entries(activeFacets) as [FacetKey, string][]).map(([key, value]) => ({
+        id: `${key}:${value}`,
+        kind: 'attribute' as const,
+        label: `${t.productFacets[key]}: ${facetValueLabel(key, value)}`,
+      })),
+    ],
   })
 
   return (
@@ -311,6 +359,51 @@ function BrowseCategoryPageInner() {
               >
                 {chip.label}
               </button>
+            ))}
+          </div>
+        )}
+
+        {/* PAN-140 — attribute facets, one labelled group per axis. Same chip,
+            same `--here` for the value in force and the same `aria-pressed`
+            as the row above: it is the same act, narrowing this set. Clicking
+            the active value removes it; the count above announces the
+            result. No per-chip counts: under "can do" they overlap and would
+            invite a sum. */}
+        {!loading && facetAxes.length > 0 && (
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pb-4">
+            {facetAxes.map((axis) => (
+              <div
+                key={axis.key}
+                role="group"
+                aria-labelledby={`facet-axis-${axis.key}`}
+                className="flex items-center gap-2 overflow-x-auto scrollbar-none"
+              >
+                <span
+                  id={`facet-axis-${axis.key}`}
+                  className="shrink-0 text-xs font-medium"
+                  style={{ color: 'var(--muted-foreground)' }}
+                >
+                  {t.productFacets[axis.key]}
+                </span>
+                {axis.values.map((v) => (
+                  <button
+                    key={v.value}
+                    type="button"
+                    aria-pressed={v.active}
+                    onClick={() => setFacet(axis.key, v.active ? null : v.value)}
+                    className={`shrink-0 text-sm px-3 py-1 rounded-full transition-colors ${
+                      v.active ? 'font-semibold' : 'font-medium'
+                    }`}
+                    style={{
+                      background: v.active ? 'var(--here-subtle)' : 'var(--card)',
+                      color: v.active ? 'var(--here)' : 'var(--foreground)',
+                      border: `1px solid ${v.active ? 'var(--here-border)' : 'var(--border)'}`,
+                    }}
+                  >
+                    {v.label}
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
         )}
