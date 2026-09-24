@@ -225,7 +225,7 @@ function BrowseCategoryPageInner() {
   })
 
   return (
-    <main className="flex-1 min-w-0 shell-offset pb-24 md:pb-8">
+    <main id="main-content" className="flex-1 min-w-0 shell-offset pb-24 md:pb-8">
       <MobileSearchBar />
 
       <div className="shell-wall">
@@ -254,7 +254,7 @@ function BrowseCategoryPageInner() {
                     : { background: 'var(--secondary)', color: 'var(--muted-foreground)', border: '1px solid var(--border)' }
                   }
                 >
-                  Debug mode: {debugEnabled ? 'ON' : 'OFF'}
+                  {debugEnabled ? t.debugModeOn : t.debugModeOff}
                 </button>
               )}
             </div>
@@ -292,7 +292,7 @@ function BrowseCategoryPageInner() {
                 border: `1px solid ${activeSub === null ? 'var(--here-border)' : 'var(--border)'}`,
               }}
             >
-              Alle
+              {t.facetAll}
             </button>
             {chips.map((chip) => (
               <button

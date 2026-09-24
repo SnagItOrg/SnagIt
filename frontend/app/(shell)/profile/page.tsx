@@ -118,7 +118,7 @@ export default function ProfilePage() {
   const cardStyle = { backgroundColor: 'var(--card)', border: '1px solid var(--border)' }
 
   return (
-    <main className="flex-1 shell-offset-pad flex flex-col px-4 pt-6 pb-24 md:pb-10 md:px-8">
+    <main id="main-content" className="flex-1 shell-offset-pad flex flex-col px-4 pt-6 pb-24 md:pb-10 md:px-8">
       <div className="w-full max-w-2xl flex flex-col gap-5">
 
         {/* ── Section 1: Account ─────────────────────────────────────── */}

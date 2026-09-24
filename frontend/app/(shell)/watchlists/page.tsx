@@ -136,7 +136,7 @@ export default function WatchlistsPage() {
             onClose={() => setShowCreator(false)}
           />
         ) : (
-          <main className="shell-wall flex-1 pt-6 pb-10 md:pt-8">
+          <main id="main-content" className="shell-wall flex-1 pt-6 pb-10 md:pt-8">
             <h1 className="text-2xl font-bold text-foreground mb-6">{t.watchlists}</h1>
 
             {loading ? (

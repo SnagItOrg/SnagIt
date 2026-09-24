@@ -64,7 +64,7 @@ export default function EditWatchlistPage() {
 
   return (
     <div className="flex-1 flex flex-col shell-offset">
-      <main className="flex-1 flex items-center justify-center px-6 py-10">
+      <main id="main-content" className="flex-1 flex items-center justify-center px-6 py-10">
         <div className="w-full max-w-2xl">
           {/* Heading */}
           <div className="text-center mb-12">

@@ -286,7 +286,7 @@ export default function ProductPage() {
         between the last card and the privacy link: measured 116px at 390x844
         against 60px at 1440x900. Both are 60px now.
       */}
-      <main className="flex-1 shell-offset-pad flex flex-col pb-10">
+      <main id="main-content" className="flex-1 shell-offset-pad flex flex-col pb-10">
         <MobileSearchBar />
 
         <div className="flex flex-col pt-4 md:pt-8 w-full">

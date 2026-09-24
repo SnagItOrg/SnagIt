@@ -31,7 +31,7 @@ function ThemeToggle() {
         : <Moon size={22} strokeWidth={1.8} />
       }
       <span className="text-[11px] font-medium leading-none">
-        {resolvedTheme === 'dark' ? 'Lys' : 'Mørk'}
+        {resolvedTheme === 'dark' ? t.themeToLightShort : t.themeToDarkShort}
       </span>
     </button>
   )

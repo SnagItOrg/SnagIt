@@ -530,6 +530,20 @@ export const translations = {
     sidebarSectionDiscoverSubtitle: 'Søg og gennemse kataloget',
     sidebarSectionYours: 'Dit Klup',
 
+    // PAN-142 — the skip link, first focusable element in the public shell.
+    skipToContent: 'Spring til indhold',
+
+    // PAN-142 — public-shell copy that was still hardcoded. The theme toggle
+    // names the theme it switches TO; BottomNav has room for one word only.
+    // The debug chip is admin-only and stays English in both locales.
+    themeToLight: 'Lystema',
+    themeToDark: 'Mørkt tema',
+    themeToLightShort: 'Lys',
+    themeToDarkShort: 'Mørk',
+    facetAll: 'Alle',
+    debugModeOn: 'Debug mode: ON',
+    debugModeOff: 'Debug mode: OFF',
+
     // PAN-136 — creating a brand from the new-product form.
     adminBrand: {
       createOption: 'Opret brand “{name}”',
@@ -1005,6 +1019,20 @@ export const translations = {
     sidebarSectionDiscover: 'Discover',
     sidebarSectionDiscoverSubtitle: 'Search and browse the catalogue',
     sidebarSectionYours: 'Your Klup',
+
+    // PAN-142 — the skip link, first focusable element in the public shell.
+    skipToContent: 'Skip to content',
+
+    // PAN-142 — public-shell copy that was still hardcoded. The theme toggle
+    // names the theme it switches TO; BottomNav has room for one word only.
+    // The debug chip is admin-only and stays English in both locales.
+    themeToLight: 'Light theme',
+    themeToDark: 'Dark theme',
+    themeToLightShort: 'Light',
+    themeToDarkShort: 'Dark',
+    facetAll: 'All',
+    debugModeOn: 'Debug mode: ON',
+    debugModeOff: 'Debug mode: OFF',
 
     // PAN-136 — creating a brand from the new-product form.
     adminBrand: {
