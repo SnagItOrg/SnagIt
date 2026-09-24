@@ -331,7 +331,7 @@
   --destructive-subtle: rgb(248 113 113 / 0.13);
   --destructive-border: rgb(248 113 113 / 0.32);
   /* `--here` in dark: 8.09:1 on the sidebar, 6.07:1 on its own fill; the
-     border clears 3.3:1 against the canvas. */
+     border is 3.76:1 against the canvas. */
   --here-subtle:        rgb(197 156 240 / 0.16);
   --here-border:        rgb(197 156 240 / 0.60);
 
