@@ -48,7 +48,12 @@ import {
   FACET_SUBCATEGORIES,
   buildCatalogueTree,
   type CatalogueTreeRow,
+  type SubcategoryGroupNames,
 } from '../../frontend/lib/catalogue-tree'
+
+const NAMES: SubcategoryGroupNames = {
+  synthesizers: { name_da: 'Synthesizere', name_en: 'Synthesizers' },
+}
 
 const row = (
   slug: string,
@@ -91,7 +96,7 @@ function productionRows(): CatalogueTreeRow[] {
 }
 
 test('PAN-17: an unpopulated branch cannot render, and depth stops at two', () => {
-  const tree = buildCatalogueTree(productionRows())
+  const tree = buildCatalogueTree(productionRows(), NAMES)
   const slugs = tree.map((c) => c.slug)
 
   // D-IA-1, AND IT IS STRUCTURAL RATHER THAN A FILTER. The tree is built FROM
@@ -121,7 +126,7 @@ test('PAN-17: an unpopulated branch cannot render, and depth stops at two', () =
   // Handing it a root with no rows cannot add one: the only input is rows.
   // The only way to widen this tree is to publish a product, which is what
   // D-IA-1 asks for.
-  assert.equal(buildCatalogueTree([]).length, 0)
+  assert.equal(buildCatalogueTree([], NAMES).length, 0)
 
   // TWO LEVELS, PLUS PRODUCTS. `subcategories` holds no nested `subcategories`
   // key, so a third taxonomy level is not representable — generation, year and
@@ -163,10 +168,22 @@ test('PAN-17: an unpopulated branch cannot render, and depth stops at two', () =
   // PAN-121 round 2 — ONLY A KIND IS A NODE. A facet leaf never becomes a
   // subcategory; its products belong to the root alone. An unlisted leaf is a
   // kind, so nothing leaves the navigation without being listed.
+  //
+  // PAN-138: analog and digital synths are no longer facets but ONE kind, a
+  // group node whose label is the copy handed in (no kg_category row exists)
+  // and whose membership is both leaves. Every keyboards product is in a kind.
   const keys = tree.find((c) => c.slug === 'keyboards-and-synths')
-  assert.deepEqual(keys?.subcategories.map((s) => s.slug), ['drum-machines', 'electric-pianos'])
+  assert.deepEqual(
+    keys?.subcategories.map((s) => s.slug),
+    ['synthesizers', 'drum-machines', 'electric-pianos'],
+  )
   assert.equal(keys?.product_count, 26)
-  assert.equal(keys?.subcategories.reduce((n, s) => n + s.product_count, 0), 11)
+  assert.equal(keys?.subcategories.reduce((n, s) => n + s.product_count, 0), 26)
+  const synths = keys?.subcategories.find((s) => s.slug === 'synthesizers')
+  assert.equal(synths?.name_da, 'Synthesizere')
+  assert.equal(synths?.product_count, 15)
+  assert.ok(synths?.product_slugs.includes('analog-synths-0'))
+  assert.ok(synths?.product_slugs.includes('digital-synths-0'))
   assert.deepEqual(tree.find((c) => c.slug === 'electric-guitars')?.subcategories, [])
   for (const category of tree) {
     for (const sub of category.subcategories) {
@@ -177,7 +194,7 @@ test('PAN-17: an unpopulated branch cannot render, and depth stops at two', () =
       )
     }
   }
-  const unlisted = buildCatalogueTree([row('new-0', 'keyboards-and-synths', 'modular-synths')])
+  const unlisted = buildCatalogueTree([row('new-0', 'keyboards-and-synths', 'modular-synths')], NAMES)
   assert.deepEqual(unlisted[0].subcategories.map((s) => s.slug), ['modular-synths'])
 
   // No LEAF_PRODUCT_LIMIT any more (round 3): the tree enumerates no
@@ -190,13 +207,13 @@ test('PAN-17: an unpopulated branch cannot render, and depth stops at two', () =
     ...productionRows(),
     row('no-root', 'x', 'y', { root_category_slug: null }),
     row('no-leaf', 'keyboards-and-synths', 'analog-synths', { subcategory_slug: null }),
-  ])
+  ], NAMES)
   assert.equal(unplaceable.length, 6)
   assert.equal(unplaceable.reduce((n, c) => n + c.product_count, 0), 49)
 })
 
 test('PAN-17: no price, band, median or verdict can reach the sidebar', () => {
-  const tree = buildCatalogueTree(productionRows())
+  const tree = buildCatalogueTree(productionRows(), NAMES)
 
   // ASSERTED STRUCTURALLY, THE WAY PAN-56 DOES IT — by the shape of the object
   // rather than by comparing a value. A test that checked `price === undefined`
@@ -240,7 +257,7 @@ test('PAN-17: no price, band, median or verdict can reach the sidebar', () => {
   const withPrice = buildCatalogueTree([
     { ...row('juno-106', 'keyboards-and-synths', 'analog-synths'), price_dkk: 4500 } as
       CatalogueTreeRow & { price_dkk: number },
-  ])
+  ], NAMES)
   assert.deepEqual(withPrice[0].product_slugs, ['juno-106'])
   assert.equal(JSON.stringify(withPrice).includes('4500'), false)
 })

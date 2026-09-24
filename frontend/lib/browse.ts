@@ -14,7 +14,12 @@ import {
   type HomeCategory,
   type HomeCategoryRow,
 } from '@/lib/home-categories'
-import { buildCatalogueTree, type CatalogueTreeCategory } from '@/lib/catalogue-tree'
+import {
+  buildCatalogueTree,
+  subcategoryGroupNames,
+  type CatalogueTreeCategory,
+} from '@/lib/catalogue-tree'
+import { translations } from '@/lib/i18n'
 import { categoryImage } from '@/lib/category-images'
 
 export type BrowseProjectionRow = {
@@ -728,7 +733,7 @@ export async function buildCatalogueTreeResponse(
   admin: SupabaseClient,
 ): Promise<{ categories: CatalogueTreeCategory[] }> {
   const rows = await fetchPublicBrowseRows(admin)
-  return { categories: buildCatalogueTree(rows) }
+  return { categories: buildCatalogueTree(rows, subcategoryGroupNames(translations)) }
 }
 
 export async function buildBrowseLeafResponse(args: {

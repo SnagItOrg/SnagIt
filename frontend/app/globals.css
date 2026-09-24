@@ -1135,6 +1135,45 @@
     );
   }
 
+  /* --- vertical fade edge (PAN-121) -------------------------------------
+     The carousel's mask, turned 90 degrees, for the sidebar catalogue: at a
+     short window it scrolls, and macOS overlay scrollbars hide until touched,
+     so without this nothing says there is more below. Same alpha-only mask,
+     same `data-fade` states, same measurement (`useScrollEdges`).
+
+     3rem, not the carousel's 2rem, and measured rather than matched: rows sit
+     36px apart, so where the window cuts often falls in the gap between two
+     labels, and a 2rem fade then masks only padding — at 1440×768 nothing
+     visibly changed. 48px always spans at least one label, so the last
+     visible row reads faded whatever the height.
+
+     `scroll-padding-block` matches the fade so a row brought into view by Tab
+     stops clear of it instead of landing half-transparent at the edge. The
+     scroller is not itself a tab stop — its links are — so the mask eating an
+     outline on the scroller, the carousel's problem, does not arise here. */
+  .scroll-fade-y {
+    --scroll-fade: 3rem;
+    scroll-padding-block: var(--scroll-fade);
+  }
+
+  .scroll-fade-y[data-fade='start'] {
+    mask-image: linear-gradient(to bottom, transparent 0, black var(--scroll-fade));
+  }
+
+  .scroll-fade-y[data-fade='end'] {
+    mask-image: linear-gradient(to top, transparent 0, black var(--scroll-fade));
+  }
+
+  .scroll-fade-y[data-fade='both'] {
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      black var(--scroll-fade),
+      black calc(100% - var(--scroll-fade)),
+      transparent 100%
+    );
+  }
+
   /* Mounted at all times, so the rail never reflows when a direction runs out,
      and disabled rather than merely faded — a control that cannot be seen must
      not still be reachable by Tab. */

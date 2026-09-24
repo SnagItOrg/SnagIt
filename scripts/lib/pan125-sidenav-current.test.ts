@@ -43,9 +43,17 @@ const TREE: CatalogueTreeCategory[] = [
     name_da: 'Synthesizere & keyboards',
     name_en: 'Keyboards and Synths',
     product_count: 27,
-    // PAN-121 round 2: a KIND is a node; a FACET's products (analog-synths is
-    // one) hang directly under the root and have no node of their own.
+    // PAN-121 round 2: a KIND is a node; a FACET's products hang directly
+    // under the root and have no node of their own (`facet-only` stands for
+    // one). PAN-138: analog + digital synths are one grouped kind.
     subcategories: [
+      {
+        slug: 'synthesizers',
+        name_da: 'Synthesizere',
+        name_en: 'Synthesizers',
+        product_count: 15,
+        product_slugs: ['roland-juno-106'],
+      },
       {
         slug: 'drum-machines',
         name_da: 'Trommemaskiner',
@@ -54,7 +62,7 @@ const TREE: CatalogueTreeCategory[] = [
         product_slugs: ['roland-tr-808'],
       },
     ],
-    product_slugs: ['roland-juno-106', 'roland-tr-808'],
+    product_slugs: ['roland-juno-106', 'roland-tr-808', 'facet-only'],
   },
 ]
 
@@ -70,9 +78,19 @@ test('one function decides the current node, and it picks exactly one', () => {
     currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'drum-machines'),
     { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'drum-machines' },
   )
-  // A FACET has no node (round 2), so the root is where the visitor stands.
+  // PAN-138: a grouped leaf is not a node of its own — an old
+  // `?sub=analog-synths` link marks the group it belongs to, not the branch.
   assert.deepEqual(
     currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'analog-synths'),
+    { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'synthesizers' },
+  )
+  assert.deepEqual(
+    currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'synthesizers'),
+    { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'synthesizers' },
+  )
+  // A FACET has no node (round 2), so the root is where the visitor stands.
+  assert.deepEqual(
+    currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'solid-body'),
     { kind: 'branch', categorySlug: 'keyboards-and-synths' },
   )
 
@@ -83,9 +101,16 @@ test('one function decides the current node, and it picks exactly one', () => {
   //
   // PAN-121 round 3: a product is no longer a node. A product page marks the
   // node that holds it — the root when its leaf is a facet…
-  assert.deepEqual(currentCatalogueNode(TREE, '/product/roland-juno-106', null), {
+  assert.deepEqual(currentCatalogueNode(TREE, '/product/facet-only', null), {
     kind: 'branch',
     categorySlug: 'keyboards-and-synths',
+  })
+  // …the group when its leaf is grouped (PAN-138: the Juno-106 marks
+  // "Synthesizere", whichever synth leaf it is filed under)…
+  assert.deepEqual(currentCatalogueNode(TREE, '/product/roland-juno-106', null), {
+    kind: 'subcategory',
+    categorySlug: 'keyboards-and-synths',
+    subcategorySlug: 'synthesizers',
   })
   // …and its kind when it has one. Still exactly one node.
   assert.deepEqual(currentCatalogueNode(TREE, '/product/roland-tr-808', null), {

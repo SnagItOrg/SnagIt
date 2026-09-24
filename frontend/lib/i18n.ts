@@ -164,6 +164,9 @@ export const translations = {
     browseProducts: 'produkter',
     browseListings: 'til salg',
     browseAllCategories: 'Alle kategorier',
+    // PAN-138 — analog + digital synths shown as one kind (lib/catalogue-tree.ts
+    // SUBCATEGORY_GROUPS). Copy lives here because no kg_category row exists.
+    subcategoryGroupSynthesizers: 'Synthesizere',
     // PAN-17 — the sidebar tree's overflow affordance. Only rendered when a
     // leaf holds more products than the sidebar will enumerate, so the reader
     // learns the leaf is larger than what is on screen instead of silently
@@ -706,6 +709,7 @@ export const translations = {
     browseProducts: 'products',
     browseListings: 'for sale',
     browseAllCategories: 'All categories',
+    subcategoryGroupSynthesizers: 'Synthesizers',
     homeCategoriesHeading: 'Categories',
     homeCategoriesSubtext: 'Everything Klup follows — and what it does not follow yet',
     homeCategoryCount: '{count} products',
