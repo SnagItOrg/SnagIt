@@ -328,7 +328,7 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                   : 'pl-3 font-medium'
               }`}
               style={{
-                color: isCurrentBranch ? 'var(--here)' : 'var(--muted-foreground)',
+                color: isCurrentBranch ? 'var(--here)' : 'var(--text-secondary)',
                 backgroundColor: isCurrentBranch ? 'var(--here-subtle)' : 'transparent',
                 borderLeftColor: isCurrentBranch ? 'var(--here)' : 'transparent',
               }}
@@ -341,6 +341,13 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
               <span className="truncate" title={label}>{label}</span>
             </summary>
 
+            {/* PAN-121 — the levels must read in grayscale, before any colour.
+                A root is 13px in `--text-secondary`, the darkest ink in the
+                tree; a subcategory is an 11px uppercase label in muted ink,
+                one step lighter in weight than it used to be — at semibold it
+                out-shouted the root it sits under; a product is 12px regular,
+                indented one step past its subcategory instead of sharing its
+                column. Colour, when it arrives, only says "you are here". */}
             <ul className="flex flex-col">
               {category.subcategories.map((sub) => {
                 const subLabel = locale === 'da' ? sub.name_da : sub.name_en
@@ -369,7 +376,7 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                       href={`/browse/${category.slug}?sub=${encodeURIComponent(sub.slug)}`}
                       aria-current={isCurrentSub ? 'page' : undefined}
                       className={`block pr-3 pt-2 pb-1 text-[11px] uppercase tracking-wide truncate rounded-lg transition-colors hover:bg-secondary ${
-                        isCurrentSub ? 'pl-9 border-l-2 font-bold' : 'pl-10 font-semibold'
+                        isCurrentSub ? 'pl-9 border-l-2 font-semibold' : 'pl-10 font-medium'
                       }`}
                       style={{
                         color: isCurrentSub ? 'var(--here)' : 'var(--muted-foreground)',
@@ -395,7 +402,7 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                                  from the same boolean. */
                               aria-current={isHere ? 'page' : undefined}
                               className={`block pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary ${
-                                isHere ? 'pl-9 border-l-2 font-semibold' : 'pl-10'
+                                isHere ? 'pl-11 border-l-2 font-semibold' : 'pl-12'
                               }`}
                               style={{
                                 color: isHere ? 'var(--here)' : 'var(--muted-foreground)',
@@ -421,7 +428,7 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                         <li>
                           <Link
                             href={`/browse/${category.slug}`}
-                            className="block pl-10 pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary"
+                            className="block pl-12 pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary"
                             style={{ color: 'var(--muted-foreground)' }}
                           >
                             {fill(t.catalogueTreeSeeAll, { count: sub.product_count })}
