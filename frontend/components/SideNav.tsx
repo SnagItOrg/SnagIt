@@ -1051,7 +1051,10 @@ export function SideNav() {
                   pathname === href ||
                   (href === '/browse' && isCataloguePath(pathname) && !treeMarked)
                 const itemStyle = {
-                  color: isActive ? 'var(--here)' : 'var(--muted-foreground)',
+                  // `--text-secondary` at rest, not muted: a top-level item
+                  // must not read lighter than the catalogue roots beneath it
+                  // (PAN-121's grayscale ladder).
+                  color: isActive ? 'var(--here)' : 'var(--text-secondary)',
                   backgroundColor: isActive ? 'var(--here-subtle)' : 'transparent',
                 }
                 /* `font-semibold` when selected: the icon swaps outline for
