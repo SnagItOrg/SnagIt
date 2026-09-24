@@ -241,13 +241,33 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
     return () => onMarkedChange(false)
   }, [current, onMarkedChange])
 
+  /**
+   * PAN-121 — a "you are here" mark nobody can see says nothing.
+   *
+   * Measured at 1440x900 on `/product/roland-juno-106`: the marked row sat
+   * below the fold of the sidebar, before this ticket and after it, so the one
+   * place that named the product was off-screen. When the current node
+   * changes, bring it into view. `block: 'nearest'` scrolls only if the row is
+   * not already visible, so a visitor who scrolled the tree themselves and
+   * clicked a row in view is not moved.
+   *
+   * It is the TREE that scrolls, not the whole catalogue zone: scrolling the
+   * zone to reach the row carried Søg and Katalog off the top with it, which
+   * traded one Trunk Test question (where am I) for another (what are the
+   * major sections). The tree is the only part tall enough to need it.
+   */
+  const treeRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    treeRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' })
+  }, [current])
+
   // Coming, versus not there. See `CatalogueTreeSkeleton` for why these two
   // must not share an answer.
   if (categories.length === 0) return answered ? null : <CatalogueTreeSkeleton />
 
 
   return (
-    <div className="mt-0.5 mb-1 flex flex-col gap-0.5">
+    <div ref={treeRef} className="mt-0.5 mb-1 flex flex-1 min-h-0 flex-col gap-0.5 overflow-y-auto">
       {categories.map((category) => {
         const label = locale === 'da' ? category.name_da : category.name_en
 
@@ -322,14 +342,23 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                  PAN-113 measured an opacity state at 2.61:1. The weight step
                  is what survives grayscale. */
               aria-current={isCurrentBranch ? 'page' : undefined}
-              className={`flex items-center gap-1.5 pr-2 py-2 rounded-xl text-[13px] cursor-pointer list-none [&::-webkit-details-marker]:hidden transition-colors hover:bg-secondary ${
+              /* STICKY, so the root stays on screen while its branch scrolls
+                 beneath it — on a product page the marked row can sit forty
+                 rows down, and without its root above it the tree answers
+                 "where am I" with half a path. A sticky header needs an opaque
+                 surface, so the fill is `--card` and the current branch's tint
+                 is laid over it as an image rather than replacing it. */
+              className={`sticky top-0 z-10 flex items-center gap-1.5 pr-2 py-2 rounded-xl text-[13px] cursor-pointer list-none [&::-webkit-details-marker]:hidden transition-colors hover:bg-secondary ${
                 isCurrentBranch
                   ? 'pl-2 border-l-2 font-semibold'
                   : 'pl-3 font-medium'
               }`}
               style={{
                 color: isCurrentBranch ? 'var(--here)' : 'var(--text-secondary)',
-                backgroundColor: isCurrentBranch ? 'var(--here-subtle)' : 'transparent',
+                backgroundColor: 'var(--card)',
+                backgroundImage: isCurrentBranch
+                  ? 'linear-gradient(var(--here-subtle), var(--here-subtle))'
+                  : undefined,
                 borderLeftColor: isCurrentBranch ? 'var(--here)' : 'transparent',
               }}
             >
@@ -977,7 +1006,7 @@ export function SideNav() {
               className={`flex flex-col gap-1 px-3 ${
                 section.zone === 'yours'
                   ? 'shrink-0 py-3 border-t border-border'
-                  : 'flex-1 min-h-0 py-4 overflow-y-auto'
+                  : 'flex-1 min-h-0 py-4 overflow-y-auto' /* the tree scrolls inside; this is the short-window fallback */
               }`}
               style={section.zone === 'yours' ? { backgroundColor: 'var(--canvas)' } : undefined}
             >
