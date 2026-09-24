@@ -7,16 +7,27 @@
  * denominator makes a thin catalogue look complete. Neither failure is visible
  * in a screenshot, so both are tested here instead.
  *
- * Imports only `./types`, which is a plain const array and a set of type
- * aliases, so this runs under the root `tsx --test` harness with no React,
+ * Imports only `./types` and one constant from `lib/price-populations`, both
+ * import-free, so this runs under the root `tsx --test` harness with no React,
  * no Supabase and no DOM.
  */
 
+import { REVERB_SOURCE } from '../../lib/price-populations'
 import { MARKETS, type IntelProduct, type Market } from './types'
 
 /** DK is the market Klup transacts in, so every comparison is anchored there. */
 export const HOME_MARKET: Market = 'DK'
 export const FOREIGN_MARKETS: readonly Market[] = MARKETS.filter((m) => m !== HOME_MARKET)
+
+/**
+ * The column a listing is counted in. The "US" column is Reverb, classified by
+ * source: Reverb's `country` is null (PAN-134) because its search API gives no
+ * location. Every other source is placed by its own `country`.
+ */
+export function listingMarket(listing: { source: string; country: string | null }): Market | null {
+  if (listing.source === REVERB_SOURCE) return 'US'
+  return (MARKETS as readonly string[]).includes(listing.country ?? '') ? (listing.country as Market) : null
+}
 
 /**
  * One product's widest DK-anchored price difference.

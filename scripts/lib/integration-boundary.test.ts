@@ -115,6 +115,9 @@ test('integration: every package suite is registered exactly once', () => {
       // the sidenav "you are here" and the resize separator both existed only
       // in the expanded state, and collapsed is the default.
       'scripts/lib/pan125-sidenav-current.test.ts',
+      // PAN-134: Reverb writes country null; its rows stay reverb-asking and
+      // stay in the /intel US column, found by source.
+      'scripts/lib/pan134-reverb-null-country.test.ts',
       // PAN-135: set-hero-images.ts keeps a curated hero unless --force, and
       // writes nothing without --apply.
       'scripts/lib/pan135-hero-guard.test.ts',

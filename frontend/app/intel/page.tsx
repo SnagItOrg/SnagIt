@@ -1,7 +1,8 @@
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { hasPlausibleListingPrice } from '@/lib/listing-price-integrity'
-import { isPriceEvidence } from '@/lib/price-populations'
+import { isPriceEvidence, REVERB_SOURCE } from '@/lib/price-populations'
 import { IntelDashboard } from './IntelDashboard'
+import { listingMarket } from './overview'
 import {
   MARKETS,
   type IntelData,
@@ -48,10 +49,6 @@ function toNumber(value: number | string | null): number | null {
     return Number.isFinite(parsed) ? parsed : null
   }
   return null
-}
-
-function isMarket(value: string | null): value is Market {
-  return value === 'DK' || value === 'DE' || value === 'SE' || value === 'NO' || value === 'US'
 }
 
 function percentile(sorted: number[], p: number): number | null {
@@ -107,7 +104,8 @@ async function loadIntelData(): Promise<IntelData> {
     )
     .in('product_id', productIds)
     .eq('listings.is_active', true)
-    .in('listings.country', MARKETS as unknown as string[])
+    // Reverb rows carry country=null (PAN-134), so they are admitted by source.
+    .or(`country.in.(${MARKETS.join(',')}),source.eq.${REVERB_SOURCE}`, { referencedTable: 'listings' })
 
   if (matchesError) {
     throw new Error(`Failed to load matched listings: ${matchesError.message}`)
@@ -168,7 +166,8 @@ async function loadIntelData(): Promise<IntelData> {
     // a written rejection. An arbitrage delta computed from those numbers is
     // noise wearing a monospace font.
     if (!isPriceEvidence(m.is_valid)) continue
-    if (!isMarket(l.country)) continue
+    const market = listingMarket(l)
+    if (!market) continue
     // Legacy Kleinanzeigen rows with concatenated raw prices would otherwise
     // dominate every DE median and delta on this dashboard. See
     // lib/listing-price-integrity.ts.
@@ -182,7 +181,7 @@ async function loadIntelData(): Promise<IntelData> {
       title: l.title,
       url: l.url,
       source: l.source,
-      country: l.country,
+      country: market,
       price_dkk: price,
       location: l.location,
       scraped_at: l.scraped_at,
