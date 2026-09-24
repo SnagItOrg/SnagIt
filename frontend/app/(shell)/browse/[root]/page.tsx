@@ -171,16 +171,22 @@ function BrowseCategoryPageInner() {
    */
   const activeSub = activeSubcat ? displaySubcategorySlug(params.root, activeSubcat) : null
 
+  /**
+   * The label a leaf is shown under: its group's when it has one, its own
+   * otherwise. The chip row and the product cards both read it, so a card
+   * cannot say "Analoge synths" under a chip that says "Synthesizere".
+   */
+  function displaySubcategoryLabel(leafSlug: string, name_da: string, name_en: string): string {
+    const slug = displaySubcategorySlug(params.root, leafSlug)
+    if (isSubcategoryGroup(slug)) return t[SUBCATEGORY_GROUPS[slug].labelKey]
+    return locale === 'da' ? name_da : name_en
+  }
+
   const chips: Array<{ slug: string; label: string }> = []
   for (const s of data?.subcategories ?? []) {
     const slug = displaySubcategorySlug(params.root, s.slug)
     if (chips.some((chip) => chip.slug === slug)) continue
-    chips.push({
-      slug,
-      label: isSubcategoryGroup(slug)
-        ? t[SUBCATEGORY_GROUPS[slug].labelKey]
-        : locale === 'da' ? s.name_da : s.name_en,
-    })
+    chips.push({ slug, label: displaySubcategoryLabel(s.slug, s.name_da, s.name_en) })
   }
 
   const filteredProducts = activeSub
@@ -348,7 +354,7 @@ function BrowseCategoryPageInner() {
                 slug={p.slug}
                 canonicalName={p.canonical_name}
                 brandName={p.brand_name}
-                subcategoryName={locale === 'da' ? p.subcategory_name_da : p.subcategory_name_en}
+                subcategoryName={displaySubcategoryLabel(p.subcategory_slug, p.subcategory_name_da, p.subcategory_name_en)}
                 activeListingCount={p.active_listing_count}
                 imageUrl={p.image_url}
                 tier={p.tier}
