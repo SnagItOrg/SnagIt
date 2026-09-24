@@ -92,7 +92,7 @@ function BrowsePageInner() {
                 : { background: 'var(--secondary)', color: 'var(--muted-foreground)', border: '1px solid var(--border)' }
               }
             >
-              Debug mode: {debugEnabled ? 'ON' : 'OFF'}
+              {debugEnabled ? t.debugModeOn : t.debugModeOff}
             </button>
           )}
         </div>

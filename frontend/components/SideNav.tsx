@@ -57,7 +57,7 @@ function ThemeToggle({ collapsed }: { collapsed: boolean }) {
         ? <Sun size={20} strokeWidth={1.8} />
         : <Moon size={20} strokeWidth={1.8} />
       }
-      {!collapsed && <span>{resolvedTheme === 'dark' ? 'Lystema' : 'Mørkt tema'}</span>}
+      {!collapsed && <span>{resolvedTheme === 'dark' ? t.themeToLight : t.themeToDark}</span>}
     </button>
   )
 }

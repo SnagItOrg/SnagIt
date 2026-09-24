@@ -254,7 +254,7 @@ function BrowseCategoryPageInner() {
                     : { background: 'var(--secondary)', color: 'var(--muted-foreground)', border: '1px solid var(--border)' }
                   }
                 >
-                  Debug mode: {debugEnabled ? 'ON' : 'OFF'}
+                  {debugEnabled ? t.debugModeOn : t.debugModeOff}
                 </button>
               )}
             </div>
@@ -292,7 +292,7 @@ function BrowseCategoryPageInner() {
                 border: `1px solid ${activeSub === null ? 'var(--here-border)' : 'var(--border)'}`,
               }}
             >
-              Alle
+              {t.facetAll}
             </button>
             {chips.map((chip) => (
               <button
