@@ -261,6 +261,41 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
     treeRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest' })
   }, [current])
 
+  /**
+   * One product row, at one of two depths: under a KIND leaf, or directly
+   * under its root because its leaf is a facet (catalogue-tree.ts rule 2). A
+   * root product sits in the kind headers' column — it is their sibling, not
+   * their child — and a kind's product sits one step in from that.
+   */
+  const productRow = (product: { slug: string; label: string }, depth: 'root' | 'kind') => {
+    const isHere = current?.kind === 'product' && current.productSlug === product.slug
+    const indent = depth === 'kind'
+      ? (isHere ? 'pl-11' : 'pl-12')
+      : (isHere ? 'pl-9' : 'pl-10')
+    return (
+      <li key={product.slug}>
+        <Link
+          href={`/product/${product.slug}`}
+          /* PAN-121 — `isHere` already painted this row; nothing told a
+             screen reader about it. The visual state and the announced state
+             now come from the same boolean. */
+          aria-current={isHere ? 'page' : undefined}
+          className={`block pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary ${indent} ${
+            isHere ? 'border-l-2 font-semibold' : ''
+          }`}
+          style={{
+            color: isHere ? 'var(--here)' : 'var(--muted-foreground)',
+            backgroundColor: isHere ? 'var(--here-subtle)' : 'transparent',
+            borderLeftColor: isHere ? 'var(--here)' : 'transparent',
+          }}
+          title={product.label}
+        >
+          {product.label}
+        </Link>
+      </li>
+    )
+  }
+
   // Coming, versus not there. See `CatalogueTreeSkeleton` for why these two
   // must not share an answer.
   if (categories.length === 0) return answered ? null : <CatalogueTreeSkeleton />
@@ -389,6 +424,32 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                 indented one step past its subcategory instead of sharing its
                 column. Colour, when it arrives, only says "you are here". */}
             <ul className="flex flex-col">
+              {/* ROUND 2 — the products whose leaf is a facet, directly under
+                  the root (catalogue-tree.ts rule 2), BEFORE the kinds.
+
+                  Both orders were built and screenshotted. With the kinds
+                  first, the root's own products followed the last kind's
+                  products with nothing between them but 8px of indent, so
+                  "ARP 2600" read as an electric piano — and on a product page
+                  the mark scrolls to a row whose kind header is off-screen,
+                  so the Juno-106 appeared to sit under "El-pianoer". A list
+                  after an open group header reads as belonging to it. With
+                  the products first, every kind header starts a group and
+                  nothing follows a group that is not in it. The cost is that
+                  the kinds sit below the root's products; the page's facet
+                  row still lists them at the top of `/browse/<root>`. */}
+              {category.products.map((product) => productRow(product, 'root'))}
+              {category.products.length === 0 && category.direct_product_count > 0 && (
+                <li>
+                  <Link
+                    href={`/browse/${category.slug}`}
+                    className="block pl-10 pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary"
+                    style={{ color: 'var(--muted-foreground)' }}
+                  >
+                    {fill(t.catalogueTreeSeeAll, { count: category.direct_product_count })}
+                  </Link>
+                </li>
+              )}
               {category.subcategories.map((sub) => {
                 const subLabel = locale === 'da' ? sub.name_da : sub.name_en
                 /* `sub.slug` is documented in `catalogue-tree.ts` as the bare
@@ -428,34 +489,7 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                       {subLabel}
                     </Link>
                     <ul className="flex flex-col">
-                      {sub.products.map((product) => {
-                        const href = `/product/${product.slug}`
-                        const isHere =
-                          current?.kind === 'product' && current.productSlug === product.slug
-                        return (
-                          <li key={product.slug}>
-                            <Link
-                              href={href}
-                              /* PAN-121 — `isHere` already painted this row;
-                                 nothing told a screen reader about it. The
-                                 visual state and the announced state now come
-                                 from the same boolean. */
-                              aria-current={isHere ? 'page' : undefined}
-                              className={`block pr-3 py-1.5 rounded-lg text-xs truncate transition-colors hover:bg-secondary ${
-                                isHere ? 'pl-11 border-l-2 font-semibold' : 'pl-12'
-                              }`}
-                              style={{
-                                color: isHere ? 'var(--here)' : 'var(--muted-foreground)',
-                                backgroundColor: isHere ? 'var(--here-subtle)' : 'transparent',
-                                borderLeftColor: isHere ? 'var(--here)' : 'transparent',
-                              }}
-                              title={product.label}
-                            >
-                              {product.label}
-                            </Link>
-                          </li>
-                        )
-                      })}
+                      {sub.products.map((product) => productRow(product, 'kind'))}
 
                       {/* The threshold, made visible. `products` is empty
                           exactly when the leaf holds more than
@@ -479,6 +513,7 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                   </li>
                 )
               })}
+
             </ul>
           </details>
         )

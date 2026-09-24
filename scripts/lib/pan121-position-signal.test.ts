@@ -319,14 +319,16 @@ test('the sidebar and the filter chips read the same facet', () => {
     slug: 'keyboards-and-synths',
     name_da: 'Synthesizere & keyboards',
     name_en: 'Keyboards and Synths',
-    product_count: 26,
+    product_count: 27,
     subcategories: [{
-      slug: 'analog-synths',
-      name_da: 'Analoge synths',
-      name_en: 'Analog Synths',
-      product_count: 13,
-      products: [{ slug: 'roland-juno-106', label: 'Roland Juno-106' }],
+      slug: 'drum-machines',
+      name_da: 'Trommemaskiner',
+      name_en: 'Drum Machines',
+      product_count: 6,
+      products: [{ slug: 'roland-tr-808', label: 'Roland TR-808' }],
     }],
+    direct_product_count: 16,
+    products: [{ slug: 'roland-juno-106', label: 'Roland Juno-106' }],
   }]
 
   assert.deepEqual(
@@ -334,8 +336,14 @@ test('the sidebar and the filter chips read the same facet', () => {
     { kind: 'branch', categorySlug: 'keyboards-and-synths' },
   )
   assert.deepEqual(
+    currentCatalogueNode(cats, '/browse/keyboards-and-synths', 'drum-machines'),
+    { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'drum-machines' },
+  )
+  // Round 2: a facet `?sub=` still filters the page, but the sidebar marks the
+  // root — the facet is not a node. Still exactly one mark.
+  assert.deepEqual(
     currentCatalogueNode(cats, '/browse/keyboards-and-synths', 'analog-synths'),
-    { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'analog-synths' },
+    { kind: 'branch', categorySlug: 'keyboards-and-synths' },
   )
 
   // The facet must not reappear as component state beside the URL.

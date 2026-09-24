@@ -45,6 +45,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  FACET_SUBCATEGORIES,
   LEAF_PRODUCT_LIMIT,
   buildCatalogueTree,
   type CatalogueTreeRow,
@@ -146,15 +147,37 @@ test('PAN-17: an unpopulated branch cannot render, and depth stops at two', () =
   }
 
   // Counts reconcile to the rows served, per node and in total — so two
-  // branches cannot cancel each other's error out.
+  // branches cannot cancel each other's error out. Since PAN-121 round 2 a
+  // root's count is its kinds plus its direct (facet) products.
   assert.equal(tree.reduce((n, c) => n + c.product_count, 0), 49)
   for (const category of tree) {
     assert.equal(
-      category.subcategories.reduce((n, s) => n + s.product_count, 0),
+      category.subcategories.reduce((n, s) => n + s.product_count, 0) + category.direct_product_count,
       category.product_count,
       `${category.slug} count drifted from its leaves`,
     )
   }
+
+  // PAN-121 round 2 — ONLY A KIND IS A NODE. A facet leaf never becomes a
+  // subcategory; its products hang directly under the root. An unlisted leaf
+  // is a kind, so nothing leaves the navigation without being listed.
+  const keys = tree.find((c) => c.slug === 'keyboards-and-synths')
+  assert.deepEqual(keys?.subcategories.map((s) => s.slug), ['drum-machines', 'electric-pianos'])
+  assert.equal(keys?.direct_product_count, 15)
+  assert.equal(keys?.products.length, 15)
+  assert.deepEqual(tree.find((c) => c.slug === 'electric-guitars')?.subcategories, [])
+  for (const category of tree) {
+    for (const sub of category.subcategories) {
+      assert.equal(
+        FACET_SUBCATEGORIES.has(`${category.slug}/${sub.slug}`),
+        false,
+        `${category.slug}/${sub.slug} is a facet and must not be a node`,
+      )
+    }
+  }
+  const unlisted = buildCatalogueTree([row('new-0', 'keyboards-and-synths', 'modular-synths')])
+  assert.deepEqual(unlisted[0].subcategories.map((s) => s.slug), ['modular-synths'])
+  assert.deepEqual(unlisted[0].products, [])
 
   // THE THRESHOLD, AND THAT CROSSING IT IS VISIBLE. No leaf reaches it today —
   // the largest is 13 — so every leaf enumerates. One row past the limit and
@@ -167,17 +190,34 @@ test('PAN-17: an unpopulated branch cannot render, and depth stops at two', () =
   }
   const atLimit = buildCatalogueTree(
     Array.from({ length: LEAF_PRODUCT_LIMIT }, (_, i) =>
-      row(`p-${i}`, 'keyboards-and-synths', 'analog-synths'),
+      row(`p-${i}`, 'keyboards-and-synths', 'drum-machines'),
     ),
   )
   assert.equal(atLimit[0].subcategories[0].products.length, LEAF_PRODUCT_LIMIT)
   const overLimit = buildCatalogueTree(
     Array.from({ length: LEAF_PRODUCT_LIMIT + 1 }, (_, i) =>
-      row(`p-${i}`, 'keyboards-and-synths', 'analog-synths'),
+      row(`p-${i}`, 'keyboards-and-synths', 'drum-machines'),
     ),
   )
   assert.deepEqual(overLimit[0].subcategories[0].products, [])
   assert.equal(overLimit[0].subcategories[0].product_count, LEAF_PRODUCT_LIMIT + 1)
+
+  // The same threshold, same semantics, for products attached to a root
+  // (round 2). Two facet leaves feed one root list, and the limit applies to
+  // the list the sidebar would enumerate — their union — not to each leaf.
+  const rootAtLimit = buildCatalogueTree(
+    Array.from({ length: LEAF_PRODUCT_LIMIT }, (_, i) =>
+      row(`p-${i}`, 'keyboards-and-synths', i % 2 ? 'analog-synths' : 'digital-synths'),
+    ),
+  )
+  assert.equal(rootAtLimit[0].products.length, LEAF_PRODUCT_LIMIT)
+  const rootOverLimit = buildCatalogueTree(
+    Array.from({ length: LEAF_PRODUCT_LIMIT + 1 }, (_, i) =>
+      row(`p-${i}`, 'keyboards-and-synths', i % 2 ? 'analog-synths' : 'digital-synths'),
+    ),
+  )
+  assert.deepEqual(rootOverLimit[0].products, [])
+  assert.equal(rootOverLimit[0].direct_product_count, LEAF_PRODUCT_LIMIT + 1)
 
   // FAIL-CLOSED PLACEMENT. A row the tree cannot place does not invent a
   // branch and does not land at the top level; it is dropped, and the counts
@@ -203,8 +243,11 @@ test('PAN-17: no price, band, median or verdict can reach the sidebar', () => {
   for (const category of tree) {
     assert.deepEqual(
       Object.keys(category).sort(),
-      ['name_da', 'name_en', 'product_count', 'slug', 'subcategories'],
+      ['direct_product_count', 'name_da', 'name_en', 'product_count', 'products', 'slug', 'subcategories'],
     )
+    for (const product of category.products) {
+      assert.deepEqual(Object.keys(product).sort(), ['label', 'slug'])
+    }
     for (const key of Object.keys(category)) {
       assert.equal(forbidden.test(key), false, `category.${key}`)
     }
@@ -242,7 +285,7 @@ test('PAN-17: no price, band, median or verdict can reach the sidebar', () => {
       CatalogueTreeRow & { price_dkk: number },
   ])
   assert.deepEqual(
-    Object.keys(withPrice[0].subcategories[0].products[0]).sort(),
+    Object.keys(withPrice[0].products[0]).sort(),
     ['label', 'slug'],
   )
 })

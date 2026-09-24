@@ -42,16 +42,20 @@ const TREE: CatalogueTreeCategory[] = [
     slug: 'keyboards-and-synths',
     name_da: 'Synthesizere & keyboards',
     name_en: 'Keyboards and Synths',
-    product_count: 26,
+    product_count: 27,
+    // PAN-121 round 2: a KIND is a node; a FACET's products (analog-synths is
+    // one) hang directly under the root and have no node of their own.
     subcategories: [
       {
-        slug: 'analog-synths',
-        name_da: 'Analoge synths',
-        name_en: 'Analog Synths',
-        product_count: 13,
-        products: [{ slug: 'roland-juno-106', label: 'Roland Juno-106' }],
+        slug: 'drum-machines',
+        name_da: 'Trommemaskiner',
+        name_en: 'Drum Machines',
+        product_count: 6,
+        products: [{ slug: 'roland-tr-808', label: 'Roland TR-808' }],
       },
     ],
+    direct_product_count: 16,
+    products: [{ slug: 'roland-juno-106', label: 'Roland Juno-106' }],
   },
 ]
 
@@ -61,11 +65,16 @@ test('one function decides the current node, and it picks exactly one', () => {
     categorySlug: 'keyboards-and-synths',
   })
 
-  // A facet narrows it. The branch must stop claiming to be current, or a
+  // A KIND narrows it. The branch must stop claiming to be current, or a
   // screen reader hears two current pages.
   assert.deepEqual(
+    currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'drum-machines'),
+    { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'drum-machines' },
+  )
+  // A FACET has no node (round 2), so the root is where the visitor stands.
+  assert.deepEqual(
     currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'analog-synths'),
-    { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'analog-synths' },
+    { kind: 'branch', categorySlug: 'keyboards-and-synths' },
   )
 
   // PAN-132 — the product node names its category too. Marking the row only
@@ -76,6 +85,12 @@ test('one function decides the current node, and it picks exactly one', () => {
     kind: 'product',
     categorySlug: 'keyboards-and-synths',
     productSlug: 'roland-juno-106',
+  })
+  // …and a product under a kind is found there too.
+  assert.deepEqual(currentCatalogueNode(TREE, '/product/roland-tr-808', null), {
+    kind: 'product',
+    categorySlug: 'keyboards-and-synths',
+    productSlug: 'roland-tr-808',
   })
 })
 
@@ -217,7 +232,7 @@ test('snapping keeps the range discontinuous, so the label floor still holds', (
 test('a branch opens when it CONTAINS the current node, not when it IS it', () => {
   // All three kinds name their category, so one containment test serves them.
   const branch = currentCatalogueNode(TREE, '/browse/keyboards-and-synths', null)
-  const sub = currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'analog-synths')
+  const sub = currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'drum-machines')
   const product = currentCatalogueNode(TREE, '/product/roland-juno-106', null)
   const cases = [
     ['branch', branch],
