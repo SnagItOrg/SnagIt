@@ -146,9 +146,46 @@ function tokenRegex(token: string): RegExp {
   return new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`, 'i')
 }
 
+/**
+ * Multi-word identity names that a title must never have split (PAN-52 D6,
+ * PAN-153). Each is a sub-brand or series name, so each is identity-forming,
+ * and each shares a word with a real model name:
+ *
+ *   'Custom Shop'    "Fender Telecaster Custom Shop 52" names a Custom Shop
+ *                    Telecaster; "Telecaster Custom" (supported) only borrows
+ *                    the "Custom" of "Custom Shop". Gibson Les Paul Custom has
+ *                    the same collision ("Les Paul Custom Shop R8").
+ *   'Classic Player' "Custom Shop Classic Player Stratocaster" is a Classic
+ *                    Player; "Player Stratocaster" borrows its "Player".
+ *
+ * A reviewed code list, like families.ts (D1(a)): the KG cannot supply it,
+ * because it holds no Classic Player row and "Custom Shop" appears only in
+ * listing-title rows. Add a phrase only with a measured collision.
+ */
+export const IDENTITY_PHRASES: readonly string[] = ['custom shop', 'classic player']
+
+const IDENTITY_PHRASE_RES = IDENTITY_PHRASES.map(
+  (p) => new RegExp(`(?<![\\w-])${p.replace(/ /g, '\\s+')}(?![\\w-])`, 'gi'),
+)
+
+/**
+ * True when `token` occurs in `text` as itself: at least one token-boundary
+ * occurrence that no identity phrase straddles. A phrase straddles an
+ * occurrence when the two overlap and the phrase reaches outside it, i.e. the
+ * occurrence took one of the phrase's words. A phrase lying wholly inside the
+ * occurrence (an alias that spells out "Custom Shop") does not straddle it.
+ */
 function containsToken(text: string, token: string): boolean {
   if (token.length < 3) return false
-  return tokenRegex(token).test(text)
+  const phrases = IDENTITY_PHRASE_RES.flatMap((re) =>
+    Array.from(text.matchAll(re), (m) => [m.index!, m.index! + m[0].length]),
+  )
+  const occurrences = new RegExp(tokenRegex(token).source, 'gi')
+  return Array.from(text.matchAll(occurrences)).some((m) => {
+    const start = m.index!
+    const end = start + m[0].length
+    return !phrases.some(([ps, pe]) => ps < end && pe > start && (ps < start || pe > end))
+  })
 }
 
 function slugify(s: string): string {
