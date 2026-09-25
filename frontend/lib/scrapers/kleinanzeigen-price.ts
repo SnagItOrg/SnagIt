@@ -172,7 +172,19 @@ export function parseGermanPriceOutcome(raw: string | null | undefined): PriceOu
    */
   const match = text.match(/\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?/)
   const statesNoPrice = NO_PRICE_PATTERNS.some((pattern) => pattern.test(text))
-  if (!match) return { value: null, reason: statesNoPrice ? 'no_price_stated' : 'no_number' }
+  /**
+   * `VB` with no number is the seller stating no amount, so it is
+   * `no_price_stated`, not `no_number`. Only on this no-number path: next to a
+   * number, `VB` is a suffix on a real ask and must not trigger the
+   * currency-marker rule above (`VB 800` would lose its price).
+   *
+   * The split matters because `no_number` must mean "the parser read no
+   * number" — the signature of a markup change — and callers act on that
+   * difference (PAN-150).
+   */
+  if (!match) {
+    return { value: null, reason: statesNoPrice || /\bvb\b/i.test(text) ? 'no_price_stated' : 'no_number' }
+  }
   if (statesNoPrice && !isCurrencyMarked(text, match)) {
     return { value: null, reason: 'no_price_stated' }
   }

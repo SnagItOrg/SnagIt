@@ -204,7 +204,8 @@ test('the 2026-09 card layout still yields the asking price', () => {
   // A negotiable card that states no amount stays absent — never fabricated.
   assert.equal(parseGermanPriceOutcome('VB').value, null)
   assert.equal(extractCardPriceOutcome(card('VB')).value, null)
-  assert.equal(extractCardPriceOutcome(card('VB')).reason, 'no_number')
+  // ...and says so: the seller stated no amount, which is not a parser miss.
+  assert.equal(extractCardPriceOutcome(card('VB')).reason, 'no_price_stated')
 
   // The heading is bold too, but it is an h3: its year must never be the price.
   assert.notEqual(extractCardPrice(card('490 €')), 1984)
