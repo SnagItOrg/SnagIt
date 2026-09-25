@@ -131,6 +131,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-144: /intel reads its matched listings to exhaustion instead of
       // PostgREST's silent first 1,000 rows.
       'scripts/lib/pan144-intel-pagination.test.ts',
+      // PAN-153: a model name that borrows a word of "Custom Shop" or
+      // "Classic Player" is not evidence for that model.
+      'scripts/lib/pan153-identity-phrase.test.ts',
       // PAN-17: the sidebar catalogue tree. Its own suite because "populated
       // branches only" and "no price in a navigation payload" are both
       // properties of a pure builder, and both are silent failures — an empty
