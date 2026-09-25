@@ -590,6 +590,12 @@ test('the scraper counts every rejection and guards again at the write boundary'
   // in the retained PM2 error log, each carrying a listing URL.
   assert.ok(src.includes('recordPriceOutcome('), 'every parse outcome must be counted')
   assert.ok(src.includes("event: 'price_outcome_summary'"), 'and reported once per run')
+  // ...and persisted once per run: the PM2 log alone hid an 18-night outage.
+  assert.ok(src.includes("startRun(supabase, 'kleinanzeigen')"), 'the run must open a scrape_run row')
+  assert.ok(
+    /finishRun\([\s\S]{0,200}JSON\.stringify\(priceTally\)/.test(src),
+    'and close it carrying the tally',
+  )
   assert.ok(src.includes('guardedPrice('), 'the write boundary must re-check')
   assert.ok(src.includes('classifyKleinanzeigenPrice'), 'through the shared authority')
   assert.ok(src.includes('recordWriteGateRefusal('), 'a write-boundary refusal must still be counted')

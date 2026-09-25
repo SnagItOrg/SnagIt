@@ -39,6 +39,8 @@ import {
 } from '../frontend/lib/listing-price-integrity'
 import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
 import { decodeHtmlEntities } from '../frontend/lib/html-entities'
+import { evaluateRun, startRun, finishRun, type ListingSample } from './lib/scrape-health'
+import { baselineNotAttempted } from './lib/baseline'
 
 /**
  * Per-run price tally, emitted once at the end of the run.
@@ -445,10 +447,24 @@ async function main() {
 
   console.log(`Loaded ${products.length} legendary products from knowledge graph.\n`)
 
+  /**
+   * One `scrape_run` row per run (PAN-150).
+   *
+   * The price-outcome tally used to exist only in the PM2 log on the Mac Mini,
+   * so 18 nights of 100% null prices were invisible from production data. The
+   * row carries the tally in `notes` and the quality gate's verdict in
+   * `status`. For this source the verdict is RECORDED, not enforced: rows are
+   * upserted directly, with no staging or promotion, so `quarantined` here
+   * excludes nothing. `startRun` logs its own failure; the scrape still runs.
+   */
+  const run = await startRun(supabase, 'kleinanzeigen')
+
   // One immutable identity for this execution, generated before any write.
   const ingestionBatchId = newIngestionBatchId()
   let scrapedProducts = 0
   let totalListings = 0
+  let failedProducts = 0
+  const samples: ListingSample[] = []
 
   for (let i = 0; i < products.length; i++) {
     if (i > 0) await sleep(PRODUCT_DELAY_MS)
@@ -456,6 +472,12 @@ async function main() {
     const product = products[i]
     const listings = await scrapeKleinanzeigen(product.query, 3)
     const rows = buildRows(listings)
+    for (const r of rows) {
+      samples.push({
+        external_id: r.external_id, url: r.url, title: r.title,
+        price: r.price, currency: r.currency, price_dkk: r.price_dkk,
+      })
+    }
 
     if (rows.length > 0) {
       // Every INSERT carries this run's identity. On conflict the database
@@ -470,6 +492,7 @@ async function main() {
 
       if (error) {
         console.error(`[scrape-kleinanzeigen] ${product.canonical_name}: upsert failed (${error.message})`)
+        failedProducts += 1
         continue
       }
 
@@ -493,10 +516,35 @@ async function main() {
     }),
   )
 
-  // Bounded new-inflow matching: only the ids this run just wrote. Runs after
-  // the writes complete and never changes this script's exit status.
   // Only rows the DATABASE says this run inserted. A null lookup => 0 writes.
   const inserted = await fetchBatchListingIds(supabase, 'kleinanzeigen', ingestionBatchId)
+
+  // Closed before matching, so a matcher failure cannot leave the run open.
+  const newListings = inserted?.length ?? 0
+  const counters = {
+    productsAttempted: products.length,
+    productsFailed: failedProducts,
+    listingsFetched: samples.length,
+    listingsSaved: totalListings,
+    newListings,
+    // Not measured: the upsert does not report which rows changed price.
+    priceChanges: 0,
+    refoundListings: Math.max(totalListings - newListings, 0),
+  }
+  const { status, violations, metrics } = evaluateRun(
+    samples,
+    counters,
+    // No cohort identity is stamped for this source, so no baseline applies.
+    baselineNotAttempted('cohort_identity_incomplete'),
+  )
+  await finishRun(
+    supabase, run?.id ?? null, status, counters, metrics, violations, 0,
+    // Static reason codes and counts only — the same payload as the log line.
+    JSON.stringify(priceTally),
+  )
+
+  // Bounded new-inflow matching: only the ids this run just wrote. Runs after
+  // the writes complete and never changes this script's exit status.
   reportBatchMatch(inserted === null
     ? { source: 'kleinanzeigen', considered: 0, matched: 0, rejected: 0, deferred: 0, skipped: 'batch_identity_lookup_failed' }
     : await matchScrapedBatch(supabase, 'kleinanzeigen', inserted))
