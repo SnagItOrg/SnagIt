@@ -52,14 +52,60 @@ function extractListingId(url: string): string {
   return url
 }
 
-async function fetchSchibstedPage(
+/**
+ * Sort orders the recommerce search honours (observed on dba.dk, PAN-125).
+ * Omitted = the site default, which is relevance.
+ */
+export type SchibstedSort =
+  | 'RELEVANCE' | 'PUBLISHED_DESC' | 'PUBLISHED_ASC' | 'PRICE_ASC' | 'PRICE_DESC' | 'CLOSEST'
+
+export interface SchibstedSearchOptions {
+  /**
+   * A top-level `category` id, e.g. dba.dk `0.86` (Underholdning og hobby).
+   * Omitted = every category, which is what every existing caller has always
+   * fetched.
+   */
+  category?: string
+  /** A `sub_category` id, e.g. dba.dk `1.86.92` (Musikinstrumenter). */
+  subCategory?: string
+  sort?: SchibstedSort
+}
+
+export function buildSchibstedSearchUrl(
   config: SchibstedConfig,
   normalizedQ: string,
   page: number,
-): Promise<{ listings: ScrapedListing[]; schemaValid: boolean; rawCount: number }> {
+  options: SchibstedSearchOptions = {},
+): string {
   // Build URL manually — URLSearchParams encodes * as %2A, breaking wildcard searches
   const q = normalizedQ.replace(/ /g, '+')
-  const url = `https://${config.host}/recommerce/forsale/search?q=${q}${page > 1 ? `&page=${page}` : ''}`
+  return `https://${config.host}/recommerce/forsale/search?q=${q}` +
+    (options.category ? `&category=${options.category}` : '') +
+    (options.subCategory ? `&sub_category=${options.subCategory}` : '') +
+    (options.sort ? `&sort=${options.sort}` : '') +
+    (page > 1 ? `&page=${page}` : '')
+}
+
+export interface SchibstedPage {
+  listings: ScrapedListing[]
+  schemaValid: boolean
+  rawCount: number
+  /**
+   * The JSON-LD `description` per listing URL. Kept OUT of `ScrapedListing`
+   * deliberately: several callers spread a listing straight into a `listings`
+   * upsert, and that table has no description column.
+   */
+  descriptions: Map<string, string>
+}
+
+export async function fetchSchibstedPage(
+  config: SchibstedConfig,
+  normalizedQ: string,
+  page: number,
+  options: SchibstedSearchOptions = {},
+): Promise<SchibstedPage> {
+  const url = buildSchibstedSearchUrl(config, normalizedQ, page, options)
+  const descriptions = new Map<string, string>()
 
   const res = await fetch(url, {
     headers: {
@@ -98,17 +144,17 @@ async function fetchSchibstedPage(
   // pagination — and would have been treated as terminal `empty_page`.
   // schemaValid=false means "we could not read the page", never "no results".
   if (!collectionPage) {
-    return { listings: [], schemaValid: false, rawCount: 0 }
+    return { listings: [], schemaValid: false, rawCount: 0, descriptions }
   }
   const mainEntity = collectionPage['mainEntity'] as Record<string, unknown> | undefined
   const itemListElement = mainEntity?.['itemListElement'] as unknown[] | undefined
 
   if (!Array.isArray(itemListElement)) {
-    return { listings: [], schemaValid: false, rawCount: 0 }
+    return { listings: [], schemaValid: false, rawCount: 0, descriptions }
   }
   if (itemListElement.length === 0) {
     // Valid schema, genuinely zero results → terminal.
-    return { listings: [], schemaValid: true, rawCount: 0 }
+    return { listings: [], schemaValid: true, rawCount: 0, descriptions }
   }
 
   const parsedListings = itemListElement
@@ -121,6 +167,9 @@ async function fetchSchibstedPage(
       const parsed = rawPrice ? parseInt(String(rawPrice), 10) : null
       const price = parsed !== null && !isNaN(parsed) ? parsed : null
       const currency = String(offers?.['priceCurrency'] ?? config.currency)
+      if (product['description']) {
+        descriptions.set(String(product['url']), decodeHtmlEntities(String(product['description'])))
+      }
 
       return {
         // JSON.parse undoes JSON escapes only. A marketplace that HTML-escapes
@@ -143,7 +192,7 @@ async function fetchSchibstedPage(
     })
     .filter((l): l is ScrapedListing => l !== null)
 
-  return { listings: parsedListings, schemaValid: true, rawCount: itemListElement.length }
+  return { listings: parsedListings, schemaValid: true, rawCount: itemListElement.length, descriptions }
 }
 
 /**

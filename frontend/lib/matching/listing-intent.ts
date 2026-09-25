@@ -240,7 +240,7 @@ const INCLUSION_MARKERS: readonly string[] = [
  * words; the rest are matched on word boundaries so `medium` is not `med` and
  * `within` is not `with`.
  */
-function earliestInclusionMarker(text: string): number {
+export function earliestInclusionMarker(text: string): number {
   let earliest = -1
   for (const marker of INCLUSION_MARKERS) {
     let idx: number

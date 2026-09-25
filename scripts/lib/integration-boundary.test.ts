@@ -131,6 +131,10 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-144: /intel reads its matched listings to exhaustion instead of
       // PostgREST's silent first 1,000 rows.
       'scripts/lib/pan144-intel-pagination.test.ts',
+      // PAN-151: the dba brand net's resolver. The two PAN-125 collisions — a
+      // bare line resolving to a terminal, a stop word eating `G-1000` — and
+      // one listing per resolution state.
+      'scripts/lib/pan151-brand-net-resolution.test.ts',
       // PAN-17: the sidebar catalogue tree. Its own suite because "populated
       // branches only" and "no price in a navigation payload" are both
       // properties of a pure builder, and both are silent failures — an empty
