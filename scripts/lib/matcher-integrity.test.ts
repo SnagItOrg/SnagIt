@@ -693,6 +693,21 @@ test('an inclusion marker only rescues an accessory that FOLLOWS it', () => {
   )
 })
 
+test('an inclusion marker is a whole word, never the start of one (PAN-151 r2)', () => {
+  // Production titles. `mit` is not "MITSUBISHI", `con` is not "Control" or
+  // "Contrast": each of these is the part itself, and was matched or kept.
+  for (const [title, token] of [
+    ['Roland TR-909 MITSUBISHI EPROM V4.0 latest firmware upgrade', 'eprom'],
+    ['Roland - BOSS SP-303 SP-404 SP-404SX CONTROL FX - New Rotary potentiometer', 'potentiometer'],
+    ['Black Plastic Control Cavity Cover Back Plate for 1961-1965 Gibson SG', 'cover'],
+  ]) assert.equal(detectNonProductIntent(title.toLowerCase())?.token, token, title)
+  // `includes` and `inklusive` are markers in their own right.
+  for (const title of [
+    'Yamaha DX7 Programmable Algorithm Synthesizer - Includes Original RAM Cartridge',
+    'Yamaha DX7S Synthesizer Inklusive Sound Cartridge',
+  ]) assert.equal(detectNonProductIntent(title.toLowerCase()), null, title)
+})
+
 test('ordinary full-product listings across canonical products stay eligible', () => {
   for (const title of [
     'Roland Juno-60 61-Key Polyphonic Synthesizer 1982 - 1984 - Black',

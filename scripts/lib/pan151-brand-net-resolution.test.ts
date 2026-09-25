@@ -122,3 +122,130 @@ test('noise: sub-brand, other brand, part, accessory-for, wanted — and a produ
   assert.equal(reason('Digitalt klaver el-piano sort', 'roland'), 'unbranded')
   assert.equal(reason('Roland Juno-106 med flightcase', 'roland'), 'kg_product')
 })
+
+/* ── Round 2: the classes the round-1 hand audit found (21 of 75 wrong) ─────
+ *
+ * A second fixture, shaped like production's Fender rows: series words
+ * (`American`, `Standard`) recur in front of several lines, the way the real
+ * KG writes them, so the round-1 line rule would take them for lines. Every
+ * title is a real dba.dk title from the 2026-09-25 dry run.
+ */
+
+const R2_PRODUCTS: Product[] = [
+  product('fender-player-stratocaster', 'Fender', 'Player Stratocaster'),
+  product('fender-american-ultra-stratocaster', 'Fender', 'American Ultra Stratocaster'),
+  product('fender-american-professional-ii-stratocaster', 'Fender', 'American Professional II Stratocaster'),
+  product('fender-american-vintage-ii-stratocaster', 'Fender', 'American Vintage II Stratocaster'),
+  product('fender-american-standard-telecaster', 'Fender', 'American Standard Telecaster'),
+  product('fender-telecaster-custom', 'Fender', 'Telecaster Custom'),
+  product('fender-telecaster-deluxe', 'Fender', 'Telecaster Deluxe'),
+  product('fender-telecaster-thinline', 'Fender', 'Telecaster Thinline'),
+  product('fender-mustang-bass', 'Fender', 'Mustang Bass'),
+  product('fender-american-standard-jazz-bass', 'Fender', 'American Standard Jazz Bass'),
+  product('fender-vintera-ii-60s-jazz-bass', 'Fender', "Vintera II '60s Jazz Bass"),
+  product('fender-american-standard-precision-bass', 'Fender', 'American Standard Precision Bass'),
+  product('fender-precision-bass-57-reissue', 'Fender', "Precision Bass '57 Reissue"),
+  product('fender-twin-reverb-vintage', 'Fender', 'Twin Reverb (vintage)'),
+  product('fender-65-twin-reverb-reissue', 'Fender', "'65 Twin Reverb Reissue"),
+  product('fender-deluxe-reverb-vintage', 'Fender', 'Deluxe Reverb (vintage)'),
+  product('roland-juno-d', 'Roland', 'Juno-D'),
+  product('roland-juno-106', 'Roland', 'Juno-106'),
+  product('roland-sh-1000', 'Roland', 'SH-1000'),
+  product('roland-sh-2000', 'Roland', 'SH-2000'),
+  product('roland-sp-404', 'Roland', 'SP-404'),
+  product('roland-sp-404-mkii', 'Roland', 'SP-404 MKII'),
+]
+const r2 = buildBrandNetContext(R2_PRODUCTS, [], [])
+const resolve2 = (title: string, brand: string): BrandNetResolution =>
+  resolveBrandNetListing({ title, description: title }, brand, r2)
+const reading = (r: BrandNetResolution): string =>
+  r.kind === 'kg_product' ? `kg_product ${r.via} ${r.productIds.join('|')}`
+    : r.kind === 'candidate' ? `candidate ${r.model}`
+      : r.kind === 'family_only' ? `family_only ${r.line}`
+        : r.kind === 'noise' ? `noise ${r.reason}` : r.kind
+
+test('r2: a series word is not a line — it qualifies the line written after it', () => {
+  // Round 1 read `american` as a line: "family_only american".
+  assert.equal(reading(resolve2("Fender American Vintage '62 Stratocaster", 'fender')),
+    'candidate american vintage 62 stratocaster')
+  assert.equal(reading(resolve2('Fender Standard Upgrade Mexico stratocaster', 'fender')),
+    'candidate standard upgrade stratocaster')
+})
+
+test('r2: a series read after the line, around a generic word, or as Custom Shop', () => {
+  for (const [title, expected] of [
+    // after the line, `Pro` held by the KG as "Professional"
+    ['Fender Stratocaster American Pro II HSS', 'kg_product spelling fender-american-professional-ii-stratocaster'],
+    ['Fender Jazz Bass Vintera II 60s', 'kg_product spelling fender-vintera-ii-60s-jazz-bass'],
+    ['Fender Stratocaster Player II', 'candidate player ii stratocaster'],
+    // around a generic word
+    ["2009 Fender Classic Series '50s Stratocaster – Surf Green, meget velholdt", 'candidate classic series 50s stratocaster'],
+    // Custom Shop is the matcher's own identity phrase; the year is its model
+    ['Fender Custom Shop 1959 Stratocaster LIMITED EDITION Sunburst Guitar', 'candidate custom shop 1959 stratocaster'],
+    ['Fender Telecaster Custom Shop', 'candidate custom shop telecaster'],
+    ['Fender Custom Shop Telecaster 63 Limited Edition', 'candidate custom shop 63 telecaster'],
+    // …but after a named series, the year is when it was built
+    ['Fender Custom Shop Classic Player Stratocaster 2004 Sunburst Guitar', 'candidate custom shop classic player stratocaster'],
+    // a signature artist
+    ['Fender Stratocaster Eric Clapton signature', 'candidate eric clapton stratocaster'],
+    // an unheld name keeps its own words: "Pro Reverb" is not "Professional Reverb"
+    ['Fender Pro Reverb', 'candidate pro reverb'],
+    // the seller's "'65 Twin Reverb" is the KG's "'65 Twin Reverb Reissue"
+    ['Fender 65 Twin Reverb guitarforstærker', 'kg_product spelling fender-65-twin-reverb-reissue'],
+  ]) assert.equal(reading(resolve2(title, 'fender')), expected, title)
+})
+
+test('r2: facets never join a name — a vintage dealer title stays family-only', () => {
+  for (const title of [
+    '1977 Fender Stratocaster Hardtail Natural Ash Vintage 70s American USA HT Guitar',
+    'Fender Precision Bass 1968 ARTIST OWNED American Vintage 60s',
+    '1966 Fender Precision Bass Vintage American 60s EX-Artist',
+    'Fender Stratocaster elektrisk guitar sunburst Japan',
+  ]) assert.equal(resolve2(title, 'fender').kind, 'family_only', title)
+})
+
+test('r2: a matched model NAME written with more identity in front is a longer model', () => {
+  assert.equal(reading(resolve2('Fender Pawn Shop Mustang Bass', 'fender')), 'candidate pawn shop mustang bass')
+  assert.equal(reading(resolve2('Fender American Professional II Telecaster Deluxe NEW USA Dark Night Guitar', 'fender')),
+    'candidate american professional ii telecaster deluxe')
+  // …while the model on its own, or with a facet in front, stays the KG's.
+  assert.equal(reading(resolve2('Fender Mustang Bass', 'fender')), 'kg_product matcher fender-mustang-bass')
+  assert.equal(reading(resolve2('1971 Fender Telecaster Thinline American Vintage 70s Guitar', 'fender')),
+    'kg_product matcher fender-telecaster-thinline')
+})
+
+test('r2: Danish part titles are noise; a key count or a replaced part is not', () => {
+  for (const [title, brand] of [
+    ['ORIG ! ROLAND SH 1000 / 2000 SYNTHESIZER TANGENTER.', 'roland'],
+    ['VINTAGE ! ORIG , ROLAND SH 2000 ,CONTROL PLADE , 1973.', 'roland'],
+    ['Fender stemmeskruer', 'fender'],
+    ['VINTAGE !  ORIGINAL , FENDER RHODES TINE SCREW', 'fender'],
+    ['Fender 8" 8 ohm guitarhøjttaler', 'fender'],
+  ]) assert.equal(reading(resolve2(title, brand)), 'noise part_or_accessory', title)
+  assert.equal(reading(resolve2('Roland Juno-D Synthesizer – 61 Tangenter, Mange Lyde', 'roland')),
+    'kg_product matcher roland-juno-d')
+  assert.equal(reading(resolve2('Fender Blues Junior, udskiftet højtaler', 'fender')), 'candidate blues junior')
+})
+
+test('r2: a code written in capitals is a model; a roman numeral is not a code', () => {
+  assert.equal(reading(resolve2('Roland Paraphonic RS 505 synthesizer keyboard', 'roland')), 'candidate rs-505')
+  assert.equal(reading(resolve2('Roland MM-4 MIDI Thru Box', 'roland')), 'candidate mm-4')
+  assert.equal(reading(resolve2('Fender Champion II 50 guitarforstærker', 'fender')), 'candidate champion ii')
+  // A generation after the code is part of it: the MKII, not both rows.
+  assert.equal(reading(resolve2('Roland SP404 MKII', 'roland')), 'kg_product spelling roland-sp-404-mkii')
+  assert.equal(reading(resolve2('Roland JUNO-Gi Synthesizer', 'roland')), 'candidate juno-gi')
+  // `Cube` is a line the KG numbers, so a short code after it is the model.
+  assert.equal(reading(resolve('Roland Cube xl forstærker med subzero mikrofon og stativ', 'roland')), 'candidate cube-xl')
+})
+
+test('r2: a name beside the brand counts in any case, and before a brand that ends the title', () => {
+  for (const [title, expected] of [
+    ['Fender pro Junior IV ltd guitarforstærker tweed', 'candidate pro junior iv'],
+    ['Fender super sonic 22', 'candidate super sonic 22'],
+    ['FUZZ WAH, Andet mærke FENDER CLASSIC FUZZ WAH', 'candidate classic fuzz wah'],
+    ['Stratacoustic Fender', 'candidate stratacoustic'],
+    // …but a description is not a name
+    ['Fender akustisk basguitar natur', 'brand_only'],
+    ['Roland elektriske trommer', 'brand_only'],
+  ] as const) assert.equal(reading(resolve2(title, title.toLowerCase().includes('roland') ? 'roland' : 'fender')), expected, title)
+})
