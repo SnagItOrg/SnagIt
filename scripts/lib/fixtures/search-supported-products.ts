@@ -2,11 +2,11 @@
  * The supported cohort as `productEntity()` reads it — a TEST SNAPSHOT.
  *
  * PAN-147. The search suites used to read their product list out of the
- * committed `frontend/data/klup-search-index.json`, so every test depended on
- * whatever the generator last wrote. They now build their index from these
- * rows, through the same `productEntity()` the resolver's index is built with,
- * so they exercise the real derivation of labels and alias keys rather than a
- * copy of its output.
+ * committed `frontend/data/klup-search-index.json`. That file is gone: the
+ * resolver reads the live supported set instead. They now build their index
+ * from these rows, through the same `productEntity()` and `buildSearchIndex()`
+ * the resolve route uses, so they exercise the real derivation of labels and
+ * alias keys rather than a copy of its output.
  *
  * Captured read-only on 2026-09-25 (SELECT on `kg_product`, active +
  * supported, all music): 88 rows, whose entities equal the index PAN-143
@@ -19,7 +19,7 @@
  */
 
 import {
-  liveFamilyEntities,
+  buildSearchIndex,
   productEntity,
   type SearchIndex,
   type SearchProductRow,
@@ -119,9 +119,5 @@ export const SUPPORTED_PRODUCT_ROWS: readonly SearchProductRow[] = [
 
 /** The index the resolver sees when the supported set is exactly these rows. */
 export function fixtureSearchIndex(families: readonly NavigationFamily[]): SearchIndex {
-  return {
-    generatedFrom: 'scripts/lib/fixtures/search-supported-products.ts',
-    products: SUPPORTED_PRODUCT_ROWS.map(productEntity),
-    families: liveFamilyEntities(families),
-  }
+  return buildSearchIndex(SUPPORTED_PRODUCT_ROWS.map(productEntity), families)
 }

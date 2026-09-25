@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import {
   CANONICAL_STATUS,
@@ -8,7 +9,12 @@ import {
   isCatalogueUnavailable,
 } from '@/lib/catalogue'
 import { NAVIGATION_FAMILIES } from '@/lib/families'
-import { loadSearchIndex } from '@/lib/search-index'
+import {
+  SEARCH_PRODUCT_SELECT,
+  buildSearchIndex,
+  loadProductEntities,
+  type SearchEntity,
+} from '@/lib/search-index'
 import {
   applyEligibility,
   filterEligibleSlugs,
@@ -24,19 +30,79 @@ import {
  * WHAT THIS REPLACES. `/search` used to call `/api/scrape`, which ran four
  * live marketplace scrapes per query and upserted every result into
  * `listings` — an unauthenticated public write path driven by free text. This
- * route reads the committed index, re-validates against live catalogue state,
- * and returns a decision. It performs no scrape and no write of any kind.
+ * route resolves against the supported cohort, re-validates against live
+ * catalogue state, and returns a decision. It performs no scrape and no write
+ * of any kind.
  *
- * NEVER PRERENDERED, NEVER CACHED. The response embeds catalogue eligibility,
+ * THE RESPONSE IS NEVER PRERENDERED OR CACHED. It embeds catalogue eligibility,
  * and WP-1's H1 correction established that a baked eligibility payload keeps
  * advertising a product after it has been withdrawn. `force-dynamic` stops
- * build-time prerendering, `revalidate = 0` stops the full-route data cache,
- * and `no-store` stops the CDN and the browser holding it. A depublish is
- * visible on the next request.
+ * build-time prerendering and keeps every `fetch` here uncached (the Supabase
+ * client passes no cache option, so Next treats each one as no-store),
+ * `revalidate = 0` stops the full-route data cache, and `no-store` stops the
+ * CDN and the browser holding the response. A depublish is visible on the next
+ * request.
+ *
+ * ONLY THE INDEX IS CACHED — see `productEntities` below. That is why there is
+ * no `fetchCache = 'force-no-store'` here: under it Next bypasses
+ * `unstable_cache` entirely, and `force-dynamic` already keeps the eligibility
+ * reads uncached.
  */
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
-export const fetchCache = 'force-no-store'
+
+/**
+ * How long the product section of the index may be served before it is re-read.
+ *
+ * WHY CACHING IS SAFE AT ALL. The index is a claim, not an authority: every
+ * slug it yields is re-decided on every request by `revalidate_()` below, and
+ * that check is never cached. A stale index therefore cannot publish,
+ * unpublish or mislink anything. It can only be late to RECOGNISE a newly
+ * supported product, or keep recognising a withdrawn one that the gate then
+ * refuses.
+ *
+ * WHY 60 SECONDS. The goal is that a product the owner supports is searchable
+ * within minutes, not at the next deploy. `unstable_cache` serves an expired
+ * entry once while it refreshes in the background, so a newly supported product
+ * is findable from the first search after the refresh — about a minute. A
+ * longer window saves almost nothing: the refresh is two small reads (the ~90
+ * supported rows, then their projection rows), at most once a minute rather
+ * than on every search. A shorter one would shrink a delay nobody needs shrunk.
+ *
+ * ON ERROR, FAIL CLOSED. A failed read raises `CatalogueUnavailableError` and
+ * the request answers 503. `unstable_cache` stores values only, so a failure is
+ * never cached and the next request tries again. If a background refresh
+ * fails, Next keeps serving the last good list, which is still safe: the
+ * uncached eligibility check reads the same database and 503s if it is down.
+ * There is no fallback to a file in the repository. It could only ever be
+ * staler than the last good cached list.
+ */
+const PRODUCT_ENTITIES_REVALIDATE_SECONDS = 60
+
+const productEntities = unstable_cache(
+  (): Promise<SearchEntity[]> => {
+    const admin = getSupabaseAdmin()
+    return loadProductEntities({
+      productRows: async () => {
+        const res = await admin
+          .from('kg_product')
+          .select(SEARCH_PRODUCT_SELECT)
+          .eq('status', CANONICAL_STATUS)
+          .eq('support_state', CANONICAL_SUPPORT)
+        return { data: res.data, error: res.error }
+      },
+      domainRows: async (slugs) => {
+        const res = await admin
+          .from('browse_product_projection')
+          .select('slug, browse_domain')
+          .in('slug', slugs)
+        return { data: res.data, error: res.error }
+      },
+    })
+  },
+  ['search-product-entities'],
+  { revalidate: PRODUCT_ENTITIES_REVALIDATE_SECONDS },
+)
 
 const MAX_QUERY_LENGTH = 120
 
@@ -68,10 +134,9 @@ export async function GET(req: NextRequest) {
     return noStore({ error: 'query_too_long' }, 400)
   }
 
-  const index = loadSearchIndex(NAVIGATION_FAMILIES)
-  const resolved = resolveQuery(raw, index)
-
   try {
+    const index = buildSearchIndex(await productEntities(), NAVIGATION_FAMILIES)
+    const resolved = resolveQuery(raw, index)
     const settled = await revalidate_(resolved)
     return noStore(settled, 200)
   } catch (error) {
@@ -90,11 +155,11 @@ export async function GET(req: NextRequest) {
 /**
  * Re-decide every claimed slug against live state before it reaches a visitor.
  *
- * THE INDEX IS A CLAIM, NOT AN AUTHORITY. It is generated at build time, so
- * between deploys an operator can depublish or unsupport a product through the
- * promotion seam. Re-checking here is what makes "no result links to a 404"
- * true: a withdrawn product stops being a navigation target and stops being a
- * candidate on the same request that withdrew it.
+ * THE INDEX IS A CLAIM, NOT AN AUTHORITY. It is cached for up to a minute, so
+ * an operator can depublish or unsupport a product through the promotion seam
+ * while the index still names it. Re-checking here is what makes "no result
+ * links to a 404" true: a withdrawn product stops being a navigation target and
+ * stops being a candidate on the same request that withdrew it.
  */
 async function revalidate_(outcome: SearchOutcome): Promise<SearchOutcome> {
   const productSlugs = [

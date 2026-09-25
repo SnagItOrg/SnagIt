@@ -43,7 +43,6 @@ const SERVER_ONLY = [
   'lib/families.ts',
   'lib/catalogue.ts',
   'lib/supabase-admin.ts',
-  'data/klup-search-index.json',
 ]
 
 function walkFiles(dir: string, out: string[] = []): string[] {

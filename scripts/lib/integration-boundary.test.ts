@@ -15,7 +15,9 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { NAVIGATION_FAMILIES } from '../../frontend/lib/families'
+import { SEARCH_PRODUCT_SELECT } from '../../frontend/lib/search-index'
 import { ROUTE_ACCESS, classifyPath } from '../../frontend/lib/route-access'
+import { fixtureSearchIndex } from './fixtures/search-supported-products'
 
 const REPO = join(__dirname, '..', '..')
 const FRONTEND = join(REPO, 'frontend')
@@ -308,20 +310,18 @@ test('security: the cron secret fails closed before any work', () => {
   assert.match(logged, /cron_secret_not_configured/)
 })
 
-/* ── Point 3: the regenerated index ──────────────────────────────────────── */
+/* ── Point 3: the index ──────────────────────────────────────────────────── */
 
 // The cohort SIZE is deliberately not asserted here. It was written as 48, and
 // the family count as 6, on 2026-08-28; both went stale (7 families at PAN-85,
 // 55 products at PAN-55) and each promotion since has had to come and edit this
 // line. A frozen cardinality is not a guardrail — it is a number that has to be
-// maintained. Freshness against LIVE catalogue state is already owned by the
-// drift test in wp4-search.test.ts, which reads production and cannot go stale.
-// What belongs here is the shape: no duplicate slug, and families that agree
-// with the reviewed config.
+// maintained. Since PAN-147 the product section is read from live state at
+// request time, and the live loader test in wp4-search.test.ts checks it
+// against production. What belongs here is the shape: no duplicate slug, and
+// families that agree with the reviewed config.
 test('integration: the index covers the supported cohort and every navigation family', () => {
-  const index = JSON.parse(
-    readFileSync(join(FRONTEND, 'data', 'klup-search-index.json'), 'utf8'),
-  ) as { products: Array<{ slug: string }>; families: Array<{ slug: string }> }
+  const index = fixtureSearchIndex(NAVIGATION_FAMILIES)
 
   assert.ok(index.products.length > 0, 'the index is empty')
   assert.equal(
@@ -332,12 +332,11 @@ test('integration: the index covers the supported cohort and every navigation fa
   assert.deepEqual(
     index.families.map((f) => f.slug).sort(),
     NAVIGATION_FAMILIES.map((f) => f.slug).sort(),
-    'the artefact families and the reviewed families disagree',
+    'the index families and the reviewed families disagree',
   )
-  // Visibility must not be baked in: the runtime gate stays authoritative, so a
-  // qa_only -> public promotion is searchable without a regeneration and a deploy.
-  const raw = readFileSync(join(FRONTEND, 'data', 'klup-search-index.json'), 'utf8')
-  assert.equal(raw.includes('browse_visibility'), false, 'visibility must not be in the artefact')
+  // Visibility must not be read: the runtime gate stays authoritative, so a
+  // qa_only -> public promotion is searchable on the next request.
+  assert.equal(SEARCH_PRODUCT_SELECT.includes('browse_visibility'), false, 'the index must not read visibility')
 })
 
 /* ── The defect integration created: private slugs in the client bundle ──── */
@@ -380,11 +379,11 @@ test('integration: no private catalogue slug reaches a client bundle', (t) => {
       'must not be reachable at runtime from a client component — see lib/search-contract.ts',
   )
 
-  // The artefact itself carries all 48 supported slugs and is server-only.
+  // The index module reads every supported slug and is server-only.
   assert.equal(
-    blob.includes('kg_product WHERE status=active'),
+    blob.includes(SEARCH_PRODUCT_SELECT),
     false,
-    'the search-index artefact was bundled into the client',
+    'the search-index module was bundled into the client',
   )
 })
 
