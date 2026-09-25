@@ -421,7 +421,7 @@ async function main() {
     const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
     const { error: staleError, count: staleCount } = await supabase
       .from('listings')
-      .update({ is_active: false })
+      .update({ is_active: false }, { count: 'exact' })
       .eq('source', 'reverb')
       .eq('is_active', true)
       .lt('scraped_at', cutoff)
