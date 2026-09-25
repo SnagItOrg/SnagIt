@@ -133,6 +133,10 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-144: /intel reads its matched listings to exhaustion instead of
       // PostgREST's silent first 1,000 rows.
       'scripts/lib/pan144-intel-pagination.test.ts',
+      // PAN-151: the dba brand net's resolver. The two PAN-125 collisions — a
+      // bare line resolving to a terminal, a stop word eating `G-1000` — and
+      // one listing per resolution state.
+      'scripts/lib/pan151-brand-net-resolution.test.ts',
       // PAN-153: a model name that borrows a word of "Custom Shop" or
       // "Classic Player" is not evidence for that model.
       'scripts/lib/pan153-identity-phrase.test.ts',
