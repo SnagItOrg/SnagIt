@@ -22,9 +22,12 @@ import { lookupSynonym, allSynonyms } from '../../frontend/lib/synonyms'
 import {
   DANGEROUS_TERM_KEYS,
   SHADOW_BRAND_KEYS,
+  SEARCH_PRODUCT_SELECT,
   allEntities,
-  loadSearchIndex,
+  buildSearchIndex,
   liveFamilyEntities,
+  loadProductEntities,
+  productEntity,
   type SearchEntity,
   type SearchIndex,
 } from '../../frontend/lib/search-index'
@@ -41,6 +44,8 @@ import {
   type SearchOutcomeKind,
 } from '../../frontend/lib/search-resolver'
 import { NAVIGATION_FAMILIES } from '../../frontend/lib/families'
+import { SUPPORTED_PRODUCT_ROWS, fixtureSearchIndex } from './fixtures/search-supported-products'
+import { CatalogueUnavailableError } from '../../frontend/lib/catalogue'
 import {
   ROUTE_ACCESS,
   classifyPath,
@@ -66,9 +71,13 @@ const readSource = (...parts: string[]) =>
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, '')
 
-const INDEX = loadSearchIndex(NAVIGATION_FAMILIES)
+/**
+ * The supported cohort, built through the resolver's own `productEntity()` from
+ * a fixture snapshot rather than read out of a committed artefact (PAN-147).
+ */
+const INDEX = fixtureSearchIndex(NAVIGATION_FAMILIES)
 
-/** Every supported identity in the committed artefact — public AND private. */
+/** Every supported identity in the fixture — public AND private. */
 const INDEXED_SLUGS = INDEX.products.map((p) => p.slug).sort()
 
 /**
@@ -250,10 +259,16 @@ test('index: covers ALL supported identities, public and private', () => {
 })
 
 test('index: never carries a visibility field', () => {
-  // Storing it would recreate the authority this change removes.
-  const raw = readCode('data', 'klup-search-index.json')
+  // Reading or storing it would recreate the authority this change removes.
   for (const token of ['browse_visibility', 'qa_only', 'visibility', 'is_public']) {
-    assert.equal(raw.includes(token), false, `the artefact must not record "${token}"`)
+    assert.equal(SEARCH_PRODUCT_SELECT.includes(token), false, `the index must not read "${token}"`)
+  }
+  for (const p of INDEX.products) {
+    assert.deepEqual(
+      Object.keys(p).sort(),
+      ['aliasKeys', 'brand', 'kind', 'label', 'slug'],
+      `${p.slug} carries a field beyond the entity`,
+    )
   }
 })
 
@@ -672,7 +687,6 @@ test('every outcome carries exactly one resolution from the contract vocabulary'
 
 /** A fixture family, so the mechanism is testable before WP-2 lands. */
 const FAMILY_FIXTURE: SearchIndex = {
-  generatedFrom: 'fixture',
   products: INDEX.products,
   families: [
     {
@@ -1290,16 +1304,57 @@ test('decorative icons are hidden from assistive technology', () => {
 })
 
 /* ------------------------------------------------------------------ *
- * 14. Index drift — the CI check (§8.4)
+ * 14. The index follows the live supported set (PAN-147)
+ *
+ * There is no committed artefact left to drift. The resolve route builds the
+ * product section from live rows through `loadProductEntities()`, so what these
+ * tests guard is the loader: that it keeps exactly what the catalogue authority
+ * calls supported, that a failed read fails closed, and that a change to the
+ * supported set reaches search without a regeneration.
  * ------------------------------------------------------------------ */
 
-test('drift: the artefact family section equals the reviewed family config', () => {
-  const raw = JSON.parse(readCode('data', 'klup-search-index.json')) as SearchIndex
-  assert.deepEqual(
-    raw.families.map((f) => f.slug),
-    NAVIGATION_FAMILIES.map((f) => f.slug),
-    'regenerate the index after changing lib/families.ts',
+type StoredRow = (typeof SUPPORTED_PRODUCT_ROWS)[number] & {
+  status: string
+  support_state: string
+}
+
+/** Fetchers over an in-memory catalogue, in the shape the route's queries return. */
+function fakeFetchers(
+  rows: StoredRow[],
+  domainOf: (slug: string) => string | null = () => 'music',
+) {
+  return {
+    productRows: async () => ({ data: rows, error: null }),
+    domainRows: async (slugs: string[]) => ({
+      data: slugs.map((slug) => ({ slug, browse_domain: domainOf(slug) })),
+      error: null,
+    }),
+  }
+}
+
+const SUPPORTED_ROWS: StoredRow[] = SUPPORTED_PRODUCT_ROWS.map((row) => ({
+  ...row,
+  status: 'active',
+  support_state: 'supported',
+}))
+
+test('index loader: keeps exactly the supported music rows, slug-ordered, via productEntity()', async () => {
+  const [a, b, c, d, e] = SUPPORTED_ROWS
+  const rows: StoredRow[] = [
+    e,
+    { ...a, support_state: 'known' }, // a fetcher that forgot the filter cannot widen the index
+    c,
+    { ...b, status: 'inactive' },
+    d,
+    { ...SUPPORTED_ROWS[5], slug: 'fender-stratocaster' }, // a family label is never a product
+  ]
+  const entities = await loadProductEntities(
+    fakeFetchers(rows, (slug) => (slug === d.slug ? 'design' : slug === c.slug ? null : 'music')),
   )
+  assert.deepEqual(entities, [productEntity(e)], 'only the supported, active, music, non-family row survives')
+
+  const all = await loadProductEntities(fakeFetchers([...SUPPORTED_ROWS].reverse()))
+  assert.deepEqual(all, SUPPORTED_PRODUCT_ROWS.map(productEntity), 'the whole fixture, in slug order')
 })
 
 /**
@@ -1338,30 +1393,47 @@ test('drift policy: CI or a release validation cannot degrade into a skip', () =
   assert.equal(liveVerificationDecision({} as NodeJS.ProcessEnv), 'declared_boundary')
 })
 
-test('drift (deterministic): the artefact is internally consistent — always runs', () => {
-  // Needs no credentials, so it can never be skipped. Everything that can be
-  // checked without the database is checked here.
-  const raw = JSON.parse(readCode('data', 'klup-search-index.json')) as SearchIndex
-  assert.ok(raw.generatedFrom.includes('support_state=supported'), 'provenance must be recorded')
-  assert.equal(
-    raw.generatedFrom.includes('browse_visibility'),
-    false,
-    'the artefact must not be generated on a visibility filter',
-  )
-  assert.deepEqual(
-    raw.products.map((p) => p.slug),
-    [...raw.products.map((p) => p.slug)].sort(),
-    'the artefact must be slug-ordered so a regeneration diff is readable',
-  )
-  assert.equal(
-    new Set(raw.products.map((p) => p.slug)).size,
-    raw.products.length,
-    'no duplicate identities',
-  )
-  assert.ok(raw.products.length >= PUBLIC_COHORT.size, 'the index must cover at least the public set')
+test('index loader: fails closed — a failed read is unavailability, never an empty catalogue', async () => {
+  const ok = fakeFetchers(SUPPORTED_ROWS)
+  const broken: Array<[string, Parameters<typeof loadProductEntities>[0]]> = [
+    ['product read error', { ...ok, productRows: async () => ({ data: null, error: { message: 'x' } }) }],
+    ['product read rejected', { ...ok, productRows: async () => { throw new Error('transport') } }],
+    ['product read not an array', { ...ok, productRows: async () => ({ data: {}, error: null }) }],
+    ['domain read error', { ...ok, domainRows: async () => ({ data: null, error: { message: 'x' } }) }],
+    ['domain read rejected', { ...ok, domainRows: async () => { throw new Error('transport') } }],
+  ]
+  for (const [what, fetchers] of broken) {
+    await assert.rejects(
+      loadProductEntities(fetchers),
+      (err: unknown) => err instanceof CatalogueUnavailableError,
+      `${what} must raise CatalogueUnavailableError (503), not return a thinner index`,
+    )
+  }
 })
 
-test('drift (live): the committed index equals the live supported cohort', async (t) => {
+test('freshness: supporting a product makes it searchable with no regeneration, unsupporting removes it', async () => {
+  // Boss CE-2 is public. Simulate the owner flipping its support axis in admin;
+  // nothing is rebuilt and nothing is redeployed — only the rows change.
+  const slug = 'boss-ce-2'
+  const publicSlugs = new Set([...PUBLIC_COHORT, slug])
+  const withSupport = (state: string) =>
+    SUPPORTED_ROWS.map((row) => (row.slug === slug ? { ...row, support_state: state } : row))
+  const indexFor = async (state: string) =>
+    buildSearchIndex(await loadProductEntities(fakeFetchers(withSupport(state))), NAVIGATION_FAMILIES)
+
+  const before = resolvePublic('ce-2', await indexFor('known'), publicSlugs)
+  assert.equal(before.navigateTo, null, 'an unsupported product must not be searchable')
+
+  for (const q of ['ce-2', 'Boss CE-2']) {
+    const after = resolvePublic(q, await indexFor('supported'), publicSlugs)
+    assert.equal(after.navigateTo, `/product/${slug}`, `"${q}" must reach the newly supported product`)
+  }
+
+  const withdrawn = resolvePublic('Boss CE-2', await indexFor('reserve'), publicSlugs)
+  assert.equal(withdrawn.navigateTo, null, 'an unsupported product must drop out')
+})
+
+test('live: the route loader builds a valid index from production', async (t) => {
   const decision = liveVerificationDecision(process.env)
 
   if (decision === 'fail_missing_credentials') {
@@ -1369,7 +1441,7 @@ test('drift (live): the committed index equals the live supported cohort', async
       'Live verification is REQUIRED for this run (CI=true or ' +
         'KLUP_REQUIRE_LIVE_VERIFICATION=1) but NEXT_PUBLIC_SUPABASE_URL / ' +
         'SUPABASE_SERVICE_ROLE_KEY are not set. A release must not report green ' +
-        'on an index nobody compared against the catalogue.',
+        'on an index loader nobody ran against the catalogue.',
     )
   }
 
@@ -1378,10 +1450,10 @@ test('drift (live): the committed index equals the live supported cohort', async
     // what was NOT verified, so a green local run cannot be mistaken for a
     // verified one.
     t.diagnostic(
-      'BOUNDARY: index-vs-live drift was NOT verified — no Supabase credentials. ' +
-        'Set KLUP_REQUIRE_LIVE_VERIFICATION=1 to make this a hard failure.',
+      'BOUNDARY: the index loader was NOT run against production — no Supabase ' +
+        'credentials. Set KLUP_REQUIRE_LIVE_VERIFICATION=1 to make this a hard failure.',
     )
-    t.skip('live drift unverified: no Supabase credentials (explicit boundary, not a pass)')
+    t.skip('live index unverified: no Supabase credentials (explicit boundary, not a pass)')
     return
   }
 
@@ -1392,7 +1464,24 @@ test('drift (live): the committed index equals the live supported cohort', async
     { auth: { persistSession: false } },
   )
 
-  // ALL supported identities — the index is no longer visibility-filtered.
+  // The route's own reads (app/api/search/resolve/route.ts), read-only.
+  const entities = await loadProductEntities({
+    productRows: async () => {
+      const r = await admin
+        .from('kg_product')
+        .select(SEARCH_PRODUCT_SELECT)
+        .eq('status', 'active')
+        .eq('support_state', 'supported')
+      return { data: r.data, error: r.error }
+    },
+    domainRows: async (slugs) => {
+      const r = await admin.from('browse_product_projection').select('slug, browse_domain').in('slug', slugs)
+      return { data: r.data, error: r.error }
+    },
+  })
+
+  // Cross-checked against a plain slug read, so a broken embed or select in the
+  // loader's query cannot silently shrink the index.
   const productsRes = await admin
     .from('kg_product')
     .select('slug')
@@ -1400,30 +1489,37 @@ test('drift (live): the committed index equals the live supported cohort', async
     .eq('support_state', 'supported')
     .order('slug')
   assert.equal(productsRes.error, null)
-
   const slugs = (productsRes.data ?? []).map((r) => (r as { slug: string }).slug)
-  const domainRes = await admin
-    .from('browse_product_projection')
-    .select('slug, browse_domain')
-    .in('slug', slugs)
+  const domainRes = await admin.from('browse_product_projection').select('slug, browse_domain').in('slug', slugs)
   assert.equal(domainRes.error, null)
-
   const live = (domainRes.data ?? [])
     .filter((r) => (r as { browse_domain?: string }).browse_domain === 'music')
     .map((r) => (r as { slug: string }).slug)
     .sort()
 
+  assert.deepEqual(entities.map((e) => e.slug), live, 'the loader and the catalogue disagree')
+
+  // The invariants the fixture tests assert, applied to production data: the
+  // owner's next support change is checked here, not at a regeneration.
+  const owners = new Map<string, string[]>()
+  for (const p of entities) {
+    assert.ok(p.label.length > 0 && p.brand.length > 0 && p.aliasKeys.length > 0, `${p.slug} is incomplete`)
+    for (const key of p.aliasKeys) owners.set(key, [...(owners.get(key) ?? []), p.slug])
+  }
   assert.deepEqual(
-    INDEXED_SLUGS,
-    live,
-    'the search index has drifted from the live supported cohort — run ' +
-      '`npx tsx frontend/scripts/build-search-index.ts`',
+    [...owners.entries()].filter(([, s]) => s.length > 1),
+    [],
+    'alias-key collisions between supported products',
   )
 })
 
-test('the index artefact and its generator are both committed', () => {
-  assert.ok(existsSync(join(FRONTEND, 'data', 'klup-search-index.json')))
-  assert.ok(existsSync(join(FRONTEND, 'scripts', 'build-search-index.ts')))
+test('the committed index artefact and its generator are gone, and nothing reads them', () => {
+  // A regenerated file would not be read, so it would only look authoritative.
+  assert.equal(existsSync(join(FRONTEND, 'data', 'klup-search-index.json')), false)
+  assert.equal(existsSync(join(FRONTEND, 'scripts', 'build-search-index.ts')), false)
+  for (const [name, src] of SEARCH_SOURCES) {
+    assert.equal(src.includes('klup-search-index'), false, `${name} must not read the retired artefact`)
+  }
 })
 
 /* ------------------------------------------------------------------ *

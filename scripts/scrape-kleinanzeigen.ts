@@ -9,6 +9,7 @@
  *   - Scrapes category search pages directly in this script
  *   - Conservative 3s rate limiting between products
  *   - Upserts on external_id + source using listing.url as the stable key
+ *   - Marks listings not seen for STALE_AFTER_DAYS inactive (complete runs only)
  *
  * Usage:
  *   npx tsx scripts/scrape-kleinanzeigen.ts
@@ -29,8 +30,10 @@ import { monitoredSlugs, assertResolved } from './lib/source-monitoring'
 // survived its own 2026-05 diagnosis.
 import {
   extractCardPriceOutcome,
+  mayReplaceStoredPrice,
   recordPriceOutcome,
   recordWriteGateRefusal,
+  type PriceReason,
 } from '../frontend/lib/scrapers/kleinanzeigen-price'
 import { extractCardLocation } from '../frontend/lib/scrapers/kleinanzeigen-location'
 import {
@@ -39,6 +42,8 @@ import {
 } from '../frontend/lib/listing-price-integrity'
 import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
 import { decodeHtmlEntities } from '../frontend/lib/html-entities'
+import { coverageIsComplete, evaluateRun, startRun, finishRun, type ListingSample } from './lib/scrape-health'
+import { baselineNotAttempted } from './lib/baseline'
 
 /**
  * Per-run price tally, emitted once at the end of the run.
@@ -89,6 +94,27 @@ const args = process.argv.slice(2)
 const limitArg = args.find(a => a.startsWith('--limit='))?.split('=')[1]
 const LIMIT = limitArg ? parseInt(limitArg, 10) : Infinity
 const productFilter = args.find(a => a.startsWith('--product='))?.split('=')[1]?.toLowerCase() ?? null
+// A targeted run (--product / --limit) looks at a subset, so it must never
+// conclude that a listing outside that subset is gone. Same rule as scrape-dba.
+const RUN_SCOPE: 'complete' | 'targeted' =
+  productFilter === null && LIMIT === Infinity ? 'complete' : 'targeted'
+
+/**
+ * A listing not seen for this long, by a run that looked at everything, is no
+ * longer counted as active (PAN-150).
+ *
+ * Chosen from production data (2026-09-25, read-only). The job runs daily. Of
+ * the rows last seen 1, 2, 3 and 4 runs before the latest, the counts are
+ * 114, 113, 141 and 150 — the same range as the 88–173 (mean 131) last seen on
+ * each of the 18 outage nights before them. If missed rows routinely came
+ * back, the youngest buckets would be inflated by rows still due to return;
+ * they are not, so waiting longer recovers almost nothing and keeps ~130 gone
+ * rows per extra day counted as active. Three days is also three consecutive
+ * daily misses, the threshold scrape-dba applies (DELIST_AFTER_MISSES).
+ *
+ * Reversible by construction: a re-seen row is upserted with is_active: true.
+ */
+const STALE_AFTER_DAYS = 3
 
 // ── Rate limiting ────────────────────────────────────────────────────────────
 const PRODUCT_DELAY_MS = 3000
@@ -132,6 +158,8 @@ function toDkkApprox(price: number, currency: string): number | null {
 type ScrapedListing = {
   title: string
   price: number | null
+  /** Why `price` is null, when it is. Decides whether a stored price may be replaced. */
+  priceReason: PriceReason | null
   currency: 'EUR'
   url: string
   image_url: string | null
@@ -220,6 +248,7 @@ function parseArticle(articleHtml: string): ScrapedListing | null {
   return {
     title,
     price,
+    priceReason: priceOutcome.reason,
     currency: 'EUR',
     url,
     image_url: imageUrl,
@@ -275,7 +304,7 @@ async function fetchKleinanzeigenSearch(
 async function scrapeKleinanzeigen(
   query: string,
   maxPages = 3,
-): Promise<ScrapedListing[]> {
+): Promise<{ listings: ScrapedListing[]; requestFailed: boolean }> {
   const normalized = normalizeQuery(query)
 
   const queries: string[] = [normalized]
@@ -284,23 +313,27 @@ async function scrapeKleinanzeigen(
   if (dehyphenated !== normalized) queries.push(dehyphenated)
 
   const all: ScrapedListing[] = []
+  // A failed variant is still skipped, but no longer silently: the stale sweep
+  // may only infer "gone" from a product whose every request succeeded.
+  let requestFailed = false
   for (let i = 0; i < queries.length; i++) {
     if (i > 0) await sleep(VARIANT_DELAY_MS)
     try {
       const results = await fetchKleinanzeigenSearch(queries[i], maxPages)
       all.push(...results)
     } catch {
-      // ignore individual query failures, try the next variant
+      requestFailed = true
     }
   }
 
   const seen = new Set<string>()
-  return all.filter((listing) => {
+  const listings = all.filter((listing) => {
     const id = extractListingId(listing.url)
     if (seen.has(id)) return false
     seen.add(id)
     return true
   })
+  return { listings, requestFailed }
 }
 
 type ProductRow = {
@@ -404,12 +437,12 @@ function buildRows(listings: ScrapedListing[]) {
    * timestamps and the `external_id` conflict target are untouched, only the
    * price field is neutralised.
    */
-  return listings.map((listing) => {
+  const built = listings.map((listing) => {
     // Guarded ONCE per listing. Two calls charged the run tally twice for the
     // same refusal, so the count the aggregate exists to report would be double
     // the truth.
     const price = guardedPrice(listing.price)
-    return {
+    const row = {
       title: listing.title,
       price,
       currency: listing.currency,
@@ -426,7 +459,17 @@ function buildRows(listings: ScrapedListing[]) {
       is_active: true,
       platform: 'kleinanzeigen',
     }
+    return { row, replacesPrice: mayReplaceStoredPrice(price, listing.priceReason) }
   })
+
+  return {
+    replacing: built.filter(b => b.replacesPrice).map(b => b.row),
+    // A failure to read is not an observation: these rows carry no price column
+    // at all, so a stored price survives and a new row is inserted without one.
+    keeping: built
+      .filter(b => !b.replacesPrice)
+      .map(({ row: { price: _price, price_dkk: _priceDkk, ...withoutPrice } }) => withoutPrice),
+  }
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
@@ -445,39 +488,78 @@ async function main() {
 
   console.log(`Loaded ${products.length} legendary products from knowledge graph.\n`)
 
+  /**
+   * One `scrape_run` row per run (PAN-150).
+   *
+   * The price-outcome tally used to exist only in the PM2 log on the Mac Mini,
+   * so 18 nights of 100% null prices were invisible from production data. The
+   * row carries the tally in `notes` and the quality gate's verdict in
+   * `status`. For this source the verdict is RECORDED, not enforced: rows are
+   * upserted directly, with no staging or promotion, so `quarantined` here
+   * excludes nothing. `startRun` logs its own failure; the scrape still runs.
+   */
+  const run = await startRun(supabase, 'kleinanzeigen')
+
   // One immutable identity for this execution, generated before any write.
   const ingestionBatchId = newIngestionBatchId()
   let scrapedProducts = 0
   let totalListings = 0
+  let failedProducts = 0
+  const samples: ListingSample[] = []
+  // One of requestsOk / requestFailures per product, as coverageIsComplete expects.
+  const coverage = { requestsOk: 0, requestFailures: 0, writeFailures: 0 }
 
   for (let i = 0; i < products.length; i++) {
     if (i > 0) await sleep(PRODUCT_DELAY_MS)
 
     const product = products[i]
-    const listings = await scrapeKleinanzeigen(product.query, 3)
-    const rows = buildRows(listings)
+    const { listings, requestFailed } = await scrapeKleinanzeigen(product.query, 3)
+    if (requestFailed) {
+      coverage.requestFailures += 1
+      failedProducts += 1
+    } else {
+      coverage.requestsOk += 1
+    }
+    const { replacing, keeping } = buildRows(listings)
+    const rowCount = replacing.length + keeping.length
+    for (const r of [...replacing, ...keeping.map(k => ({ ...k, price: null, price_dkk: null }))]) {
+      samples.push({
+        external_id: r.external_id, url: r.url, title: r.title,
+        price: r.price, currency: r.currency, price_dkk: r.price_dkk,
+      })
+    }
 
-    if (rows.length > 0) {
+    if (rowCount > 0) {
       // Every INSERT carries this run's identity. On conflict the database
       // trigger preserves the row's ORIGINAL identity, so a refreshed
       // historical row keeps its old (or NULL) value and is not new inflow.
-      const { error } = await supabase
+      //
+      // Two statements, not one: PostgREST writes every column that ANY row in
+      // a batch carries, so a row without `price` inside a batch that has it
+      // would be written NULL. A statement that never sends the column cannot
+      // touch it — the technique scripts/lib/reverb-category-seed.ts uses to
+      // protect name_da.
+      const upsert = (batch: object[]) => supabase
         .from('listings')
-        .upsert(rows.map(r => ({ ...r, ingestion_batch_id: ingestionBatchId })), {
+        .upsert(batch.map(r => ({ ...r, ingestion_batch_id: ingestionBatchId })), {
           onConflict: 'external_id,source',
           ignoreDuplicates: false,
         })
+      let error = replacing.length > 0 ? (await upsert(replacing)).error : null
+      if (!error && keeping.length > 0) error = (await upsert(keeping)).error
 
       if (error) {
         console.error(`[scrape-kleinanzeigen] ${product.canonical_name}: upsert failed (${error.message})`)
+        coverage.writeFailures += 1
+        if (!requestFailed) failedProducts += 1
         continue
       }
 
     }
 
     scrapedProducts += 1
-    totalListings += rows.length
-    console.log(`[scrape-kleinanzeigen] ${product.canonical_name}: ${rows.length} listings upserted`)
+    totalListings += rowCount
+    console.log(`[scrape-kleinanzeigen] ${product.canonical_name}: ${rowCount} listings upserted`)
   }
 
   console.log(`[scrape-kleinanzeigen] Done. ${scrapedProducts} products scraped, ${totalListings} listings total.`)
@@ -493,10 +575,70 @@ async function main() {
     }),
   )
 
-  // Bounded new-inflow matching: only the ids this run just wrote. Runs after
-  // the writes complete and never changes this script's exit status.
   // Only rows the DATABASE says this run inserted. A null lookup => 0 writes.
   const inserted = await fetchBatchListingIds(supabase, 'kleinanzeigen', ingestionBatchId)
+
+  // Closed before matching, so a matcher failure cannot leave the run open.
+  const newListings = inserted?.length ?? 0
+  const counters = {
+    productsAttempted: products.length,
+    productsFailed: failedProducts,
+    listingsFetched: samples.length,
+    listingsSaved: totalListings,
+    newListings,
+    // Not measured: the upsert does not report which rows changed price.
+    priceChanges: 0,
+    refoundListings: Math.max(totalListings - newListings, 0),
+  }
+  const { status, violations, metrics } = evaluateRun(
+    samples,
+    counters,
+    // No cohort identity is stamped for this source, so no baseline applies.
+    baselineNotAttempted('cohort_identity_incomplete'),
+  )
+
+  /**
+   * Stale sweep — the rule scrape-reverb applies, with the same precondition.
+   *
+   * "Not seen" is an inference about the SOURCE, valid only if this run looked
+   * at everything: every monitored product (no --product / --limit), every
+   * request answered, every write accepted. A `failed` verdict is untrusted for
+   * lifecycle by scrape-health's own rule, and a run that found almost nothing
+   * is more likely a markup change than an empty market — sweeping after it
+   * would deactivate the whole source.
+   */
+  let delisted = 0
+  const sweepAllowed =
+    RUN_SCOPE === 'complete' &&
+    status !== 'failed' &&
+    !violations.some(v => v.code === 'suspiciously_low_volume') &&
+    coverageIsComplete({ eligible: products.length, ...coverage })
+  if (!sweepAllowed) {
+    console.log('[scrape-kleinanzeigen] Skipping stale sweep: incomplete or untrusted run, so absence proves nothing.')
+  } else {
+    const cutoff = new Date(Date.now() - STALE_AFTER_DAYS * 24 * 60 * 60 * 1000).toISOString()
+    const { error: staleError, count } = await supabase
+      .from('listings')
+      .update({ is_active: false }, { count: 'exact' })
+      .eq('source', 'kleinanzeigen')
+      .eq('is_active', true)
+      .lt('scraped_at', cutoff)
+    if (staleError) {
+      console.error(`[scrape-kleinanzeigen] Stale sweep failed (${staleError.message})`)
+    } else {
+      delisted = count ?? 0
+      console.log(`[scrape-kleinanzeigen] Stale sweep: ${delisted} not seen for ${STALE_AFTER_DAYS} days marked inactive.`)
+    }
+  }
+
+  await finishRun(
+    supabase, run?.id ?? null, status, counters, metrics, violations, delisted,
+    // Static reason codes and counts only — the same payload as the log line.
+    JSON.stringify(priceTally),
+  )
+
+  // Bounded new-inflow matching: only the ids this run just wrote. Runs after
+  // the writes complete and never changes this script's exit status.
   reportBatchMatch(inserted === null
     ? { source: 'kleinanzeigen', considered: 0, matched: 0, rejected: 0, deferred: 0, skipped: 'batch_identity_lookup_failed' }
     : await matchScrapedBatch(supabase, 'kleinanzeigen', inserted))

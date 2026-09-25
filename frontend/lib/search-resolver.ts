@@ -327,7 +327,7 @@ export function resolveQuery(rawQuery: string, index: SearchIndex): SearchOutcom
       // The nearest set is computed even on a successful navigation, and is
       // simply unused when the navigation stands. It exists so that a target
       // the gate later refuses — a private supported product, or one withdrawn
-      // between the build and the request — can still degrade into "not
+      // since the index was read — can still degrade into "not
       // followed, here is the nearest" rather than a bare dead end.
       suggestions: relatedMatches(entities, effective)
         .entities.filter((e) => e.slug !== hit.slug)
@@ -390,11 +390,11 @@ export interface EligibilityFetchers {
  * Reduce a set of claimed product slugs to those that pass the FULL four-axis
  * predicate against live state.
  *
- * WHY THIS EXISTS. The index is a build artefact. Between deploys an operator
- * can depublish or unsupport a product through the promotion seam, and WP-1's
- * whole freshness correction was that a baked catalogue payload must never be
- * the authority. Re-checking here is what makes "no result links to a 404" true
- * rather than hoped for.
+ * WHY THIS EXISTS. The index is cached (see the resolve route), and meanwhile
+ * an operator can depublish or unsupport a product through the promotion seam.
+ * WP-1's whole freshness correction was that a baked catalogue payload must
+ * never be the authority. Re-checking here is what makes "no result links to a
+ * 404" true rather than hoped for.
  *
  * FAIL-CLOSED. A slug whose row is missing, whose axes cannot be read, or whose
  * `browse_domain` is not `music` is dropped. The caller surfaces a
@@ -478,8 +478,8 @@ export function applyEligibility(
   const guardFired = outcome.outcome === 'dangerous_alias_blocked'
 
   if (outcome.navigateTo && !navigateTo) {
-    // The target is private, or was withdrawn between the build and this
-    // request. Either way it stops being a navigation and never leaks as one.
+    // The target is private, or was withdrawn since the index was read.
+    // Either way it stops being a navigation and never leaks as one.
     const hasSet = candidates.length > 0
     return {
       ...outcome,

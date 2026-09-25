@@ -18,6 +18,7 @@ import { join } from 'node:path'
 import {
   extractCardPrice,
   extractCardPriceOutcome,
+  mayReplaceStoredPrice,
   parseGermanPrice,
   parseGermanPriceOutcome,
   recordPriceOutcome,
@@ -204,7 +205,8 @@ test('the 2026-09 card layout still yields the asking price', () => {
   // A negotiable card that states no amount stays absent — never fabricated.
   assert.equal(parseGermanPriceOutcome('VB').value, null)
   assert.equal(extractCardPriceOutcome(card('VB')).value, null)
-  assert.equal(extractCardPriceOutcome(card('VB')).reason, 'no_number')
+  // ...and says so: the seller stated no amount, which is not a parser miss.
+  assert.equal(extractCardPriceOutcome(card('VB')).reason, 'no_price_stated')
 
   // The heading is bold too, but it is an h3: its year must never be the price.
   assert.notEqual(extractCardPrice(card('490 €')), 1984)
@@ -590,6 +592,12 @@ test('the scraper counts every rejection and guards again at the write boundary'
   // in the retained PM2 error log, each carrying a listing URL.
   assert.ok(src.includes('recordPriceOutcome('), 'every parse outcome must be counted')
   assert.ok(src.includes("event: 'price_outcome_summary'"), 'and reported once per run')
+  // ...and persisted once per run: the PM2 log alone hid an 18-night outage.
+  assert.ok(src.includes("startRun(supabase, 'kleinanzeigen')"), 'the run must open a scrape_run row')
+  assert.ok(
+    /finishRun\([\s\S]{0,200}JSON\.stringify\(priceTally\)/.test(src),
+    'and close it carrying the tally',
+  )
   assert.ok(src.includes('guardedPrice('), 'the write boundary must re-check')
   assert.ok(src.includes('classifyKleinanzeigenPrice'), 'through the shared authority')
   assert.ok(src.includes('recordWriteGateRefusal('), 'a write-boundary refusal must still be counted')
@@ -608,6 +616,56 @@ test('the scraper counts every rejection and guards again at the write boundary'
       `an operational payload leaked ${leak}`,
     )
   }
+})
+
+test('the scraper retires unseen rows only after a run that looked at everything', () => {
+  // PAN-150: no delisting ran for this source, so every row since May counted
+  // as active. The sweep is the fix; a sweep after a partial or broken run
+  // would deactivate listings that are still live.
+  const src = readFileSync(join(ROOT, 'scripts', 'scrape-kleinanzeigen.ts'), 'utf8')
+  const sweeps = src.match(/\.update\(\{ is_active: false \}/g) ?? []
+  assert.equal(sweeps.length, 1, 'exactly one stale sweep')
+  assert.match(
+    src,
+    /const sweepAllowed =\s*RUN_SCOPE === 'complete' &&\s*status !== 'failed' &&\s*!violations\.some\(v => v\.code === 'suspiciously_low_volume'\) &&\s*coverageIsComplete\(/,
+    'the sweep must require a complete, trusted, non-empty, fully answered run',
+  )
+  assert.match(
+    src,
+    /if \(!sweepAllowed\) \{[\s\S]{0,200}\} else \{[\s\S]{0,200}\.update\(\{ is_active: false \}[^)]*\)\s*\.eq\('source', 'kleinanzeigen'\)\s*\.eq\('is_active', true\)\s*\.lt\('scraped_at', cutoff\)/,
+    'the sweep runs only behind the gate, on this source, by last-seen time',
+  )
+  assert.match(src, /const STALE_AFTER_DAYS = 3\n/)
+  // A failed request used to be swallowed, which would make a partial run look complete.
+  assert.match(src, /catch \{\s*requestFailed = true\s*\}/)
+})
+
+test('a stored price survives a card Klup failed to read, but not a seller who stated none', () => {
+  // PAN-150. The 2026-09 markup change made every card `no_number`, and the
+  // nightly upsert wrote NULL over 578 good prices that no backfill can restore.
+  const unreadable = extractCardPriceOutcome(
+    '<article data-adid="1"><h2><a href="/s-anzeige/x/1">Roland Juno-106</a></h2></article>',
+  )
+  assert.equal(unreadable.reason, 'no_number')
+  assert.equal(
+    mayReplaceStoredPrice(unreadable.value, unreadable.reason), false,
+    'a parser miss would erase a stored price',
+  )
+  // A write-gate refusal nulls a parsed value and carries no card reason.
+  assert.equal(mayReplaceStoredPrice(null, null), false, 'a write-gate refusal would erase a stored price')
+
+  // What the seller states is still written, including a stated absence.
+  for (const stated of ['VB', 'Zu verschenken', 'Preis auf Anfrage', '800 € VB']) {
+    const outcome = parseGermanPriceOutcome(stated)
+    assert.equal(mayReplaceStoredPrice(outcome.value, outcome.reason), true, `${stated} must replace the stored price`)
+  }
+
+  // The writer acts on it by sending no price column for those rows, in a
+  // statement of their own: inside a shared batch PostgREST would write NULL.
+  const src = readFileSync(join(ROOT, 'scripts', 'scrape-kleinanzeigen.ts'), 'utf8')
+  assert.ok(src.includes('replacesPrice: mayReplaceStoredPrice(price, listing.priceReason)'))
+  assert.ok(src.includes('.map(({ row: { price: _price, price_dkk: _priceDkk, ...withoutPrice } }) => withoutPrice)'))
+  assert.match(src, /await upsert\(replacing\)[\s\S]{0,120}await upsert\(keeping\)/)
 })
 
 test('price snapshots apply the same guard as the writer', () => {
