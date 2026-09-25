@@ -7,48 +7,36 @@
  * `supported` + `qa_only`. The operator also had to know that `public` alone
  * does nothing: 35 rows carry it while 14 have a page (PAN-23 audit).
  *
- * WHY THIS MODULE HAS NO IMPORTS. Like `lib/catalogue.ts`, the rules here are
- * the ones a route must not restate, so they have to be exercisable from a
- * plain Node test with no Next.js or Supabase in scope. It is ALSO client-safe
- * and must stay that way: `app/admin/products/page.tsx` imports it, and
- * `lib/catalogue.ts` is server-only, so an import from there would breach the
- * client/server boundary (see FAMILY_LABEL_SLUGS below).
+ * WHY THIS MODULE IMPORTS ONLY `./family-slugs`. Like `lib/catalogue.ts`, the
+ * rules here are the ones a route must not restate, so they have to be
+ * exercisable from a plain Node test with no Next.js or Supabase in scope. It
+ * is ALSO client-safe and must stay that way: `app/admin/products/page.tsx`
+ * imports it, and `lib/catalogue.ts` is server-only, so an import from there
+ * would breach the client/server boundary (see FAMILY_LABEL_SLUGS below). Its
+ * one import is itself import-free, so neither property is at risk.
  *
  * `status` is deliberately absent from every transition. It is a separate
  * lifecycle axis (ratified D-rule 4), and inactivating a monitored product can
  * stop a whole source's scraper.
  */
 
+import { FAMILY_SLUGS } from './family-slugs'
+
 export type PublicationAction = 'public' | 'qa' | 'hidden'
 
 /**
- * The navigation-family slugs, repeated here rather than imported (PAN-84).
+ * The navigation-family slugs, read from `lib/family-slugs.ts` (PAN-146).
  *
  * This module is CLIENT-SAFE — `app/admin/products/page.tsx` is a `use client`
- * module that imports it — while `lib/catalogue.ts`, which owns the same list,
- * is on the SERVER_ONLY list in `scripts/lib/wp4a-boundary.test.ts`. Importing
- * the predicate from there would give a client bundle a value-import path into
- * server-only catalogue state, and the boundary test fails on exactly that.
+ * module that imports it — while `lib/catalogue.ts` is on the SERVER_ONLY list
+ * in `scripts/lib/wp4a-boundary.test.ts`. Importing the predicate from there
+ * would give a client bundle a value-import path into server-only catalogue
+ * state, and the boundary test fails on exactly that. `family-slugs.ts` holds
+ * the slugs and nothing else, so reading it crosses no boundary.
  *
- * The slugs are not sensitive: each is already a public `/family/<slug>`
- * route. What matters is that the list cannot DRIFT, and that is enforced by
- * `scripts/lib/wp1-catalogue.test.ts`, which asserts this list, the one in
- * `lib/catalogue.ts` and `NAVIGATION_FAMILIES` in `lib/families.ts` are equal.
+ * The slugs are not sensitive: each is already a public `/family/<slug>` route.
  */
-export const FAMILY_LABEL_SLUGS = [
-  'gibson-les-paul',
-  'fender-stratocaster',
-  'fender-telecaster',
-  'gibson-es-335',
-  'fender-jazz-bass',
-  'fender-precision-bass',
-  // PAN-85. Unlike the six above, `rhodes` guards no existing row: the family
-  // has no `kg_product` row and must never be given one. See lib/catalogue.ts.
-  'rhodes',
-  // PAN-141. The Boss lines, the same case as `rhodes`.
-  'boss-ce-chorus',
-  'boss-dm-delay',
-]
+const FAMILY_LABEL_SLUGS: readonly string[] = FAMILY_SLUGS
 
 /** The fields each action writes. Nothing else is ever touched. */
 export const PUBLICATION_TRANSITION: Record<PublicationAction, Record<string, string>> = {

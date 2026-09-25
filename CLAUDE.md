@@ -111,8 +111,8 @@ functions own it:
 | May this product receive automatic matches? | `isMatchableProduct()` in [`frontend/lib/matching/match-listings.ts`](frontend/lib/matching/match-listings.ts) |
 
 Both are exact-match and fail-closed: a row whose support axis cannot be read
-is ineligible. `catalogue.ts` deliberately has no imports so the decision stays
-testable from plain Node.
+is ineligible. `catalogue.ts` deliberately imports nothing but the import-free
+`family-slugs.ts`, so the decision stays testable from plain Node.
 
 Identity, support, visibility, editorial tier and marketplace monitoring are
 **five separate concerns — never infer one from another.** In particular
@@ -124,8 +124,8 @@ operations are narrow and explicit. **A KG import must never widen monitoring.**
 **Publishing is one action, not several writes.** `/admin/products` offers
 `Public / QA / Hidden` and never the internal axes. The mapping and its
 preconditions are owned by
-[`frontend/lib/publication.ts`](frontend/lib/publication.ts) — import-free like
-`catalogue.ts` — and the route refuses before it writes, so a blocked Public
+[`frontend/lib/publication.ts`](frontend/lib/publication.ts) — as import-free
+as `catalogue.ts` — and the route refuses before it writes, so a blocked Public
 leaves no partial state. `status` is never written by a publication action: it
 is a separate lifecycle axis, and inactivating a monitored product stops that
 source's scraper via `assertResolved()`.
@@ -157,11 +157,15 @@ the commands rather than trusting a written total:** counts belong to the run,
 and the ones once recorded in this file went stale across three releases. The
 last verified pre-deploy gate is in release record §3.
 
-A fresh worktree has no dependencies installed, so `npm run typecheck` reports
-`tsc: command not found` and a few root tests fail on a missing
-`node_modules/.bin/tsx`. Those are environment failures, not regressions.
-Establish the baseline before you change anything and compare against your own
-run. **Never verify by invoking a production writer path.**
+A fresh worktree has no dependencies installed. Run `npm install` at the root
+**and** in `frontend/` before the baseline: `npm test` needs the root's `tsx`,
+and the frontend modules it tests import packages only `frontend/` declares
+(`cheerio`, for one). Without them you get `tsc: command not found` and failures
+on a missing `node_modules/.bin/tsx` — environment failures, not regressions.
+Scripts resolve packages from the root `package.json` too: 30 of the 46
+top-level `scripts/*.ts` do, 9 older ones still reach into
+`../frontend/node_modules/`, and 7 import no package. Establish the baseline
+before you change anything and compare against your own run. **Never verify by invoking a production writer path.**
 
 ---
 

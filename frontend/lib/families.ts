@@ -34,6 +34,7 @@
  */
 
 import { isCanonical, type CatalogueStateRow } from './catalogue'
+import { FAMILY_SLUGS, type FamilySlug } from './family-slugs'
 
 export interface NavigationFamily {
   /** Route segment for /family/<slug>, and the legacy kg_product slug it supersedes. */
@@ -81,10 +82,14 @@ export interface NavigationFamily {
  * migration 054 removed `335` as an identifier for exactly this reason — and
  * neither `Squier` nor `Epiphone` ever appears, because a sub-brand never
  * navigates up to its parent's family (§4.3).
+ *
+ * Keyed by slug, and the slugs come from `lib/family-slugs.ts` (PAN-146). The
+ * `Record` type makes a listed slug with no entry here, or an entry for an
+ * unlisted slug, a type error — so this file, `lib/catalogue.ts` and
+ * `lib/publication.ts` cannot disagree about which families exist.
  */
-export const NAVIGATION_FAMILIES: readonly NavigationFamily[] = [
-  {
-    slug: 'gibson-les-paul',
+const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
+  'gibson-les-paul': {
     label: 'Gibson Les Paul',
     brand: 'Gibson',
     categoryRoot: 'electric-guitars',
@@ -97,16 +102,14 @@ export const NAVIGATION_FAMILIES: readonly NavigationFamily[] = [
     ],
     aliases: ['les paul', 'lespaul', 'gibson les paul'],
   },
-  {
-    slug: 'fender-stratocaster',
+  'fender-stratocaster': {
     label: 'Fender Stratocaster',
     brand: 'Fender',
     categoryRoot: 'electric-guitars',
     children: ['fender-american-professional-ii-stratocaster'],
     aliases: ['stratocaster', 'strat', 'fender stratocaster', 'fender strat'],
   },
-  {
-    slug: 'fender-telecaster',
+  'fender-telecaster': {
     label: 'Fender Telecaster',
     brand: 'Fender',
     categoryRoot: 'electric-guitars',
@@ -117,32 +120,28 @@ export const NAVIGATION_FAMILIES: readonly NavigationFamily[] = [
     ],
     aliases: ['telecaster', 'tele', 'fender telecaster', 'fender tele'],
   },
-  {
-    slug: 'gibson-es-335',
+  'gibson-es-335': {
     label: 'Gibson ES-335',
     brand: 'Gibson',
     categoryRoot: 'electric-guitars',
     children: ['gibson-es-335-dot'],
     aliases: ['es-335', 'es335', 'gibson es-335'],
   },
-  {
-    slug: 'fender-jazz-bass',
+  'fender-jazz-bass': {
     label: 'Fender Jazz Bass',
     brand: 'Fender',
     categoryRoot: 'bass-guitars',
     children: [],
     aliases: ['jazz bass', 'j-bass', 'fender jazz bass'],
   },
-  {
-    slug: 'fender-precision-bass',
+  'fender-precision-bass': {
     label: 'Fender Precision Bass',
     brand: 'Fender',
     categoryRoot: 'bass-guitars',
     children: [],
     aliases: ['precision bass', 'p-bass', 'fender precision bass'],
   },
-  {
-    slug: 'rhodes',
+  rhodes: {
     /*
      * LABEL IS `Rhodes Electric Piano`, NOT bare `Rhodes`, for two measured
      * reasons rather than taste.
@@ -228,23 +227,27 @@ export const NAVIGATION_FAMILIES: readonly NavigationFamily[] = [
    * The labels are not a child's name, so the family stays choosable in a
    * disambiguation set (see `rhodes` above).
    */
-  {
-    slug: 'boss-ce-chorus',
+  'boss-ce-chorus': {
     label: 'Boss CE Chorus',
     brand: 'Boss',
     categoryRoot: 'effects-and-pedals',
     children: ['boss-ce-1', 'boss-ce-2', 'boss-ce-2w', 'boss-ce-3', 'boss-ce-5'],
     aliases: [],
   },
-  {
-    slug: 'boss-dm-delay',
+  'boss-dm-delay': {
     label: 'Boss DM Delay',
     brand: 'Boss',
     categoryRoot: 'effects-and-pedals',
     children: ['boss-dm-2', 'boss-dm-2w'],
     aliases: [],
   },
-]
+}
+
+/** Every family, in `FAMILY_SLUGS` order. */
+export const NAVIGATION_FAMILIES: readonly NavigationFamily[] = FAMILY_SLUGS.map((slug) => ({
+  slug,
+  ...FAMILY_CONFIG[slug],
+}))
 
 const FAMILY_BY_SLUG = new Map<string, NavigationFamily>(
   NAVIGATION_FAMILIES.map((family) => [family.slug, family]),

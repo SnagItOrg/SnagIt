@@ -39,8 +39,6 @@ import {
   isFamilySlug,
 } from '../../frontend/lib/families'
 
-import { FAMILY_LABEL_SLUGS as PUBLICATION_FAMILY_LABEL_SLUGS } from '../../frontend/lib/publication'
-
 import { translations } from '../../frontend/lib/i18n'
 
 const CANONICAL_ROW: CatalogueStateRow = {
@@ -497,32 +495,14 @@ test('family label: the set loaders drop it, which is where /api/discover leaked
 })
 
 /**
- * THE DRIFT GUARD — the test that makes three copies of six strings safe.
- *
- * The list cannot be derived, for two independent reasons:
- *   1. `lib/catalogue.ts` cannot import `lib/families.ts`, because families.ts
- *      already imports catalogue.ts for child selection — that is a cycle.
- *   2. `lib/publication.ts` cannot import either, because it is CLIENT-SAFE
- *      (app/admin/products/page.tsx is a `use client` module that imports it)
- *      while catalogue.ts is server-only — see wp4a-boundary.test.ts.
- *
- * So the slugs are duplicated deliberately, and drift is made impossible here
- * instead: add, remove or rename a family in `families.ts` without updating
- * both copies and this test fails.
+ * This test used to be THE DRIFT GUARD over three hand-kept copies of the
+ * family slugs. PAN-146 replaced the copies with one list, `lib/family-slugs.ts`,
+ * which catalogue.ts and publication.ts read and families.ts is keyed by
+ * (a missing or extra entry is a type error). The equality assertions could no
+ * longer fail, so they went; the slugless-row rule below is not about drift and
+ * is asserted nowhere else, so it stays.
  */
-test('family label: all three lists are identical, so the deny-list cannot drift', () => {
-  const fromFamilies = NAVIGATION_FAMILIES.map((f) => f.slug).sort()
-  assert.deepEqual([...FAMILY_LABEL_SLUGS].sort(), fromFamilies,
-    'FAMILY_LABEL_SLUGS in lib/catalogue.ts must list exactly the slugs in lib/families.ts')
-  assert.deepEqual([...PUBLICATION_FAMILY_LABEL_SLUGS].sort(), fromFamilies,
-    'FAMILY_LABEL_SLUGS in lib/publication.ts must list exactly the slugs in lib/families.ts')
-
-  // The two predicates must agree on every slug either of them knows about.
-  for (const slug of fromFamilies) {
-    assert.equal(isFamilyLabelSlug(slug), true, slug)
-    assert.equal(isFamilySlug(slug), true, slug)
-  }
-
+test('family label: a slugless row is never treated as a family label', () => {
   // A slugless row is not treated as a family: the guard must not become a
   // catalogue-wide outage for callers that select fewer columns.
   assert.equal(isFamilyLabelSlug(undefined), false)

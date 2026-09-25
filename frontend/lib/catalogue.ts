@@ -15,16 +15,19 @@
  *   - a slug present in lib/families.ts redirects to /family/<slug>;
  *   - an active+supported+qa_only row renders for a verified admin session.
  *
- * WHY THIS FILE HAS NO IMPORTS. It is the one place the five-axis product-state
- * model of CLAUDE.md §2 is turned into a runtime decision, so it must be
- * trivially testable from a plain Node context with no Next.js, Supabase or DOM
- * dependency. Callers pass a fetcher; this module owns the predicate.
+ * WHY THIS FILE IMPORTS ONLY `./family-slugs`. It is the one place the
+ * five-axis product-state model of CLAUDE.md §2 is turned into a runtime
+ * decision, so it must be trivially testable from a plain Node context with no
+ * Next.js, Supabase or DOM dependency. Callers pass a fetcher; this module owns
+ * the predicate. Its one import is itself import-free, so that still holds.
  *
  * FAIL-CLOSED. A row loaded without `support_state` — an old cached shape, a
  * partial select, a view that has not been refreshed — is NOT eligible. This
  * mirrors `isMatchableProduct` in lib/matching/match-listings.ts, which refuses
  * to match a product whose support axis it cannot read.
  */
+
+import { FAMILY_SLUGS } from './family-slugs'
 
 export const CANONICAL_STATUS = 'active' as const
 export const CANONICAL_SUPPORT = 'supported' as const
@@ -38,45 +41,16 @@ export type SupportState = 'known' | 'reserve' | 'supported'
 export type BrowseVisibility = 'public' | 'qa_only' | 'hidden'
 
 /**
- * The six legacy family-label slugs. A navigation family GROUPS variants and
- * never aggregates listings or prices (CLAUDE.md §7), so these rows may never
- * be a canonical product and may never receive automatic matches.
+ * The navigation-family slugs. A navigation family GROUPS variants and never
+ * aggregates listings or prices (CLAUDE.md §7), so these rows may never be a
+ * canonical product and may never receive automatic matches.
  *
- * WHY THIS LIST IS DUPLICATED FROM lib/families.ts RATHER THAN DERIVED.
- * `families.ts` already imports THIS module (`isCanonical`, for child
- * selection), so importing it back would be a cycle, not merely a violation of
- * the no-imports rule above. Inverting the dependency — owning the slugs here
- * and having `families.ts` consume them — was rejected only because PAN-84
- * forbids touching `families.ts`; it remains the cleaner long-term shape.
- *
- * A THIRD copy lives in `lib/publication.ts`, which cannot import this module
- * either: it is client-safe, and this one is server-only (wp4a-boundary.test).
- *
- * The duplication is therefore made safe by a TEST, not by discipline:
- * `scripts/lib/wp1-catalogue.test.ts` asserts all three lists — here, in
- * `lib/publication.ts` and NAVIGATION_FAMILIES in `lib/families.ts` — are
- * equal, so adding or removing a family without updating this one fails the
- * suite. See PAN-52 D8, which recommends exactly this shape, and rejects
- * "rely on review discipline" as not a guardrail at all.
+ * The list itself lives in `lib/family-slugs.ts`, the one import-free module
+ * this file, `lib/families.ts` and `lib/publication.ts` all read (PAN-146). It
+ * cannot live here: `families.ts` already imports this module, and
+ * `publication.ts` is client-safe while this one is server-only.
  */
-export const FAMILY_LABEL_SLUGS: readonly string[] = [
-  'gibson-les-paul',
-  'fender-stratocaster',
-  'fender-telecaster',
-  'gibson-es-335',
-  'fender-jazz-bass',
-  'fender-precision-bass',
-  // PAN-85. `rhodes` has NO `kg_product` row and must never be given one, so
-  // unlike the six above it does not guard a row that exists today. It is here
-  // because the guard is structural rather than reactive: if a `rhodes` row is
-  // ever created, it is refused as a priced page and as a match target at
-  // creation, instead of after someone notices a single band averaging a Stage
-  // against a Suitcase.
-  'rhodes',
-  // PAN-141. The Boss lines are the same case as `rhodes`: no row today.
-  'boss-ce-chorus',
-  'boss-dm-delay',
-]
+export const FAMILY_LABEL_SLUGS: readonly string[] = FAMILY_SLUGS
 
 const FAMILY_LABEL_SLUG_SET = new Set<string>(FAMILY_LABEL_SLUGS)
 
@@ -157,8 +131,8 @@ export function isAdminOnly(row: CatalogueStateRow | null | undefined): boolean 
  *
  * `taxonomy_state` is DERIVED, never stored: `browse_product_projection`
  * computes it from `subcategory_id` and the category's root mapping. It is
- * passed in rather than recomputed here, so this file keeps its no-imports
- * rule and there is still exactly one definition of "classified" — the view's.
+ * passed in rather than recomputed here, so this file still imports no database
+ * code and there is still exactly one definition of "classified" — the view's.
  */
 export const TAXONOMY_CLASSIFIED = 'classified' as const
 
