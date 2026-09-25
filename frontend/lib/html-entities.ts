@@ -16,6 +16,13 @@
  * and nothing else can be expressed. `String.prototype.replace` resumes
  * scanning *after* each match, so one pass consumes each entity once and never
  * re-reads what it just produced. `&amp;#39;` becomes `&#39;` and stops.
+ *
+ * **Why it lives in `frontend/lib`, and why it has no imports** (PAN-118).
+ * This is the one decoder for both trees. `scripts/` already imports from
+ * `frontend/lib` (the PM2 scrapers call the frontend scraper libraries), but
+ * the reverse is impossible — Next cannot import from `scripts/` — so the only
+ * place both trees can reach is here. Keeping it import-free lets the root
+ * `tsx --test` harness import it directly, like `listing-title.ts`.
  */
 
 /**

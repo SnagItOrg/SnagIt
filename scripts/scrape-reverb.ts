@@ -23,7 +23,7 @@ import * as fs from 'fs'
 // handoff below type-checks against the same SupabaseClient identity.
 import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
 import { classifyIngestionRun, coverageIsComplete } from './lib/scrape-health'
-import { decodeHtmlEntities } from './lib/html-entities'
+import { decodeHtmlEntities } from '../frontend/lib/html-entities'
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
 
 // ── Load env ─────────────────────────────────────────────────────────────────

@@ -22,7 +22,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { decodeHtmlEntities } from './html-entities'
+import { decodeHtmlEntities } from '../../frontend/lib/html-entities'
 
 const SCRIPTS = join(__dirname, '..')
 
@@ -126,7 +126,7 @@ test('a decoded title normalizes without the entity leaking in as a token', () =
 test('kleinanzeigen ingest: the title path uses the shared decode, not a local table', () => {
   const src = source('scrape-kleinanzeigen.ts')
 
-  assert.match(src, /import \{ decodeHtmlEntities \} from '\.\/lib\/html-entities'/)
+  assert.match(src, /import \{ decodeHtmlEntities \} from '\.\.\/frontend\/lib\/html-entities'/)
   assert.doesNotMatch(
     src,
     /function decodeHtmlEntities/,
@@ -139,7 +139,7 @@ test('kleinanzeigen ingest: the title path uses the shared decode, not a local t
 test('reverb ingest: the title is decoded once and normalized_text derives from it', () => {
   const src = source('scrape-reverb.ts')
 
-  assert.match(src, /import \{ decodeHtmlEntities \} from '\.\/lib\/html-entities'/)
+  assert.match(src, /import \{ decodeHtmlEntities \} from '\.\.\/frontend\/lib\/html-entities'/)
   assert.match(src, /const title = decodeHtmlEntities\(listing\.title\)/)
   assert.doesNotMatch(
     src,
