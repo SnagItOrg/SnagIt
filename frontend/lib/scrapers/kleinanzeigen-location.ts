@@ -26,38 +26,21 @@
  * the same two selectors, so they could drift. They no longer can.
  */
 
+import { decodeHtmlEntities } from '../html-entities'
+
 /** Postcode, then a place that may carry spaces, hyphens or a slash. */
 const POSTCODE_AND_PLACE = /^\d{5}\s+[A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß.\-/ ]*$/
 
 /**
- * The entity set the PM2 writer has always decoded, in its order.
+ * Decode, then strip tags, then collapse — the base `stripTags` order exactly.
  *
- * Lifted verbatim from `decodeHtmlEntities` in `scripts/scrape-kleinanzeigen.ts`
- * rather than imported: that helper is private to a PM2 script, and
- * `frontend/lib` importing from `scripts/` would invert the dependency across
- * the boundary `wp4a-boundary` guards. Moving it out would rewire the scraper's
- * own `stripTags` and `extractAttr`, which is more than this seam may change.
- *
- * The three umlauts are not decorative — someone added them to the base decoder
- * because they saw them in the source. Dropping them here would silently change
- * two behaviours: legacy markup would store a raw `M&uuml;nchen` in
- * `listings.location`, and the current-layout rule would return null outright,
- * because `&` and `;` are not in the place charset. Cheerio decodes at parse
- * time, so the admin path would keep working while the PM2 writer — the one that
- * writes the database — lost the location.
+ * The decode is the one shared decoder (PAN-118), the same call the PM2
+ * writer's `stripTags` makes for the title, so a card's title and its location
+ * cannot be decoded by two different rules. `&` and `;` are not in the place
+ * charset, so an entity left undecoded here would make the current-layout rule
+ * return null — and only for the PM2 writer, because cheerio has already
+ * decoded the admin path's bytes at parse time.
  */
-function decodeHtmlEntities(input: string): string {
-  return input
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&uuml;/g, 'ü')
-    .replace(/&ouml;/g, 'ö')
-    .replace(/&auml;/g, 'ä')
-}
-
-/** Decode, then strip tags, then collapse — the base `stripTags` order exactly. */
 function textOf(html: string): string {
   return decodeHtmlEntities(html)
     .replace(/<[^>]+>/g, ' ')

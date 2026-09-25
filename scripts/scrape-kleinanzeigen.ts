@@ -38,7 +38,7 @@ import {
   recoverKleinanzeigenPrice,
 } from '../frontend/lib/listing-price-integrity'
 import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
-import { decodeHtmlEntities } from './lib/html-entities'
+import { decodeHtmlEntities } from '../frontend/lib/html-entities'
 
 /**
  * Per-run price tally, emitted once at the end of the run.
