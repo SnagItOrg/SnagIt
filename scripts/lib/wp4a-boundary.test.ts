@@ -25,6 +25,8 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, dirname, resolve as resolvePath } from 'node:path'
 
+import { SUPPORTED_PRODUCT_ROWS } from './fixtures/search-supported-products'
+
 const ROOT = join(__dirname, '..', '..')
 /** The reviewed WP-4 tip this package branches from and must not disturb. */
 const WP4_TIP = '6980129e7fdd8e5c8cf05892ca325fe0aa1991fc'
@@ -41,7 +43,6 @@ const SERVER_ONLY = [
   'lib/families.ts',
   'lib/catalogue.ts',
   'lib/supabase-admin.ts',
-  'data/klup-search-index.json',
 ]
 
 function walkFiles(dir: string, out: string[] = []): string[] {
@@ -447,16 +448,13 @@ test('demand: the seeded term survives without reading family configuration', ()
 
 /** Supported today but NOT public: must never reach a browser. */
 function privateSupportedSlugs(): string[] {
-  const artefact = JSON.parse(
-    readFileSync(join(FRONTEND, 'data', 'klup-search-index.json'), 'utf8'),
-  ) as { products: Array<{ slug: string }> }
   const publicCohort = new Set([
     'korg-ms-20', 'moog-minimoog', 'rhodes-mark-i-stage-73', 'rhodes-mark-i-suitcase-73',
     'rhodes-mark-ii-stage-73', 'roland-juno-106', 'roland-juno-60', 'roland-jupiter-8',
     'roland-re-201', 'roland-sh-101', 'roland-tr-808', 'roland-tr-909', 'wurlitzer-200a',
     'yamaha-dx7',
   ])
-  return artefact.products.map((p) => p.slug).filter((s) => !publicCohort.has(s))
+  return SUPPORTED_PRODUCT_ROWS.map((p) => p.slug).filter((s) => !publicCohort.has(s))
 }
 
 export type BundleScan =
