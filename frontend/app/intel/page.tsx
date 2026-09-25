@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { fetchAllPages } from '@/lib/exhaustive-fetch'
 import { hasPlausibleListingPrice } from '@/lib/listing-price-integrity'
 import { isPriceEvidence, REVERB_SOURCE } from '@/lib/price-populations'
 import { IntelDashboard } from './IntelDashboard'
@@ -25,6 +26,7 @@ type SoldCompRow = {
 }
 
 type MatchWithListing = {
+  id: string
   product_id: string
   /** Three-valued adjudication. Only `true` is price evidence — PAN-93. */
   is_valid: boolean | null
@@ -97,18 +99,31 @@ async function loadIntelData(): Promise<IntelData> {
 
   const productIds = productRows.map((p) => p.id)
 
-  const { data: matches, error: matchesError } = await admin
-    .from('listing_product_match')
-    .select(
-      'product_id, is_valid, listings!inner(id, title, url, source, country, price, price_dkk, location, scraped_at)',
-    )
-    .in('product_id', productIds)
-    .eq('listings.is_active', true)
-    // Reverb rows carry country=null (PAN-134), so they are admitted by source.
-    .or(`country.in.(${MARKETS.join(',')}),source.eq.${REVERB_SOURCE}`, { referencedTable: 'listings' })
+  // Read to exhaustion (PAN-144). PostgREST caps a response at 1,000 rows, and
+  // this set was 2,495 on 2026-09-25: the unpaged read returned 1,000, and every
+  // median below was taken over whichever 1,000 the planner happened to return.
+  // `id` is unique, so pages cannot reorder across a boundary.
+  const matches = await fetchAllPages(
+    async (from, to) => {
+      const { data, error } = await admin
+        .from('listing_product_match')
+        .select(
+          'id, product_id, is_valid, listings!inner(id, title, url, source, country, price, price_dkk, location, scraped_at)',
+        )
+        .in('product_id', productIds)
+        .eq('listings.is_active', true)
+        // Reverb rows carry country=null (PAN-134), so they are admitted by source.
+        .or(`country.in.(${MARKETS.join(',')}),source.eq.${REVERB_SOURCE}`, { referencedTable: 'listings' })
+        .order('id', { ascending: true })
+        .range(from, to)
+      if (error) throw new Error(`Failed to load matched listings: ${error.message}`)
+      return (data ?? []) as unknown as MatchWithListing[]
+    },
+    (row) => row.id,
+  )
 
-  if (matchesError) {
-    throw new Error(`Failed to load matched listings: ${matchesError.message}`)
+  if (matches.truncated) {
+    throw new Error('Matched listings exceeded the page limit; refusing to compute medians on a partial set')
   }
 
   // The one dated per-product price series that exists.
@@ -145,7 +160,7 @@ async function loadIntelData(): Promise<IntelData> {
     else trends.set(row.kg_product_id, [{ at: row.sold_at, price_dkk: price }])
   }
 
-  const matchRows = (matches ?? []) as unknown as MatchWithListing[]
+  const matchRows = matches.rows
 
   const grouped = new Map<string, IntelListing[]>()
   for (const p of productRows) grouped.set(p.id, [])
