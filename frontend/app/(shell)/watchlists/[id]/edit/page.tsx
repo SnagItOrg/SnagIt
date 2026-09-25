@@ -20,6 +20,8 @@ export default function EditWatchlistPage() {
   const [loading,  setLoading]  = useState(true)
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState<string | null>(null)
+  // A flag, not a string: the message is resolved at render, in the current locale.
+  const [loadFailed, setLoadFailed] = useState(false)
 
   useEffect(() => {
     fetch(`/api/watchlists/${params.id}`)
@@ -31,13 +33,13 @@ export default function EditWatchlistPage() {
         setLoading(false)
       })
       .catch(() => {
-        setError('Kunne ikke hente overvågning.')
+        setLoadFailed(true)
         setLoading(false)
       })
   }, [params.id])
 
   async function handleDeleteWatchlist() {
-    if (!window.confirm('Er du sikker?')) return
+    if (!window.confirm(t.areYouSure)) return
     const res = await fetch(`/api/watchlists/${params.id}`, { method: 'DELETE' })
     if (res.ok) router.push('/watchlists')
   }
@@ -46,6 +48,7 @@ export default function EditWatchlistPage() {
     if (!query.trim()) return
     setSaving(true)
     setError(null)
+    setLoadFailed(false)
 
     const res = await fetch(`/api/watchlists/${params.id}`, {
       method: 'PATCH',
@@ -57,10 +60,12 @@ export default function EditWatchlistPage() {
       router.push('/watchlists')
     } else {
       const data = await res.json()
-      setError(data.error ?? 'Noget gik galt.')
+      setError(data.error ?? t.somethingWentWrong)
       setSaving(false)
     }
   }
+
+  const errorMessage = error ?? (loadFailed ? t.watchlistLoadError : null)
 
   return (
     <div className="flex-1 flex flex-col shell-offset">
@@ -69,11 +74,10 @@ export default function EditWatchlistPage() {
           {/* Heading */}
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4" style={{ color: 'var(--foreground)' }}>
-              Rediger{' '}
-              <span>Overvågning</span>
+              {t.editWatchlistHeading}
             </h1>
             <p className="text-lg" style={{ color: 'var(--muted-foreground)' }}>
-              Opdater hvad du jager efter, og juster din maksimalpris.
+              {t.editWatchlistSubtext}
             </p>
           </div>
 
@@ -95,7 +99,7 @@ export default function EditWatchlistPage() {
                     className="text-xs font-bold uppercase tracking-widest"
                     style={{ color: 'var(--muted-foreground)' }}
                   >
-                    Hvad leder du efter?
+                    {t.watchlistQueryLabel}
                   </label>
                   <div className="relative">
                     <Icon
@@ -107,7 +111,7 @@ export default function EditWatchlistPage() {
                       type="text"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="e.g. Mac Mini M4, Vintage Eames, cykel..."
+                      placeholder={t.watchlistQueryPlaceholder}
                       autoFocus
                       className="w-full rounded-2xl pl-14 pr-6 py-5 text-xl font-medium"
                     />
@@ -121,7 +125,7 @@ export default function EditWatchlistPage() {
                       className="text-xs font-bold uppercase tracking-widest"
                       style={{ color: 'var(--muted-foreground)' }}
                     >
-                      Prisgrænse
+                      {t.priceRange}
                     </label>
                     <div className="text-2xl font-black">
                       <span style={{ color: 'var(--foreground)' }}>
@@ -153,12 +157,12 @@ export default function EditWatchlistPage() {
                   </div>
                 </div>
 
-                {error && (
+                {errorMessage && (
                   <div
                     className="rounded-xl px-4 py-3 text-sm text-destructive-text"
                     style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}
                   >
-                    {error}
+                    {errorMessage}
                   </div>
                 )}
 
@@ -171,7 +175,7 @@ export default function EditWatchlistPage() {
                 >
                   {saving ? '…' : (
                     <>
-                      Gem ændringer
+                      {t.saveChanges}
                       <Icon
                         name="arrow_forward"
                         className="transition-transform group-hover:translate-x-1"
@@ -185,7 +189,7 @@ export default function EditWatchlistPage() {
                   onClick={handleDeleteWatchlist}
                   className="w-full py-3 rounded-xl text-sm font-medium transition-colors border border-destructive-border text-destructive-text hover:border-destructive"
                 >
-                  Slet overvågning
+                  {t.deleteWatchlist}
                 </button>
               </div>
             </div>
@@ -199,7 +203,7 @@ export default function EditWatchlistPage() {
               style={{ color: 'var(--muted-foreground)' }}
             >
               <Icon name="arrow_back" />
-              Tilbage
+              {t.back}
             </button>
           </div>
         </div>

@@ -371,6 +371,9 @@ export const translations = {
       // with no way to tell an empty review mode from a missing feature.
       signedOutNotice: 'Gennemgangstilstand kr\u00e6ver en admin-session, og denne browser er ikke logget ind som admin p\u00e5 dette dom\u00e6ne.',
       signIn: 'Log ind',
+      // PAN-145 — the admin's toggle into and out of review mode.
+      enterReview: 'Gennemgå matches',
+      exitReview: 'Afslut gennemgang',
       statusUnresolved: 'Uafklaret',
       statusReviewed: 'Gennemg\u00e5et',
       statusRejected: 'Afvist',
@@ -543,6 +546,31 @@ export const translations = {
     facetAll: 'Alle',
     debugModeOn: 'Debug mode: ON',
     debugModeOff: 'Debug mode: OFF',
+
+    // PAN-145 — public copy that was still hardcoded. The edit form reuses
+    // `priceRange` and `deleteWatchlist`. Its placeholder was English and
+    // named off-vertical examples (Mac Mini, Eames, cykel); it now names the
+    // same examples as `searchInputPlaceholder`.
+    editWatchlistHeading: 'Rediger Overvågning',
+    editWatchlistSubtext: 'Opdater hvad du jager efter, og juster din maksimalpris.',
+    watchlistQueryLabel: 'Hvad leder du efter?',
+    watchlistQueryPlaceholder: 'fx Juno-106, TR-808, DX7',
+    watchlistLoadError: 'Kunne ikke hente overvågning.',
+    somethingWentWrong: 'Noget gik galt.',
+    areYouSure: 'Er du sikker?',
+    saveChanges: 'Gem ændringer',
+    back: 'Tilbage',
+    notificationsHeading: 'Notifikationer',
+    notifEmailLabel: 'Email notifikationer',
+    notifEmailDesc: 'Modtag emails om nye deals og prisfald',
+    notifPushLabel: 'Push notifikationer',
+    notifPushDesc: 'Modtag push beskeder i browseren',
+    notifPriceDropsLabel: 'Prisfald',
+    notifPriceDropsDesc: 'Få besked når prisen falder på gemte produkter',
+    notifNewListingsLabel: 'Nye annoncer',
+    notifNewListingsDesc: 'Få besked om nye annoncer der matcher dine søgninger',
+    // Inline after a disabled toggle's label, so lower-case unlike `comingSoon`.
+    notifComingSoon: 'kommer snart',
 
     // PAN-136 — creating a brand from the new-product form.
     adminBrand: {
@@ -891,6 +919,8 @@ export const translations = {
     adminReview: {
       signedOutNotice: 'Review mode needs an admin session, and this browser is not signed in as an admin on this domain.',
       signIn: 'Sign in',
+      enterReview: 'Review matches',
+      exitReview: 'End review',
       statusUnresolved: 'Unresolved',
       statusReviewed: 'Reviewed',
       statusRejected: 'Rejected',
@@ -1054,6 +1084,27 @@ export const translations = {
     facetAll: 'All',
     debugModeOn: 'Debug mode: ON',
     debugModeOff: 'Debug mode: OFF',
+
+    // PAN-145 — public copy that was still hardcoded (see the `da` block).
+    editWatchlistHeading: 'Edit watchlist',
+    editWatchlistSubtext: 'Update what you are hunting for, and adjust your maximum price.',
+    watchlistQueryLabel: 'What are you looking for?',
+    watchlistQueryPlaceholder: 'e.g. Juno-106, TR-808, DX7',
+    watchlistLoadError: 'Could not load the watchlist.',
+    somethingWentWrong: 'Something went wrong.',
+    areYouSure: 'Are you sure?',
+    saveChanges: 'Save changes',
+    back: 'Back',
+    notificationsHeading: 'Notifications',
+    notifEmailLabel: 'Email notifications',
+    notifEmailDesc: 'Get emails about new deals and price drops',
+    notifPushLabel: 'Push notifications',
+    notifPushDesc: 'Get push messages in the browser',
+    notifPriceDropsLabel: 'Price drops',
+    notifPriceDropsDesc: 'Get notified when the price drops on saved products',
+    notifNewListingsLabel: 'New listings',
+    notifNewListingsDesc: 'Get notified about new listings that match your searches',
+    notifComingSoon: 'coming soon',
 
     // PAN-136 — creating a brand from the new-product form.
     adminBrand: {
