@@ -23,7 +23,6 @@ import {
   DANGEROUS_TERM_KEYS,
   SHADOW_BRAND_KEYS,
   allEntities,
-  loadSearchIndex,
   liveFamilyEntities,
   type SearchEntity,
   type SearchIndex,
@@ -41,6 +40,7 @@ import {
   type SearchOutcomeKind,
 } from '../../frontend/lib/search-resolver'
 import { NAVIGATION_FAMILIES } from '../../frontend/lib/families'
+import { fixtureSearchIndex } from './fixtures/search-supported-products'
 import {
   ROUTE_ACCESS,
   classifyPath,
@@ -66,9 +66,13 @@ const readSource = (...parts: string[]) =>
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, '')
 
-const INDEX = loadSearchIndex(NAVIGATION_FAMILIES)
+/**
+ * The supported cohort, built through the resolver's own `productEntity()` from
+ * a fixture snapshot rather than read out of a committed artefact (PAN-147).
+ */
+const INDEX = fixtureSearchIndex(NAVIGATION_FAMILIES)
 
-/** Every supported identity in the committed artefact — public AND private. */
+/** Every supported identity in the fixture — public AND private. */
 const INDEXED_SLUGS = INDEX.products.map((p) => p.slug).sort()
 
 /**

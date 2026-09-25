@@ -38,67 +38,9 @@ import { join } from 'node:path'
 
 import { NAVIGATION_FAMILIES } from '../lib/families'
 import { modelKey } from '../lib/model-key'
-
-type ProductRow = {
-  slug: string
-  canonical_name: string
-  model_name: string | null
-  era: string | null
-  year_released: number | null
-  kg_brand: { name: string } | { name: string }[] | null
-}
+import { productEntity, type SearchProductRow } from '../lib/search-index'
 
 const OUT_PATH = join(__dirname, '..', 'data', 'klup-search-index.json')
-
-function brandOf(row: ProductRow): string {
-  const b = Array.isArray(row.kg_brand) ? row.kg_brand[0] : row.kg_brand
-  return b?.name ?? ''
-}
-
-/** `Roland RE-201 (Space Echo)` -> `Space Echo`; no parenthetical -> null. */
-function parenthetical(name: string): string | null {
-  const m = name.match(/\(([^)]+)\)/)
-  return m ? m[1].trim() : null
-}
-
-/** `Roland RE-201 (Space Echo)` -> `Roland RE-201`. */
-function withoutParenthetical(name: string): string {
-  return name.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim()
-}
-
-/**
- * The autocomplete label, carrying its disambiguating qualifier (§8.2).
- *
- * A qualifier is only ever taken from reviewed catalogue data — an existing
- * parenthetical, then `era`, then `year_released`. Nothing is invented: a
- * product with no qualifier in the database gets a bare label rather than a
- * plausible-looking one, because a fabricated qualifier at the point of
- * navigation is worse than none.
- */
-function labelFor(row: ProductRow): string {
-  if (parenthetical(row.canonical_name)) return row.canonical_name
-  const qualifier = row.era ?? (row.year_released != null ? String(row.year_released) : null)
-  return qualifier ? `${row.canonical_name} (${qualifier})` : row.canonical_name
-}
-
-function aliasSourcesFor(row: ProductRow): string[] {
-  const brand = brandOf(row)
-  const model = row.model_name ?? ''
-  const bare = withoutParenthetical(row.canonical_name)
-  const paren = parenthetical(row.canonical_name)
-
-  const sources = [
-    row.slug.replace(/-/g, ' '),
-    row.canonical_name,
-    bare,
-    model,
-    brand && model ? `${brand} ${model}` : '',
-    paren ?? '',
-    brand && paren ? `${brand} ${paren}` : '',
-  ]
-
-  return sources.filter((s) => s.trim().length > 0)
-}
 
 function dedupeKeys(values: string[]): string[] {
   const out = new Set<string>()
@@ -107,16 +49,6 @@ function dedupeKeys(values: string[]): string[] {
     if (key.length > 0) out.add(key)
   }
   return Array.from(out).sort()
-}
-
-export function productEntity(row: ProductRow) {
-  return {
-    kind: 'product' as const,
-    slug: row.slug,
-    label: labelFor(row),
-    brand: brandOf(row),
-    aliasKeys: dedupeKeys(aliasSourcesFor(row)),
-  }
 }
 
 export function familyEntity(family: (typeof NAVIGATION_FAMILIES)[number]) {
@@ -155,7 +87,7 @@ async function main() {
     .order('slug')
 
   if (productsRes.error) throw new Error(`kg_product read failed: ${productsRes.error.message}`)
-  const candidates = (productsRes.data ?? []) as unknown as ProductRow[]
+  const candidates = (productsRes.data ?? []) as unknown as SearchProductRow[]
 
   // The music axis lives on the projection, and is read FOR THE CANDIDATE
   // SLUGS ONLY.

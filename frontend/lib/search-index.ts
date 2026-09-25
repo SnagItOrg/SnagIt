@@ -173,6 +173,91 @@ export function dedupeKeys(values: string[]): string[] {
 }
 
 /**
+ * One supported product, as `productEntity()` reads it: `kg_product` with its
+ * brand embedded.
+ */
+export interface SearchProductRow {
+  slug: string
+  canonical_name: string
+  model_name: string | null
+  era: string | null
+  year_released: number | null
+  kg_brand: { name: string } | { name: string }[] | null
+}
+
+function brandOf(row: SearchProductRow): string {
+  const b = Array.isArray(row.kg_brand) ? row.kg_brand[0] : row.kg_brand
+  return b?.name ?? ''
+}
+
+/** `Roland RE-201 (Space Echo)` -> `Space Echo`; no parenthetical -> null. */
+function parenthetical(name: string): string | null {
+  const m = name.match(/\(([^)]+)\)/)
+  return m ? m[1].trim() : null
+}
+
+/** `Roland RE-201 (Space Echo)` -> `Roland RE-201`. */
+function withoutParenthetical(name: string): string {
+  return name.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * The autocomplete label, carrying its disambiguating qualifier (§8.2).
+ *
+ * A qualifier is only ever taken from reviewed catalogue data — an existing
+ * parenthetical, then `era`, then `year_released`. Nothing is invented: a
+ * product with no qualifier in the database gets a bare label rather than a
+ * plausible-looking one, because a fabricated qualifier at the point of
+ * navigation is worse than none.
+ */
+function labelFor(row: SearchProductRow): string {
+  if (parenthetical(row.canonical_name)) return row.canonical_name
+  const qualifier = row.era ?? (row.year_released != null ? String(row.year_released) : null)
+  return qualifier ? `${row.canonical_name} (${qualifier})` : row.canonical_name
+}
+
+/**
+ * ALIASES ARE DERIVED, NEVER IMPORTED FROM THE MATCHER. `kg_identifier` and
+ * `synonym` exist and are tempting, but `lib/families.ts` is explicit that
+ * navigation aliases are never matcher aliases: the matcher's job is to decide
+ * whether a marketplace listing IS a product, and its identifier set is tuned
+ * for recall against noisy listing titles. Reusing it here would let a
+ * score-70 token become a navigation target. Aliases are therefore derived
+ * only from reviewed catalogue fields — brand, canonical name, model name and
+ * the parenthetical qualifier — plus the hand-reviewed map in
+ * `lib/synonyms.ts`.
+ */
+function aliasSourcesFor(row: SearchProductRow): string[] {
+  const brand = brandOf(row)
+  const model = row.model_name ?? ''
+  const bare = withoutParenthetical(row.canonical_name)
+  const paren = parenthetical(row.canonical_name)
+
+  const sources = [
+    row.slug.replace(/-/g, ' '),
+    row.canonical_name,
+    bare,
+    model,
+    brand && model ? `${brand} ${model}` : '',
+    paren ?? '',
+    brand && paren ? `${brand} ${paren}` : '',
+  ]
+
+  return sources.filter((s) => s.trim().length > 0)
+}
+
+/** The search entity for one supported product. */
+export function productEntity(row: SearchProductRow): SearchEntity {
+  return {
+    kind: 'product',
+    slug: row.slug,
+    label: labelFor(row),
+    brand: brandOf(row),
+    aliasKeys: dedupeKeys(aliasSourcesFor(row)),
+  }
+}
+
+/**
  * The family section, derived from reviewed code rather than the artefact.
  *
  * INTEGRATION: the families are now PASSED IN rather than imported here.
