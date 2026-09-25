@@ -191,7 +191,7 @@ async function fetchSchibstedSearch(
   // that we never saw, which cannot support delisting.
   let page = 1
   for (; page <= maxPages; page++) {
-    if (page > 1) await delay(1000)
+    if (page > 1) await delay(2000 + Math.random() * 2000)
 
     let pageRes: { listings: ScrapedListing[]; schemaValid: boolean; rawCount: number }
     try {
