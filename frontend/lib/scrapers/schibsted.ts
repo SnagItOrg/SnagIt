@@ -3,6 +3,7 @@ import type { Listing } from '../supabase'
 import { normalizeQuery } from '../query-normalizer'
 import { lookupSynonym } from '../synonyms'
 import { toDkkApprox } from '../currency'
+import { decodeHtmlEntities } from '../html-entities'
 
 type ScrapedListing = Omit<Listing, 'id' | 'scraped_at'>
 
@@ -122,7 +123,10 @@ async function fetchSchibstedPage(
       const currency = String(offers?.['priceCurrency'] ?? config.currency)
 
       return {
-        title: String(product['name']),
+        // JSON.parse undoes JSON escapes only. A marketplace that HTML-escapes
+        // the name inside the JSON-LD still leaves `62&#039;s` in the string,
+        // so decode once here, where the title enters Klup (PAN-114, PAN-118).
+        title: decodeHtmlEntities(String(product['name'])),
         price,
         currency,
         country: config.country,

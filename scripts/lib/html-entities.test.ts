@@ -23,8 +23,11 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { decodeHtmlEntities } from '../../frontend/lib/html-entities'
+import { extractCardLocation } from '../../frontend/lib/scrapers/kleinanzeigen-location'
+import { DBA_CONFIG, scrapeSchibsted } from '../../frontend/lib/scrapers/schibsted'
 
 const SCRIPTS = join(__dirname, '..')
+const FRONTEND = join(SCRIPTS, '..', 'frontend')
 
 const source = (file: string) => readFileSync(join(SCRIPTS, file), 'utf8')
 
@@ -151,4 +154,74 @@ test('reverb ingest: the title is decoded once and normalized_text derives from 
     /normalized_text: listing\.title/,
     'normalized_text must derive from the decoded title, not the escaped one',
   )
+})
+
+/* ── PAN-118: one decoder, reached from every frontend caller ────────────── */
+
+/**
+ * The fixture set every caller must agree on. PAN-118 found two more decoders
+ * in `frontend/`: a copy of the old seven-entity chain in the Kleinanzeigen
+ * location seam, and none at all on the Schibsted (dba.dk, Blocket, FINN)
+ * title path. Both now call the shared decoder, so each caller runs the same
+ * inputs and must give the decoder's own output.
+ */
+const PAN_118_FIXTURES: [string, string][] = [
+  ['Fender 62&#039;s Telecaster', "Fender 62's Telecaster"], // zero-padded: what the chain missed
+  ['Fender 62&#39;s Telecaster', "Fender 62's Telecaster"],
+  ['Tekst &amp;#39; bevaret', 'Tekst &#39; bevaret'], // one decode: literal text, not an apostrophe
+  ['Marshall & Sons', 'Marshall & Sons'], // a bare ampersand is the seller's text
+  ['Korg &notarealentity; MS-20', 'Korg &notarealentity; MS-20'], // unknown: verbatim, never dropped
+]
+
+test('PAN-118: the fixture set decodes as the ticket requires', () => {
+  for (const [input, expected] of PAN_118_FIXTURES) {
+    assert.equal(decodeHtmlEntities(input), expected, input)
+  }
+})
+
+test('PAN-118: the Kleinanzeigen location seam decodes exactly as the shared decoder', () => {
+  // Tier 1 returns any text, so it carries every fixture through `textOf`.
+  const card = (text: string) => `<article><div class="ad-listitem-location">${text}</div></article>`
+  for (const [input, expected] of PAN_118_FIXTURES) {
+    assert.equal(extractCardLocation(card(input)), expected, input)
+  }
+
+  // Inputs the old chain decoded differently. It knew `&#39;` but no other
+  // numeric entity and only three umlauts, and it took `&amp;` before the
+  // rest, so an escaped entity was decoded twice.
+  assert.equal(extractCardLocation(card('80331 M&#252;nchen')), '80331 München')
+  assert.equal(extractCardLocation(card('80331 M&#xFC;nchen')), '80331 München')
+  assert.equal(extractCardLocation(card('&Uuml;berlingen wei&szlig;')), 'Überlingen weiß')
+  assert.equal(extractCardLocation(card('&amp;uuml;')), '&uuml;')
+  assert.equal(extractCardLocation(card('&amp;quot;')), '&quot;')
+
+  const src = readFileSync(join(FRONTEND, 'lib', 'scrapers', 'kleinanzeigen-location.ts'), 'utf8')
+  assert.match(src, /import \{ decodeHtmlEntities \} from '\.\.\/html-entities'/)
+  assert.doesNotMatch(src, /function decodeHtmlEntities/, 'no local decoder beside the shared one')
+})
+
+test('PAN-118: the Schibsted title path (dba.dk, Blocket, FINN) decodes the JSON-LD name', async () => {
+  // JSON.parse undoes JSON escapes only; an HTML entity inside the JSON-LD
+  // string survives it. One page and one query variant, so no pagination delay.
+  const items = PAN_118_FIXTURES.map(([name], i) => ({
+    item: {
+      name,
+      url: `https://www.dba.dk/recommerce/forsale/item/${1000 + i}`,
+      offers: { price: '100', priceCurrency: 'DKK' },
+    },
+  }))
+  const page = JSON.stringify({ '@type': 'CollectionPage', mainEntity: { itemListElement: items } })
+  const html = `<html><head><script type="application/ld+json">${page}</script></head></html>`
+
+  const realFetch = globalThis.fetch
+  globalThis.fetch = (async () => new Response(html, { status: 200 })) as typeof fetch
+  try {
+    const listings = await scrapeSchibsted(DBA_CONFIG, 'telecaster', 1)
+    assert.deepEqual(
+      listings.map((l) => l.title),
+      PAN_118_FIXTURES.map(([, expected]) => expected),
+    )
+  } finally {
+    globalThis.fetch = realFetch
+  }
 })
