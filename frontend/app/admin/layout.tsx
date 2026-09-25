@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { SkipLink } from '@/components/SkipLink'
 
 const links = [
   { href: '/admin/users', label: 'Brugere', icon: 'group' },
@@ -19,6 +20,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-bg text-foreground flex">
+      <SkipLink label="Spring til indhold" />
+
       {/* Sidebar */}
       <aside
         className="hidden md:flex flex-col w-56 fixed top-0 left-0 h-full z-40"
@@ -96,7 +99,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
 
       {/* Content */}
-      <main className="flex-1 md:pl-56 pt-14 md:pt-0">
+      <main id="main-content" className="flex-1 md:pl-56 pt-14 md:pt-0">
         <div className="px-4 py-6 md:px-8 md:py-8 max-w-5xl">
           {children}
         </div>
