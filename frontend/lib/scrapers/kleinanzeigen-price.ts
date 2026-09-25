@@ -172,7 +172,19 @@ export function parseGermanPriceOutcome(raw: string | null | undefined): PriceOu
    */
   const match = text.match(/\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?/)
   const statesNoPrice = NO_PRICE_PATTERNS.some((pattern) => pattern.test(text))
-  if (!match) return { value: null, reason: statesNoPrice ? 'no_price_stated' : 'no_number' }
+  /**
+   * `VB` with no number is the seller stating no amount, so it is
+   * `no_price_stated`, not `no_number`. Only on this no-number path: next to a
+   * number, `VB` is a suffix on a real ask and must not trigger the
+   * currency-marker rule above (`VB 800` would lose its price).
+   *
+   * The split matters because `no_number` must mean "the parser read no
+   * number" — the signature of a markup change — and callers act on that
+   * difference (PAN-150).
+   */
+  if (!match) {
+    return { value: null, reason: statesNoPrice || /\bvb\b/i.test(text) ? 'no_price_stated' : 'no_number' }
+  }
   if (statesNoPrice && !isCurrencyMarked(text, match)) {
     return { value: null, reason: 'no_price_stated' }
   }
@@ -225,6 +237,26 @@ export function parseGermanPriceOutcome(raw: string | null | undefined): PriceOu
   if (!verdict.ok) return { value: null, reason: verdict.reason ?? 'above_impossible_bound' }
 
   return { value: recovered.value, reason: null, previous: recovered.previous }
+}
+
+/**
+ * May this card's result replace the price already stored for its listing?
+ *
+ * Only when it is an OBSERVATION: a price that survived every guard, or the
+ * seller's own statement that there is none (`no_price_stated` — "VB" alone,
+ * "Zu verschenken", "Preis auf Anfrage"). Anything else — `no_number`,
+ * `shipping_only`, an implausible value, a write-gate refusal — means Klup
+ * failed to read the card, and a failure to read is not evidence the price
+ * went away. Writing null for it is how the 2026-09 markup change erased 578
+ * good prices that no backfill can restore (PAN-148).
+ *
+ * "Store the raw price exactly as scraped" is kept, not bent: a stored price
+ * was scraped verbatim, and a null from a parser miss is not a scraped value
+ * at all. The cost is that a kept price can be older than `scraped_at`.
+ * A new listing still gets null: there is nothing stored to keep.
+ */
+export function mayReplaceStoredPrice(value: number | null, reason: PriceReason | null): boolean {
+  return value != null || reason === 'no_price_stated'
 }
 
 /** Remove struck-through old prices before any text is read from a fragment. */
@@ -303,8 +335,8 @@ function textOfElementWithClass(html: string, classPattern: string): string | nu
  *      costs a few lines to prefer it now rather than re-diagnose later.
  *   2. price metadata — `<meta itemprop="price">`. Present on the ad's own
  *      detail page (`content="800.00"`), absent from cards today.
- *   3. the dedicated price element — `…--price`. This is what today's cards
- *      carry, and what recovers the 800 EUR SH-101.
+ *   3. the dedicated price element — `…--price`. What recovers the 800 EUR
+ *      SH-101.
  *   4. the price/shipping wrapper — the previous behaviour, kept for older or
  *      A/B markup, but only after the old price has been removed so it can no
  *      longer concatenate.
@@ -406,10 +438,8 @@ function offerPriceFrom(node: unknown): number | null {
  * Fold one price outcome into a per-run tally.
  *
  * WHY THIS EXISTS. `no_price_stated` was the only refusal reason the scraper
- * did not log, and it turned out to carry 100% of the missing prices — the
- * defect was invisible in the run's own output for weeks. Counting is done
- * here rather than logged per advert so the volume stays bounded: one line per
- * run, whatever the listing count.
+ * did not log. Counting is done here rather than logged per advert so the
+ * volume stays bounded: one line per run, whatever the listing count.
  *
  * The tally holds counts only. No markup, no listing identity, no credential
  * can reach it, because nothing but static reason codes is ever used as a key.

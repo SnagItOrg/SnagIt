@@ -320,6 +320,8 @@ export async function finishRun(
   metrics: Record<string, number | null>,
   violations: Violation[],
   delistedListings: number,
+  /** Free text for `scrape_run.notes`. Omitted means the column is not touched. */
+  notes?: string,
 ): Promise<void> {
   if (!runId) return
   const { error } = await supabase
@@ -337,6 +339,7 @@ export async function finishRun(
       delisted_listings: delistedListings,
       ...metrics,
       violations,
+      ...(notes === undefined ? {} : { notes }),
     })
     .eq('id', runId)
   if (error) console.error(`[health] could not close run record: ${error.message}`)
