@@ -861,7 +861,7 @@ export default function ProductPage() {
                       href={reviewRequested ? `/product/${slug}` : `/product/${slug}?review=1`}
                       className="w-fit rounded-lg border border-line bg-surface-2 px-3 py-1 text-xs font-semibold text-ink-secondary transition-colors hover:bg-surface-3"
                     >
-                      {reviewRequested ? 'Afslut gennemgang' : 'Gennemgå matches'}
+                      {reviewRequested ? t.adminReview.exitReview : t.adminReview.enterReview}
                     </a>
                   </div>
                 )}

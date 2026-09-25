@@ -180,7 +180,7 @@ export default function ProfilePage() {
         <div className={cardClass} style={cardStyle}>
           <div className="flex items-center gap-2">
             <Icon name="notifications" style={{ fontSize: '20px', color: 'var(--foreground)' }} />
-            <h2 className="text-base font-bold text-foreground">Notifikationer</h2>
+            <h2 className="text-base font-bold text-foreground">{t.notificationsHeading}</h2>
           </div>
 
           {prefs === null ? (
@@ -198,17 +198,17 @@ export default function ProfilePage() {
           ) : (
             <div className="flex flex-col gap-4">
               {([
-                { key: 'email_enabled' as const, label: 'Email notifikationer',  desc: 'Modtag emails om nye deals og prisfald' },
-                { key: 'push_enabled'  as const, label: 'Push notifikationer',   desc: 'Modtag push beskeder i browseren', disabled: true },
-                { key: 'price_drops'   as const, label: 'Prisfald',              desc: 'Få besked når prisen falder på gemte produkter' },
-                { key: 'new_listings'  as const, label: 'Nye annoncer',          desc: 'Få besked om nye annoncer der matcher dine søgninger' },
+                { key: 'email_enabled' as const, label: t.notifEmailLabel,       desc: t.notifEmailDesc },
+                { key: 'push_enabled'  as const, label: t.notifPushLabel,        desc: t.notifPushDesc, disabled: true },
+                { key: 'price_drops'   as const, label: t.notifPriceDropsLabel,  desc: t.notifPriceDropsDesc },
+                { key: 'new_listings'  as const, label: t.notifNewListingsLabel, desc: t.notifNewListingsDesc },
               ] as { key: keyof NotifPrefs; label: string; desc: string; disabled?: boolean }[]).map(({ key, label, desc, disabled }) => (
                 <div key={key}>
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-sm font-medium text-foreground">
                         {label}
-                        {disabled && <span className="ml-2 text-xs text-muted-foreground italic">kommer snart</span>}
+                        {disabled && <span className="ml-2 text-xs text-muted-foreground italic">{t.notifComingSoon}</span>}
                       </span>
                       <span className="text-xs text-muted-foreground">{desc}</span>
                     </div>
