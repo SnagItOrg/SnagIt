@@ -131,7 +131,7 @@ test('PAN-93/2: a rejected match reaches neither the wall nor the evidence', () 
 
   const intel = strip(codeOf('app', 'intel', 'page.tsx'))
   assert.ok(intel.includes('isPriceEvidence(m.is_valid)'), '/intel uses the same predicate')
-  assert.ok(intel.includes("'product_id, is_valid,"), '/intel must read the column it filters on')
+  assert.ok(intel.includes('product_id, is_valid,'), '/intel must read the column it filters on')
   assert.equal(/is_valid\s*===\s*true/.test(intel), false, 'no second copy on /intel')
 })
 
