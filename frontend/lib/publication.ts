@@ -36,7 +36,7 @@ export type PublicationAction = 'public' | 'qa' | 'hidden'
  *
  * The slugs are not sensitive: each is already a public `/family/<slug>` route.
  */
-export const FAMILY_LABEL_SLUGS: readonly string[] = FAMILY_SLUGS
+const FAMILY_LABEL_SLUGS: readonly string[] = FAMILY_SLUGS
 
 /** The fields each action writes. Nothing else is ever touched. */
 export const PUBLICATION_TRANSITION: Record<PublicationAction, Record<string, string>> = {
