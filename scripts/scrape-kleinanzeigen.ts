@@ -9,6 +9,7 @@
  *   - Scrapes category search pages directly in this script
  *   - Conservative 3s rate limiting between products
  *   - Upserts on external_id + source using listing.url as the stable key
+ *   - Marks listings not seen for STALE_AFTER_DAYS inactive (complete runs only)
  *
  * Usage:
  *   npx tsx scripts/scrape-kleinanzeigen.ts
@@ -39,7 +40,7 @@ import {
 } from '../frontend/lib/listing-price-integrity'
 import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
 import { decodeHtmlEntities } from '../frontend/lib/html-entities'
-import { evaluateRun, startRun, finishRun, type ListingSample } from './lib/scrape-health'
+import { coverageIsComplete, evaluateRun, startRun, finishRun, type ListingSample } from './lib/scrape-health'
 import { baselineNotAttempted } from './lib/baseline'
 
 /**
@@ -91,6 +92,27 @@ const args = process.argv.slice(2)
 const limitArg = args.find(a => a.startsWith('--limit='))?.split('=')[1]
 const LIMIT = limitArg ? parseInt(limitArg, 10) : Infinity
 const productFilter = args.find(a => a.startsWith('--product='))?.split('=')[1]?.toLowerCase() ?? null
+// A targeted run (--product / --limit) looks at a subset, so it must never
+// conclude that a listing outside that subset is gone. Same rule as scrape-dba.
+const RUN_SCOPE: 'complete' | 'targeted' =
+  productFilter === null && LIMIT === Infinity ? 'complete' : 'targeted'
+
+/**
+ * A listing not seen for this long, by a run that looked at everything, is no
+ * longer counted as active (PAN-150).
+ *
+ * Chosen from production data (2026-09-25, read-only). The job runs daily. Of
+ * the rows last seen 1, 2, 3 and 4 runs before the latest, the counts are
+ * 114, 113, 141 and 150 — the same range as the 88–173 (mean 131) last seen on
+ * each of the 18 outage nights before them. If missed rows routinely came
+ * back, the youngest buckets would be inflated by rows still due to return;
+ * they are not, so waiting longer recovers almost nothing and keeps ~130 gone
+ * rows per extra day counted as active. Three days is also three consecutive
+ * daily misses, the threshold scrape-dba applies (DELIST_AFTER_MISSES).
+ *
+ * Reversible by construction: a re-seen row is upserted with is_active: true.
+ */
+const STALE_AFTER_DAYS = 3
 
 // ── Rate limiting ────────────────────────────────────────────────────────────
 const PRODUCT_DELAY_MS = 3000
@@ -277,7 +299,7 @@ async function fetchKleinanzeigenSearch(
 async function scrapeKleinanzeigen(
   query: string,
   maxPages = 3,
-): Promise<ScrapedListing[]> {
+): Promise<{ listings: ScrapedListing[]; requestFailed: boolean }> {
   const normalized = normalizeQuery(query)
 
   const queries: string[] = [normalized]
@@ -286,23 +308,27 @@ async function scrapeKleinanzeigen(
   if (dehyphenated !== normalized) queries.push(dehyphenated)
 
   const all: ScrapedListing[] = []
+  // A failed variant is still skipped, but no longer silently: the stale sweep
+  // may only infer "gone" from a product whose every request succeeded.
+  let requestFailed = false
   for (let i = 0; i < queries.length; i++) {
     if (i > 0) await sleep(VARIANT_DELAY_MS)
     try {
       const results = await fetchKleinanzeigenSearch(queries[i], maxPages)
       all.push(...results)
     } catch {
-      // ignore individual query failures, try the next variant
+      requestFailed = true
     }
   }
 
   const seen = new Set<string>()
-  return all.filter((listing) => {
+  const listings = all.filter((listing) => {
     const id = extractListingId(listing.url)
     if (seen.has(id)) return false
     seen.add(id)
     return true
   })
+  return { listings, requestFailed }
 }
 
 type ProductRow = {
@@ -465,12 +491,20 @@ async function main() {
   let totalListings = 0
   let failedProducts = 0
   const samples: ListingSample[] = []
+  // One of requestsOk / requestFailures per product, as coverageIsComplete expects.
+  const coverage = { requestsOk: 0, requestFailures: 0, writeFailures: 0 }
 
   for (let i = 0; i < products.length; i++) {
     if (i > 0) await sleep(PRODUCT_DELAY_MS)
 
     const product = products[i]
-    const listings = await scrapeKleinanzeigen(product.query, 3)
+    const { listings, requestFailed } = await scrapeKleinanzeigen(product.query, 3)
+    if (requestFailed) {
+      coverage.requestFailures += 1
+      failedProducts += 1
+    } else {
+      coverage.requestsOk += 1
+    }
     const rows = buildRows(listings)
     for (const r of rows) {
       samples.push({
@@ -492,7 +526,8 @@ async function main() {
 
       if (error) {
         console.error(`[scrape-kleinanzeigen] ${product.canonical_name}: upsert failed (${error.message})`)
-        failedProducts += 1
+        coverage.writeFailures += 1
+        if (!requestFailed) failedProducts += 1
         continue
       }
 
@@ -537,8 +572,43 @@ async function main() {
     // No cohort identity is stamped for this source, so no baseline applies.
     baselineNotAttempted('cohort_identity_incomplete'),
   )
+
+  /**
+   * Stale sweep — the rule scrape-reverb applies, with the same precondition.
+   *
+   * "Not seen" is an inference about the SOURCE, valid only if this run looked
+   * at everything: every monitored product (no --product / --limit), every
+   * request answered, every write accepted. A `failed` verdict is untrusted for
+   * lifecycle by scrape-health's own rule, and a run that found almost nothing
+   * is more likely a markup change than an empty market — sweeping after it
+   * would deactivate the whole source.
+   */
+  let delisted = 0
+  const sweepAllowed =
+    RUN_SCOPE === 'complete' &&
+    status !== 'failed' &&
+    !violations.some(v => v.code === 'suspiciously_low_volume') &&
+    coverageIsComplete({ eligible: products.length, ...coverage })
+  if (!sweepAllowed) {
+    console.log('[scrape-kleinanzeigen] Skipping stale sweep: incomplete or untrusted run, so absence proves nothing.')
+  } else {
+    const cutoff = new Date(Date.now() - STALE_AFTER_DAYS * 24 * 60 * 60 * 1000).toISOString()
+    const { error: staleError, count } = await supabase
+      .from('listings')
+      .update({ is_active: false }, { count: 'exact' })
+      .eq('source', 'kleinanzeigen')
+      .eq('is_active', true)
+      .lt('scraped_at', cutoff)
+    if (staleError) {
+      console.error(`[scrape-kleinanzeigen] Stale sweep failed (${staleError.message})`)
+    } else {
+      delisted = count ?? 0
+      console.log(`[scrape-kleinanzeigen] Stale sweep: ${delisted} not seen for ${STALE_AFTER_DAYS} days marked inactive.`)
+    }
+  }
+
   await finishRun(
-    supabase, run?.id ?? null, status, counters, metrics, violations, 0,
+    supabase, run?.id ?? null, status, counters, metrics, violations, delisted,
     // Static reason codes and counts only — the same payload as the log line.
     JSON.stringify(priceTally),
   )

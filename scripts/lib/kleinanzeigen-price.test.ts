@@ -616,6 +616,28 @@ test('the scraper counts every rejection and guards again at the write boundary'
   }
 })
 
+test('the scraper retires unseen rows only after a run that looked at everything', () => {
+  // PAN-150: no delisting ran for this source, so every row since May counted
+  // as active. The sweep is the fix; a sweep after a partial or broken run
+  // would deactivate listings that are still live.
+  const src = readFileSync(join(ROOT, 'scripts', 'scrape-kleinanzeigen.ts'), 'utf8')
+  const sweeps = src.match(/\.update\(\{ is_active: false \}/g) ?? []
+  assert.equal(sweeps.length, 1, 'exactly one stale sweep')
+  assert.match(
+    src,
+    /const sweepAllowed =\s*RUN_SCOPE === 'complete' &&\s*status !== 'failed' &&\s*!violations\.some\(v => v\.code === 'suspiciously_low_volume'\) &&\s*coverageIsComplete\(/,
+    'the sweep must require a complete, trusted, non-empty, fully answered run',
+  )
+  assert.match(
+    src,
+    /if \(!sweepAllowed\) \{[\s\S]{0,200}\} else \{[\s\S]{0,200}\.update\(\{ is_active: false \}[^)]*\)\s*\.eq\('source', 'kleinanzeigen'\)\s*\.eq\('is_active', true\)\s*\.lt\('scraped_at', cutoff\)/,
+    'the sweep runs only behind the gate, on this source, by last-seen time',
+  )
+  assert.match(src, /const STALE_AFTER_DAYS = 3\n/)
+  // A failed request used to be swallowed, which would make a partial run look complete.
+  assert.match(src, /catch \{\s*requestFailed = true\s*\}/)
+})
+
 test('price snapshots apply the same guard as the writer', () => {
   const src = readFileSync(join(ROOT, 'scripts', 'lib', 'price-observations.ts'), 'utf8')
   assert.ok(
