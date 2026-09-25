@@ -30,8 +30,10 @@ import { monitoredSlugs, assertResolved } from './lib/source-monitoring'
 // survived its own 2026-05 diagnosis.
 import {
   extractCardPriceOutcome,
+  mayReplaceStoredPrice,
   recordPriceOutcome,
   recordWriteGateRefusal,
+  type PriceReason,
 } from '../frontend/lib/scrapers/kleinanzeigen-price'
 import { extractCardLocation } from '../frontend/lib/scrapers/kleinanzeigen-location'
 import {
@@ -156,6 +158,8 @@ function toDkkApprox(price: number, currency: string): number | null {
 type ScrapedListing = {
   title: string
   price: number | null
+  /** Why `price` is null, when it is. Decides whether a stored price may be replaced. */
+  priceReason: PriceReason | null
   currency: 'EUR'
   url: string
   image_url: string | null
@@ -244,6 +248,7 @@ function parseArticle(articleHtml: string): ScrapedListing | null {
   return {
     title,
     price,
+    priceReason: priceOutcome.reason,
     currency: 'EUR',
     url,
     image_url: imageUrl,
@@ -432,12 +437,12 @@ function buildRows(listings: ScrapedListing[]) {
    * timestamps and the `external_id` conflict target are untouched, only the
    * price field is neutralised.
    */
-  return listings.map((listing) => {
+  const built = listings.map((listing) => {
     // Guarded ONCE per listing. Two calls charged the run tally twice for the
     // same refusal, so the count the aggregate exists to report would be double
     // the truth.
     const price = guardedPrice(listing.price)
-    return {
+    const row = {
       title: listing.title,
       price,
       currency: listing.currency,
@@ -454,7 +459,17 @@ function buildRows(listings: ScrapedListing[]) {
       is_active: true,
       platform: 'kleinanzeigen',
     }
+    return { row, replacesPrice: mayReplaceStoredPrice(price, listing.priceReason) }
   })
+
+  return {
+    replacing: built.filter(b => b.replacesPrice).map(b => b.row),
+    // A failure to read is not an observation: these rows carry no price column
+    // at all, so a stored price survives and a new row is inserted without one.
+    keeping: built
+      .filter(b => !b.replacesPrice)
+      .map(({ row: { price: _price, price_dkk: _priceDkk, ...withoutPrice } }) => withoutPrice),
+  }
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
@@ -505,24 +520,33 @@ async function main() {
     } else {
       coverage.requestsOk += 1
     }
-    const rows = buildRows(listings)
-    for (const r of rows) {
+    const { replacing, keeping } = buildRows(listings)
+    const rowCount = replacing.length + keeping.length
+    for (const r of [...replacing, ...keeping.map(k => ({ ...k, price: null, price_dkk: null }))]) {
       samples.push({
         external_id: r.external_id, url: r.url, title: r.title,
         price: r.price, currency: r.currency, price_dkk: r.price_dkk,
       })
     }
 
-    if (rows.length > 0) {
+    if (rowCount > 0) {
       // Every INSERT carries this run's identity. On conflict the database
       // trigger preserves the row's ORIGINAL identity, so a refreshed
       // historical row keeps its old (or NULL) value and is not new inflow.
-      const { error } = await supabase
+      //
+      // Two statements, not one: PostgREST writes every column that ANY row in
+      // a batch carries, so a row without `price` inside a batch that has it
+      // would be written NULL. A statement that never sends the column cannot
+      // touch it — the technique scripts/lib/reverb-category-seed.ts uses to
+      // protect name_da.
+      const upsert = (batch: object[]) => supabase
         .from('listings')
-        .upsert(rows.map(r => ({ ...r, ingestion_batch_id: ingestionBatchId })), {
+        .upsert(batch.map(r => ({ ...r, ingestion_batch_id: ingestionBatchId })), {
           onConflict: 'external_id,source',
           ignoreDuplicates: false,
         })
+      let error = replacing.length > 0 ? (await upsert(replacing)).error : null
+      if (!error && keeping.length > 0) error = (await upsert(keeping)).error
 
       if (error) {
         console.error(`[scrape-kleinanzeigen] ${product.canonical_name}: upsert failed (${error.message})`)
@@ -534,8 +558,8 @@ async function main() {
     }
 
     scrapedProducts += 1
-    totalListings += rows.length
-    console.log(`[scrape-kleinanzeigen] ${product.canonical_name}: ${rows.length} listings upserted`)
+    totalListings += rowCount
+    console.log(`[scrape-kleinanzeigen] ${product.canonical_name}: ${rowCount} listings upserted`)
   }
 
   console.log(`[scrape-kleinanzeigen] Done. ${scrapedProducts} products scraped, ${totalListings} listings total.`)

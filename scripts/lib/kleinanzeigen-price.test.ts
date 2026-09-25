@@ -18,6 +18,7 @@ import { join } from 'node:path'
 import {
   extractCardPrice,
   extractCardPriceOutcome,
+  mayReplaceStoredPrice,
   parseGermanPrice,
   parseGermanPriceOutcome,
   recordPriceOutcome,
@@ -637,6 +638,34 @@ test('the scraper retires unseen rows only after a run that looked at everything
   assert.match(src, /const STALE_AFTER_DAYS = 3\n/)
   // A failed request used to be swallowed, which would make a partial run look complete.
   assert.match(src, /catch \{\s*requestFailed = true\s*\}/)
+})
+
+test('a stored price survives a card Klup failed to read, but not a seller who stated none', () => {
+  // PAN-150. The 2026-09 markup change made every card `no_number`, and the
+  // nightly upsert wrote NULL over 578 good prices that no backfill can restore.
+  const unreadable = extractCardPriceOutcome(
+    '<article data-adid="1"><h2><a href="/s-anzeige/x/1">Roland Juno-106</a></h2></article>',
+  )
+  assert.equal(unreadable.reason, 'no_number')
+  assert.equal(
+    mayReplaceStoredPrice(unreadable.value, unreadable.reason), false,
+    'a parser miss would erase a stored price',
+  )
+  // A write-gate refusal nulls a parsed value and carries no card reason.
+  assert.equal(mayReplaceStoredPrice(null, null), false, 'a write-gate refusal would erase a stored price')
+
+  // What the seller states is still written, including a stated absence.
+  for (const stated of ['VB', 'Zu verschenken', 'Preis auf Anfrage', '800 € VB']) {
+    const outcome = parseGermanPriceOutcome(stated)
+    assert.equal(mayReplaceStoredPrice(outcome.value, outcome.reason), true, `${stated} must replace the stored price`)
+  }
+
+  // The writer acts on it by sending no price column for those rows, in a
+  // statement of their own: inside a shared batch PostgREST would write NULL.
+  const src = readFileSync(join(ROOT, 'scripts', 'scrape-kleinanzeigen.ts'), 'utf8')
+  assert.ok(src.includes('replacesPrice: mayReplaceStoredPrice(price, listing.priceReason)'))
+  assert.ok(src.includes('.map(({ row: { price: _price, price_dkk: _priceDkk, ...withoutPrice } }) => withoutPrice)'))
+  assert.match(src, /await upsert\(replacing\)[\s\S]{0,120}await upsert\(keeping\)/)
 })
 
 test('price snapshots apply the same guard as the writer', () => {

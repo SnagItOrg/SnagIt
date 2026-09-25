@@ -239,6 +239,26 @@ export function parseGermanPriceOutcome(raw: string | null | undefined): PriceOu
   return { value: recovered.value, reason: null, previous: recovered.previous }
 }
 
+/**
+ * May this card's result replace the price already stored for its listing?
+ *
+ * Only when it is an OBSERVATION: a price that survived every guard, or the
+ * seller's own statement that there is none (`no_price_stated` — "VB" alone,
+ * "Zu verschenken", "Preis auf Anfrage"). Anything else — `no_number`,
+ * `shipping_only`, an implausible value, a write-gate refusal — means Klup
+ * failed to read the card, and a failure to read is not evidence the price
+ * went away. Writing null for it is how the 2026-09 markup change erased 578
+ * good prices that no backfill can restore (PAN-148).
+ *
+ * "Store the raw price exactly as scraped" is kept, not bent: a stored price
+ * was scraped verbatim, and a null from a parser miss is not a scraped value
+ * at all. The cost is that a kept price can be older than `scraped_at`.
+ * A new listing still gets null: there is nothing stored to keep.
+ */
+export function mayReplaceStoredPrice(value: number | null, reason: PriceReason | null): boolean {
+  return value != null || reason === 'no_price_stated'
+}
+
 /** Remove struck-through old prices before any text is read from a fragment. */
 function stripOldPrice(html: string): string {
   return html.replace(
