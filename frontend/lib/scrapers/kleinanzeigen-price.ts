@@ -335,8 +335,8 @@ function textOfElementWithClass(html: string, classPattern: string): string | nu
  *      costs a few lines to prefer it now rather than re-diagnose later.
  *   2. price metadata — `<meta itemprop="price">`. Present on the ad's own
  *      detail page (`content="800.00"`), absent from cards today.
- *   3. the dedicated price element — `…--price`. This is what today's cards
- *      carry, and what recovers the 800 EUR SH-101.
+ *   3. the dedicated price element — `…--price`. What recovers the 800 EUR
+ *      SH-101.
  *   4. the price/shipping wrapper — the previous behaviour, kept for older or
  *      A/B markup, but only after the old price has been removed so it can no
  *      longer concatenate.
@@ -438,10 +438,8 @@ function offerPriceFrom(node: unknown): number | null {
  * Fold one price outcome into a per-run tally.
  *
  * WHY THIS EXISTS. `no_price_stated` was the only refusal reason the scraper
- * did not log, and it turned out to carry 100% of the missing prices — the
- * defect was invisible in the run's own output for weeks. Counting is done
- * here rather than logged per advert so the volume stays bounded: one line per
- * run, whatever the listing count.
+ * did not log. Counting is done here rather than logged per advert so the
+ * volume stays bounded: one line per run, whatever the listing count.
  *
  * The tally holds counts only. No markup, no listing identity, no credential
  * can reach it, because nothing but static reason codes is ever used as a key.
