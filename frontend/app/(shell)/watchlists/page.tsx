@@ -131,10 +131,13 @@ export default function WatchlistsPage() {
       <div className="flex-1 flex flex-col shell-offset">
         <MobileSearchBar />
         {showCreator ? (
-          <WatchlistCreatorPanel
-            onSave={(w) => { setWatchlists((prev) => [w, ...prev]); setShowCreator(false) }}
-            onClose={() => setShowCreator(false)}
-          />
+          // The panel replaces the list, so it needs the skip link's target too.
+          <main id="main-content" className="flex-1 flex flex-col">
+            <WatchlistCreatorPanel
+              onSave={(w) => { setWatchlists((prev) => [w, ...prev]); setShowCreator(false) }}
+              onClose={() => setShowCreator(false)}
+            />
+          </main>
         ) : (
           <main id="main-content" className="shell-wall flex-1 pt-6 pb-10 md:pt-8">
             <h1 className="text-2xl font-bold text-foreground mb-6">{t.watchlists}</h1>
