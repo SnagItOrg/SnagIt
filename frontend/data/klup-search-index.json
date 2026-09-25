@@ -23,6 +23,232 @@
     },
     {
       "kind": "product",
+      "slug": "arp-korg-arp-2600",
+      "label": "Korg ARP 2600",
+      "brand": "Arp",
+      "aliasKeys": [
+        "arpkorgarp2600",
+        "korgarp2600"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-ab-2",
+      "label": "Boss AB-2",
+      "brand": "Boss",
+      "aliasKeys": [
+        "ab2",
+        "bossab2"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-aw-3",
+      "label": "Boss AW-3",
+      "brand": "Boss",
+      "aliasKeys": [
+        "aw3",
+        "bossaw3"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-bd-2",
+      "label": "Boss BD-2",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bd2",
+        "bossbd2"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-bf-1",
+      "label": "Boss BF-1",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bf1",
+        "bossbf1"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-ce-1",
+      "label": "Boss CE-1",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossce1",
+        "ce1"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-ce-2",
+      "label": "Boss CE-2",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossce2",
+        "ce2"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-ce-2w",
+      "label": "Boss CE-2W",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossce2w",
+        "ce2w"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-ce-3",
+      "label": "Boss CE-3",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossce3",
+        "ce3"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-ce-5",
+      "label": "Boss CE-5",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossce5",
+        "ce5"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-ceb-3",
+      "label": "Boss CEB-3",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossceb3",
+        "ceb3"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-cs-3",
+      "label": "Boss CS-3",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bosscs3",
+        "cs3"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-dm-2",
+      "label": "Boss DM-2",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossdm2",
+        "dm2"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-dm-2w",
+      "label": "Boss DM-2W",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossdm2w",
+        "dm2w"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-dr-110-dr-rhythm",
+      "label": "BOSS DR-110 Dr. Rhythm",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossdr110drrhythm"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-dr-202-dr-groove",
+      "label": "BOSS DR-202 Dr. Groove",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossdr202drgroove"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-dr-220-dr-rhythm",
+      "label": "BOSS DR-220 Dr. Rhythm",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossdr220drrhythm"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-dr-55-dr-rhythm",
+      "label": "BOSS DR-55 Dr. Rhythm (1980)",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossdr55drrhythm"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-ds-1",
+      "label": "Boss DS-1",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossds1",
+        "ds1"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-ds-1x",
+      "label": "Boss DS-1X",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossds1x",
+        "ds1x"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-ds-2",
+      "label": "Boss DS-2",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bossds2",
+        "ds2"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-eq-200",
+      "label": "Boss EQ-200",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bosseq200",
+        "eq200"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "boss-es-5",
+      "label": "Boss ES-5",
+      "brand": "Boss",
+      "aliasKeys": [
+        "bosses5",
+        "es5"
+      ]
+    },
+    {
+      "kind": "product",
       "slug": "emu-sp-1200",
       "label": "E-mu SP-1200 (1987)",
       "brand": "E Mu",
@@ -43,12 +269,42 @@
     },
     {
       "kind": "product",
+      "slug": "fender-american-standard-telecaster",
+      "label": "Fender American Standard Telecaster",
+      "brand": "Fender",
+      "aliasKeys": [
+        "americanstandardtelecaster",
+        "fenderamericanstandardtelecaster"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "fender-american-ultra-ii-telecaster",
+      "label": "Fender American Ultra II Telecaster",
+      "brand": "Fender",
+      "aliasKeys": [
+        "americanultraiitelecaster",
+        "fenderamericanultraiitelecaster"
+      ]
+    },
+    {
+      "kind": "product",
       "slug": "fender-american-vintage-52-telecaster",
       "label": "Fender American Vintage '52 Telecaster",
       "brand": "Fender",
       "aliasKeys": [
         "americanvintage52telecaster",
         "fenderamericanvintage52telecaster"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "fender-jim-root-jazzmaster",
+      "label": "Fender Jim Root Jazzmaster",
+      "brand": "Fender",
+      "aliasKeys": [
+        "fenderjimrootjazzmaster",
+        "jimrootjazzmaster"
       ]
     },
     {
@@ -223,6 +479,27 @@
     },
     {
       "kind": "product",
+      "slug": "manley-ref-c",
+      "label": "Manley Reference Cardioid (1990s-)",
+      "brand": "Manley",
+      "aliasKeys": [
+        "manleyrefc",
+        "manleyreferencecardioid",
+        "referencecardioid"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "manley-reference-gold",
+      "label": "Manley Reference Gold",
+      "brand": "Manley",
+      "aliasKeys": [
+        "manleyreferencegold",
+        "referencegold"
+      ]
+    },
+    {
+      "kind": "product",
       "slug": "manley-voxbox",
       "label": "Manley VOXBOX (1990s-)",
       "brand": "Manley",
@@ -349,6 +626,52 @@
       "aliasKeys": [
         "markiistage73",
         "rhodesmarkiistage73"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-alpha-juno-1",
+      "label": "Roland Alpha Juno-1",
+      "brand": "Roland",
+      "aliasKeys": [
+        "rolandalphajuno1"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-alpha-juno-2",
+      "label": "Roland Alpha Juno 2",
+      "brand": "Roland",
+      "aliasKeys": [
+        "alphajuno2",
+        "rolandalphajuno2"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-cr-68",
+      "label": "Roland CR-68",
+      "brand": "Roland",
+      "aliasKeys": [
+        "rolandcr68"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-cr-78",
+      "label": "Roland CR-78",
+      "brand": "Roland",
+      "aliasKeys": [
+        "rolandcr78"
+      ]
+    },
+    {
+      "kind": "product",
+      "slug": "roland-cr-8000",
+      "label": "Roland CR-8000",
+      "brand": "Roland",
+      "aliasKeys": [
+        "rolandcr8000"
       ]
     },
     {
