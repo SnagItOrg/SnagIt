@@ -227,7 +227,7 @@ const ACCESSORY_TOKENS: readonly string[] = [
  * performance notes", which is an accessory-only listing.
  */
 const INCLUSION_MARKERS: readonly string[] = [
-  'inkl', 'inkl.', 'incl', 'incl.', 'including', 'included',
+  'inkl', 'inkl.', 'incl', 'incl.', 'including', 'included', 'includes', 'inklusive',
   'with', 'w/', 'med', 'mit', 'con',
   'komplett', 'komplet', 'complete', 'fullt', 'full set',
   'plus', '+', '&',
@@ -239,6 +239,31 @@ const INCLUSION_MARKERS: readonly string[] = [
  * `+`, `&` and `w/` are matched literally because they are punctuation, not
  * words; the rest are matched on word boundaries so `medium` is not `med` and
  * `within` is not `with`.
+ *
+ * BOTH boundaries (PAN-151 round 2). Until then only the left one was tested,
+ * so a marker fired as the PREFIX of any word: `con` in "Control", "Condition",
+ * "Condenser"; `med` in "Medallion"; `mit` in "MITSUBISHI"; `with` in
+ * "without". Measured over all 116,229 production titles against the supported
+ * index, 2 matched decisions change and 11,054 are identical. Both changes are
+ * "Roland TR-909 MITSUBISHI EPROM V4.0 latest firmware upgrade", a chip, now
+ * deferred. 36 intent findings change:
+ *   - 31 now defer correctly — covers, manuals, sliders, potentiometers and
+ *     EPROMs such as "… CONTROL FX - New Rotary potentiometer" and "Black
+ *     Plastic Control Cavity Cover Back Plate for Gibson SG";
+ *   - `includes` and `inklusive` had been markers only by that accident, so
+ *     they are now named. Without them five complete instruments would defer,
+ *     two of them matched: "Yamaha DX7 … - Includes Original RAM Cartridge",
+ *     "*Includes ROM3 Cartridge* Yamaha DX7 …", "Yamaha DX7S Synthesizer
+ *     Inklusive Sound Cartridge", "Roland Fantom-X8 … (includes … keyboard
+ *     cover)", "Elektron Digitone 1 - includes … dust cover";
+ *   - MEASURED RECALL COST, ACCEPTED: five complete instruments were retained
+ *     only because "Condition" or "Controller" preceded the noun, and now
+ *     defer: "Waldorf micro Q - … - Excellent Condition - Manual", "Alesis ion
+ *     - … Excellent Condition - Original Case - Manual", "Korg micro X
+ *     Synthesizer Controller - … - Manual", "Novation FLkey 37 MIDI Keyboard
+ *     Controller [DUST COVER INCLUDED!]" and "Teenage Engineering OP-Z
+ *     Synthesizer - Good condition, replacement power knob". None is a
+ *     supported product, and deferral writes no row.
  */
 export function earliestInclusionMarker(text: string): number {
   let earliest = -1
@@ -248,7 +273,7 @@ export function earliestInclusionMarker(text: string): number {
       idx = text.indexOf(marker)
     } else {
       const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      const m = new RegExp(`(?<![\\w-])${escaped}`, 'i').exec(text)
+      const m = new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`, 'i').exec(text)
       idx = m ? m.index : -1
     }
     if (idx !== -1 && (earliest === -1 || idx < earliest)) earliest = idx

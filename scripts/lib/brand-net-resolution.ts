@@ -28,10 +28,12 @@
  *      reach resolution): a word is a line of brand B when it appears in the
  *      clean model names of B alongside at least two DIFFERENT further
  *      identities — `Juno` (-60, -106, -D, -G, …), `Cube` (Street, Lite, …),
- *      `Jaguar` (Kurt Cobain, Johnny Marr). A KG row whose whole model name IS
- *      a line (`fender-jaguar` = "Jaguar", `moog-minimoog` = "Minimoog") is
- *      withheld from the identity index, so a bare line can never resolve to
- *      it — the PAN-125 `juno`/`cube` collision, structurally.
+ *      `Jaguar` (Kurt Cobain, Johnny Marr) — and is not merely a series word
+ *      that always qualifies a line written after it (`American`, `Standard`,
+ *      `Ultra`, round 2). A KG row whose whole model name IS a line
+ *      (`fender-jaguar` = "Jaguar", `moog-minimoog` = "Minimoog") is withheld
+ *      from the identity index, so a bare line can never resolve to it — the
+ *      PAN-125 `juno`/`cube` collision, structurally.
  *
  *   2. MODEL DESIGNATORS. `TD-11`, `JV1080`, `G-1000`, `Cube 30X`. The code
  *      pattern runs on the raw title BEFORE any stop-word logic, so a stop word
@@ -42,6 +44,17 @@
  *      because the KG has it — and is reported separately, since the live
  *      matcher would miss it.
  *
+ *   3. SERIES NAMES (round 2). D6 makes a series, a sub-brand and a signature
+ *      artist identity-forming, so a line written with one is a named model,
+ *      not family-only. Round 1 read only an unbroken run of words in front of
+ *      the line and misread three shapes the hand audit found: the series after
+ *      the line ("Stratocaster American Pro II", "Jazz Bass Vintera II 60s"),
+ *      the series around a generic word ("American Vintage II", "Classic Series
+ *      '50s", "Custom Shop 1959 Stratocaster" — `Custom Shop` is the matcher's
+ *      own IDENTITY_PHRASES), and the artist ("Stratocaster Eric Clapton
+ *      signature"). The same reading guards a KG match: "Pawn Shop Mustang
+ *      Bass" names more than the KG row "Mustang Bass", so it is a candidate.
+ *      Facets never join a name: finish, origin, condition, a bare year.
  * Only the title is evidence. The dba search page's JSON-LD `description` was
  * a verbatim copy of the title on every item measured (1,614 of 1,614), so it
  * is accepted and used only when it actually differs.
@@ -50,6 +63,7 @@
 import {
   buildMatchIndex,
   decideMatch,
+  IDENTITY_PHRASES,
   MATCHABLE_STATUS,
   MATCHABLE_SUPPORT_STATE,
   type MatchIndex,
@@ -88,6 +102,8 @@ export interface BrandNetContext {
   spellings: Map<string, Map<string, string[]>>
   /** Per brand: words that carry the brand inside them (`minimoog`). */
   brandWords: Map<string, Set<string>>
+  /** Per brand: words the KG writes in front of a line — series names. */
+  series: Map<string, Set<string>>
 }
 
 /**
@@ -110,15 +126,45 @@ const GENERIC_WORDS = new Set([
   'mint', 'brand', 'present', 'pre', 'owned', 'stock', 'hand', '2nd', 'the', 'and', 'with', 'for', 'of',
   'music', 'ny', 'nyt', 'brugt', 'flot', 'fin', 'pæn', 'sælges', 'stand', 'med', 'og', 'til', 'inkl',
   'incl', 'elektrisk', 'elektronisk', 'akustisk', 'original', 'org', 'orig', 'lh', 'left', 'lefthand',
-  'venstrehånds', 'relic',
+  'venstrehånds', 'relic', 'fra', 'af', 'en', 'et', 'str', 'strenget', 'artist', 'cbs', 'elbas', 'el', 'top', 'rør', 'rørforstærker',
+  'elektriske', 'trommer', 'elklaver', 'langhalset', 'fodpedal', 'sustainpedal', 'fretless', 'båndløs',
+  'sampler', 'expression',
   // origin — a facet under D6, never identity
-  'mexico', 'mex', 'mim', 'mij', 'japan', 'usa', 'us', 'made', 'in', 'shop',
+  'mexico', 'mex', 'mim', 'mij', 'japan', 'usa', 'us', 'made', 'in',
+  // a signature marker points at an artist name; it is never the name itself
+  'signature', 'signatur', 'sig', 'sign',
 ])
 
-/** Letter halves that are units or generations, not model codes: `30w`, `mk2`, `v2`. */
-const NON_MODEL_PREFIXES = new Set(['mk', 'mkii', 'mkiii', 'v', 'x', 'w', 'kg', 'cm', 'mm', 'hz', 'nr', 'no', 'str', 'stk', 'op'])
+/**
+ * Generic words that can sit INSIDE a series name, between two words that
+ * name it: `American Vintage II`, `Classic Series '50s`, `Aerodyne Special`,
+ * `Custom Shop 1959`. Anywhere else they are generic like the rest. Finishes,
+ * origins and conditions never bridge: they are facets under D6.
+ */
+const BRIDGE_WORDS = new Set(['vintage', 'series', 'special', 'custom', 'reissue', 'limited', 'edition', 'the', 'and', 'of'])
 
-const words = (s: string) => s.toLowerCase().split(/[^a-z0-9æøåäöüé]+/).filter(Boolean)
+/** Words that end a series name, read either way from its line: across them is another item. */
+const RIGHT_STOP_WORDS = new Set(['med', 'm', 'inkl', 'incl', 'with', 'w', 'og', 'and', 'til', 'for'])
+
+const SIGNATURE_MARKERS = new Set(['signature', 'signatur', 'sig', 'sign'])
+
+/** Sub-brand and series phrases the live matcher already treats as identity (PAN-153). */
+const PHRASES = IDENTITY_PHRASES.map((p) => p.split(' '))
+
+const isYear = (w: string) => /^(19|20)\d\d$/.test(w)
+/** A decade, a two-digit era or an anniversary: `60s`, `'57` (the apostrophe is gone by now), `75th`. */
+const isEra = (w: string) => /^\d\d(s|th)?$/.test(w)
+const isGeneration = (w: string) => /^(ii|iii|iv|mk(ii|iii|iv|\d))$/.test(w)
+
+/**
+ * Letter halves that are generations or counters, not model codes: `mk2`,
+ * `v2`, `nr5`. Units (`kg`, `mm`) are not here: a unit follows its number, so
+ * a unit-shaped PREFIX is a code (`Roland MM-4`).
+ */
+const NON_MODEL_PREFIXES = new Set(['mk', 'mkii', 'mkiii', 'v', 'x', 'w', 'nr', 'no', 'str', 'stk', 'op'])
+
+/** Apostrophes are dropped first, so `'50's` is `50s` and `’57` is `57`, never a stray `s`. */
+const words = (s: string) => s.toLowerCase().replace(/['’‘´`]/g, '').split(/[^a-z0-9æøåäöüé]+/).filter(Boolean)
 const normCode = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 
 /** Human form of a designator: `td17` -> `td-17`, `juno 60` -> `juno-60`, `sr-jv80-02` kept. */
@@ -139,10 +185,14 @@ function displayCode(raw: string): string {
  * bassman 100`). Anywhere else "fra 1997" or "str 44" would become a model.
  * Decades and ordinals (`60s`, `40th`) and wattages (`30w`) are never model
  * numbers; a four-digit year is refused after a word and accepted after a
- * two-letter code prefix (`sh 2000`).
+ * two-letter code prefix (`sh 2000`). A code WRITTEN as one — two or three
+ * capitals, then a plain number that is not a year or a decade (`RS 505`,
+ * `HP 1000`, `BA 330`) — is a designator wherever it stands; lower case
+ * (`str 44`, `kr 500`) and a roman numeral (`Champion II 50`) never are.
  */
 function extractDesignators(text: string, brand: string, lines: Set<string>, numberedLines: Set<string>): string[] {
-  const tokens = text.toLowerCase().split(/[\s,;:()[\]|/!?"'’.]+/).filter(Boolean)
+  const raw = text.split(/[\s,;:()[\]|/!?"'’.]+/).filter(Boolean)
+  const tokens = raw.map((t) => t.toLowerCase())
   const found: string[] = []
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i].replace(/^-+|-+$/g, '')
@@ -152,13 +202,18 @@ function extractDesignators(text: string, brand: string, lines: Set<string>, num
       if (NON_MODEL_PREFIXES.has(prefix)) continue
       // A bare single letter + single digit ("a4") is too weak on its own.
       if (prefix.length === 1 && !t.includes('-') && joined[2].length < 2) continue
-      found.push(displayCode(t))
+      // A generation written after the code is part of it: "SP404 MKII" is
+      // the MKII, never the plain SP-404.
+      if (/^mk-?(ii|iii|iv|\d)$/.test(tokens[i + 1] ?? '')) found.push(`${displayCode(t)}-${tokens[++i].replace('-', '')}`)
+      else found.push(displayCode(t))
       continue
     }
     const next = tokens[i + 1]
     if (!/^[a-z]{1,12}$/.test(t) || !next || !/^\d{1,4}[a-z]{0,3}$/.test(next)) continue
     const afterBrand = i > 0 && tokens[i - 1] === brand
-    if (!numberedLines.has(t) && (!afterBrand || lines.has(t))) continue
+    const writtenAsCode = /^[A-Z]{2,3}$/.test(raw[i]) && !/^[ivx]+$/.test(t) && /^\d{2,4}$/.test(next) &&
+      !/^(19|20)\d\d$/.test(next) && !(next.length === 2 && tokens[i + 2] === 's')
+    if (!numberedLines.has(t) && !writtenAsCode && (!afterBrand || lines.has(t))) continue
     if (NON_MODEL_PREFIXES.has(t) || GENERIC_WORDS.has(t)) continue
     if (/^(19|20)\d\d$/.test(next) && t.length > 2) continue // "fra 1988"; `sh 2000` survives
     if (/^\d+(w|s|st|nd|rd|th)$/.test(next)) continue
@@ -188,10 +243,13 @@ export function buildBrandNetContext(
   // word -> the distinct further identities it appears with, per brand.
   const remainders = new Map<string, Map<string, Set<string>>>()
   const brandWords = new Map<string, Set<string>>()
+  const cleanNames = new Map<string, string[][]>()
   for (const p of active) {
     const brand = brandOf(p)
     if (!brand || !p.model_name || !isCleanModelName(p.model_name)) continue
     const ws = words(p.model_name)
+    if (!cleanNames.has(brand)) cleanNames.set(brand, [])
+    cleanNames.get(brand)!.push(ws)
     for (const w of ws) {
       if (w !== brand && w.includes(brand)) {
         if (!brandWords.has(brand)) brandWords.set(brand, new Set())
@@ -212,8 +270,35 @@ export function buildBrandNetContext(
       const identities = Array.from(rests).filter(Boolean)
       if (identities.length >= 2) set.add(w)
     })
-    lines.set(brand, set)
+    // A SERIES word recurs too — `American` (Professional II, Ultra, Vintage
+    // II …) — but it always qualifies a line written after it: no KG name
+    // ends its run of line words with it. `Cube` ("Cube Lite"), `Minimoog`
+    // ("Minimoog Model D") and `Deluxe` ("Telecaster Deluxe") each end one.
+    const qualifiesOnly = (w: string) => (cleanNames.get(brand) ?? [])
+      .filter((ws) => ws.includes(w))
+      .every((ws) => ws.slice(ws.indexOf(w) + 1).some((x) => x !== w && set.has(x)))
+    lines.set(brand, new Set(Array.from(set).filter((w) => !qualifiesOnly(w))))
   })
+
+  // ── series words ───────────────────────────────────────────────────────
+  // Every naming word the KG writes in front of the brand's last line, in
+  // any active row — listing-title rows included, since they spell out real
+  // series ("Vintera II '60s Jazz Bass", "Player Plus Jazz Bass"). Only these
+  // are read as a series when a title puts them AFTER its line ("Stratocaster
+  // Player II"); in front of a line, naming order already says so.
+  const series = new Map<string, Set<string>>()
+  for (const p of active) {
+    const brand = brandOf(p)
+    const brandLines = brand ? lines.get(brand) : undefined
+    if (!brand || !brandLines || !p.model_name) continue
+    const ws = words(p.model_name)
+    const at = ws.map((w) => brandLines.has(w)).lastIndexOf(true)
+    for (const w of ws.slice(0, Math.max(at, 0))) {
+      if (w.length < 2 || /\d/.test(w) || GENERIC_WORDS.has(w) || w === brand) continue
+      if (!series.has(brand)) series.set(brand, new Set())
+      series.get(brand)!.add(w)
+    }
+  }
 
   // A row whose whole model name is one line ("Jaguar", "Minimoog") names a
   // family, not a terminal. Withheld from the identity index so no bare line
@@ -276,6 +361,8 @@ export function buildBrandNetContext(
     const keys = new Set<string>()
     for (const s of names) {
       keys.add(normCode(s.replace(/\([^)]*\)/g, '')))
+      // "'65 Twin Reverb Reissue" is what a seller writes as "'65 Twin Reverb".
+      keys.add(normCode(s.replace(/\([^)]*\)/g, '').replace(/\s+reissue\s*$/i, '')))
       for (const d of extractDesignators(s, brand, lines.get(brand) ?? new Set(), numberedLines.get(brand) ?? new Set())) {
         keys.add(normCode(d))
       }
@@ -283,7 +370,146 @@ export function buildBrandNetContext(
     keys.forEach((k) => { if (k) bySpelling.set(k, [...(bySpelling.get(k) ?? []), p.id]) })
   }
 
-  return { index, lines, numberedLines, spellings, brandWords }
+  return { index, lines, numberedLines, spellings, brandWords, series }
+}
+
+// ── reading a series name around a line ─────────────────────────────────────
+
+interface SeriesReader {
+  brand: string
+  brandWords: Set<string>
+  /** The line a title word names, or null. */
+  lineOf: (w: string) => string | null
+  /** The KG series word a title word is or abbreviates, or null. */
+  seriesWord: (w: string) => string | null
+}
+
+/** `w` itself when the set holds it, or the one member it abbreviates (`strat`, `pro`). */
+function uniqueExpansion(w: string, set: Set<string>): string | null {
+  if (set.has(w)) return w
+  if (w.length < 3 || GENERIC_WORDS.has(w)) return null
+  const full = Array.from(set).filter((x) => x.startsWith(w))
+  return full.length === 1 ? full[0] : null
+}
+
+/** An identity phrase (`custom shop`) whose last word is ws[i]; the fused `customshop` counts. */
+function phraseEndingAt(ws: string[], i: number): { words: string[]; span: number } | null {
+  for (const p of PHRASES) {
+    if (ws[i] === p.join('')) return { words: p, span: 1 }
+    const start = i - p.length + 1
+    if (start >= 0 && p.every((w, k) => ws[start + k] === w)) return { words: p, span: p.length }
+  }
+  return null
+}
+
+/** An identity phrase whose first word is ws[i]. */
+function phraseStartingAt(ws: string[], i: number): { words: string[]; span: number } | null {
+  for (const p of PHRASES) {
+    if (ws[i] === p.join('')) return { words: p, span: 1 }
+    if (p.every((w, k) => ws[i + k] === w)) return { words: p, span: p.length }
+  }
+  return null
+}
+
+/**
+ * The series name written IN FRONT OF ws[at], read leftwards to the brand.
+ * Naming order makes any plain word there part of the name — another line
+ * too (`American Deluxe Stratocaster`). A finish, origin
+ * or condition word is skipped and never becomes part of it; a bridge word,
+ * year or era (`Vintage`, `1959`, `'60s`) is kept only when enclosed by the
+ * name (`American Vintage II`, `Custom Shop 1959 Stratocaster`), and a
+ * leading era is kept with the name it prefixes (`'65 Twin Reverb`). A bare
+ * year alone is a facet (D6), so "1977 Fender Stratocaster" reads nothing.
+ */
+function seriesBefore(ws: string[], at: number, r: SeriesReader): string[] {
+  const anchor = r.lineOf(ws[at])
+  const name: string[] = []
+  let pending: string[] = []
+  let edge = at // the leftmost word read so far
+  for (let i = at - 1; i >= 0; i--) {
+    const w = ws[i]
+    if (w === r.brand || (r.brandWords.has(w) && !r.lineOf(w)) || RIGHT_STOP_WORDS.has(w)) break
+    // Another line is part of the name only when it touches it (`American
+    // Deluxe Stratocaster`); further off, or the same line again, it is
+    // another item.
+    if (r.lineOf(w) && (i !== edge - 1 || r.lineOf(w) === anchor)) break
+    const phrase = phraseEndingAt(ws, i)
+    if (phrase) {
+      name.unshift(...phrase.words, ...pending)
+      pending = []
+      i -= phrase.span - 1
+      edge = i
+      continue
+    }
+    if (BRIDGE_WORDS.has(w) || isYear(w) || isEra(w)) { pending.unshift(w); continue }
+    if (GENERIC_WORDS.has(w)) continue
+    if (!/^[a-zæøåäöüé]+$/.test(w)) break
+    name.unshift(w, ...pending)
+    pending = []
+    edge = i
+  }
+  if (name.length > 0 && pending.length > 0 && pending.every(isEra)) name.unshift(...pending)
+  return name
+}
+
+/**
+ * The series name written AFTER ws[at] ("Stratocaster American Pro II", "Jazz
+ * Bass Vintera II 60s"). Word order no longer says "this is a name" here, so
+ * only an identity phrase or a word the KG itself writes in front of a line
+ * counts; a generation or era counts once the name has begun. It stops at the
+ * brand, another line, a year, or a word that starts another item (`med`,
+ * `og`).
+ */
+function seriesAfter(ws: string[], at: number, r: SeriesReader): string[] {
+  const anchor = r.lineOf(ws[at]) ?? r.lineOf(ws[at - 1] ?? '') // "Jazz Bass": read after `bass`
+  const name: string[] = []
+  let pending: string[] = []
+  for (let i = at + 1; i < ws.length; i++) {
+    const w = ws[i]
+    const series = r.seriesWord(w)
+    if (anchor && r.lineOf(w) === anchor) break
+    if (!series && (w === r.brand || r.brandWords.has(w) || r.lineOf(w))) break
+    if (RIGHT_STOP_WORDS.has(w)) break
+    const phrase = phraseStartingAt(ws, i)
+    if (phrase) {
+      name.push(...pending, ...phrase.words)
+      pending = []
+      i += phrase.span - 1
+      continue
+    }
+    if (series || (name.length > 0 && (isGeneration(w) || isEra(w)))) {
+      name.push(...pending, w)
+      pending = []
+      continue
+    }
+    // A bridge word only bridges inside a name: before one it is a
+    // description ("Precision Bass Vintage American 60s"), and so is what
+    // follows a year ("Precision Bass 1968 … American Vintage 60s").
+    if (BRIDGE_WORDS.has(w)) { if (name.length === 0) break; pending.push(w); continue }
+    if (isYear(w)) break
+    if (isEra(w)) { pending.push(w); continue } // kept only if a name follows: "60th Anniversary"
+    if (GENERIC_WORDS.has(w)) continue
+    break
+  }
+  return name
+}
+
+/**
+ * The artist a signature marker points at: up to two plain words right
+ * before it ("Eric Clapton signature"), else right after it ("signatur Bonnie
+ * Raitt"). A signature artist is identity-forming under D6.
+ */
+function signatureArtist(ws: string[], r: SeriesReader): string[] {
+  const at = ws.findIndex((w) => SIGNATURE_MARKERS.has(w))
+  if (at === -1) return []
+  const isName = (w: string | undefined) => !!w && /^[a-zæøåäöüé]+$/.test(w) && !GENERIC_WORDS.has(w) &&
+    w !== r.brand && !r.brandWords.has(w) && !r.lineOf(w)
+  const before: string[] = []
+  for (let i = at - 1; before.length < 2 && isName(ws[i]); i--) before.unshift(ws[i])
+  if (before.length > 0) return before
+  const after: string[] = []
+  for (let i = at + 1; after.length < 2 && isName(ws[i]); i++) after.push(ws[i])
+  return after
 }
 
 /**
@@ -294,11 +520,16 @@ export function buildBrandNetContext(
  *   2. part / accessory / wanted: the matcher's intent guard,
  *      then the Danish accessory evidence below                -> noise
  *   3. decideMatch over the identity index                     -> kg_product | noise
+ *      … unless the title names a longer identity than the
+ *      matched model NAME (a series or artist in front of it)  -> candidate
  *   4. the brand is absent from the title, or only referenced  -> noise
  *   5. a designator                                            -> kg_product | candidate
- *   6. a model line, with series words before it               -> candidate
+ *   6. a model line, with a series or signature artist         -> kg_product | candidate
  *      a model line on its own                                 -> family_only
+ *      a signature artist and no line                          -> candidate
  *   7. a capitalised name right after the brand                -> candidate
+ *      any other name right after the brand, or right before
+ *      it when the brand ends the title                        -> candidate
  *   8. otherwise                                               -> brand_only
  */
 export function resolveBrandNetListing(
@@ -331,6 +562,51 @@ export function resolveBrandNetListing(
     return { kind: 'noise', reason: 'part_or_accessory', detail: danish }
   }
 
+  // Steps 3 and 5–7 each name a model. A model the KG holds under another
+  // spelling ("JV1080" for JV-1080, "Sirin" for a row whose model_name is
+  // NULL) is the KG's, not a candidate — and the live matcher would miss it, so
+  // it is reported apart as `via: 'spelling'`.
+  const spellings = ctx.spellings.get(brand) ?? new Map<string, string[]>()
+  const seriesWords = ctx.series.get(brand) ?? new Set<string>()
+  const held = (model: string) => spellings.get(normCode(model.replace(/\([^)]*\)/g, '')))
+  // `American Pro II Stratocaster` is held as "American Professional II
+  // Stratocaster". The abbreviation is expanded for the lookup only: "Pro
+  // Reverb" is a model of its own, so an unheld name keeps its own words.
+  const expanded = (model: string) =>
+    model.split(' ').map((w) => uniqueExpansion(w, seriesWords) ?? w).join(' ')
+  const named = (model: string, how: string): BrandNetResolution => {
+    const ids = held(model) ?? held(expanded(model))
+    return ids
+      ? { kind: 'kg_product', productIds: ids.slice().sort(), via: 'spelling', ambiguous: ids.length > 1,
+          detail: `${how} '${model}' held by the KG under another spelling` }
+      : { kind: 'candidate', model, detail: `${how} '${model}'` }
+  }
+  const brandWords = ctx.brandWords.get(brand) ?? new Set<string>()
+  const reader: SeriesReader = {
+    brand, brandWords,
+    // `strat`, `tele`: an abbreviation of exactly one line.
+    lineOf: (w) => uniqueExpansion(w, lines),
+    // `pro`: an abbreviation of exactly one series word.
+    seriesWord: (w) => uniqueExpansion(w, seriesWords),
+  }
+  const ws = words(title)
+  const artist = signatureArtist(ws, reader)
+
+  // A matched model NAME (no code) that the title writes with more identity in
+  // front of it — a series (`Pawn Shop Mustang Bass`, `American Professional
+  // II Telecaster Deluxe`) or a signature artist — names a longer identity
+  // than the KG row (D6). A code (`JX-8P`) identifies on its own: the words in
+  // front of it are nicknames ("Space Echo RE-201").
+  const longerIdentity = (id: string): BrandNetResolution | null => {
+    const p = ctx.index.productById.get(id)
+    if (!p?.model_name || /\d/.test(p.model_name)) return null
+    const mws = words(p.model_name)
+    const at = ws.findIndex((_, i) => mws.every((m, k) => ws[i + k] === m))
+    if (at === -1) return null
+    const more = [...artist.filter((a) => !mws.includes(a)), ...seriesBefore(ws, at, reader)]
+    return more.length > 0 ? named([...more, ...mws].join(' '), 'series + KG model') : null
+  }
+
   // 3. The KG, via the live matcher's decision core. A listing the matcher
   //    resolves to ANOTHER brand's product is still a KG listing — just not
   //    one of this brand's, so this net counts it as noise.
@@ -342,7 +618,7 @@ export function resolveBrandNetListing(
     return { kind: 'noise', reason: 'other_brand', detail: `KG product of '${otherBrand([decision.best.product_id])}'` }
   }
   if (decision.kind === 'matched') {
-    return {
+    return longerIdentity(decision.best.product_id) ?? {
       kind: 'kg_product', productIds: [decision.best.product_id], via: 'matcher', ambiguous: false,
       detail: `${decision.best.method} ${decision.best.score}`,
     }
@@ -389,7 +665,6 @@ export function resolveBrandNetListing(
 
   // 4. Everything below names THIS brand's models, so the title must name the
   //    brand — and as the offer, not as a reference deep in someone else's ad.
-  const brandWords = ctx.brandWords.get(brand) ?? new Set<string>()
   const haystack = extra ? `${title} ${extra}` : title
   const brandPresent =
     containsBrandToken(haystack, brand) || words(haystack).some((w) => brandWords.has(w))
@@ -406,59 +681,54 @@ export function resolveBrandNetListing(
     }
   }
 
-  // Steps 5–7 each name a model. A model the KG holds under another spelling
-  // ("JV1080" for JV-1080, "Sirin" for a row whose model_name is NULL) is the
-  // KG's, not a candidate — and the live matcher would miss it, so it is
-  // reported apart as `via: 'spelling'`.
-  const spellings = ctx.spellings.get(brand) ?? new Map<string, string[]>()
-  const held = (model: string) => spellings.get(normCode(model.replace(/\([^)]*\)/g, '')))
-  const named = (model: string, how: string): BrandNetResolution => {
-    const ids = held(model)
-    return ids
-      ? { kind: 'kg_product', productIds: ids.slice().sort(), via: 'spelling', ambiguous: ids.length > 1,
-          detail: `${how} '${model}' held by the KG under another spelling` }
-      : { kind: 'candidate', model, detail: `${how} '${model}'` }
-  }
-
   // 5. A model designator.
-  const designators = extractDesignators(title, brand, lines, ctx.numberedLines.get(brand) ?? new Set())
+  const designators = extractDesignators(listing.title, brand, lines, ctx.numberedLines.get(brand) ?? new Set())
   const heldDesignator = designators.find((d) => held(d))
   if (heldDesignator) return named(heldDesignator, 'designator')
   if (designators.length > 0) return named(designators[0], 'designator')
 
-  // 6. A model line. The identity words run up to it — `American Professional
-  //    II Telecaster`, `Road Worn Stratocaster`, `Deluxe Reverb` — are a series
-  //    name, which D6 makes identity-forming; a line alone is family-only.
-  //    A run ends at the brand, a number or year, or a generic word, so the
-  //    method is conservative: `American Vintage II` stops at `vintage`.
-  const ws = words(title)
-  const lineOf = (w: string): string | null => {
-    if (lines.has(w)) return w
-    // `strat`, `tele`: an abbreviation of exactly one line.
-    if (w.length < 4 || GENERIC_WORDS.has(w)) return null
-    const full = Array.from(lines).filter((l) => l.startsWith(w))
-    return full.length === 1 ? full[0] : null
+  // 6. A model line. The identity words written with it — a series
+  //    (`American Professional II Telecaster`, `Stratocaster Player II`,
+  //    `Custom Shop 1959 Stratocaster`) or a signature artist — make a named
+  //    model, which D6 makes identity-forming; a line alone is family-only.
+  //    Where a title names a line twice, the richer reading wins.
+  let best: { written: string; line: string; series: string[] } | null = null
+  for (let i = 0; i < ws.length; i++) {
+    const line = reader.lineOf(ws[i])
+    if (!line) continue
+    // "Jazz Bass", "Precision Bass": the KG writes the line with its noun.
+    const withBass = ws[i + 1] === 'bass'
+    // Read after the line only when nothing names it in front: what follows a
+    // named model ("… II Telecaster 75th Anniversary") describes that model.
+    const before = seriesBefore(ws, i, reader)
+    const series = before.length > 0 ? before : seriesAfter(ws, withBass ? i + 1 : i, reader)
+    // A Custom Shop model with no other series name is its year ("Custom
+    // Shop Stratocaster 63"): D6's year that the series name contains. Any
+    // other year after a line is when it was built.
+    const next = ws[withBass ? i + 2 : i + 1] ?? ''
+    if (series.join(' ') === 'custom shop' && (isYear(next) || /^\d\ds?$/.test(next)) && !series.includes(next)) {
+      series.push(next)
+    }
+    if (!best || series.length > best.series.length) {
+      best = { written: ws[i], line: withBass ? `${line} bass` : line, series }
+    }
   }
-  let run: string[] = []
-  const runs: string[][] = []
-  for (const w of ws) {
-    const breaks = w === brand || (brandWords.has(w) && !lines.has(w)) || GENERIC_WORDS.has(w) || /^\d/.test(w)
-    if (breaks) { if (run.length) runs.push(run); run = [] } else run.push(w)
-  }
-  if (run.length) runs.push(run)
-  for (const r of runs) {
-    let last = -1
-    r.forEach((w, i) => { if (lineOf(w)) last = i })
-    if (last === -1) continue
-    const written = r[last]
+  if (best) {
+    const { written, line, series } = best
+    // "JUNO-Gi", "Juno-X": a short code hyphenated onto the line is the model,
+    // and so is one written after a line the KG numbers ("Roland Cube xl").
+    const sep = ctx.numberedLines.get(brand)?.has(line) ? '[-\\s]' : '-'
+    const coded = new RegExp(`(?<![\\w-])${written}${sep}([a-z0-9]{1,3})(?![\\w-])`).exec(title)
+    if (coded && !GENERIC_WORDS.has(coded[1]) && series.length === 0) return named(`${line}-${coded[1]}`, 'line + code')
     // "Fender Jazz Style", "Strat type": a reference, the matcher's own rule.
     if (tokenFollowedByReference(title, written)) {
       return { kind: 'noise', reason: 'other_brand', detail: `'${written}' is qualified as a copy/reference` }
     }
-    const name = [...r.slice(0, last), lineOf(written)!]
-    if (name.length >= 2) return named(name.join(' '), 'series + line')
-    return { kind: 'family_only', line: name[0], detail: `bare line '${name[0]}'` }
+    const name = [...artist.filter((a) => !series.includes(a)), ...series]
+    if (name.length > 0) return named([...name, line].join(' '), 'series + line')
+    return { kind: 'family_only', line, detail: `bare line '${line}'` }
   }
+  if (artist.length > 0) return named(`${artist.join(' ')} signature`, 'signature artist')
 
   // 7. A capitalised name right after the brand: `Fender Blues Junior III`,
   //    `Fender Super Champ X2`, `Roland Studio Capture`. Many Fender models
@@ -466,6 +736,8 @@ export function resolveBrandNetListing(
   //    read as brand-only.
   const capitalised = capitalisedNameAfterBrand(listing.title, brand)
   if (capitalised) return named(capitalised, 'capitalised name after brand')
+  const beside = nameBesideBrand(listing.title, brand, ctx.index.catalogueBrands)
+  if (beside) return named(beside, 'name beside brand')
 
   return { kind: 'brand_only', detail: `names '${brand}' and no model` }
 }
@@ -481,18 +753,70 @@ function capitalisedNameAfterBrand(original: string, brand: string): string | nu
   const upper = original.replace(/[^A-ZÆØÅ]/g, '')
   if (letters.length === 0 || upper.length / letters.length > 0.6) return null
   const tokens = original.split(/\s+/)
-  const at = tokens.findIndex((t) => t.toLowerCase().replace(/[^a-z]/g, '') === brand)
+  const isBrand = (t: string | undefined) => t?.toLowerCase().replace(/[^a-z]/g, '') === brand
+  let at = tokens.findIndex(isBrand)
+  while (at !== -1 && isBrand(tokens[at + 1])) at++ // "Fender Fender Mustang"
   if (at === -1 || /[,.;:–-]$/.test(tokens[at])) return null
   const name: string[] = []
-  for (const raw of tokens.slice(at + 1, at + 4)) {
+  // A leading era or article belongs to the name it heads: "Fender '59
+  // Bassman LTD", "Fender The Pelt".
+  let from = at + 1
+  const lead = tokens[from]?.replace(/['’]/g, '')
+  if (lead && (/^\d\ds?$/.test(lead) || lead === 'The') && /^[A-ZÆØÅ]/.test(tokens[from + 1] ?? '')) {
+    name.push(lead.toLowerCase())
+    from++
+  }
+  for (const raw of tokens.slice(from, from + 3)) {
     const t = raw.replace(/[,.;!?)]+$/, '')
     const lower = t.toLowerCase()
     if (!/^[A-ZÆØÅ][\wæøåÆØÅ:'-]*$/.test(t) || GENERIC_WORDS.has(lower)) break
     name.push(lower)
     if (t !== raw) break // trailing punctuation ends the name
   }
+  if (name.length === 1 && from > at + 1) return null // the era or article alone
   const joined = name.join(' ')
   return joined.replace(/[^a-z]/g, '').length >= 3 ? joined : null
+}
+
+/**
+ * The name a title writes beside the brand when capitalisation says nothing:
+ * lower case ("Fender pro Junior IV", "Fender super sonic 22", "Fender
+ * greta"), all capitals ("FENDER CLASSIC FUZZ WAH"), or the brand written
+ * last ("Stratacoustic Fender"). Up to three plain words, ending at the first
+ * generic word, another brand, or a model number (which it keeps). Round 2:
+ * these were the largest class left in brand-only.
+ */
+function nameBesideBrand(original: string, brand: string, brands: Set<string>): string | null {
+  const tokens = original.split(/[\s/]+/).filter(Boolean)
+  const bare = (t: string | undefined) => (t ?? '').toLowerCase().replace(/[^a-z0-9æøåäöüé:]/g, '')
+  const isBrand = (t: string | undefined) => bare(t) === brand
+  const isWord = (w: string) => /^[a-zæøåäöüé][a-zæøåäöüé:]*$/.test(w) && !GENERIC_WORDS.has(w) && !brands.has(w)
+  const read = (from: number, step: 1 | -1): string[] => {
+    const name: string[] = []
+    for (let i = from; i >= 0 && i < tokens.length && name.length < 3; i += step) {
+      const raw = tokens[i]
+      if (/^[-–]$/.test(raw)) break
+      const pieces = raw.toLowerCase().replace(/[,.;!?()]+/g, ' ').trim().split(/[\s-]+/).filter(Boolean)
+      if (pieces.length === 0) break
+      if (!pieces.every(isWord)) {
+        // a model number or roman numeral ends the name it follows
+        if (step === 1 && name.length > 0 && pieces.length === 1 && /^(\d{1,4}[a-z]?|ii|iii|iv)$/.test(pieces[0])) name.push(pieces[0])
+        break
+      }
+      if (step === 1) name.push(...pieces)
+      else name.unshift(...pieces)
+      if (/[,.;!?)]$/.test(raw) && step === 1) break // punctuation ends it
+    }
+    return name
+  }
+  let at = tokens.findIndex(isBrand)
+  if (at === -1) return null
+  while (isBrand(tokens[at + 1])) at++
+  let name: string[] = []
+  if (!/[,.;:–-]$/.test(tokens[at])) name = read(at + 1, 1)
+  if (name.length === 0 && at === tokens.length - 1) name = read(at - 1, -1)
+  const joined = name.join(' ')
+  return joined.replace(/[^a-z]/g, '').length >= 3 && name[0].length >= 3 ? joined : null
 }
 
 /**
@@ -511,11 +835,32 @@ function capitalisedNameAfterBrand(original: string, brand: string): string | nu
  *     as `listing-intent.ts` does, by an
  *     inclusion marker that PRECEDES it ("Roland Juno-106 med flightcase",
  *     "Fender … m. orig. case", "Roland CY-15R m/stativ").
+ *   round 2, from the same titles: the part and accessory nouns that round 1
+ *     let through as brand-only, candidate or even KG product — speakers
+ *     (`guitarhøjttaler`, `højttalerenheder`), screws and hinges
+ *     (`stemmeskruer`, `hængsler`, "Rhodes tine screw"), picks (`plektre`),
+ *     plates and panels ("back plate", "front panel"), a keytar `switch`, a
+ *     keyboard's text `skinne` (rail) and `tangenter` (keys: "SH 1000 / 2000
+ *     synthesizer tangenter"), a reverb `tank`, a tremolo `arm`, style
+ *     `card`s, a `chassis`, cables, a `PU` (pickup) set, catalogues, sheet
+ *     music, a bar stool and LPs.
+ *     `tangenter` after a number is a key count ("61 tangenter"), not keys.
+ *     `udskiftet` ("replaced") marks a part fitted to the instrument on sale,
+ *     like an inclusion marker: "Fender Blues Junior, udskiftet højtaler".
  */
 const ACCESSORY_SUFFIXES = ['plade', 'taske', 'kasse', 'kabel', 'stativ', 'dele']
-const ACCESSORY_WORDS = new Set(['case', 'hardcase', 'flightcase', 'softcase', 'bag', 'gigbag'])
+const ACCESSORY_WORDS = new Set([
+  'case', 'hardcase', 'flightcase', 'softcase', 'bag', 'gigbag',
+  'højttaler', 'højtaler', 'højttalere', 'højtalere', 'guitarhøjttaler', 'guitarhøjttalere',
+  'guitarhøjtaler', 'guitarhøjtalere', 'højttalerenhed', 'højttalerenheder', 'højtalerenhed',
+  'højtalerenheder', 'højtalerstof', 'speaker', 'speakers', 'loudspeaker',
+  'skrue', 'skruer', 'stemmeskruer', 'screw', 'screws', 'hængsel', 'hængsler', 'tine', 'tines', 'comb',
+  'plektre', 'plektrum', 'plectrum', 'plectrums', 'plate', 'panel', 'switch', 'skinne', 'tangenter',
+  'tank', 'arm', 'card', 'chassis', 'transformator', 'transformer', 'håndtag', 'sadler',
+  'katalog', 'catalog', 'catalogue', 'noder', 'nodesamling', 'barstol', 'lps', 'cable', 'cables', 'pu',
+])
 const ACCESSORY_PREFIXES = ['expansion', 'ekspansion']
-const DANISH_INCLUSION = /(?:^|[\s,(])(?:m\/|(?:m\.|m|inklusive|på)(?=\s|$))/
+const DANISH_INCLUSION = /(?:^|[\s,(])(?:m\/|(?:m\.|m|inklusive|på|udskiftet)(?=\s|$))/
 
 function danishAccessory(title: string, brand: string): string | null {
   const brandAt = new RegExp(`(?<![\\w-])${brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).exec(title)?.index ?? -1
@@ -526,6 +871,7 @@ function danishAccessory(title: string, brand: string): string | null {
   let noun = ''
   for (const m of Array.from(title.matchAll(/[a-zæøå-]+/g))) {
     const w = m[0]
+    if (w === 'tangenter' && /\d\s*$/.test(title.slice(0, m.index))) continue
     if (ACCESSORY_WORDS.has(w) || ACCESSORY_SUFFIXES.some((s) => w.endsWith(s)) ||
         ACCESSORY_PREFIXES.some((p) => w.startsWith(p))) {
       accessoryAt = m.index ?? -1
