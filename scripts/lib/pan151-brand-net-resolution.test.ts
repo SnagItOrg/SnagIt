@@ -205,11 +205,15 @@ test('r2: facets never join a name — a vintage dealer title stays family-only'
 })
 
 test('r2: a matched model NAME written with more identity in front is a longer model', () => {
-  assert.equal(reading(resolve2('Fender Pawn Shop Mustang Bass', 'fender')), 'candidate pawn shop mustang bass')
+  // PAN-154 (owner decision 2026-09-26): the Mustang Bass is a family and
+  // `fender-mustang-bass` its 1966–81 original, so the matcher no longer calls
+  // a Pawn Shop or a yearless "Mustang Bass" that product. The resolver then
+  // reads them without the KG's two-word model name.
+  assert.equal(reading(resolve2('Fender Pawn Shop Mustang Bass', 'fender')), 'candidate pawn shop mustang')
   assert.equal(reading(resolve2('Fender American Professional II Telecaster Deluxe NEW USA Dark Night Guitar', 'fender')),
     'candidate american professional ii telecaster deluxe')
   // …while the model on its own, or with a facet in front, stays the KG's.
-  assert.equal(reading(resolve2('Fender Mustang Bass', 'fender')), 'kg_product matcher fender-mustang-bass')
+  assert.equal(reading(resolve2('1971 Fender Mustang Bass', 'fender')), 'kg_product matcher fender-mustang-bass')
   assert.equal(reading(resolve2('1971 Fender Telecaster Thinline American Vintage 70s Guitar', 'fender')),
     'kg_product matcher fender-telecaster-thinline')
 })

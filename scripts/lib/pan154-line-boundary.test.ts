@@ -131,3 +131,56 @@ test('Prophet-10 is the Sequential Circuits original; the 2020 model is not', ()
     assert.equal(matchedSlug(title), 'sequential-prophet-10', title)
   }
 })
+
+// ── PAN-154 (2/2): option A for the audit's other products, and the base
+// member of the Mustang Bass family. Per product, one real variant title the
+// matcher used to send to it, and one real base title it still does.
+
+const LINE_PRODUCTS = [
+  product('gibson-j-45', 'J-45', 'gibson'),
+  product('gibson-hummingbird', 'Hummingbird', 'gibson'),
+  product('gibson-les-paul-studio', 'Les Paul Studio', 'gibson'),
+  product('gibson-les-paul-special', 'Les Paul Special', 'gibson'),
+  product('gibson-les-paul-custom', 'Les Paul Custom', 'gibson'),
+  product('fender-telecaster-thinline', 'Telecaster Thinline', 'fender'),
+  product('fender-telecaster-custom', 'Telecaster Custom', 'fender'),
+  product('fender-mustang-bass', 'Mustang Bass', 'fender'),
+  product('ua-1176ln', '1176LN', 'universal audio'),
+  product('korg-ms-20', 'MS-20', 'korg'),
+  product('sequential-prophet-5', 'Prophet-5', 'sequential'),
+  product('martin-d-28', 'D-28', 'martin'),
+]
+const lineIndex = buildMatchIndex(LINE_PRODUCTS, [], [])
+const lineSlug = (title: string): string | null => {
+  const d = decideMatch(title, lineIndex)
+  return d.kind === 'matched' ? lineIndex.productById.get(d.best.product_id)!.slug : null
+}
+
+test('a named variant is not the base model; the base model still is (option A)', () => {
+  for (const [slug, variant, base] of [
+    ['gibson-j-45', "Gibson '50s J-45 Original - Vintage Sunburst",
+      'Gibson J-45 Standard 2009 - Vintage Sunburst W/ Original Hard Case & LR Baggs Magnetic / Transducer Hybrid Expression System'],
+    ['gibson-hummingbird', 'Gibson Hummingbird Studio Rosewood - Satin Rosewood Burst', 'Gibson Hummingbird Standard, Vintage Sunburst'],
+    ['gibson-les-paul-studio', 'Gibson Les Paul Studio Session Honeyburst', 'Gibson Les Paul Studio Ebony'],
+    ['gibson-les-paul-special', 'Gibson Les Paul Special DC 2015', 'Gibson Les Paul Special - TV Yellow'],
+    ['gibson-les-paul-custom', '2010 Gibson Les Paul Custom VOS Wine Red', 'Gibson Les Paul Custom Ebony Custom Shop mit 57 Custombucker'],
+    ['fender-telecaster-thinline', 'Fender American Vintage II 1972 Telecaster Thinline - 3 Color Sunburst',
+      '1971 Fender Telecaster Thinline American Vintage 70s Guitar'],
+    ['fender-telecaster-custom', "Fender Limited Edition '72 Telecaster Custom 2012 - Orange Sparkl",
+      '1978 Fender Telecaster Custom – Black – Made in USA 4kg'],
+    ['fender-mustang-bass', 'Fender Player II Mustang Bass PJ - Coral Red', '1973 Fender Mustang Bass - Sunburst - Clean Amazing Player - HSC'],
+    ['ua-1176ln', 'Urei Universal Audio 1176LN Rev. F Limiting Amplifier', 'Universal Audio 1176LN Limiting Amplifier Reissue 2001 - Present - Black'],
+    ['korg-ms-20', 'Korg MS-20 FS Monophonic Analog Synthesizer 2020 - Present - Blue', 'Korg MS-20 with foot controller, wood sides and manuals'],
+    ['sequential-prophet-5', 'Sequential Prophet-5 Module', 'Sequential Prophet 5 synthesizer'],
+    ['martin-d-28', 'Martin D-28 Modern Deluxe Dreadnought Acoustic Guitar #6278', 'Martin D-28 Standard Series Left-Handed Acoustic Guitar w/Case'],
+  ]) {
+    assert.equal(lineSlug(variant), null, `${slug}: ${variant}`)
+    assert.equal(lineSlug(base), slug, `${slug}: ${base}`)
+  }
+})
+
+test('a licensed-subsidiary title keeps its auditable rejection under a line boundary', () => {
+  // The boundary runs after the collision check, so "Squier" is still a
+  // written rejection, never a silent "no candidate".
+  assert.equal(decideMatch('Squier Vintage Modified Mustang Bass', lineIndex).kind, 'rejected')
+})
