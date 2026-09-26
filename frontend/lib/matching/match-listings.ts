@@ -19,7 +19,7 @@ import {
   containsBrandToken,
   type BrandCollision,
 } from './brand-guard'
-import { detectNonProductIntent, type NonProductIntent } from './listing-intent'
+import { detectNonProductIntent, earliestInclusionMarker, type NonProductIntent } from './listing-intent'
 // The family-label rule is owned by lib/catalogue.ts — the same module that
 // owns the canonical predicate — so both gates refuse the same six slugs for
 // the same reason instead of holding two opinions (PAN-84).
@@ -186,6 +186,128 @@ function containsToken(text: string, token: string): boolean {
     const end = start + m[0].length
     return !phrases.some(([ps, pe]) => ps < end && pe > start && (ps < start || pe > end))
   })
+}
+
+/** A whole word or phrase, on the same boundary rule as `tokenRegex`. */
+function cue(phrase: string): RegExp {
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+')
+  return new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`, 'i')
+}
+
+/** A four-digit year in [from, to]. Digit-bounded, so "2016-2017" and "1970s" count. */
+function yearCue(from: number, to: number): RegExp {
+  const years = Array.from({ length: to - from + 1 }, (_, i) => String(from + i))
+  return new RegExp(`(?<!\\d)(?:${years.join('|')})(?!\\d)`)
+}
+
+/**
+ * Where a supported product's NAME is also a LINE: what else in the line a
+ * title can name (PAN-154, owner decisions 2026-09-26). Each field is a
+ * measured cue, not a vocabulary:
+ *
+ *   otherMembers  the title names another member of the line, so it is never
+ *                 this product ("Minimoog Voyager", "Model D Reissue 2016").
+ *   accessories   head-nouns seen on this product's matched titles that are
+ *                 not the instrument. An inclusion marker before one keeps the
+ *                 title, exactly as ACCESSORY_TOKENS in listing-intent.ts does
+ *                 ("1973 Minimoog Model D w/ Road Case" is a Minimoog). They
+ *                 live here rather than there because they are measured on
+ *                 these products only; `case` globally would defer every
+ *                 "Jazz Bass, hard case".
+ *   requires      fail closed: without one of these the title is not this
+ *                 product. Used where the bare name reads as another member —
+ *                 a plain "Sequential Prophet-10" is the 2020 model far more
+ *                 often than the 1980 one, and the brand cannot separate them
+ *                 because Dave Smith Instruments renamed itself Sequential.
+ *
+ * A reviewed code list, like IDENTITY_PHRASES and families.ts: the KG cannot
+ * supply it, because the line boundary lives in prose
+ * (`match_page_boundary` in data/klup-launch-cohort-frozen.csv). Add a cue
+ * only with a measured title behind it.
+ */
+interface LineBoundary {
+  otherMembers: readonly RegExp[]
+  accessories?: readonly string[]
+  requires?: readonly RegExp[]
+}
+
+/**
+ * Measured on moog-minimoog and moog-model-d titles, 2026-09-26. The cases are
+ * named by their product lines (Moog's SR and ATA series), not by a bare
+ * `case`: "Moog Model D Limited Edition Robert Moog 2026 Free Moog Case" is an
+ * instrument, and "free" is not an inclusion marker.
+ */
+const MOOG_ACCESSORIES: readonly string[] = [
+  'sr case', 'sr series', 'ata', 'hard case', 'flightcase',
+  'power supply', 'fuse', 'service manual',
+  'transistor', 'bushing', 'sheets', 'brochure', 'sticker',
+]
+
+export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
+  // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
+  'moog-minimoog': {
+    otherMembers: [
+      cue('voyager'),
+      cue('reissue'), cue('re-issue'),
+      // Any year from 1990 on is a Voyager (2002–) or a reissue (2016–).
+      yearCue(1990, 2039),
+      // Editions of the reissue.
+      cue('geddy lee'), cue('tribute'),
+    ],
+    accessories: MOOG_ACCESSORIES,
+  },
+  // The 2016 reissue and its re-runs. Frozen boundary: "2016 REISSUE only".
+  'moog-model-d': {
+    otherMembers: [
+      cue('voyager'),
+      // Vintage originals: the production years, and the words sellers use.
+      yearCue(1969, 1985), cue("70's"), cue("80's"),
+      cue('vintage'), cue('original'),
+      cue('early model'), cue('late model'), cue('early version'),
+      // A signature edition with its own KG row (moog-minimoog-model-d-geddy-lee).
+      cue('geddy lee'),
+    ],
+    accessories: MOOG_ACCESSORIES,
+  },
+  // The Sequential Circuits original, 1980–84. Owner: "Prophet-10 = the vintage
+  // original". The 2020 model is also sold as "Sequential", so a vintage cue is
+  // required, and a 2020 cue overrides it ("Sequential Circuits Prophet 10
+  // Desktop" is the 2021 desktop module).
+  'sequential-prophet-10': {
+    requires: [
+      cue('circuits'), cue('sci'), cue('vintage'),
+      yearCue(1978, 1986),
+      /(?<![\w-])rev\.?\s*[1-3](?!\d)/i,
+    ],
+    otherMembers: [
+      /(?<![\w-])rev\.?\s*4(?!\d)/i,
+      cue('reissue'), cue('desktop'), cue('module'), cue('new'),
+      yearCue(2019, 2039),
+    ],
+    accessories: ['rom', 'ics', 'upgrade'],
+  },
+}
+
+/**
+ * Why `title` is not `slug` under its line boundary, or null when it may be.
+ * Exported so the PAN-154 data script refuses exactly what the matcher refuses.
+ */
+export function lineBoundaryRefusal(title: string, slug: string): string | null {
+  const boundary = LINE_BOUNDARIES[slug]
+  if (!boundary) return null
+  if (boundary.requires && !boundary.requires.some((re) => re.test(title))) {
+    return 'no_member_cue'
+  }
+  for (const re of boundary.otherMembers) {
+    const m = re.exec(title)
+    if (m) return `other_member:${m[0].toLowerCase()}`
+  }
+  const markerAt = earliestInclusionMarker(title.toLowerCase())
+  for (const noun of boundary.accessories ?? []) {
+    const m = cue(noun).exec(title)
+    if (m && !(markerAt !== -1 && markerAt < m.index)) return `accessory:${noun}`
+  }
+  return null
 }
 
 function slugify(s: string): string {
@@ -547,9 +669,14 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   // Deterministic ordering (score desc, then product_id) so that not only the
   // verdict but every emitted candidate list is independent of input order.
   // Without this the audit payload still varied with product array order.
-  const candidates = Array.from(byProduct.values()).sort((a, b) =>
-    b.score !== a.score ? b.score - a.score : (a.product_id < b.product_id ? -1 : 1),
-  )
+  const candidates = Array.from(byProduct.values())
+    // A title that names another member of a line is not that line's product
+    // at any tier (PAN-154). It stops being a candidate rather than being
+    // deferred: "Minimoog Voyager XL" is not an undecided Minimoog.
+    .filter((c) => lineBoundaryRefusal(norm, index.productById.get(c.product_id)?.slug ?? '') === null)
+    .sort((a, b) =>
+      b.score !== a.score ? b.score - a.score : (a.product_id < b.product_id ? -1 : 1),
+    )
   if (candidates.length === 0) return { kind: 'none' }
 
   // ── 2. Hard licensed-subsidiary collision ───────────────────────────────

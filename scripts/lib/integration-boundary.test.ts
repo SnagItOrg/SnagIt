@@ -140,6 +140,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-153: a model name that borrows a word of "Custom Shop" or
       // "Classic Player" is not evidence for that model.
       'scripts/lib/pan153-identity-phrase.test.ts',
+      // PAN-154: a title that names another member of a line (Voyager, the
+      // Model D reissue, the 2020 Prophet-10) is not the line's product.
+      'scripts/lib/pan154-line-boundary.test.ts',
       // PAN-17: the sidebar catalogue tree. Its own suite because "populated
       // branches only" and "no price in a navigation payload" are both
       // properties of a pure builder, and both are silent failures — an empty
