@@ -41,6 +41,8 @@ export const FAMILY_SLUGS = [
   // PAN-154. The same case as `rhodes`: no row today. `moog-minimoog` is NOT
   // this slug — it stays the priced page for the vintage original, a member.
   'minimoog',
+  // PAN-154 (2/2). The same case: `fender-mustang-bass` is the member.
+  'mustang-short-scale-bass',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]

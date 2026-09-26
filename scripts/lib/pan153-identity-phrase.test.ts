@@ -52,13 +52,20 @@ test('a model name that borrows the "Custom" of "Custom Shop" is not that model'
 
   // "Custom Shop" standing apart from the model name costs nothing.
   for (const [title, slug] of [
-    ['2006 Fender Custom Shop 1962 Telecaster Custom NOS', 'fender-telecaster-custom'],
-    ['Fender Custom Shop Telecaster Custom Journeyman Relic Ltd Fat 50s', 'fender-telecaster-custom'],
     ['Gibson Les Paul Custom - Custom shop', 'gibson-les-paul-custom'],
     ['2016 Gibson – Les Paul Custom Custom Shop Silver Burst', 'gibson-les-paul-custom'],
-    ['Gibson Custom Shop 1957 Les Paul Custom Black Beauty VOS – 2-pickup', 'gibson-les-paul-custom'],
   ]) {
     assert.equal(matchedSlug(title), slug, title)
+  }
+  // PAN-154 moved three former examples out: the line boundaries refuse them,
+  // not this guard. The Telecaster Custom "Excludes Custom Shop" (frozen
+  // boundary), and a Custom Shop 1957 VOS is a Les Paul Custom reissue.
+  for (const title of [
+    '2006 Fender Custom Shop 1962 Telecaster Custom NOS',
+    'Fender Custom Shop Telecaster Custom Journeyman Relic Ltd Fat 50s',
+    'Gibson Custom Shop 1957 Les Paul Custom Black Beauty VOS – 2-pickup',
+  ]) {
+    assert.equal(matchedSlug(title), null, title)
   }
 })
 

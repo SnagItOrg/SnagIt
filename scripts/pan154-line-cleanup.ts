@@ -47,8 +47,14 @@ const ROLLBACK = flag('rollback')
 
 const REASON_PREFIX = 'PAN-154 line boundary'
 
-/** Products whose page is the vintage original only (owner decisions 2026-09-26). */
-const VINTAGE_ONLY = new Set(['moog-minimoog', 'sequential-prophet-10'])
+/**
+ * Products whose page is the vintage original only (owner decisions
+ * 2026-09-26; the Thinline and Mustang bases are the audit's 1968–79 and
+ * 1966–81 originals).
+ */
+const VINTAGE_ONLY = new Set([
+  'moog-minimoog', 'sequential-prophet-10', 'fender-telecaster-thinline', 'fender-mustang-bass',
+])
 const CURRENT_PRODUCTION_CONDITIONS = new Set(['brand new', 'b-stock'])
 
 /**
