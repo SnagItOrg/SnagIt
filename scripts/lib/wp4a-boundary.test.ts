@@ -446,15 +446,36 @@ test('demand: the seeded term survives without reading family configuration', ()
  * 6. Client bundle: no private identity may appear in a public chunk
  * ------------------------------------------------------------------ */
 
-/** Supported today but NOT public: must never reach a browser. */
-function privateSupportedSlugs(): string[] {
-  const publicCohort = new Set([
-    'korg-ms-20', 'moog-minimoog', 'rhodes-mark-i-stage-73', 'rhodes-mark-i-suitcase-73',
-    'rhodes-mark-ii-stage-73', 'roland-juno-106', 'roland-juno-60', 'roland-jupiter-8',
-    'roland-re-201', 'roland-sh-101', 'roland-tr-808', 'roland-tr-909', 'wurlitzer-200a',
-    'yamaha-dx7',
-  ])
-  return SUPPORTED_PRODUCT_ROWS.map((p) => p.slug).filter((s) => !publicCohort.has(s))
+/**
+ * A supported slug as a whole token. BOUNDARY-AWARE: a bare `includes` reports
+ * `roland-juno-6` inside the public `roland-juno-60`, which is how this scan
+ * first "failed" on an admin form placeholder. A slug only counts when it is
+ * not a prefix of a longer slug.
+ */
+function slugToken(slug: string): RegExp {
+  return new RegExp(`${slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![a-z0-9-])`)
+}
+
+/**
+ * Supported slugs that no client module names: if one reaches a public chunk,
+ * a server-only module carried it there.
+ *
+ * PAN-155. This used to subtract a hand-kept list of 14 public products, which
+ * went stale as publication moved on. Publication is database state, so no
+ * repository file can tell this test which slugs are public today — and the
+ * scan does not need to know. The defect it guards is a server-only module
+ * pulling catalogue data into a chunk. The only slugs a chunk may carry are the
+ * ones client code names itself, and those are read here from the same
+ * client import graph section 1 walks. Server-only modules are excluded, so a
+ * leak cannot exempt the slugs it leaks.
+ */
+function clientUnnamedSupportedSlugs(): string[] {
+  const clientFiles = new Set(CLIENT_ENTRIES)
+  for (const mod of valueClosure(CLIENT_ENTRIES).keys()) {
+    if (!SERVER_ONLY.includes(mod)) clientFiles.add(join(FRONTEND, mod))
+  }
+  const clientSource = [...clientFiles].map((f) => readFileSync(f, 'utf8')).join('\n')
+  return SUPPORTED_PRODUCT_ROWS.map((p) => p.slug).filter((s) => !slugToken(s).test(clientSource))
 }
 
 export type BundleScan =
@@ -468,12 +489,7 @@ export function scanClientChunks(staticDir: string, needles: string[]): BundleSc
   for (const file of files) {
     const body = readFileSync(file, 'utf8')
     for (const needle of needles) {
-      // BOUNDARY-AWARE. A bare `includes` reports `roland-juno-6` inside the
-      // public `roland-juno-60`, which is how this scan first "failed" on an
-      // admin form placeholder. A slug only counts when it is not a prefix of
-      // a longer slug.
-      const re = new RegExp(`${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![a-z0-9-])`)
-      if (re.test(body)) offenders.push(`${file.split('/.next/')[1]}: ${needle}`)
+      if (slugToken(needle).test(body)) offenders.push(`${file.split('/.next/')[1]}: ${needle}`)
     }
   }
   return { state: 'scanned', files: files.length, offenders }
@@ -488,9 +504,10 @@ function walkAll(dir: string, out: string[] = []): string[] {
   return out
 }
 
-test('bundle: the private cohort is well formed and non-trivial', () => {
-  const priv = privateSupportedSlugs()
-  assert.ok(priv.length >= 30, `expected the private cohort, found ${priv.length}`)
+test('bundle: the client-unnamed cohort is well formed and non-trivial', () => {
+  const priv = clientUnnamedSupportedSlugs()
+  assert.ok(priv.length >= 30, `expected the client-unnamed cohort, found ${priv.length}`)
+  // Named only by server-only `lib/families.ts`, so it must stay a needle.
   assert.ok(priv.includes('gibson-les-paul-custom'))
   assert.ok(priv.includes('neumann-u87ai'))
 })
@@ -532,7 +549,7 @@ const MISSING_BUILD =
   'Run `npm run build` in frontend/ first: the import graph is proven statically ' +
   'above, but the bundle scan is the proof of what a browser actually receives.'
 
-test('bundle: no private supported slug appears in a client chunk', (t) => {
+test('bundle: no supported slug that client code does not name appears in a client chunk', (t) => {
   const decision = bundleVerificationDecision(process.env, existsSync(STATIC_DIR))
   if (decision === 'fail_missing_build') assert.fail(MISSING_BUILD)
   if (decision === 'declared_boundary') {
@@ -540,13 +557,13 @@ test('bundle: no private supported slug appears in a client chunk', (t) => {
     t.skip('no production build present')
     return
   }
-  const scan = scanClientChunks(STATIC_DIR, privateSupportedSlugs())
+  const scan = scanClientChunks(STATIC_DIR, clientUnnamedSupportedSlugs())
   assert.equal(scan.state, 'scanned')
   assert.ok(scan.state === 'scanned' && scan.files > 0, 'no client assets were found to scan')
   assert.deepEqual(
     scan.state === 'scanned' ? scan.offenders : ['unscanned'],
     [],
-    'a private supported identity reached a public chunk',
+    'a server-only supported identity reached a public chunk',
   )
 })
 

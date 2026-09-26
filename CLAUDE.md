@@ -234,7 +234,7 @@ are editorial facets — never taxonomy replacements, never matcher aliases.
 
 ## 8. Stack
 
-Next.js 14 App Router · TypeScript · Tailwind · Supabase Pro (RLS on every
+Next.js 15.5 App Router · React 19 · TypeScript · Tailwind · Supabase Pro (RLS on every
 table) · Vercel · PM2 on the Mac Mini · Resend · PostHog EU · Frankfurter with
 hardcoded fallbacks.
 
