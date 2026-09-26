@@ -241,6 +241,41 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: ['boss-dm-2', 'boss-dm-2w'],
     aliases: [],
   },
+  /*
+   * PAN-154 — owner decision 2026-09-26: "Minimoog" is the vintage original
+   * only, and the name of the line becomes a family whose members are separate
+   * products. Navigation only, like `rhodes`: `minimoog` is not a `kg_product`
+   * row (SELECT, 2026-09-26) and must never become one. The vintage page keeps
+   * its own slug, `moog-minimoog`, and its own price evidence as a member.
+   *
+   * Members are the existing clean rows, SELECT-verified active on 2026-09-26.
+   * Only `moog-minimoog` is canonical today, so it is the one child that
+   * renders; `moog-model-d` is supported + qa_only, the rest `known`. Merge,
+   * never create: the listing-title rows (`moog-moog-minimoog-voyager-old-…`,
+   * `moog-moog-minimoog-model-d-reissue-2016-…`) and the two duplicates
+   * `moog-minimoog-model-d` (the vintage CSP again) and
+   * `moog-minimoog-model-d-reissue` (the reissue again) are not members.
+   *
+   * LABEL. `Moog Minimoog` is the vintage member's own name, so the family
+   * would not be choosable beside it in the "minimoog" disambiguation set
+   * (see `rhodes` above). The qualifier is the members' taxonomy leaf,
+   * `keyboards-and-synths/analog-synths`. No aliases: `minimoog` comes from
+   * the slug, and it is a DANGEROUS_TERM_KEY, so it never navigates alone.
+   */
+  minimoog: {
+    label: 'Minimoog Analog Synth',
+    brand: 'Moog',
+    categoryRoot: 'keyboards-and-synths',
+    children: [
+      'moog-minimoog',
+      'moog-model-d',
+      'moog-minimoog-model-d-geddy-lee',
+      'moog-minimoog-voyager',
+      'moog-minimoog-voyager-xl',
+      'moog-minimoog-voyager-rme',
+    ],
+    aliases: [],
+  },
 }
 
 /** Every family, in `FAMILY_SLUGS` order. */
