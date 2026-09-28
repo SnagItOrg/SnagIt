@@ -32,8 +32,10 @@ import {
   browserDocument,
   browserWindow,
   readInternalFlag,
+  readStoredConsent,
   type ConsentState,
 } from './consent'
+import type { FacetKey } from './product-facets'
 
 /* ════════════════════════════════════════════════════════════════════════
    1. Configuration — fail closed, EU only
@@ -355,28 +357,8 @@ export function sanitiseOutgoingProperties(
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   3. The V1 event taxonomy — twelve events, compile-time checked
+   3. The event taxonomy — compile-time checked
    ════════════════════════════════════════════════════════════════════════ */
-
-export type ProductTier = 'legendary' | 'classic' | 'standard'
-export type SupportState = 'known' | 'reserve' | 'supported'
-export type BrowseVisibility = 'public' | 'qa_only' | 'hidden'
-export type ListingSource =
-  | 'dba.dk'
-  | 'finn'
-  | 'blocket'
-  | 'kleinanzeigen'
-  | 'reverb'
-  | 'thomann'
-
-export type ProductEntryRef =
-  | 'shelf'
-  | 'browse'
-  | 'search'
-  | 'direct'
-  | 'email'
-  | 'related'
-  | 'external'
 
 export type SearchResolution =
   | 'canonical_exact'
@@ -387,74 +369,91 @@ export type SearchResolution =
   | 'error'
 
 /**
- * The eleven explicitly-tracked V1 events. `$pageview` is the twelfth and is
+ * Coarse DKK bands. An exact asking price, a marketplace and a timestamp
+ * together narrow to one listing, so outbound events carry the band only.
+ */
+export type PriceDkkBucket =
+  | 'under_1000'
+  | '1000_2499'
+  | '2500_4999'
+  | '5000_9999'
+  | '10000_24999'
+  | '25000_49999'
+  | '50000_plus'
+  | 'unknown'
+
+export function priceDkkBucket(priceDkk: number | null | undefined): PriceDkkBucket {
+  if (priceDkk == null || !Number.isFinite(priceDkk) || priceDkk <= 0) return 'unknown'
+  if (priceDkk < 1000) return 'under_1000'
+  if (priceDkk < 2500) return '1000_2499'
+  if (priceDkk < 5000) return '2500_4999'
+  if (priceDkk < 10000) return '5000_9999'
+  if (priceDkk < 25000) return '10000_24999'
+  if (priceDkk < 50000) return '25000_49999'
+  return '50000_plus'
+}
+
+/**
+ * Every explicitly-tracked event and its properties (PAN-161). `$pageview` is
  * captured by `capturePageview()` rather than through `track()`, because its
  * properties are derived from the router rather than passed by a caller.
  *
- * NO EMAIL-TYPED FIELD EXISTS IN THIS UNION, and a test asserts it. Demand
- * capture carries `has_email: boolean`; the address itself goes to Supabase
- * through the magic-link path and never to a processor whose purpose is
- * measurement (§8.5, §14.4).
+ * NO PII. No email-typed field exists in this union, and a test asserts it.
+ * Demand capture carries `has_email: boolean`; the address itself goes to
+ * Supabase and never to PostHog. The only visitor-typed text anywhere is
+ * `query_norm` on the search events. A watchlist's query is typed by the
+ * visitor too, which is why `watchlist_created` does not carry it.
  *
- * `has_image` follows the authority document §12.1; the measurement spec §20
- * calls the same flag `has_hero_image`.
+ * `product_slug` is the name of the product key on every event that concerns
+ * one product, so a funnel from `product_viewed` to `listing_outbound_clicked`
+ * can be broken down by product.
  */
 export interface KlupEventMap {
-  /** §12.1 #2 — the canonical product page rendered. */
+  /** A canonical product page rendered with its data. Once per product per visit. */
   product_viewed: {
     product_slug: string
-    product_id: string
-    brand_slug: string | null
-    tier: ProductTier
-    support_state: SupportState
-    browse_visibility: BrowseVisibility
-    active_listing_count: number
-    has_image: boolean
-    has_article: boolean
-    has_specs: boolean
-    has_history_timeline: boolean
-    related_count: number
-    entry_ref: ProductEntryRef
-    referrer_product_slug: string | null
+    category_root: string | null
+    kind: string | null
+    has_price_band: boolean
   }
 
-  /** §12.1 #3 — fires on every product render, band present OR ABSENT. */
-  price_context_shown: {
-    product_slug: string
-    has_band: boolean
-    band_low: number | null
-    band_high: number | null
-    band_median: number | null
-    band_count: number | null
-    band_width_ratio: number | null
-    history_points: number
-    has_thomann_reference: boolean
-    thomann_price_dkk: number | null
+  /** A navigation-family page rendered. Once per family per visit. */
+  family_viewed: {
+    family_slug: string
   }
 
-  /** §12.1 #4 — outbound to a marketplace. The north star's raw input. */
-  listing_click_out: {
-    listing_id: string
+  /** A browse chip was switched ON. Switching one off is not an application. */
+  filter_applied: {
+    root: string
+    sub: string | null
+    facet_key: 'sub' | FacetKey
+    facet_value: string
+  }
+
+  /** The core value signal: a visitor left Klup for the marketplace. */
+  listing_outbound_clicked: {
+    source: string
+    country: string | null
     product_slug: string | null
-    source: ListingSource
-    price: number | null
-    currency: string | null
-    price_dkk: number | null
-    band_delta_pct: number | null
-    position: number
-    variant: 'list' | 'grid'
-    surface: 'product' | 'search' | 'saved' | 'watchlist'
-    click_id: string
+    price_dkk_bucket: PriceDkkBucket
   }
 
-  /** §12.1 #5 — outbound to retail. Never counted as marketplace traffic. */
-  outbound_retail_click: {
-    destination: 'thomann'
-    placement: 'product_hero' | 'listing_card' | 'saved_card' | 'search_card'
+  /** A listing was saved, after the server accepted it. */
+  listing_saved: {
+    source: string
     product_slug: string | null
-    thomann_price_dkk: number | null
-    click_id: string
-    affiliate_tagged: boolean
+  }
+
+  /** A watchlist was created, after the server accepted it. Never the query. */
+  watchlist_created: {
+    origin: 'product' | 'saved' | 'watchlists' | 'signup_pending' | 'onboarding'
+    product_slug: string | null
+    has_max_price: boolean
+  }
+
+  /** An email link confirmed a NEW account. A returning visitor's sign-in is not one. */
+  signup_completed: {
+    method: 'email_link'
   }
 
   /** §12.1 #6 — intent, split from outcome. */
@@ -497,55 +496,33 @@ export interface KlupEventMap {
     has_email: boolean
     suggested_shown: number
   }
-
-  /** §12.1 #10 — any product card, on any shelf or grid. */
-  discovery_product_clicked: {
-    shelf: 'followed' | 'recent' | 'browse_grid' | 'related'
-    product_slug: string
-    position: number
-    shelf_size: number
-    has_image: boolean
-    active_listing_count: number
-    tier: ProductTier
-  }
-
-  /** §12.1 #11 — `page > 1` at ten products means the filter is wrong. */
-  browse_leaf_viewed: {
-    root_slug: string
-    page: number
-    page_size: number
-    total_public_products: number
-    rendered_count: number
-    subcategory_count: number
-  }
-
-  /** §12.1 #12 — `origin_product_slug` recovers product-bound intent with no schema change. */
-  watch_created: {
-    query_norm: string
-    watch_type: 'query' | 'listing'
-    origin_surface: 'product' | 'search' | 'saved' | 'watchlists'
-    origin_product_slug: string | null
-    has_max_price: boolean
-    max_price: number | null
-  }
 }
 
 export type KlupEventName = keyof KlupEventMap
 
-/** Every V1 event name, for the taxonomy assertions. */
-export const V1_EVENT_NAMES: readonly KlupEventName[] = [
-  'product_viewed',
-  'price_context_shown',
-  'listing_click_out',
-  'outbound_retail_click',
-  'search_submitted',
-  'search_resolved',
-  'search_unsupported',
-  'demand_signal_submitted',
-  'discovery_product_clicked',
-  'browse_leaf_viewed',
-  'watch_created',
-]
+/**
+ * A record, not an array, so the compiler refuses an event that is declared in
+ * the map but missing here. This list is the transmit allow-list below: an
+ * event declared but not listed would type-check at every call site and then
+ * be dropped on the wire without a sound — the same silent drop that hid four
+ * documented events until PAN-161.
+ */
+const EVENT_NAMES: Record<KlupEventName, true> = {
+  product_viewed: true,
+  family_viewed: true,
+  filter_applied: true,
+  listing_outbound_clicked: true,
+  listing_saved: true,
+  watchlist_created: true,
+  signup_completed: true,
+  search_submitted: true,
+  search_resolved: true,
+  search_unsupported: true,
+  demand_signal_submitted: true,
+}
+
+/** Every tracked event name, for the transmit allow-list and the taxonomy assertions. */
+export const V1_EVENT_NAMES: readonly KlupEventName[] = Object.keys(EVENT_NAMES) as KlupEventName[]
 
 /**
  * The PostHog-internal events V1 needs, named one by one.
@@ -588,31 +565,16 @@ export const REQUIRED_SDK_EVENTS: readonly string[] = ['$pageview', '$identify']
  * May this event name be transmitted at all?
  *
  * AN ALLOW-LIST, FOR THE SAME REASON THE URL IS BUILT RATHER THAN STRIPPED.
- * §12.1 is explicit that the V1 taxonomy is twelve events and "anything not
- * listed is deferred". Legacy pre-Stage-3 call sites still exist in files
- * owned by other packages — `search_performed`, `listing_clicked`,
- * `listing_saved`, `watchlist_created`, `signup_completed` — and they capture
- * through the SDK singleton, which WP-5 initialises. Two problems follow if
- * they are simply allowed through:
+ * Only events declared in `KlupEventMap` leave the browser. A capture through
+ * the SDK singleton with an undeclared name — the pre-Stage-3
+ * `search_performed { query }` carried the raw typed search text, which is the
+ * leak §12.4.7 exists to close — is dropped here rather than sent with a
+ * property nobody reviewed.
  *
- *   1. RAW SEARCH TEXT. `app/search/page.tsx` captures
- *      `search_performed { query }` with the string the visitor typed. That is
- *      precisely the leak §12.4.7 exists to close, arriving by a different
- *      door than `$current_url`. A recorded trace confirmed it: searching for
- *      `zzq-canary-7431` put the canary in a PostHog payload even though the
- *      URL properties were clean.
- *
- *   2. SCHEMA COLLISION. Those events carry v1 property shapes but would be
- *      stamped `klup_schema_version: 2`, which is the exact "silently
- *      averaging two different definitions" failure §14.2 introduced the
- *      version property to prevent.
- *
- * WP-5 cannot edit those call sites — they belong to WP-3 and WP-4 — but it
- * does own the tracker boundary, and the honest boundary is one that refuses
- * to transmit anything the taxonomy has not declared. When WP-3 and WP-4
- * migrate their call sites to `track()`, their events appear here by name and
- * begin flowing; until then they are dropped at the edge rather than sent with
- * a property nobody reviewed.
+ * The flip side is that an event only flows once it is declared. Until
+ * PAN-161, `listing_clicked`, `listing_saved`, `watchlist_created` and
+ * `signup_completed` were still captured through the singleton, undeclared,
+ * and this gate dropped every one of them. They now go through `track()`.
  *
  * There is no prefix rule, no pattern and no default-allow branch. Every
  * transmittable name is in one of the two lists above.
@@ -718,6 +680,15 @@ let enabled = false
  */
 const readyListeners = new Set<() => void>()
 
+/**
+ * Events recorded AFTER consent was granted, in the moment before the SDK has
+ * finished loading. See `track()`. Flushed on attach, emptied on withdrawal,
+ * and capped, because a tracker chunk that never loads must not grow this for
+ * the life of the tab.
+ */
+const pendingSends: Array<() => void> = []
+const MAX_PENDING_SENDS = 20
+
 export function subscribeAnalyticsReady(listener: () => void): () => void {
   readyListeners.add(listener)
   if (enabled && client) listener()
@@ -734,6 +705,7 @@ export function attachAnalyticsClient(instance: AnalyticsClient): void {
   client = instance
   enabled = true
   readyListeners.forEach((listener) => listener())
+  pendingSends.splice(0).forEach((send) => send())
 }
 
 /**
@@ -747,6 +719,7 @@ export function attachAnalyticsClient(instance: AnalyticsClient): void {
 export function detachAnalyticsClient(): void {
   enabled = false
   client = null
+  pendingSends.length = 0
 }
 
 /** Exposed for the consent surface and the tests; never for feature logic. */
@@ -779,15 +752,87 @@ function mayEmit(): boolean {
  * storage, and NO BUFFER. Pre-consent interactions are lost deliberately
  * (§12.4.2 point 2): a queue that flushed on grant would be retroactive
  * collection of behaviour from someone who had not yet agreed to any.
+ *
+ * WHEN CONSENT IS ALREADY GRANTED BUT THE SDK IS STILL LOADING, the event
+ * waits for it. The tracker is imported dynamically after hydration, so on a
+ * full page load every event a page emits from its first effects — a product
+ * view, the signup that lands on /watchlists, a search arriving by `?q=` —
+ * used to reach no client at all and vanish. The consent decision was made
+ * before the event happened, so this is not the pre-consent buffer the rule
+ * above forbids. The surface is fixed at call time, not at send time.
  */
 export function track<E extends KlupEventName>(event: E, properties: KlupEventMap[E]): void {
-  if (!mayEmit()) return
+  const pathname = currentPathname()
+  if (mayEmit()) {
+    send(event, properties, pathname)
+    return
+  }
+  if (!mayWaitForClient() || pendingSends.length >= MAX_PENDING_SENDS) return
+  pendingSends.push(() => {
+    if (mayEmit()) send(event, properties, pathname)
+  })
+}
+
+function send(event: KlupEventName, properties: object, pathname: string): void {
   try {
-    client!.capture(event, { ...buildSuperProperties(currentPathname()), ...properties })
+    client!.capture(event, { ...buildSuperProperties(pathname), ...properties })
   } catch {
     /* analytics must never break the product */
   }
 }
+
+/** Consent is on record as granted and the build would initialise PostHog. */
+function mayWaitForClient(): boolean {
+  if (!allowsAnalytics(readStoredConsent())) return false
+  if (isSuppressedSurface(currentPathname())) return false
+  return resolvePostHogConfig(currentAnalyticsEnv()).ok
+}
+
+/**
+ * One view event per view, however often the caller's effect runs.
+ *
+ * React runs a mount effect twice in development (strict mode), again when an
+ * unrelated dependency changes, and again after a refetch replaces the data.
+ * None of those is a second view. Each mounted view owns one tracker; it emits
+ * when `viewKey` is new to it and ignores repeats, so a new product slug in the
+ * same mounted page is a new view and a re-render of the same one is not.
+ */
+export function createViewTracker(): <E extends KlupEventName>(
+  viewKey: string,
+  event: E,
+  properties: KlupEventMap[E],
+) => void {
+  let trackedKey: string | null = null
+  return (viewKey, event, properties) => {
+    if (viewKey === trackedKey) return
+    trackedKey = viewKey
+    track(event, properties)
+  }
+}
+
+/**
+ * Did this email-link confirmation create the account, or sign an existing
+ * one in? `/auth/confirm` serves both, and only the first is a signup.
+ *
+ * Supabase stamps `email_confirmed_at` once, when the address is first
+ * confirmed, and `last_sign_in_at` on every sign-in. For a new account the
+ * confirming click is also the first sign-in, so the two land seconds apart;
+ * for a returning visitor the confirmation is days or months old. Both
+ * timestamps come from the same server clock, so no client clock is involved.
+ */
+export function isNewAccountConfirmation(user: {
+  email_confirmed_at?: string | null
+  last_sign_in_at?: string | null
+}): boolean {
+  if (!user.email_confirmed_at || !user.last_sign_in_at) return false
+  const confirmed = Date.parse(user.email_confirmed_at)
+  const signedIn = Date.parse(user.last_sign_in_at)
+  if (!Number.isFinite(confirmed) || !Number.isFinite(signedIn)) return false
+  return Math.abs(signedIn - confirmed) <= NEW_ACCOUNT_WINDOW_MS
+}
+
+/** Link click to code exchange is a redirect; ten minutes is generous. */
+const NEW_ACCOUNT_WINDOW_MS = 10 * 60 * 1000
 
 /** The sanitised `$pageview` of §12.1 #1. */
 export function capturePageview(pathname: string, search: string): void {

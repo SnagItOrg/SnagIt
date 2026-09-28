@@ -14,6 +14,7 @@ import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
 import { Icon } from '@/components/Icon'
 import { Button } from '@/components/Button'
+import { track } from '@/lib/analytics'
 
 type SavedRow = {
   listing_id: string
@@ -76,6 +77,7 @@ export default function SavedPage() {
       body: JSON.stringify(body),
     })
     if (res.ok) {
+      track('watchlist_created', { origin: 'saved', product_slug: null, has_max_price: 'max_price' in body })
       setShowModal(false)
       showToast(t.watchlistCreated)
     }

@@ -26,6 +26,8 @@ import {
   type MatchReviewStatus,
 } from '@/components/admin/ProductReviewControls'
 import { ScrapeSection } from '@/components/admin/ScrapeSection'
+import { TrackView } from '@/components/TrackView'
+import { track } from '@/lib/analytics'
 
 /** The product API enriches each listing with a server-computed deal signal. */
 type ListingWithVerdict = {
@@ -241,6 +243,7 @@ export default function ProductPage() {
           body: JSON.stringify({ listing_id: listing.id, listing_data: listing }),
         })
         if (!res.ok) setSavedListingIds(prev)
+        else track('listing_saved', { source: listing.source, product_slug: slug })
       } catch {
         setSavedListingIds(prev)
       }
@@ -261,14 +264,17 @@ export default function ProductPage() {
     setCreating(true)
     const body: Record<string, unknown> = { query }
     if (maxPrice != null && maxPrice > 0) body.max_price = maxPrice
-    await fetch('/api/watchlists', {
+    const res = await fetch('/api/watchlists', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
+    if (res.ok) {
+      track('watchlist_created', { origin: 'product', product_slug: slug, has_max_price: 'max_price' in body })
+    }
     setShowModal(false)
     setCreating(false)
-  }, [])
+  }, [slug])
 
   // PAN-133: the precedence is not decided here. `hero_image_url ?? image_url`
   // used to be written inline twice in the hero below — correct, but a third
@@ -316,6 +322,17 @@ export default function ProductPage() {
             </div>
           ) : (
             <>
+              <TrackView
+                viewKey={product.slug}
+                event="product_viewed"
+                properties={{
+                  product_slug: product.slug,
+                  category_root: catalogueContext?.category.slug ?? null,
+                  kind: catalogueContext?.kind?.slug ?? null,
+                  has_price_band: populations != null &&
+                    Object.values(populations).some((p) => p.tier === 'band'),
+                }}
+              />
               <div className="shell-reading flex flex-col">
 
                 {/*
@@ -946,6 +963,7 @@ export default function ProductPage() {
                             creating={creating}
                             variant="list"
                             thomannImageUrl={product.image_url}
+                            trackedProductSlug={product.slug}
                             isSaved={savedListingIds.has(listing.id)}
                             onToggleSave={handleToggleSave}
                           />

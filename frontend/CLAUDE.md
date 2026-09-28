@@ -139,6 +139,32 @@ listing provenance. Match these exactly — do not swap or approximate.
 - Always gate routes with `getUser()` — return 401 if no session
 - Never log PII
 
+## Analytics (PostHog)
+
+EU cloud only, loaded only after consent, off outside `NEXT_PUBLIC_VERCEL_ENV=production`.
+The authority is `KlupEventMap` in `lib/analytics.ts`: an event that is not
+declared there is dropped by `before_send`. Always emit through `track()`;
+never import `posthog-js` or call `usePostHog()`. Render `<TrackView>` for a
+page-view event, which fires once per view even under strict mode.
+
+| Event | Fired from | Properties |
+|---|---|---|
+| `$pageview` | every route (`PostHogPageView`) | `path_template`, `$current_url` with only `page` and `sub` kept |
+| `search_submitted` / `search_resolved` / `search_unsupported` | `/search` | `query_norm` and the resolution; names and shapes are frozen for the dashboards |
+| `demand_signal_submitted` | `/search`, unsupported outcome | `has_email` only, never the address |
+| `product_viewed` | `/product/[slug]`, once the data has loaded | `product_slug`, `category_root`, `kind`, `has_price_band` |
+| `family_viewed` | `/family/[slug]` | `family_slug` |
+| `filter_applied` | `/browse/[root]`, when a chip is switched on | `root`, `sub`, `facet_key`, `facet_value` |
+| `listing_outbound_clicked` | "Se annonce" on a listing card: **the core value signal** | `source`, `country`, `product_slug`, `price_dkk_bucket` (a band, never the price) |
+| `listing_saved` | product page, after the save is accepted | `source`, `product_slug` |
+| `watchlist_created` | every creation path, after the server accepts it | `origin`, `product_slug`, `has_max_price` (never the query) |
+| `signup_completed` | `/watchlists`, when the email link confirmed a **new** account | `method` |
+
+Every event also carries `klup_schema_version`, `app_env`, `surface`, `locale`,
+`is_internal` and `internal_role`. `$identify` sends the Supabase user id only.
+No PII: no email, no free text beyond `query_norm`, no user id beyond PostHog's
+own. The retired `search_performed` and `listing_clicked` are dropped on the wire.
+
 ## Intel dashboard (/intel)
 - Private, admin-gated — do not add to navigation
 - Dark theme only: `#0a0a0a` background, `#13ec6d` accent allowed here
