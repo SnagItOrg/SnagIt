@@ -205,6 +205,7 @@ file.
 |---|---|
 | What is live, what did not ship, open operator actions | [`docs/stage-3-v1-release-record.md`](docs/stage-3-v1-release-record.md) |
 | Frontend design, i18n, API-route rules | [`frontend/CLAUDE.md`](frontend/CLAUDE.md) |
+| PostHog events and their properties | `KlupEventMap` in [`frontend/lib/analytics.ts`](frontend/lib/analytics.ts); the list is in [`frontend/CLAUDE.md`](frontend/CLAUDE.md) under Analytics |
 | Scraper, PM2 and migration authoring rules | [`scripts/CLAUDE.md`](scripts/CLAUDE.md) |
 | The migration record, order and rollbacks | [`scripts/migrations/README.md`](scripts/migrations/README.md) |
 | Lifecycle and promotion authoring | [`docs/klup-product-lifecycle-guide.md`](docs/klup-product-lifecycle-guide.md) |

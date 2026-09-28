@@ -42,6 +42,7 @@ import {
   buildAnalyticsUrl,
   buildSuperProperties,
   capturePageview,
+  createViewTracker,
   detachAnalyticsClient,
   identifyUser,
   isAnalyticsActive,
@@ -49,6 +50,7 @@ import {
   isTransmittableEvent,
   logPostHogMisconfigurationOnce,
   prepareOutgoingPayload,
+  priceDkkBucket,
   REQUIRED_SDK_EVENTS,
   pathTemplateFor,
   referrerHostOf,
@@ -482,19 +484,9 @@ test('track: before consent there is no client, so nothing is captured and nothi
 
     track('product_viewed', {
       product_slug: 'roland-juno-106',
-      product_id: 'id',
-      brand_slug: 'roland',
-      tier: 'legendary',
-      support_state: 'supported',
-      browse_visibility: 'public',
-      active_listing_count: 3,
-      has_image: true,
-      has_article: false,
-      has_specs: true,
-      has_history_timeline: false,
-      related_count: 2,
-      entry_ref: 'direct',
-      referrer_product_slug: null,
+      category_root: 'keyboards-and-synths',
+      kind: 'synthesizers',
+      has_price_band: true,
     })
 
     assert.deepEqual(env.captured, [])
@@ -511,25 +503,22 @@ test('track: after consent an event carries the six super-properties', () => {
   const env = installBrowser('/product/roland-juno-106')
   try {
     attachAnalyticsClient(env.client)
-    track('discovery_product_clicked', {
-      shelf: 'followed',
+    track('listing_outbound_clicked', {
+      source: 'dba.dk',
+      country: 'DK',
       product_slug: 'roland-juno-106',
-      position: 0,
-      shelf_size: 14,
-      has_image: true,
-      active_listing_count: 3,
-      tier: 'legendary',
+      price_dkk_bucket: priceDkkBucket(4500),
     })
 
     assert.equal(env.captured.length, 1)
     const { event, properties } = env.captured[0]
-    assert.equal(event, 'discovery_product_clicked')
+    assert.equal(event, 'listing_outbound_clicked')
     assert.equal(properties.klup_schema_version, 2)
     assert.equal(properties.surface, 'product')
     assert.equal(properties.locale, 'da')
     assert.equal(properties.is_internal, false)
     assert.equal(properties.internal_role, null)
-    assert.equal(properties.shelf, 'followed')
+    assert.equal(properties.price_dkk_bucket, '2500_4999')
   } finally {
     env.teardown()
   }
@@ -539,27 +528,13 @@ test('track: withdrawal stops sending at once, not at the next render', () => {
   const env = installBrowser('/')
   try {
     attachAnalyticsClient(env.client)
-    track('browse_leaf_viewed', {
-      root_slug: 'music-gear',
-      page: 1,
-      page_size: 48,
-      total_public_products: 10,
-      rendered_count: 10,
-      subcategory_count: 4,
-    })
+    track('family_viewed', { family_slug: 'fender-stratocaster' })
     assert.equal(env.captured.length, 1)
 
     detachAnalyticsClient()
     assert.equal(isAnalyticsActive(), false)
 
-    track('browse_leaf_viewed', {
-      root_slug: 'music-gear',
-      page: 1,
-      page_size: 48,
-      total_public_products: 10,
-      rendered_count: 10,
-      subcategory_count: 4,
-    })
+    track('family_viewed', { family_slug: 'fender-stratocaster' })
     assert.equal(env.captured.length, 1, 'an event was sent after withdrawal')
   } finally {
     env.teardown()
@@ -571,13 +546,10 @@ test('track: /admin and /intel emit no product events even with consent granted'
     const env = installBrowser(pathname)
     try {
       attachAnalyticsClient(env.client)
-      track('watch_created', {
-        query_norm: 'roland juno 106',
-        watch_type: 'query',
-        origin_surface: 'product',
-        origin_product_slug: 'roland-juno-106',
+      track('watchlist_created', {
+        origin: 'product',
+        product_slug: 'roland-juno-106',
         has_max_price: false,
-        max_price: null,
       })
       capturePageview(pathname, '')
       assert.deepEqual(env.captured, [], `${pathname} emitted an event`)
@@ -600,6 +572,77 @@ test('track: the internal flag tags a session rather than dropping it', () => {
     assert.equal(props.internal_role, 'founder')
   } finally {
     env.teardown()
+  }
+})
+
+test('track: a view fires once per view key, however often the effect re-runs (PAN-161)', () => {
+  const env = installBrowser('/product/roland-juno-106')
+  try {
+    attachAnalyticsClient(env.client)
+    const trackView = createViewTracker()
+    const juno = { product_slug: 'roland-juno-106', category_root: null, kind: null, has_price_band: true }
+
+    // Strict mode's double effect, a re-render and a refetch: one view.
+    trackView('roland-juno-106', 'product_viewed', juno)
+    trackView('roland-juno-106', 'product_viewed', juno)
+    trackView('roland-juno-106', 'product_viewed', { ...juno, has_price_band: false })
+    assert.deepEqual(env.captured.map((c) => c.properties.product_slug), ['roland-juno-106'])
+
+    // Navigating to another product in the same mounted page is a new view.
+    trackView('roland-juno-60', 'product_viewed', { ...juno, product_slug: 'roland-juno-60' })
+    assert.deepEqual(env.captured.map((c) => c.properties.product_slug), ['roland-juno-106', 'roland-juno-60'])
+
+    // A fresh mount owns a fresh tracker, so returning to a product counts.
+    createViewTracker()('roland-juno-106', 'product_viewed', juno)
+    assert.equal(env.captured.length, 3)
+  } finally {
+    env.teardown()
+  }
+})
+
+test('track: an event waits for the loading SDK only when consent is already granted (PAN-161)', () => {
+  const g = process.env as Record<string, string | undefined>
+  const saved = {
+    host: g.NEXT_PUBLIC_POSTHOG_HOST,
+    token: g.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN,
+    vercel: g.NEXT_PUBLIC_VERCEL_ENV,
+  }
+  g.NEXT_PUBLIC_POSTHOG_HOST = 'https://eu.i.posthog.com'
+  g.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = 'phc_test_not_a_real_project'
+  g.NEXT_PUBLIC_VERCEL_ENV = 'production'
+  const env = installBrowser('/family/fender-stratocaster')
+  try {
+    // Undecided: dropped for good, never replayed on grant.
+    track('family_viewed', { family_slug: 'fender-stratocaster' })
+    attachAnalyticsClient(env.client)
+    assert.equal(env.captured.length, 0, 'a pre-consent event was replayed')
+    detachAnalyticsClient()
+
+    // Granted, SDK still loading: delivered once, when it arrives.
+    env.local.setItem(CONSENT_STORAGE_KEY, 'granted')
+    track('family_viewed', { family_slug: 'fender-stratocaster' })
+    assert.equal(env.captured.length, 0)
+    attachAnalyticsClient(env.client)
+    attachAnalyticsClient(env.client)
+    assert.deepEqual(env.captured.map((c) => c.event), ['family_viewed'])
+    assert.equal(env.captured[0].properties.surface, 'family')
+
+    // Withdrawn while loading: the waiting event is discarded, not sent later.
+    detachAnalyticsClient()
+    track('family_viewed', { family_slug: 'fender-stratocaster' })
+    detachAnalyticsClient()
+    attachAnalyticsClient(env.client)
+    assert.equal(env.captured.length, 1, 'an event survived withdrawal')
+  } finally {
+    env.teardown()
+    for (const [key, value] of [
+      ['NEXT_PUBLIC_POSTHOG_HOST', saved.host],
+      ['NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN', saved.token],
+      ['NEXT_PUBLIC_VERCEL_ENV', saved.vercel],
+    ] as const) {
+      if (value === undefined) delete g[key]
+      else g[key] = value
+    }
   }
 })
 
@@ -705,13 +748,12 @@ test('outgoing: an unknown future $ event fails closed', () => {
   assert.equal(/RegExp|\.test\(/.test(fn), false, 'a pattern match survives in the gate')
 })
 
-test('outgoing: pre-Stage-3 call sites in other packages are still dropped', () => {
+test('outgoing: undeclared event names are dropped', () => {
+  // `search_performed` carried the raw typed query; `listing_clicked` is the
+  // pre-PAN-161 name of `listing_outbound_clicked`. Neither is declared.
   for (const legacy of [
     'search_performed',
     'listing_clicked',
-    'listing_saved',
-    'watchlist_created',
-    'signup_completed',
     'anything_at_all',
   ]) {
     assert.equal(isTransmittableEvent(legacy), false, `undeclared event allowed: ${legacy}`)
@@ -851,19 +893,19 @@ test('readiness: the pageview waits for the client instead of firing into nothin
    7. The taxonomy carries no direct identifier  (§16.6 G, acceptance 11)
    ════════════════════════════════════════════════════════════════════════ */
 
-test('taxonomy: exactly the eleven tracked V1 events, plus $pageview', () => {
+test('taxonomy: exactly the eleven tracked events, plus $pageview', () => {
   assert.deepEqual([...V1_EVENT_NAMES].sort(), [
-    'browse_leaf_viewed',
     'demand_signal_submitted',
-    'discovery_product_clicked',
-    'listing_click_out',
-    'outbound_retail_click',
-    'price_context_shown',
+    'family_viewed',
+    'filter_applied',
+    'listing_outbound_clicked',
+    'listing_saved',
     'product_viewed',
     'search_resolved',
     'search_submitted',
     'search_unsupported',
-    'watch_created',
+    'signup_completed',
+    'watchlist_created',
   ])
   assert.equal(V1_EVENT_NAMES.length, 11)
 })
@@ -876,7 +918,7 @@ test('taxonomy: no email-typed or direct-identifier field exists in the event un
   const union = source.slice(start, end)
 
   const fields = Array.from(union.matchAll(/^\s{4}([a-z_][a-z0-9_]*)\s*:/gim)).map((m) => m[1])
-  assert.ok(fields.length > 40, 'field scan found suspiciously little')
+  assert.ok(fields.length > 30, 'field scan found suspiciously little')
 
   const forbidden = /(^|_)(email|mail|phone|tel|address|name|ip|postcode|zip)($|_)/i
   const offenders = fields.filter((f) => f !== 'has_email' && forbidden.test(f))

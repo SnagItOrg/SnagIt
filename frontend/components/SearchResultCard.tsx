@@ -5,7 +5,7 @@ import Image from 'next/image'
 import type { Listing } from '@/lib/supabase'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { usePostHog } from 'posthog-js/react'
+import { priceDkkBucket, track } from '@/lib/analytics'
 import { formatOriginalPrice } from '@/lib/currency'
 import { classifyListing, firstSeenTimestamp, isApproximateDkk } from '@/lib/price-populations'
 import { classifyOtpError, type OtpErrorKey } from '@/lib/otp-error'
@@ -91,6 +91,9 @@ interface Props {
   thomannPriceDkk?:   number | null
   thomannUrl?:        string | null
   productSlug?:       string | null
+  /** The product this card is shown under, for analytics only. Renders nothing;
+   *  `productSlug` renders a link and stands in when this is absent. */
+  trackedProductSlug?: string | null
   thomannImageUrl?:   string | null
   /** Position of this listing inside its OWN asking population. Server-computed. */
   marketVerdict?:            'under' | 'typical' | 'over' | null
@@ -174,9 +177,17 @@ function MarketVerdictBadge({
   )
 }
 
-export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave, thomannPriceDkk, thomannUrl, productSlug, thomannImageUrl, marketVerdict, marketVerdictBasisLabel }: Props) {
+export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave, thomannPriceDkk, thomannUrl, productSlug, trackedProductSlug, thomannImageUrl, marketVerdict, marketVerdictBasisLabel }: Props) {
   const { locale, t } = useLocale()
-  const posthog = usePostHog()
+
+  function trackOutbound() {
+    track('listing_outbound_clicked', {
+      source: listing.source,
+      country: listing.country ?? null,
+      product_slug: trackedProductSlug ?? productSlug ?? null,
+      price_dkk_bucket: priceDkkBucket(listing.price_dkk),
+    })
+  }
 
   const [imgError,       setImgError]      = useState(false)
   const [showCapture,    setShowCapture]   = useState(false)
@@ -245,9 +256,8 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
     const supabase = createSupabaseBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setShowCapture(true); return }
-    if (!isSaved) {
-      posthog?.capture('listing_saved', { listing_id: listing.id, source: listing.source })
-    }
+    // `listing_saved` is emitted by the page that owns the save request, once
+    // the server has accepted it — this click is only the intent.
     onToggleSave?.(listing)
   }
 
@@ -308,7 +318,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
         target="_blank"
         rel="noopener noreferrer"
         className="surface-interactive group flex flex-col rounded-2xl overflow-hidden"
-        onClick={() => posthog?.capture('listing_clicked', { listing_id: listing.id, source: listing.source, price: listing.price ?? 0 })}
+        onClick={trackOutbound}
       >
         {/* Image area */}
         <div className="relative w-full aspect-[4/3] bg-muted overflow-hidden">
@@ -581,7 +591,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               href={listing.url}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => posthog?.capture('listing_clicked', { listing_id: listing.id, source: listing.source, price: listing.price ?? 0 })}
+              onClick={trackOutbound}
               className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors"
               style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >

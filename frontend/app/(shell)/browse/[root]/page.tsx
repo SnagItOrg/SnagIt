@@ -26,6 +26,7 @@ import {
   type FacetKey,
   type ProductFacetValues,
 } from '@/lib/product-facets'
+import { track } from '@/lib/analytics'
 
 interface Category {
   id: string
@@ -106,6 +107,7 @@ function BrowseCategoryPageInner() {
     for (const key of Object.keys(PRODUCT_ATTRIBUTE_FACETS)) next.delete(key)
     const qs = next.toString()
     router.replace(`/browse/${params.root}${qs ? `?${qs}` : ''}`, { scroll: false })
+    if (slug) track('filter_applied', { root: params.root, sub: slug, facet_key: 'sub', facet_value: slug })
   }, [params.root, router, searchParams])
 
   /**
@@ -119,6 +121,16 @@ function BrowseCategoryPageInner() {
     else next.delete(key)
     const qs = next.toString()
     router.replace(`/browse/${params.root}${qs ? `?${qs}` : ''}`, { scroll: false })
+    if (value) {
+      // Facet chips only render under a resolved kind, so `sub` is its display slug.
+      const sub = searchParams.get('sub')
+      track('filter_applied', {
+        root: params.root,
+        sub: sub ? displaySubcategorySlug(params.root, sub) : null,
+        facet_key: key,
+        facet_value: value,
+      })
+    }
   }, [params.root, router, searchParams])
 
   useEffect(() => {
