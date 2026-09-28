@@ -138,8 +138,7 @@ test('integration: every package suite is registered exactly once', () => {
       // one listing per resolution state.
       'scripts/lib/pan151-brand-net-resolution.test.ts',
       // PAN-151: scrape-dba's Musikinstrumenter scope reaches every request,
-      // and the Elektronik sweep keeps a listing only when the live matcher
-      // and the resolver agree.
+      // query variants included.
       'scripts/lib/pan151-dba-scope.test.ts',
       // PAN-153: a model name that borrows a word of "Custom Shop" or
       // "Classic Player" is not evidence for that model.

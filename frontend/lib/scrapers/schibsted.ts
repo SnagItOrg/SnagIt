@@ -44,7 +44,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 // Extract the numeric listing ID from a Schibsted recommerce URL for dedupe.
 // New format: /recommerce/forsale/item/1234567
 // Old DBA format: /<slug>/id-1234567/
-export function extractListingId(url: string): string {
+function extractListingId(url: string): string {
   const newFormat = url.match(/\/item\/(\d+)/)
   if (newFormat) return newFormat[1]
   const oldFormat = url.match(/\/id-(\d+)/)
