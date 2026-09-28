@@ -586,8 +586,12 @@ test('a disambiguation set actually disambiguates — it is not "every product o
   const tr = resolvePublic('roland tr')
   assert.deepEqual(tr.candidates.map((c) => c.slug).sort(), ['roland-tr-808', 'roland-tr-909'])
 
+  // PAN-159: "roland juno" used to be the two-Juno set here. It is now the
+  // exact key of the `roland-juno` family, so it navigates to the directory of
+  // every Juno — still never to one product, and never to a list of Rolands.
   const juno = resolvePublic('roland juno')
-  assert.deepEqual(juno.candidates.map((c) => c.slug).sort(), ['roland-juno-106', 'roland-juno-60'])
+  assert.equal(juno.navigateTo, '/family/roland-juno')
+  assert.deepEqual(juno.candidates, [])
 })
 
 test('a qualifier token never drags in an unrelated product', () => {
@@ -627,9 +631,16 @@ test('brand affinity is weak enough to suggest but never to disambiguate alone',
   assert.deepEqual(cs80.suggestions.map((s) => s.slug), ['yamaha-dx7'])
   assert.equal(cs80.candidates.length, 0, 'a brand hit alone is not a disambiguation')
   // ...and an unknown generation of a known product suggests the base product.
-  const mk2 = resolvePublic('roland juno-106 mk2')
+  const mk2 = resolvePublic('roland tr-909 mk2')
   assert.equal(mk2.outcome, 'unsupported')
-  assert.deepEqual(mk2.suggestions.map((s) => s.slug), ['roland-juno-106'])
+  assert.deepEqual(mk2.suggestions.map((s) => s.slug), ['roland-tr-909'])
+  // PAN-159. Inside a family whose name prefixes its members' names, the same
+  // query also matches the family by prefix, so it becomes a set of the family
+  // and the base product — never brand-only, and the base is still offered.
+  // (`roland juno-106 mk2` asserted the `unsupported` form until then.)
+  const junoMk2 = resolvePublic('roland juno-106 mk2')
+  assert.equal(junoMk2.outcome, 'disambiguation')
+  assert.deepEqual(junoMk2.candidates.map((c) => c.slug), ['roland-juno', 'roland-juno-106'])
 })
 
 test('acceptance 5: an unsupported product is honest, offers the nearest, and is measurable', () => {

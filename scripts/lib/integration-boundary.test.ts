@@ -363,7 +363,19 @@ test('integration: the index covers the supported cohort and every navigation fa
 
 /* ── The defect integration created: private slugs in the client bundle ──── */
 
-const FAMILY_CHILD_SLUGS = NAVIGATION_FAMILIES.flatMap((f) => f.children)
+/**
+ * Public products that client copy names on purpose, so finding them in a
+ * bundle says nothing about `lib/families.ts`. PAN-159 made both `roland-juno`
+ * members: `roland-juno-60` is the slug placeholder in
+ * app/admin/product/NewProductForm.tsx, and `roland-juno-106` is the example
+ * URL on app/privatliv/page.tsx. Every other child is still scanned, so a
+ * bundled family config is still caught.
+ */
+const PUBLIC_EXAMPLE_SLUGS = new Set(['roland-juno-60', 'roland-juno-106'])
+
+const FAMILY_CHILD_SLUGS = NAVIGATION_FAMILIES.flatMap((f) => f.children).filter(
+  (slug) => !PUBLIC_EXAMPLE_SLUGS.has(slug),
+)
 
 function clientChunks(): string[] {
   const dir = join(FRONTEND, '.next', 'static')
