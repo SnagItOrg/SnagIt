@@ -8,6 +8,7 @@ import {
   buildPopulationStats,
   classifyListing,
   groupByPopulation,
+  isPartOrAccessoryListing,
   isPriceEvidence,
   verdictBasisLabelKey,
   verdictFor,
@@ -341,7 +342,7 @@ async function handle(req: NextRequest, slug: string) {
       async (from, to) => {
         const res = await admin
           .from('reverb_price_history')
-          .select('id, price, sold_at, condition')
+          .select('id, price, sold_at, condition, reverb_categories')
           .eq('kg_product_id', productId)
           .not('sold_at', 'is', null)
           .order('sold_at', { ascending: true })
@@ -478,9 +479,12 @@ async function handle(req: NextRequest, slug: string) {
    */
   const listings = allListings.slice(0, DISPLAY_LISTING_LIMIT)
 
-  // Build price history time-series
+  // Build price history time-series. Parts and accessories sold under the
+  // product are not sales of it (PAN-170), and they leave here, before the
+  // series exists, so the sold stats, the legacy range and the chart all read
+  // the one population.
   const priceHistory: PricePoint[] = [
-    ...reverbAll.rows.map((r) => ({
+    ...reverbAll.rows.filter((r) => !isPartOrAccessoryListing(r.reverb_categories)).map((r) => ({
       sold_at:   r.sold_at as string,
       price:     Number(r.price),
       condition: r.condition as string | null,

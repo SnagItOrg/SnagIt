@@ -116,6 +116,7 @@ interface ReverbListing {
   title: string
   price?: { amount: string; currency: string }
   condition?: { display_name?: string }
+  categories?: Array<{ uuid?: string; full_name?: string }>
   _links?: { web?: { href?: string } }
   published_at?: string
   created_at?: string
@@ -242,6 +243,9 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
       price: convertToDKK(parseFloat(l.price!.amount), l.price!.currency),
       currency: 'DKK',
       condition: l.condition?.display_name ?? null,
+      // Raw Reverb categories (migration 060). Recorded, not filtered: the
+      // product route decides what is a part (PAN-170).
+      reverb_categories: Array.isArray(l.categories) ? l.categories : null,
       listing_url: l._links?.web?.href ?? null,
       listing_title: l.title ?? null,
       sold_at: l.published_at ?? l.created_at ?? null,
