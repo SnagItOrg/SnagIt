@@ -523,7 +523,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
             rel="noopener noreferrer"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Ny hos Thomann: {thomannPriceDkk.toLocaleString('da-DK')} kr →
+            {t.thomannNewPrice}: {thomannPriceDkk.toLocaleString('da-DK')} kr →
           </a>
         </div>
       )}
@@ -611,13 +611,13 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               onClick={(e) => { e.stopPropagation(); handleHeartClick() }}
               className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors"
               style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: isSaved ? 'var(--foreground)' : 'var(--muted-foreground)' }}
-              aria-label={isSaved ? 'Fjern fra gemte annoncer' : 'Gem annonce'}
+              aria-label={isSaved ? t.unsaveListing : t.saveListing}
             >
               <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isSaved ? 'text-red-500' : ''}>
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               </svg>
               {/* Saved state is carried by the word, not only by the filled heart. */}
-              {isSaved ? 'Gemt' : 'Gem'}
+              {isSaved ? t.listingSavedShort : t.listingSaveShort}
             </button>
             {/* Bell — create watchlist alert */}
             <Button
@@ -635,7 +635,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
                 className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold border border-border hover:border-border/80 transition-colors"
                 style={{ color: 'var(--muted-foreground)' }}
               >
-                Se produktside →
+                {t.viewProductPage} →
               </a>
             )}
           </div>
