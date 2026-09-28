@@ -140,6 +140,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-153: a model name that borrows a word of "Custom Shop" or
       // "Classic Player" is not evidence for that model.
       'scripts/lib/pan153-identity-phrase.test.ts',
+      // PAN-158: a scraper that cannot reach the network cannot record its
+      // own failure, so staleness is judged from absence, fail-closed.
+      'scripts/lib/pan158-scrape-freshness.test.ts',
       // PAN-17: the sidebar catalogue tree. Its own suite because "populated
       // branches only" and "no price in a navigation payload" are both
       // properties of a pure builder, and both are silent failures — an empty

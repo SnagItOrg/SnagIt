@@ -1,0 +1,18 @@
+# PAN-158. The scrapers run on the Mac Mini, and when it loses its network a
+# run cannot record its own failure. This check runs off-box and fails - so
+# GitHub emails - when any daily source has gone a night without new data.
+name: Scrape freshness
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # 06:00 UTC, after the nightly Copenhagen scrape window
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: curl --fail-with-body --silent --show-error --retry 3 https://www.klup.dk/api/health/freshness
