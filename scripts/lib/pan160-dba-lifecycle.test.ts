@@ -34,3 +34,15 @@ test('a recorded zero-result search reads as an empty page for its own query onl
     globalThis.fetch = realFetch
   }
 })
+
+test('scrape-dba sweeps stale rows only where the database applied lifecycle', () => {
+  const src = readFileSync(join(ROOT, 'scripts', 'scrape-dba.ts'), 'utf8')
+  const sweeps = src.match(/\.update\(\{ is_active: false/g) ?? []
+  assert.equal(sweeps.length, 1, 'exactly one stale sweep')
+  assert.match(
+    src,
+    /if \(pr\.lifecycleApplied && run\) \{\s*const cutoff = new Date\(Date\.parse\(run\.startedAt\) - STALE_AFTER_DAYS[^\n]*\n[\s\S]{0,200}\.update\(\{ is_active: false, delisted_at: new Date\(\)\.toISOString\(\) \}, \{ count: 'exact' \}\)\s*\.eq\('source', 'dba\.dk'\)\s*\.eq\('is_active', true\)\s*\.lt\('scraped_at', cutoff\)/,
+    'the sweep must sit behind lifecycleApplied, on dba only, by last-seen time before the run started',
+  )
+  assert.match(src, /const STALE_AFTER_DAYS = 3\n/)
+})

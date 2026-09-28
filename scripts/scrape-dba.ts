@@ -23,6 +23,8 @@
  *     3s the Finn/Blocket scripts use, since DBA is the bot-sensitive host
  *   - Upserts on (external_id, source) using listing.url as the stable key
  *   - Appends day-bucketed rows to market_price_observations (idempotent)
+ *   - After a lifecycle-grade run, marks rows unseen for STALE_AFTER_DAYS
+ *     inactive (PAN-160)
  *
  * Usage:
  *   npx tsx scripts/scrape-dba.ts
@@ -122,6 +124,29 @@ const RUN_SCOPE: 'complete' | 'targeted' =
 // Safety fuse only. Reaching it means coverage is NOT proven — never a
 // success signal. Set high enough that real queries exhaust naturally.
 const MAX_PAGES_FUSE = 40
+
+/**
+ * Stale sweep (PAN-160): a dba row not seen for this many days before a
+ * lifecycle-grade run started goes inactive.
+ *
+ * WHY, on top of the miss counter in promote_scrape_run: that counter only
+ * sees rows recorded under the CURRENT scope hash (listing_coverage_scopes).
+ * A row last seen under an earlier scope — before a product-set change, a
+ * scraper-version bump or PAN-151's category scope — can never accrue a miss,
+ * so it stays active forever. PAN-151's scope puts all 1,317 active rows
+ * (2026-09-28) in that state; 526 of them the last run (09-23) did not see,
+ * some unseen since May.
+ *
+ * WHY 3. With nightly runs and the cutoff taken from the run's start, a row
+ * goes inactive on its fourth consecutive missed complete run. In the 44
+ * nightly runs 2026-08-11 … 09-23, 41 of 478 miss streaks that reached four
+ * runs were later re-seen (8.6%), and 27 of 419 that reached seven (6.4%):
+ * waiting longer recovers almost nothing. (That excludes the 115 rows that
+ * vanished together on 08-25 and returned on 09-18, a source-side change.)
+ * Re-seen rows come back on their own: promotion sets is_active=true and
+ * delisted_at=NULL.
+ */
+const STALE_AFTER_DAYS = 3
 
 /**
  * Deterministic scope hash. Approval for lifecycle belongs to this exact
@@ -583,6 +608,26 @@ async function main() {
         console.log('   Lifecycle: SKIPPED (coverage incomplete — no delisting inferred)')
       } else {
         console.log('   Lifecycle: SKIPPED (bootstrap — establishing coverage universe; misses start next complete run)')
+      }
+
+      // Stale sweep, behind the same gate the database applied to the miss
+      // counter: complete coverage, an established scope, and the run's own
+      // coverage evidence (run_has_lifecycle_coverage). The cutoff comes from
+      // the run's start, so no row this run saw can be swept.
+      if (pr.lifecycleApplied && run) {
+        const cutoff = new Date(Date.parse(run.startedAt) - STALE_AFTER_DAYS * 24 * 60 * 60 * 1000).toISOString()
+        const { error: staleError, count } = await supabase
+          .from('listings')
+          .update({ is_active: false, delisted_at: new Date().toISOString() }, { count: 'exact' })
+          .eq('source', 'dba.dk')
+          .eq('is_active', true)
+          .lt('scraped_at', cutoff)
+        if (staleError) {
+          console.error(`   Stale sweep failed: ${staleError.message}`)
+        } else {
+          delisted += count ?? 0
+          console.log(`   Stale sweep: ${count ?? 0} not seen for ${STALE_AFTER_DAYS} days marked inactive.`)
+        }
       }
 
       // ── Bounded new-inflow matching ────────────────────────────────────
