@@ -16,6 +16,7 @@ import {
 } from '@/lib/home-categories'
 import {
   buildCatalogueTree,
+  compareRootsByCountThenName,
   subcategoryGroupNames,
   type CatalogueTreeCategory,
 } from '@/lib/catalogue-tree'
@@ -733,7 +734,7 @@ export async function buildBrowseRootResponse(args: {
       }
     })
     .filter((root) => root.product_count > 0)
-    .sort(compareByNameEn)
+    .sort(compareRootsByCountThenName)
 
   if (!includeDebug) {
     return { categories }
