@@ -20,6 +20,7 @@ is an alias. Add a semantic alias; never add a second literal.
 | Canvas / surfaces | `--canvas` · `--surface-1` · `--surface-2` · `--surface-3` · `--surface-raised` |
 | Borders | `--border-subtle` · `--border-strong` |
 | Text | `--text-primary` · `--text-secondary` · `--text-muted` |
+| Primary action | `--primary` · `--primary-hover` · `--primary-active` · `--primary-foreground` — apply as `.button-primary` (or `<Button variant="primary">`), never a hand-rolled fill |
 | Accent | `--accent` · `--accent-hover` · `--accent-text` · `--accent-subtle` · `--accent-border` · `--accent-foreground` |
 | Destructive | `--destructive` · `--destructive-hover` · `--destructive-text` · `--destructive-subtle` · `--destructive-border` · `--destructive-foreground` |
 | You are here | `--here` · `--here-subtle` · `--here-border` — see "Design rules" for the exhaustive list of uses |

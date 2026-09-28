@@ -419,8 +419,7 @@ export default function BulkReviewPage() {
                           type="button"
                           onClick={() => mergeIntoDetected(idx)}
                           disabled={busy}
-                          className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
-                          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                          className="button-primary text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
                         >
                           {busy ? 'Merger…' : `Merger alle ind på ${g.kg_product_slug}`}
                         </button>
@@ -429,8 +428,7 @@ export default function BulkReviewPage() {
                           type="button"
                           onClick={() => approveGroup(idx)}
                           disabled={busy || !g.editName.trim()}
-                          className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
-                          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                          className="button-primary text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
                         >
                           {busy ? 'Opretter…' : 'Opret + merger alle varianter'}
                         </button>

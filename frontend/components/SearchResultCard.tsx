@@ -600,8 +600,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               target="_blank"
               rel="noopener noreferrer"
               onClick={trackOutbound}
-              className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors"
-              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+              className="button-primary flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors"
             >
               <Icon name="open_in_new" style={{ fontSize: '14px' }} />
               {t.viewListing}

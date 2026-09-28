@@ -341,8 +341,7 @@ export default function CleanupPage() {
                           <button
                             onClick={() => void handleMerge(item, ci)}
                             disabled={busy}
-                            className="text-xs font-semibold px-2.5 py-1 rounded-lg shrink-0 disabled:opacity-40"
-                            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                            className="button-primary text-xs font-semibold px-2.5 py-1 rounded-lg shrink-0 disabled:opacity-40"
                           >
                             Merge →
                           </button>
@@ -398,8 +397,7 @@ export default function CleanupPage() {
                         <button
                           onClick={() => void handleMerge(item, 0)}
                           disabled={busy}
-                          className="text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40"
-                          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                          className="button-primary text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40"
                         >
                           {busy ? 'Working…' : 'Merge into top'}
                         </button>

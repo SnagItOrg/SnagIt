@@ -109,16 +109,12 @@ const KIND = {
 
 function ActionControl({ action }: { action: Action }) {
   const className =
-    'min-h-[44px] rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90 ' +
+    'min-h-[44px] rounded-xl px-5 text-sm font-semibold ' +
     'inline-flex items-center justify-center'
-  const style = {
-    backgroundColor: 'var(--primary)',
-    color: 'var(--primary-foreground)',
-  }
 
   if (action.href) {
     return (
-      <Link href={action.href} className={className} style={style}>
+      <Link href={action.href} className={`button-primary ${className}`}>
         {action.label}
       </Link>
     )

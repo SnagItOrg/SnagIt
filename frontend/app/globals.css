@@ -34,6 +34,10 @@
   --ramp-ink:       #131417;
   --ramp-ink-2:     #454951;
   --ramp-ink-3:     #5f636b;
+  /* The primary action's hover and press (PAN-168): L* +8 and +14 from
+     --ramp-ink, on the line toward --ramp-ink-2. White on them: 15.49 / 13.00. */
+  --ramp-ink-hi:    #232429;
+  --ramp-ink-press: #2f3137;
 
   --ramp-green:     #13ec6d;
   --ramp-green-hi:  #0bd25e;
@@ -142,6 +146,8 @@
   --card-border:           var(--border-subtle);
   --primary:               var(--ramp-ink);
   --primary-foreground:    var(--ramp-1);
+  --primary-hover:         var(--ramp-ink-hi);
+  --primary-active:        var(--ramp-ink-press);
   --secondary:             var(--surface-2);
   --secondary-foreground:  var(--text-primary);
   --muted:                 var(--surface-2);
@@ -319,6 +325,9 @@
   --ramp-ink:       #edeef0;
   --ramp-ink-2:     #b6b9bf;
   --ramp-ink-3:     #8b8f97;
+  /* L* -8 and -14 from --ramp-ink. #0a0a0c on them: 13.75 / 11.66. */
+  --ramp-ink-hi:    #d6d7db;
+  --ramp-ink-press: #c4c7cb;
 
   /* Damped one step from the brand green: full #13ec6d halates against a
      canvas this dark. Badge fills stay unmistakably Klup green; the bloom
@@ -453,6 +462,29 @@
     box-shadow: var(--elevation-card);
     transform: translateY(0);
     transition-duration: var(--duration-fast-min);
+  }
+
+  /* --- primary action ---------------------------------------------------
+     PAN-168. Astryx's Button, read and not imported: hover is one step from
+     rest and press a second step further, both only while enabled, and hover
+     only where a pointer can hover. Focus changes no fill; it is the ring.
+     Every state is a solid ramp colour, never an opacity. The fill moves
+     through a variable so <Button>, which sets it inline, moves too. */
+  .button-primary {
+    --button-primary-fill: var(--primary);
+    background-color: var(--button-primary-fill);
+    color: var(--primary-foreground);
+    transition: background-color var(--duration-fast) var(--ease-standard);
+  }
+
+  @media (hover: hover) {
+    .button-primary:where(:not(:disabled, [aria-disabled='true'])):hover {
+      --button-primary-fill: var(--primary-hover);
+    }
+  }
+
+  .button-primary:where(:not(:disabled, [aria-disabled='true'])):active {
+    --button-primary-fill: var(--primary-active);
   }
 
   /* --- field ------------------------------------------------------------
