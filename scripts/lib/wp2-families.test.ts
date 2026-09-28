@@ -531,9 +531,10 @@ test('route: the family page imports and computes nothing price-shaped', () => {
     assert.equal(page.includes(forbidden), false, `family route must not reference ${forbidden}`)
   }
 
-  // It reads exactly three tables: two for eligibility, one for the listings.
+  // It reads exactly four tables: two for eligibility, one for the listings,
+  // and (PAN-130) the browse root that names the category crumb.
   const tables = [...page.matchAll(/\.from\('([^']+)'\)/g)].map((m) => m[1]).sort()
-  assert.deepEqual(tables, ['browse_product_projection', 'kg_product', 'listing_product_match'])
+  assert.deepEqual(tables, ['browse_product_projection', 'kg_category', 'kg_product', 'listing_product_match'])
 
   // AND NO SELECT ON THIS ROUTE MAY NAME A PRICE COLUMN. Asserted over the
   // select literals rather than over the prose, so the file may still explain
@@ -711,13 +712,15 @@ test('hierarchy: familyForChild resolves a product to its family, and nothing el
   assert.equal(siblings.some((s) => s.slug === viewing), false)
 })
 
-test('navigation: the family route links only to /browse and to canonical children', () => {
+test('navigation: the family route links only to /browse, its browse root and canonical children', () => {
   const page = readRepoFile('app/(shell)/family/[slug]/page.tsx')
   const hrefs = [...page.matchAll(/href=(?:\{`|["'])([^"'`]+)/g)].map((m) => m[1])
   assert.equal(hrefs.length > 0, true, 'expected at least one link')
   for (const href of hrefs) {
     const ok =
       href === '/browse' ||
+      // PAN-130. The family's own browse root, resolved from `categoryRoot`.
+      href === '/browse/${category.slug}' ||
       href === '/product/${child.slug}' ||
       // PAN-94. An aggregated listing links to the MODEL it is matched to, never
       // to the marketplace it came from. A family page that linked off-site
@@ -731,6 +734,27 @@ test('navigation: the family route links only to /browse and to canonical childr
   // passed isCanonical(), so no rendered link can resolve to a 404.
   assert.match(page, /href=\{`\/product\/\$\{child\.slug\}`\}/)
   assert.match(page, /href=\{`\/product\/\$\{listing\.childSlug\}`\}/)
+})
+
+test('PAN-130: a family crumbs its own categoryRoot; a product never takes its category through its family', () => {
+  // PAN-52 §6 grants `categoryRoot` exactly one job — placing the FAMILY under
+  // a browse root — so the family page is where it is read.
+  const family = readRepoFile('app/(shell)/family/[slug]/page.tsx')
+  assert.match(family, /loadCategoryCrumb\(family\.categoryRoot\)/)
+
+  // The other half of §6: no product surface reaches a category via the family.
+  const product = readRepoFile('app/(shell)/product/[slug]/page.tsx')
+  const productApi = readRepoFile('app/api/product/[slug]/route.ts')
+  assert.equal(product.includes('categoryRoot'), false, 'product page must not read family.categoryRoot')
+  assert.equal(productApi.includes('categoryRoot'), false, 'product API must not read family.categoryRoot')
+
+  // Both trails keep exactly one current crumb: `BreadcrumbItem` without
+  // `href` is the one that carries aria-current="page".
+  for (const [name, source] of [['family', family], ['product', product]] as const) {
+    const items = [...source.matchAll(/<BreadcrumbItem(\s[^>]*)?>/g)]
+    const current = items.filter((m) => !/\bhref=/.test(m[1] ?? ''))
+    assert.equal(current.length, 1, `${name} breadcrumb must have exactly one current crumb`)
+  }
 })
 
 test('route-access: /family/[slug] is classified, reachable and no longer planned', () => {
