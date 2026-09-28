@@ -44,7 +44,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 // Extract the numeric listing ID from a Schibsted recommerce URL for dedupe.
 // New format: /recommerce/forsale/item/1234567
 // Old DBA format: /<slug>/id-1234567/
-function extractListingId(url: string): string {
+export function extractListingId(url: string): string {
   const newFormat = url.match(/\/item\/(\d+)/)
   if (newFormat) return newFormat[1]
   const oldFormat = url.match(/\/id-(\d+)/)
@@ -226,6 +226,7 @@ async function fetchSchibstedSearch(
   config: SchibstedConfig,
   normalizedQ: string,
   maxPages: number,
+  options: SchibstedSearchOptions,
 ): Promise<{ listings: ScrapedListing[]; coverage: QueryCoverage }> {
   const all: ScrapedListing[] = []
   const pages: number[] = []
@@ -244,7 +245,7 @@ async function fetchSchibstedSearch(
 
     let pageRes: { listings: ScrapedListing[]; schemaValid: boolean; rawCount: number }
     try {
-      pageRes = await fetchSchibstedPage(config, normalizedQ, page)
+      pageRes = await fetchSchibstedPage(config, normalizedQ, page, options)
     } catch {
       // Never swallowed: a failed page is not an exhausted one.
       termination = 'error'
@@ -278,7 +279,7 @@ async function fetchSchibstedSearch(
       await delay(2000 + Math.random() * 2000)
       let recheck: { listings: ScrapedListing[]; schemaValid: boolean; rawCount: number }
       try {
-        recheck = await fetchSchibstedPage(config, normalizedQ, page)
+        recheck = await fetchSchibstedPage(config, normalizedQ, page, options)
       } catch {
         termination = 'error'
         completed = false
@@ -345,6 +346,7 @@ export async function scrapeSchibstedWithCoverage(
   config: SchibstedConfig,
   query: string,
   maxPages = 1,
+  options: SchibstedSearchOptions = {},
 ): Promise<{ listings: ScrapedListing[]; coverage: QueryCoverage[] }> {
   const normalized = normalizeQuery(query)
 
@@ -361,7 +363,7 @@ export async function scrapeSchibstedWithCoverage(
     if (i > 0) await delay(2000)
     // Failures are RECORDED, never swallowed: a failed variant must be
     // distinguishable from a variant that legitimately found nothing.
-    const res = await fetchSchibstedSearch(config, queries[i], maxPages)
+    const res = await fetchSchibstedSearch(config, queries[i], maxPages, options)
     all.push(...res.listings)
     coverage.push(res.coverage)
   }

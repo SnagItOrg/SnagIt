@@ -16,7 +16,10 @@
  *
  * Features:
  *   - Reads active legendary + classic products from kg_product + kg_brand
- *   - Scrapes search pages via frontend/lib/scrapers/dba.ts (Schibsted engine)
+ *   - Scrapes search pages via frontend/lib/scrapers/dba.ts (Schibsted engine),
+ *     scoped to Musikinstrumenter (`sub_category=1.86.92`, PAN-151). Round 1
+ *     found 0 of 38 resolving listings outside it; the misfiled tail is caught
+ *     by the weekly `--elektronik-sweep` below instead.
  *   - Jittered rate limiting (3-5s) between products — politer than the flat
  *     3s the Finn/Blocket scripts use, since DBA is the bot-sensitive host
  *   - Upserts on (external_id, source) using listing.url as the stable key
@@ -28,18 +31,29 @@
  *   npx tsx scripts/scrape-dba.ts --product="juno 106"
  *   npx tsx scripts/scrape-dba.ts --tier=legendary
  *   npx tsx scripts/scrape-dba.ts --dry-run        # scrape + report, no writes
+ *   npx tsx scripts/scrape-dba.ts --elektronik-sweep
+ *     PAN-151: one newest-first query per monitored brand in Elektronik og
+ *     hvidevarer (`category=0.93`), at most 2 pages, stopping after 40 known
+ *     ids. Keeps only listings the live matcher AND the brand-net resolver
+ *     both resolve to the same KG product (scripts/lib/dba-elektronik-sweep.ts),
+ *     then stages, gates and promotes them exactly like the product run. Always
+ *     a targeted run: it never seeds a baseline and never drives lifecycle.
  */
 
 import * as path from 'path'
 import * as fs from 'fs'
 import type { SupabaseClient } from '../frontend/node_modules/@supabase/supabase-js'
-import { scrapeDbaWithCoverage } from '../frontend/lib/scrapers/dba'
+import { scrapeDbaWithCoverage, DBA_MUSIKINSTRUMENTER } from '../frontend/lib/scrapers/dba'
+import type { SchibstedSearchOptions } from '../frontend/lib/scrapers/schibsted'
 import * as crypto from 'crypto'
 import { evaluateRun, startRun, finishRun, reportRun, type ListingSample } from './lib/scrape-health'
 import { stageListings, promoteRunAtomic, hasEstablishedScopeCoverage, GATE_VERSION, type StagedListing } from './lib/publish'
 import { resolveBaseline, baselineNotAttempted, cohortOf, type Baseline } from './lib/baseline'
 import { monitoredSlugs, assertResolved } from './lib/source-monitoring'
 import { matchScrapedBatch, reportBatchMatch, fetchBatchListingIds } from './lib/match-new-inflow'
+import {
+  ELEKTRONIK_SWEEP_OPTIONS, keepForSweep, loadKnownDbaIds, loadSweepKnowledge, sweepBrand,
+} from './lib/dba-elektronik-sweep'
 
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
 
@@ -77,6 +91,7 @@ const productFilter = args.find(a => a.startsWith('--product='))?.split('=')[1]?
 const tierArg = args.find(a => a.startsWith('--tier='))?.split('=')[1]
 const TIERS = tierArg ? tierArg.split(',') : ['legendary', 'classic']
 const DRY_RUN = args.includes('--dry-run')
+const ELEKTRONIK_SWEEP = args.includes('--elektronik-sweep')
 // Fault injection for verifying the gate is fail-closed. Nulls price_dkk on
 // every scraped row, reproducing the Finn/Blocket bug. Used to prove that a
 // detected fault cannot reach listings / price history / lifecycle.
@@ -105,13 +120,22 @@ const SCRAPER_VERSION = 'dba-2.0.0'
 // which breaks volume comparability even when fetching is untouched. Both are
 // independent dimensions of the baseline cohort.
 const PARSER_VERSION = 'dba-jsonld-1.0.0'
-const PAGINATION_STRATEGY = 'page-increment-until-empty'
+const PAGINATION_STRATEGY = ELEKTRONIK_SWEEP
+  ? 'newest-first-until-known-or-2-pages'
+  : 'page-increment-until-empty'
+// Part of the scope hash: a scoped query measures a different universe than
+// an unscoped one, so it needs its own baseline and its own bootstrap.
+const SEARCH_OPTIONS: SchibstedSearchOptions = ELEKTRONIK_SWEEP
+  ? ELEKTRONIK_SWEEP_OPTIONS
+  : { subCategory: DBA_MUSIKINSTRUMENTER }
 // Whether this invocation attempts the FULL expected manifest or a subset.
 // Recorded from the run's own intent BEFORE scraping: a targeted run must
 // never seed a baseline for a complete scope, and that must not depend on
 // counts a fault could have changed.
+// The Elektronik sweep is always targeted: a delta over one category proves
+// nothing about what is gone.
 const RUN_SCOPE: 'complete' | 'targeted' =
-  productFilter === null && LIMIT === Infinity ? 'complete' : 'targeted'
+  productFilter === null && LIMIT === Infinity && !ELEKTRONIK_SWEEP ? 'complete' : 'targeted'
 // Safety fuse only. Reaching it means coverage is NOT proven — never a
 // success signal. Set high enough that real queries exhaust naturally.
 const MAX_PAGES_FUSE = 40
@@ -128,6 +152,7 @@ function computeScopeHash(productIds: string[], queries: string[]): string {
     tiers: [...TIERS].sort(),
     product_ids: [...productIds].sort(),
     queries: [...queries].sort(),
+    search: SEARCH_OPTIONS,
     pagination: PAGINATION_STRATEGY,
     scraper_version: SCRAPER_VERSION,
   })
@@ -173,7 +198,9 @@ function normalizeText(title: string): string {
  */
 const MONITORED_SLUGS = monitoredSlugs('dba.dk')
 
-async function loadProducts(): Promise<Array<{ id: string; canonical_name: string; brand_name: string; query: string }>> {
+type MonitoredProduct = { id: string; canonical_name: string; brand_name: string; query: string }
+
+async function loadProducts(): Promise<MonitoredProduct[]> {
   const { data, error } = await supabase
     .from('kg_product')
     .select('id, slug, canonical_name, kg_brand!inner(name)')
@@ -201,7 +228,7 @@ async function loadProducts(): Promise<Array<{ id: string; canonical_name: strin
         query: buildSearchQuery(brandName, product.canonical_name),
       }
     })
-    .filter((p): p is { id: string; canonical_name: string; brand_name: string; query: string } => p !== null)
+    .filter((p): p is MonitoredProduct => p !== null)
 
   if (productFilter) {
     products = products.filter(p => p.canonical_name.toLowerCase().includes(productFilter))
@@ -251,13 +278,10 @@ async function main() {
 
   console.log(`Loaded ${products.length} products from knowledge graph.\n`)
 
-  let scrapedProducts = 0
-  let totalListings = 0
-  let failedProducts = 0
-  const allSamples: ListingSample[] = []
-  const stagedRows: StagedListing[] = []
-  const coverageRows: Record<string, unknown>[] = []
-  const scopeHash = computeScopeHash(products.map(p => p.id), products.map(p => p.query))
+  const scopeHash = computeScopeHash(
+    products.map(p => p.id),
+    ELEKTRONIK_SWEEP ? monitoredBrands(products) : products.map(p => p.query),
+  )
 
   // Open the run record FIRST — staging rows are keyed to it, and its
   // started_at anchors baseline selection.
@@ -269,79 +293,9 @@ async function main() {
   }
   const runId = run?.id ?? null
 
-  for (let i = 0; i < products.length; i++) {
-    if (i > 0) await jitteredDelay()
-
-    const product = products[i]
-    let listings: ScrapedListings
-    try {
-      const res = await scrapeDbaWithCoverage(product.query, MAX_PAGES_FUSE)
-      listings = res.listings
-      // One coverage row per expected product, aggregated over its query
-      // variants. A product is only terminal if EVERY variant terminated
-      // for a known-exhausted reason.
-      const variants = res.coverage
-      const terminal = new Set(['empty_page', 'no_next_token', 'known_last_page'])
-      const allTerminal = variants.length > 0 && variants.every(v => terminal.has(v.terminationReason))
-      const allCompleted = variants.every(v => v.queryCompleted)
-      coverageRows.push({
-        query: product.query,
-        kg_product_id: product.id,
-        query_started: true,
-        query_completed: allCompleted,
-        pages_fetched: variants.reduce((a, v) => a + v.pagesFetched, 0),
-        termination_reason: allTerminal
-          ? 'empty_page'
-          : (variants.find(v => v.terminationReason === 'error') ? 'error' : 'max_pages_hit'),
-        raw_count: variants.reduce((a, v) => a + v.rawCount, 0),
-        parsed_count: variants.reduce((a, v) => a + v.parsedCount, 0),
-        parse_error_count: variants.reduce((a, v) => a + v.parseErrorCount, 0),
-        unique_staged_count: res.listings.length,
-        pagination_tokens: variants.map(v => ({ q: v.query, pages: v.paginationTokens, term: v.terminationReason })),
-      })
-    } catch (err) {
-      failedProducts += 1
-      coverageRows.push({
-        query: product.query, kg_product_id: product.id,
-        query_started: true, query_completed: false, pages_fetched: 0,
-        termination_reason: 'error', raw_count: 0, parsed_count: 0,
-        parse_error_count: 0, unique_staged_count: 0, pagination_tokens: [],
-      })
-      console.error(`[scrape-dba] ${product.canonical_name}: scrape failed (${err instanceof Error ? err.message : err})`)
-      continue
-    }
-
-    // NOTHING authoritative is written in this loop. Output only accumulates
-    // for staging; publication happens after the gate says `passed`.
-    if (SIMULATE_BAD_DATA) {
-      for (const l of listings) (l as { price_dkk: number | null }).price_dkk = null
-    }
-    for (const l of listings) {
-      allSamples.push({
-        external_id: l.url, url: l.url, title: l.title,
-        price: l.price, currency: l.currency, price_dkk: l.price_dkk ?? null,
-      })
-      stagedRows.push({
-        external_id: l.url ?? null,
-        title: l.title ?? null,
-        price: l.price ?? null,
-        currency: l.currency ?? null,
-        price_dkk: l.price_dkk ?? null,
-        url: l.url ?? null,
-        image_url: l.image_url ?? null,
-        location: l.location ?? null,
-        source: l.source,
-        country: l.country ?? 'DK',
-        normalized_text: l.title ? normalizeText(l.title) : null,
-        platform: 'dba',
-        source_query: product.query,
-      } as StagedListing & { source_query: string })
-    }
-
-    scrapedProducts += 1
-    totalListings += listings.length
-    console.log(`[scrape-dba] ${product.canonical_name}: ${listings.length} listings`)
-  }
+  const {
+    expected, scrapedProducts, failedProducts, totalListings, allSamples, stagedRows, coverageRows,
+  } = ELEKTRONIK_SWEEP ? await collectElektronikSweep(products) : await collectProductSet(products)
 
   // ── 1. STAGE ──────────────────────────────────────────────────────────
   let stagedCount = 0
@@ -350,7 +304,7 @@ async function main() {
     if (st.error) {
       console.error(`Staging failed: ${st.error}`)
       await finishRun(supabase, runId, 'failed', {
-        productsAttempted: products.length, productsFailed: failedProducts,
+        productsAttempted: expected, productsFailed: failedProducts,
         listingsFetched: allSamples.length, listingsSaved: 0,
         newListings: 0, priceChanges: 0, refoundListings: 0,
       }, {}, [{ code: 'staging_failed', severity: 'hard', detail: st.error }], 0)
@@ -376,7 +330,7 @@ async function main() {
       // An invalid value the CHECK constraint rejects, so the failure is a
       // real database error on the real code path — not a mocked branch.
       run_scope: SIMULATE_IDENTITY_WRITE_FAILURE ? 'not-a-valid-scope' : RUN_SCOPE,
-      expected_products: products.length,
+      expected_products: expected,
     }).eq('id', runId)
 
     // FAIL CLOSED. This write was previously unchecked, and a silent failure
@@ -387,7 +341,7 @@ async function main() {
     if (identityErr) {
       console.error(`Run identity write failed: ${identityErr.message}`)
       await finishRun(supabase, runId, 'failed', {
-        productsAttempted: products.length, productsFailed: failedProducts,
+        productsAttempted: expected, productsFailed: failedProducts,
         listingsFetched: allSamples.length, listingsSaved: 0,
         newListings: 0, priceChanges: 0, refoundListings: 0,
       }, {}, [{ code: 'run_identity_write_failed', severity: 'hard', detail: identityErr.message }], 0)
@@ -409,7 +363,7 @@ async function main() {
 
   // ── 2. EVALUATE (before anything authoritative is touched) ────────────
   const counters = {
-    productsAttempted: products.length,
+    productsAttempted: expected,
     productsFailed: failedProducts,
     listingsFetched: allSamples.length,
     listingsSaved: 0,
@@ -441,7 +395,7 @@ async function main() {
 
   const { status, violations, metrics } = evaluateRun(allSamples, counters, baseline)
 
-  console.log(`\n[scrape-dba] ${scrapedProducts}/${products.length} products, ${totalListings} listings scraped, ${stagedCount} staged.`)
+  console.log(`\n[scrape-dba] ${scrapedProducts}/${expected} products, ${totalListings} listings scraped, ${stagedCount} staged.`)
   reportRun(status, violations, metrics, baseline)
 
   // Coverage manifest: every expected product actually scraped. "No
@@ -449,13 +403,13 @@ async function main() {
   // drop pages while still returning HTTP 200.
   // Expected and recorded query counts must be identical — a missing
   // coverage row means we cannot account for that part of the universe.
-  const coverageRowsComplete = coverageRows.length === products.length
+  const coverageRowsComplete = coverageRows.length === expected
   const allTerminal = coverageRows.every(c => c.termination_reason === 'empty_page')
 
   const coverageComplete =
     !DRY_RUN && status === 'passed' &&
     RUN_SCOPE === 'complete' &&
-    failedProducts === 0 && scrapedProducts === products.length &&
+    failedProducts === 0 && scrapedProducts === expected &&
     coverageRowsComplete && allTerminal
 
   if (!DRY_RUN && !allTerminal) {
@@ -489,7 +443,7 @@ async function main() {
       pagination_strategy: PAGINATION_STRATEGY,
       run_scope: RUN_SCOPE,
       gate_version: GATE_VERSION,
-      expected_products: products.length,
+      expected_products: expected,
       covered_products: scrapedProducts,
       coverage_complete: coverageComplete,
       raw_count: allSamples.length,
@@ -610,6 +564,169 @@ async function main() {
   // Signal downstream automation: quarantined/failed runs should not be
   // treated as a healthy nightly refresh.
   if (status === 'failed') process.exitCode = 1
+}
+
+function toSample(l: ScrapedListings[number]): ListingSample {
+  return {
+    external_id: l.url, url: l.url, title: l.title,
+    price: l.price, currency: l.currency, price_dkk: l.price_dkk ?? null,
+  }
+}
+
+function toStaged(l: ScrapedListings[number], sourceQuery: string): StagedListing {
+  return {
+    external_id: l.url ?? null,
+    title: l.title ?? null,
+    price: l.price ?? null,
+    currency: l.currency ?? null,
+    price_dkk: l.price_dkk ?? null,
+    url: l.url ?? null,
+    image_url: l.image_url ?? null,
+    location: l.location ?? null,
+    source: l.source,
+    country: l.country ?? 'DK',
+    normalized_text: l.title ? normalizeText(l.title) : null,
+    platform: 'dba',
+    source_query: sourceQuery,
+  } as StagedListing & { source_query: string }
+}
+
+/**
+ * What one invocation collected. NOTHING authoritative is written while
+ * collecting; publication happens after the gate says `passed`.
+ */
+interface Collected {
+  /** Queries the run set out to cover: products, or brands for the sweep. */
+  expected: number
+  scrapedProducts: number
+  failedProducts: number
+  totalListings: number
+  /** Everything fetched — what the health gate judges. */
+  allSamples: ListingSample[]
+  /** What is published. Identical to allSamples except in the sweep. */
+  stagedRows: StagedListing[]
+  coverageRows: Record<string, unknown>[]
+}
+
+async function collectProductSet(products: MonitoredProduct[]): Promise<Collected> {
+  let scrapedProducts = 0
+  let totalListings = 0
+  let failedProducts = 0
+  const allSamples: ListingSample[] = []
+  const stagedRows: StagedListing[] = []
+  const coverageRows: Record<string, unknown>[] = []
+
+  for (let i = 0; i < products.length; i++) {
+    if (i > 0) await jitteredDelay()
+
+    const product = products[i]
+    let listings: ScrapedListings
+    try {
+      const res = await scrapeDbaWithCoverage(product.query, MAX_PAGES_FUSE, SEARCH_OPTIONS)
+      listings = res.listings
+      // One coverage row per expected product, aggregated over its query
+      // variants. A product is only terminal if EVERY variant terminated
+      // for a known-exhausted reason.
+      const variants = res.coverage
+      const terminal = new Set(['empty_page', 'no_next_token', 'known_last_page'])
+      const allTerminal = variants.length > 0 && variants.every(v => terminal.has(v.terminationReason))
+      const allCompleted = variants.every(v => v.queryCompleted)
+      coverageRows.push({
+        query: product.query,
+        kg_product_id: product.id,
+        query_started: true,
+        query_completed: allCompleted,
+        pages_fetched: variants.reduce((a, v) => a + v.pagesFetched, 0),
+        termination_reason: allTerminal
+          ? 'empty_page'
+          : (variants.find(v => v.terminationReason === 'error') ? 'error' : 'max_pages_hit'),
+        raw_count: variants.reduce((a, v) => a + v.rawCount, 0),
+        parsed_count: variants.reduce((a, v) => a + v.parsedCount, 0),
+        parse_error_count: variants.reduce((a, v) => a + v.parseErrorCount, 0),
+        unique_staged_count: res.listings.length,
+        pagination_tokens: variants.map(v => ({ q: v.query, pages: v.paginationTokens, term: v.terminationReason })),
+      })
+    } catch (err) {
+      failedProducts += 1
+      coverageRows.push({
+        query: product.query, kg_product_id: product.id,
+        query_started: true, query_completed: false, pages_fetched: 0,
+        termination_reason: 'error', raw_count: 0, parsed_count: 0,
+        parse_error_count: 0, unique_staged_count: 0, pagination_tokens: [],
+      })
+      console.error(`[scrape-dba] ${product.canonical_name}: scrape failed (${err instanceof Error ? err.message : err})`)
+      continue
+    }
+
+    // NOTHING authoritative is written in this loop. Output only accumulates
+    // for staging; publication happens after the gate says `passed`.
+    if (SIMULATE_BAD_DATA) {
+      for (const l of listings) (l as { price_dkk: number | null }).price_dkk = null
+    }
+    for (const l of listings) {
+      allSamples.push(toSample(l))
+      stagedRows.push(toStaged(l, product.query))
+    }
+
+    scrapedProducts += 1
+    totalListings += listings.length
+    console.log(`[scrape-dba] ${product.canonical_name}: ${listings.length} listings`)
+  }
+
+  return { expected: products.length, scrapedProducts, failedProducts, totalListings, allSamples, stagedRows, coverageRows }
+}
+
+/** The monitored brands, once each — never derived from the KG. */
+function monitoredBrands(products: MonitoredProduct[]): string[] {
+  return Array.from(new Set(products.map(p => p.brand_name.trim().toLowerCase()))).sort()
+}
+
+/**
+ * PAN-151: one Elektronik query per monitored brand. Every fetched listing is
+ * judged by the health gate, so a parser break still quarantines the run; only
+ * the listings that resolve (see keepForSweep) are staged for publication.
+ */
+async function collectElektronikSweep(products: MonitoredProduct[]): Promise<Collected> {
+  const brands = monitoredBrands(products)
+  const knowledge = await loadSweepKnowledge(supabase)
+  const known = await loadKnownDbaIds(supabase)
+  const out: Collected = {
+    expected: brands.length, scrapedProducts: 0, failedProducts: 0, totalListings: 0,
+    allSamples: [], stagedRows: [], coverageRows: [],
+  }
+
+  for (let i = 0; i < brands.length; i++) {
+    if (i > 0) await jitteredDelay()
+    const brand = brands[i]
+    const sweep = await sweepBrand(brand, known, jitteredDelay)
+    const kept = sweep.listings.filter(l => keepForSweep(l.title, brand, knowledge) !== null)
+
+    out.coverageRows.push({
+      query: brand,
+      kg_product_id: null,
+      query_started: true,
+      query_completed: sweep.termination !== 'error',
+      pages_fetched: sweep.pages.length,
+      termination_reason: sweep.termination,
+      raw_count: sweep.rawCount,
+      parsed_count: sweep.listings.length,
+      parse_error_count: Math.max(0, sweep.rawCount - sweep.listings.length),
+      unique_staged_count: kept.length,
+      pagination_tokens: [{ q: brand, pages: sweep.pages, term: sweep.termination, stopped_on_known: sweep.stoppedOnKnown }],
+    })
+    if (sweep.termination === 'error') {
+      out.failedProducts += 1
+      console.error(`[scrape-dba:elektronik] ${brand}: sweep failed`)
+      continue
+    }
+
+    out.allSamples.push(...sweep.listings.map(toSample))
+    out.stagedRows.push(...kept.map(l => toStaged(l, brand)))
+    out.scrapedProducts += 1
+    out.totalListings += sweep.listings.length
+    console.log(`[scrape-dba:elektronik] ${brand}: ${sweep.listings.length} fetched, ${kept.length} kept`)
+  }
+  return out
 }
 
 main().catch((error) => {

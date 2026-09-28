@@ -17,6 +17,24 @@ module.exports = {
       },
     },
     {
+      // PAN-151: the net under scrape-dba's Musikinstrumenter scope. One
+      // Elektronik og hvidevarer query per monitored brand (~2 requests each),
+      // keeping only listings that resolve to a KG product. Weekly: the tail
+      // is ~2.5% of a brand's resolving listings, and newest-first over two
+      // pages covers a week of it. Sunday 04:30, hours clear of scrape-dba's
+      // 00:30 promotion, so the two never contend on the listings index.
+      name: 'scrape-dba-elektronik',
+      script: 'npx',
+      args: 'tsx scripts/scrape-dba.ts --elektronik-sweep',
+      cron_restart: '30 4 * * 0', // weekly, Sunday at 04:30
+      autorestart: false,
+      max_restarts: 0,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
       name: 'scrape-blocket',
       script: 'npx',
       args: 'tsx scripts/scrape-blocket.ts',
