@@ -403,7 +403,7 @@ export async function scrapeSchibstedWithCoverage(
   const coverage: QueryCoverage[] = []
 
   for (let i = 0; i < queries.length; i++) {
-    if (i > 0) await delay(2000)
+    if (i > 0) await delay(2000 + Math.random() * 2000)
     // Failures are RECORDED, never swallowed: a failed variant must be
     // distinguishable from a variant that legitimately found nothing.
     const res = await fetchSchibstedSearch(config, queries[i], maxPages, options)
