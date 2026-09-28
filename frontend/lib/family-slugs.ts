@@ -43,6 +43,18 @@ export const FAMILY_SLUGS = [
   'minimoog',
   // PAN-154 (2/2). The same case: `fender-mustang-bass` is the member.
   'mustang-short-scale-bass',
+  // PAN-159 Tier 1. The first five are the `rhodes` case: no row today.
+  // `arp-2600` is NOT the ARP slug — it is a priced page and stays a member.
+  'roland-juno',
+  'roland-jupiter',
+  'sequential-prophet',
+  'roland-space-echo',
+  'arp-2600-semi-modular',
+  // These two ARE `kg_product` rows: `known` + `qa_only` line labels, so no
+  // page renders today. Listing them here is the PAN-84 guard — the row can no
+  // longer be published or receive automatic matches.
+  'fender-jazzmaster',
+  'fender-jaguar',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]

@@ -313,6 +313,135 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: ['fender-mustang-bass'],
     aliases: [],
   },
+  /*
+   * PAN-159 Tier 1 — owner decision 2026-09-28. Members are existing clean rows
+   * only, SELECT-verified active on 2026-09-28 and each under this family's
+   * `categoryRoot`, or not yet classified (PAN-52 §6). Merge, never create:
+   * duplicates, listing titles, clones and sub-brands are not members, and a
+   * variant with no row is a candidate on the ticket, never a row made here.
+   *
+   * No aliases on any of them. Label and slug give each family its keys, and
+   * the bare line names (`juno`, `jupiter`, `prophet`, `space echo`) are
+   * DANGEROUS_TERM_KEYS, so they never navigate on their own. No label is a
+   * member's name, so each family stays choosable in a disambiguation set.
+   *
+   * The synth and echo children run oldest first; the guitar children put the
+   * canonical member first and make no claim about years (PAN-52 §11). Only
+   * canonical children render.
+   */
+  'roland-juno': {
+    label: 'Roland Juno',
+    brand: 'Roland',
+    categoryRoot: 'keyboards-and-synths',
+    // `roland-juno-ds61` duplicates `roland-juno-ds-61` (same CSP, 6679).
+    // Behringer JU-06 is a clone, never a member.
+    children: [
+      'roland-juno-6',
+      'roland-juno-60',
+      'roland-juno-106',
+      'roland-alpha-juno-1',
+      'roland-alpha-juno-2',
+      'roland-juno-d',
+      'roland-juno-g',
+      'roland-juno-stage',
+      'roland-juno-di',
+      'roland-juno-ds-61',
+    ],
+    aliases: [],
+  },
+  'roland-jupiter': {
+    label: 'Roland Jupiter',
+    brand: 'Roland',
+    categoryRoot: 'keyboards-and-synths',
+    // `roland-jp-4`, `-6` and `-8` duplicate the Jupiter rows. JP-8000 and
+    // JP-8080 are not Jupiters.
+    children: [
+      'roland-jupiter-4',
+      'roland-jupiter-8',
+      'roland-jupiter-6',
+      'roland-jupiter-80',
+      'roland-jupiter-xm',
+    ],
+    aliases: [],
+  },
+  /*
+   * BRAND IS `Sequential` across three `kg_brand` rows (Sequential Circuits,
+   * Dave Smith Instruments, Sequential): one company under three names, the
+   * `rhodes` precedent. `Sequential` is the one query token all three share.
+   * The Prophet 2000 and 3000 are samplers and the Prophet Remote a
+   * controller, so they are not members; nor is any Arturia or Creamware
+   * emulation.
+   */
+  'sequential-prophet': {
+    label: 'Sequential Prophet',
+    brand: 'Sequential',
+    categoryRoot: 'keyboards-and-synths',
+    children: [
+      'sequential-circuits-prophet-5',
+      'sequential-circuits-prophet-10',
+      'sequential-circuits-prophet-600',
+      'sequential-circuits-prophet-t8',
+      'sequential-circuits-prophet-vs',
+      'dave-smith-instruments-prophet-08',
+      'sequential-prophet-6',
+      'sequential-prophet-rev2',
+      'sequential-prophet-5',
+      'sequential-prophet-10',
+    ],
+    aliases: [],
+  },
+  /*
+   * Roland's tape echoes only. Boss RE-2, RE-20 and RE-202 carry the name but
+   * are a sub-brand's pedals, and a sub-brand never joins its parent's family.
+   */
+  'roland-space-echo': {
+    label: 'Roland Space Echo',
+    brand: 'Roland',
+    categoryRoot: 'effects-and-pedals',
+    children: ['roland-re-201', 'roland-re-501'],
+    aliases: [],
+  },
+  /*
+   * The Minimoog pattern: the vintage original and the Korg reissue are
+   * separate products (PAN-52 D6), grouped here. The slug is not `arp-2600`,
+   * because that is the vintage member's own priced page and a family slug
+   * 308s its product URL away. Behringer's 2600 is a clone (`kg_relation`),
+   * never a member.
+   */
+  'arp-2600-semi-modular': {
+    label: 'ARP 2600 Semi-Modular',
+    brand: 'ARP',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['arp-2600', 'arp-korg-arp-2600'],
+    aliases: [],
+  },
+  /*
+   * These two slugs ARE `kg_product` rows: `known` + `qa_only` line labels,
+   * holding 49 and 47 active matches (SELECT, 2026-09-28). Neither renders a
+   * page today, so the 308 moves no priced page. Being a family slug is what
+   * guards them (PAN-84): they can no longer be published and can never be
+   * automatic match targets. Their existing matches are not touched here.
+   * The Squier J Mascis Jazzmaster is a sub-brand's, so not a member.
+   */
+  'fender-jazzmaster': {
+    label: 'Fender Jazzmaster',
+    brand: 'Fender',
+    categoryRoot: 'electric-guitars',
+    children: [
+      'fender-jim-root-jazzmaster',
+      'fender-jim-root-v4-jazzmaster',
+      'fender-troy-van-leeuwen-jazzmaster',
+      'fender-american-vintage-ii-jazzmaster',
+    ],
+    aliases: [],
+  },
+  'fender-jaguar': {
+    label: 'Fender Jaguar',
+    brand: 'Fender',
+    categoryRoot: 'electric-guitars',
+    children: ['fender-johnny-marr-jaguar', 'fender-kurt-cobain-jaguar'],
+    aliases: [],
+  },
 }
 
 /** Every family, in `FAMILY_SLUGS` order. */
