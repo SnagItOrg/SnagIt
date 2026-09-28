@@ -329,6 +329,9 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
           signal={buildPositionSignal({
             // No `scope`: `family.label` is the <h1> immediately above.
             renderedRows: children,
+            // Model cards, so it says models: "4 resultater" above a section
+            // of 26 listings read as a count of the listings (PAN-168 #7).
+            countKind: 'models',
           })}
         />
 

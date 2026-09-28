@@ -532,12 +532,13 @@ export const translations = {
     // PAN-121 — the position signal. One contiguous block, because three
     // workers are adding keys to this file tonight.
     positionSignalRegion: 'Hvor du er',
-    positionSignalUnfiltered: 'Ingen filtre aktive',
     positionSignalAllCategories: 'Alle kategorier',
     positionSignalResultOne: '{count} resultat',
     positionSignalResultMany: '{count} resultater',
     positionSignalCategoryOne: '{count} kategori',
     positionSignalCategoryMany: '{count} kategorier',
+    positionSignalModelOne: '{count} model',
+    positionSignalModelMany: '{count} modeller',
     positionSignalQueryFilter: 'Søgning: {query}',
     positionSignalRemoveFilter: 'Fjern filter: {label}',
     positionSignalFilterRemoved: 'Filter fjernet: {label}',
@@ -1112,12 +1113,13 @@ export const translations = {
     // PAN-121 — the position signal. One contiguous block, because three
     // workers are adding keys to this file tonight.
     positionSignalRegion: 'Where you are',
-    positionSignalUnfiltered: 'No filters active',
     positionSignalAllCategories: 'All categories',
     positionSignalResultOne: '{count} result',
     positionSignalResultMany: '{count} results',
     positionSignalCategoryOne: '{count} category',
     positionSignalCategoryMany: '{count} categories',
+    positionSignalModelOne: '{count} model',
+    positionSignalModelMany: '{count} models',
     positionSignalQueryFilter: 'Search: {query}',
     positionSignalRemoveFilter: 'Remove filter: {label}',
     positionSignalFilterRemoved: 'Filter removed: {label}',
