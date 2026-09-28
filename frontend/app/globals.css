@@ -490,6 +490,17 @@
     border-color: var(--ring);
   }
 
+  /* PAN-168. The placeholder is the only hint of what Klup covers ("fx
+     Juno-106, TR-808, DX7"), and it fell through to Preflight's gray-400 — not
+     a token — with `placeholder:opacity-40/50` at two call sites on top.
+     Measured on --input-background: 1.29:1 light / 2.11:1 dark in the shell
+     search, 1.98:1 on the landing hero. --text-muted is 4.69 / 4.61, and one
+     rule here means no call site picks its own. */
+  .field::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .field {
       transition: none;

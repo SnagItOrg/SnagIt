@@ -31,7 +31,7 @@ export function MobileSearchBar() {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={t.searchInputPlaceholder}
-          className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium placeholder:opacity-40"
+          className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium"
         />
       </div>
     </form>
