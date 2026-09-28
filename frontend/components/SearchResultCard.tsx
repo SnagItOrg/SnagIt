@@ -407,7 +407,14 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
   // for no gain, and nesting a button inside the anchor — the mistake the unused
   // grid variant makes — would break activation on assistive technology.
   return (
-    <div className="surface-card rounded-2xl overflow-hidden flex flex-col transition-colors hover:border-line-strong">
+    /*
+      PAN-168. `flex-1` lets the card fill a stretched grid cell, and the CTA
+      row below takes `mt-auto`, so every card in a row is one height and the
+      actions line up across it. Cards used to end wherever their content did:
+      a verdict badge or a two-line title pushed that card's buttons down, and
+      a row of three read as ragged.
+    */
+    <div className="surface-card rounded-2xl overflow-hidden flex flex-1 flex-col transition-colors hover:border-line-strong">
       {/*
         NOT A LINK. The body used to carry `href={listing.url}` — the same
         destination as `Se annonce` below it — so the card offered two
@@ -521,8 +528,9 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
         </div>
       )}
 
-      {/* CTAs / inline login capture — outside the <a> */}
-      <div className="px-3 pb-3">
+      {/* CTAs / inline login capture — outside the <a>. `pt-3` separates the
+          action group from the provenance row it used to touch (4px). */}
+      <div className="mt-auto px-3 pt-3 pb-3">
         {showCapture ? (
           captureSent ? (
             <div className="flex flex-col gap-1 py-1">
