@@ -72,6 +72,15 @@ export function LandingShell({ children }: { children: React.ReactNode }) {
             <p className="text-lg mt-3 text-muted-foreground">
               {t.subheadline}
             </p>
+            {/* PAN-168 #8. One control, not two slabs: the submit is a compact
+                button inside the field's trailing edge (Astryx TextInput +
+                Button: start icon, hidden-but-present label, a labelled
+                action), where a full-width filled "Søg" under the field was
+                the heaviest thing on the page after the H1 — a white slab in
+                dark. No autoFocus: it painted the focus ring before anyone had
+                touched the page. The hero's placeholder is the examples alone,
+                since the subheadline above already says what Klup follows; the
+                full sentence truncated at 390px. */}
             <form onSubmit={handleSubmit} className="w-full mt-8">
               <div className="relative w-full">
                 <Icon
@@ -83,18 +92,26 @@ export function LandingShell({ children }: { children: React.ReactNode }) {
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder={t.searchInputPlaceholder}
-                  className="w-full rounded-2xl pl-14 pr-6 py-4 text-lg text-foreground"
-                  autoFocus
+                  placeholder={t.heroSearchPlaceholder}
+                  aria-label={t.search}
+                  className="w-full rounded-2xl pl-14 pr-14 sm:pr-24 py-4 text-base sm:text-lg text-foreground"
                 />
+                {/* Below `sm` the label moves to the accessible name only and an
+                    arrow carries the action, which is what leaves the 390px
+                    placeholder room to fit (measured: 228px of box for a 211px
+                    EN string). The label stays in the DOM, so the button's
+                    name is "Søg"/"Search" at every width. */}
+                <Button
+                  variant="primary"
+                  type="submit"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center size-10 rounded-xl text-sm font-semibold sm:size-auto sm:px-4 sm:py-2.5"
+                >
+                  <span className="flex sm:hidden">
+                    <Icon name="arrow_forward" style={{ fontSize: '20px' }} />
+                  </span>
+                  <span className="sr-only sm:not-sr-only">{t.search}</span>
+                </Button>
               </div>
-              <Button
-                variant="primary"
-                type="submit"
-                className="w-full mt-3 rounded-2xl px-8 py-4 text-base font-semibold transition-opacity hover:opacity-90 active:opacity-100"
-              >
-                {t.search}
-              </Button>
             </form>
           </div>
         </div>
