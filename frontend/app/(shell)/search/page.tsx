@@ -362,7 +362,7 @@ function SearchPageInner() {
               }
               // 16px minimum (text-base): anything smaller makes iOS Safari
               // zoom the viewport on focus and the visitor loses the page.
-              className="w-full rounded-xl pl-9 pr-4 py-3 text-base font-medium placeholder:opacity-50"
+              className="w-full rounded-xl pl-9 pr-4 py-3 text-base font-medium"
             />
           </div>
           <Button
