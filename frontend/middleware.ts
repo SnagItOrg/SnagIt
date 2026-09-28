@@ -5,6 +5,13 @@ import type { NextRequest } from 'next/server'
 import { requiresAdmin, requiresAuth } from '@/lib/route-access'
 import { familyRedirectTarget } from '@/lib/families'
 
+// WHY THIS IS STILL `middleware.ts` ON NEXT 16 (PAN-167). Next 16 deprecates
+// the name in favour of `proxy.ts`, but `proxy` runs on the Node.js runtime
+// only, while this file runs on the Edge runtime. Renaming would move the rate
+// limiter's in-memory map and both auth gates onto a different runtime and
+// deployment target. That is a behaviour change, and a product-owner decision,
+// not an upgrade step. The build prints a deprecation warning until then.
+
 // Per-IP rate limit for /api/scrape only. The route is unauthenticated and
 // performs DB writes, so any caller can otherwise drive scraper + DB load by
 // varying ?q= (which bypasses Vercel's edge cache). In-memory map per Edge
