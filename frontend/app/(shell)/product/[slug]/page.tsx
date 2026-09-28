@@ -35,7 +35,9 @@ type ListingWithVerdict = {
   marketVerdictBasisLabel?: string | null
 }
 import { ChartFrame, DataLegend } from '@/components/data-display'
-import { formatCompact, formatDateRange, formatDkkAmount } from '@/lib/chart-format'
+import { formatDateRange, formatDkkAmount } from '@/lib/chart-format'
+import { niceTicks } from '@/lib/chart-geometry'
+import { partitionByIqr } from '@/lib/statistics'
 import { seriesColor } from '@/lib/chart-palette'
 import type { Listing } from '@/lib/supabase'
 // Type-only, and it must stay that way: the route reaches lib/families.ts,
@@ -544,7 +546,21 @@ export default function ProductPage() {
                   const sold = populations?.['reverb-sold'] ?? null
                   const enough = sold?.tier === 'band'
 
-                  const points = priceHistory
+                  /**
+                   * PAN-168 #5. Plot the population the statistics describe.
+                   * `reverb-sold` drops Tukey-fence outliers before it counts
+                   * `n`; drawing them anyway put 40 dots under `n = 39` and
+                   * scaled the axis to the one sale the median ignores. Same
+                   * function, same values as buildPopulationStats, so the
+                   * dots, the axis, the period and `n` cannot disagree.
+                   */
+                  const { kept } = partitionByIqr(
+                    priceHistory.map((pt) => pt.price).filter((p) => Number.isFinite(p) && p > 0),
+                  )
+                  const keptPrices = new Set(kept)
+                  const counted = priceHistory.filter((pt) => keptPrices.has(pt.price))
+
+                  const points = counted
                     .map((pt) => ({
                       ts: new Date(pt.sold_at).getTime(),
                       price: pt.price,
@@ -568,9 +584,15 @@ export default function ProductPage() {
                   }
 
                   const period = formatDateRange(
-                    priceHistory[0]?.sold_at,
-                    priceHistory[priceHistory.length - 1]?.sold_at,
+                    counted[0]?.sold_at,
+                    counted[counted.length - 1]?.sold_at,
                   )
+                  const yTicks = points.length > 0
+                    ? niceTicks(
+                        Math.min(...points.map((pt) => pt.price)),
+                        Math.max(...points.map((pt) => pt.price)),
+                      )
+                    : []
 
                   return (
                     <ChartFrame
@@ -631,17 +653,20 @@ export default function ProductPage() {
                               }
                               minTickGap={28}
                             />
-                            {/* Kroner, visible. */}
+                            {/* Kroner, visible — the unit rides on every tick
+                                (PAN-168 #5), not on a caption under the plot. */}
                             <YAxis
                               type="number"
                               dataKey="price"
-                              domain={['auto', 'auto']}
-                              width={64}
+                              domain={yTicks.length > 1 ? [yTicks[0], yTicks[yTicks.length - 1]] : ['auto', 'auto']}
+                              ticks={yTicks.length > 1 ? yTicks : undefined}
+                              width={84}
                               tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
                               tickLine={false}
                               axisLine={false}
-                              tickFormatter={(v: number) => formatCompact(v, 'da-DK') ?? ''}
-                              label={undefined}
+                              tickFormatter={(v: number) =>
+                                formatDkkAmount(v, locale === 'en' ? 'en-GB' : 'da-DK') ?? ''
+                              }
                             />
                             <Tooltip
                               cursor={{ stroke: 'var(--border-strong)', strokeDasharray: '2 4' }}
@@ -674,7 +699,6 @@ export default function ProductPage() {
                           </ScatterChart>
                         </ResponsiveContainer>
                       </div>
-                      <p className="mt-3 type-meta">{t.chartAxisPriceDkk}</p>
                     </ChartFrame>
                   )
                 })()}

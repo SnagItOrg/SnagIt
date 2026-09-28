@@ -117,3 +117,23 @@ export function divergingBarGeometry(
     clamped: raw > 1,
   }
 }
+
+/**
+ * Round axis ticks covering [min, max] — PAN-168 #5.
+ *
+ * The step is the 1 / 2 / 2.5 / 5 × 10ⁿ value that splits the span into the
+ * count nearest five, and the ends snap outward to it. Recharts' own `auto`
+ * domain printed 6.500-kr steps on a 0–26.000 kr price axis; a reader should
+ * not have to add up the gridlines.
+ */
+export function niceTicks(min: number, max: number): number[] {
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return []
+  const span = Math.max(max - min, 1)
+  const mag = 10 ** Math.floor(Math.log10(span / 5))
+  const step = [1, 2, 2.5, 5, 10]
+    .map((m) => m * mag)
+    .reduce((best, s) => (Math.abs(span / s - 5) < Math.abs(span / best - 5) ? s : best))
+  const ticks: number[] = []
+  for (let i = Math.floor(min / step); i <= Math.ceil(max / step); i += 1) ticks.push(i * step)
+  return ticks
+}
