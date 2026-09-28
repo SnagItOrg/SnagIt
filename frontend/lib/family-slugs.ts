@@ -38,6 +38,9 @@ export const FAMILY_SLUGS = [
   // PAN-141. The Boss lines are the same case as `rhodes`: no row today.
   'boss-ce-chorus',
   'boss-dm-delay',
+  // PAN-154. The same case as `rhodes`: no row today. `moog-minimoog` is NOT
+  // this slug — it stays the priced page for the vintage original, a member.
+  'minimoog',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]

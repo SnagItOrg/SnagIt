@@ -19,7 +19,7 @@ import {
   containsBrandToken,
   type BrandCollision,
 } from './brand-guard'
-import { detectNonProductIntent, type NonProductIntent } from './listing-intent'
+import { detectNonProductIntent, earliestInclusionMarker, type NonProductIntent } from './listing-intent'
 // The family-label rule is owned by lib/catalogue.ts — the same module that
 // owns the canonical predicate — so both gates refuse the same six slugs for
 // the same reason instead of holding two opinions (PAN-84).
@@ -186,6 +186,144 @@ function containsToken(text: string, token: string): boolean {
     const end = start + m[0].length
     return !phrases.some(([ps, pe]) => ps < end && pe > start && (ps < start || pe > end))
   })
+}
+
+/** A whole word or phrase, on the same boundary rule as `tokenRegex`. */
+function cue(phrase: string): RegExp {
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+')
+  return new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`, 'i')
+}
+
+/** A four-digit year in [from, to]. Digit-bounded, so "2016-2017" and "1970s" count. */
+function yearCue(from: number, to: number): RegExp {
+  const years = Array.from({ length: to - from + 1 }, (_, i) => String(from + i))
+  return new RegExp(`(?<!\\d)(?:${years.join('|')})(?!\\d)`)
+}
+
+/**
+ * Where a supported product's NAME is also a LINE: what else in the line a
+ * title can name (PAN-154, owner decisions 2026-09-26). Each field is a
+ * measured cue, not a vocabulary:
+ *
+ *   otherMembers  the title names another member of the line, so it is never
+ *                 this product ("Minimoog Voyager", "Model D Reissue 2016").
+ *   accessories   head-nouns seen on this product's matched titles that are
+ *                 not the instrument. An inclusion marker before one keeps the
+ *                 title, exactly as ACCESSORY_TOKENS in listing-intent.ts does
+ *                 ("1973 Minimoog Model D w/ Road Case" is a Minimoog). They
+ *                 live here rather than there because they are measured on
+ *                 these products only; `case` globally would defer every
+ *                 "Jazz Bass, hard case".
+ *   requires      fail closed: without one of these the title is not this
+ *                 product. Used where the bare name reads as another member —
+ *                 a plain "Sequential Prophet-10" is the 2020 model, never
+ *                 evidence for the 1980 one.
+ *
+ * A reviewed code list, like IDENTITY_PHRASES and families.ts: the KG cannot
+ * supply it, because the line boundary lives in prose
+ * (`match_page_boundary` in data/klup-launch-cohort-frozen.csv). Add a cue
+ * only with a measured title behind it.
+ */
+interface LineBoundary {
+  /** Members of one line share this name; see decideMatch step 5b. */
+  line: string
+  otherMembers: readonly RegExp[]
+  accessories?: readonly string[]
+  requires?: readonly RegExp[]
+}
+
+/**
+ * Measured on moog-minimoog and moog-model-d titles, 2026-09-26. The cases are
+ * named by their product lines (Moog's SR and ATA series), not by a bare
+ * `case`: "Moog Model D Limited Edition Robert Moog 2026 Free Moog Case" is an
+ * instrument, and "free" is not an inclusion marker.
+ */
+const MOOG_ACCESSORIES: readonly string[] = [
+  'sr case', 'sr series', 'ata', 'hard case', 'flightcase',
+  'power supply', 'fuse', 'service manual',
+  'transistor', 'bushing', 'sheets', 'brochure', 'sticker',
+]
+
+/** A title that names the 1980–84 Prophet-10: Circuits/SCI, "vintage", its years or Rev 1–3. */
+const PROPHET_10_VINTAGE =
+  /(?<![\w-])(?:circuits|sci|vintage|19(?:7[89]|8[0-6])|rev\.?\s*[1-3](?!\d))(?![\w-])/i
+/** A title that names the 2020 Prophet-10: Rev 4, Reissue, Desktop, Module, New, or 2019 on. */
+const PROPHET_10_2020 =
+  /(?<![\w-])(?:rev\.?\s*4|reissue|desktop|module|new|20(?:19|[23]\d))(?![\w\d-])/i
+
+/** `cue`, unless `stronger` also appears anywhere in the title. */
+function unlessAlso(cue: RegExp, stronger: RegExp): RegExp {
+  return new RegExp(`${cue.source}(?!.*${stronger.source})(?<!${stronger.source}.*)`, 'i')
+}
+
+export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
+  // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
+  'moog-minimoog': {
+    line: 'minimoog',
+    otherMembers: [
+      cue('voyager'),
+      cue('reissue'), cue('re-issue'),
+      // Any year from 1990 on is a Voyager (2002–) or a reissue (2016–).
+      yearCue(1990, 2039),
+      // Editions of the reissue.
+      cue('geddy lee'), cue('tribute'),
+    ],
+    accessories: MOOG_ACCESSORIES,
+  },
+  // The 2016 reissue and its re-runs. Frozen boundary: "2016 REISSUE only".
+  'moog-model-d': {
+    line: 'minimoog',
+    otherMembers: [
+      cue('voyager'),
+      // Vintage originals: the production years, and the words sellers use.
+      yearCue(1969, 1985), cue("70's"), cue("80's"),
+      cue('vintage'), cue('original'),
+      cue('early model'), cue('late model'), cue('early version'),
+      // A signature edition with its own KG row (moog-minimoog-model-d-geddy-lee).
+      cue('geddy lee'),
+    ],
+    accessories: MOOG_ACCESSORIES,
+  },
+  // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
+  // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
+  // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed
+  // itself in 2018), so the brand word cannot separate them; these cues do,
+  // measured on all 163 production titles. A 2020 cue wins over a vintage one:
+  // "Sequential Circuits Prophet 10 Desktop" is the 2021 desktop module.
+  'sequential-prophet-10': {
+    line: 'prophet-10',
+    otherMembers: [unlessAlso(PROPHET_10_VINTAGE, PROPHET_10_2020)],
+  },
+  'sequential-circuits-prophet-10': {
+    line: 'prophet-10',
+    requires: [PROPHET_10_VINTAGE],
+    otherMembers: [PROPHET_10_2020],
+    accessories: ['rom', 'ics', 'upgrade'],
+  },
+}
+
+/**
+ * Why `title` is not `slug` under its line boundary, or null when it may be.
+ * Exported so the PAN-154 data script refuses exactly what the matcher refuses.
+ */
+export function lineBoundaryRefusal(title: string, slug: string): string | null {
+  const boundary = LINE_BOUNDARIES[slug]
+  if (!boundary) return null
+  // What the title names comes first, so the reason says what the title IS
+  // when it says anything; `no_member_cue` is left for titles that name nothing.
+  for (const re of boundary.otherMembers) {
+    const m = re.exec(title)
+    if (m) return `other_member:${m[0].toLowerCase()}`
+  }
+  const markerAt = earliestInclusionMarker(title.toLowerCase())
+  for (const noun of boundary.accessories ?? []) {
+    const m = cue(noun).exec(title)
+    if (m && !(markerAt !== -1 && markerAt < m.index)) return `accessory:${noun}`
+  }
+  if (boundary.requires && !boundary.requires.some((re) => re.test(title))) {
+    return 'no_member_cue'
+  }
+  return null
 }
 
 function slugify(s: string): string {
@@ -557,6 +695,8 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   // brands are matched as literal tokens, NOT via the catalogue: 'squier' is
   // not a kg_brand at all, so the catalogue-brand layer below cannot see it.
   const surviving: MatchCandidate[] = []
+  /** Candidates a line boundary refused (PAN-154). Never a winner; see step 5b. */
+  const lineRefused: MatchCandidate[] = []
   let hardCollision: { candidate: MatchCandidate; collision: BrandCollision } | null = null
 
   for (const candidate of candidates) {
@@ -568,12 +708,21 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
       }
       continue
     }
+    // A title that names another member of a line is not that line's product
+    // at any tier (PAN-154). It stops being a candidate rather than being
+    // deferred: "Minimoog Voyager XL" is not an undecided Minimoog. Checked
+    // after the collision, so a licensed-subsidiary title keeps its auditable
+    // rejection instead of vanishing.
+    if (lineBoundaryRefusal(norm, product?.slug ?? '') !== null) {
+      lineRefused.push(candidate)
+      continue
+    }
     surviving.push(candidate)
   }
 
   if (surviving.length === 0) {
-    // Non-null because `candidates` was non-empty and nothing survived.
-    return { kind: 'rejected', best: hardCollision!.candidate, collision: hardCollision!.collision }
+    if (!hardCollision) return { kind: 'none' }
+    return { kind: 'rejected', best: hardCollision.candidate, collision: hardCollision.collision }
   }
 
   // ── 3. Non-product intent ───────────────────────────────────────────────
@@ -675,6 +824,32 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   }
 
   const best = strongest(topTier)
+
+  // ── 5b. A refused member of a DIFFERENT line still names a product ───────
+  // Refusal removes a candidate; it does not make a two-product title a
+  // one-product title. "Sequential Circuits – Prophet 5, Prophet 10 – Fuse
+  // Holder" names the vintage Prophet-10 (refused on the 2020 page) and the
+  // Prophet-5; the tie that deferred it must stand. Within ONE line the
+  // refusal is exactly the evidence that separates the members: "Minimoog
+  // Model D Reissue" is the reissue because it is not the original.
+  const lineOf = (id: string) => {
+    const slug = index.productById.get(id)?.slug ?? id
+    return LINE_BOUNDARIES[slug]?.line ?? slug
+  }
+  const rival = lineRefused.find((c) => {
+    if (c.score < best.score || lineOf(c.product_id) === lineOf(best.product_id)) return false
+    const b = index.productById.get(c.product_id)?.brand_name
+    return !brandEvidence || !b || b === brandEvidence
+  })
+  if (rival) {
+    return {
+      kind: 'deferred',
+      reason: 'ambiguous_tie',
+      candidates: [best, rival],
+      detail: `the title also names ${index.productById.get(rival.product_id)?.slug ?? rival.product_id}, ` +
+              `refused by its line boundary; a two-product title is not ${index.productById.get(best.product_id)?.slug ?? best.product_id}`,
+    }
+  }
 
   // ── 6. Automatic-confidence floor ───────────────────────────────────────
   // Below the floor, the only evidence strong enough to make a candidate
