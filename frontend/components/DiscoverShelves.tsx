@@ -56,7 +56,9 @@ export function DiscoverShelves({
                 subcategoryName=""
                 activeListingCount={p.active_listing_count}
                 imageUrl={p.image_url}
-                tier="legendary"
+                // No tier badge: this shelf is legendary by construction, so
+                // its cards never mix tiers and the heading already says it
+                // (PAN-168 #9).
               />
             ))}
           </Carousel>

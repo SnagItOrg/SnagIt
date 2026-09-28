@@ -252,6 +252,15 @@ function BrowseCategoryPageInner() {
   const facetAxes = facetChipAxes(subcategoryProducts, facetKeys, activeFacets)
   const filteredProducts = filterByFacets(subcategoryProducts, activeFacets)
 
+  /**
+   * PAN-168 #9 (owner decision 2026-09-28): a tier badge distinguishes cards
+   * only when the grid mixes tiers. Today every public product is legendary,
+   * so "Legendarisk" on every card said nothing. Read from the rows the grid
+   * renders, never from a projection total (PAN-98), so it follows the
+   * subcategory and facet chips as they narrow the set.
+   */
+  const showTierBadges = new Set(filteredProducts.map((p) => p.tier)).size > 1
+
   const categoryName = data?.category
     ? locale === 'da' ? data.category.name_da : data.category.name_en
     : ''
@@ -466,7 +475,7 @@ function BrowseCategoryPageInner() {
                 subcategoryName={displaySubcategoryLabel(p.subcategory_slug, p.subcategory_name_da, p.subcategory_name_en)}
                 activeListingCount={p.active_listing_count}
                 imageUrl={p.image_url}
-                tier={p.tier}
+                tier={showTierBadges ? p.tier : undefined}
               />
             ))}
           </div>
