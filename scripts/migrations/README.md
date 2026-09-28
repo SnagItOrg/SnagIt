@@ -18,9 +18,9 @@ These are raw `.sql` files applied manually via the Supabase Studio SQL editor
 > **These are applied. This section is a record, not a queue.** It was headed
 > "Active queue" until 2026-08-13; the heading was wrong and is corrected here.
 > **Everything through 057 is applied** — see the 053–056 and 057 sections at
-> the end of this file. **058 is written and rehearsed but NOT applied**; it is
-> the one pending item, and it needs an explicit product-owner authorisation.
-> See the 058 section at the end of this file.
+> the end of this file. **058 is written and rehearsed but NOT applied**, and
+> **059 is written but NOT applied**; each needs an explicit product-owner
+> authorisation. See the 058 and 059 sections at the end of this file.
 
 | File | Action | Notes |
 |---|---|---|
@@ -327,3 +327,27 @@ cluster (fixture: `scripts/fixtures/browse_projection_fixture.sql`) and
 **reproduces the defect before fixing it** — a curated-only row reports
 `<null>/false` through the 036 projection and
 `https://cdn.example/hero-only.webp/true` through the 058 one.
+
+## 059 — `kg_product.year_discontinued`. WRITTEN, **NOT APPLIED**, **NOT REHEARSED**.
+
+`059_kg_product_year_discontinued.sql` (PAN-137) adds one nullable integer
+column and one CHECK, so a product can state a production range (`1960–1975`,
+or `1960–` while still in production).
+
+| Property | |
+|---|---|
+| DDL | `ADD COLUMN year_discontinued integer` (nullable, no default — no rewrite) and `kg_product_year_discontinued_check`: `year_discontinued IS NULL OR (year_released IS NOT NULL AND year_discontinued >= year_released)`. |
+| DML | **none.** Every row starts NULL. |
+| Guard | PRE applies; POST (column and CHECK both present as defined) is a no-op; anything partial raises before mutating. |
+| Rollback | `059_rollback.sql`. Drops the CHECK and the column. **Refuses** if any row carries a value, unless `PGOPTIONS="-c klup.rollback_mode=drop_with_data"`. |
+| Rehearsal | **Not run.** The machine that wrote it has no local PostgreSQL (`initdb`/`psql` absent), so `verify-migrations-isolated.sh` has no section for 059 yet. Rehearse before applying. |
+
+**Application order.** The frontend reads and writes the column only when the
+server env var `KLUP_YEAR_DISCONTINUED=on` (`frontend/lib/production-years.ts`),
+so the code is safe to deploy before this file. Apply 059, then set the flag
+and redeploy. To roll back, clear the flag and redeploy first.
+
+**NULL means two things.** The application renders NULL as "still in
+production", and it is also the value of every uncurated row. The 11 products
+that already carry a `year_released` will read as open-ended (`1984–`) from the
+moment the flag is on. Review them before flipping it.

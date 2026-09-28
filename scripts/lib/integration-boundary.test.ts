@@ -126,6 +126,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-136: a new brand that differs from one we hold only by case,
       // whitespace or separator is refused and shown, never created.
       'scripts/lib/pan136-brand-near-match.test.ts',
+      // PAN-137: a bad year is refused with its field, never NaN -> null, and
+      // the production-range rule, its rendering and migration 059 agree.
+      'scripts/lib/pan137-production-years.test.ts',
       // PAN-140: microphone attribute facets. The vocabulary is closed and
       // read fail-closed, a facet chip keeps the count equal to the rendered
       // rows, and the public payload carries values but never provenance.

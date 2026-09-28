@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { resolveProductImage } from '@/lib/product-image-source'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { facetKeysFor, readFacetEntries } from '@/lib/product-facets'
+import { selectWithYearDiscontinued, yearDiscontinuedEnabled } from '@/lib/production-years'
 import ProductCurationClient, {
   type CurationData,
   type MatchedListing,
@@ -21,6 +22,8 @@ type ProductRow = {
   image_url: string | null
   hero_image_url: string | null
   year_released: number | null
+  /** Absent until migration 059 is on — see lib/production-years.ts. */
+  year_discontinued?: number | null
   attributes: Record<string, unknown> | null
   reverb_csp_id: number | null
   subcategory_id: string | null
@@ -69,9 +72,9 @@ async function loadCurationData(slug: string): Promise<CurationData | null> {
 
   const { data: productRow, error: productError } = await admin
     .from('kg_product')
-    .select(
+    .select(selectWithYearDiscontinued(
       'id, slug, canonical_name, tier, image_url, hero_image_url, year_released, attributes, reverb_csp_id, subcategory_id, thomann_url, thomann_price_dkk, thomann_price_updated_at, kg_brand!inner(name)',
-    )
+    ))
     .eq('slug', slug)
     .maybeSingle()
 
@@ -194,6 +197,7 @@ async function loadCurationData(slug: string): Promise<CurationData | null> {
     brand_name: brandName,
     tier: product.tier,
     year_released: product.year_released,
+    year_discontinued: product.year_discontinued,
     // PAN-133: one authority for the precedence, shared with the public page.
     image_url: resolveProductImage(product).url,
     reverb_csp_id: product.reverb_csp_id,
@@ -201,7 +205,10 @@ async function loadCurationData(slug: string): Promise<CurationData | null> {
 
   const facets = await loadFacetCuration(admin, product)
 
-  return { header, thomann, synonyms, listings, prev, next, facets }
+  return {
+    header, thomann, synonyms, listings, prev, next, facets,
+    yearDiscontinuedEnabled: yearDiscontinuedEnabled(),
+  }
 }
 
 /**

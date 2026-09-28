@@ -9,6 +9,8 @@ import { useToast } from '@/lib/use-toast'
 import { fill } from '@/lib/i18n'
 import { brandKey, brandSlug, findBrandNearMatches, type BrandRow } from '@/lib/brand-identity'
 import NewBrandDialog from './NewBrandDialog'
+import { ProductionYearsFields } from '@/components/admin/ProductionYearsFields'
+import { validateProductionYears, type ProductionYearsRefusal } from '@/lib/production-years'
 
 type Brand = BrandRow
 type Subcategory = { id: string; name: string; parent_name: string | null }
@@ -42,7 +44,12 @@ function deriveModelName(canonicalName: string, brandName: string | null): strin
   return trimmed
 }
 
-export default function NewProductForm() {
+export default function NewProductForm({
+  yearDiscontinuedEnabled,
+}: {
+  /** Server-resolved `yearDiscontinuedEnabled()` — false until migration 059. */
+  yearDiscontinuedEnabled: boolean
+}) {
   const router = useRouter()
   const { t } = useLocale()
   const { toasts, showToast, dismissToast } = useToast()
@@ -65,6 +72,8 @@ export default function NewProductForm() {
 
   const [tier, setTier] = useState<Tier>('legendary')
   const [yearReleased, setYearReleased] = useState('')
+  const [yearDiscontinued, setYearDiscontinued] = useState('')
+  const [yearRefusal, setYearRefusal] = useState<ProductionYearsRefusal | null>(null)
   const [status, setStatus] = useState<Status>('active')
 
   const [subcategoryId, setSubcategoryId] = useState<string>('')
@@ -141,9 +150,22 @@ export default function NewProductForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setSubmitting(true)
     setError(null)
     setFieldError(null)
+
+    // PAN-137: a year that does not parse is refused here, visibly, and the
+    // product is not created. It used to become parseInt -> NaN -> JSON null,
+    // which the route read as "no year".
+    const years = validateProductionYears({
+      year_released: yearReleased,
+      year_discontinued: yearDiscontinuedEnabled ? yearDiscontinued : null,
+    })
+    if (!years.ok) {
+      setYearRefusal({ field: years.field, code: years.code })
+      return
+    }
+    setYearRefusal(null)
+    setSubmitting(true)
 
     const body: Record<string, unknown> = {
       canonical_name: canonicalName.trim(),
@@ -153,8 +175,8 @@ export default function NewProductForm() {
       tier,
       status,
     }
-    const yearTrimmed = yearReleased.trim()
-    if (yearTrimmed) body.year_released = parseInt(yearTrimmed, 10)
+    if (years.year_released !== null) body.year_released = years.year_released
+    if (years.year_discontinued !== null) body.year_discontinued = years.year_discontinued
     if (subcategoryId) body.subcategory_id = subcategoryId
 
     try {
@@ -170,6 +192,10 @@ export default function NewProductForm() {
         return
       }
       if (!res.ok) {
+        if (data.code && (data.field === 'year_released' || data.field === 'year_discontinued')) {
+          setYearRefusal({ field: data.field, code: data.code })
+          return
+        }
         if (data.field) setFieldError(data.field)
         setError(data.error ?? 'Produktet kunne ikke oprettes.')
         return
@@ -353,23 +379,15 @@ export default function NewProductForm() {
           </div>
         </Field>
 
-        {/* Year released */}
-        <Field label="Årstal" highlight={fieldError === 'year_released'}>
-          <input
-            type="number"
-            value={yearReleased}
-            onChange={(e) => setYearReleased(e.target.value)}
-            placeholder="1982"
-            min={1900}
-            max={2030}
-            className="w-32 rounded-xl px-4 py-2.5 text-sm outline-none"
-            style={{
-              background: 'var(--input-background)',
-              border: '1px solid var(--border)',
-              color: 'var(--foreground)',
-            }}
-          />
-        </Field>
+        {/* Production years — Årstal, and Udgået once migration 059 is on */}
+        <ProductionYearsFields
+          released={yearReleased}
+          discontinued={yearDiscontinued}
+          onReleasedChange={(v) => { setYearReleased(v); setYearRefusal(null) }}
+          onDiscontinuedChange={(v) => { setYearDiscontinued(v); setYearRefusal(null) }}
+          discontinuedEnabled={yearDiscontinuedEnabled}
+          refusal={yearRefusal}
+        />
 
         {/* Status */}
         <Field label="Status" highlight={fieldError === 'status'}>

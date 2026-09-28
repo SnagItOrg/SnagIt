@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { useLocale } from '@/components/LocaleProvider'
+import { parseYear } from '@/lib/production-years'
 
 // ─── ReassignPanel — inline UI for moving a listing to another product ─────
 type ProductSearchResult = {
@@ -318,6 +319,7 @@ function InlineNewProductForm({
   onCancel: () => void
   onCreated: (newSlug: string, canonicalName: string) => Promise<void> | void
 }) {
+  const { t } = useLocale()
   const [brands, setBrands] = useState<BrandOption[]>([])
   const [brandsLoading, setBrandsLoading] = useState(true)
   const [brandSearch, setBrandSearch] = useState('')
@@ -362,6 +364,12 @@ function InlineNewProductForm({
       setError('Brand, navn og model er påkrævede')
       return
     }
+    // PAN-137: refused out loud, never parseInt -> NaN -> JSON null.
+    const parsedYear = parseYear(year)
+    if (!parsedYear.ok) {
+      setError(t.adminYears.invalid_year)
+      return
+    }
     setSubmitting(true)
     setError(null)
 
@@ -373,8 +381,7 @@ function InlineNewProductForm({
       tier,
       status: 'active',
     }
-    const yearTrimmed = year.trim()
-    if (yearTrimmed) body.year_released = parseInt(yearTrimmed, 10)
+    if (parsedYear.year !== null) body.year_released = parsedYear.year
 
     try {
       const res = await fetch('/api/admin/product/new', {
@@ -510,12 +517,12 @@ function InlineNewProductForm({
           <option value="standard">Standard</option>
         </select>
         <input
-          type="number"
+          type="text"
+          inputMode="numeric"
+          maxLength={4}
           value={year}
           onChange={(e) => setYear(e.target.value)}
           placeholder="Årstal (valgfri)"
-          min={1900}
-          max={2030}
           className="w-32 text-sm px-3 py-2 rounded-lg outline-none"
           style={{
             background: 'var(--input-background)',

@@ -22,6 +22,12 @@ import { useToast } from '@/lib/use-toast'
 import { Button } from '@/components/Button'
 import { useLocale } from '@/components/LocaleProvider'
 import { fill } from '@/lib/i18n'
+import { ProductionYearsFields } from '@/components/admin/ProductionYearsFields'
+import {
+  formatProductionYears,
+  validateProductionYears,
+  type ProductionYearsRefusal,
+} from '@/lib/production-years'
 import {
   PRODUCT_ATTRIBUTE_FACETS,
   type FacetEntry,
@@ -36,6 +42,8 @@ export type ProductHeaderData = {
   brand_name: string | null
   tier: string | null
   year_released: number | null
+  /** Absent (not read) until migration 059 is on; null = still in production. */
+  year_discontinued?: number | null
   image_url: string | null
   reverb_csp_id: number | null
 }
@@ -77,6 +85,8 @@ export type CurationData = {
   prev: NeighborProduct | null
   next: NeighborProduct | null
   facets: FacetCurationData
+  /** PAN-137 — server-resolved `yearDiscontinuedEnabled()`. */
+  yearDiscontinuedEnabled: boolean
 }
 
 
@@ -147,6 +157,7 @@ export default function ProductCurationClient({ data }: { data: CurationData }) 
         thomann={thomann}
         prev={prev}
         next={next}
+        yearDiscontinuedEnabled={data.yearDiscontinuedEnabled}
         onSaved={showToast}
       />
 
@@ -234,14 +245,22 @@ function ProductHeader({
   thomann,
   prev,
   next,
+  yearDiscontinuedEnabled,
   onSaved,
 }: {
   header: ProductHeaderData
   thomann: ThomannEntry
   prev: NeighborProduct | null
   next: NeighborProduct | null
+  yearDiscontinuedEnabled: boolean
   onSaved: (msg: string) => void
 }) {
+  // The line under the name states what is SAVED; the form below edits it.
+  const [years, setYears] = useState<{ released: number | null; discontinued?: number | null }>({
+    released: header.year_released,
+    discontinued: header.year_discontinued,
+  })
+
   return (
     <section className="flex flex-col gap-3">
       {/* Navigation */}
@@ -309,9 +328,17 @@ function ProductHeader({
             {header.canonical_name}
           </h1>
           <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-            {[header.brand_name, header.year_released].filter(Boolean).join(' · ') ||
-              '—'}
+            {[header.brand_name, formatProductionYears(years.released, years.discontinued)]
+              .filter(Boolean)
+              .join(' · ') || '—'}
           </p>
+
+          <ProductionYearsForm
+            productId={header.id}
+            initial={years}
+            discontinuedEnabled={yearDiscontinuedEnabled}
+            onSaved={(saved, msg) => { setYears(saved); onSaved(msg) }}
+          />
 
           <div className="flex flex-wrap gap-2 mt-1">
             {header.tier === 'legendary' && (
@@ -355,6 +382,107 @@ function ProductHeader({
   )
 }
 
+
+/**
+ * PAN-137 — Årstal and Udgået for an existing product.
+ *
+ * Writes through PATCH /api/admin/products/[id] as `metadata` — no intent to
+ * declare, no matcher, visibility or monitoring effect. The pair is checked
+ * here so a bad year never leaves the browser, and again by the route, which
+ * also checks it against the stored value of the field left unchanged.
+ */
+function ProductionYearsForm({
+  productId,
+  initial,
+  discontinuedEnabled,
+  onSaved,
+}: {
+  productId: string
+  initial: { released: number | null; discontinued?: number | null }
+  discontinuedEnabled: boolean
+  onSaved: (saved: { released: number | null; discontinued?: number | null }, msg: string) => void
+}) {
+  const { t } = useLocale()
+  const [released, setReleased] = useState(initial.released == null ? '' : String(initial.released))
+  const [discontinued, setDiscontinued] = useState(initial.discontinued == null ? '' : String(initial.discontinued))
+  const [refusal, setRefusal] = useState<ProductionYearsRefusal | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    const years = validateProductionYears({
+      year_released: released,
+      year_discontinued: discontinuedEnabled ? discontinued : null,
+    })
+    if (!years.ok) {
+      setRefusal({ field: years.field, code: years.code })
+      return
+    }
+    setRefusal(null)
+
+    const body: Record<string, unknown> = { year_released: years.year_released }
+    if (discontinuedEnabled) body.year_discontinued = years.year_discontinued
+
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/admin/products/${productId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        if (data.field === 'year_released' || data.field === 'year_discontinued') {
+          setRefusal({ field: data.field, code: data.error })
+        } else {
+          setError(data.message ?? t.adminYears.error)
+        }
+        return
+      }
+      onSaved(
+        {
+          released: years.year_released,
+          discontinued: discontinuedEnabled ? years.year_discontinued : undefined,
+        },
+        data.applied ? t.adminYears.saved : t.adminYears.unchanged,
+      )
+    } catch {
+      setError(t.adminYears.error)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSave} className="flex flex-col gap-2 mt-1">
+      <ProductionYearsFields
+        released={released}
+        discontinued={discontinued}
+        onReleasedChange={(v) => { setReleased(v); setRefusal(null) }}
+        onDiscontinuedChange={(v) => { setDiscontinued(v); setRefusal(null) }}
+        discontinuedEnabled={discontinuedEnabled}
+        refusal={refusal}
+      />
+      <div className="flex items-center gap-2">
+        <button
+          type="submit"
+          disabled={busy}
+          className="text-xs font-semibold px-4 py-1.5 rounded-xl disabled:opacity-40"
+          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+        >
+          {t.adminYears.save}
+        </button>
+        {error && (
+          <p className="text-xs" style={{ color: 'var(--destructive-text)' }}>
+            {error}
+          </p>
+        )}
+      </div>
+    </form>
+  )
+}
 
 /**
  * The one human-owned input of the retail reference (PAN-36).

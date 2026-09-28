@@ -611,6 +611,25 @@ export const translations = {
       cleared: '{axis} fjernet',
       error: '{axis} kunne ikke gemmes. Prøv igen.',
     },
+    // PAN-137 — production years on /admin/product/new, /admin/product/[slug]
+    // and /admin/products. Refusal messages are keyed by the refusal code in
+    // lib/production-years.ts, so the routes and the forms say one sentence.
+    adminYears: {
+      released: 'Årstal',
+      discontinued: 'Udgået',
+      releasedPlaceholder: 'fx 1960',
+      discontinuedPlaceholder: 'fx 1975',
+      hint: 'Første og sidste produktionsår. Lad Udgået stå tomt, hvis modellen stadig produceres. Sæt kun år, du har tjekket i en kilde.',
+      preview: 'Vises som {years}',
+      save: 'Gem år',
+      saved: 'Produktionsår gemt',
+      unchanged: 'Ingen ændring',
+      invalid_year: 'Skriv et årstal med fire cifre mellem 1900 og 2030.',
+      discontinued_without_released: 'Udgået kræver et årstal.',
+      discontinued_before_released: 'Udgået kan ikke ligge før årstallet.',
+      unavailable: 'Udgået er ikke slået til endnu (migration 059).',
+      error: 'Produktionsår kunne ikke gemmes. Prøv igen.',
+    },
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -1142,6 +1161,23 @@ export const translations = {
       saved: '{axis} saved',
       cleared: '{axis} cleared',
       error: '{axis} could not be saved. Try again.',
+    },
+    // PAN-137 — production years (see the `da` block).
+    adminYears: {
+      released: 'Released',
+      discontinued: 'Discontinued',
+      releasedPlaceholder: 'e.g. 1960',
+      discontinuedPlaceholder: 'e.g. 1975',
+      hint: 'First and last production year. Leave Discontinued empty if the model is still made. Only set years you have checked against a source.',
+      preview: 'Shown as {years}',
+      save: 'Save years',
+      saved: 'Production years saved',
+      unchanged: 'No change',
+      invalid_year: 'Enter a four-digit year between 1900 and 2030.',
+      discontinued_without_released: 'Discontinued needs a release year.',
+      discontinued_before_released: 'Discontinued cannot be before the release year.',
+      unavailable: 'Discontinued is not switched on yet (migration 059).',
+      error: 'Production years could not be saved. Try again.',
     },
   },
 } as const
