@@ -466,11 +466,15 @@ export const translations = {
       heroNote: 'Skriver hero_image_url. Det automatiske image_url røres ikke.',
       errorInvalidUrl: 'Det er ikke en brugbar adresse.',
       errorUnreachable: 'Adressen kunne ikke nås.',
+      errorUnreachableStatus: 'Kilden afviste hentningen (HTTP {status}).',
+      errorHttp: 'Serveren svarede {status}.',
       errorNotAnImage: 'Adressen peger ikke på et billede.',
       errorTooLarge: 'Billedet er for stort.',
       errorTooSmall: 'Billedet er for lille.',
       errorStorage: 'Billedet kunne ikke gemmes. Prøv igen.',
       errorGeneric: 'Billedet kunne ikke behandles.',
+      toastSaved: '{name}: billede gemt',
+      toastFailed: '{name} — ikke gemt. {reason}',
     },
 
     /* ── Product page ──────────────────────────────────────────
@@ -1028,11 +1032,15 @@ export const translations = {
       heroNote: 'Writes hero_image_url. The automated image_url is left alone.',
       errorInvalidUrl: 'That is not a usable address.',
       errorUnreachable: 'The address could not be reached.',
+      errorUnreachableStatus: 'The source refused the download (HTTP {status}).',
+      errorHttp: 'The server answered {status}.',
       errorNotAnImage: 'That address does not point at an image.',
       errorTooLarge: 'The image is too large.',
       errorTooSmall: 'The image is too small.',
       errorStorage: 'The image could not be stored. Try again.',
       errorGeneric: 'The image could not be processed.',
+      toastSaved: '{name}: image saved',
+      toastFailed: '{name} — not saved. {reason}',
     },
 
     /* ── Product page ─────────────────────────────────────────── */

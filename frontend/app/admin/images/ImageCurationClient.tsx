@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useLocale } from '@/components/LocaleProvider'
 import { fill } from '@/lib/i18n'
+import { ToastViewport } from '@/components/Toast'
+import { useToast } from '@/lib/use-toast'
 
 export type ImageRow = {
   slug: string
@@ -30,6 +32,7 @@ export default function ImageCurationClient({ rows }: { rows: ImageRow[] }) {
 
   const [state, setState] = useState<Record<string, RowState>>({})
   const [images, setImages] = useState<Record<string, string>>({})
+  const { toasts, showToast, dismissToast } = useToast()
 
   function rowState(slug: string): RowState {
     return state[slug] ?? EMPTY
@@ -43,12 +46,15 @@ export default function ImageCurationClient({ rows }: { rows: ImageRow[] }) {
    * The route answers a machine-readable `error` code precisely so the reason
    * can be said in the operator's language rather than echoed from the server.
    */
-  function messageFor(code: unknown, fallback: string): string {
+  function messageFor(code: unknown, fallback: string, sourceStatus?: unknown): string {
     switch (code) {
       case 'invalid_url':
         return c.errorInvalidUrl
       case 'unreachable':
-        return c.errorUnreachable
+        // "Refused with 403" and "timed out" call for different next steps.
+        return typeof sourceStatus === 'number'
+          ? fill(c.errorUnreachableStatus, { status: sourceStatus })
+          : c.errorUnreachable
       case 'not_an_image':
         return c.errorNotAnImage
       case 'too_large':
@@ -65,32 +71,52 @@ export default function ImageCurationClient({ rows }: { rows: ImageRow[] }) {
   async function save(slug: string) {
     const url = rowState(slug).url.trim()
     if (!url) return
+    const name = rows.find((r) => r.slug === slug)?.name ?? slug
     patch(slug, { status: 'saving', message: null })
 
+    // PAN-165: a refusal is a persistent error toast as well as the inline
+    // line. The inline line alone, under one row of a long list, is how a save
+    // that wrote nothing read to the owner as a save that worked.
+    function fail(message: string) {
+      patch(slug, { status: 'error', message })
+      showToast(fill(c.toastFailed, { name, reason: message }), { type: 'error' })
+    }
+
+    let res: Response
     try {
-      const res = await fetch(`/api/admin/product/${encodeURIComponent(slug)}/image`, {
+      res = await fetch(`/api/admin/product/${encodeURIComponent(slug)}/image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ source_url: url }),
       })
-      const body = (await res.json()) as {
-        error?: unknown
-        message?: string
-        hero_image_url?: string
-      }
-
-      if (!res.ok || !body.hero_image_url) {
-        patch(slug, { status: 'error', message: messageFor(body.error, body.message ?? '') })
-        return
-      }
-
-      // The stored URL carries a cache-busting stamp, so swapping it in shows
-      // the new picture rather than the CDN's copy of the old one.
-      setImages((prev) => ({ ...prev, [slug]: body.hero_image_url! }))
-      patch(slug, { status: 'saved', message: null, url: '', previewBroken: false })
     } catch {
-      patch(slug, { status: 'error', message: c.errorGeneric })
+      fail(c.errorGeneric)
+      return
     }
+
+    // A platform timeout answers an HTML page, not JSON; say so by status
+    // rather than as "could not be processed".
+    const body = (await res.json().catch(() => null)) as {
+      error?: unknown
+      message?: string
+      source_status?: unknown
+      hero_image_url?: string
+    } | null
+
+    if (!body) {
+      fail(res.ok ? c.errorGeneric : fill(c.errorHttp, { status: res.status }))
+      return
+    }
+    if (!res.ok || !body.hero_image_url) {
+      fail(messageFor(body.error, body.message ?? '', body.source_status))
+      return
+    }
+
+    // The stored URL carries a cache-busting stamp, so swapping it in shows
+    // the new picture rather than the CDN's copy of the old one.
+    setImages((prev) => ({ ...prev, [slug]: body.hero_image_url! }))
+    patch(slug, { status: 'saved', message: null, url: '', previewBroken: false })
+    showToast(fill(c.toastSaved, { name }))
   }
 
   const missing = rows.filter((r) => (images[r.slug] ?? r.currentImage) === null)
@@ -142,6 +168,8 @@ export default function ImageCurationClient({ rows }: { rows: ImageRow[] }) {
           ))}
         </Section>
       )}
+
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }
