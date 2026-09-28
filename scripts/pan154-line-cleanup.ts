@@ -65,8 +65,14 @@ const ROLLBACK = flag('rollback')
 /** The products this script cleans: every line boundary on a supported product. */
 const SOURCES = Object.keys(LINE_BOUNDARIES).filter((s) => s !== 'sequential-circuits-prophet-10')
 
-/** Products whose page is the vintage original only, for the sold-condition cue. */
-const VINTAGE_ONLY = new Set(['moog-minimoog'])
+/**
+ * Products whose page is the vintage original only (owner decisions
+ * 2026-09-26/28; the Thinline and Mustang bases are the audit's 1968–79 and
+ * 1966–81 originals).
+ */
+const VINTAGE_ONLY = new Set([
+  'moog-minimoog', 'fender-telecaster-thinline', 'fender-mustang-bass',
+])
 const CURRENT_PRODUCTION_CONDITIONS = new Set(['brand new', 'b-stock'])
 
 // ── where a refused row goes ────────────────────────────────────────────────
@@ -92,6 +98,13 @@ const REASSIGN: Record<string, Rule[]> = {
   'moog-minimoog': [...MOOG_VOYAGER, [/geddy\s+lee/i, 'moog-minimoog-model-d-geddy-lee'], [/(?:)/, 'moog-model-d']],
   'moog-model-d': [...MOOG_VOYAGER, [/geddy\s+lee/i, 'moog-minimoog-model-d-geddy-lee'], [/(?:)/, 'moog-minimoog']],
   'sequential-prophet-10': [[/(?:)/, 'sequential-circuits-prophet-10']],
+  // PAN-154 (2/2). The only other members the KG holds as clean rows.
+  'gibson-hummingbird': [[/hummingbird\s+(?:\d{4}\s+)?original|original\s+hummingbird/i, 'gibson-hummingbird-original']],
+  'ua-1176ln': [
+    [/6176|2-1176|channel\s+strip/i, null],
+    [/urei|urie|vintage|blue\s*stripe|blackface|silverface|black\s+panel|silver\s+panel|\brev\.?\s*[a-h]\b|19[6-8]\d/i, 'universal-audio-urei-1176ln'],
+  ],
+  'korg-ms-20': [[/\bmini\b/i, 'korg-ms-20-mini'], [/arturia|ms-?20\s+v\b/i, 'arturia-ms-20-v']],
 }
 
 const TARGETS = Array.from(new Set(Object.values(REASSIGN).flat().map(([, t]) => t).filter((t): t is string => !!t)))

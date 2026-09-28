@@ -118,7 +118,9 @@ const FENDER_JAZZ_BASS: Product = {
   canonical_name: 'Fender Jazz Bass', model_name: 'Jazz Bass', brand_name: 'fender', status: 'active', support_state: 'supported',
 }
 const FENDER_TELECASTER: Product = {
-  id: 'p-fender-tele', slug: 'fender-telecaster-thinline',
+  // Not `fender-telecaster-thinline`: that slug is the Thinline, and PAN-154
+  // gives it a line boundary. This fixture is a plain Telecaster.
+  id: 'p-fender-tele', slug: 'fender-telecaster-terminal',
   canonical_name: 'Fender Telecaster', model_name: 'Telecaster', brand_name: 'fender', status: 'active', support_state: 'supported',
 }
 const KORG_MS20: Product = {

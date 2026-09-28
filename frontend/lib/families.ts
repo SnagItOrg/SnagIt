@@ -127,18 +127,26 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: ['gibson-es-335-dot'],
     aliases: ['es-335', 'es335', 'gibson es-335'],
   },
+  /*
+   * PAN-154 (owner decision 2026-09-26: Precision Bass and Jazz Bass are
+   * families) gives these two their first members: the only clean rows the KG
+   * holds, SELECT-verified active on 2026-09-26, all `known`, so neither family
+   * renders a child yet. Every other P/J row is a listing title
+   * ("BASSO ELETTRICO FENDER Player Precision Bass MN Tidepool") and is never a
+   * member: merge-not-create.
+   */
   'fender-jazz-bass': {
     label: 'Fender Jazz Bass',
     brand: 'Fender',
     categoryRoot: 'bass-guitars',
-    children: [],
+    children: ['fender-american-standard-jazz-bass'],
     aliases: ['jazz bass', 'j-bass', 'fender jazz bass'],
   },
   'fender-precision-bass': {
     label: 'Fender Precision Bass',
     brand: 'Fender',
     categoryRoot: 'bass-guitars',
-    children: [],
+    children: ['fender-american-standard-precision-bass', 'fender-precision-bass-57-reissue'],
     aliases: ['precision bass', 'p-bass', 'fender precision bass'],
   },
   rhodes: {
@@ -274,6 +282,31 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
       'moog-minimoog-voyager-xl',
       'moog-minimoog-voyager-rme',
     ],
+    aliases: [],
+  },
+  /*
+   * PAN-154 (2/2) — owner decision 2026-09-26: option B for the Mustang Bass,
+   * with the 1966–81 original as its base member. As with `minimoog`, the base
+   * keeps its own priced page, `fender-mustang-bass`, narrowed to the original
+   * by LINE_BOUNDARIES in lib/matching/match-listings.ts; this slug is
+   * navigation only and is not a `kg_product` row (SELECT, 2026-09-26).
+   *
+   * ONE MEMBER, because the KG holds no other clean Mustang row: the Player,
+   * Player II PJ, JMJ Road Worn and Vintera II rows are listing titles
+   * ("Fender Fender Player II Mustang PJ Bass - Coral Red"), and
+   * merge-not-create keeps them out.
+   *
+   * LABEL AND SLUG avoid "Mustang Bass", which is the member's own model name:
+   * a family answering "mustang bass" would stop that query from navigating to
+   * the product. "Short-scale" is what makes every Mustang bass one line (the
+   * frozen boundary: "Short scale bass"), and "Fender Mustang" alone is also
+   * the guitar.
+   */
+  'mustang-short-scale-bass': {
+    label: 'Mustang Short-Scale Bass',
+    brand: 'Fender',
+    categoryRoot: 'bass-guitars',
+    children: ['fender-mustang-bass'],
     aliases: [],
   },
 }
