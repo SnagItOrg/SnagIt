@@ -55,8 +55,8 @@ const GUITAR_FAMILIES = [
 /** The two Boss lines (PAN-141). Navigation-only, like `rhodes`. */
 const BOSS_FAMILIES = ['boss-ce-chorus', 'boss-dm-delay']
 
-/** The six, plus `rhodes` (PAN-85) — the first family with canonical children — and the Boss lines. */
-const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES]
+/** The six, plus `rhodes` (PAN-85) — the first family with canonical children — the Boss lines and `minimoog` (PAN-154). */
+const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass']
 
 /**
  * Production state of every configured child, SELECT-verified 2026-08-28:
@@ -109,8 +109,9 @@ test('families: children match the reviewed §6.3 map', () => {
     ],
     'fender-stratocaster': ['fender-american-professional-ii-stratocaster'],
     'gibson-es-335': ['gibson-es-335-dot'],
-    'fender-jazz-bass': [],
-    'fender-precision-bass': [],
+    // PAN-154: the only clean rows the KG holds, all `known` today.
+    'fender-jazz-bass': ['fender-american-standard-jazz-bass'],
+    'fender-precision-bass': ['fender-american-standard-precision-bass', 'fender-precision-bass-57-reissue'],
     // PAN-85. Not from §6.3: these four were SELECT-verified active+supported+
     // public+music on 2026-09-20, which is what makes them renderable at all.
     rhodes: [
@@ -124,6 +125,20 @@ test('families: children match the reviewed §6.3 map', () => {
     // `boss-boss-ceb-3-bass-chorus` are never members.
     'boss-ce-chorus': ['boss-ce-1', 'boss-ce-2', 'boss-ce-2w', 'boss-ce-3', 'boss-ce-5'],
     'boss-dm-delay': ['boss-dm-2', 'boss-dm-2w'],
+    // PAN-154. The existing clean rows, SELECT-verified active on 2026-09-26;
+    // only `moog-minimoog` is canonical today. The duplicates
+    // `moog-minimoog-model-d` and `moog-minimoog-model-d-reissue` are never
+    // members.
+    minimoog: [
+      'moog-minimoog',
+      'moog-model-d',
+      'moog-minimoog-model-d-geddy-lee',
+      'moog-minimoog-voyager',
+      'moog-minimoog-voyager-xl',
+      'moog-minimoog-voyager-rme',
+    ],
+    // PAN-154 (2/2). The base member is the only clean Mustang row.
+    'mustang-short-scale-bass': ['fender-mustang-bass'],
   }
   for (const family of NAVIGATION_FAMILIES) {
     assert.deepEqual([...family.children].sort(), [...expected[family.slug]].sort(), family.slug)
@@ -164,9 +179,10 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   // is a 308 after it. That falls out of deriving the map from the family list
   // rather than restating it, and it is the desired behaviour: a family slug
   // must never resolve as a product, at any gate.
-  // The Boss lines (PAN-141) are the same case as `rhodes`.
+  // The Boss lines (PAN-141), `minimoog` and `mustang-short-scale-bass`
+  // (PAN-154) are the same case as `rhodes`.
   assert.equal(GUITAR_FAMILIES.length, 6)
-  assert.equal(EXPECTED_FAMILIES.length, 9)
+  assert.equal(EXPECTED_FAMILIES.length, 11)
 })
 
 test('redirects: nothing else is redirected', () => {
@@ -499,11 +515,10 @@ test('indexability: one threshold drives index, sitemap, nav and search together
 })
 
 test('empty: a family with no configured children can never become published', () => {
-  for (const slug of ['fender-jazz-bass', 'fender-precision-bass']) {
-    const family = getFamily(slug)!
-    assert.equal(family.children.length, 0)
-    assert.equal(buildFamilyView(family, [canonicalRow('anything')]).published, false)
-  }
+  // PAN-154 gave the two bass families, this test's former examples, their
+  // first members. The property is about an empty family, so it is held here.
+  const family = { ...getFamily('fender-jazz-bass')!, children: [] }
+  assert.equal(buildFamilyView(family, [canonicalRow('anything')]).published, false)
 })
 
 /* ------------------------------------------------------------------ *

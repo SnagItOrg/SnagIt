@@ -19,7 +19,7 @@ import {
   containsBrandToken,
   type BrandCollision,
 } from './brand-guard'
-import { detectNonProductIntent, type NonProductIntent } from './listing-intent'
+import { detectNonProductIntent, earliestInclusionMarker, type NonProductIntent } from './listing-intent'
 // The family-label rule is owned by lib/catalogue.ts — the same module that
 // owns the canonical predicate — so both gates refuse the same six slugs for
 // the same reason instead of holding two opinions (PAN-84).
@@ -186,6 +186,334 @@ function containsToken(text: string, token: string): boolean {
     const end = start + m[0].length
     return !phrases.some(([ps, pe]) => ps < end && pe > start && (ps < start || pe > end))
   })
+}
+
+/** A whole word or phrase, on the same boundary rule as `tokenRegex`. */
+function cue(phrase: string): RegExp {
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+')
+  return new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`, 'i')
+}
+
+/**
+ * A four-digit year in [from, to]. "2016-2017" and "1970s" count; a model
+ * number does not ("Korg PE-2000", "SH-2000"), so no word or hyphen before it.
+ */
+function yearCue(from: number, to: number): RegExp {
+  const years = Array.from({ length: to - from + 1 }, (_, i) => String(from + i))
+  return new RegExp(`(?<![\\w-])(?:${years.join('|')})(?!\\d)`)
+}
+
+const cues = (...phrases: string[]): RegExp[] => phrases.map(cue)
+
+/** A decade model name — "'50s", "50's", "60s" — never a bare "1950s" year. */
+const DECADE_MODEL = /(?<![\w'’])['’]?[56]0['’]?s(?![\w-])/i
+
+/**
+ * Where a supported product's NAME is also a LINE: what else in the line a
+ * title can name (PAN-154, owner decisions 2026-09-26). Each field is a
+ * measured cue, not a vocabulary:
+ *
+ *   otherMembers  the title names another member of the line, so it is never
+ *                 this product ("Minimoog Voyager", "Model D Reissue 2016").
+ *   accessories   head-nouns seen on this product's matched titles that are
+ *                 not the instrument. An inclusion marker before one keeps the
+ *                 title, exactly as ACCESSORY_TOKENS in listing-intent.ts does
+ *                 ("1973 Minimoog Model D w/ Road Case" is a Minimoog). They
+ *                 live here rather than there because they are measured on
+ *                 these products only; `case` globally would defer every
+ *                 "Jazz Bass, hard case".
+ *   requires      fail closed: without one of these the title is not this
+ *                 product. Used where the bare name reads as another member —
+ *                 a plain "Sequential Prophet-10" is the 2020 model, never
+ *                 evidence for the 1980 one.
+ *
+ * A reviewed code list, like IDENTITY_PHRASES and families.ts: the KG cannot
+ * supply it, because the line boundary lives in prose
+ * (`match_page_boundary` in data/klup-launch-cohort-frozen.csv). Add a cue
+ * only with a measured title behind it.
+ */
+interface LineBoundary {
+  /** Members of one line share this name; see decideMatch step 5b. */
+  line: string
+  otherMembers: readonly RegExp[]
+  accessories?: readonly string[]
+  requires?: readonly RegExp[]
+}
+
+/**
+ * Measured on moog-minimoog and moog-model-d titles, 2026-09-26. The cases are
+ * named by their product lines (Moog's SR and ATA series), not by a bare
+ * `case`: "Moog Model D Limited Edition Robert Moog 2026 Free Moog Case" is an
+ * instrument, and "free" is not an inclusion marker.
+ */
+const MOOG_ACCESSORIES: readonly string[] = [
+  'sr case', 'sr series', 'ata', 'hard case', 'flightcase',
+  'power supply', 'fuse', 'service manual',
+  'transistor', 'bushing', 'sheets', 'brochure', 'sticker',
+]
+
+/** A title that names the 1980–84 Prophet-10: Circuits/SCI, "vintage", its years or Rev 1–3. */
+const PROPHET_10_VINTAGE =
+  /(?<![\w-])(?:circuits|sci|vintage|19(?:7[89]|8[0-6])|rev\.?\s*[1-3](?!\d))(?![\w-])/i
+/** A title that names the 2020 Prophet-10: Rev 4, Reissue, Desktop, Module, New, or 2019 on. */
+const PROPHET_10_2020 =
+  /(?<![\w-])(?:rev\.?\s*4|reissue|desktop|module|new|20(?:19|[23]\d))(?![\w\d-])/i
+
+/** `cue`, unless `stronger` also appears anywhere in the title. */
+function unlessAlso(cue: RegExp, stronger: RegExp): RegExp {
+  return new RegExp(`${cue.source}(?!.*${stronger.source})(?<!${stronger.source}.*)`, 'i')
+}
+
+export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
+  // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
+  'moog-minimoog': {
+    line: 'minimoog',
+    otherMembers: [
+      cue('voyager'),
+      cue('reissue'), cue('re-issue'),
+      // Any year from 1990 on is a Voyager (2002–) or a reissue (2016–).
+      yearCue(1990, 2039),
+      // Editions of the reissue.
+      cue('geddy lee'), cue('tribute'),
+    ],
+    accessories: MOOG_ACCESSORIES,
+  },
+  // The 2016 reissue and its re-runs. Frozen boundary: "2016 REISSUE only".
+  'moog-model-d': {
+    line: 'minimoog',
+    otherMembers: [
+      cue('voyager'),
+      // Vintage originals: the production years, and the words sellers use.
+      yearCue(1969, 1985), cue("70's"), cue("80's"),
+      cue('vintage'), cue('original'),
+      cue('early model'), cue('late model'), cue('early version'),
+      // A signature edition with its own KG row (moog-minimoog-model-d-geddy-lee).
+      cue('geddy lee'),
+    ],
+    accessories: MOOG_ACCESSORIES,
+  },
+  // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
+  // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
+  // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed
+  // itself in 2018), so the brand word cannot separate them; these cues do,
+  // measured on all 163 production titles. A 2020 cue wins over a vintage one:
+  // "Sequential Circuits Prophet 10 Desktop" is the 2021 desktop module.
+  'sequential-prophet-10': {
+    line: 'prophet-10',
+    otherMembers: [unlessAlso(PROPHET_10_VINTAGE, PROPHET_10_2020)],
+  },
+  'sequential-circuits-prophet-10': {
+    line: 'prophet-10',
+    requires: [PROPHET_10_VINTAGE],
+    otherMembers: [PROPHET_10_2020],
+    accessories: ['rom', 'ics', 'upgrade'],
+  },
+
+  // ── PAN-154 (2/2): option A, the name is the base model ───────────────────
+  // Owner decision 2026-09-26, bases from the audit on the ticket. Bare years,
+  // finish, handedness, case and added pickups are facets (PAN-52 D6) and are
+  // never cues; series, sub-brand/Custom Shop, signature, generation and form
+  // factor are. Every cue below was read against every matched title.
+
+  // Base: J-45 Standard.
+  'gibson-j-45': {
+    line: 'j-45',
+    otherMembers: [
+      ...cues(
+        'studio', 'special', 'faded', 'deluxe', 'century', 'avant garde',
+        'rosewood', 'red spruce', 'long scale', '12-string', '12 string', '12 strings',
+        'anniversary', 'limited edition',
+        'custom', 'murphy lab', 'historic', 'm2m', 'banner', 'reissue', 'light aged', 'heavy aged',
+        'slash', 'margo price', 'signature', 'artist', 'generation', '1950s', '1960s',
+      ),
+      DECADE_MODEL,
+      // The model, not "with Original Hard Case".
+      /(?<![\w-])j-45\s+original(?![\w-])/i,
+    ],
+  },
+  // Base: Hummingbird Standard.
+  'gibson-hummingbird': {
+    line: 'hummingbird',
+    otherMembers: [
+      ...cues(
+        'studio', 'special', 'faded', 'deluxe', 'ec', 'avant garde',
+        'rosewood', 'walnut', 'koa', 'red spruce', 'elegant', 'golden era', 'fixed bridge',
+        'custom', 'murphy lab', 'murphy-lab', 'historic', 'reissue', 'vos', 'light aged', 'heavy aged',
+        'anniversary', 'limited edition',
+      ),
+      // The model, not "with original Gibson Hardcase".
+      /(?<![\w-])(?:hummingbird\s+(?:\d{4}\s+)?original|original\s+hummingbird)(?![\w-])/i,
+    ],
+    // Measured: Gibson's own merchandise and a CD reach this page by name.
+    accessories: ['tee', 'cd'],
+  },
+  // Frozen boundary: "Lower tier."
+  'gibson-les-paul-studio': {
+    line: 'les-paul-studio',
+    otherMembers: [
+      ...cues(
+        'session', 'faded', 'deluxe', 'tribute', 'double trouble', 'double cut', 'plus',
+        'studio pro', 'lite', 'modern', 'platinum', 'gem', 'robot', 'swamp ash',
+        'vintage mahogany', 'vintage mahogny', 'memphis', 'anniversary', 'custom',
+      ),
+      DECADE_MODEL,
+    ],
+  },
+  // Frozen boundary: "P-90 tier." The single cut; the Double Cut is its own model.
+  'gibson-les-paul-special': {
+    line: 'les-paul-special',
+    otherMembers: [
+      ...cues(
+        'dc', 'double cut', 'double cutaway', 'doublecut', 'dubble cut', 'dbl',
+        'tribute', 'faded', 'plus', 'sl', 'figured', 'jr', 'es',
+        'custom', 'cs', 'murphy lab', 'historic', 'reissue', 'vos', 'aged',
+      ),
+      /['’‘](?:55|57|60)(?!\d)|special\s+55(?!\d)/,
+    ],
+    // Measured: a Canadian case maker's cases, and a Danish "kasse".
+    accessories: ['kasse', 'canadian made', 'made in canada'],
+  },
+  // Base: the 1968–79 US original. Every original in production carries its
+  // year; a Thinline without one is as often a Classic Series or a Vintera.
+  'fender-telecaster-thinline': {
+    line: 'telecaster-thinline',
+    requires: [yearCue(1968, 1979)],
+    otherMembers: [
+      ...cues(
+        'custom', 'masterbuilt', 'journeyman', 'nocaster', 'limited', 'lim', 'fsr', 'select',
+        'american vintage ii', 'american original', 'american professional', 'american deluxe',
+        'american elite', 'deluxe', 'vintera', 'classic series', 'modern player', 'player',
+        'traditional', 'japan', 'mij', 'cij', 'tn-70', 'tn-72', 'tn70', 'mex', 'cabronita',
+        'suona', 'reissue', 'jim adkins',
+      ),
+      yearCue(1980, 2039),
+    ],
+  },
+  // Frozen boundary: "Excludes Custom Shop." The reissues are other members too.
+  'fender-telecaster-custom': {
+    line: 'telecaster-custom',
+    otherMembers: [
+      ...cues(
+        'custom shop', 'journeyman', 'relic', 'road worn', 'nos', 'ltd', 'limited', 'fsr',
+        'special edition', 'signature', 'american vintage ii', 'avri', 'american ultra',
+        'classic', 'vintera', 'player', 'traditional', 'japan', 'mij', 'cij', 'tc-72',
+        'mex', 'mexico', 'mexiko', 'fmt', 'hh', 'reissue',
+      ),
+      // "'72" names the reissue; an original says "1972". So does "American
+      // Vintage 72'" — but not a 1971 original sold as "American Vintage 70s".
+      /['’‘]72(?!\d)|american\s+vintage\s+['’‘]?\d\d['’]?(?![\ds])/i,
+    ],
+  },
+  // Frozen boundary: "1176LN reissue line … Vintage Rev A Bluestripe should split later."
+  'ua-1176ln': {
+    line: '1176ln',
+    otherMembers: [
+      ...cues(
+        'urei', 'urie', 'vintage', 'blue stripe', 'bluestripe',
+        'blackface', 'silverface', 'black panel', 'silver panel',
+        // Other Universal Audio products that carry an 1176 inside.
+        '6176', '2-1176', 'channel strip',
+      ),
+      /(?<![\w-])rev\.?\s*[a-h](?![\w-])/i,
+      yearCue(1967, 1989),
+    ],
+  },
+  // Frozen boundary: "ORIGINAL (1978) only. MS-20 Mini, MS-20 Kit and MS-20 FS … MUST NOT land here."
+  'korg-ms-20': {
+    line: 'ms-20',
+    otherMembers: [
+      ...cues('mini', 'fs', 'ic', 'legacy', 'replica', 'arturia', 'klon', 'x-911'),
+      /(?<![\w-])ms-?20\s+v(?![\w-])/i,
+      // The original ran 1978–83; the Mini, Kit and FS are 2013 on.
+      yearCue(1990, 2039),
+    ],
+    // `kit` and `controller` sit here, under the inclusion-marker rule, because
+    // an original is sold "+ midi kit Kenton" and "with foot controller".
+    accessories: [
+      'kit', 'controller', 'knob', 'side panel', 'side panels', 'pedal',
+      'mug', 'poster', 'book', 'license', 'download', 'software',
+    ],
+  },
+  // Frozen boundary: "Excludes Custom Shop reissues." The Les Paul Custom is itself
+  // built by Gibson Custom, so "Custom Shop" is not a cue here; its reissue,
+  // limited and signature lines are.
+  'gibson-les-paul-custom': {
+    line: 'les-paul-custom',
+    otherMembers: [
+      ...cues(
+        'reissue', 'historic', 'vos', 'murphy lab', 'm2m', 'made to measure', 'made 2 measure',
+        'aged', 'r0', 'r4', 'r7', 'r8', 'anniversary', '70th', 'limited edition', 'ltd',
+        'collector', 'chambered', 'widow', 'axcess', 'dealer select', 'willcutt', 'yamano',
+        'bebo', 'guitar of the week', 'mod shop', 'modified shop',
+        'signature', 'ace frehley', 'randy rhoads', 'adam jones', 'justin hawkins', 'budokan',
+        'zakk wylde', 'peter frampton', 'mick ronson',
+        'artisan', 'classic', 'lite', 'ultima', 'sg',
+      ),
+      // The Gibson USA "Les Paul Custom 70s", not a 1970 original "Vintage 70s".
+      /les\s+paul\s+custom\s+['’]?70['’]?s(?![\w-])/i,
+      // A Custom Shop build named after a '54–'68 year is its reissue; an
+      // original is just "1968 Gibson Les Paul Custom".
+      /(?:custom\s+shop|gibson\s+custom)(?=.*(?<!\d)19(?:5[4-9]|6[0-8])(?!\d))|(?<!\d)19(?:5[4-9]|6[0-8])(?!\d)(?=.*custom\s+shop)/i,
+    ],
+    accessories: ['book'],
+  },
+  // Form factor only; the vintage/Rev4 split is unresolved (frozen boundary).
+  'sequential-prophet-5': {
+    line: 'prophet-5',
+    otherMembers: cues('module', 'desktop'),
+  },
+  // Frozen boundary: "Excludes HD-28." (The tokenizer already refuses "HD-28".)
+  'martin-d-28': {
+    line: 'd-28',
+    otherMembers: cues(
+      'custom shop', 'ctm', 'authentic', 'modern deluxe', 'satin', 'marquis',
+      'street legend', 'streetlegend', 'reimagined', 'signature',
+    ),
+    accessories: ['clock'],
+  },
+
+  // ── PAN-154 (2/2): option B, the base member of the `mustang-bass` family ──
+  // Base: the 1966–81 US original. Like the Thinline, every original carries
+  // its year, and a year alone is not enough ("Sunn Fender Mustang Bass 1980s").
+  'fender-mustang-bass': {
+    line: 'mustang-bass',
+    requires: [yearCue(1966, 1981)],
+    otherMembers: [
+      // Not `player`: "1973 … Clean Amazing Player" is an original. The Player
+      // series carries no 1966–81 year, so the requirement already refuses it.
+      ...cues(
+        'performer', 'vintera', 'american professional', 'jmj', 'offset', 'pj',
+        'cij', 'mij', 'japan', 'mb98', 'mb-98', "mb'98", 'mb-sd', 'reissue', 'sunn',
+        'pawn shop', 'hybrid',
+      ),
+      yearCue(1982, 2039),
+    ],
+    accessories: ['harness', 'wiring'],
+  },
+}
+
+/**
+ * Why `title` is not `slug` under its line boundary, or null when it may be.
+ * Exported so the PAN-154 data script refuses exactly what the matcher refuses.
+ */
+export function lineBoundaryRefusal(title: string, slug: string): string | null {
+  const boundary = LINE_BOUNDARIES[slug]
+  if (!boundary) return null
+  // What the title names comes first, so the reason says what the title IS
+  // when it says anything; `no_member_cue` is left for titles that name nothing.
+  for (const re of boundary.otherMembers) {
+    const m = re.exec(title)
+    if (m) return `other_member:${m[0].toLowerCase()}`
+  }
+  const markerAt = earliestInclusionMarker(title.toLowerCase())
+  for (const noun of boundary.accessories ?? []) {
+    const m = cue(noun).exec(title)
+    if (m && !(markerAt !== -1 && markerAt < m.index)) return `accessory:${noun}`
+  }
+  if (boundary.requires && !boundary.requires.some((re) => re.test(title))) {
+    return 'no_member_cue'
+  }
+  return null
 }
 
 function slugify(s: string): string {
@@ -557,6 +885,8 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   // brands are matched as literal tokens, NOT via the catalogue: 'squier' is
   // not a kg_brand at all, so the catalogue-brand layer below cannot see it.
   const surviving: MatchCandidate[] = []
+  /** Candidates a line boundary refused (PAN-154). Never a winner; see step 5b. */
+  const lineRefused: MatchCandidate[] = []
   let hardCollision: { candidate: MatchCandidate; collision: BrandCollision } | null = null
 
   for (const candidate of candidates) {
@@ -568,12 +898,21 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
       }
       continue
     }
+    // A title that names another member of a line is not that line's product
+    // at any tier (PAN-154). It stops being a candidate rather than being
+    // deferred: "Minimoog Voyager XL" is not an undecided Minimoog. Checked
+    // after the collision, so a licensed-subsidiary title keeps its auditable
+    // rejection instead of vanishing.
+    if (lineBoundaryRefusal(norm, product?.slug ?? '') !== null) {
+      lineRefused.push(candidate)
+      continue
+    }
     surviving.push(candidate)
   }
 
   if (surviving.length === 0) {
-    // Non-null because `candidates` was non-empty and nothing survived.
-    return { kind: 'rejected', best: hardCollision!.candidate, collision: hardCollision!.collision }
+    if (!hardCollision) return { kind: 'none' }
+    return { kind: 'rejected', best: hardCollision.candidate, collision: hardCollision.collision }
   }
 
   // ── 3. Non-product intent ───────────────────────────────────────────────
@@ -675,6 +1014,32 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   }
 
   const best = strongest(topTier)
+
+  // ── 5b. A refused member of a DIFFERENT line still names a product ───────
+  // Refusal removes a candidate; it does not make a two-product title a
+  // one-product title. "Sequential Circuits – Prophet 5, Prophet 10 – Fuse
+  // Holder" names the vintage Prophet-10 (refused on the 2020 page) and the
+  // Prophet-5; the tie that deferred it must stand. Within ONE line the
+  // refusal is exactly the evidence that separates the members: "Minimoog
+  // Model D Reissue" is the reissue because it is not the original.
+  const lineOf = (id: string) => {
+    const slug = index.productById.get(id)?.slug ?? id
+    return LINE_BOUNDARIES[slug]?.line ?? slug
+  }
+  const rival = lineRefused.find((c) => {
+    if (c.score < best.score || lineOf(c.product_id) === lineOf(best.product_id)) return false
+    const b = index.productById.get(c.product_id)?.brand_name
+    return !brandEvidence || !b || b === brandEvidence
+  })
+  if (rival) {
+    return {
+      kind: 'deferred',
+      reason: 'ambiguous_tie',
+      candidates: [best, rival],
+      detail: `the title also names ${index.productById.get(rival.product_id)?.slug ?? rival.product_id}, ` +
+              `refused by its line boundary; a two-product title is not ${index.productById.get(best.product_id)?.slug ?? best.product_id}`,
+    }
+  }
 
   // ── 6. Automatic-confidence floor ───────────────────────────────────────
   // Below the floor, the only evidence strong enough to make a candidate
