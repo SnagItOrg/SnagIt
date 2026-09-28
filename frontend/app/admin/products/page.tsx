@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback, useId, useMemo, useRef } from 'react'
 import Link from 'next/link'
 
 import { ToastViewport } from '@/components/Toast'
+import { useLocale } from '@/components/LocaleProvider'
 import { useToast } from '@/lib/use-toast'
+import { parseYear } from '@/lib/production-years'
 import {
   PUBLICATION_STATE_ACTION,
   publicationState,
@@ -120,6 +122,7 @@ const TIER_STYLE: Record<Tier, { background: string; color: string }> = {
 }
 
 export default function AdminProductsPage() {
+  const { t } = useLocale()
   const [query, setQuery] = useState('')
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
@@ -273,20 +276,22 @@ export default function AdminProductsPage() {
     )
   }
 
+  // PAN-137: a year that does not parse is refused with a toast and the editor
+  // stays open. It used to close silently; and the save ignored the response,
+  // so a refused write still showed the new year.
   async function saveYear(product: Product) {
-    const year = parseInt(yearDraft)
-    if (isNaN(year) || year < 1900 || year > 2030) { setYearEditing(null); return }
-    setSaving(product.id)
-    await fetch(`/api/admin/products/${product.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ year_released: year }),
-    })
-    setProducts((prev) =>
-      prev.map((p) => p.id === product.id ? { ...p, year_released: year } : p)
+    const parsed = parseYear(yearDraft)
+    if (!parsed.ok) {
+      showToast(t.adminYears.invalid_year, { type: 'error' })
+      return
+    }
+    const saved = await patchProduct(
+      product,
+      { year_released: parsed.year },
+      { year_released: parsed.year },
+      `${product.canonical_name}: ${t.adminYears.saved.toLowerCase()}.`,
     )
-    setSaving(null)
-    setYearEditing(null)
+    if (saved) setYearEditing(null)
   }
 
   return (
@@ -422,7 +427,9 @@ export default function AdminProductsPage() {
               {yearEditing === p.id ? (
                 <div className="flex items-center gap-1 shrink-0">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
                     value={yearDraft}
                     onChange={(e) => setYearDraft(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') saveYear(p); if (e.key === 'Escape') setYearEditing(null) }}

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdminInRoute } from '@/lib/admin-auth'
+import { translations } from '@/lib/i18n'
+import { validateProductionYears, yearDiscontinuedEnabled, type ProductionYearsRefusal } from '@/lib/production-years'
 
 const TIERS = new Set(['legendary', 'classic', 'standard'])
 const STATUSES = new Set(['active', 'inactive'])
@@ -14,12 +16,21 @@ type Body = {
   model_name?: string
   tier?: string
   status?: string
-  year_released?: number | string | null
+  year_released?: unknown
+  year_discontinued?: unknown
   subcategory_id?: string | null
 }
 
 function bad(field: string, error: string) {
   return NextResponse.json({ error, field }, { status: 400 })
+}
+
+/** A refused year names its field AND its code, so the form can say which rule. */
+function badYears({ field, code }: ProductionYearsRefusal) {
+  return NextResponse.json(
+    { error: translations.da.adminYears[code], field, code },
+    { status: 400 },
+  )
 }
 
 // POST /api/admin/product/new
@@ -65,17 +76,22 @@ export async function POST(req: NextRequest) {
   const status = (body.status ?? 'active').trim() || 'active'
   if (!STATUSES.has(status)) return bad('status', 'status must be active or inactive')
 
-  // 7. year_released
-  let yearReleased: number | null = null
-  if (body.year_released != null && body.year_released !== '') {
-    const n = typeof body.year_released === 'number'
-      ? body.year_released
-      : parseInt(String(body.year_released), 10)
-    if (!Number.isInteger(n) || n < 1900 || n > 2030) {
-      return bad('year_released', 'year_released must be an integer between 1900 and 2030')
-    }
-    yearReleased = n
+  // 7. year_released, year_discontinued (PAN-137). Every value is checked,
+  // not only a non-null one: a string must be four digits (`parseInt` read
+  // '1960abc' as 1960), and a discontinued year needs a release year at or
+  // before it. Until migration 059 is on, a discontinued year is refused
+  // rather than dropped — the column does not exist to receive it.
+  if (body.year_discontinued != null && body.year_discontinued !== '' && !yearDiscontinuedEnabled()) {
+    return NextResponse.json(
+      { error: translations.da.adminYears.unavailable, field: 'year_discontinued', code: 'unavailable' },
+      { status: 400 },
+    )
   }
+  const years = validateProductionYears({
+    year_released: body.year_released,
+    year_discontinued: body.year_discontinued,
+  })
+  if (!years.ok) return badYears(years)
 
   // 8. subcategory_id
   let subcategoryId: string | null = null
@@ -124,10 +140,13 @@ export async function POST(req: NextRequest) {
     category_id: brand.category_id,
     tier,
     status,
-    year_released: yearReleased,
+    year_released: years.year_released,
     subcategory_id: subcategoryId,
     browse_visibility: 'qa_only',
   }
+  // Named only when it carries a value, so a create with no discontinued year
+  // never names a column that may not exist yet.
+  if (years.year_discontinued !== null) insertRow.year_discontinued = years.year_discontinued
 
   const { data: inserted, error: insertErr } = await admin
     .from('kg_product')

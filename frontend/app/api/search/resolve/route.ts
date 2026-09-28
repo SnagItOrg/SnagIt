@@ -9,6 +9,7 @@ import {
   isCatalogueUnavailable,
 } from '@/lib/catalogue'
 import { NAVIGATION_FAMILIES } from '@/lib/families'
+import { selectWithYearDiscontinued } from '@/lib/production-years'
 import {
   SEARCH_PRODUCT_SELECT,
   buildSearchIndex,
@@ -86,7 +87,7 @@ const productEntities = unstable_cache(
       productRows: async () => {
         const res = await admin
           .from('kg_product')
-          .select(SEARCH_PRODUCT_SELECT)
+          .select(selectWithYearDiscontinued(SEARCH_PRODUCT_SELECT))
           .eq('status', CANONICAL_STATUS)
           .eq('support_state', CANONICAL_SUPPORT)
         return { data: res.data, error: res.error }

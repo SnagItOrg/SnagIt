@@ -6,6 +6,12 @@ import {
   isPublicationAction,
   publicationRefusal,
 } from '@/lib/publication'
+import { translations } from '@/lib/i18n'
+import {
+  selectWithYearDiscontinued,
+  validateProductionYears,
+  yearDiscontinuedEnabled,
+} from '@/lib/production-years'
 
 /**
  * Product lifecycle mutations for /admin/products.
@@ -101,6 +107,9 @@ const FIELD_AXIS: Record<string, Axis> = {
   // absence from this map is what puts them out of this route's reach.
   thomann_url:       'retail',
   year_released:     'metadata',
+  // PAN-137. Display metadata like the release year; read and written only
+  // once migration 059 is on (see lib/production-years.ts).
+  year_discontinued: 'metadata',
   tags:              'metadata',
 }
 
@@ -179,6 +188,23 @@ function databaseFailure(stage: DbStage, err: { code?: string } | null): NextRes
   }, { status: 500 })
 }
 
+/** The row this route reads before it writes. */
+type ProductBefore = {
+  id: string
+  slug: string
+  canonical_name: string
+  status: string | null
+  support_state: string | null
+  browse_visibility: string | null
+  tier: string | null
+  subcategory_id: string | null
+  year_released: number | null
+  /** Absent until migration 059 is on (lib/production-years.ts). */
+  year_discontinued?: number | null
+  tags: string[] | null
+  thomann_url: string | null
+}
+
 export async function PATCH(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> },
@@ -249,6 +275,14 @@ export async function PATCH(
     }, { status: 400 })
   }
 
+  if (update.year_discontinued !== undefined && !yearDiscontinuedEnabled()) {
+    return NextResponse.json({
+      error: 'unavailable',
+      field: 'year_discontinued',
+      message: translations.da.adminYears.unavailable,
+    }, { status: 400 })
+  }
+
   // ── explicit intent, so no axis moves as a side effect ───────────────────
   // `intent` lists the axes the caller means to change. Support and metadata
   // may be implied (they carry no cross-axis consequence); visibility and
@@ -310,14 +344,39 @@ export async function PATCH(
   }
 
   // ── before state, for the manifest and for the dry run ───────────────────
-  const { data: before, error: readErr } = await admin
+  // Typed by hand: a select list assembled at runtime (the 059 flag) is a
+  // `string`, which supabase-js cannot parse into a row type.
+  const { data: beforeRow, error: readErr } = await admin
     .from('kg_product')
-    .select('id, slug, canonical_name, status, support_state, browse_visibility, tier, subcategory_id, year_released, tags, thomann_url')
+    .select(selectWithYearDiscontinued('id, slug, canonical_name, status, support_state, browse_visibility, tier, subcategory_id, year_released, tags, thomann_url'))
     .eq('id', params.id)
     .maybeSingle()
 
   if (readErr) return databaseFailure('product_read', readErr)
+  const before = beforeRow as unknown as ProductBefore | null
   if (!before) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+
+  /**
+   * PAN-137 — production years are validated as a PAIR, against the stored
+   * value of whichever one the request leaves alone: moving the release year
+   * past a stored discontinued year is refused the same as the reverse. This
+   * used to write `year_released` exactly as sent, with no check at all.
+   */
+  if (update.year_released !== undefined || update.year_discontinued !== undefined) {
+    const years = validateProductionYears({
+      year_released: update.year_released !== undefined ? update.year_released : before.year_released,
+      year_discontinued: update.year_discontinued !== undefined ? update.year_discontinued : before.year_discontinued,
+    })
+    if (!years.ok) {
+      return NextResponse.json({
+        error: years.code,
+        field: years.field,
+        message: translations.da.adminYears[years.code],
+      }, { status: 400 })
+    }
+    if (update.year_released !== undefined) update.year_released = years.year_released
+    if (update.year_discontinued !== undefined) update.year_discontinued = years.year_discontinued
+  }
 
   // A deprecated identity can never be promoted into the supported cohort.
   if (update.support_state === 'supported' && before.status !== 'active') {

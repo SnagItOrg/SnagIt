@@ -55,6 +55,7 @@ if (typeof (globalThis as { window?: unknown }).window !== 'undefined') {
 import type { NavigationFamily } from './families'
 import { CatalogueUnavailableError, isSupportedMusicProduct } from './catalogue'
 import { modelKey } from './model-key'
+import { formatProductionYears } from './production-years'
 
 export type SearchEntityKind = 'product' | 'family'
 
@@ -181,6 +182,12 @@ export interface SearchProductRow {
   model_name: string | null
   era: string | null
   year_released: number | null
+  /**
+   * Absent when not read — the search route selects it only once migration
+   * 059 is on (`selectWithYearDiscontinued`). Absent renders the release year
+   * alone; `null` is read-and-empty, still in production.
+   */
+  year_discontinued?: number | null
   kg_brand: { name: string } | { name: string }[] | null
 }
 
@@ -204,14 +211,15 @@ function withoutParenthetical(name: string): string {
  * The autocomplete label, carrying its disambiguating qualifier (§8.2).
  *
  * A qualifier is only ever taken from reviewed catalogue data — an existing
- * parenthetical, then `era`, then `year_released`. Nothing is invented: a
+ * parenthetical, then `era`, then the production years (`1960–1975`, `1960–`;
+ * PAN-137, formatted in one place by `formatProductionYears`). Nothing is invented: a
  * product with no qualifier in the database gets a bare label rather than a
  * plausible-looking one, because a fabricated qualifier at the point of
  * navigation is worse than none.
  */
 function labelFor(row: SearchProductRow): string {
   if (parenthetical(row.canonical_name)) return row.canonical_name
-  const qualifier = row.era ?? (row.year_released != null ? String(row.year_released) : null)
+  const qualifier = row.era ?? formatProductionYears(row.year_released, row.year_discontinued)
   return qualifier ? `${row.canonical_name} (${qualifier})` : row.canonical_name
 }
 
