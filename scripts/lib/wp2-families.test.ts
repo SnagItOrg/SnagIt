@@ -885,14 +885,16 @@ test('operator copy: the admin UI declares an axis the API still requires', () =
   assert.match(page, /NOT change marketplace monitoring/)
 })
 
-test('vercel.json: untouched — the crons block survives and nothing was added', () => {
+test('vercel.json: the crons block survives and only the approved region was added', () => {
   // WP-2 makes NO change to this file. Removing the crons block would be a
   // deployment-affecting edit, and Stage 3 makes none; adding a comment to a
   // Vercel config is also a change to a deployment input, which is why the
   // warning WP-2 briefly carried here was withdrawn in cross-package review.
   // The cron's disabled state lives at Vercel project level, not in the repo.
+  // PAN-167 (owner-approved) pins functions to dub1, next to Supabase eu-west-1.
   const parsed = JSON.parse(readRepoFile('vercel.json')) as Record<string, unknown>
-  assert.deepEqual(Object.keys(parsed), ['crons'], 'no property may be added to vercel.json')
+  assert.deepEqual(Object.keys(parsed), ['regions', 'crons'], 'no other property may be added to vercel.json')
+  assert.deepEqual(parsed.regions, ['dub1'])
   assert.equal(Array.isArray(parsed.crons), true, 'the crons block must NOT be removed')
   assert.equal((parsed.crons as unknown[]).length, 1)
   assert.deepEqual((parsed.crons as Array<Record<string, unknown>>)[0], {
