@@ -140,6 +140,11 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   { route: '/api/brands', access: 'public_api' },
   { route: '/api/price-observations', access: 'public_api' },
   {
+    route: '/api/health/freshness',
+    access: 'public_api',
+    note: 'PAN-158 scraper heartbeat for the off-box GitHub check; timestamps only',
+  },
+  {
     route: '/api/search/resolve',
     access: 'public_api_data_gated',
     note: 'reachable by anyone; returns only entities passing §3.1, re-checked live per request',
