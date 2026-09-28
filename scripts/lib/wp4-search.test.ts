@@ -1272,7 +1272,8 @@ test('mobile: the search field cannot trigger an iOS zoom, and targets are tappa
   const src = readCode('app', '(shell)', 'search', 'page.tsx')
   assert.ok(src.includes('text-base'), 'the input must be >=16px or iOS Safari zooms on focus')
   assert.ok(src.includes('min-h-[44px]'), 'primary controls need a 44px touch target')
-  assert.ok(src.includes('min-h-[56px]'), 'candidate rows need a comfortable touch target')
+  // PAN-168 #10: rows carry a 48px image, so they are 64px tall now.
+  assert.ok(src.includes('min-h-[64px]'), 'candidate rows need a comfortable touch target')
   assert.ok(src.includes('enterKeyHint="search"'), 'the soft keyboard must offer a search action')
   // PAN-131 moved the chrome up a level: `BottomNav` is mounted once by the
   // shell layout instead of nine times by the pages. The property this test
