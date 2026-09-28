@@ -192,13 +192,44 @@ const loadFamilyView = cache(async (slug: string): Promise<FamilyView | null> =>
 })
 
 /**
+ * PAN-130 — the browse root `family.categoryRoot` names, for the middle crumb.
+ *
+ * `categoryRoot` is a slug; the label a visitor reads is `kg_category.name_da`,
+ * so this is one small read. Its filter is the one `buildBrowseLeafResponse`
+ * resolves `/browse/<root>` with (music domain, no parent), so the crumb
+ * renders exactly when the page it links to exists.
+ *
+ * Same failure model as `loadFamilyView`: absence is `null` (no crumb is
+ * invented, and the trail falls back to the two crumbs PAN-124 shipped);
+ * unavailability is a throw, never a silently shorter trail.
+ */
+async function loadCategoryCrumb(rootSlug: string): Promise<{ slug: string; name: string } | null> {
+  const res = await getSupabaseAdmin()
+    .from('kg_category')
+    .select('slug, name_da')
+    .eq('slug', rootSlug)
+    .eq('domain', 'music')
+    .is('parent_id', null)
+    .maybeSingle()
+    .then(
+      (r) => r,
+      () => {
+        throw new CatalogueUnavailableError('family_category_transport')
+      },
+    )
+  if (res.error) throw new CatalogueUnavailableError('family_category_lookup')
+  const row = res.data as { slug: string; name_da: string | null } | null
+  return row?.name_da ? { slug: row.slug, name: row.name_da } : null
+}
+
+/**
  * ONE THRESHOLD DRIVES INDEXABILITY (§4.2 rules 2 and 4).
  *
  * While a family has zero canonical children it is `noindex,follow`: the six
  * legacy /product URLs 308 here, so the URL must remain a valid redirect target,
  * but an empty directory must not be offered to a crawler as catalogue depth.
- * `follow` is deliberate — the only outbound link is /browse, which is exactly
- * where a crawler should go next.
+ * `follow` is deliberate — the only outbound links are /browse and the family's
+ * browse root (PAN-130), which is exactly where a crawler should go next.
  */
 export async function generateMetadata(
   ctx: { params: Promise<{ slug: string }> },
@@ -221,6 +252,7 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
   if (!view) notFound()
 
   const { family, children, listings } = view
+  const category = await loadCategoryCrumb(family.categoryRoot)
 
   /*
     THE SAME CHROME EVERY OTHER PUBLIC ROUTE HAS, AND NOT A SECOND SHELL.
@@ -243,33 +275,28 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
       <MobileSearchBar />
       <div className="cq-pane shell-reading flex flex-col pt-6 pb-10 md:pt-10">
         {/*
-          PAN-124 — the breadcrumb, and why it stops at two crumbs.
+          PAN-124, PAN-130 — the breadcrumb: Alle kategorier / category /
+          family. It answers the Trunk Test's "where am I in the hierarchy"
+          for a visitor who arrives from search (lib/search-resolver.ts
+          returns /family/<slug> for a family hit).
 
-          The Trunk Test fails here today: a visitor who arrives from search
-          (lib/search-resolver.ts returns /family/<slug> for a family hit)
-          gets a brand, a title and no statement of where that sits. This is
-          the fix for "where am I in the hierarchy", and nothing more.
+          THE CATEGORY IS THE FAMILY'S OWN `categoryRoot`, and that is exactly
+          the job PAN-52 §6 (the ratified Linear ticket, not a doc) grants it:
+          it places the family under a browse root and reclassifies no
+          member. The reverse is what §6 forbids — a product page taking its
+          category THROUGH its family — which is why /product/[slug] crumbs
+          from the product's own subcategory instead. The two trails read
+          alike for a member (Alle kategorier / El-guitarer / … / Fender
+          Telecaster / <model>) without either borrowing from the other.
 
-          IT DOES NOT NAME THE CATEGORY, even though `family.categoryRoot`
-          is right here in scope and would make a third crumb free of any
-          query. That is a deliberate stop, not an oversight — see the note
-          on PAN-124 for the evidence. Briefly: the comment on the product
-          breadcrumb forbids exactly that crumb, citing "PAN-52 D5(a)" and a
-          "§6", neither of which can be produced from docs/; while three
-          historical documents list "name, brand, category" as what a family
-          page shows, and the experience spec §6.3 specifies a FOUR-level
-          product breadcrumb including the category. The two readings
-          contradict each other and both rest on records CLAUDE.md §7 calls
-          historical. Choosing between them is a taxonomy decision for a
-          product owner, so this ships the crumb that is true under either:
-          a family is in the catalogue, and /browse is where it goes back to.
-
-          /browse is also already this route's only outbound link in the
-          empty-family `noindex,follow` case, so the sentence in
-          `generateMetadata` above stays true rather than needing amendment.
+          The family is the current crumb: the only item without `href`, so
+          the one `aria-current="page"` in this landmark. No crumb when the
+          root does not resolve; the trail is then the two crumbs PAN-124
+          shipped, which are true either way.
         */}
         <Breadcrumb className="mb-4">
           <BreadcrumbItem href="/browse">{t.browseAllCategories}</BreadcrumbItem>
+          {category && <BreadcrumbItem href={`/browse/${category.slug}`}>{category.name}</BreadcrumbItem>}
           <BreadcrumbItem>{family.label}</BreadcrumbItem>
         </Breadcrumb>
 

@@ -41,7 +41,11 @@ export interface NavigationFamily {
   slug: string
   label: string
   brand: string
-  /** Browse root slug this family belongs under. */
+  /**
+   * Browse root slug this family belongs under — the family page's middle
+   * crumb (PAN-130). It places the FAMILY; it never classifies a member, and a
+   * product page never reads it (PAN-52 §6).
+   */
   categoryRoot: string
   /**
    * kg_product slugs, from klup-launch-catalogue-selection.md §6.3.
