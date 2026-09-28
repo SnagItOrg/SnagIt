@@ -1,7 +1,6 @@
 import { SideNav } from '@/components/SideNav'
 import { BottomNav } from '@/components/BottomNav'
 import { SkipLink } from '@/components/SkipLink'
-import { isCurrentUserAdmin } from '@/lib/admin-auth'
 
 /**
  * PAN-131 — the application shell. The sidebar mounts HERE, once.
@@ -66,21 +65,12 @@ import { isCurrentUserAdmin } from '@/lib/admin-auth'
  * So the flex context is declared once, here, and the three pages that did not
  * previously have one — `/browse`, `/browse/[root]` and `/family/[slug]` —
  * carry `flex-1 min-w-0` on their main column to stay unchanged under it.
- *
- * PAN-171 — THE ADMIN ENTRY IS DECIDED HERE, ON THE SERVER. `is_admin` is read
- * from `user_preferences` for the session, and the sidebar renders its Admin
- * item only when that is true, so the link is absent from the HTML any other
- * visitor receives. Fail-closed: a lookup that throws renders no entry rather
- * than a broken shell. The cost is that reading the session opts the static
- * shell routes (/browse, /search, /saved, /watchlists, /profile) into dynamic
- * rendering.
  */
-export default async function ShellLayout({ children }: { children: React.ReactNode }) {
-  const isAdmin = await isCurrentUserAdmin().catch(() => false)
+export default function ShellLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen md:flex">
       <SkipLink />
-      <SideNav isAdmin={isAdmin} />
+      <SideNav />
       {children}
       <BottomNav />
     </div>

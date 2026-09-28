@@ -561,9 +561,9 @@ export const translations = {
     // PAN-142 — the skip link, first focusable element in the public shell.
     skipToContent: 'Spring til indhold',
 
-    // PAN-171 — the way into admin from the public shell (admins only), and
-    // the admin nav itself. Translated, unlike most of /admin/*, because the
-    // nav is chrome shared by every admin page and the /intel header.
+    // PAN-171 — the admin nav and the /intel header. Translated, unlike most
+    // of /admin/*, because the nav is chrome shared by every admin page. There
+    // is deliberately no Admin entry in the public shell (owner decision).
     navAdmin: 'Admin',
     adminNav: {
       navLabel: 'Adminværktøjer',

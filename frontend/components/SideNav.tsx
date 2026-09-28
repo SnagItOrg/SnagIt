@@ -36,10 +36,6 @@ import { scrollFade, useScrollEdges } from '@/components/use-scroll-edges'
  * The selected item is derived from `usePathname()` and always was. With no
  * props left, the tab arm and its `<button>` are unreachable by construction
  * rather than by inspection, so they are deleted along with them.
- *
- * PAN-171 — ONE PROP CAME BACK, AND THE LAYOUT DOES SUPPLY IT. `isAdmin` is
- * established on the server by `app/(shell)/layout.tsx`, never guessed here,
- * so a non-admin's HTML never contains the Admin item.
  */
 
 function ThemeToggle({ collapsed }: { collapsed: boolean }) {
@@ -603,7 +599,7 @@ function SidebarResizeHandle({
   )
 }
 
-export function SideNav({ isAdmin }: { isAdmin: boolean }) {
+export function SideNav() {
   const router = useRouter()
   const pathname = usePathname()
   const { locale, setLocale, t } = useLocale()
@@ -835,19 +831,6 @@ export function SideNav({ isAdmin }: { isAdmin: boolean }) {
             </svg>
           ),
         },
-        // PAN-171 — admins only, decided by the server (see the prop).
-        ...(isAdmin
-          ? [{
-              href: '/admin',
-              label: t.navAdmin,
-              icon: (selected: boolean) => (
-                <Icon
-                  name="admin_panel_settings"
-                  style={{ fontSize: '20px', fontVariationSettings: selected ? "'FILL' 1" : "'FILL' 0" }}
-                />
-              ),
-            }]
-          : []),
       ],
     },
   ]
@@ -857,22 +840,13 @@ export function SideNav({ isAdmin }: { isAdmin: boolean }) {
       {/* Below md the sidebar does not render at all, so the same logo carries
           the way home from here instead — BottomNav has no home destination
           (PAN-73). In normal flow, so it never covers page content. */}
-      <header className="md:hidden flex items-center border-b border-border bg-card">
+      <header className="md:hidden border-b border-border bg-card">
         <Link href="/" className="flex items-center gap-3 px-4 min-h-[44px] text-primary">
           <div className="size-8 rounded-lg flex items-center justify-center bg-primary/10 flex-shrink-0">
             <Icon name="radar" style={{ fontSize: '20px' }} />
           </div>
           <span className="text-lg font-semibold tracking-tight">Klup.dk</span>
         </Link>
-        {isAdmin && (
-          <Link
-            href="/admin"
-            className="ml-auto flex items-center gap-2 px-4 min-h-[44px] text-sm font-medium text-ink-secondary"
-          >
-            <Icon name="admin_panel_settings" style={{ fontSize: '20px' }} />
-            {t.navAdmin}
-          </Link>
-        )}
       </header>
 
       {/* `hidden md:flex` STAYS VIEWPORT-KEYED, deliberately. "Is this a phone"
