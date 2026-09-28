@@ -45,6 +45,29 @@ import type { Listing } from '@/lib/supabase'
 import type { FamilyContext, PricePoint, RelatedProduct } from '@/app/api/product/[slug]/route'
 import type { ProductPlacement } from '@/lib/catalogue-tree'
 import { Icon } from '@/components/Icon'
+import { Button } from '@/components/Button'
+
+/**
+ * PAN-168. Reverb's condition vocabulary → the label a visitor reads. The raw
+ * string stays the series KEY (it fixes the colour and shape); only the label
+ * is translated. A condition not listed here renders as Reverb wrote it.
+ */
+type ConditionLabelKey =
+  | 'conditionBrandNew' | 'conditionMint' | 'conditionExcellent'
+  | 'conditionVeryGood' | 'conditionGood' | 'conditionFair'
+  | 'conditionPoor' | 'conditionNonFunctioning' | 'conditionBStock'
+
+const REVERB_CONDITION_LABEL: Record<string, ConditionLabelKey> = {
+  'brand new': 'conditionBrandNew',
+  'mint': 'conditionMint',
+  'excellent': 'conditionExcellent',
+  'very good': 'conditionVeryGood',
+  'good': 'conditionGood',
+  'fair': 'conditionFair',
+  'poor': 'conditionPoor',
+  'non functioning': 'conditionNonFunctioning',
+  'b-stock': 'conditionBStock',
+}
 
 /**
  * The entity key for the sold-price series.
@@ -418,7 +441,7 @@ export default function ProductPage() {
                             style={{ background: 'var(--foreground)', color: 'var(--background)' }}
                           >
                             <Icon name="workspace_premium" style={{ fontSize: 12 }} />
-                            {product.tier === 'legendary' ? 'Legendary' : 'Classic'}
+                            {product.tier === 'legendary' ? t.tierLegendary : t.tierClassic}
                           </span>
                         )}
                       </div>
@@ -467,7 +490,7 @@ export default function ProductPage() {
                         rel="noopener noreferrer"
                         className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        Ny fra Thomann:{' '}
+                        {t.thomannNewPrice}:{' '}
                         <span className="font-semibold text-foreground">
                           {product.thomann_price_dkk.toLocaleString('da-DK')} kr
                         </span>{' '}
@@ -479,18 +502,23 @@ export default function ProductPage() {
                     <div className="flex flex-col gap-2 pt-4 border-t border-border">
                       <p className="text-sm text-muted-foreground">
                         {listings.length === 0
-                          ? 'Ingen aktive annoncer'
-                          : `${listings.length} ${listings.length === 1 ? 'aktiv annonce' : 'aktive annoncer'} til salg`}
+                          ? t.productActiveListingsNone
+                          : listings.length === 1
+                            ? t.productActiveListingsOne
+                            : fill(t.productActiveListings, { count: listings.length })}
                       </p>
-                      <button
+                      {/* PAN-168. The shared primary Button, which is the same
+                          ink in both themes; the opacity hover it replaces is an
+                          opacity state the design rules exclude. */}
+                      <Button
+                        variant="primary"
                         onClick={() => handleCreateWatchlist()}
-                        className="w-full px-5 py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-80"
-                        style={{ background: 'var(--foreground)', color: 'var(--background)' }}
+                        className="w-full px-5 py-3 rounded-xl font-semibold text-sm"
                       >
-                        + Tilføj til watchlist
-                      </button>
+                        + {t.addWatchlist}
+                      </Button>
                       <p className="text-xs text-muted-foreground text-center">
-                        Få besked når nye annoncer dukker op
+                        {t.productWatchlistHint}
                       </p>
                     </div>
                   </div>
@@ -534,6 +562,10 @@ export default function ProductPage() {
                   }
                   const conditionSeries = Array.from(byCondition.entries())
                     .sort((a, b) => b[1].length - a[1].length)
+                  const conditionLabel = (raw: string): string => {
+                    const key = REVERB_CONDITION_LABEL[raw.trim().toLowerCase()]
+                    return key ? t[key] : raw
+                  }
 
                   const period = formatDateRange(
                     priceHistory[0]?.sold_at,
@@ -565,7 +597,7 @@ export default function ProductPage() {
                           <DataLegend
                             items={conditionSeries.map(([name, list]) => ({
                               key: name,
-                              label: name,
+                              label: conditionLabel(name),
                               count: list.length,
                             }))}
                           />
@@ -633,7 +665,7 @@ export default function ProductPage() {
                             {conditionSeries.map(([name, list]) => (
                               <Scatter
                                 key={name}
-                                name={name}
+                                name={conditionLabel(name)}
                                 data={list}
                                 fill={seriesColor(name)}
                                 fillOpacity={0.75}
@@ -914,7 +946,9 @@ export default function ProductPage() {
                   <div className="flex flex-col gap-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-sm font-medium text-foreground">
-                        {listings.length} {listings.length === 1 ? 'annonce' : 'annoncer'}
+                        {listings.length === 1
+                          ? t.productListingsOne
+                          : fill(t.productListings, { count: listings.length })}
                       </p>
                       {/*
                         Two states, not a filtering framework. Nothing is hidden
