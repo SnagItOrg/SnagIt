@@ -7,6 +7,7 @@ import { ConsentFooterControl } from "@/components/ConsentFooterControl";
 import { AnalyticsRoot } from "@/components/AnalyticsRoot";
 import { logPostHogMisconfigurationOnce } from "@/lib/analytics";
 import { siteMetadata } from "@/lib/site-metadata";
+import { ICON_FONT_HREF } from "@/lib/icon-font";
 import "./globals.css";
 
 /**
@@ -49,6 +50,12 @@ import "./globals.css";
  * The two `no-page-custom-font` warnings remain and are expected. The two
  * `google-font-display` warnings are gone — that rule was reporting exactly
  * this bug — so the tracked lint baseline for this file is now two, not four.
+ *
+ * PAN-167 CHANGED ONLY THE URL: it now carries `icon_names`, built from the
+ * glyph list in lib/icon-font.ts, so the font is 7.5 KB instead of 452 KB.
+ * Everything above about axes, `swap` and the reveal script still holds. The
+ * href is now an expression, which the `no-page-custom-font` rule does not
+ * read, so those two warnings no longer appear.
  */
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
@@ -85,13 +92,13 @@ export default function RootLayout({
       <head>
         <link
           rel="preload"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL,GRAD,opsz,wght@0..1,0,24,400&display=swap"
+          href={ICON_FONT_HREF}
           as="style"
           crossOrigin="anonymous"
         />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL,GRAD,opsz,wght@0..1,0,24,400&display=swap"
+          href={ICON_FONT_HREF}
           crossOrigin="anonymous"
         />
         {/*
