@@ -102,7 +102,8 @@ const DELAY_JITTER_MS = 2000
 
 // Bump when scrape/parse behaviour changes, so a run's output can be
 // attributed to the code that produced it.
-const SCRAPER_VERSION = 'dba-2.0.0'
+// 2.1.0 (PAN-160): a zero-result search terminates as a real empty page.
+const SCRAPER_VERSION = 'dba-2.1.0'
 // Bump when the extraction/normalisation of a page changes. Separate from
 // SCRAPER_VERSION because a parser change alters what "one listing" MEANS,
 // which breaks volume comparability even when fetching is untouched. Both are

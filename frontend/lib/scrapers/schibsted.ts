@@ -98,6 +98,47 @@ export interface SchibstedPage {
   descriptions: Map<string, string>
 }
 
+type SearchStateEntry = {
+  queryKey?: Array<{ scope?: string; searchParams?: { q?: unknown } }>
+  state?: { data?: { docs?: unknown; metadata?: { result_size?: { match_count?: unknown } } } }
+}
+
+/**
+ * The positive "no results" signal the JSON-LD does not give (PAN-160).
+ *
+ * A zero-result search page has no `CollectionPage` block, which is exactly
+ * what a broken parser sees too, so every zero-result query ended as `error`
+ * and scrape-dba never reached complete coverage. The page does answer
+ * positively elsewhere: the search podlet dehydrates its React Query cache
+ * into `<script data-react-query-state>` as base64 JSON, and that cache holds
+ * the search response itself — `docs` and `metadata.result_size.match_count`.
+ * Recorded in `scripts/fixtures/dba-zero.html` (match_count "0", docs []).
+ *
+ * True only when that response is for THIS query (the echoed `q`) and states
+ * zero. No state, a changed shape or another query all stay unreadable, so a
+ * site redesign still fails closed as `error`.
+ */
+function searchStateReportsNoResults($: cheerio.CheerioAPI, normalizedQ: string): boolean {
+  const encoded = $('script[data-react-query-state]').first().html()
+  if (!encoded) return false
+  let queries: unknown
+  try {
+    queries = (JSON.parse(Buffer.from(encoded, 'base64').toString('utf8')) as { queries?: unknown }).queries
+  } catch {
+    return false
+  }
+  if (!Array.isArray(queries)) return false
+  return (queries as SearchStateEntry[]).some((entry) => {
+    const key = entry?.queryKey?.[0]
+    const q = key?.searchParams?.q
+    const data = entry?.state?.data
+    return key?.scope === 'search' &&
+      Array.isArray(q) && q.length === 1 && q[0] === normalizedQ &&
+      Array.isArray(data?.docs) && data.docs.length === 0 &&
+      String(data?.metadata?.result_size?.match_count) === '0'
+  })
+}
+
 export async function fetchSchibstedPage(
   config: SchibstedConfig,
   normalizedQ: string,
@@ -143,8 +184,10 @@ export async function fetchSchibstedPage(
   // return [] here, so a schema break was indistinguishable from exhausted
   // pagination — and would have been treated as terminal `empty_page`.
   // schemaValid=false means "we could not read the page", never "no results".
+  // The one exception is a page whose own search state says, for this query,
+  // that there are no results (see searchStateReportsNoResults).
   if (!collectionPage) {
-    return { listings: [], schemaValid: false, rawCount: 0, descriptions }
+    return { listings: [], schemaValid: searchStateReportsNoResults($, normalizedQ), rawCount: 0, descriptions }
   }
   const mainEntity = collectionPage['mainEntity'] as Record<string, unknown> | undefined
   const itemListElement = mainEntity?.['itemListElement'] as unknown[] | undefined
