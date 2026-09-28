@@ -106,6 +106,9 @@ test('families: children match the reviewed §6.3 map', () => {
       'fender-telecaster-thinline',
       'fender-telecaster-custom',
       'fender-american-vintage-52-telecaster',
+      // PAN-159 Tier 0. Both supported + public, SELECT-verified 2026-09-28.
+      'fender-american-standard-telecaster',
+      'fender-american-ultra-ii-telecaster',
     ],
     'fender-stratocaster': ['fender-american-professional-ii-stratocaster'],
     'gibson-es-335': ['gibson-es-335-dot'],

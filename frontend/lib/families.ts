@@ -117,10 +117,18 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     label: 'Fender Telecaster',
     brand: 'Fender',
     categoryRoot: 'electric-guitars',
+    /*
+     * PAN-159 Tier 0: `fender-american-standard-telecaster` and
+     * `fender-american-ultra-ii-telecaster` are supported + public + music
+     * (SELECT, 2026-09-28) and were missing, so this family did not list them
+     * and their pages had no family crumb. Neither has a same-name duplicate.
+     */
     children: [
       'fender-telecaster-thinline',
       'fender-telecaster-custom',
       'fender-american-vintage-52-telecaster',
+      'fender-american-standard-telecaster',
+      'fender-american-ultra-ii-telecaster',
     ],
     aliases: ['telecaster', 'tele', 'fender telecaster', 'fender tele'],
   },
