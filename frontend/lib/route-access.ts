@@ -117,6 +117,7 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   /* ---------------- admin pages ---------------- */
   { route: '/admin', access: 'admin_page' },
   { route: '/admin/cleanup', access: 'admin_page' },
+  { route: '/admin/families/propose', access: 'admin_page' },
   { route: '/admin/images', access: 'admin_page' },
   { route: '/admin/match', access: 'admin_page' },
   { route: '/admin/msrp', access: 'admin_page' },
@@ -190,6 +191,7 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   { route: '/api/admin/cleanup/keep', access: 'admin_api' },
   { route: '/api/admin/cleanup/merge', access: 'admin_api' },
   { route: '/api/admin/cleanup/self-clean', access: 'admin_api' },
+  { route: '/api/admin/families/validate', access: 'admin_api' },
   { route: '/api/admin/match/approve', access: 'admin_api' },
   { route: '/api/admin/match/candidates', access: 'admin_api' },
   { route: '/api/admin/match/search', access: 'admin_api' },
