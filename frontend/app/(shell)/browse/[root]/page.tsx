@@ -426,7 +426,7 @@ function BrowseCategoryPageInner() {
 
         {/* Product grid */}
         {loading ? (
-          <div className="grid-wall">
+          <div className="grid-wall grid-wall-pair">
             {Array.from({ length: 12 }).map((_, i) => (
               <div
                 key={i}
@@ -456,7 +456,7 @@ function BrowseCategoryPageInner() {
         ) : filteredProducts.length === 0 ? (
           <EmptyState kind="blank" title={t.noResults} className="py-16" />
         ) : (
-          <div className="grid-wall">
+          <div className="grid-wall grid-wall-pair">
             {filteredProducts.map((p) => (
               <ProductCard
                 key={p.slug}

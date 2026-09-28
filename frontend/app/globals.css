@@ -986,6 +986,16 @@
     --wall-card-min: var(--wall-card-min-lg);
   }
 
+  /* PAN-168. Two across on a phone, unchanged from ~560px up. The fixed 14rem
+     floor gave one 358px column at 390px — 37 synths made a 13,943px page —
+     the same defect PAN-86 fixed on the homepage shelf with a fluid floor.
+     40vw is 156px at 390 and 144px (9rem) at 360, so a phone always fits two;
+     it reaches the 14rem cap at 560px, so tablet and desktop keep today's
+     columns exactly. ProductCard is already built for ~150px (the shelves). */
+  .grid-wall-pair {
+    --wall-card-min: clamp(9rem, 40vw, 14rem);
+  }
+
   .grid-wall > * {
     min-width: 0;
   }
