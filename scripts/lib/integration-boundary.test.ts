@@ -137,6 +137,9 @@ test('integration: every package suite is registered exactly once', () => {
       // bare line resolving to a terminal, a stop word eating `G-1000` — and
       // one listing per resolution state.
       'scripts/lib/pan151-brand-net-resolution.test.ts',
+      // PAN-151: scrape-dba's Musikinstrumenter scope reaches every request,
+      // query variants included.
+      'scripts/lib/pan151-dba-scope.test.ts',
       // PAN-153: a model name that borrows a word of "Custom Shop" or
       // "Classic Player" is not evidence for that model.
       'scripts/lib/pan153-identity-phrase.test.ts',

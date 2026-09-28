@@ -16,7 +16,9 @@
  *
  * Features:
  *   - Reads active legendary + classic products from kg_product + kg_brand
- *   - Scrapes search pages via frontend/lib/scrapers/dba.ts (Schibsted engine)
+ *   - Scrapes search pages via frontend/lib/scrapers/dba.ts (Schibsted engine),
+ *     scoped to Musikinstrumenter (`sub_category=1.86.92`, PAN-151: 0 of 38
+ *     resolving listings sat outside it)
  *   - Jittered rate limiting (3-5s) between products — politer than the flat
  *     3s the Finn/Blocket scripts use, since DBA is the bot-sensitive host
  *   - Upserts on (external_id, source) using listing.url as the stable key
@@ -33,7 +35,8 @@
 import * as path from 'path'
 import * as fs from 'fs'
 import type { SupabaseClient } from '../frontend/node_modules/@supabase/supabase-js'
-import { scrapeDbaWithCoverage } from '../frontend/lib/scrapers/dba'
+import { scrapeDbaWithCoverage, DBA_MUSIKINSTRUMENTER } from '../frontend/lib/scrapers/dba'
+import type { SchibstedSearchOptions } from '../frontend/lib/scrapers/schibsted'
 import * as crypto from 'crypto'
 import { evaluateRun, startRun, finishRun, reportRun, type ListingSample } from './lib/scrape-health'
 import { stageListings, promoteRunAtomic, hasEstablishedScopeCoverage, GATE_VERSION, type StagedListing } from './lib/publish'
@@ -106,6 +109,9 @@ const SCRAPER_VERSION = 'dba-2.0.0'
 // independent dimensions of the baseline cohort.
 const PARSER_VERSION = 'dba-jsonld-1.0.0'
 const PAGINATION_STRATEGY = 'page-increment-until-empty'
+// Part of the scope hash: a scoped query measures a different universe than
+// an unscoped one, so it needs its own baseline and its own bootstrap.
+const SEARCH_OPTIONS: SchibstedSearchOptions = { subCategory: DBA_MUSIKINSTRUMENTER }
 // Whether this invocation attempts the FULL expected manifest or a subset.
 // Recorded from the run's own intent BEFORE scraping: a targeted run must
 // never seed a baseline for a complete scope, and that must not depend on
@@ -128,6 +134,7 @@ function computeScopeHash(productIds: string[], queries: string[]): string {
     tiers: [...TIERS].sort(),
     product_ids: [...productIds].sort(),
     queries: [...queries].sort(),
+    search: SEARCH_OPTIONS,
     pagination: PAGINATION_STRATEGY,
     scraper_version: SCRAPER_VERSION,
   })
@@ -275,7 +282,7 @@ async function main() {
     const product = products[i]
     let listings: ScrapedListings
     try {
-      const res = await scrapeDbaWithCoverage(product.query, MAX_PAGES_FUSE)
+      const res = await scrapeDbaWithCoverage(product.query, MAX_PAGES_FUSE, SEARCH_OPTIONS)
       listings = res.listings
       // One coverage row per expected product, aggregated over its query
       // variants. A product is only terminal if EVERY variant terminated
