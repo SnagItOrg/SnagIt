@@ -98,8 +98,8 @@ function BrowsePageInner() {
         </div>
 
         {/* PAN-121 — the catalogue root is the one surface with nothing
-            narrowing it, so the signal says so rather than rendering an empty
-            bar. The number counts the tiles actually rendered below. */}
+            narrowing it, so the signal is the count alone (PAN-168 #7). The
+            number counts the tiles actually rendered below. */}
         {!loading && !error && (
           <PositionSignal
             signal={buildPositionSignal({
