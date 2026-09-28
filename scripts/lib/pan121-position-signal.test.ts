@@ -405,6 +405,8 @@ test('the "you are here" colour appears only at its permitted sites', () => {
     'components/PositionSignal.tsx',
     'components/BottomNav.tsx',
     'app/(shell)/browse/[root]/page.tsx',
+    // PAN-171 — the admin nav's current tool (use 6 in frontend/CLAUDE.md).
+    'app/admin/layout.tsx',
   ]
   const frontend = join(ROOT, 'frontend')
   const users: string[] = []

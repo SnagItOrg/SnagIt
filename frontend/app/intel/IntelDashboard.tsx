@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useLocale } from '@/components/LocaleProvider'
 import { MetricTile, NoDataState } from '@/components/data-display'
 import { formatCount, formatPercent, formatSignedDkk } from '@/lib/chart-format'
 import { directionOf } from '@/lib/chart-palette'
@@ -292,6 +294,7 @@ export function IntelDashboard({ data }: { data: IntelData }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filters, setFilters] = useState<IntelFilters>(DEFAULT_FILTERS)
   const [sort, setSort] = useState<SortKey>('spread')
+  const { t } = useLocale()
 
   const selected = useMemo(
     () => data.products.find((p) => p.id === selectedId) ?? null,
@@ -326,6 +329,15 @@ export function IntelDashboard({ data }: { data: IntelData }) {
         >
           OVERVIEW
         </span>
+        {/* PAN-171 — the way out: back to admin, and back to the site. */}
+        <nav aria-label={t.adminNav.navLabel} className="ml-auto flex items-center gap-4 font-mono text-[11px] tracking-[0.1em]">
+          <Link href="/admin" className="text-ink-secondary hover:text-ink hover:underline underline-offset-4">
+            {t.navAdmin}
+          </Link>
+          <Link href="/" className="text-ink-secondary hover:text-ink hover:underline underline-offset-4">
+            {t.adminNav.backToSite}
+          </Link>
+        </nav>
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
