@@ -10,11 +10,11 @@ export const DAILY_SOURCES = ['dba.dk', 'finn', 'blocket', 'kleinanzeigen', 'rev
 // One missed nightly run, plus slack for a run that finishes late.
 export const MAX_AGE_HOURS = 26
 
-// Fail-closed: a source with no timestamp, or one that does not parse, is stale.
+// Fail-closed: a source with no listings at all is stale.
 export function staleSources(latest: Record<string, string | null>, now: Date): string[] {
   const cutoff = now.getTime() - MAX_AGE_HOURS * 3_600_000
   return DAILY_SOURCES.filter((source) => {
     const at = latest[source]
-    return !at || !(Date.parse(at) >= cutoff)
+    return !at || Date.parse(at) < cutoff
   })
 }
