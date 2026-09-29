@@ -540,8 +540,7 @@ function InlineNewProductForm({
         <button
           type="submit"
           disabled={submitting || !brandId || !canonicalName.trim() || !modelName.trim()}
-          className="text-xs font-semibold px-3 py-2 rounded-lg disabled:opacity-40"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+          className="button-primary text-xs font-semibold px-3 py-2 rounded-lg disabled:opacity-40"
         >
           {submitting ? 'Opretter…' : 'Opret og flyt'}
         </button>

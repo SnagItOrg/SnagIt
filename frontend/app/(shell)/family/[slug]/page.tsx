@@ -523,7 +523,7 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
             <Button
               variant="primary"
               type="submit"
-              className="self-start rounded-2xl px-6 py-3 text-base font-semibold transition-opacity hover:opacity-90"
+              className="self-start rounded-2xl px-6 py-3 text-base font-semibold"
             >
               {t.demandCta}
             </Button>

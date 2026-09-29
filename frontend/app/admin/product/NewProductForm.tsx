@@ -453,8 +453,7 @@ export default function NewProductForm({
           <button
             type="submit"
             disabled={submitDisabled}
-            className="text-sm font-semibold px-5 py-2.5 rounded-xl disabled:opacity-40"
-            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            className="button-primary text-sm font-semibold px-5 py-2.5 rounded-xl disabled:opacity-40"
           >
             {submitting ? 'Opretter…' : 'Opret produkt'}
           </button>

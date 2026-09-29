@@ -120,7 +120,7 @@ export default function SavedPage() {
                 <Button
                   variant="primary"
                   onClick={() => router.push('/login')}
-                  className="w-full rounded-2xl py-4 px-8 font-black text-sm transition-opacity hover:opacity-90"
+                  className="w-full rounded-2xl py-4 px-8 font-black text-sm"
                 >
                   {t.savedTeaserCta}
                 </Button>

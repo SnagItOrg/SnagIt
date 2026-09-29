@@ -330,8 +330,7 @@ export function ScrapeSection({
         <button
           type="submit"
           disabled={searching || !query.trim()}
-          className="text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-40"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+          className="button-primary text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-40"
         >
           {searching ? 'Søger…' : 'Søg'}
         </button>
@@ -474,11 +473,8 @@ export function ScrapeSection({
                     <button
                       onClick={() => handleSave(r)}
                       disabled={saving || saved || movePanelOpen || settled}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40"
-                      style={{
-                        background: saved || settled ? 'var(--secondary)' : 'var(--primary)',
-                        color: saved || settled ? 'var(--muted-foreground)' : 'var(--primary-foreground)',
-                      }}
+                      className={`${saved || settled ? '' : 'button-primary '}text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40`}
+                      style={saved || settled ? { background: 'var(--secondary)', color: 'var(--muted-foreground)' } : undefined}
                     >
                       {known?.status === 'reviewed' ? 'Allerede tilknyttet'
                         : known?.status === 'rejected' ? 'Afvist tidligere'

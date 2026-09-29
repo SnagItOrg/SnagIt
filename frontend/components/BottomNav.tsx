@@ -67,7 +67,7 @@ export function BottomNav() {
         <div className="flex flex-col items-center pb-1">
           <Link
             href="/search"
-            className="w-14 h-14 -mt-7 rounded-full bg-primary flex items-center justify-center shadow-lg glow-primary transition-transform active:scale-95"
+            className="w-14 h-14 -mt-7 rounded-full button-primary flex items-center justify-center shadow-lg glow-primary transition-transform active:scale-95"
             aria-label={t.navSearch}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: 'var(--primary-foreground)' }}>
@@ -110,7 +110,7 @@ export function BottomNav() {
       <div className="relative flex flex-col items-center pb-3">
         <Link
           href="/search"
-          className="w-14 h-14 -mt-7 rounded-full bg-primary flex items-center justify-center shadow-lg glow-primary transition-transform active:scale-95"
+          className="w-14 h-14 -mt-7 rounded-full button-primary flex items-center justify-center shadow-lg glow-primary transition-transform active:scale-95"
           aria-label={t.navSearch}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: 'var(--primary-foreground)' }}>

@@ -369,7 +369,7 @@ function SearchPageInner() {
           <Button
             variant="primary"
             type="submit"
-            className="mt-2 w-full min-h-[44px] rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90 md:w-auto md:px-6"
+            className="mt-2 w-full min-h-[44px] rounded-xl px-5 text-sm font-semibold md:w-auto md:px-6"
           >
             {t.search}
           </Button>
