@@ -40,6 +40,13 @@ export interface ListingSample {
   price?: number | null
   currency?: string | null
   price_dkk?: number | null
+  /**
+   * The source itself offers no usable price for this listing, and the scraper
+   * can say so. Such a null is the correct answer, not an extraction failure,
+   * so `partial_price_dkk_null` does not count it. `all_price_dkk_null` still
+   * does: a run in which nothing is priced is broken whatever the reasons say.
+   */
+  priceAbsentAtSource?: boolean
 }
 
 export interface RunCounters {
@@ -125,9 +132,12 @@ export function evaluateRun(
       detail: `0 listings where the cohort baseline is ${baselineVolume} — source may be blocked or its markup changed` })
   }
 
-  if (n > 0 && nullPriceDkk > 0 && nullPriceDkk < n) {
+  // Only nulls the scraper cannot attribute to the source. Counting an ad that
+  // states no price quarantined every Kleinanzeigen run (PAN-177).
+  const unexplainedNullPriceDkk = listings.filter(l => l.price_dkk == null && !l.priceAbsentAtSource).length
+  if (n > 0 && unexplainedNullPriceDkk > 0 && nullPriceDkk < n) {
     violations.push({ code: 'partial_price_dkk_null', severity: 'soft',
-      detail: `${nullPriceDkk}/${n} listings missing price_dkk` })
+      detail: `${unexplainedNullPriceDkk}/${n} listings missing price_dkk with no reason from the source` })
   }
   if (n > 0 && nullTitle / n > 0.1) {
     violations.push({ code: 'high_null_title', severity: 'soft', detail: `${nullTitle}/${n} missing title` })
