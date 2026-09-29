@@ -232,6 +232,28 @@ test('a missing baseline does not suppress hard invariants or absolute rules', (
   assert.ok(!tiny.violations.some(v => v.code === 'volume_swing'))
 })
 
+test('a null price the source itself explains does not quarantine the run (PAN-177)', () => {
+  const baseline = selectBaseline([], COHORT, ANCHOR)
+  const listings = cleanListings(664)
+
+  // One null with no reason from the source: an extraction failure. Still trips.
+  const unexplained = listings.map((l, i) => (i === 0 ? { ...l, price: null, price_dkk: null } : l))
+  const failed = evaluateRun(unexplained, CLEAN_COUNTERS, baseline)
+  assert.equal(failed.status, 'quarantined')
+  assert.deepEqual(failed.violations.map(v => v.code), ['partial_price_dkk_null'])
+
+  // The same null, where the ad states no price ("VB", "Suche", "Zu verschenken").
+  const explained = listings.map((l, i) =>
+    (i === 0 ? { ...l, price: null, price_dkk: null, priceAbsentAtSource: true } : l))
+  const passed = evaluateRun(explained, CLEAN_COUNTERS, baseline)
+  assert.equal(passed.status, 'passed')
+  assert.equal(passed.metrics.null_price_dkk, 1, 'the null is still measured, just not a violation')
+
+  // Reasons never excuse a run in which nothing is priced.
+  const allExplained = listings.map(l => ({ ...l, price: null, price_dkk: null, priceAbsentAtSource: true }))
+  assert.equal(evaluateRun(allExplained, CLEAN_COUNTERS, baseline).status, 'failed')
+})
+
 // ── 6. A second identical complete run gets a correct baseline ───────────
 
 test('second complete run in an identical cohort gets a correct baseline', () => {

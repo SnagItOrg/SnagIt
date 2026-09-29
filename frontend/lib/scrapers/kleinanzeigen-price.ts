@@ -259,6 +259,29 @@ export function mayReplaceStoredPrice(value: number | null, reason: PriceReason 
   return value != null || reason === 'no_price_stated'
 }
 
+/**
+ * Is a missing price the card's own answer, rather than a failure to read it?
+ *
+ * The run's quality gate (PAN-177) asks this, not whether a stored price may be
+ * replaced. Every Kleinanzeigen run was quarantined by the gate's partial-null
+ * rule because the source legitimately carries unpriced ads — "Suche" (wanted),
+ * "Tausche" (swap), "VB" with no number, "Zu verschenken" — which a
+ * JSON-LD source like dba.dk never does.
+ *
+ * - `no_price_stated`: the seller stated there is no price.
+ * - `ambiguous_pair`, `above_impossible_bound`: the card displays a number that
+ *   is not a believable asking price (`123456 €`). The parser reads only the
+ *   FIRST number-shaped token of the price text, with tags replaced by spaces,
+ *   so it cannot weld two prices into one; the refused token is on the card.
+ *   Such a value still may not replace a stored price — see above.
+ *
+ * `no_number` and `shipping_only` are the shapes of a markup change, so they
+ * stay failures and still trip the gate.
+ */
+export function priceAbsentAtSource(reason: PriceReason | null): boolean {
+  return reason === 'no_price_stated' || reason === 'ambiguous_pair' || reason === 'above_impossible_bound'
+}
+
 /** Remove struck-through old prices before any text is read from a fragment. */
 function stripOldPrice(html: string): string {
   return html.replace(

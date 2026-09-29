@@ -31,6 +31,7 @@ import { monitoredSlugs, assertResolved } from './lib/source-monitoring'
 import {
   extractCardPriceOutcome,
   mayReplaceStoredPrice,
+  priceAbsentAtSource,
   recordPriceOutcome,
   recordWriteGateRefusal,
   type PriceReason,
@@ -522,10 +523,12 @@ async function main() {
     }
     const { replacing, keeping } = buildRows(listings)
     const rowCount = replacing.length + keeping.length
+    const absentAtSource = new Set(listings.filter(l => priceAbsentAtSource(l.priceReason)).map(l => l.url))
     for (const r of [...replacing, ...keeping.map(k => ({ ...k, price: null, price_dkk: null }))]) {
       samples.push({
         external_id: r.external_id, url: r.url, title: r.title,
         price: r.price, currency: r.currency, price_dkk: r.price_dkk,
+        priceAbsentAtSource: absentAtSource.has(r.url),
       })
     }
 
