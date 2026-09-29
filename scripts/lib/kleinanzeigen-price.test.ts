@@ -628,8 +628,8 @@ test('the scraper retires unseen rows only after a run that looked at everything
   assert.equal(sweeps.length, 1, 'exactly one stale sweep')
   assert.match(
     src,
-    /const sweepAllowed =\s*RUN_SCOPE === 'complete' &&\s*status !== 'failed' &&\s*!violations\.some\(v => v\.code === 'suspiciously_low_volume'\) &&\s*coverageIsComplete\(/,
-    'the sweep must require a complete, trusted, non-empty, fully answered run',
+    /const sweepAllowed =\s*RUN_SCOPE === 'complete' &&\s*status === 'passed' &&\s*coverageIsComplete\(/,
+    'the sweep must require a complete, passed, fully answered run — quarantined skips lifecycle (PAN-177)',
   )
   assert.match(
     src,

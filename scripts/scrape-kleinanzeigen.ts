@@ -495,9 +495,10 @@ async function main() {
    * The price-outcome tally used to exist only in the PM2 log on the Mac Mini,
    * so 18 nights of 100% null prices were invisible from production data. The
    * row carries the tally in `notes` and the quality gate's verdict in
-   * `status`. For this source the verdict is RECORDED, not enforced: rows are
+   * `status`. For this source the verdict does not gate the data: rows are
    * upserted directly, with no staging or promotion, so `quarantined` here
-   * excludes nothing. `startRun` logs its own failure; the scrape still runs.
+   * excludes no listing. It gates only the stale sweep below. `startRun` logs
+   * its own failure; the scrape still runs.
    */
   const run = await startRun(supabase, 'kleinanzeigen')
 
@@ -605,16 +606,17 @@ async function main() {
    *
    * "Not seen" is an inference about the SOURCE, valid only if this run looked
    * at everything: every monitored product (no --product / --limit), every
-   * request answered, every write accepted. A `failed` verdict is untrusted for
-   * lifecycle by scrape-health's own rule, and a run that found almost nothing
-   * is more likely a markup change than an empty market — sweeping after it
-   * would deactivate the whole source.
+   * request answered, every write accepted. And only on a `passed` verdict:
+   * scrape-health skips lifecycle for `quarantined` as well as `failed`. A run
+   * that found almost nothing, or the same listings for every product, is more
+   * likely a markup change than an empty market, and sweeping after it would
+   * deactivate the whole source. This used to be `status !== 'failed'`,
+   * because partial_price_dkk_null quarantined every run (PAN-177).
    */
   let delisted = 0
   const sweepAllowed =
     RUN_SCOPE === 'complete' &&
-    status !== 'failed' &&
-    !violations.some(v => v.code === 'suspiciously_low_volume') &&
+    status === 'passed' &&
     coverageIsComplete({ eligible: products.length, ...coverage })
   if (!sweepAllowed) {
     console.log('[scrape-kleinanzeigen] Skipping stale sweep: incomplete or untrusted run, so absence proves nothing.')
