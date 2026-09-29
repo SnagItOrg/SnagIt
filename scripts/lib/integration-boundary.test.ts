@@ -164,6 +164,9 @@ test('integration: every package suite is registered exactly once', () => {
       // branch is a dead end nobody reports, and a price key is invisible
       // until it renders.
       'scripts/lib/pan17-catalogue-tree.test.ts',
+      // PAN-170: parts sold under a product's name stay out of its sold-price
+      // band. A regression here is a wrong published p25, not an error.
+      'scripts/lib/pan170-sold-parts.test.ts',
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',
