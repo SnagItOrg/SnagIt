@@ -87,6 +87,8 @@ visitor learns it once. Exactly these uses are permitted:
    Karakteristik). Both rows are the page-rendered form of use 4.
 4. `PositionSignal` — the active filter chip(s).
 5. `BottomNav` — the active tab's icon and label.
+6. The admin nav (`app/admin/layout.tsx`, PAN-171) — the current tool, with
+   the same weight step and filled icon as `SideNav`.
 
 **Never** on a button, on a link that is not the current location, on a hover or
 focus state (focus is `--ring`), on a price or verdict badge, on `SourceBadge`,
@@ -167,8 +169,11 @@ No PII: no email, no free text beyond `query_norm`, no user id beyond PostHog's
 own. The retired `search_performed` and `listing_clicked` are dropped on the wire.
 
 ## Intel dashboard (/intel)
-- Private, admin-gated — do not add to navigation
+- Private, admin-gated. Listed in the admin nav, and its header links back
+  to Admin and to klup.dk (PAN-171: the owner reversed the earlier
+  no-navigation rule, because a page reachable only by typing its URL is lost)
 - Dark theme only: `#0a0a0a` background, `#13ec6d` accent allowed here
   (exception to sparse accent rule — intel is a private tool)
 - Monospace font for all numbers
-- No Klup branding on this surface
+- No public Klup chrome (sidebar, bottom nav) on this surface — the thin header
+  is its only navigation

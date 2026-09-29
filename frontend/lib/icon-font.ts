@@ -50,6 +50,8 @@ export const ICON_GLYPHS = [
   'lock',
   'manage_search',
   'mark_email_read',
+  'menu',
+  'monitoring',
   'mop',
   'more_vert',
   'north_east',

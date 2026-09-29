@@ -562,6 +562,30 @@ export const translations = {
     // PAN-142 — the skip link, first focusable element in the public shell.
     skipToContent: 'Spring til indhold',
 
+    // PAN-171 — the admin nav and the /intel header. Translated, unlike most
+    // of /admin/*, because the nav is chrome shared by every admin page. There
+    // is deliberately no Admin entry in the public shell (owner decision).
+    navAdmin: 'Admin',
+    adminNav: {
+      navLabel: 'Adminværktøjer',
+      menuOpen: 'Vis adminmenu',
+      menuClose: 'Skjul adminmenu',
+      sectionCatalogue: 'Katalog',
+      sectionReview: 'Gennemgang',
+      sectionMarket: 'Marked',
+      sectionAccess: 'Adgang',
+      products: 'Produkter',
+      images: 'Billeder',
+      msrp: 'MSRP',
+      cleanup: 'KG Cleanup',
+      suggestions: 'Forslag',
+      suggestionsBulk: 'Bulk review',
+      match: 'Match',
+      intel: 'Intel',
+      users: 'Brugere',
+      backToSite: 'Til klup.dk',
+    },
+
     // PAN-142 — public-shell copy that was still hardcoded. The theme toggle
     // names the theme it switches TO; BottomNav has room for one word only.
     // The debug chip is admin-only and stays English in both locales.
@@ -1142,6 +1166,28 @@ export const translations = {
 
     // PAN-142 — the skip link, first focusable element in the public shell.
     skipToContent: 'Skip to content',
+
+    // PAN-171 — see the Danish block.
+    navAdmin: 'Admin',
+    adminNav: {
+      navLabel: 'Admin tools',
+      menuOpen: 'Show admin menu',
+      menuClose: 'Hide admin menu',
+      sectionCatalogue: 'Catalogue',
+      sectionReview: 'Review',
+      sectionMarket: 'Market',
+      sectionAccess: 'Access',
+      products: 'Products',
+      images: 'Images',
+      msrp: 'MSRP',
+      cleanup: 'KG cleanup',
+      suggestions: 'Suggestions',
+      suggestionsBulk: 'Bulk review',
+      match: 'Match',
+      intel: 'Intel',
+      users: 'Users',
+      backToSite: 'Back to klup.dk',
+    },
 
     // PAN-142 — public-shell copy that was still hardcoded. The theme toggle
     // names the theme it switches TO; BottomNav has room for one word only.
