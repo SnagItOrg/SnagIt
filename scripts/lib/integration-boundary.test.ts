@@ -204,6 +204,11 @@ test('integration: every package suite is registered exactly once', () => {
       // directions (PAN-110, PAN-133). Its own suite because it guards a
       // repository-wide rule, not one module's behaviour.
       'scripts/lib/product-image-authority.test.ts',
+      // PAN-197: the card's "N til salg" comes from the projection view, the
+      // page it links to from `.not('is_valid','is',false)`. A view is always
+      // restated whole, so the next redefinition could copy the old
+      // unfiltered count back in; this suite pins the two to one rule.
+      'scripts/lib/projection-listing-count.test.ts',
       // PAN-107: the category seeder must never write `name_da` on a row that
       // already exists. The column is hand-maintained Danish, one re-run used
       // to revert all 23 corrected rows, and nothing about that failure is

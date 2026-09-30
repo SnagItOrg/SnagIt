@@ -514,5 +514,114 @@ else
   fail "058 did not abort on a missing view: $OUT"
 fi
 
+# =============================================================================
+# 16. Migration 061 — active_listing_count excludes rejected matches (PAN-197)
+#
+# Its OWN database again: section 15e deliberately leaves klupbrowse without a
+# view. Built the way production got here — fixture, 038 (is_valid), 036, 058 —
+# then one product is given one match in each adjudication state. The public
+# product and family pages render NULL and TRUE and never FALSE
+# (`.not('is_valid','is',false)`), so the right count is 3 of the 4 active
+# matches. Reproduces the defect (4) before fixing it (3).
+# =============================================================================
+echo
+echo "── 16. migration 061: the projection stops counting rejected matches ──"
+
+CDB=klupcounts
+createdb "$CDB"
+cq()   { psql -d "$CDB" -tAX -c "$1"; }
+crun() { psql -d "$CDB" -v ON_ERROR_STOP=1 -q -f "$1" 2>&1; }
+# "<active_listing_count>/<supply_state>" for one slug.
+cstate() { cq "SELECT active_listing_count||'/'||supply_state FROM browse_product_projection WHERE slug='$1'"; }
+
+psql -d "$CDB" -v ON_ERROR_STOP=1 -q -f scripts/fixtures/browse_projection_fixture.sql
+crun scripts/migrations/038_add_match_quality_to_listing_product_match.sql >/dev/null
+crun scripts/migrations/036_browse_visibility_projection.sql >/dev/null
+crun scripts/migrations/058_browse_projection_resolves_curated_image.sql >/dev/null
+
+# ingested-only: four ACTIVE listings, one per state, plus one INACTIVE
+# unreviewed listing that must never count. both-differ: a single REJECTED
+# active match, so it is live today and must stop being live.
+cq "
+  INSERT INTO listings (id, title, is_active) VALUES
+    ('d0000000-0000-0000-0000-000000000011', 'unreviewed', true),
+    ('d0000000-0000-0000-0000-000000000012', 'confirmed',  true),
+    ('d0000000-0000-0000-0000-000000000013', 'rejected',   true),
+    ('d0000000-0000-0000-0000-000000000014', 'confirmed 2', true),
+    ('d0000000-0000-0000-0000-000000000015', 'expired',    false),
+    ('d0000000-0000-0000-0000-000000000016', 'only a part', true);
+  INSERT INTO listing_product_match (listing_id, product_id, is_valid) VALUES
+    ('d0000000-0000-0000-0000-000000000011', 'a0000000-0000-0000-0000-000000000002', NULL),
+    ('d0000000-0000-0000-0000-000000000012', 'a0000000-0000-0000-0000-000000000002', true),
+    ('d0000000-0000-0000-0000-000000000013', 'a0000000-0000-0000-0000-000000000002', false),
+    ('d0000000-0000-0000-0000-000000000014', 'a0000000-0000-0000-0000-000000000002', true),
+    ('d0000000-0000-0000-0000-000000000015', 'a0000000-0000-0000-0000-000000000002', NULL),
+    ('d0000000-0000-0000-0000-000000000016', 'a0000000-0000-0000-0000-000000000003', false);" >/dev/null
+
+C_BEFORE="$(cstate ingested-only)"
+echo "  BEFORE  ingested-only -> $C_BEFORE"
+[ "$C_BEFORE" = "4/live" ] \
+  && pass "DEFECT REPRODUCED: the rejected match is counted (4, not 3)" \
+  || fail "expected '4/live' for ingested-only under 058, got '$C_BEFORE'"
+C_PART_BEFORE="$(cstate both-differ)"
+[ "$C_PART_BEFORE" = "1/live" ] \
+  && pass "DEFECT REPRODUCED: a product whose only match is rejected reads as live" \
+  || fail "expected '1/live' for both-differ under 058, got '$C_PART_BEFORE'"
+C_UNTOUCHED_BEFORE="$(cstate hero-only)"
+C_SNAPSHOT_BEFORE="$(cq "SELECT md5(string_agg(slug||image_url||has_image||taxonomy_state||is_public||browse_visibility, '|' ORDER BY slug)) FROM (SELECT slug, coalesce(image_url,'') image_url, has_image::text has_image, taxonomy_state, is_public::text is_public, browse_visibility FROM browse_product_projection) q")"
+
+# ── 16a. apply 061 ──
+OUT="$(crun scripts/migrations/061_browse_projection_excludes_rejected_matches.sql)"
+echo "$OUT" | grep -q "state=PRE" && pass "061 detected PRE and applied" || fail "061 did not detect PRE: $OUT"
+
+C_AFTER="$(cstate ingested-only)"
+echo "  AFTER   ingested-only -> $C_AFTER"
+[ "$C_AFTER" = "3/live" ] \
+  && pass "FIXED: NULL and TRUE count, FALSE and inactive do not (3)" \
+  || fail "expected '3/live' for ingested-only after 061, got '$C_AFTER'"
+[ "$(cstate both-differ)" = "0/no_live_listings" ] \
+  && pass "FIXED: a product whose only match is rejected is no longer live" \
+  || fail "expected '0/no_live_listings' for both-differ, got '$(cstate both-differ)'"
+[ "$(cstate hero-only)" = "$C_UNTOUCHED_BEFORE" ] \
+  && pass "an unreviewed-only product is unchanged ($C_UNTOUCHED_BEFORE)" \
+  || fail "hero-only changed: $C_UNTOUCHED_BEFORE -> $(cstate hero-only)"
+
+# The count must equal what the product page's own filter selects.
+[ "$(cq "SELECT count(*) FROM listing_product_match m JOIN listings l ON l.id=m.listing_id WHERE m.product_id='a0000000-0000-0000-0000-000000000002' AND l.is_active AND m.is_valid IS DISTINCT FROM false")" = "3" ] \
+  && pass "the count equals the rows the product page's filter selects" || fail "count and page filter disagree"
+
+# Nothing but the count moved: image, taxonomy and visibility are byte-identical.
+[ "$(cq "SELECT md5(string_agg(slug||image_url||has_image||taxonomy_state||is_public||browse_visibility, '|' ORDER BY slug)) FROM (SELECT slug, coalesce(image_url,'') image_url, has_image::text has_image, taxonomy_state, is_public::text is_public, browse_visibility FROM browse_product_projection) q")" = "$C_SNAPSHOT_BEFORE" ] \
+  && pass "every non-count column is unchanged" || fail "061 changed a column other than the count"
+[ "$(cq "SELECT count(*) FROM information_schema.columns WHERE table_name='browse_product_projection'")" = "27" ] \
+  && pass "the projection still exposes 27 columns" || fail "the projection's column list changed"
+[ "$(cq "SELECT count(*) FROM listing_product_match WHERE is_valid IS FALSE")" = "2" ] \
+  && pass "061 wrote no data (both rejections still recorded)" || fail "061 touched listing_product_match"
+
+# ── 16b. POST is a successful no-op ──
+OUT="$(crun scripts/migrations/061_browse_projection_excludes_rejected_matches.sql)"
+echo "$OUT" | grep -q "state=POST" && pass "061 re-run detects POST" || fail "061 re-run did not detect POST: $OUT"
+[ "$(cstate ingested-only)" = "3/live" ] && pass "061 is idempotent" || fail "061 re-run changed the result"
+
+# ── 16c. rollback restores the 058 behaviour exactly ──
+crun scripts/migrations/061_rollback.sql >/dev/null
+[ "$(cstate ingested-only)" = "$C_BEFORE" ] && [ "$(cstate both-differ)" = "$C_PART_BEFORE" ] \
+  && pass "061_rollback returns every row to its 058 value" || fail "061_rollback did not restore the 058 behaviour"
+[ "$(cq "SELECT position('hero_image_url' in pg_get_viewdef('browse_product_projection'::regclass, true)) > 0")" = "t" ] \
+  && pass "061_rollback keeps the 058 image precedence" || fail "061_rollback lost the image precedence"
+OUT="$(crun scripts/migrations/061_rollback.sql)"
+echo "$OUT" | grep -q "state=POST" && pass "061_rollback re-run is a no-op" || fail "061_rollback is not idempotent: $OUT"
+
+# ── 16d. drift aborts before mutating: 061 must not silently apply 058 ──
+crun scripts/migrations/058_rollback.sql >/dev/null
+OUT="$(crun scripts/migrations/061_browse_projection_excludes_rejected_matches.sql || true)"
+if printf '%s' "$OUT" | grep -q '061 ABORT'; then
+  pass "061 refuses on a projection without 058, instead of applying 058 too"
+else
+  fail "061 did not abort without 058: $OUT"
+fi
+[ "$(cq "SELECT position('is_valid' in pg_get_viewdef('browse_product_projection'::regclass, true))")" = "0" ] \
+  && pass "the refused 061 left the view untouched" || fail "061 mutated the view before refusing"
+
 echo
 if [ "$FAILED" = "0" ]; then echo "ALL ISOLATED CHECKS PASSED"; else echo "SOME CHECKS FAILED"; exit 1; fi
