@@ -20,6 +20,7 @@
  */
 export const ICON_GLYPHS = [
   'account_circle',
+  'account_tree',
   'add_circle',
   'admin_panel_settings',
   'arrow_back',

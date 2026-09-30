@@ -32,6 +32,7 @@ const ADMIN_NAV: { title: AdminNavKey; items: AdminNavItem[] }[] = [
     title: 'sectionCatalogue',
     items: [
       { href: '/admin/products', label: 'products', icon: 'workspace_premium', also: '/admin/product' },
+      { href: '/admin/families/propose', label: 'families', icon: 'account_tree' },
       { href: '/admin/images', label: 'images', icon: 'image' },
       { href: '/admin/msrp', label: 'msrp', icon: 'sell' },
       { href: '/admin/cleanup', label: 'cleanup', icon: 'mop' },

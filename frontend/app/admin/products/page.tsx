@@ -300,12 +300,21 @@ export default function AdminProductsPage() {
         <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
           Produkter
         </h1>
-        <Link
-          href="/admin/product/new"
-          className="button-primary text-sm font-semibold px-4 py-2 rounded-xl"
-        >
-          + Nyt produkt
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/admin/families/propose"
+            className="text-sm font-semibold px-4 py-2 rounded-xl"
+            style={{ background: 'var(--secondary)', color: 'var(--secondary-foreground)', border: '1px solid var(--border)' }}
+          >
+            Foreslå familie
+          </Link>
+          <Link
+            href="/admin/product/new"
+            className="button-primary text-sm font-semibold px-4 py-2 rounded-xl"
+          >
+            + Nyt produkt
+          </Link>
+        </div>
       </div>
       <p className="text-sm mb-6" style={{ color: 'var(--muted-foreground)' }}>
         Sæt publicering, tier, underkategori og årstal. Statusmærket viser

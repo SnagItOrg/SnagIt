@@ -152,6 +152,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-158: a scraper that cannot reach the network cannot record its
       // own failure, so staleness is judged from absence, fail-closed.
       'scripts/lib/pan158-scrape-freshness.test.ts',
+      // PAN-159: the proposed-family validator. Its errors are the rules the
+      // family code relies on, so a missed one lands as a broken family PR.
+      'scripts/lib/pan159-family-proposal.test.ts',
       // PAN-160: a zero-result dba search is a real empty page, and the
       // stale sweep runs only where the database applied lifecycle.
       'scripts/lib/pan160-dba-lifecycle.test.ts',
