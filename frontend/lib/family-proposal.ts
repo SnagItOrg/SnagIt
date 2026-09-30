@@ -20,6 +20,7 @@
  */
 
 import { isCanonical } from './catalogue'
+import { fill, translations } from './i18n'
 import { modelKey } from './model-key'
 
 export interface FamilyProposalInput {
@@ -42,25 +43,36 @@ export interface ProposalProductRow {
   root_category_slug: string | null
   brand: string | null
   reverb_csp_id: number | null
+  /** Active matched listings, from the projection. Null when it has no row. */
+  active_listing_count: number | null
 }
 
 export interface ProposalFacts {
-  /** Rows for every member and for the proposed slug. A missing slug has no row. */
+  /**
+   * Rows for every member, for the proposed slug and for every existing
+   * family's children. A missing slug has no row.
+   */
   rows: readonly ProposalProductRow[]
   /** Slugs of the music browse roots (`kg_category`, no parent). */
   musicRoots: readonly string[]
   /** The families already in code. */
-  families: readonly { slug: string; label: string; children: readonly string[] }[]
+  families: readonly { slug: string; label: string; brand: string; children: readonly string[] }[]
 }
 
 export type ProposalField = 'slug' | 'label' | 'brand' | 'categoryRoot' | 'members'
+
+/** Issues whose copy lives in `lib/i18n.ts` (`adminFamilyProposal`), so the form can localise them. */
+export type ProposalIssueCode = keyof typeof translations.da.adminFamilyProposal
 
 export interface ProposalIssue {
   severity: 'error' | 'warning'
   field: ProposalField
   /** The member the issue is about, when it is about one. */
   member?: string
+  /** Danish, for every issue. */
   message: string
+  code?: ProposalIssueCode
+  params?: Record<string, string>
 }
 
 export interface ProposalMember {
@@ -103,6 +115,39 @@ function listingTitleMarker(row: ProposalProductRow): string | null {
   return null
 }
 
+/**
+ * The name keys of a row: its canonical name without the parenthetical, and
+ * the parenthetical under the row's brand. `Roland JP-4 (Jupiter 4)` gives
+ * `rolandjp4` and `rolandjupiter4`. `lib/search-index.ts` splits names the
+ * same way, but is server-only and keeps its helpers private.
+ */
+function nameKeys(row: ProposalProductRow): { name: string; alias: string } {
+  const name = row.canonical_name ?? ''
+  const paren = name.match(/\(([^)]+)\)/)?.[1] ?? ''
+  return {
+    name: modelKey(name.replace(/\([^)]*\)/g, ' ')),
+    alias: paren ? modelKey(`${row.brand ?? ''} ${paren}`) : '',
+  }
+}
+
+/**
+ * One product under two names: the names match, or one row's parenthetical is
+ * the other's name. Two parentheticals are never compared with each other:
+ * `(Space Echo)` names a line, so every tape echo that carries it would collide.
+ */
+function sameProduct(a: ProposalProductRow, b: ProposalProductRow): boolean {
+  const ka = nameKeys(a)
+  const kb = nameKeys(b)
+  const eq = (x: string, y: string) => x !== '' && x === y
+  return eq(ka.name, kb.name) || eq(ka.alias, kb.name) || eq(ka.name, kb.alias)
+}
+
+/** True when a key of one family contains, or is contained in, a key of the other. */
+function keysOverlap(a: readonly string[], b: readonly string[]): boolean {
+  const keys = (list: readonly string[]) => list.map(modelKey).filter(Boolean)
+  return keys(a).some((x) => keys(b).some((y) => x.includes(y) || y.includes(x)))
+}
+
 export function validateFamilyProposal(
   input: FamilyProposalInput,
   facts: ProposalFacts,
@@ -112,6 +157,21 @@ export function validateFamilyProposal(
     issues.push({ severity: 'error', field, message, ...(member ? { member } : {}) })
   const warn = (field: ProposalField, message: string, member?: string) =>
     issues.push({ severity: 'warning', field, message, ...(member ? { member } : {}) })
+  const coded = (
+    severity: ProposalIssue['severity'],
+    field: ProposalField,
+    code: ProposalIssueCode,
+    params: Record<string, string>,
+    member?: string,
+  ) =>
+    issues.push({
+      severity,
+      field,
+      message: fill(translations.da.adminFamilyProposal[code], params),
+      code,
+      params,
+      ...(member ? { member } : {}),
+    })
 
   const slug = input.slug.trim()
   const label = input.label.trim()
@@ -149,6 +209,19 @@ export function validateFamilyProposal(
   const takenLabel = facts.families.find((f) => f.slug !== slug && modelKey(f.label) === labelKey)
   if (label && takenLabel) error('label', `Navnet bruges allerede af familien «${takenLabel.slug}».`)
 
+  // PAN-194: `jupiter` beside `roland-jupiter` is the same family, so refuse it
+  // and name the one to add members to. Same brand only: another maker's
+  // `Jupiter` would be another family.
+  const nearFamily =
+    brand && !familyBySlug.has(slug) && !takenLabel
+      ? facts.families.find(
+          (f) => modelKey(f.brand) === modelKey(brand) && keysOverlap([slug, label], [f.slug, f.label]),
+        )
+      : undefined
+  if (nearFamily) {
+    coded('error', 'slug', 'nearDuplicateFamily', { family: nearFamily.slug, label: nearFamily.label })
+  }
+
   // ── Members ──────────────────────────────────────────────────────────
   if (members.length === 0) error('members', 'Vælg mindst ét medlem.')
 
@@ -177,6 +250,35 @@ export function validateFamilyProposal(
 
     const owner = facts.families.find((f) => f.slug !== slug && f.children.includes(member))
     if (owner) error('members', `Er allerede medlem af «${owner.slug}». Et produkt har én familie.`, member)
+
+    // PAN-194: another row for a product an existing family already holds.
+    // Name the row to use instead, so the curator merges rather than creates.
+    const sameCsp = (other: ProposalProductRow) =>
+      row.reverb_csp_id !== null && other.reverb_csp_id === row.reverb_csp_id
+    const twin = owner
+      ? undefined
+      : facts.families
+          .filter((f) => f.slug !== slug)
+          .flatMap((f) =>
+            f.children.flatMap((child) => {
+              const other = rowBySlug.get(child)
+              return other && other.slug !== member ? [{ family: f.slug, row: other }] : []
+            }),
+          )
+          .find((c) => sameCsp(c.row) || sameProduct(row, c.row))
+    if (twin) {
+      const params = { row: twin.row.slug, name: twin.row.canonical_name ?? twin.row.slug, family: twin.family }
+      if (sameCsp(twin.row)) {
+        coded('error', 'members', 'memberSameCspAsFamilyMember', { ...params, csp: String(row.reverb_csp_id) }, member)
+      } else {
+        coded('error', 'members', 'memberSameNameAsFamilyMember', params, member)
+      }
+    }
+
+    // Nothing ties the row to a real product yet: a duplicate is the likely reason.
+    if (row.active_listing_count === 0 && row.reverb_csp_id === null) {
+      coded('warning', 'members', 'memberNoEvidence', {}, member)
+    }
 
     // PAN-52 §6: the family is placed under a root; it never moves a member.
     if (row.root_category_slug === null) {
