@@ -161,12 +161,16 @@ test('rule 2: a `w/` glued to the next word is an inclusion marker', () => {
   assert.equal(earliestInclusionMarker('roland juno-60 w/manual'), 'roland juno-60 '.length)
   assert.equal(detectNonProductIntent('Roland Juno-60 w/manual'), null)            // constructed
   assert.equal(detectNonProductIntent('Sequential Circuits Prophet-5 Rev3.3 w/Midi - ORIGINAL - Pro Serviced w/Restoration'), null)
-  // The one title dropping `&` costs is NOT a marker gap: its glued
-  // "w/ORIGINAL" counts, but `manual` fires first on "Dual Manual".
-  assert.deepEqual(
-    detectNonProductIntent('SERVICED & RESTORED Dual Manual PROPHET 10 Rev3 w/ORIGINAL OWNERS MANUAL, MIDI, Foot switch pedals, Road case, & Specs sheet - Sequential Circuits SCI'),
-    { intent: 'part_or_accessory', token: 'manual' },
-  )
+})
+
+test('rule 2: "Dual Manual" is two keyboards, not a manual', () => {
+  // The one title dropping `&` would have cost: its glued "w/ORIGINAL" counts,
+  // but `manual` fired first on the keyboard count.
+  assert.equal(detectNonProductIntent('SERVICED & RESTORED Dual Manual PROPHET 10 Rev3 w/ORIGINAL OWNERS MANUAL, MIDI, Foot switch pedals, Road case, & Specs sheet - Sequential Circuits SCI'), null)
+  assert.equal(detectNonProductIntent('Roland Promars Rare Dual-Manual Analog Synthesizer'), null)   // constructed from a pool title
+  // A plain manual is still an accessory, and the exception needs the count word.
+  assert.deepEqual(detectNonProductIntent('Sequential Circuits Prophet 10 Owners Manual'), { intent: 'part_or_accessory', token: 'manual' })   // constructed
+  assert.deepEqual(detectNonProductIntent('Sequential Circuits Prophet 10 Double Manual'), { intent: 'part_or_accessory', token: 'manual' })   // constructed: unobserved form
 })
 
 // ── Rule 3: a quantity has no single-unit price ──────────────────────────────

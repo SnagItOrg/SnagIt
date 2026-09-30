@@ -306,13 +306,12 @@ const ACCESSORY_TOKENS: readonly string[] = [
  * `&` IS THAT CONJUNCTION, and stopped being a marker in PAN-196. It retained
  * "Yamaha DX7 Voice ROM-1 & ROM-2 Data Cartridge Set" and "Korg MS-10 & MS-20
  * Wood Side Panels" (the latter through the line-boundary accessory cues, which
- * read the same marker). MEASURED RECALL COST, ACCEPTED: over every
- * `is_valid = true` match and every unreviewed match on a public product, one
- * title changes — "SERVICED & RESTORED Dual Manual PROPHET 10 Rev3 w/ORIGINAL
- * OWNERS MANUAL, …", kept until now only because "SERVICED & RESTORED" came
- * before "Dual Manual". Its glued "w/ORIGINAL" already counts as a marker
- * (`w/` is found anywhere, not only as a word), but it follows "Dual Manual",
- * the two-keyboard spec that `manual` fires on first. No confirmed match the
+ * read the same marker). Over every `is_valid = true` match and every
+ * unreviewed match on a public product, one title was kept only by a `&`:
+ * "SERVICED & RESTORED Dual Manual PROPHET 10 Rev3 w/ORIGINAL OWNERS MANUAL,
+ * …". Its glued "w/ORIGINAL" already counts as a marker (`w/` is found
+ * anywhere, not only as a word), but `manual` fired first on "Dual Manual", the
+ * two-keyboard spec. KEYBOARD_COUNT_MANUAL keeps it. No confirmed match the
  * matcher produces today changes.
  */
 const INCLUSION_MARKERS: readonly string[] = [
@@ -469,6 +468,16 @@ function isColourSpecPickguard(text: string): boolean {
 const HEAD_CAP_FINISH = /(?<![\w-])head\s+cap(?![\w-])/i
 
 /**
+ * "Dual Manual" is a keyboard count, not a manual (PAN-196): a synth or organ
+ * with two keyboards. "SERVICED & RESTORED Dual Manual PROPHET 10 Rev3
+ * w/ORIGINAL OWNERS MANUAL, …" is a complete Prophet-10, deferred only because
+ * `manual` fired on the spec before the "w/" that includes the real manual.
+ * Forms observed in the recall set and the pool: "Dual Manual", "Dual-Manual",
+ * "Two Manual". "Double manual" and "2-manual" do not occur and are not taken.
+ */
+const KEYBOARD_COUNT_MANUAL = /(?<![\w-])(?:dual|two)[\s-]+manual(?![\w-])/i
+
+/**
  * Wanted / non-sale intent (da / de / en). The listing is a request TO BUY,
  * not an offer to sell, so it is not evidence of a price at all.
  *
@@ -579,6 +588,7 @@ export function detectNonProductIntent(title: string): IntentFinding | null {
     // rather than by weakening the token, exactly as `isShippingPickup` is.
     if (token === 'pickguard' && isColourSpecPickguard(text)) continue
     if (token === 'cap' && HEAD_CAP_FINISH.test(text)) continue
+    if (token === 'manual' && KEYBOARD_COUNT_MANUAL.test(text)) continue
     return { intent: 'part_or_accessory', token }
   }
 
