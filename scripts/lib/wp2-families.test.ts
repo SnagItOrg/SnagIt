@@ -70,8 +70,11 @@ const PAN159_FAMILIES = [
 /** PAN-198. A guarded line-label row, like `fender-jazzmaster`. */
 const PAN198_FAMILIES = ['gibson-sg']
 
+/** PAN-199. The `rhodes` case: no row. */
+const PAN199_FAMILIES = ['moogerfooger']
+
 /** The six, plus `rhodes` (PAN-85) — the first family with canonical children — the Boss lines and `minimoog` (PAN-154). */
-const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES]
+const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES]
 
 /**
  * Production state of every configured child, SELECT-verified 2026-08-28:
@@ -314,6 +317,9 @@ test('families: children match the reviewed §6.3 map', () => {
       'moog-minimoog-voyager',
       'moog-minimoog-voyager-xl',
       'moog-minimoog-voyager-rme',
+      // PAN-199: the 2022– re-run and the Voyager Old School.
+      'moog-minimoog-model-d-2022',
+      'moog-minimoog-voyager-old-school',
     ],
     // PAN-154 (2/2). The base member is the only clean Mustang row.
     'mustang-short-scale-bass': [
@@ -395,6 +401,18 @@ test('families: children match the reviewed §6.3 map', () => {
       'gibson-sg-supreme',
       'gibson-sg-modern',
     ],
+    // PAN-199. Every Moogerfooger row with a verified Reverb CSP.
+    moogerfooger: [
+      'moog-mf-101-lowpass-filter',
+      'moog-mf-102',
+      'moog-mf-103',
+      'moog-mf-104',
+      'moog-mf-104m',
+      'moog-mf-104z',
+      'moog-mf-105',
+      'moog-mf-105m-midi-murf',
+      'moog-cp-251',
+    ],
   }
   for (const family of NAVIGATION_FAMILIES) {
     assert.deepEqual([...family.children].sort(), [...expected[family.slug]].sort(), family.slug)
@@ -441,7 +459,8 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   // so their /product URLs 404ed before and 308 now: no priced page moves.
   assert.equal(GUITAR_FAMILIES.length, 6)
   // `gibson-sg` (PAN-198) is the Jazzmaster case: a `known` + `qa_only` row.
-  assert.equal(EXPECTED_FAMILIES.length, 19)
+  // `moogerfooger` (PAN-199) is the `rhodes` case: no row.
+  assert.equal(EXPECTED_FAMILIES.length, 20)
 })
 
 test('redirects: nothing else is redirected', () => {
