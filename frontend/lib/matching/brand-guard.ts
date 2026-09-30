@@ -134,10 +134,15 @@ const REFERENCE_WORDS = new Set([
  * 254 legitimate proposals in measurement, because real products are named
  * "Gibson Les Paul '52 Tribute", "Epiphone SG Tribute" and
  * "Epiphone Inspired by Gibson J-45".
+ *
+ * A hyphen in `token` also matches a space (PAN-196), as in
+ * `tokenIsObjectOfFor` and the matcher's own model tier: the tier matches
+ * "Roland Juno 60 clone" on the space form of `Juno-60`, so a test on the
+ * hyphenated form alone let that clone through.
  */
 export function tokenFollowedByReference(title: string, token: string): boolean {
   if (!token) return false
-  const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/-/g, '[-\\s]')
   const re = new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`, 'ig')
   let m: RegExpExecArray | null
   while ((m = re.exec(title)) !== null) {
@@ -168,6 +173,89 @@ export function tokenIsObjectOfFor(title: string, token: string, brand: string |
   const model = esc(token).replace(/-/g, '[-\\s]')
   const brandPart = brand ? `(?:${esc(brand).replace(/ /g, '\\s+')}\\s+)?` : ''
   return new RegExp(`(?<![\\w-])for\\s+${brandPart}${model}(?![\\w-])`, 'i').test(title)
+}
+
+/**
+ * A model code as sellers write one in a list: optional letters, a number, an
+ * optional short suffix — "10", "T8", "200A", "MS-3", "TR-606", "SP1200".
+ * Groups: the letters, then the number — together how an alias is recognised.
+ */
+const MODEL_CODE = /^(?:([a-z]{1,6})-?)?(\d{1,4})[a-z]{0,3}$/
+/**
+ * Codes that are not another model: a year ("1981", "c1990"), a decade, a
+ * revision or version, or a zero-led serial ("U 87 Ai 02 c1990").
+ */
+const NOT_A_MODEL = /^(?:c?(?:19|20)\d\d|(?:19|20)?\d0s|(?:rev|v|ver|mk|mkii|no|nr)-?\d+[a-z]*|0\d*)$/
+/** A number that counts something on the product: "61 keys", "8 voices". */
+const COUNT_NOUN = /^(?:keys?|voices?|tasten|stimmen|programs?)$/
+/** One word, a "1/4" fraction, a separator, or any other single character. */
+const LIST_TOKENS = /§|[1-9]\/(?:2|4|8|16)(?!\d)|\/\/+|[/,]|[a-z0-9]+(?:[-.'][a-z0-9]+)*|\S/g
+
+/**
+ * True when `token` sits in a LIST of model codes: "Prophet 5/10/T8",
+ * "Juno-6/60/106", "ES-5/MS-3", "TB-303 / TR-606", "SH-101 , SH-2 , SH-09",
+ * "DS-1 RC-1 RC-3 TU-2 TU-3". Such a title offers a part
+ * or accessory that fits every model it lists, not one instrument (PAN-196).
+ * This is `tokenIsObjectOfFor` without the "for": both read what a part fits.
+ *
+ * A list is the token plus one other code joined by `/` or `,`, or plus two
+ * others joined by spaces alone. One space-joined neighbour is not enough:
+ * "ARP 2600 3620 Keyboard" is a 2600 with its keyboard, and "Korg Mono/Poly
+ * MP-4" names one instrument twice.
+ *
+ * What is not another model, so neither extends nor makes a list:
+ *   - a year, a decade, a revision: "Prophet 5 Rev3 61-Key", "200A '70s";
+ *   - a count: "Juno-106, 61 keys";
+ *   - the token's own number, bare or with letters that start as the token's
+ *     do, which is the same model written another way: "Jupiter-8 / JP-8",
+ *     "SJ-200 / SJ200", "Gibson es 330/330t" (18,000 DKK) and "Wurlitzer 200 /
+ *     200A – Fully Restored" (49,950 DKK). "DS-1 RC-1" is two models;
+ *   - a "1/4" fraction: "ATR-700 1/4" Full Track".
+ * So "Wurlitzer Legs & Sustain pedal ( 200 200a 206 )" is not a list to this
+ * rule; every observed title of that shape names legs or plates instead.
+ *
+ * The token's own first word may repeat before a code, so "Prophet 5 /
+ * Prophet T8 / Prophet 600" is a list. A hyphen in `token` also matches a
+ * space, as in `tokenIsObjectOfFor`.
+ */
+export function tokenInModelList(title: string, token: string): boolean {
+  if (!token) return false
+  const t = token.toLowerCase()
+  const model = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/-/g, '[-\\s]')
+  const occurrence = new RegExp(`(?<![\\w-])${model}(?![\\w-])`, 'ig')
+  const own = /([a-z]*)[-\s]?(\d+)[a-z]*$/.exec(t)
+  const lineWord = t.split(/[-\s]/)[0]
+  const text = title.toLowerCase()
+
+  const isOtherModel = (tokens: string[], i: number, dir: 1 | -1): boolean => {
+    const m = MODEL_CODE.exec(tokens[i] ?? '')
+    if (!m || NOT_A_MODEL.test(tokens[i])) return false
+    if (own && m[2] === own[2] && (!m[1] || m[1][0] === own[1][0])) return false
+    return !(dir === 1 && COUNT_NOUN.test(tokens[i + 1] ?? ''))
+  }
+
+  let m: RegExpExecArray | null
+  while ((m = occurrence.exec(text)) !== null) {
+    const tokens: string[] = (text.slice(0, m.index) + ' § ' + text.slice(m.index + m[0].length)).match(LIST_TOKENS) ?? []
+    const at = tokens.indexOf('§')
+    let others = 0
+    let joined = false
+    for (const dir of [1, -1] as const) {
+      let i = at + dir
+      for (;;) {
+        const separator = tokens[i] === '/' || tokens[i] === ','
+        if (separator) i += dir
+        if (dir === 1 && tokens[i] === lineWord && isOtherModel(tokens, i + 1, dir)) i += 1
+        if (!isOtherModel(tokens, i, dir)) break
+        others += 1
+        joined = joined || separator
+        i += dir
+        if (dir === -1 && tokens[i] === lineWord) i -= 1
+      }
+    }
+    if (others >= 2 || (others >= 1 && joined)) return true
+  }
+  return false
 }
 
 /** Zero-based word index of `token`'s first occurrence, or null. */

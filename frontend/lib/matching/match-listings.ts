@@ -15,6 +15,7 @@ import {
   detectOfferedBrand,
   tokenFollowedByReference,
   tokenIsObjectOfFor,
+  tokenInModelList,
   wordIndexOf,
   OFFERED_BRAND_LEAD_WORDS,
   containsBrandToken,
@@ -1209,7 +1210,8 @@ function strongest(candidates: MatchCandidate[]): MatchCandidate {
  *   1. none                  — no candidate at all
  *   2. rejected              — hard licensed-subsidiary collision left nothing
  *   3. non_product_intent    — title offers a part/accessory, or is a wanted ad
- *                              (and, once the winner is known, "for <its model>": step 5c)
+ *                              (and, once the winner is known, "for <its model>" or its
+ *                              model inside a list of models: step 5c)
  *   4. brand_mismatch        — catalogue-brand evidence eliminated everything
  *   5. product_data_conflict — tied candidates are duplicate KG rows
  *   6. shared_identifier_conflict — tie caused by a non-exclusive identifier
@@ -1523,6 +1525,17 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
       intent: 'part_or_accessory',
       candidates: [best],
       detail: `part_or_accessory ('for ${evidenceToken}')`,
+    }
+  }
+  // The same reading without the "for": "Prophet 5/10/T8 - panel switch",
+  // "Juno-6/60/106 … Toggle Switch", "DS-1 RC-1 RC-3 TU-2" (PAN-196).
+  if (evidenceToken && tokenInModelList(norm, evidenceToken)) {
+    return {
+      kind: 'deferred',
+      reason: 'non_product_intent',
+      intent: 'part_or_accessory',
+      candidates: [best],
+      detail: `part_or_accessory ('${evidenceToken}' in a list of models)`,
     }
   }
 
