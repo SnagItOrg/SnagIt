@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import type { EmailOtpType } from '@supabase/supabase-js'
+import { safeNextPath } from '@/lib/safe-next'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -8,8 +9,13 @@ export async function GET(request: NextRequest) {
   const type       = searchParams.get('type') as EmailOtpType | null
   const code       = searchParams.get('code')
 
-  const successUrl = new URL('/watchlists?create_pending=1', request.url)
+  // PAN-187: a sign-in that started at a gated page returns there. Without a
+  // `next`, the email link keeps landing on /watchlists, where the pending
+  // watchlist from the search page is created.
+  const next       = safeNextPath(searchParams.get('next'))
+  const successUrl = new URL(next ?? '/watchlists?create_pending=1', request.url)
   const errorUrl   = new URL('/login?error=auth', request.url)
+  if (next) errorUrl.searchParams.set('next', next)
 
   // Helper to build a supabase client that writes session cookies onto `response`
   function makeClient(response: NextResponse) {

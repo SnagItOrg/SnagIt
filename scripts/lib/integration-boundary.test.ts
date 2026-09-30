@@ -170,6 +170,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-170: parts sold under a product's name stay out of its sold-price
       // band. A regression here is a wrong published p25, not an error.
       'scripts/lib/pan170-sold-parts.test.ts',
+      // PAN-187: the post-sign-in `next` path. A regression here is an open
+      // redirect off klup.dk from a link anyone can craft.
+      'scripts/lib/pan187-safe-next.test.ts',
       // PAN-189: /intel prices supported products only. A family label in its
       // set is a median pooled across a whole model line.
       'scripts/lib/pan189-intel-priced-set.test.ts',
