@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { buildDiscoverResponse } from '@/lib/browse'
 import { isCatalogueUnavailable } from '@/lib/catalogue'
+import type { ProductFamilyRef } from '@/lib/family-cards'
 
 /**
  * NEVER PRERENDERED, NEVER CACHED.
@@ -30,6 +31,7 @@ export type DiscoverProduct = {
   image_url: string | null
   brand_name: string
   active_listing_count: number
+  family: ProductFamilyRef | null
 }
 
 /**

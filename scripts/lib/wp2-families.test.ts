@@ -39,6 +39,7 @@ import {
 } from '../../frontend/lib/families'
 
 import { ROUTE_ACCESS, requiresAuth } from '../../frontend/lib/route-access'
+import { FAMILY_CARD_MIN_CHILDREN } from '../../frontend/lib/family-cards'
 
 const FRONTEND = join(__dirname, '..', '..', 'frontend')
 
@@ -686,6 +687,17 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
    */
   const GATED_LINKER = join('app', '(shell)', 'product', '[slug]', 'page.tsx')
 
+  /**
+   * PAN-192 (owner decision 2026-09-30) admits the SECOND linker, deliberately:
+   * the browse grids and home shelves now show a family card in place of its
+   * models. It is gated the same way the breadcrumb is — never on a family, only
+   * on the rows a public grid already renders — and the gate is pinned below:
+   * a card exists only where `collapseFamilies` found two members of one family
+   * in that set, and every member of a public set is canonical, so the family
+   * it links to has at least two canonical children and is published.
+   */
+  const FAMILY_CARD_LINKER = join('components', 'FamilyCard.tsx')
+
   for (const file of [...walk(join(FRONTEND, 'app')), ...walk(join(FRONTEND, 'components'))]) {
     if (file.includes(join('app', '(shell)', 'family'))) continue          // the route itself
     const rel = file.replace(FRONTEND, 'frontend')
@@ -693,8 +705,14 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
       if (!line.includes('/family/')) continue
       const isRedirect = /permanentRedirect\(|NextResponse\.redirect\(|familyRedirectTarget/.test(line)
       const isComment = /^\s*(\*|\/\/)/.test(line)
+      // PAN-192: SideNav READS `/family/` to mark Katalog as the section. A
+      // path test is not a link, so it cannot list anything.
+      const isPathTest = /\bpathname\.startsWith\('\/family\/'\)/.test(line)
+      if (isPathTest) continue
       if (isRedirect) redirectors.push(rel)
-      else if (!isComment && !file.endsWith(GATED_LINKER)) linkers.push(`${rel}: ${line.trim()}`)
+      else if (!isComment && !file.endsWith(GATED_LINKER) && !file.endsWith(FAMILY_CARD_LINKER)) {
+        linkers.push(`${rel}: ${line.trim()}`)
+      }
     }
   }
 
@@ -717,6 +735,26 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
     /familyView\.published/,
     'familyContext must be emitted only for a published family, so an empty one is never linked',
   )
+  // PAN-192's linker, pinned: a card needs more members than a family needs
+  // canonical children to publish, and it is mounted only from the collapse,
+  // on the two surfaces whose rows are the public catalogue.
+  assert.equal(FAMILY_CARD_MIN_CHILDREN >= Math.max(2, FAMILY_MIN_CANONICAL_CHILDREN), true)
+  const mounts = [...walk(join(FRONTEND, 'app')), ...walk(join(FRONTEND, 'components'))]
+    .filter((file) => readFileSync(file, 'utf8').includes('<FamilyCard'))
+    .map((file) => file.replace(FRONTEND, 'frontend'))
+    .sort()
+  assert.deepEqual(mounts, [
+    'frontend/app/(shell)/browse/[root]/page.tsx',
+    'frontend/components/DiscoverShelves.tsx',
+  ])
+  for (const mount of mounts) {
+    assert.match(
+      readFileSync(join(FRONTEND, '..', mount), 'utf8'),
+      /collapseFamilies\(/,
+      `${mount} must build family cards with collapseFamilies, never by hand`,
+    )
+  }
+
   // And the redirect sources are exactly the legacy product surfaces.
   assert.deepEqual(
     [...new Set(redirectors)].sort(),

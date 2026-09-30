@@ -69,6 +69,7 @@ export const ICON_GLYPHS = [
   'sell',
   'send',
   'south_east',
+  'stacks',
   'travel_explore',
   'visibility',
   'workspace_premium',

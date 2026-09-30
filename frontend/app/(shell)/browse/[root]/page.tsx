@@ -5,6 +5,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { ProductCard } from '@/components/ProductCard'
+import { FamilyCard } from '@/components/FamilyCard'
 import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
 import { PositionSignal } from '@/components/PositionSignal'
@@ -27,6 +28,7 @@ import {
   type ProductFacetValues,
 } from '@/lib/product-facets'
 import { track } from '@/lib/analytics'
+import { collapseFamilies, type ProductFamilyRef } from '@/lib/family-cards'
 
 interface Category {
   id: string
@@ -53,6 +55,7 @@ interface Product {
   subcategory_slug: string
   active_listing_count: number
   facets?: ProductFacetValues
+  family?: ProductFamilyRef | null
 }
 
 interface BrowseData {
@@ -253,13 +256,22 @@ function BrowseCategoryPageInner() {
   const filteredProducts = filterByFacets(subcategoryProducts, activeFacets)
 
   /**
+   * PAN-192 — one family card replaces its models, and only AFTER every filter
+   * has run: a family collapses where two of its members are in the set the
+   * chips left, and nowhere else. These are the cards the grid renders.
+   */
+  const gridCards = collapseFamilies(filteredProducts)
+
+  /**
    * PAN-168 #9 (owner decision 2026-09-28): a tier badge distinguishes cards
    * only when the grid mixes tiers. Today every public product is legendary,
    * so "Legendarisk" on every card said nothing. Read from the rows the grid
    * renders, never from a projection total (PAN-98), so it follows the
-   * subcategory and facet chips as they narrow the set.
+   * subcategory and facet chips as they narrow the set. A family card has no
+   * tier, so it is not one of those rows.
    */
-  const showTierBadges = new Set(filteredProducts.map((p) => p.tier)).size > 1
+  const showTierBadges =
+    new Set(gridCards.flatMap((card) => (card.kind === 'product' ? [card.product.tier] : []))).size > 1
 
   const categoryName = data?.category
     ? locale === 'da' ? data.category.name_da : data.category.name_en
@@ -268,7 +280,12 @@ function BrowseCategoryPageInner() {
   /**
    * PAN-121 — the position signal.
    *
-   * `filteredProducts` and not `data.total_public_products`. The projection
+   * PAN-192: it counts `gridCards`, the CARDS rendered, so a family card is one
+   * result and the models it holds are stated on the card itself ("4
+   * modeller"). The noun is "resultater", not "produkter", so the line and the
+   * grid agree with nothing to reconcile.
+   *
+   * `gridCards` and not `data.total_public_products`. The projection
    * total counts the whole root across every page and ignores the subcategory
    * chip entirely; `filteredProducts` is the array three lines below this one
    * maps into cards. PAN-98 is the ticket where those two numbers were allowed
@@ -284,7 +301,7 @@ function BrowseCategoryPageInner() {
     // No `scope`: `categoryName` is already the <h1> directly above, and
     // already the last crumb of the breadcrumb above that. A third copy made
     // the visitor choose which of three position statements to read.
-    renderedRows: filteredProducts,
+    renderedRows: gridCards,
     filters: [
       ...(activeChip
         ? [{ id: activeChip.slug, kind: 'subcategory' as const, label: activeChip.label }]
@@ -466,16 +483,18 @@ function BrowseCategoryPageInner() {
           <EmptyState kind="blank" title={t.noResults} className="py-16" />
         ) : (
           <div className="grid-wall grid-wall-pair">
-            {filteredProducts.map((p) => (
+            {gridCards.map((card) => card.kind === 'family' ? (
+              <FamilyCard key={`family:${card.slug}`} card={card} />
+            ) : (
               <ProductCard
-                key={p.slug}
-                slug={p.slug}
-                canonicalName={p.canonical_name}
-                brandName={p.brand_name}
-                subcategoryName={displaySubcategoryLabel(p.subcategory_slug, p.subcategory_name_da, p.subcategory_name_en)}
-                activeListingCount={p.active_listing_count}
-                imageUrl={p.image_url}
-                tier={showTierBadges ? p.tier : undefined}
+                key={card.product.slug}
+                slug={card.product.slug}
+                canonicalName={card.product.canonical_name}
+                brandName={card.product.brand_name}
+                subcategoryName={displaySubcategoryLabel(card.product.subcategory_slug, card.product.subcategory_name_da, card.product.subcategory_name_en)}
+                activeListingCount={card.product.active_listing_count}
+                imageUrl={card.product.image_url}
+                tier={showTierBadges ? card.product.tier : undefined}
               />
             ))}
           </div>

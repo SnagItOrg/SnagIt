@@ -158,13 +158,15 @@ test('with a facet chip in force the count is the rendered rows, under "can do"'
   ])
 
   // The page wires the chip row and the count to the same array: the facet
-  // filter produces `filteredProducts`, which the signal counts and the grid
-  // maps (the latter two also pinned by pan121-position-signal.test).
+  // filter produces `filteredProducts`, PAN-192 collapses its families into
+  // `gridCards`, and the signal counts and the grid maps that one array (the
+  // latter two also pinned by pan121-position-signal.test).
   const page = stripComments(readFileSync(join(ROOT, 'app', '(shell)', 'browse', '[root]', 'page.tsx'), 'utf8'))
   assert.match(page, /const filteredProducts = filterByFacets\(subcategoryProducts, activeFacets\)/)
   assert.match(page, /facetChipAxes\(subcategoryProducts, /)
-  assert.match(page, /renderedRows: filteredProducts/)
-  assert.match(page, /\{filteredProducts\.map\(/)
+  assert.match(page, /const gridCards = collapseFamilies\(filteredProducts\)/)
+  assert.match(page, /renderedRows: gridCards/)
+  assert.match(page, /\{gridCards\.map\(/)
 })
 
 test('the public browse payload carries facet values, never who set them', () => {

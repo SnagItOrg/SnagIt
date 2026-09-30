@@ -169,18 +169,18 @@ test('the section carries the mark when the tree cannot', () => {
   }
 })
 
-test('a family route is deliberately not treated as a catalogue section', () => {
-  // WP-2 keeps `/family/<slug>` unlinked: it is noindex and reachable only by
-  // the legacy redirects and one gated breadcrumb. Marking Katalog there would
-  // have made the sidebar treat it as an ordinary catalogue destination, and
-  // WP-2's navigation guard catches exactly that. Production shows the family
-  // route marking nothing in either state, which is consistent rather than
-  // broken; the orientation gap belongs to PAN-124's breadcrumb.
+test('a family route is a catalogue section, but never a tree node (PAN-192)', () => {
+  // WP-2 kept `/family/<slug>` out: it was reachable only by the legacy
+  // redirects and one gated breadcrumb. PAN-192 (owner decision 2026-09-30)
+  // links it from the browse grids, so it is now an ordinary catalogue
+  // destination and Katalog carries the section mark there. The tree still
+  // marks no node — a family is not a kind — which the null assertions on
+  // `/family/fender-telecaster` above and below keep pinned.
   const predicate = SIDENAV_CODE.slice(
     SIDENAV_CODE.indexOf('const isCataloguePath'),
     SIDENAV_CODE.indexOf('const SIDEBAR_MIN_WIDTH'),
   )
-  assert.equal(predicate.includes('/family/'), false)
+  assert.match(predicate, /\/family\//)
   assert.match(predicate, /\/browse\//)
   assert.match(predicate, /\/product\//)
 })

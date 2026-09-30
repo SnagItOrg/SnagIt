@@ -2,8 +2,10 @@
 
 import { useLocale } from '@/components/LocaleProvider'
 import { ProductCard } from '@/components/ProductCard'
+import { FamilyCard } from '@/components/FamilyCard'
 import { Carousel } from '@/components/Carousel'
 import type { DiscoverProduct } from '@/app/api/discover/route'
+import { collapseFamilies } from '@/lib/family-cards'
 
 /**
  * The two homepage shelves, rendered from data the SERVER already has.
@@ -32,6 +34,10 @@ export function DiscoverShelves({
   popular: DiscoverProduct[]
 }) {
   const { t } = useLocale()
+  // PAN-192 — a shelf is a browse grid laid out in a row, so a family with two
+  // members on it collapses the same way, over the cards the shelf renders.
+  const legendaryCards = collapseFamilies(legendary)
+  const popularCards = collapseFamilies(popular)
 
   return (
     <>
@@ -47,15 +53,17 @@ export function DiscoverShelves({
             </span>
           </div>
           <Carousel ariaLabel={t.discoverLegendaryHeading}>
-            {legendary.map((p) => (
+            {legendaryCards.map((card) => card.kind === 'family' ? (
+              <FamilyCard key={`family:${card.slug}`} card={card} />
+            ) : (
               <ProductCard
-                key={p.slug}
-                slug={p.slug}
-                canonicalName={p.canonical_name}
-                brandName={p.brand_name}
+                key={card.product.slug}
+                slug={card.product.slug}
+                canonicalName={card.product.canonical_name}
+                brandName={card.product.brand_name}
                 subcategoryName=""
-                activeListingCount={p.active_listing_count}
-                imageUrl={p.image_url}
+                activeListingCount={card.product.active_listing_count}
+                imageUrl={card.product.image_url}
                 // No tier badge: this shelf is legendary by construction, so
                 // its cards never mix tiers and the heading already says it
                 // (PAN-168 #9).
@@ -77,15 +85,17 @@ export function DiscoverShelves({
             </span>
           </div>
           <Carousel ariaLabel={t.discoverPopularHeading}>
-            {popular.map((p) => (
+            {popularCards.map((card) => card.kind === 'family' ? (
+              <FamilyCard key={`family:${card.slug}`} card={card} />
+            ) : (
               <ProductCard
-                key={p.slug}
-                slug={p.slug}
-                canonicalName={p.canonical_name}
-                brandName={p.brand_name}
+                key={card.product.slug}
+                slug={card.product.slug}
+                canonicalName={card.product.canonical_name}
+                brandName={card.product.brand_name}
                 subcategoryName=""
-                activeListingCount={p.active_listing_count}
-                imageUrl={p.image_url}
+                activeListingCount={card.product.active_listing_count}
+                imageUrl={card.product.image_url}
               />
             ))}
           </Carousel>
