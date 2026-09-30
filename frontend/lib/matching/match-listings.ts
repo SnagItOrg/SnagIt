@@ -254,6 +254,53 @@ const MOOG_ACCESSORIES: readonly string[] = [
   'transistor', 'bushing', 'sheets', 'brochure', 'sticker',
 ]
 
+/**
+ * A year of the Minimoog Model D's 2022– run (PAN-199): "(2022) 2022 - Present",
+ * "2023 Reissue", "new 2024", "Tribute Edition 2026". Measured: every production
+ * title that names the run carries one; titles with no year name neither run.
+ */
+const MINIMOOG_2022_RUN = yearCue(2022, 2039)
+
+/** The later MF-104s: "MF-104M", "MF 104M", "MF-104z", "MF-104S" (PAN-199). */
+const MF_104_LATER = /(?<![\w-])mf[-\s]?104\s?(?:m|z|sd?)(?![\w-])/i
+
+/**
+ * PAN-199. Parts and accessories measured on the 1,872 active titles that name
+ * a Moog line (read-only snapshot 2026-09-30), on every Moog row the promotion
+ * would make a match target. The vintage rows attract them most: 9 of 16
+ * Satellite titles were PCBs, harnesses and panels. Suppressed, like
+ * MOOG_ACCESSORIES, by an inclusion marker before them ("w/ New Membrane Panel").
+ */
+const MOOG_PARTS: readonly string[] = [
+  ...MOOG_ACCESSORIES,
+  'pcb', 'mainboard', 'wiring harness', 'resistor matrix', 'control panel', 'face panel', 'membrane',
+  'connector', 'connectors', 'connector cable', 'ribbon cables', 'power cable', 'power jack',
+  'power switch', 'power transformer', 'voltage regulator', 'ic', 'led mounting clip',
+  'recapping kit', 'chassis', 'switch caps', 'contacts', 'contact strips', 'bushings', 'mod wheel',
+  'j wire', 'black keys', 'fatar keyboard', 'pointer knob', 'encoder knob', 'encoder housing',
+  'knob kit', 'nut', 'gig bag',
+  'side panels', 'rack ears', 'rackmount kit', 'rack kit', 'rack stand', 'raised stand',
+  'overlay', 'staubschutzcover', 'flight case', 'eurorack case', 'dvd', 'service information',
+  "mode d'employ", 'mode d’employ',
+]
+
+/**
+ * PAN-199. Never the instrument, whatever precedes them: a marker cannot rescue
+ * these, and some Moog names carry one ("Memorymoog PLUS Owners Manual",
+ * "Prodigy Plus (Moog clone)", "Satellite complete wood case", "Complete Set -
+ * Keyboard Rubber Contacts - Moog Memorymoog").
+ */
+const MOOG_NEVER: readonly RegExp[] = cues(
+  'clone', 'inspired', 'inspire', 'plug-in', 't-shirt', 'promotional ad', 'loops', 'noise generator',
+  'rubber contacts',
+  'wood case', 'firmware', 'owners manual', 'technical service information',
+)
+
+/** A Moog member of `line` (PAN-199): refuses `otherMembers`, MOOG_NEVER and MOOG_PARTS. */
+const moog = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...otherMembers, ...MOOG_NEVER], accessories: MOOG_PARTS,
+})
+
 /** A title that names the 1980–84 Prophet-10: Circuits/SCI, "vintage", its years or Rev 1–3. */
 const PROPHET_10_VINTAGE =
   /(?<![\w-])(?:circuits|sci|vintage|19(?:7[89]|8[0-6])|rev\.?\s*[1-3](?!\d))(?![\w-])/i
@@ -310,10 +357,14 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
       yearCue(1990, 2039),
       // Editions of the reissue.
       cue('geddy lee'), cue('tribute'),
+      ...MOOG_NEVER,
     ],
-    accessories: MOOG_ACCESSORIES,
+    accessories: MOOG_PARTS,
   },
-  // The 2016 reissue and its re-runs. Frozen boundary: "2016 REISSUE only".
+  // The 2016 reissue. Frozen boundary: "2016 REISSUE only". PAN-199 (manager
+  // decision 2026-09-30): the 2022– re-run is its own product,
+  // `moog-minimoog-model-d-2022`, so a 2022-or-later year refuses here. A title
+  // with no year stays here, as before: nothing in it separates the runs.
   'moog-model-d': {
     line: 'minimoog',
     otherMembers: [
@@ -324,9 +375,82 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
       cue('early model'), cue('late model'), cue('early version'),
       // A signature edition with its own KG row (moog-minimoog-model-d-geddy-lee).
       cue('geddy lee'),
+      MINIMOOG_2022_RUN,
+      ...MOOG_NEVER,
     ],
-    accessories: MOOG_ACCESSORIES,
+    accessories: MOOG_PARTS,
   },
+  // PAN-199. The 2022– re-run (Reverb CSP 163810: new cabinet and upgrades).
+  // Its model_name is "Model D", the reissue's own (the promote SQL sets it), so
+  // it requires the year that proves the run; every other title keeps its old home.
+  'moog-minimoog-model-d-2022': {
+    ...moog('minimoog', cue('voyager'), cue('geddy lee'), yearCue(1969, 2021)),
+    requires: [MINIMOOG_2022_RUN],
+  },
+  // PAN-199. The Voyager line (2002–) joins the Minimoog line, so a Voyager title
+  // the vintage row refuses resolves to the Voyager (step 5b). The base refuses
+  // its separate models; its editions (Performer, Signature, Electric Blue,
+  // Select, Anniversary) are the base.
+  'moog-minimoog-voyager': moog(
+    'minimoog', ...cues('xl', 'rme', 'rack mount', 'old school', 'oldschool', 'voyager os'),
+  ),
+  'moog-minimoog-voyager-xl': moog('minimoog'),
+  'moog-minimoog-voyager-rme': moog('minimoog'),
+  'moog-minimoog-voyager-old-school': moog('minimoog'),
+  // PAN-199. The base MF-104 (2000–01) is not the MF-104M, MF-104Z or MF-104S(D),
+  // which sellers also write "MF 104M" and "MF-104z ... mf104".
+  'moog-mf-104': moog('mf-104', MF_104_LATER),
+  'moog-mf-104m': moog('mf-104'),
+  'moog-mf-104z': moog('mf-104'),
+  // PAN-199. The Memorymoog Plus (MIDI + sequencer) is its own model.
+  'moog-memorymoog': moog('memorymoog', cue('plus')),
+  'moog-memory-plus': moog('memorymoog'),
+  // PAN-199. The Subsequent 37 CV (Reverb CSP 48104) has no KG row: refused, not absorbed.
+  'moog-moog-subsequent-37': moog('subsequent-37', cue('cv')),
+  // PAN-199. The Sirin is "the Analog Messenger of Joy": that title is not the 2024 Messenger.
+  'moog-moog-messenger': moog('messenger', cue('sirin'), cue('messenger of joy')),
+  'moog-sirin': moog('messenger'),
+  // PAN-199. The Etherwave Plus (Reverb CSP 6630) has no KG row. A 2022 Etherwave
+  // sold "like Etherwave PLUS" is this model.
+  'moog-etherwave-theremin': moog('etherwave', /(?<!like\s)etherwave\s+(?:theremin\s+)?plus(?![\w-])/i),
+  // PAN-199. Every other Moog row the promotion makes a match target, and the
+  // supported Source: each its own line, with the Moog parts vocabulary.
+  'moog-cp-251': moog('moog-cp-251'),
+  'moog-dfam': moog('moog-dfam'),
+  'moog-grandmother': moog('moog-grandmother'),
+  'moog-labyrinth': moog('moog-labyrinth'),
+  'moog-liberation': moog('moog-liberation'),
+  'moog-little-phatty': moog('moog-little-phatty'),
+  'moog-matriarch': moog('moog-matriarch'),
+  'moog-mavis': moog('moog-mavis'),
+  'moog-mf-101-lowpass-filter': moog('moog-mf-101-lowpass-filter'),
+  'moog-mf-102': moog('moog-mf-102'),
+  'moog-mf-103': moog('moog-mf-103'),
+  'moog-mf-105': moog('moog-mf-105'),
+  'moog-mf-105m-midi-murf': moog('moog-mf-105m-midi-murf'),
+  'moog-micromoog': moog('moog-micromoog'),
+  'moog-minitaur': moog('moog-minitaur'),
+  'moog-mother-32': moog('moog-mother-32'),
+  'moog-multimoog': moog('moog-multimoog'),
+  'moog-muse': moog('moog-muse'),
+  'moog-one-16-voice': moog('moog-one-16-voice'),
+  'moog-one-8-voice': moog('moog-one-8-voice'),
+  'moog-opus-3': moog('moog-opus-3'),
+  'moog-polymoog-203a': moog('moog-polymoog-203a'),
+  'moog-prodigy': moog('moog-prodigy'),
+  'moog-rogue': moog('moog-rogue'),
+  'moog-satellite': moog('moog-satellite'),
+  'moog-slim-phatty': moog('moog-slim-phatty'),
+  'moog-sonic-six': moog('moog-sonic-six'),
+  'moog-source': moog('moog-source'),
+  'moog-spectravox': moog('moog-spectravox'),
+  'moog-sub_phatty': moog('moog-sub_phatty'),
+  'moog-subharmonicon': moog('moog-subharmonicon'),
+  'moog-subsequent-25': moog('moog-subsequent-25'),
+  'moog-taurus-3': moog('moog-taurus-3'),
+  'moog-taurus-i': moog('moog-taurus-i'),
+  'moog-taurus-ii': moog('moog-taurus-ii'),
+  'moog-theremini': moog('moog-theremini'),
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed

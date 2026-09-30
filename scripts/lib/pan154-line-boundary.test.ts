@@ -60,13 +60,19 @@ test('a Model D reissue is not the vintage Minimoog, and lands on the reissue', 
   assert.equal(matchedSlug('Moog Minimoog Reissue 2022'), null)
   for (const title of [
     'Moog Minimoog Model D Reissue 44-Key Monophonic Synthesizer (2016) 2016 - 2017 - Black / Wood',
-    'Moog Minimoog Model D Analog Keyboard Synthesizer (2022 Edition - Mahogany)',
-    'Moog MiniMoog Model D Synthesizer (new 2024)',
     'Moog Minimoog Model D Bob Moog Tribute Edition',
     // An inclusion marker before the case keeps the instrument.
     'Moog Minimoog Model D Reissue + ATA case',
   ]) {
     assert.equal(matchedSlug(title), 'moog-model-d', title)
+  }
+  // PAN-199: a 2022-or-later year names the 2022– re-run, its own product
+  // (`moog-minimoog-model-d-2022`, absent from this index), never the 2016 page.
+  for (const title of [
+    'Moog Minimoog Model D Analog Keyboard Synthesizer (2022 Edition - Mahogany)',
+    'Moog MiniMoog Model D Synthesizer (new 2024)',
+  ]) {
+    assert.equal(matchedSlug(title), null, title)
   }
   // A signature edition holds its own KG row, so it is neither page.
   assert.equal(matchedSlug('Moog Geddy Lee Minimoog Model D'), null)
@@ -91,7 +97,8 @@ test('an accessory is not the instrument; the instrument sold with one still is'
   )
 
   assert.equal(matchedSlug('1973 Moog Minimoog Model D w/ Road Case Signed by Herbie Hancock'), 'moog-minimoog')
-  assert.equal(matchedSlug('Moog Model D Limited Edition Robert Moog 2026 Free Moog Case'), 'moog-model-d')
+  // PAN-199: its 2026 is the 2022– run's year, so the free case is tested on that page there.
+  assert.equal(matchedSlug('Moog Model D Limited Edition Robert Moog 2026 Free Moog Case'), null)
 })
 
 test('a vintage original is not the Model D reissue, and lands on the Minimoog', () => {
