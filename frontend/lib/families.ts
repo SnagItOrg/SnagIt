@@ -453,10 +453,14 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: [
       'moog-minimoog',
       'moog-model-d',
+      // PAN-199 (manager decision 2026-09-30): the 2022– re-run is its own model.
+      'moog-minimoog-model-d-2022',
       'moog-minimoog-model-d-geddy-lee',
       'moog-minimoog-voyager',
       'moog-minimoog-voyager-xl',
       'moog-minimoog-voyager-rme',
+      // PAN-199: created from Reverb CSP 31380.
+      'moog-minimoog-voyager-old-school',
     ],
     aliases: [],
   },
@@ -661,6 +665,32 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
       'gibson-sg-modern',
     ],
     aliases: ['sg', 'gibson sg'],
+  },
+  /*
+   * PAN-199. Moog's pedal line (1998–2018, the 2020s white re-runs): each
+   * Moogerfooger is its own product with its own Reverb CSP, and the line name
+   * is on nearly every title ("Moog Moogerfooger MF-102 Ring Modulator"). The
+   * `moogerfooger` slug is not a `kg_product` row (SELECT, 2026-09-30), so it
+   * guards nothing today; like `rhodes`, it is refused as a priced page and as a
+   * match target if one is ever created. The CP-251 is the line's control
+   * processor, sold as a Moogerfooger. No aliases: the slug gives the key.
+   */
+  moogerfooger: {
+    label: 'Moog Moogerfooger',
+    brand: 'Moog',
+    categoryRoot: 'effects-and-pedals',
+    children: [
+      'moog-mf-101-lowpass-filter',
+      'moog-mf-102',
+      'moog-mf-103',
+      'moog-mf-104',
+      'moog-mf-104m',
+      'moog-mf-104z',
+      'moog-mf-105',
+      'moog-mf-105m-midi-murf',
+      'moog-cp-251',
+    ],
+    aliases: [],
   },
 }
 

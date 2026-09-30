@@ -57,6 +57,8 @@ export const FAMILY_SLUGS = [
   'fender-jaguar',
   // PAN-198. The Jazzmaster case: a `known` + `qa_only` line-label row.
   'gibson-sg',
+  // PAN-199. The `rhodes` case: no row today.
+  'moogerfooger',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]
