@@ -173,6 +173,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-189: /intel prices supported products only. A family label in its
       // set is a median pooled across a whole model line.
       'scripts/lib/pan189-intel-priced-set.test.ts',
+      // PAN-193: a part "for Jupiter-4" is not a Jupiter-4. A regression here
+      // files parts under a product the moment its backlog is re-matched.
+      'scripts/lib/pan193-jupiter.test.ts',
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',

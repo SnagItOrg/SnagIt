@@ -148,6 +148,28 @@ export function tokenFollowedByReference(title: string, token: string): boolean 
   return false
 }
 
+/**
+ * True when `token` is named as the object of "for", optionally with `brand`
+ * between: "Key Spring (070-052) for Jupiter-4, System-100/700", "AC power
+ * switch (220V) for Roland Jupiter 8". Such a title offers something made FOR
+ * the product, not the product (PAN-193). A hyphen in `token` also matches a
+ * space, as the matcher's own model tier does ("Jupiter-4" / "Jupiter 4").
+ *
+ * Measured 2026-09-30 over every active listing: 340 titles put a supported
+ * product's model name after "for", with or without its brand. None held a
+ * trusted or unreviewed match to that product. Every matched one had been
+ * adjudicated is_valid=false, and the unmatched rest are keys, springs,
+ * covers, power supplies, chips, cartridges and other makers' products sold
+ * for it ("Yamaha BC1 Breath Controller for DX7").
+ */
+export function tokenIsObjectOfFor(title: string, token: string, brand: string | null): boolean {
+  if (!token) return false
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const model = esc(token).replace(/-/g, '[-\\s]')
+  const brandPart = brand ? `(?:${esc(brand).replace(/ /g, '\\s+')}\\s+)?` : ''
+  return new RegExp(`(?<![\\w-])for\\s+${brandPart}${model}(?![\\w-])`, 'i').test(title)
+}
+
 /** Zero-based word index of `token`'s first occurrence, or null. */
 export function wordIndexOf(title: string, token: string): number | null {
   if (!token) return null
