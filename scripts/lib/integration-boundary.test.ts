@@ -176,6 +176,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-192: a family card replaces its models in a browse grid. It
       // carries no price and collapses only at two members in the rendered set.
       'scripts/lib/pan192-family-cards.test.ts',
+      // PAN-193: a part "for Jupiter-4" is not a Jupiter-4. A regression here
+      // files parts under a product the moment its backlog is re-matched.
+      'scripts/lib/pan193-jupiter.test.ts',
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',

@@ -14,6 +14,7 @@ import {
   detectCatalogueBrands,
   detectOfferedBrand,
   tokenFollowedByReference,
+  tokenIsObjectOfFor,
   wordIndexOf,
   OFFERED_BRAND_LEAD_WORDS,
   containsBrandToken,
@@ -746,6 +747,7 @@ function strongest(candidates: MatchCandidate[]): MatchCandidate {
  *   1. none                  — no candidate at all
  *   2. rejected              — hard licensed-subsidiary collision left nothing
  *   3. non_product_intent    — title offers a part/accessory, or is a wanted ad
+ *                              (and, once the winner is known, "for <its model>": step 5c)
  *   4. brand_mismatch        — catalogue-brand evidence eliminated everything
  *   5. product_data_conflict — tied candidates are duplicate KG rows
  *   6. shared_identifier_conflict — tie caused by a non-exclusive identifier
@@ -1041,6 +1043,27 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
     }
   }
 
+  const evidenceToken = String(
+    (best.explain as { matched_identifier?: string; matched_model_name?: string }).matched_identifier ??
+    (best.explain as { matched_model_name?: string }).matched_model_name ?? '',
+  )
+
+  // ── 5c. The title offers something FOR the winner (PAN-193) ─────────────
+  // "ORIGINAL Roland Key Spring (070-052) for Jupiter-4, System-100/700…"
+  // names the Jupiter-4 only as what the spring fits. This is step 3's
+  // non-product intent, but it depends on which model follows "for", so it can
+  // only be read once the winner is known.
+  const bestBrandName = index.productById.get(best.product_id)?.brand_name ?? null
+  if (evidenceToken && tokenIsObjectOfFor(norm, evidenceToken.toLowerCase(), bestBrandName)) {
+    return {
+      kind: 'deferred',
+      reason: 'non_product_intent',
+      intent: 'part_or_accessory',
+      candidates: [best],
+      detail: `part_or_accessory ('for ${evidenceToken}')`,
+    }
+  }
+
   // ── 6. Automatic-confidence floor ───────────────────────────────────────
   // Below the floor, the only evidence strong enough to make a candidate
   // uniquely safe is the product's OWN brand appearing verbatim in the title.
@@ -1066,10 +1089,6 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   // legitimate rows (Gibson Les Paul '52 Tribute, Epiphone SG Tribute,
   // Epiphone Inspired by Gibson J-45) and "two catalogue brands" destroyed 443
   // (Sequential Oberheim OB-X8, Warm Audio … Neve 1073-Style).
-  const evidenceToken = String(
-    (best.explain as { matched_identifier?: string; matched_model_name?: string }).matched_identifier ??
-    (best.explain as { matched_model_name?: string }).matched_model_name ?? '',
-  )
 
   // 7a. "<model> type/style/clone/kopi/Nachbau" — adjacency only.
   if (evidenceToken && tokenFollowedByReference(norm, evidenceToken.toLowerCase())) {
@@ -1191,13 +1210,13 @@ export function normalizeProductRow(row: RawProduct): Product {
 
 // ── Core ──────────────────────────────────────────────────────────────────────
 
-export async function matchListings(
-  supabase: SupabaseClient,
-  listingIds: string[],
-): Promise<{ matched: number; rejected: number; deferred: number; total: number }> {
-  if (listingIds.length === 0) return { matched: 0, rejected: 0, deferred: 0, total: 0 }
-
-  const [rawProducts, brandRows, idents, synonyms, listingsResult] = await Promise.all([
+/**
+ * The index `matchListings` decides with, loaded read-only. Exported so a
+ * dry run (scripts/pan193-jupiter-rematch.ts) counts exactly what the writer
+ * would write.
+ */
+export async function loadMatchIndex(supabase: SupabaseClient): Promise<MatchIndex> {
+  const [rawProducts, brandRows, idents, synonyms] = await Promise.all([
     // Database-side eligibility filter. Defence in depth only — buildMatchIndex
     // enforces the same rules in memory, so correctness does not depend on
     // these lines being present.
@@ -1222,11 +1241,7 @@ export async function matchListings(
       () => supabase.from('synonym').select('alias, canonical_query').eq('match_type', 'alias'),
       1000, 'synonym',
     ),
-    supabase.from('listings').select('id, title').in('id', listingIds).not('title', 'is', null),
   ])
-
-  const { data: listingsData, error: lErr } = listingsResult
-  if (lErr) throw new Error(`Fetch listings: ${lErr.message}`)
 
   const products = rawProducts.map(normalizeProductRow)
   const verifiedMusicBrands = new Set<string>()
@@ -1234,7 +1249,22 @@ export async function matchListings(
     const b = normalizeProductRow(row).brand_name
     if (b) verifiedMusicBrands.add(b)
   }
-  const index = buildMatchIndex(products, idents, synonyms, verifiedMusicBrands)
+  return buildMatchIndex(products, idents, synonyms, verifiedMusicBrands)
+}
+
+export async function matchListings(
+  supabase: SupabaseClient,
+  listingIds: string[],
+): Promise<{ matched: number; rejected: number; deferred: number; total: number }> {
+  if (listingIds.length === 0) return { matched: 0, rejected: 0, deferred: 0, total: 0 }
+
+  const [index, listingsResult] = await Promise.all([
+    loadMatchIndex(supabase),
+    supabase.from('listings').select('id, title').in('id', listingIds).not('title', 'is', null),
+  ])
+
+  const { data: listingsData, error: lErr } = listingsResult
+  if (lErr) throw new Error(`Fetch listings: ${lErr.message}`)
 
   // Callers are responsible for passing only unmatched IDs
   const listings = ((listingsData as Listing[]) ?? [])
