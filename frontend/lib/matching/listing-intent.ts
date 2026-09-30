@@ -239,8 +239,10 @@ const ACCESSORY_TOKENS: readonly string[] = [
   // Electric Piano — Buz Watson Rebuild — Legs & Pedal", 16,459 DKK. It defers,
   // which writes no row. The other twelve are leg sets at 1,113–2,199 DKK.
   //
-  // REFUSED ON THE RECALL MEASUREMENT (every owner-confirmed match, plus the
-  // unreviewed matches on public products):
+  // REFUSED ON THE RECALL MEASUREMENT (every `is_valid = true` match, plus the
+  // unreviewed matches on public products). "Confirmed" below means
+  // `is_valid = true`; most such rows were set by the automated AI pass
+  // (`explain.ai_pass1`), not by an admin decision:
   //   capsule     16 confirmed titles name it, 8 with no marker before it:
   //               "Warm Audio WA-47 M7 Capsule ZenPro Mod Edition", "WA-CX24
   //               Dual Capsule", and Fender's "Time Capsule Finish".
@@ -305,10 +307,13 @@ const ACCESSORY_TOKENS: readonly string[] = [
  * "Yamaha DX7 Voice ROM-1 & ROM-2 Data Cartridge Set" and "Korg MS-10 & MS-20
  * Wood Side Panels" (the latter through the line-boundary accessory cues, which
  * read the same marker). MEASURED RECALL COST, ACCEPTED: over every
- * owner-confirmed match and every unreviewed match on a public product, one
+ * `is_valid = true` match and every unreviewed match on a public product, one
  * title changes — "SERVICED & RESTORED Dual Manual PROPHET 10 Rev3 w/ORIGINAL
  * OWNERS MANUAL, …", kept until now only because "SERVICED & RESTORED" came
- * before "Dual Manual". No confirmed match the matcher produces today changes.
+ * before "Dual Manual". Its glued "w/ORIGINAL" already counts as a marker
+ * (`w/` is found anywhere, not only as a word), but it follows "Dual Manual",
+ * the two-keyboard spec that `manual` fires on first. No confirmed match the
+ * matcher produces today changes.
  */
 const INCLUSION_MARKERS: readonly string[] = [
   'inkl', 'inkl.', 'incl', 'incl.', 'including', 'included', 'includes', 'inklusive',
@@ -457,7 +462,7 @@ function isColourSpecPickguard(text: string): boolean {
 /**
  * "Painted Head Cap" is a finish, not a cap (PAN-196). Fender Custom Shop
  * titles name the painted headstock that way: "Fender Custom Shop 1962 Jaguar
- * Journeyman Relic Painted Head Cap Surf Green (683)" — four owner-confirmed
+ * Journeyman Relic Painted Head Cap Surf Green (683)" — four `is_valid = true`
  * matches. Every pool `cap` that is a part is a knob or switch cap, an end cap
  * or a fuse-holder cap, never a head cap.
  */
@@ -501,7 +506,7 @@ const OFFER_MARKERS: readonly string[] = ['biete']
  *   - a quantity after an inclusion marker counts the extras: "Boss DS-1
  *     Distortion Pedal Bundle with 2x Strukture … Patch Cables" and "Yamaha DX7
  *     Synthesizer inkl 4x Cartridge" are one instrument each (14 such
- *     owner-confirmed titles).
+ *     `is_valid = true` titles).
  *   - a bare "N pack" is not taken: "… Gator Patch Cable 3 Pack". Only the
  *     parenthesised or hyphenated form is.
  *   - "N x" counts only where it leads the title ("3x Moog Mother-32") or
@@ -509,8 +514,9 @@ const OFFER_MARKERS: readonly string[] = ['biete']
  *     it is a model name ("Roland Cube 30X") or a spec ("2 x 12" cabinet).
  *     N ≥ 2, so "1x TF1 Modul" is one module.
  *
- * WHAT IT DOES DEFER THAT THE OWNER HAS CONFIRMED, deliberately. 27 confirmed
- * titles are several units: "API 512c 500 Series Microphone Preamp (5-pack)",
+ * WHAT IT DOES DEFER THAT IS ALREADY `is_valid = true`, deliberately. 27 such
+ * titles are several units, every one set valid by the automated AI pass
+ * (`explain.ai_pass1`), none by an admin: "API 512c 500 Series Microphone Preamp (5-pack)",
  * "Neumann KMS 105 … (3-pack)", "2x Neumann KH120 II … (Pair)", "4x AMS Neve
  * 1081 + Shep Associates Rack PSU", "3x As-Is For Parts / Repair Roland TR-707
  * … Lot". Their identity is right; their price is N units, which is exactly

@@ -21,7 +21,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { buildMatchIndex, decideMatch, type Product } from '../../frontend/lib/matching/match-listings'
-import { detectNonProductIntent } from '../../frontend/lib/matching/listing-intent'
+import { detectNonProductIntent, earliestInclusionMarker } from '../../frontend/lib/matching/listing-intent'
 import { tokenFollowedByReference, tokenInModelList } from '../../frontend/lib/matching/brand-guard'
 
 const product = (slug: string, brand: string, model_name: string): Product => ({
@@ -155,6 +155,18 @@ test('rule 2: `&` no longer hides a cartridge set; `with` still keeps an instrum
     assert.equal(detectNonProductIntent(title), null, title)
   }
   assert.equal(matchedSlug('Boss AB-2 Foot Switch'), 'boss-ab-2')
+})
+
+test('rule 2: a `w/` glued to the next word is an inclusion marker', () => {
+  assert.equal(earliestInclusionMarker('roland juno-60 w/manual'), 'roland juno-60 '.length)
+  assert.equal(detectNonProductIntent('Roland Juno-60 w/manual'), null)            // constructed
+  assert.equal(detectNonProductIntent('Sequential Circuits Prophet-5 Rev3.3 w/Midi - ORIGINAL - Pro Serviced w/Restoration'), null)
+  // The one title dropping `&` costs is NOT a marker gap: its glued
+  // "w/ORIGINAL" counts, but `manual` fires first on "Dual Manual".
+  assert.deepEqual(
+    detectNonProductIntent('SERVICED & RESTORED Dual Manual PROPHET 10 Rev3 w/ORIGINAL OWNERS MANUAL, MIDI, Foot switch pedals, Road case, & Specs sheet - Sequential Circuits SCI'),
+    { intent: 'part_or_accessory', token: 'manual' },
+  )
 })
 
 // ── Rule 3: a quantity has no single-unit price ──────────────────────────────
