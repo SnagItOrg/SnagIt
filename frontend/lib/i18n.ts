@@ -681,6 +681,14 @@ export const translations = {
       unavailable: 'Udgået er ikke slået til endnu (migration 059).',
       error: 'Produktionsår kunne ikke gemmes. Prøv igen.',
     },
+    // PAN-194 — /admin/families/propose. Keyed by the issue code in
+    // lib/family-proposal.ts, so the route and the form say one sentence.
+    adminFamilyProposal: {
+      nearDuplicateFamily: 'Ligner familien «{family}» ({label}). Tilføj medlemmerne dér i stedet for at oprette en ny familie.',
+      memberSameNameAsFamilyMember: 'Samme produkt som «{row}» ({name}) i familien «{family}». Brug den række i stedet.',
+      memberSameCspAsFamilyMember: 'Samme Reverb-CSP ({csp}) som «{row}» ({name}) i familien «{family}». Brug den række i stedet.',
+      memberNoEvidence: 'Ingen aktive matches og ingen Reverb-CSP. Tjek, om rækken er en dublet af et andet produkt.',
+    },
   },
   en: {
     tagline: 'Deal after deal \u2013 that\u2019s Klup',
@@ -1276,6 +1284,13 @@ export const translations = {
       discontinued_before_released: 'Discontinued cannot be before the release year.',
       unavailable: 'Discontinued is not switched on yet (migration 059).',
       error: 'Production years could not be saved. Try again.',
+    },
+    // PAN-194 — family proposal refusals (see the `da` block).
+    adminFamilyProposal: {
+      nearDuplicateFamily: 'Looks like the family «{family}» ({label}). Add the members there instead of creating a new family.',
+      memberSameNameAsFamilyMember: 'The same product as «{row}» ({name}) in the family «{family}». Use that row instead.',
+      memberSameCspAsFamilyMember: 'The same Reverb CSP ({csp}) as «{row}» ({name}) in the family «{family}». Use that row instead.',
+      memberNoEvidence: 'No active matches and no Reverb CSP. Check whether the row duplicates another product.',
     },
   },
 } as const

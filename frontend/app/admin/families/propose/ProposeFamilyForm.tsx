@@ -6,8 +6,10 @@ import { TextField } from '@/components/TextField'
 import { Button } from '@/components/Button'
 import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
+import { useLocale } from '@/components/LocaleProvider'
+import { fill } from '@/lib/i18n'
 // Type-only: `family-proposal.ts` reaches `catalogue.ts`, which is server-only.
-import type { FamilyPatch, ProposalResult } from '@/lib/family-proposal'
+import type { FamilyPatch, ProposalIssue, ProposalResult } from '@/lib/family-proposal'
 
 export type RootOption = { slug: string; name: string }
 type Hit = { slug: string; canonical_name: string; kg_brand: { name: string } | { name: string }[] | null }
@@ -35,6 +37,10 @@ const PATCH_PARTS: Array<{ key: keyof FamilyPatch; title: string }> = [
 
 export default function ProposeFamilyForm({ roots }: { roots: RootOption[] }) {
   const { toasts, showToast, dismissToast } = useToast()
+  const { t } = useLocale()
+  // Coded issues (PAN-194) carry their copy in lib/i18n.ts; the rest are Danish.
+  const issueText = (issue: ProposalIssue) =>
+    issue.code ? fill(t.adminFamilyProposal[issue.code], issue.params ?? {}) : issue.message
 
   const [label, setLabel] = useState('')
   const [slug, setSlug] = useState('')
@@ -258,7 +264,7 @@ export default function ProposeFamilyForm({ roots }: { roots: RootOption[] }) {
                     style={{ color: issue.severity === 'error' ? 'var(--destructive-text)' : 'var(--muted-foreground)' }}
                   >
                     {issue.severity === 'error' ? 'Fejl: ' : 'Bemærk: '}
-                    {issue.message}
+                    {issueText(issue)}
                   </p>
                 ))}
               </li>
@@ -283,7 +289,7 @@ export default function ProposeFamilyForm({ roots }: { roots: RootOption[] }) {
               style={{ color: issue.severity === 'error' ? 'var(--destructive-text)' : 'var(--muted-foreground)' }}
             >
               {issue.severity === 'error' ? 'Fejl: ' : 'Bemærk: '}
-              {issue.message}
+              {issueText(issue)}
             </p>
           ))}
       </section>

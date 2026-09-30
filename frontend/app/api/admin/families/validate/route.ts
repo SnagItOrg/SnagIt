@@ -44,7 +44,11 @@ export async function POST(req: NextRequest) {
   const input = readInput(await req.json().catch(() => null))
   if (!input) return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
 
-  const slugs = Array.from(new Set([...input.members, input.slug].map((s) => s.trim()).filter(Boolean)))
+  // Existing families' children too: a member may duplicate one of them (PAN-194).
+  const familyChildren = NAVIGATION_FAMILIES.flatMap((f) => f.children)
+  const slugs = Array.from(
+    new Set([...input.members, input.slug, ...familyChildren].map((s) => s.trim()).filter(Boolean)),
+  )
   const admin = getSupabaseAdmin()
 
   const unavailable = () => NextResponse.json({ error: 'catalogue_unavailable' }, { status: 503 })
@@ -55,7 +59,7 @@ export async function POST(req: NextRequest) {
       .in('slug', slugs),
     admin
       .from('browse_product_projection')
-      .select('slug, browse_domain, root_category_slug')
+      .select('slug, browse_domain, root_category_slug, active_listing_count')
       .in('slug', slugs),
     admin.from('kg_category').select('slug').eq('domain', 'music').is('parent_id', null),
   ]).catch(() => null)
@@ -80,6 +84,7 @@ export async function POST(req: NextRequest) {
       brand: (Array.isArray(brand) ? brand[0]?.name : brand?.name) ?? null,
       browse_domain: (p?.browse_domain as string | null) ?? null,
       root_category_slug: (p?.root_category_slug as string | null) ?? null,
+      active_listing_count: (p?.active_listing_count as number | null) ?? null,
     }
   })
 
