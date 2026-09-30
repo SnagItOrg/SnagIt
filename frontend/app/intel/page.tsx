@@ -1,9 +1,11 @@
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { CANONICAL_STATUS, CANONICAL_SUPPORT, CATALOGUE_STATE_SELECT } from '@/lib/catalogue'
 import { fetchAllPages } from '@/lib/exhaustive-fetch'
 import { hasPlausibleListingPrice } from '@/lib/listing-price-integrity'
 import { isPriceEvidence, REVERB_SOURCE } from '@/lib/price-populations'
 import { IntelDashboard } from './IntelDashboard'
 import { listingMarket } from './overview'
+import { pricedIntelProducts } from './priced-products'
 import {
   MARKETS,
   type IntelData,
@@ -17,7 +19,14 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-type ProductRow = { id: string; canonical_name: string }
+type ProductRow = {
+  id: string
+  canonical_name: string
+  slug: string | null
+  status: string | null
+  support_state: string | null
+  browse_visibility: string | null
+}
 
 type SoldCompRow = {
   kg_product_id: string | null
@@ -81,18 +90,35 @@ function statsFromPrices(prices: number[]): MarketStats {
 async function loadIntelData(): Promise<IntelData> {
   const admin = getSupabaseAdmin()
 
+  // PAN-189. Priceable products, never `tier` and never a family label: the
+  // query narrows, `pricedIntelProducts` decides. See priced-products.ts.
   const { data: products, error: productsError } = await admin
     .from('kg_product')
-    .select('id, canonical_name')
-    .eq('tier', 'legendary')
-    .eq('status', 'active')
+    .select(`id, canonical_name, ${CATALOGUE_STATE_SELECT}`)
+    .eq('status', CANONICAL_STATUS)
+    .eq('support_state', CANONICAL_SUPPORT)
     .order('canonical_name', { ascending: true })
 
   if (productsError) {
-    throw new Error(`Failed to load legendary products: ${productsError.message}`)
+    throw new Error(`Failed to load supported products: ${productsError.message}`)
   }
 
-  const productRows = (products ?? []) as ProductRow[]
+  const supportedRows = (products ?? []) as ProductRow[]
+  const { data: domains, error: domainsError } = await admin
+    .from('browse_product_projection')
+    .select('id, browse_domain')
+    .in('id', supportedRows.map((p) => p.id))
+
+  if (domainsError) {
+    throw new Error(`Failed to load product domains: ${domainsError.message}`)
+  }
+
+  const domainById = new Map<string, string | null>()
+  for (const d of (domains ?? []) as Array<{ id: string; browse_domain: string | null }>) {
+    domainById.set(d.id, d.browse_domain)
+  }
+
+  const productRows = pricedIntelProducts(supportedRows, domainById)
   if (productRows.length === 0) {
     return { products: [], lastScrape: null, marketsTracked: MARKETS.length }
   }

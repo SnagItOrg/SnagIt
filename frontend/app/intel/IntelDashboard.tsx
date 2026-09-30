@@ -42,8 +42,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
  * Only filters that change the result set.
  *
  * Four controls are gone rather than restyled. "Legendary Only" matched every
- * row — the loader selects `tier = 'legendary'`, so the filter was a no-op on
- * a constant. "Has DE Data" is now the general market filter. There is no date
+ * row — the loader then selected `tier = 'legendary'`, so the filter was a
+ * no-op on a constant; since PAN-189 tier is not a selector here at all. "Has DE Data" is now the general market filter. There is no date
  * filter: the only date the loader carries is `listings.scraped_at`, which is
  * when a listing was last SEEN, and 43k of ~44k active rows carry the last two
  * days. Filtering on it would look like a period control and select nothing.
@@ -138,7 +138,7 @@ function SummaryRow({ products }: { products: IntelProduct[] }) {
       <MetricTile
         label="Followed products"
         value={formatCount(products.length, 'da-DK')}
-        context="Legendary tier, active status"
+        context="Supported products, active status"
       />
 
       <MetricTile
@@ -189,9 +189,10 @@ function SummaryRow({ products }: { products: IntelProduct[] }) {
 /* ── followed-product navigation ────────────────────────────────────────── */
 
 /**
- * The `LGDY` badge is gone. Every row the loader returns is
- * `tier = 'legendary'`, so the badge was printed 28 times to say nothing. Tier
- * returns to this list the day the followed set contains more than one.
+ * The `LGDY` badge is gone. When the loader selected `tier = 'legendary'` it
+ * was printed 28 times to say nothing, and since PAN-189 the set is priceable
+ * products of every tier: tier is editorial (CLAUDE.md §5) and says nothing
+ * about an arbitrage, so it stays off this list.
  */
 function FollowedSidebar({
   products,
