@@ -18,10 +18,13 @@ These are raw `.sql` files applied manually via the Supabase Studio SQL editor
 > **These are applied. This section is a record, not a queue.** It was headed
 > "Active queue" until 2026-08-13; the heading was wrong and is corrected here.
 > **Everything through 057 is applied** — see the 053–056 and 057 sections at
-> the end of this file. **058 is written and rehearsed but NOT applied**, and
-> **059 is written but NOT applied**, and **060 is written but NOT applied**;
-> each needs an explicit product-owner authorisation. See the 058, 059 and 060
-> sections at the end of this file.
+> the end of this file. **058, 059 and 060 are applied in production too**:
+> verified read-only on 2026-09-30 (the live `pg_get_viewdef` of
+> `browse_product_projection` carries 058's `image_resolved` LATERAL, and
+> `kg_product.year_discontinued` and `reverb_price_history.reverb_categories`
+> exist). Their sections below still read "NOT APPLIED" as written at authoring
+> time. **061 is written and rehearsed but NOT applied**; it needs an explicit
+> product-owner authorisation. See the 061 section at the end of this file.
 
 | File | Action | Notes |
 |---|---|---|
@@ -379,3 +382,37 @@ product page and both writers fail until it exists:
    `--apply` with owner authorisation. It writes its rollback SQL first.
 
 To roll back: revert the code and redeploy first, then run `060_rollback.sql`.
+
+## 061 — the card count stops counting rejected matches. WRITTEN, REHEARSED (PGlite), **NOT APPLIED**.
+
+`061_browse_projection_excludes_rejected_matches.sql` (PAN-197) adds one
+predicate to the `active_listing_counts` CTE of `browse_product_projection`:
+`AND lpm.is_valid IS NOT FALSE`. That is the SQL spelling of
+`.not('is_valid', 'is', false)`, the rule the product page
+(`frontend/app/api/product/[slug]/route.ts`) and the family page
+(`frontend/app/(shell)/family/[slug]/page.tsx`) already render by: NULL
+(unreviewed) and TRUE count, an explicit rejection does not. `supply_state`
+reads the same CTE and follows.
+
+Measured read-only on production 2026-09-30, by running the file's exact view
+query beside the live view: 4,047 rows either way, **0 differences in any
+column other than `active_listing_count` / `supply_state`**, 423 counts drop and
+none rise. Of the 80 products that render a public card, 43 change (3,675 → 2,121
+advertised listings); `roland-juno-106` 146 → 86, `roland-juno-60` 77 → 62,
+`roland-juno-6` 20 → 17. No public product flips from `live` to
+`no_live_listings`; 75 non-public, unsupported rows do.
+
+| Property | |
+|---|---|
+| DML | **none.** No `is_valid` is written and no match is deleted. |
+| Shape | unchanged — the same 27 columns in the same order, asserted before and after; the ACL is captured before and compared after. |
+| Method | `CREATE OR REPLACE VIEW`, never DROP + CREATE. The rest of the body is 058 verbatim (production's definition). |
+| Guard | PRE applies; POST (`is_valid IS NOT FALSE` present) is a no-op; DRIFT raises before mutating: shape drift, `is_valid` referenced any other way, or **058 not applied** — 061 restates 058's image LATERAL and must not apply it silently. |
+| Rollback | `061_rollback.sql` restores the 058 definition and comment exactly. It does not refuse — no data is involved — except on the same DRIFT states. |
+| Rehearsal | No local PostgreSQL on the authoring machine, so `verify-migrations-isolated.sh` was **not run**; its new section **16** covers 061. The same sequence (fixture → 038 → 036 → 058 → 061 → re-run → rollback → drift cases) was run in PGlite (PostgreSQL 16.4 in WASM, in-process): all checks pass. Production is PostgreSQL 17.6. |
+
+Not in scope, deliberately: counting a listing matched to two products once
+across a family (PAN-98's second half — per product the count is already
+distinct, since `(listing_id, product_id)` is unique), and gating `is_public`
+on `support_state` (PAN-98 defect 1, which removes rows and needs its own owner
+decision).
