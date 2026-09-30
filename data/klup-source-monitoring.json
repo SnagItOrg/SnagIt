@@ -9,6 +9,9 @@
     "marketplace monitoring, and it is a reviewed code change - no runtime admin",
     "surface may mutate it.",
     "",
+    "Owner-decided additions since then: dba.dk + roland-jupiter-4,",
+    "roland-jupiter-6 (PAN-193, 2026-09-30).",
+    "",
     "Reverb is intentionally NOT a query list: it sweeps the active music-gear",
     "catalogue rather than querying per product, so forcing it into a product set",
     "would misrepresent its ingestion model."
@@ -44,6 +47,8 @@
         "rhodes-mark-ii-stage-73",
         "roland-juno-106",
         "roland-juno-60",
+        "roland-jupiter-4",
+        "roland-jupiter-6",
         "roland-jupiter-8",
         "roland-re-201",
         "roland-sh-101",
