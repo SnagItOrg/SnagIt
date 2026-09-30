@@ -103,6 +103,54 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
       'gibson-les-paul-standard-60s',
       'gibson-les-paul-studio',
       'gibson-les-paul-special',
+      // PAN-198 (manager decision 2026-09-30): the series models, each with a
+      // verified Reverb CSP, and the existing Les Paul models that carry one.
+      // A child renders only once it is canonical, so this is inert until the
+      // promotion.
+      'gibson-les-paul-standard-50s-p-90',
+      'gibson-les-paul-standard-50s-faded',
+      'gibson-les-paul-standard-50s-double-trouble',
+      'gibson-les-paul-standard-60s-faded',
+      'gibson-les-paul-standard-60s-double-trouble',
+      'gibson-les-paul-studio-session',
+      'gibson-les-paul-studio-deluxe-ii',
+      'gibson-les-paul-studio-double-trouble',
+      'gibson-les-paul-special-tribute',
+      'gibson-les-paul-double-cut-special',
+      'gibson-les-paul-junior',
+      'gibson-les-paul-junior-double-cut',
+      'gibson-billie-joe-armstrong-les-paul-junior',
+      'gibson-les-paul-custom-70s',
+      'gibson-les-paul-classic',
+      'gibson-les-paul-deluxe',
+      'gibson-les-paul-70s-deluxe',
+      'gibson-les-paul-modern',
+      'gibson-les-paul-supreme',
+      'gibson-les-paul-traditional',
+      'gibson-les-paul-traditional-pro-ii',
+      'gibson-les-paul-tribute',
+      'gibson-les-paul-50s-tribute',
+      'gibson-les-paul-52-tribute',
+      'gibson-les-paul-60s-tribute',
+      'gibson-les-paul-70s-tribute',
+      'gibson-les-paul-future-tribute',
+      'gibson-the-paul',
+      'gibson-les-paul-the-paul-ii',
+      'gibson-slash-les-paul-standard',
+      'gibson-les-paul-paul-kossoff',
+      'gibson-les-paul-paul-landers-signature',
+      'gibson-custom-shop-les-paul-r0',
+      'gibson-custom-shop-les-paul-r4',
+      'gibson-custom-shop-les-paul-r6',
+      'gibson-custom-shop-les-paul-r7',
+      'gibson-custom-shop-les-paul-r8',
+      'gibson-custom-shop-les-paul-r9',
+      'gibson-custom-shop-1957-les-paul-custom-reissue',
+      'gibson-custom-shop-1968-les-paul-custom-reissue',
+      'gibson-custom-shop-1957-les-paul-junior-reissue',
+      'gibson-custom-shop-1957-les-paul-special-single-cut-reissue',
+      'gibson-custom-shop-1960-les-paul-special-double-cut-reissue',
+      'gibson-custom-shop-les-paul-special-double-cut-figured',
     ],
     aliases: ['les paul', 'lespaul', 'gibson les paul'],
   },
@@ -198,7 +246,20 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     label: 'Gibson ES-335',
     brand: 'Gibson',
     categoryRoot: 'electric-guitars',
-    children: ['gibson-es-335-dot'],
+    children: [
+      'gibson-es-335-dot',
+      // PAN-198 (manager decision 2026-09-30): the series models and Custom
+      // Shop reissues, each with a verified Reverb CSP.
+      'gibson-es-335-block',
+      'gibson-es-335-50s',
+      'gibson-es-335-60s-block',
+      'gibson-es-335-satin',
+      'gibson-es-335-studio',
+      'gibson-custom-shop-1959-es-335-reissue',
+      'gibson-custom-shop-1961-es-335-reissue',
+      'gibson-custom-shop-1963-es-335-block-reissue',
+      'gibson-custom-shop-1964-es-335-reissue',
+    ],
     aliases: ['es-335', 'es335', 'gibson es-335'],
   },
   /*
@@ -574,6 +635,32 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
       'fender-american-professional-classic-jaguar',
     ],
     aliases: [],
+  },
+  /*
+   * PAN-198 (manager decision 2026-09-30). `gibson-sg` IS a `kg_product` row:
+   * a `known` + `qa_only` line label with no Reverb CSP, the Jazzmaster case.
+   * Listing it here is the PAN-84 guard, so it can never be published or
+   * receive automatic matches. The 2019– SG Standard is `gibson-sg-standard`;
+   * the '61 is its own model, and the 1966–71 "Large Guard" the supported row.
+   */
+  'gibson-sg': {
+    label: 'Gibson SG',
+    brand: 'Gibson',
+    categoryRoot: 'electric-guitars',
+    children: [
+      'gibson-sg-standard',
+      'gibson-sg-standard-61',
+      'gibson-sg-standard-61-faded',
+      'gibson-sg-standard-large-guard-with-maestro-vibrola',
+      'gibson-sg-61-reissue',
+      'gibson-custom-shop-1961-les-paul-sg-standard-reissue',
+      'gibson-sg-special',
+      'gibson-sg-special-faded',
+      'gibson-custom-shop-1963-sg-special-reissue',
+      'gibson-sg-supreme',
+      'gibson-sg-modern',
+    ],
+    aliases: ['sg', 'gibson sg'],
   },
 }
 
