@@ -282,6 +282,22 @@ const STANDARD_2025: Pick<LineBoundary, 'requires' | 'otherMembers'> = {
   otherMembers: [...cues('american', 'usa', 'mexico', 'mexican', 'mex', 'mim'), yearCue(1950, 2023)],
 }
 
+/** A '70s or '80s model name — "70s Explorer", "Flying V 70's" — never a bare "1970s" year. */
+const DECADE_70S_80S = /(?<![\w'’])['’]?[78]0['’]?s(?![\w-])/i
+
+/**
+ * A two-digit Gibson reissue year — "'61", "63 SG Special", "´58" — never part
+ * of a four-digit year or a serial number.
+ */
+const SHORT_YEAR = (decade: 5 | 6): RegExp =>
+  new RegExp(`(?<![\\w\\d#-])['’‘´]?${decade}\\d(?![\\w\\d'’-])`, 'i')
+
+/** Gibson Custom Shop and its reissue programmes: a model, never the base (PAN-198). */
+const GIBSON_CUSTOM: readonly RegExp[] = cues(
+  'custom shop', 'custom', 'historic', 'reissue', 'vos', 'murphy lab', 'murphy-lab',
+  'm2m', 'made to measure', 'made 2 measure',
+)
+
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
   'moog-minimoog': {
@@ -358,6 +374,8 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
         'rosewood', 'walnut', 'koa', 'red spruce', 'elegant', 'golden era', 'fixed bridge',
         'custom', 'murphy lab', 'murphy-lab', 'historic', 'reissue', 'vos', 'light aged', 'heavy aged',
         'anniversary', 'limited edition',
+        // PAN-198: a dealer's sinker-mahogany edition.
+        'dealer select', 'sinker',
       ),
       // The model, not "with original Gibson Hardcase".
       /(?<![\w-])(?:hummingbird\s+(?:\d{4}\s+)?original|original\s+hummingbird)(?![\w-])/i,
@@ -367,7 +385,8 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   },
   // Frozen boundary: "Lower tier."
   'gibson-les-paul-studio': {
-    line: 'les-paul-studio',
+    // One line with every PAN-198 Les Paul model (step 5b).
+    line: 'les-paul',
     otherMembers: [
       ...cues(
         'session', 'faded', 'deluxe', 'tribute', 'double trouble', 'double cut', 'plus',
@@ -379,10 +398,12 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   },
   // Frozen boundary: "P-90 tier." The single cut; the Double Cut is its own model.
   'gibson-les-paul-special': {
-    line: 'les-paul-special',
+    line: 'les-paul',
     otherMembers: [
       ...cues(
         'dc', 'double cut', 'double cutaway', 'doublecut', 'dubble cut', 'dbl',
+        // PAN-198: the Les Paul Junior Special, its own model.
+        'junior',
         'tribute', 'faded', 'plus', 'sl', 'figured', 'jr', 'es',
         'custom', 'cs', 'murphy lab', 'historic', 'reissue', 'vos', 'aged',
       ),
@@ -458,7 +479,7 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // built by Gibson Custom, so "Custom Shop" is not a cue here; its reissue,
   // limited and signature lines are.
   'gibson-les-paul-custom': {
-    line: 'les-paul-custom',
+    line: 'les-paul',
     otherMembers: [
       ...cues(
         'reissue', 'historic', 'vos', 'murphy lab', 'm2m', 'made to measure', 'made 2 measure',
@@ -575,6 +596,363 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'fender-vintera-ii-70s-competition-mustang-bass': member('mustang-bass'),
   'fender-american-performer-mustang-bass': member('mustang-bass'),
   'fender-american-professional-classic-mustang-bass': member('mustang-bass'),
+
+  // ── PAN-198: the Gibson series models (manager decision 2026-09-30) ───────
+  // The PAN-195 method: a base refuses the words of every longer member of
+  // its family, and the whole family shares one line so the refusal picks the
+  // longer member instead of deferring (step 5b). Series, Custom Shop reissue
+  // year, signature and generation are models; year, finish, handedness,
+  // pickups and aging are facets (option A). Every cue was read against the
+  // forecast titles of 6,995 production listings.
+
+  // Les Paul (line shared with the PAN-154 Studio, Special and Custom above).
+  'gibson-les-paul-standard-50s': member('les-paul', ...cues('faded', 'double trouble', 'p-90', 'p90')),
+  'gibson-les-paul-standard-50s-double-trouble': member('les-paul'),
+  'gibson-les-paul-standard-50s-faded': member('les-paul'),
+  'gibson-les-paul-standard-50s-p-90': member('les-paul'),
+  'gibson-les-paul-standard-60s': member('les-paul', ...cues('faded', 'double trouble')),
+  'gibson-les-paul-standard-60s-double-trouble': member('les-paul'),
+  'gibson-les-paul-standard-60s-faded': member('les-paul'),
+  'gibson-les-paul-studio-deluxe-ii': member('les-paul'),
+  'gibson-les-paul-studio-double-trouble': member('les-paul'),
+  'gibson-les-paul-studio-session': member('les-paul'),
+  'gibson-les-paul-special-tribute': member('les-paul'),
+  'gibson-les-paul-custom-70s': member('les-paul'),
+  'gibson-custom-shop-1957-les-paul-custom-reissue': member('les-paul'),
+  'gibson-custom-shop-1968-les-paul-custom-reissue': member('les-paul'),
+  'gibson-custom-shop-1957-les-paul-special-single-cut-reissue': member('les-paul'),
+  'gibson-custom-shop-1960-les-paul-special-double-cut-reissue': member('les-paul'),
+  'gibson-custom-shop-les-paul-special-double-cut-figured': member('les-paul'),
+  'gibson-les-paul-double-cut-special': {
+    line: 'les-paul',
+    otherMembers: [...GIBSON_CUSTOM, cue('figured')],
+    // Measured: a Canadian case maker's cases (as on the Les Paul Special).
+    accessories: ['canadian made', 'made in canada'],
+  },
+  // Base: the single-cut Junior. The Double Cut, the Junior Special, the
+  // Tribute, the Custom Shop reissues and the Billie Joe Armstrong are models.
+  'gibson-les-paul-junior': {
+    line: 'les-paul',
+    otherMembers: [
+      ...cues(
+        'double cut', 'double cutaway', 'doublecut', 'dc', 'billie joe', 'billy joe', 'armstrong',
+        'special', 'tribute', 'anniversary',
+      ),
+      ...GIBSON_CUSTOM,
+      SHORT_YEAR(5),
+    ],
+    accessories: ['gitarkoffert', 'koffert', 'book', 'canadian made', 'made in canada'],
+  },
+  'gibson-les-paul-junior-double-cut': member('les-paul'),
+  'gibson-billie-joe-armstrong-les-paul-junior': member('les-paul'),
+  'gibson-custom-shop-1957-les-paul-junior-reissue': member('les-paul'),
+  'gibson-les-paul-classic': member(
+    'les-paul',
+    ...cues(
+      'plus', 'custom', 'premium', 'antique', 'zebrawood', 'rock', 'tom morgan',
+      'guitar of the week', 'limited edition',
+    ),
+  ),
+  // Base: the 1969–84 Deluxe. The 2021 '70s Deluxe is sold as "Les Paul Deluxe 70s".
+  'gibson-les-paul-deluxe': member(
+    'les-paul',
+    ...cues('pro', 'anniversary', 'studio', 'player plus', 'tribute'),
+    ...GIBSON_CUSTOM,
+    /['’]?70['’]?s\s+deluxe|deluxe\s+['’]?70['’]?s/i,
+  ),
+  'gibson-les-paul-70s-deluxe': member('les-paul'),
+  'gibson-les-paul-modern': member('les-paul', ...cues('figured', 'lite', 'studio', 'supreme')),
+  'gibson-les-paul-supreme': member('les-paul', cue('guitar of the week')),
+  'gibson-les-paul-traditional': member('les-paul', ...cues('pro', 'plus'), ...GIBSON_CUSTOM),
+  'gibson-les-paul-traditional-pro-ii': member('les-paul'),
+  'gibson-les-paul-tribute': member(
+    'les-paul',
+    ...cues('hp', 'high performance', 'future', 'tribute to', 'dc', 'junior', 'special', 'studio'),
+    DECADE_MODEL, DECADE_70S_80S, SHORT_YEAR(5),
+  ),
+  'gibson-les-paul-50s-tribute': member('les-paul', ...cues('hp', 'high performance')),
+  'gibson-les-paul-52-tribute': member('les-paul'),
+  'gibson-les-paul-60s-tribute': member('les-paul', ...cues('hp', 'high performance')),
+  'gibson-les-paul-70s-tribute': member('les-paul'),
+  'gibson-les-paul-future-tribute': member('les-paul'),
+  // Base: the 1978–80 Firebrand "The Paul". The Paul II, The Paul Deluxe and
+  // the SL/Lite are other models; tailpiece and switch listings name it in a
+  // list of fitting models.
+  'gibson-the-paul': {
+    line: 'les-paul',
+    otherMembers: [
+      ...cues('ii', 'deluxe', 'firebrand', 'sl', 'lite', 'anniversary', 'custom shop'),
+      /the\s+paul\s+2(?!\d)/i,
+      // "1990s Trans Red" is The Paul II; the original ran 1978–80.
+      yearCue(1981, 2039),
+    ],
+    accessories: ['tailpiece', 'studs', 'switch', 'switch tip', 'switch plate'],
+  },
+  'gibson-les-paul-the-paul-ii': member('les-paul'),
+  'gibson-custom-shop-les-paul-r0': member('les-paul'),
+  'gibson-custom-shop-les-paul-r4': member('les-paul'),
+  'gibson-custom-shop-les-paul-r6': member('les-paul'),
+  'gibson-custom-shop-les-paul-r7': member('les-paul'),
+  'gibson-custom-shop-les-paul-r8': member('les-paul'),
+  'gibson-custom-shop-les-paul-r9': member('les-paul'),
+  'gibson-les-paul-paul-kossoff': member('les-paul'),
+  'gibson-les-paul-paul-landers-signature': member('les-paul'),
+  'gibson-slash-les-paul-standard': member('les-paul'),
+
+  // SG. Base: the 2019– SG Standard (Modern collection); the '61 is its own model.
+  'gibson-sg-standard': member(
+    'sg',
+    ...cues(
+      'large guard', 'maestro', 'les paul sg', 'tribute', 'bass', 'derek trucks', 'jeff tweedy',
+      'signature', 'faded', '24',
+    ),
+    ...GIBSON_CUSTOM,
+    SHORT_YEAR(6),
+  ),
+  'gibson-sg-standard-large-guard-with-maestro-vibrola': member('sg'),
+  'gibson-sg-standard-61': member(
+    'sg',
+    ...cues('faded', 'maestro', 'sideways', 'les paul sg'),
+    ...GIBSON_CUSTOM,
+  ),
+  'gibson-sg-standard-61-faded': member('sg'),
+  'gibson-sg-61-reissue': member('sg', ...cues('custom shop', 'historic', 'vos', 'murphy lab', 'les paul sg')),
+  'gibson-custom-shop-1961-les-paul-sg-standard-reissue': member('sg'),
+  'gibson-sg-special': {
+    line: 'sg',
+    otherMembers: [
+      ...cues(
+        'faded', 'tribute', 'anniversary', 'limited edition', 'lightning bar', 'iommi',
+        'junior', 'supreme',
+      ),
+      ...GIBSON_CUSTOM,
+      DECADE_70S_80S,
+      SHORT_YEAR(6),
+    ],
+    accessories: ['pickguard'],
+  },
+  'gibson-sg-special-faded': member('sg'),
+  'gibson-custom-shop-1963-sg-special-reissue': member('sg'),
+  // Base: the 2024– SG Supreme. The 1999–2007 SG Supreme is an earlier generation.
+  'gibson-sg-supreme': member(
+    'sg',
+    ...cues('guitar of the week', 'bass', 'p-90', 'p90', 'modern'),
+    yearCue(1995, 2012),
+  ),
+  'gibson-sg-modern': {
+    line: 'sg',
+    otherMembers: cues('supreme', 'mod collection', 'outrun'),
+    accessories: ['hardshell case'],
+  },
+
+  // ES. The ES-355 row stays `known` (its CSP is the Custom Shop '59 reissue).
+  'gibson-es-335-dot': member('es'),
+  'gibson-es-335-block': member('es', ...GIBSON_CUSTOM, SHORT_YEAR(6), DECADE_MODEL),
+  'gibson-es-335-50s': member('es'),
+  'gibson-es-335-60s-block': member('es'),
+  'gibson-es-335-satin': member('es', cue('block')),
+  'gibson-es-335-studio': member('es'),
+  'gibson-custom-shop-1959-es-335-reissue': member('es'),
+  'gibson-custom-shop-1961-es-335-reissue': member('es'),
+  'gibson-custom-shop-1963-es-335-block-reissue': member('es'),
+  'gibson-custom-shop-1964-es-335-reissue': member('es'),
+  'gibson-es-330': {
+    line: 'es',
+    // A Kluson tuner is never the guitar; "1965+ Kluson" defeats the accessory
+    // rule, whose "+" is an inclusion marker.
+    otherMembers: [...GIBSON_CUSTOM, SHORT_YEAR(5), cue('kluson')],
+    accessories: ['tuners', 'tuner', 'tailpiece', 'saitenhalter', 'guitar case'],
+  },
+  // Base: the 2020– ES-345; the vintage original is the same model (option A).
+  'gibson-es-345': member('es', cue('marcus king'), ...GIBSON_CUSTOM, /(?<!\w)['’‘´]\d\d(?!\d)/),
+  'gibson-marcus-king-es-345': member('es'),
+  'gibson-es-346-paul-jackson-jr': member('es'),
+  'gibson-gary-clark-jr-es-355': member('es'),
+  'gibson-es-les-paul': {
+    line: 'es',
+    otherMembers: cues('custom', 'special', 'bass', 'lifeson', 'signature'),
+    accessories: ['tuners', 'grover'],
+  },
+
+  // Explorer. Base: the 2019– Explorer and its originals; every series,
+  // reissue and limited run below is another model.
+  'gibson-explorer': member(
+    'explorer',
+    ...cues(
+      'korina', 'pro', 'studio', 'xpl', 'government', 'gothic', 'robot', 'mirror', 'melody maker',
+      'cmt', 'centennial', 'anniversary', 'guitar of the week', 'guitar of the month',
+      'traditional', 'e2', 'ii', 'iii', 'b-2', 'tribute', 'hp', 'vampire', 'designer series',
+      'modern', '83', 'double',
+    ),
+    ...GIBSON_CUSTOM,
+    DECADE_70S_80S,
+    /(?<![\w\d-])['’]?(?:58|76|90)(?![\w\d'’-])/i,
+  ),
+  'gibson-70s-explorer': member('explorer'),
+  'gibson-80s-explorer': member('explorer'),
+  'gibson-custom-shop-1958-korina-explorer-reissue': member('explorer'),
+  'gibson-explorer-b-2': member('explorer'),
+  'gibson-explorer-custom': member('explorer'),
+  'gibson-explorer-e2': member('explorer'),
+  'gibson-explorer-iii': member('explorer'),
+
+  // Flying V. Base: the 2019– Flying V and its originals.
+  'gibson-flying-v': {
+    line: 'flying-v',
+    otherMembers: [
+      ...cues(
+        'korina', 'exp', 'mustaine', 'v2', 'b-2', 'faded', 'government', 'hp', 'pro', 'melody maker',
+        'cmt', 'the v', 'holy v', 'guitar of the month', 'anniversary', 'tribute', 'designer series',
+        'heritage', 'signature', 'kirk hammett', 'schenker', 'limited', 'ltd', 'proprietary',
+        'replica', 'prototype',
+        // A Kluson/Tulip tuner lists the Flying V among the models it fits.
+        // It cannot be an accessory: the "+" of "3+3" reads as an inclusion marker.
+        'tuner',
+      ),
+      ...GIBSON_CUSTOM,
+      DECADE_70S_80S,
+      /(?<![\w\d-])['’]?(?:58|59|67|68|75|76|90)(?![\w\d'’-])/i,
+      /flying\s+v\s+i(?![\w-])/i,
+    ],
+    accessories: ['harness', 'wiring harness', 'formkoffer'],
+  },
+  'gibson-70s-flying-v': member('flying-v'),
+  'gibson-custom-shop-1958-korina-flying-v-reissue': member('flying-v'),
+  'gibson-dave-mustaine-flying-v-exp': member('flying-v'),
+  'gibson-flying-v-67': member('flying-v'),
+  'gibson-flying-v-custom': member('flying-v'),
+  'gibson-flying-v2': member('flying-v'),
+
+  // Firebird. Base: the 2019– reverse Firebird (a Firebird V).
+  'gibson-firebird': {
+    line: 'firebird',
+    otherMembers: [
+      ...cues(
+        'platypus', 'studio', 'vii', 'iii', 'zero', 'x', 'hp', 'tribute', 'non-reverse', 'nr',
+        'celebrity', 'collectors choice', 'slash', 'johnny winter', 'anniversary',
+        'guitar of the week', 'dealer select', 'aged', 'bass',
+      ),
+      ...GIBSON_CUSTOM,
+      /firebird\s+i(?![\w-])/i,
+      DECADE_70S_80S,
+    ],
+    accessories: ['harness', 'sticker', 'guitar case'],
+  },
+  'gibson-custom-shop-1963-firebird-v-reissue': member('firebird'),
+  'gibson-firebird-platypus': member('firebird'),
+  // A replacement pickguard "for 2004-2008 Gibson Firebird Studio". Not an
+  // accessory: "3 Ply W/B/W Pickguard" puts the inclusion marker "w/" first.
+  'gibson-firebird-studio': member('firebird', cue('pickguard')),
+  'gibson-firebird-vii': member('firebird', ...GIBSON_CUSTOM),
+
+  // Thunderbird. Base: the reverse Thunderbird IV. The 2021 Thunderbird Bass
+  // ships with a non-reverse HEADSTOCK; the Non-Reverse Thunderbird is a body.
+  'gibson-thunderbird': {
+    line: 'thunderbird',
+    otherMembers: [
+      ...cues(
+        'bicentennial', 'anniversary', 'gene simmons', 'g2', 'rex brown', 'studio', 'tribute',
+        'tom peterson', 'orville', 'faded', 'ii',
+      ),
+      /non[-\s]?reverse(?!\s+headstock)/i,
+    ],
+    accessories: ['hardshell case', 'harness', 'sticker', 'pickguard'],
+  },
+  'gibson-non-reverse-thunderbird': member('thunderbird'),
+  'gibson-thunderbird-bicentennial': member('thunderbird'),
+
+  // Acoustics. J-45 and Hummingbird keep their PAN-154 lines.
+  'gibson-50s-j-45-original': member('j-45'),
+  'gibson-60s-j-45-original': member('j-45'),
+  'gibson-custom-shop-1942-banner-j-45': member('j-45'),
+  'gibson-custom-shop-1955-j-45-reissue': member('j-45'),
+  'gibson-j-45-century-12-fret': member('j-45'),
+  'gibson-j-45-special': member('j-45'),
+  'gibson-j-45-standard-rosewood': member('j-45'),
+  'gibson-j-45-studio-rosewood': member('j-45'),
+  'gibson-j-45-studio-walnut': member('j-45'),
+  'gibson-gibson-j-45-standard-12-string': member('j-45'),
+  'gibson-margo-price-j-45': member('j-45'),
+  'gibson-slash-j-45': member('j-45'),
+  'gibson-custom-shop-1960-hummingbird': member('hummingbird'),
+  'gibson-hummingbird-original': member('hummingbird'),
+  'gibson-hummingbird-special': member('hummingbird'),
+  'gibson-hummingbird-standard-rosewood': member('hummingbird'),
+  'gibson-hummingbird-studio-ec': member('hummingbird'),
+  'gibson-hummingbird-studio-rosewood': member('hummingbird'),
+  // Base: the 2019– SJ-200 Original.
+  'gibson-sj-200-original': member('sj-200', ...cues('special'), ...GIBSON_CUSTOM, DECADE_MODEL),
+  'gibson-sj-200-standard': member('sj-200', ...cues('maple', 'rosewood'), ...GIBSON_CUSTOM),
+  'gibson-sj-200-standard-rosewood': member('sj-200'),
+  'gibson-sj-200-studio-rosewood': member('sj-200'),
+  'gibson-sj-200-studio-walnut': member('sj-200'),
+  'gibson-sj-200-60s-original': member('sj-200'),
+  'gibson-sj-200-western-classic': member('sj-200'),
+  'gibson-sj-200-orianthi-signature': member('sj-200'),
+  'gibson-elvis-presley-sj-200': member('sj-200'),
+  'gibson-custom-shop-1957-sj-200': member('sj-200'),
+  'gibson-pre-war-sj-200': member('sj-200'),
+  'gibson-j-185': member(
+    'j-185',
+    ...cues(
+      'original', 'century', '12-fret', 'rosanne cash', 'elite', 'ec', 'modern classic',
+      'centennial', 'anniversary', 'harley', 'red spruce', 'limited edition', '1952',
+    ),
+    ...GIBSON_CUSTOM,
+  ),
+  'gibson-custom-shop-1952-j-185': member('j-185'),
+  'gibson-j-185-century-12-fret': member('j-185'),
+  'gibson-j-185-original': member('j-185'),
+  'gibson-rosanne-cash-j-185': member('j-185'),
+  'gibson-lg-2': member(
+    'lg-2',
+    ...cues(
+      'original', 'all mahogany', 'all-mahogany', 'mahogany', 'faded', 'banner', 'rateliff',
+      'western', '3/4', 'american eagle',
+    ),
+    ...GIBSON_CUSTOM,
+    DECADE_MODEL,
+  ),
+  'gibson-50s-lg-2-original': member('lg-2'),
+  'gibson-lg-2-3-4': member('lg-2'),
+  'gibson-lg-2-all-mahogany-faded': member('lg-2'),
+  'gibson-lg-2-american-eagle': member('lg-2'),
+  'gibson-j-35': member(
+    'j-35',
+    ...cues('1936', 'faded', 'banner', 'collector', 'saito'),
+    ...GIBSON_CUSTOM,
+    /(?<![\w'’])['’]?30['’]?s(?![\w-])/i,
+  ),
+  'gibson-custom-shop-1936-j-35': member('j-35'),
+  'gibson-j-35-30s-faded': member('j-35'),
+  'gibson-j-55': {
+    line: 'j-55',
+    otherMembers: [...cues('1939', 'centennial', 'faded'), ...GIBSON_CUSTOM],
+    accessories: ['dealer sheet'],
+  },
+  'gibson-custom-shop-1939-j-55': member('j-55'),
+  'gibson-advanced-jumbo': member(
+    'advanced-jumbo',
+    ...cues(
+      '1936', 'adirondack', 'red spruce', 'pro', 'anniversary', 'limited edition', "luthier's choice",
+      'birdseye', 'performer', "fuller's", 'maple',
+    ),
+    ...GIBSON_CUSTOM,
+  ),
+  'gibson-custom-shop-1936-advanced-jumbo': member('advanced-jumbo'),
+  // Base: the 1968–88 Dove; the 2019– Dove Original is its own model.
+  'gibson-dove': member(
+    'dove',
+    ...cues('elvis', 'in flight', 'artist'),
+    ...GIBSON_CUSTOM,
+    /dove\s+original|original\s+dove/i,
+    yearCue(1989, 2039),
+  ),
+  'gibson-dove-original': member('dove', yearCue(1962, 2018)),
+  // Base: the 2021– Generation Collection G-45; the 2019 G-45 Standard is not it.
+  'gibson-g-45': member('g-45', ...cues('studio', 'standard'), ...GIBSON_CUSTOM),
+  'gibson-g-45-studio': member('g-45'),
+  'gibson-southern-jumbo-original': member('southern-jumbo', ...cues('dealer select', 'sinker', 'custom')),
 }
 
 /**

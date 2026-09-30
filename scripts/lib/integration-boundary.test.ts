@@ -180,6 +180,7 @@ test('integration: every package suite is registered exactly once', () => {
       // files parts under a product the moment its backlog is re-matched.
       'scripts/lib/pan193-jupiter.test.ts',
       'scripts/lib/pan195-line-boundaries.test.ts',
+      'scripts/lib/pan198-line-boundaries.test.ts',
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',
