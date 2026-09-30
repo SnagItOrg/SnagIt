@@ -97,11 +97,18 @@ export function ProductCard({
         {/* Opposite edge of the media box, not the opposite corner of the same row:
             at 320-430px a shelf card is 152-163px wide and the two pills need
             ~168px side by side, so any top row makes one of them clip or
-            ellipsize. aspect-[4/3] guarantees the height this relies on. */}
+            ellipsize. aspect-[4/3] guarantees the height this relies on.
+            PAN-168 #9: most product photos are cut-outs on white, where a
+            --card chip had no edge at all in light mode; --border-subtle is
+            the edge every card already wears. */}
         {activeListingCount > 0 && (
           <span
             className="absolute bottom-2 right-2 text-[11px] font-medium px-2 py-0.5 rounded-full"
-            style={{ background: 'var(--card)', color: 'var(--foreground)' }}
+            style={{
+              background: 'var(--card)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--border-subtle)',
+            }}
           >
             {activeListingCount} {t.discoverForSale}
           </span>

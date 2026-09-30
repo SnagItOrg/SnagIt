@@ -19,6 +19,7 @@ import {
   extractCardPrice,
   extractCardPriceOutcome,
   mayReplaceStoredPrice,
+  priceAbsentAtSource,
   parseGermanPrice,
   parseGermanPriceOutcome,
   recordPriceOutcome,
@@ -627,8 +628,8 @@ test('the scraper retires unseen rows only after a run that looked at everything
   assert.equal(sweeps.length, 1, 'exactly one stale sweep')
   assert.match(
     src,
-    /const sweepAllowed =\s*RUN_SCOPE === 'complete' &&\s*status !== 'failed' &&\s*!violations\.some\(v => v\.code === 'suspiciously_low_volume'\) &&\s*coverageIsComplete\(/,
-    'the sweep must require a complete, trusted, non-empty, fully answered run',
+    /const sweepAllowed =\s*RUN_SCOPE === 'complete' &&\s*status === 'passed' &&\s*coverageIsComplete\(/,
+    'the sweep must require a complete, passed, fully answered run — quarantined skips lifecycle (PAN-177)',
   )
   assert.match(
     src,
@@ -666,6 +667,29 @@ test('a stored price survives a card Klup failed to read, but not a seller who s
   assert.ok(src.includes('replacesPrice: mayReplaceStoredPrice(price, listing.priceReason)'))
   assert.ok(src.includes('.map(({ row: { price: _price, price_dkk: _priceDkk, ...withoutPrice } }) => withoutPrice)'))
   assert.match(src, /await upsert\(replacing\)[\s\S]{0,120}await upsert\(keeping\)/)
+})
+
+test('the run gate excuses a price the card itself withholds, never one Klup failed to read (PAN-177)', () => {
+  // Both 2026-09-28 runs: no_price_stated 74 and 78 cards, ambiguous_pair 6, above_impossible_bound 1,
+  // no_number 0 — and both quarantined on partial_price_dkk_null.
+  for (const stated of ['VB', 'Zu verschenken', 'Preis auf Anfrage', '123456 €', '1.500.000 €']) {
+    const outcome = parseGermanPriceOutcome(stated)
+    assert.equal(outcome.value, null)
+    assert.equal(priceAbsentAtSource(outcome.reason), true, `${stated} is the card's own answer`)
+  }
+
+  // The shapes of a markup change must keep tripping the gate.
+  const unreadable = extractCardPriceOutcome(
+    '<article data-adid="1"><h2><a href="/s-anzeige/x/1">Roland Juno-106</a></h2></article>',
+  )
+  assert.equal(unreadable.reason, 'no_number')
+  assert.equal(priceAbsentAtSource(unreadable.reason), false)
+  assert.equal(priceAbsentAtSource(parseGermanPriceOutcome('+ Versand ab 5,49 €').reason), false)
+  // A write-gate refusal carries no card reason.
+  assert.equal(priceAbsentAtSource(null), false)
+
+  const src = readFileSync(join(ROOT, 'scripts', 'scrape-kleinanzeigen.ts'), 'utf8')
+  assert.ok(src.includes('priceAbsentAtSource: absentAtSource.has(r.url)'), 'the scraper must hand the reason to the gate')
 })
 
 test('price snapshots apply the same guard as the writer', () => {

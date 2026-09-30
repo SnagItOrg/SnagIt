@@ -34,6 +34,10 @@
   --ramp-ink:       #131417;
   --ramp-ink-2:     #454951;
   --ramp-ink-3:     #5f636b;
+  /* The primary action's hover and press (PAN-168): L* +8 and +14 from
+     --ramp-ink, on the line toward --ramp-ink-2. White on them: 15.49 / 13.00. */
+  --ramp-ink-hi:    #232429;
+  --ramp-ink-press: #2f3137;
 
   --ramp-green:     #13ec6d;
   --ramp-green-hi:  #0bd25e;
@@ -142,6 +146,8 @@
   --card-border:           var(--border-subtle);
   --primary:               var(--ramp-ink);
   --primary-foreground:    var(--ramp-1);
+  --primary-hover:         var(--ramp-ink-hi);
+  --primary-active:        var(--ramp-ink-press);
   --secondary:             var(--surface-2);
   --secondary-foreground:  var(--text-primary);
   --muted:                 var(--surface-2);
@@ -319,6 +325,9 @@
   --ramp-ink:       #edeef0;
   --ramp-ink-2:     #b6b9bf;
   --ramp-ink-3:     #8b8f97;
+  /* L* -8 and -14 from --ramp-ink. #0a0a0c on them: 13.75 / 11.66. */
+  --ramp-ink-hi:    #d6d7db;
+  --ramp-ink-press: #c4c7cb;
 
   /* Damped one step from the brand green: full #13ec6d halates against a
      canvas this dark. Badge fills stay unmistakably Klup green; the bloom
@@ -455,6 +464,29 @@
     transition-duration: var(--duration-fast-min);
   }
 
+  /* --- primary action ---------------------------------------------------
+     PAN-168. Astryx's Button, read and not imported: hover is one step from
+     rest and press a second step further, both only while enabled, and hover
+     only where a pointer can hover. Focus changes no fill; it is the ring.
+     Every state is a solid ramp colour, never an opacity. The fill moves
+     through a variable so <Button>, which sets it inline, moves too. */
+  .button-primary {
+    --button-primary-fill: var(--primary);
+    background-color: var(--button-primary-fill);
+    color: var(--primary-foreground);
+    transition: background-color var(--duration-fast) var(--ease-standard);
+  }
+
+  @media (hover: hover) {
+    .button-primary:where(:not(:disabled, [aria-disabled='true'])):hover {
+      --button-primary-fill: var(--primary-hover);
+    }
+  }
+
+  .button-primary:where(:not(:disabled, [aria-disabled='true'])):active {
+    --button-primary-fill: var(--primary-active);
+  }
+
   /* --- field ------------------------------------------------------------
      The resting and focused appearance of a text input, in CSS.
 
@@ -488,6 +520,17 @@
 
   .field:focus {
     border-color: var(--ring);
+  }
+
+  /* PAN-168. The placeholder is the only hint of what Klup covers ("fx
+     Juno-106, TR-808, DX7"), and it fell through to Preflight's gray-400 — not
+     a token — with `placeholder:opacity-40/50` at two call sites on top.
+     Measured on --input-background: 1.29:1 light / 2.11:1 dark in the shell
+     search, 1.98:1 on the landing hero. --text-muted is 4.69 / 4.61, and one
+     rule here means no call site picks its own. */
+  .field::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -984,6 +1027,16 @@
      a source badge and an action, so they need more room than a product tile. */
   .grid-wall-lg {
     --wall-card-min: var(--wall-card-min-lg);
+  }
+
+  /* PAN-168. Two across on a phone, unchanged from ~560px up. The fixed 14rem
+     floor gave one 358px column at 390px — 37 synths made a 13,943px page —
+     the same defect PAN-86 fixed on the homepage shelf with a fluid floor.
+     40vw is 156px at 390 and 144px (9rem) at 360, so a phone always fits two;
+     it reaches the 14rem cap at 560px, so tablet and desktop keep today's
+     columns exactly. ProductCard is already built for ~150px (the shelves). */
+  .grid-wall-pair {
+    --wall-card-min: clamp(9rem, 40vw, 14rem);
   }
 
   .grid-wall > * {

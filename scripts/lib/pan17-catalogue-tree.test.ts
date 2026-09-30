@@ -50,6 +50,7 @@ import { join } from 'node:path'
 import {
   FACET_SUBCATEGORIES,
   buildCatalogueTree,
+  compareRootsByCountThenName,
   sortKindsByLabel,
   type CatalogueTreeRow,
   type SubcategoryGroupNames,
@@ -285,5 +286,23 @@ test('PAN-141: the sidebar and the chip row share one kind order', () => {
   const frontend = join(__dirname, '..', '..', 'frontend')
   for (const file of ['components/SideNav.tsx', 'app/(shell)/browse/[root]/page.tsx']) {
     assert.match(readFileSync(join(frontend, file), 'utf8'), /sortKindsByLabel\(/, file)
+  }
+})
+
+test('PAN-168: the sidebar and the /browse tiles share one root order', () => {
+  // /browse sorted by English name while rendering Danish ones, so its tiles
+  // read in no visible order and disagreed with the sidebar beside them.
+  const roots = [
+    { name_en: 'Acoustic Guitars', product_count: 3 },
+    { name_en: 'Keyboards and Synths', product_count: 37 },
+    { name_en: 'Bass Guitars', product_count: 3 },
+  ]
+  assert.deepEqual(
+    [...roots].sort(compareRootsByCountThenName).map((r) => r.name_en),
+    ['Keyboards and Synths', 'Acoustic Guitars', 'Bass Guitars'],
+  )
+  const frontend = join(__dirname, '..', '..', 'frontend')
+  for (const file of ['lib/catalogue-tree.ts', 'lib/browse.ts']) {
+    assert.match(readFileSync(join(frontend, file), 'utf8'), /\.sort\(compareRootsByCountThenName\)/, file)
   }
 })

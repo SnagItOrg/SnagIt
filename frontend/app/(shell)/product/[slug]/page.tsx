@@ -26,6 +26,8 @@ import {
   type MatchReviewStatus,
 } from '@/components/admin/ProductReviewControls'
 import { ScrapeSection } from '@/components/admin/ScrapeSection'
+import { TrackView } from '@/components/TrackView'
+import { track } from '@/lib/analytics'
 
 /** The product API enriches each listing with a server-computed deal signal. */
 type ListingWithVerdict = {
@@ -33,7 +35,9 @@ type ListingWithVerdict = {
   marketVerdictBasisLabel?: string | null
 }
 import { ChartFrame, DataLegend } from '@/components/data-display'
-import { formatCompact, formatDateRange, formatDkkAmount } from '@/lib/chart-format'
+import { formatDateRange, formatDkkAmount } from '@/lib/chart-format'
+import { niceTicks } from '@/lib/chart-geometry'
+import { partitionByIqr } from '@/lib/statistics'
 import { seriesColor } from '@/lib/chart-palette'
 import type { Listing } from '@/lib/supabase'
 // Type-only, and it must stay that way: the route reaches lib/families.ts,
@@ -43,6 +47,29 @@ import type { Listing } from '@/lib/supabase'
 import type { FamilyContext, PricePoint, RelatedProduct } from '@/app/api/product/[slug]/route'
 import type { ProductPlacement } from '@/lib/catalogue-tree'
 import { Icon } from '@/components/Icon'
+import { Button } from '@/components/Button'
+
+/**
+ * PAN-168. Reverb's condition vocabulary → the label a visitor reads. The raw
+ * string stays the series KEY (it fixes the colour and shape); only the label
+ * is translated. A condition not listed here renders as Reverb wrote it.
+ */
+type ConditionLabelKey =
+  | 'conditionBrandNew' | 'conditionMint' | 'conditionExcellent'
+  | 'conditionVeryGood' | 'conditionGood' | 'conditionFair'
+  | 'conditionPoor' | 'conditionNonFunctioning' | 'conditionBStock'
+
+const REVERB_CONDITION_LABEL: Record<string, ConditionLabelKey> = {
+  'brand new': 'conditionBrandNew',
+  'mint': 'conditionMint',
+  'excellent': 'conditionExcellent',
+  'very good': 'conditionVeryGood',
+  'good': 'conditionGood',
+  'fair': 'conditionFair',
+  'poor': 'conditionPoor',
+  'non functioning': 'conditionNonFunctioning',
+  'b-stock': 'conditionBStock',
+}
 
 /**
  * The entity key for the sold-price series.
@@ -241,6 +268,7 @@ export default function ProductPage() {
           body: JSON.stringify({ listing_id: listing.id, listing_data: listing }),
         })
         if (!res.ok) setSavedListingIds(prev)
+        else track('listing_saved', { source: listing.source, product_slug: slug })
       } catch {
         setSavedListingIds(prev)
       }
@@ -261,14 +289,17 @@ export default function ProductPage() {
     setCreating(true)
     const body: Record<string, unknown> = { query }
     if (maxPrice != null && maxPrice > 0) body.max_price = maxPrice
-    await fetch('/api/watchlists', {
+    const res = await fetch('/api/watchlists', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
+    if (res.ok) {
+      track('watchlist_created', { origin: 'product', product_slug: slug, has_max_price: 'max_price' in body })
+    }
     setShowModal(false)
     setCreating(false)
-  }, [])
+  }, [slug])
 
   // PAN-133: the precedence is not decided here. `hero_image_url ?? image_url`
   // used to be written inline twice in the hero below — correct, but a third
@@ -316,6 +347,17 @@ export default function ProductPage() {
             </div>
           ) : (
             <>
+              <TrackView
+                viewKey={product.slug}
+                event="product_viewed"
+                properties={{
+                  product_slug: product.slug,
+                  category_root: catalogueContext?.category.slug ?? null,
+                  kind: catalogueContext?.kind?.slug ?? null,
+                  has_price_band: populations != null &&
+                    Object.values(populations).some((p) => p.tier === 'band'),
+                }}
+              />
               <div className="shell-reading flex flex-col">
 
                 {/*
@@ -401,7 +443,7 @@ export default function ProductPage() {
                             style={{ background: 'var(--foreground)', color: 'var(--background)' }}
                           >
                             <Icon name="workspace_premium" style={{ fontSize: 12 }} />
-                            {product.tier === 'legendary' ? 'Legendary' : 'Classic'}
+                            {product.tier === 'legendary' ? t.tierLegendary : t.tierClassic}
                           </span>
                         )}
                       </div>
@@ -450,7 +492,7 @@ export default function ProductPage() {
                         rel="noopener noreferrer"
                         className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        Ny fra Thomann:{' '}
+                        {t.thomannNewPrice}:{' '}
                         <span className="font-semibold text-foreground">
                           {product.thomann_price_dkk.toLocaleString('da-DK')} kr
                         </span>{' '}
@@ -462,18 +504,23 @@ export default function ProductPage() {
                     <div className="flex flex-col gap-2 pt-4 border-t border-border">
                       <p className="text-sm text-muted-foreground">
                         {listings.length === 0
-                          ? 'Ingen aktive annoncer'
-                          : `${listings.length} ${listings.length === 1 ? 'aktiv annonce' : 'aktive annoncer'} til salg`}
+                          ? t.productActiveListingsNone
+                          : listings.length === 1
+                            ? t.productActiveListingsOne
+                            : fill(t.productActiveListings, { count: listings.length })}
                       </p>
-                      <button
+                      {/* PAN-168. The shared primary Button, which is the same
+                          ink in both themes; the opacity hover it replaces is an
+                          opacity state the design rules exclude. */}
+                      <Button
+                        variant="primary"
                         onClick={() => handleCreateWatchlist()}
-                        className="w-full px-5 py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-80"
-                        style={{ background: 'var(--foreground)', color: 'var(--background)' }}
+                        className="w-full px-5 py-3 rounded-xl font-semibold text-sm"
                       >
-                        + Tilføj til watchlist
-                      </button>
+                        + {t.addWatchlist}
+                      </Button>
                       <p className="text-xs text-muted-foreground text-center">
-                        Få besked når nye annoncer dukker op
+                        {t.productWatchlistHint}
                       </p>
                     </div>
                   </div>
@@ -499,7 +546,21 @@ export default function ProductPage() {
                   const sold = populations?.['reverb-sold'] ?? null
                   const enough = sold?.tier === 'band'
 
-                  const points = priceHistory
+                  /**
+                   * PAN-168 #5. Plot the population the statistics describe.
+                   * `reverb-sold` drops Tukey-fence outliers before it counts
+                   * `n`; drawing them anyway put 40 dots under `n = 39` and
+                   * scaled the axis to the one sale the median ignores. Same
+                   * function, same values as buildPopulationStats, so the
+                   * dots, the axis, the period and `n` cannot disagree.
+                   */
+                  const { kept } = partitionByIqr(
+                    priceHistory.map((pt) => pt.price).filter((p) => Number.isFinite(p) && p > 0),
+                  )
+                  const keptPrices = new Set(kept)
+                  const counted = priceHistory.filter((pt) => keptPrices.has(pt.price))
+
+                  const points = counted
                     .map((pt) => ({
                       ts: new Date(pt.sold_at).getTime(),
                       price: pt.price,
@@ -517,11 +578,21 @@ export default function ProductPage() {
                   }
                   const conditionSeries = Array.from(byCondition.entries())
                     .sort((a, b) => b[1].length - a[1].length)
+                  const conditionLabel = (raw: string): string => {
+                    const key = REVERB_CONDITION_LABEL[raw.trim().toLowerCase()]
+                    return key ? t[key] : raw
+                  }
 
                   const period = formatDateRange(
-                    priceHistory[0]?.sold_at,
-                    priceHistory[priceHistory.length - 1]?.sold_at,
+                    counted[0]?.sold_at,
+                    counted[counted.length - 1]?.sold_at,
                   )
+                  const yTicks = points.length > 0
+                    ? niceTicks(
+                        Math.min(...points.map((pt) => pt.price)),
+                        Math.max(...points.map((pt) => pt.price)),
+                      )
+                    : []
 
                   return (
                     <ChartFrame
@@ -548,7 +619,7 @@ export default function ProductPage() {
                           <DataLegend
                             items={conditionSeries.map(([name, list]) => ({
                               key: name,
-                              label: name,
+                              label: conditionLabel(name),
                               count: list.length,
                             }))}
                           />
@@ -582,17 +653,20 @@ export default function ProductPage() {
                               }
                               minTickGap={28}
                             />
-                            {/* Kroner, visible. */}
+                            {/* Kroner, visible — the unit rides on every tick
+                                (PAN-168 #5), not on a caption under the plot. */}
                             <YAxis
                               type="number"
                               dataKey="price"
-                              domain={['auto', 'auto']}
-                              width={64}
+                              domain={yTicks.length > 1 ? [yTicks[0], yTicks[yTicks.length - 1]] : ['auto', 'auto']}
+                              ticks={yTicks.length > 1 ? yTicks : undefined}
+                              width={84}
                               tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
                               tickLine={false}
                               axisLine={false}
-                              tickFormatter={(v: number) => formatCompact(v, 'da-DK') ?? ''}
-                              label={undefined}
+                              tickFormatter={(v: number) =>
+                                formatDkkAmount(v, locale === 'en' ? 'en-GB' : 'da-DK') ?? ''
+                              }
                             />
                             <Tooltip
                               cursor={{ stroke: 'var(--border-strong)', strokeDasharray: '2 4' }}
@@ -616,7 +690,7 @@ export default function ProductPage() {
                             {conditionSeries.map(([name, list]) => (
                               <Scatter
                                 key={name}
-                                name={name}
+                                name={conditionLabel(name)}
                                 data={list}
                                 fill={seriesColor(name)}
                                 fillOpacity={0.75}
@@ -625,7 +699,6 @@ export default function ProductPage() {
                           </ScatterChart>
                         </ResponsiveContainer>
                       </div>
-                      <p className="mt-3 type-meta">{t.chartAxisPriceDkk}</p>
                     </ChartFrame>
                   )
                 })()}
@@ -897,7 +970,9 @@ export default function ProductPage() {
                   <div className="flex flex-col gap-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-sm font-medium text-foreground">
-                        {listings.length} {listings.length === 1 ? 'annonce' : 'annoncer'}
+                        {listings.length === 1
+                          ? t.productListingsOne
+                          : fill(t.productListings, { count: listings.length })}
                       </p>
                       {/*
                         Two states, not a filtering framework. Nothing is hidden
@@ -946,6 +1021,7 @@ export default function ProductPage() {
                             creating={creating}
                             variant="list"
                             thomannImageUrl={product.image_url}
+                            trackedProductSlug={product.slug}
                             isSaved={savedListingIds.has(listing.id)}
                             onToggleSave={handleToggleSave}
                           />

@@ -68,6 +68,11 @@ import type { ButtonHTMLAttributes } from 'react'
 
    Focus needs nothing from this file: `globals.css` sets `:focus-visible`
    `outline` with `!important` as a floor that no utility can suppress.
+
+   Hover and press (PAN-168) live in `.button-primary` in `globals.css`, which
+   moves `--button-primary-fill` through `--primary-hover` and
+   `--primary-active`. The fill stays inline and reads that variable, so the
+   states work and a className still cannot repaint the button.
    ========================================================================== */
 
 type Variant = 'primary' | 'secondary'
@@ -75,7 +80,7 @@ type Variant = 'primary' | 'secondary'
 /** The whole contract. Two variants, colour only — never geometry. */
 const VARIANT_STYLE: Record<Variant, React.CSSProperties> = {
   primary: {
-    backgroundColor: 'var(--primary)',
+    backgroundColor: 'var(--button-primary-fill)',
     color: 'var(--primary-foreground)',
   },
   secondary: {
@@ -94,6 +99,7 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'style'> & {
   variant: Variant
 }
 
-export function Button({ variant, type = 'button', ...rest }: Props) {
-  return <button type={type} style={VARIANT_STYLE[variant]} {...rest} />
+export function Button({ variant, type = 'button', className, ...rest }: Props) {
+  const classes = variant === 'primary' ? ['button-primary', className].filter(Boolean).join(' ') : className
+  return <button type={type} style={VARIANT_STYLE[variant]} className={classes} {...rest} />
 }

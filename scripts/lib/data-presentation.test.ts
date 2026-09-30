@@ -26,7 +26,7 @@ import {
   seriesShape,
   seriesSlot,
 } from '../../frontend/lib/chart-palette'
-import { divergingBarGeometry, sparklineGeometry } from '../../frontend/lib/chart-geometry'
+import { divergingBarGeometry, niceTicks, sparklineGeometry } from '../../frontend/lib/chart-geometry'
 import { orderByVerdictRank, verdictRank } from '../../frontend/lib/listing-value-order'
 import {
   formatCompact,
@@ -161,6 +161,17 @@ test('sparkline: change is current minus first, and drives the reported directio
   // Not the slope of the last segment: a series that dipped and recovered to
   // its start is flat over the period, whatever the final leg did.
   assert.equal(directionOf(sparklineGeometry([100, 20, 100], 240, 40)!.change), 'flat')
+})
+
+/* ── axis ticks ─────────────────────────────────────────────────────────── */
+
+test('niceTicks: round steps that cover the data, never 6.500-kr gridlines', () => {
+  // The Juno-106 sold population after the IQR fence (PAN-168 #5).
+  assert.deepEqual(niceTicks(47, 25667), [0, 5000, 10000, 15000, 20000, 25000, 30000])
+  const t = niceTicks(132000, 212318)
+  assert.ok(t[0] <= 132000 && t[t.length - 1] >= 212318, 'ticks must cover the data')
+  assert.deepEqual(t, [120000, 140000, 160000, 180000, 200000, 220000])
+  assert.deepEqual(niceTicks(Number.NaN, 10), [])
 })
 
 /* ── diverging bar geometry ─────────────────────────────────────────────── */
@@ -739,7 +750,15 @@ test('chart: both axes are visible and the y-axis is in kroner', () => {
   const src = codeOf(PRODUCT_PAGE)
   assert.equal(/<XAxis[^>]*\shide\b/.test(src), false, 'x-axis must not be hidden')
   assert.equal(/<YAxis[^>]*\shide\b/.test(src), false, 'y-axis must not be hidden')
-  assert.ok(src.includes('chartAxisPriceDkk'), 'kroner axis label comes from i18n')
+  // PAN-168 #5: the unit rides on the y ticks, not on a caption under the plot.
+  assert.ok(/<YAxis[\s\S]{0,600}tickFormatter=\{[\s\S]{0,80}formatDkkAmount/.test(src), 'y ticks are in kroner')
+})
+
+test('chart: it plots the population its n describes', () => {
+  // PAN-168 #5. The stats drop Tukey-fence outliers; plotting them drew more
+  // dots than `n` and scaled the axis to a sale the median ignores.
+  const src = codeOf(PRODUCT_PAGE)
+  assert.ok(src.includes('partitionByIqr('), 'points pass the same fence the statistics use')
 })
 
 test('chart: the tooltip carries date, price and condition', () => {

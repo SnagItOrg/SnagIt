@@ -155,12 +155,21 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-159: the proposed-family validator. Its errors are the rules the
       // family code relies on, so a missed one lands as a broken family PR.
       'scripts/lib/pan159-family-proposal.test.ts',
+      // PAN-160: a zero-result dba search is a real empty page, and the
+      // stale sweep runs only where the database applied lifecycle.
+      'scripts/lib/pan160-dba-lifecycle.test.ts',
+      // PAN-167: the Material Symbols subset carries every glyph the app
+      // draws. A missing glyph is an empty icon box that nothing reports.
+      'scripts/lib/pan167-icon-font.test.ts',
       // PAN-17: the sidebar catalogue tree. Its own suite because "populated
       // branches only" and "no price in a navigation payload" are both
       // properties of a pure builder, and both are silent failures — an empty
       // branch is a dead end nobody reports, and a price key is invisible
       // until it renders.
       'scripts/lib/pan17-catalogue-tree.test.ts',
+      // PAN-170: parts sold under a product's name stay out of its sold-price
+      // band. A regression here is a wrong published p25, not an error.
+      'scripts/lib/pan170-sold-parts.test.ts',
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',
@@ -363,7 +372,19 @@ test('integration: the index covers the supported cohort and every navigation fa
 
 /* ── The defect integration created: private slugs in the client bundle ──── */
 
-const FAMILY_CHILD_SLUGS = NAVIGATION_FAMILIES.flatMap((f) => f.children)
+/**
+ * Public products that client copy names on purpose, so finding them in a
+ * bundle says nothing about `lib/families.ts`. PAN-159 made both `roland-juno`
+ * members: `roland-juno-60` is the slug placeholder in
+ * app/admin/product/NewProductForm.tsx, and `roland-juno-106` is the example
+ * URL on app/privatliv/page.tsx. Every other child is still scanned, so a
+ * bundled family config is still caught.
+ */
+const PUBLIC_EXAMPLE_SLUGS = new Set(['roland-juno-60', 'roland-juno-106'])
+
+const FAMILY_CHILD_SLUGS = NAVIGATION_FAMILIES.flatMap((f) => f.children).filter(
+  (slug) => !PUBLIC_EXAMPLE_SLUGS.has(slug),
+)
 
 function clientChunks(): string[] {
   const dir = join(FRONTEND, '.next', 'static')

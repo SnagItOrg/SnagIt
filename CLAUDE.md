@@ -205,6 +205,7 @@ file.
 |---|---|
 | What is live, what did not ship, open operator actions | [`docs/stage-3-v1-release-record.md`](docs/stage-3-v1-release-record.md) |
 | Frontend design, i18n, API-route rules | [`frontend/CLAUDE.md`](frontend/CLAUDE.md) |
+| PostHog events and their properties | `KlupEventMap` in [`frontend/lib/analytics.ts`](frontend/lib/analytics.ts); the list is in [`frontend/CLAUDE.md`](frontend/CLAUDE.md) under Analytics |
 | Scraper, PM2 and migration authoring rules | [`scripts/CLAUDE.md`](scripts/CLAUDE.md) |
 | The migration record, order and rollbacks | [`scripts/migrations/README.md`](scripts/migrations/README.md) |
 | Lifecycle and promotion authoring | [`docs/klup-product-lifecycle-guide.md`](docs/klup-product-lifecycle-guide.md) |
@@ -234,7 +235,7 @@ are editorial facets — never taxonomy replacements, never matcher aliases.
 
 ## 8. Stack
 
-Next.js 15.5 App Router · React 19 · TypeScript · Tailwind · Supabase Pro (RLS on every
+Next.js 16.3 App Router (the auth gate stays `middleware.ts` on the Edge runtime; see PAN-167) · React 19 · TypeScript · Tailwind · Supabase Pro (RLS on every
 table) · Vercel · PM2 on the Mac Mini · Resend · PostHog EU · Frankfurter with
 hardcoded fallbacks.
 

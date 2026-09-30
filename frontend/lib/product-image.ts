@@ -54,6 +54,8 @@ export class ProductImageError extends Error {
   constructor(
     readonly reason: ImageFailureReason,
     message: string,
+    /** The source's HTTP status when it answered but refused. PAN-165. */
+    readonly sourceStatus?: number,
   ) {
     super(message)
     this.name = 'ProductImageError'
@@ -150,7 +152,7 @@ export async function fetchAndConvert(
   }
 
   if (!res.ok) {
-    throw new ProductImageError('unreachable', `The source answered ${res.status}.`)
+    throw new ProductImageError('unreachable', `The source answered ${res.status}.`, res.status)
   }
 
   const declaredLength = Number(res.headers.get('content-length') ?? '')

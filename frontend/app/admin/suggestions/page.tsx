@@ -337,8 +337,7 @@ export default function AdminSuggestionsPage() {
                             type="button"
                             onClick={() => startApprove(s)}
                             disabled={actionLoading === s.id}
-                            className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
-                            style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                            className="button-primary text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
                           >
                             Godkend
                           </button>
@@ -404,8 +403,7 @@ export default function AdminSuggestionsPage() {
                         type="button"
                         onClick={() => confirmApprove(s)}
                         disabled={actionLoading === s.id}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
-                        style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                        className="button-primary text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
                       >
                         Bekræft
                       </button>

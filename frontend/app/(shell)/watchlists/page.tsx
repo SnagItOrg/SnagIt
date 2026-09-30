@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { usePostHog } from 'posthog-js/react'
+import { isNewAccountConfirmation, track } from '@/lib/analytics'
 import type { Watchlist } from '@/lib/supabase'
 import { WatchlistBentoCard } from '@/components/WatchlistBentoCard'
 import { AddWatchlistCard } from '@/components/AddWatchlistCard'
@@ -20,7 +20,6 @@ import { Button } from '@/components/Button'
 export default function WatchlistsPage() {
   const router = useRouter()
   const { t } = useLocale()
-  const posthog = usePostHog()
   const [authed,       setAuthed]       = useState<boolean | null>(null)
   const [watchlists,   setWatchlists]   = useState<Watchlist[]>([])
   const [loading,      setLoading]      = useState(true)
@@ -28,6 +27,16 @@ export default function WatchlistsPage() {
   const { toasts, showToast, dismissToast } = useToast()
 
   useEffect(() => {
+    // `/auth/confirm` lands every email-link sign-in here with this marker.
+    // Consume it at once, so a reload (or strict mode's second effect) cannot
+    // report the same confirmation twice.
+    const url = new URL(window.location.href)
+    const arrivedFromEmailLink = url.searchParams.get('create_pending') === '1'
+    if (arrivedFromEmailLink) {
+      url.searchParams.delete('create_pending')
+      window.history.replaceState(window.history.state, '', url.pathname + url.search)
+    }
+
     const supabase = createSupabaseBrowserClient()
     supabase.auth.getUser().then(({ data }) => {
       const loggedIn = !!data.user
@@ -36,8 +45,8 @@ export default function WatchlistsPage() {
         void loadWatchlists()
         void syncOnboarding()
         void createPendingWatchlist()
-        if (new URLSearchParams(window.location.search).get('create_pending') === '1') {
-          posthog?.capture('signup_completed', { method: 'magic_link' })
+        if (arrivedFromEmailLink && data.user && isNewAccountConfirmation(data.user)) {
+          track('signup_completed', { method: 'email_link' })
         }
       } else {
         setLoading(false)
@@ -82,6 +91,11 @@ export default function WatchlistsPage() {
           }),
         })
         if (res.ok) {
+          track('watchlist_created', {
+            origin: 'onboarding',
+            product_slug: null,
+            has_max_price: !!saved.max_price && saved.max_price > 0,
+          })
           const created = await res.json()
           setWatchlists((prev) => [created, ...prev])
         }
@@ -107,6 +121,11 @@ export default function WatchlistsPage() {
         body: JSON.stringify(body),
       })
       if (res.ok) {
+        track('watchlist_created', {
+          origin: 'signup_pending',
+          product_slug: null,
+          has_max_price: 'max_price' in body,
+        })
         const created = await res.json()
         setWatchlists((prev) => [created, ...prev])
         showToast(t.watchlistCreated)
@@ -173,7 +192,7 @@ export default function WatchlistsPage() {
                   <Button
                     variant="primary"
                     onClick={() => router.push('/login')}
-                    className="w-full rounded-2xl py-4 px-8 font-black text-sm transition-opacity hover:opacity-90"
+                    className="w-full rounded-2xl py-4 px-8 font-black text-sm"
                   >
                     {t.watchlistTeaserCta}
                   </Button>

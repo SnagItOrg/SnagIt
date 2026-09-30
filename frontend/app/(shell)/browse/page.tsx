@@ -98,8 +98,8 @@ function BrowsePageInner() {
         </div>
 
         {/* PAN-121 — the catalogue root is the one surface with nothing
-            narrowing it, so the signal says so rather than rendering an empty
-            bar. The number counts the tiles actually rendered below. */}
+            narrowing it, so the signal is the count alone (PAN-168 #7). The
+            number counts the tiles actually rendered below. */}
         {!loading && !error && (
           <PositionSignal
             signal={buildPositionSignal({
@@ -111,7 +111,7 @@ function BrowsePageInner() {
         )}
 
         {loading ? (
-          <div className="grid-wall">
+          <div className="grid-wall grid-wall-pair">
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
@@ -130,7 +130,7 @@ function BrowsePageInner() {
             </div>
           </div>
         ) : (
-          <div className="grid-wall">
+          <div className="grid-wall grid-wall-pair">
             {data.categories.map((cat) => (
               <Link
                 key={cat.id}
@@ -147,17 +147,17 @@ function BrowsePageInner() {
                     phone fetched byte-for-byte what a 1440px desktop did.
 
                     Measured track widths rather than a device guess: the
-                    wall is 1-up and near full-bleed below 30rem (328-398px),
-                    2-up at 640 (298px), and from 48rem up the sidebar caps
-                    it at 271px at its widest — so 17rem is the ceiling, not
-                    a viewport fraction. */}
+                    wall is 2-up below 30rem since PAN-168 (150-190px), 2-up
+                    at 640 (298px), and from 48rem up the sidebar caps it at
+                    271px at its widest — so 17rem is the ceiling, not a
+                    viewport fraction. */}
                 {cat.image_url && (
                   <Image
                     src={cat.image_url}
                     alt=""
                     fill
                     className="object-cover transition-transform duration-medium group-hover:scale-105"
-                    sizes="(max-width: 30rem) 95vw, (max-width: 48rem) 50vw, 17rem"
+                    sizes="(max-width: 48rem) 50vw, 17rem"
                   />
                 )}
                 {/* Dark gradient overlay */}

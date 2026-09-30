@@ -74,6 +74,15 @@ export interface SearchCandidate {
   brand: string
   /** `/product/<slug>` or `/family/<slug>`. Never anything else. */
   href: string
+  /**
+   * PAN-168 #10. What a result row shows beside the name: the same two
+   * `browse_product_projection` columns the browse and home cards read, so a
+   * product looks and counts the same here as everywhere else. Products only,
+   * attached by the route after eligibility; absent when that read did not
+   * return the row, and the row then renders without them.
+   */
+  imageUrl?: string | null
+  activeListingCount?: number
 }
 
 export interface SearchOutcome {

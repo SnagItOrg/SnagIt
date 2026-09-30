@@ -5,7 +5,7 @@ import Image from 'next/image'
 import type { Listing } from '@/lib/supabase'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { usePostHog } from 'posthog-js/react'
+import { priceDkkBucket, track } from '@/lib/analytics'
 import { formatOriginalPrice } from '@/lib/currency'
 import { classifyListing, firstSeenTimestamp, isApproximateDkk } from '@/lib/price-populations'
 import { classifyOtpError, type OtpErrorKey } from '@/lib/otp-error'
@@ -91,6 +91,9 @@ interface Props {
   thomannPriceDkk?:   number | null
   thomannUrl?:        string | null
   productSlug?:       string | null
+  /** The product this card is shown under, for analytics only. Renders nothing;
+   *  `productSlug` renders a link and stands in when this is absent. */
+  trackedProductSlug?: string | null
   thomannImageUrl?:   string | null
   /** Position of this listing inside its OWN asking population. Server-computed. */
   marketVerdict?:            'under' | 'typical' | 'over' | null
@@ -174,9 +177,17 @@ function MarketVerdictBadge({
   )
 }
 
-export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave, thomannPriceDkk, thomannUrl, productSlug, thomannImageUrl, marketVerdict, marketVerdictBasisLabel }: Props) {
+export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave, thomannPriceDkk, thomannUrl, productSlug, trackedProductSlug, thomannImageUrl, marketVerdict, marketVerdictBasisLabel }: Props) {
   const { locale, t } = useLocale()
-  const posthog = usePostHog()
+
+  function trackOutbound() {
+    track('listing_outbound_clicked', {
+      source: listing.source,
+      country: listing.country ?? null,
+      product_slug: trackedProductSlug ?? productSlug ?? null,
+      price_dkk_bucket: priceDkkBucket(listing.price_dkk),
+    })
+  }
 
   const [imgError,       setImgError]      = useState(false)
   const [showCapture,    setShowCapture]   = useState(false)
@@ -245,9 +256,8 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
     const supabase = createSupabaseBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setShowCapture(true); return }
-    if (!isSaved) {
-      posthog?.capture('listing_saved', { listing_id: listing.id, source: listing.source })
-    }
+    // `listing_saved` is emitted by the page that owns the save request, once
+    // the server has accepted it — this click is only the intent.
     onToggleSave?.(listing)
   }
 
@@ -308,7 +318,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
         target="_blank"
         rel="noopener noreferrer"
         className="surface-interactive group flex flex-col rounded-2xl overflow-hidden"
-        onClick={() => posthog?.capture('listing_clicked', { listing_id: listing.id, source: listing.source, price: listing.price ?? 0 })}
+        onClick={trackOutbound}
       >
         {/* Image area */}
         <div className="relative w-full aspect-[4/3] bg-muted overflow-hidden">
@@ -397,7 +407,14 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
   // for no gain, and nesting a button inside the anchor — the mistake the unused
   // grid variant makes — would break activation on assistive technology.
   return (
-    <div className="surface-card rounded-2xl overflow-hidden flex flex-col transition-colors hover:border-line-strong">
+    /*
+      PAN-168. `flex-1` lets the card fill a stretched grid cell, and the CTA
+      row below takes `mt-auto`, so every card in a row is one height and the
+      actions line up across it. Cards used to end wherever their content did:
+      a verdict badge or a two-line title pushed that card's buttons down, and
+      a row of three read as ragged.
+    */
+    <div className="surface-card rounded-2xl overflow-hidden flex flex-1 flex-col transition-colors hover:border-line-strong">
       {/*
         NOT A LINK. The body used to carry `href={listing.url}` — the same
         destination as `Se annonce` below it — so the card offered two
@@ -506,13 +523,14 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
             rel="noopener noreferrer"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Ny hos Thomann: {thomannPriceDkk.toLocaleString('da-DK')} kr →
+            {t.thomannNewPrice}: {thomannPriceDkk.toLocaleString('da-DK')} kr →
           </a>
         </div>
       )}
 
-      {/* CTAs / inline login capture — outside the <a> */}
-      <div className="px-3 pb-3">
+      {/* CTAs / inline login capture — outside the <a>. `pt-3` separates the
+          action group from the provenance row it used to touch (4px). */}
+      <div className="mt-auto px-3 pt-3 pb-3">
         {showCapture ? (
           captureSent ? (
             <div className="flex flex-col gap-1 py-1">
@@ -581,9 +599,8 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               href={listing.url}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => posthog?.capture('listing_clicked', { listing_id: listing.id, source: listing.source, price: listing.price ?? 0 })}
-              className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors"
-              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+              onClick={trackOutbound}
+              className="button-primary flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors"
             >
               <Icon name="open_in_new" style={{ fontSize: '14px' }} />
               {t.viewListing}
@@ -593,13 +610,13 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               onClick={(e) => { e.stopPropagation(); handleHeartClick() }}
               className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors"
               style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)', color: isSaved ? 'var(--foreground)' : 'var(--muted-foreground)' }}
-              aria-label={isSaved ? 'Fjern fra gemte annoncer' : 'Gem annonce'}
+              aria-label={isSaved ? t.unsaveListing : t.saveListing}
             >
               <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isSaved ? 'text-red-500' : ''}>
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               </svg>
               {/* Saved state is carried by the word, not only by the filled heart. */}
-              {isSaved ? 'Gemt' : 'Gem'}
+              {isSaved ? t.listingSavedShort : t.listingSaveShort}
             </button>
             {/* Bell — create watchlist alert */}
             <Button
@@ -617,7 +634,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
                 className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold border border-border hover:border-border/80 transition-colors"
                 style={{ color: 'var(--muted-foreground)' }}
               >
-                Se produktside →
+                {t.viewProductPage} →
               </a>
             )}
           </div>

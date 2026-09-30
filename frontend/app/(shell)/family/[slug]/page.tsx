@@ -7,6 +7,7 @@ import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
 import { PositionSignal } from '@/components/PositionSignal'
 import { SourceBadge } from '@/components/SourceBadge'
+import { TrackView } from '@/components/TrackView'
 import { buildPositionSignal } from '@/lib/position-signal'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { CatalogueUnavailableError } from '@/lib/catalogue'
@@ -272,6 +273,7 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
   */
   return (
     <main id="main-content" className="flex-1 min-w-0 shell-offset pb-24 md:pb-8">
+      <TrackView viewKey={family.slug} event="family_viewed" properties={{ family_slug: family.slug }} />
       <MobileSearchBar />
       <div className="cq-pane shell-reading flex flex-col pt-6 pb-10 md:pt-10">
         {/*
@@ -327,6 +329,9 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
           signal={buildPositionSignal({
             // No `scope`: `family.label` is the <h1> immediately above.
             renderedRows: children,
+            // Model cards, so it says models: "4 resultater" above a section
+            // of 26 listings read as a count of the listings (PAN-168 #7).
+            countKind: 'models',
           })}
         />
 
@@ -518,7 +523,7 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
             <Button
               variant="primary"
               type="submit"
-              className="self-start rounded-2xl px-6 py-3 text-base font-semibold transition-opacity hover:opacity-90"
+              className="self-start rounded-2xl px-6 py-3 text-base font-semibold"
             >
               {t.demandCta}
             </Button>

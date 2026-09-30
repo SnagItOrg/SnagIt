@@ -51,10 +51,12 @@ export type PositionFilter = {
 }
 
 /**
- * What the number counts. Two values because there are two real callers:
- * `/browse` renders category tiles, the other three render result rows.
+ * What the number counts, named as the rows it counts: `/browse` renders
+ * category tiles, `/family/[slug]` renders model cards (PAN-168 #7 — as
+ * "resultater" it read as the family's 26 listings), and `/browse/[root]` and
+ * `/search` render result rows.
  */
-export type PositionCountKind = 'results' | 'categories'
+export type PositionCountKind = 'results' | 'categories' | 'models'
 
 export type PositionSignal = {
   /**

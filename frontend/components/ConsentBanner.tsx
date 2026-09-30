@@ -49,12 +49,10 @@ import { useLocale } from '@/components/LocaleProvider'
  * reject button, which is the property the contract actually needs.
  */
 const ACTION_CLASS =
-  'flex-1 sm:flex-none sm:min-w-[9rem] rounded-xl px-5 py-2.5 text-sm font-semibold ' +
-  'transition-opacity hover:opacity-90 min-h-[44px]'
+  'button-primary flex-1 sm:flex-none sm:min-w-[9rem] rounded-xl px-5 py-2.5 text-sm font-semibold ' +
+  'min-h-[44px]'
 
 const ACTION_STYLE: React.CSSProperties = {
-  backgroundColor: 'var(--primary)',
-  color: 'var(--primary-foreground)',
   border: '1px solid var(--border)',
 }
 

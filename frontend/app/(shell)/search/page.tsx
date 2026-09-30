@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
 import { TextField } from '@/components/TextField'
@@ -362,13 +363,13 @@ function SearchPageInner() {
               }
               // 16px minimum (text-base): anything smaller makes iOS Safari
               // zoom the viewport on focus and the visitor loses the page.
-              className="w-full rounded-xl pl-9 pr-4 py-3 text-base font-medium placeholder:opacity-50"
+              className="w-full rounded-xl pl-9 pr-4 py-3 text-base font-medium"
             />
           </div>
           <Button
             variant="primary"
             type="submit"
-            className="mt-2 w-full min-h-[44px] rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90 md:w-auto md:px-6"
+            className="mt-2 w-full min-h-[44px] rounded-xl px-5 text-sm font-semibold md:w-auto md:px-6"
           >
             {t.search}
           </Button>
@@ -496,18 +497,26 @@ function CandidateList({
           role="option"
           aria-selected={i === activeIndex}
         >
+          {/*
+            PAN-168 #10. The product card's anatomy in list form (Astryx Item:
+            start media · label · description · end content): the image and
+            the "N til salg" count every other product surface shows, the
+            card's serif title, and no brand line — `canonical_name` is always
+            brand + model, so the brand under every "Roland …" repeated it.
+          */}
           <Link
             href={option.href}
-            className="surface-card flex items-center justify-between gap-3 rounded-2xl px-4 py-3 min-h-[56px] transition-colors hover:border-line-strong"
+            className="surface-card flex items-center gap-3 rounded-2xl p-2 pr-4 min-h-[64px] transition-colors hover:border-line-strong"
             style={
               i === activeIndex
                 ? { background: 'var(--surface-2)', borderColor: 'var(--ring)' }
                 : undefined
             }
           >
-            <span className="min-w-0">
+            <CandidateMedia option={option} />
+            <span className="min-w-0 flex-1">
               <span className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-semibold text-foreground truncate">
+                <span className="type-card-title truncate">
                   {option.label}
                 </span>
                 {/*
@@ -532,7 +541,11 @@ function CandidateList({
                   </span>
                 )}
               </span>
-              <span className="block text-xs text-muted-foreground truncate">{option.brand}</span>
+              {option.activeListingCount != null && option.activeListingCount > 0 && (
+                <span className="block type-meta truncate">
+                  {option.activeListingCount} {t.discoverForSale}
+                </span>
+              )}
             </span>
             <Icon
               name="chevron_right"
@@ -543,6 +556,40 @@ function CandidateList({
         </li>
       ))}
     </ul>
+  )
+}
+
+/**
+ * The row's start media: the product image on the same `--secondary` well the
+ * product card uses, or a glyph when there is none — `piano` for a product
+ * without an image, as on the card, and `grid_view` for a family, which is a
+ * set of models rather than one. Fixed 48px square, so a row never changes
+ * height when an image arrives or fails.
+ */
+function CandidateMedia({ option }: { option: SearchCandidate }) {
+  const [failed, setFailed] = useState(false)
+  const src = option.kind === 'product' && !failed ? option.imageUrl : null
+  return (
+    <span
+      className="relative shrink-0 size-12 rounded-xl overflow-hidden flex items-center justify-center"
+      style={{ background: 'var(--secondary)' }}
+    >
+      {src ? (
+        <Image
+          src={src}
+          alt=""
+          fill
+          sizes="48px"
+          className="object-cover"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <Icon
+          name={option.kind === 'family' ? 'grid_view' : 'piano'}
+          style={{ fontSize: 22, color: 'var(--muted-foreground)' }}
+        />
+      )}
+    </span>
   )
 }
 

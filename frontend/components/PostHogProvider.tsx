@@ -21,13 +21,9 @@
  * DYNAMICALLY inside the effect, so the module is not merely un-initialised
  * before consent — it is not fetched.
  *
- * WHY NO REACT PROVIDER ANY MORE. `posthog.init()` initialises the library's
- * global singleton, and `usePostHog()` from `posthog-js/react` returns that
- * same singleton when no provider is present. So the pre-existing call sites
- * in files owned by WP-3 and WP-4 keep working after consent without WP-5
- * touching them, and before consent they call `capture()` on an uninitialised
- * instance, which posthog-js guards with `if (this.__loaded && ...)` — no
- * request, no storage, no queue.
+ * WHY NO REACT PROVIDER. Every event goes through `track()` in
+ * lib/analytics.ts (PAN-161); nothing calls `usePostHog()` or captures through
+ * the singleton, so there is nothing for a provider to serve.
  */
 
 import { useEffect } from 'react'
@@ -74,7 +70,7 @@ export function PostHogProvider() {
         capture_pageview: false,
         capture_pageleave: false,
 
-        // Only the twelve declared events. Autocapture, dead clicks and
+        // Only the declared events. Autocapture, dead clicks and
         // rageclicks would send DOM content nobody declared; exception capture
         // would send URLs and stack frames through the behavioural channel,
         // which §12.4.8 keeps separate from operational logging.
@@ -100,7 +96,7 @@ export function PostHogProvider() {
         // of the URL: anyone can craft a link with any `utm_*` value, and a
         // trace confirmed the canary reaching PostHog through `utm_campaign`
         // while `$current_url` was clean. V1 runs no paid campaigns (§13.2),
-        // the twelve-event taxonomy declares no campaign property, and
+        // the event taxonomy declares no campaign property, and
         // /privatliv does not list one as a data category. So it is off —
         // turning it on later is a taxonomy and privacy-page change, not a
         // configuration tweak.
@@ -118,8 +114,7 @@ export function PostHogProvider() {
         // relying on each call site to remember.
         // Nothing outside the declared taxonomy leaves the browser, and every
         // URL-bearing property on what does leave is rebuilt from an
-        // allow-list. Legacy call sites in other packages' files capture
-        // through this same singleton, and one of them sends raw search text.
+        // allow-list.
         before_send: (payload) => prepareOutgoingPayload(payload),
 
         loaded: (instance) => {
@@ -127,9 +122,9 @@ export function PostHogProvider() {
           const { klup_schema_version, app_env, is_internal, internal_role } =
             buildSuperProperties(window.location.pathname)
           // Static super-properties are registered so that they also reach the
-          // legacy call sites in other packages' files, which capture through
-          // the singleton rather than through track(). `surface` and `locale`
-          // change during a session and are computed per event instead.
+          // SDK's own `$identify`, which does not go through track().
+          // `surface` and `locale` change during a session and are computed
+          // per event instead.
           instance.register({ klup_schema_version, app_env, is_internal, internal_role })
         },
       })

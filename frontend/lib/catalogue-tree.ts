@@ -331,15 +331,21 @@ export function buildCatalogueTree(
     leaf.product_slugs.push(row.slug)
   }
 
-  const byCountThenName = (
-    a: { product_count: number; name_en: string },
-    b: { product_count: number; name_en: string },
-  ) => {
-    if (b.product_count !== a.product_count) return b.product_count - a.product_count
-    return a.name_en.localeCompare(b.name_en, 'en')
-  }
+  return Array.from(byRoot.values()).sort(compareRootsByCountThenName)
+}
 
-  return Array.from(byRoot.values()).sort(byCountThenName)
+/**
+ * The one order catalogue roots are listed in: most products first, English
+ * name as the tie-break. The sidebar and the `/browse` tiles both call this
+ * (PAN-168: `/browse` sorted by English name while showing Danish ones, so its
+ * tiles read in no visible order and disagreed with the sidebar beside them).
+ */
+export function compareRootsByCountThenName(
+  a: { product_count: number; name_en: string },
+  b: { product_count: number; name_en: string },
+): number {
+  if (b.product_count !== a.product_count) return b.product_count - a.product_count
+  return a.name_en.localeCompare(b.name_en, 'en')
 }
 
 /**

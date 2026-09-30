@@ -40,8 +40,7 @@ export default function NotFound() {
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <Link
           href="/browse"
-          className="rounded-2xl px-6 py-3 text-base font-semibold transition-opacity hover:opacity-90"
-          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+          className="button-primary rounded-2xl px-6 py-3 text-base font-semibold"
         >
           {t.notFoundCta}
         </Link>

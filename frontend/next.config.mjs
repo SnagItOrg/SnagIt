@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    // Next.js 16 raised the default from 60 s to 4 h. Pinned to the Next 15
+    // value so the upgrade (PAN-167) changes no caching behaviour: stable-key
+    // product images re-uploaded to Storage would otherwise stay stale up to
+    // 4 h. Raising it is a separate, deliberate decision.
+    minimumCacheTTL: 60,
     remotePatterns: [
       // Supabase Storage (onboarding assets, etc.)
       {

@@ -55,8 +55,19 @@ const GUITAR_FAMILIES = [
 /** The two Boss lines (PAN-141). Navigation-only, like `rhodes`. */
 const BOSS_FAMILIES = ['boss-ce-chorus', 'boss-dm-delay']
 
+/** PAN-159 Tier 1. The last two are guarded line-label rows; the rest have no row. */
+const PAN159_FAMILIES = [
+  'roland-juno',
+  'roland-jupiter',
+  'sequential-prophet',
+  'roland-space-echo',
+  'arp-2600-semi-modular',
+  'fender-jazzmaster',
+  'fender-jaguar',
+]
+
 /** The six, plus `rhodes` (PAN-85) — the first family with canonical children — the Boss lines and `minimoog` (PAN-154). */
-const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass']
+const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES]
 
 /**
  * Production state of every configured child, SELECT-verified 2026-08-28:
@@ -106,6 +117,9 @@ test('families: children match the reviewed §6.3 map', () => {
       'fender-telecaster-thinline',
       'fender-telecaster-custom',
       'fender-american-vintage-52-telecaster',
+      // PAN-159 Tier 0. Both supported + public, SELECT-verified 2026-09-28.
+      'fender-american-standard-telecaster',
+      'fender-american-ultra-ii-telecaster',
     ],
     'fender-stratocaster': ['fender-american-professional-ii-stratocaster'],
     'gibson-es-335': ['gibson-es-335-dot'],
@@ -139,6 +153,49 @@ test('families: children match the reviewed §6.3 map', () => {
     ],
     // PAN-154 (2/2). The base member is the only clean Mustang row.
     'mustang-short-scale-bass': ['fender-mustang-bass'],
+    // PAN-159 Tier 1. Existing clean rows, SELECT-verified active 2026-09-28.
+    // Duplicates (`roland-juno-ds61`, `roland-jp-4/6/8`), clones and sub-brand
+    // rows are never members.
+    'roland-juno': [
+      'roland-juno-6',
+      'roland-juno-60',
+      'roland-juno-106',
+      'roland-alpha-juno-1',
+      'roland-alpha-juno-2',
+      'roland-juno-d',
+      'roland-juno-g',
+      'roland-juno-stage',
+      'roland-juno-di',
+      'roland-juno-ds-61',
+    ],
+    'roland-jupiter': [
+      'roland-jupiter-4',
+      'roland-jupiter-8',
+      'roland-jupiter-6',
+      'roland-jupiter-80',
+      'roland-jupiter-xm',
+    ],
+    'sequential-prophet': [
+      'sequential-circuits-prophet-5',
+      'sequential-circuits-prophet-10',
+      'sequential-circuits-prophet-600',
+      'sequential-circuits-prophet-t8',
+      'sequential-circuits-prophet-vs',
+      'dave-smith-instruments-prophet-08',
+      'sequential-prophet-6',
+      'sequential-prophet-rev2',
+      'sequential-prophet-5',
+      'sequential-prophet-10',
+    ],
+    'roland-space-echo': ['roland-re-201', 'roland-re-501'],
+    'arp-2600-semi-modular': ['arp-2600', 'arp-korg-arp-2600'],
+    'fender-jazzmaster': [
+      'fender-jim-root-jazzmaster',
+      'fender-jim-root-v4-jazzmaster',
+      'fender-troy-van-leeuwen-jazzmaster',
+      'fender-american-vintage-ii-jazzmaster',
+    ],
+    'fender-jaguar': ['fender-johnny-marr-jaguar', 'fender-kurt-cobain-jaguar'],
   }
   for (const family of NAVIGATION_FAMILIES) {
     assert.deepEqual([...family.children].sort(), [...expected[family.slug]].sort(), family.slug)
@@ -180,9 +237,11 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   // rather than restating it, and it is the desired behaviour: a family slug
   // must never resolve as a product, at any gate.
   // The Boss lines (PAN-141), `minimoog` and `mustang-short-scale-bass`
-  // (PAN-154) are the same case as `rhodes`.
+  // (PAN-154) are the same case as `rhodes`. So are five of PAN-159's seven;
+  // `fender-jazzmaster` and `fender-jaguar` are rows, but `known` + `qa_only`,
+  // so their /product URLs 404ed before and 308 now: no priced page moves.
   assert.equal(GUITAR_FAMILIES.length, 6)
-  assert.equal(EXPECTED_FAMILIES.length, 11)
+  assert.equal(EXPECTED_FAMILIES.length, 18)
 })
 
 test('redirects: nothing else is redirected', () => {
@@ -691,10 +750,11 @@ test('hierarchy: familyForChild resolves a product to its family, and nothing el
     }
   }
 
-  // A PRODUCT WITH NO FAMILY. `roland-juno-106` is canonical and belongs to no
+  // A PRODUCT WITH NO FAMILY. `roland-tr-808` is canonical and belongs to no
   // family, and this is the case the product page must handle by rendering
   // nothing — not an empty breadcrumb and not a heading with no links.
-  assert.equal(familyForChild('roland-juno-106'), null)
+  // (`roland-juno-106` stood here until PAN-159 made it a `roland-juno` member.)
+  assert.equal(familyForChild('roland-tr-808'), null)
   assert.equal(familyForChild('does-not-exist'), null)
 
   // A FAMILY SLUG IS NOT ITS OWN CHILD. `rhodes` names a family, so asking for
@@ -825,14 +885,16 @@ test('operator copy: the admin UI declares an axis the API still requires', () =
   assert.match(page, /NOT change marketplace monitoring/)
 })
 
-test('vercel.json: untouched — the crons block survives and nothing was added', () => {
+test('vercel.json: the crons block survives and only the approved region was added', () => {
   // WP-2 makes NO change to this file. Removing the crons block would be a
   // deployment-affecting edit, and Stage 3 makes none; adding a comment to a
   // Vercel config is also a change to a deployment input, which is why the
   // warning WP-2 briefly carried here was withdrawn in cross-package review.
   // The cron's disabled state lives at Vercel project level, not in the repo.
+  // PAN-167 (owner-approved) pins functions to dub1, next to Supabase eu-west-1.
   const parsed = JSON.parse(readRepoFile('vercel.json')) as Record<string, unknown>
-  assert.deepEqual(Object.keys(parsed), ['crons'], 'no property may be added to vercel.json')
+  assert.deepEqual(Object.keys(parsed), ['regions', 'crons'], 'no other property may be added to vercel.json')
+  assert.deepEqual(parsed.regions, ['dub1'])
   assert.equal(Array.isArray(parsed.crons), true, 'the crons block must NOT be removed')
   assert.equal((parsed.crons as unknown[]).length, 1)
   assert.deepEqual((parsed.crons as Array<Record<string, unknown>>)[0], {

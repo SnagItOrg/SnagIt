@@ -53,7 +53,7 @@ export default function FamilyError({
         <Button
           variant="primary"
           onClick={reset}
-          className="rounded-2xl px-6 py-3 text-base font-semibold transition-opacity hover:opacity-90"
+          className="rounded-2xl px-6 py-3 text-base font-semibold"
         >
           {t.errorRetry}
         </Button>

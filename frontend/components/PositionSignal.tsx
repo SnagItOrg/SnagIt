@@ -68,14 +68,15 @@ export function PositionSignal({
    */
   const [lastRemoved, setLastRemoved] = useState<string | null>(null)
 
-  const countLabel =
+  const one = signal.count === 1
+  const countLabel = fill(
     signal.countKind === 'categories'
-      ? fill(signal.count === 1 ? t.positionSignalCategoryOne : t.positionSignalCategoryMany, {
-          count: signal.count,
-        })
-      : fill(signal.count === 1 ? t.positionSignalResultOne : t.positionSignalResultMany, {
-          count: signal.count,
-        })
+      ? (one ? t.positionSignalCategoryOne : t.positionSignalCategoryMany)
+      : signal.countKind === 'models'
+        ? (one ? t.positionSignalModelOne : t.positionSignalModelMany)
+        : (one ? t.positionSignalResultOne : t.positionSignalResultMany),
+    { count: signal.count },
+  )
 
   function handleRemove(filter: PositionFilter) {
     setLastRemoved(fill(t.positionSignalFilterRemoved, { label: filter.label }))
@@ -108,8 +109,14 @@ export function PositionSignal({
         </p>
       )}
 
-      {/* THE NARROWING LINE — what is filtering, and how many rows that yields. */}
-      {filtersShownByPage ? (
+      {/* THE NARROWING LINE — what is filtering, and how many rows that yields.
+
+          PAN-168 #7 (owner decision 2026-09-28): with nothing narrowing the
+          set, the line is the count alone. "Ingen filtre aktive" described an
+          absence on pages that have no filters to begin with (/browse,
+          /family). The chips and the separator appear only once a filter is
+          in force; `signal.unfiltered` is still what decides it. */}
+      {filtersShownByPage || signal.unfiltered ? (
         <p aria-live="polite" aria-atomic="true" className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
           {countLabel}
         </p>
@@ -147,16 +154,14 @@ export function PositionSignal({
           )
         })}
 
-        {/* A surface with nothing narrowing it says so, rather than rendering an
-            empty bar the visitor has to interpret. */}
-        {signal.unfiltered && (
-          <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-            {t.positionSignalUnfiltered}
-          </span>
-        )}
-
+        {/* The separator is its own flex item, so the row gap spaces it
+            evenly on both sides instead of a gap on one side and a text space
+            on the other. */}
+        <span aria-hidden="true" className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+          {'·'}
+        </span>
         <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-          {'·'} {countLabel}
+          {countLabel}
         </span>
       </div>
       )}

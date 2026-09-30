@@ -19,8 +19,9 @@ These are raw `.sql` files applied manually via the Supabase Studio SQL editor
 > "Active queue" until 2026-08-13; the heading was wrong and is corrected here.
 > **Everything through 057 is applied** — see the 053–056 and 057 sections at
 > the end of this file. **058 is written and rehearsed but NOT applied**, and
-> **059 is written but NOT applied**; each needs an explicit product-owner
-> authorisation. See the 058 and 059 sections at the end of this file.
+> **059 is written but NOT applied**, and **060 is written but NOT applied**;
+> each needs an explicit product-owner authorisation. See the 058, 059 and 060
+> sections at the end of this file.
 
 | File | Action | Notes |
 |---|---|---|
@@ -351,3 +352,30 @@ and redeploy. To roll back, clear the flag and redeploy first.
 production", and it is also the value of every uncurated row. The 11 products
 that already carry a `year_released` will read as open-ended (`1984–`) from the
 moment the flag is on. Review them before flipping it.
+
+## 060 — `reverb_price_history.reverb_categories`. WRITTEN, **NOT APPLIED**, **NOT REHEARSED**.
+
+`060_reverb_price_history_categories.sql` (PAN-170) adds one nullable `jsonb`
+column that holds the raw Reverb `categories` array of each sold listing, so
+parts and accessories sold under a product stop entering its published
+sold-price stats (`isPartOrAccessoryListing()` in
+`frontend/lib/price-populations.ts`).
+
+| Property | |
+|---|---|
+| DDL | `ADD COLUMN reverb_categories jsonb` (nullable, no default — no rewrite). |
+| DML | **none.** Every row starts NULL, which the product route reads as "unknown" and keeps: today's behaviour. |
+| Guard | PRE applies; POST (jsonb, nullable, no default) is a no-op; a column of that name in any other shape raises before mutating. |
+| Rollback | `060_rollback.sql`. Drops the column without refusing — its contents are a copy of Reverb data and re-fetchable — and reports how many rows carried a value. |
+| Rehearsal | **Not run.** The machine that wrote it has no local PostgreSQL (`initdb`/`psql` absent). Rehearse before applying. |
+
+**Application order — hard.** There is no flag. The product route selects the
+column, and `process-price-queue` / `fetch-reverb-prices` write it, so every
+product page and both writers fail until it exists:
+
+1. apply 060;
+2. merge the PAN-170 code, and `git pull` on the Mac Mini;
+3. `npx tsx scripts/backfill-reverb-sold-categories.ts` (dry run), then
+   `--apply` with owner authorisation. It writes its rollback SQL first.
+
+To roll back: revert the code and redeploy first, then run `060_rollback.sql`.

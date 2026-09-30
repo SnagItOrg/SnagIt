@@ -26,6 +26,7 @@ import {
   type FacetKey,
   type ProductFacetValues,
 } from '@/lib/product-facets'
+import { track } from '@/lib/analytics'
 
 interface Category {
   id: string
@@ -106,6 +107,7 @@ function BrowseCategoryPageInner() {
     for (const key of Object.keys(PRODUCT_ATTRIBUTE_FACETS)) next.delete(key)
     const qs = next.toString()
     router.replace(`/browse/${params.root}${qs ? `?${qs}` : ''}`, { scroll: false })
+    if (slug) track('filter_applied', { root: params.root, sub: slug, facet_key: 'sub', facet_value: slug })
   }, [params.root, router, searchParams])
 
   /**
@@ -119,6 +121,16 @@ function BrowseCategoryPageInner() {
     else next.delete(key)
     const qs = next.toString()
     router.replace(`/browse/${params.root}${qs ? `?${qs}` : ''}`, { scroll: false })
+    if (value) {
+      // Facet chips only render under a resolved kind, so `sub` is its display slug.
+      const sub = searchParams.get('sub')
+      track('filter_applied', {
+        root: params.root,
+        sub: sub ? displaySubcategorySlug(params.root, sub) : null,
+        facet_key: key,
+        facet_value: value,
+      })
+    }
   }, [params.root, router, searchParams])
 
   useEffect(() => {
@@ -239,6 +251,15 @@ function BrowseCategoryPageInner() {
   const activeFacets = readActiveFacets(searchParams, facetKeys)
   const facetAxes = facetChipAxes(subcategoryProducts, facetKeys, activeFacets)
   const filteredProducts = filterByFacets(subcategoryProducts, activeFacets)
+
+  /**
+   * PAN-168 #9 (owner decision 2026-09-28): a tier badge distinguishes cards
+   * only when the grid mixes tiers. Today every public product is legendary,
+   * so "Legendarisk" on every card said nothing. Read from the rows the grid
+   * renders, never from a projection total (PAN-98), so it follows the
+   * subcategory and facet chips as they narrow the set.
+   */
+  const showTierBadges = new Set(filteredProducts.map((p) => p.tier)).size > 1
 
   const categoryName = data?.category
     ? locale === 'da' ? data.category.name_da : data.category.name_en
@@ -414,7 +435,7 @@ function BrowseCategoryPageInner() {
 
         {/* Product grid */}
         {loading ? (
-          <div className="grid-wall">
+          <div className="grid-wall grid-wall-pair">
             {Array.from({ length: 12 }).map((_, i) => (
               <div
                 key={i}
@@ -444,7 +465,7 @@ function BrowseCategoryPageInner() {
         ) : filteredProducts.length === 0 ? (
           <EmptyState kind="blank" title={t.noResults} className="py-16" />
         ) : (
-          <div className="grid-wall">
+          <div className="grid-wall grid-wall-pair">
             {filteredProducts.map((p) => (
               <ProductCard
                 key={p.slug}
@@ -454,7 +475,7 @@ function BrowseCategoryPageInner() {
                 subcategoryName={displaySubcategoryLabel(p.subcategory_slug, p.subcategory_name_da, p.subcategory_name_en)}
                 activeListingCount={p.active_listing_count}
                 imageUrl={p.image_url}
-                tier={p.tier}
+                tier={showTierBadges ? p.tier : undefined}
               />
             ))}
           </div>

@@ -469,8 +469,7 @@ function ProductionYearsForm({
         <button
           type="submit"
           disabled={busy}
-          className="text-xs font-semibold px-4 py-1.5 rounded-xl disabled:opacity-40"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+          className="button-primary text-xs font-semibold px-4 py-1.5 rounded-xl disabled:opacity-40"
         >
           {t.adminYears.save}
         </button>
@@ -555,8 +554,7 @@ function RetailSourceForm({
         <button
           type="submit"
           disabled={busy}
-          className="text-xs font-semibold px-4 py-1.5 rounded-xl disabled:opacity-40"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+          className="button-primary text-xs font-semibold px-4 py-1.5 rounded-xl disabled:opacity-40"
         >
           Gem
         </button>
@@ -895,8 +893,7 @@ function SynonymSection({
         <button
           type="submit"
           disabled={busy || !alias.trim()}
-          className="text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-40"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+          className="button-primary text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-40"
         >
           Tilføj
         </button>

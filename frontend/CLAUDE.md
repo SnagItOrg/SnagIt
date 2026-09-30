@@ -20,6 +20,7 @@ is an alias. Add a semantic alias; never add a second literal.
 | Canvas / surfaces | `--canvas` · `--surface-1` · `--surface-2` · `--surface-3` · `--surface-raised` |
 | Borders | `--border-subtle` · `--border-strong` |
 | Text | `--text-primary` · `--text-secondary` · `--text-muted` |
+| Primary action | `--primary` · `--primary-hover` · `--primary-active` · `--primary-foreground` — apply as `.button-primary` (or `<Button variant="primary">`), never a hand-rolled fill |
 | Accent | `--accent` · `--accent-hover` · `--accent-text` · `--accent-subtle` · `--accent-border` · `--accent-foreground` |
 | Destructive | `--destructive` · `--destructive-hover` · `--destructive-text` · `--destructive-subtle` · `--destructive-border` · `--destructive-foreground` |
 | You are here | `--here` · `--here-subtle` · `--here-border` — see "Design rules" for the exhaustive list of uses |
@@ -86,6 +87,8 @@ visitor learns it once. Exactly these uses are permitted:
    Karakteristik). Both rows are the page-rendered form of use 4.
 4. `PositionSignal` — the active filter chip(s).
 5. `BottomNav` — the active tab's icon and label.
+6. The admin nav (`app/admin/layout.tsx`, PAN-171) — the current tool, with
+   the same weight step and filled icon as `SideNav`.
 
 **Never** on a button, on a link that is not the current location, on a hover or
 focus state (focus is `--ring`), on a price or verdict badge, on `SourceBadge`,
@@ -139,9 +142,38 @@ listing provenance. Match these exactly — do not swap or approximate.
 - Always gate routes with `getUser()` — return 401 if no session
 - Never log PII
 
+## Analytics (PostHog)
+
+EU cloud only, loaded only after consent, off outside `NEXT_PUBLIC_VERCEL_ENV=production`.
+The authority is `KlupEventMap` in `lib/analytics.ts`: an event that is not
+declared there is dropped by `before_send`. Always emit through `track()`;
+never import `posthog-js` or call `usePostHog()`. Render `<TrackView>` for a
+page-view event, which fires once per view even under strict mode.
+
+| Event | Fired from | Properties |
+|---|---|---|
+| `$pageview` | every route (`PostHogPageView`) | `path_template`, `$current_url` with only `page` and `sub` kept |
+| `search_submitted` / `search_resolved` / `search_unsupported` | `/search` | `query_norm` and the resolution; names and shapes are frozen for the dashboards |
+| `demand_signal_submitted` | `/search`, unsupported outcome | `has_email` only, never the address |
+| `product_viewed` | `/product/[slug]`, once the data has loaded | `product_slug`, `category_root`, `kind`, `has_price_band` |
+| `family_viewed` | `/family/[slug]` | `family_slug` |
+| `filter_applied` | `/browse/[root]`, when a chip is switched on | `root`, `sub`, `facet_key`, `facet_value` |
+| `listing_outbound_clicked` | "Se annonce" on a listing card: **the core value signal** | `source`, `country`, `product_slug`, `price_dkk_bucket` (a band, never the price) |
+| `listing_saved` | product page, after the save is accepted | `source`, `product_slug` |
+| `watchlist_created` | every creation path, after the server accepts it | `origin`, `product_slug`, `has_max_price` (never the query) |
+| `signup_completed` | `/watchlists`, when the email link confirmed a **new** account | `method` |
+
+Every event also carries `klup_schema_version`, `app_env`, `surface`, `locale`,
+`is_internal` and `internal_role`. `$identify` sends the Supabase user id only.
+No PII: no email, no free text beyond `query_norm`, no user id beyond PostHog's
+own. The retired `search_performed` and `listing_clicked` are dropped on the wire.
+
 ## Intel dashboard (/intel)
-- Private, admin-gated — do not add to navigation
+- Private, admin-gated. Listed in the admin nav, and its header links back
+  to Admin and to klup.dk (PAN-171: the owner reversed the earlier
+  no-navigation rule, because a page reachable only by typing its URL is lost)
 - Dark theme only: `#0a0a0a` background, `#13ec6d` accent allowed here
   (exception to sparse accent rule — intel is a private tool)
 - Monospace font for all numbers
-- No Klup branding on this surface
+- No public Klup chrome (sidebar, bottom nav) on this surface — the thin header
+  is its only navigation

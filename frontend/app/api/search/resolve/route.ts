@@ -22,6 +22,9 @@ import {
   resolveQuery,
   type SearchOutcome,
 } from '@/lib/search-resolver'
+import type { SearchCandidate } from '@/lib/search-contract'
+
+type CardRow = { slug: string; image_url: string | null; active_listing_count: number | null }
 
 /**
  * The restricted-catalogue resolver endpoint.
@@ -174,6 +177,7 @@ async function revalidate_(outcome: SearchOutcome): Promise<SearchOutcome> {
   const unique = Array.from(new Set(productSlugs))
 
   const admin = getSupabaseAdmin()
+  let cardRows: CardRow[] = []
   const eligibleProducts = await filterEligibleSlugs(
     {
       canonicalRows: async () => {
@@ -192,7 +196,7 @@ async function revalidate_(outcome: SearchOutcome): Promise<SearchOutcome> {
       domainRows: async () => {
         const res = await admin
           .from('browse_product_projection')
-          .select('slug, browse_domain')
+          .select('slug, browse_domain, image_url, active_listing_count')
           .in('slug', unique)
           .then(
             (r) => r,
@@ -200,6 +204,7 @@ async function revalidate_(outcome: SearchOutcome): Promise<SearchOutcome> {
               throw new CatalogueUnavailableError('search_domain_transport')
             },
           )
+        cardRows = res.data ?? []
         return { data: res.data, error: res.error }
       },
     },
@@ -212,5 +217,28 @@ async function revalidate_(outcome: SearchOutcome): Promise<SearchOutcome> {
   // every family result rather than linking to a route that does not exist.
   const eligibleFamilies = new Set(NAVIGATION_FAMILIES.map((f) => f.slug))
 
-  return applyEligibility(outcome, eligibleProducts, eligibleFamilies)
+  return withCardFields(applyEligibility(outcome, eligibleProducts, eligibleFamilies), cardRows)
+}
+
+/**
+ * PAN-168 #10 — the image and the listing count a result row shows.
+ *
+ * Read by the eligibility probe above, which already fetches these projection
+ * rows, so the row costs no second query. Presentation only: it never decides
+ * which candidates survive, and a row the read did not return simply renders
+ * without an image or a count.
+ */
+function withCardFields(outcome: SearchOutcome, rows: CardRow[]): SearchOutcome {
+  const bySlug = new Map(rows.map((r) => [r.slug, r]))
+  const enrich = (c: SearchCandidate): SearchCandidate => {
+    const row = c.kind === 'product' ? bySlug.get(c.slug) : undefined
+    return row
+      ? { ...c, imageUrl: row.image_url, activeListingCount: row.active_listing_count ?? 0 }
+      : c
+  }
+  return {
+    ...outcome,
+    candidates: outcome.candidates.map(enrich),
+    suggestions: outcome.suggestions.map(enrich),
+  }
 }

@@ -310,8 +310,7 @@ export default function AdminProductsPage() {
           </Link>
           <Link
             href="/admin/product/new"
-            className="text-sm font-semibold px-4 py-2 rounded-xl"
-            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+            className="button-primary text-sm font-semibold px-4 py-2 rounded-xl"
           >
             + Nyt produkt
           </Link>
@@ -339,8 +338,7 @@ export default function AdminProductsPage() {
         />
         <button
           onClick={() => search(query)}
-          className="px-4 py-2.5 rounded-xl text-sm font-medium"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+          className="button-primary px-4 py-2.5 rounded-xl text-sm font-medium"
         >
           Søg
         </button>
@@ -449,8 +447,7 @@ export default function AdminProductsPage() {
                   />
                   <button
                     onClick={() => saveYear(p)}
-                    className="text-xs px-2 py-1 rounded-lg font-medium"
-                    style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                    className="button-primary text-xs px-2 py-1 rounded-lg font-medium"
                   >
                     Gem
                   </button>

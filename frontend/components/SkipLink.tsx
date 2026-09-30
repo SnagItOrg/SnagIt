@@ -28,12 +28,11 @@ import { useLocale } from '@/components/LocaleProvider'
  * visitor pressed anything, so the first Tab skipped this link along with the
  * sidebar. So the tabindex exists only for the jump and is dropped on blur.
  *
- * `label` is for `app/admin/layout.tsx` (PAN-145), which reuses this link over
- * its own sidebar. Admin copy is hardcoded Danish by convention, so it passes
- * its label rather than taking the visitor's locale. The admin layout owns its
- * single `<main>` and gives it the same `id="main-content"`.
+ * `app/admin/layout.tsx` (PAN-145) reuses this link over its own sidebar. It
+ * owns its single `<main>` and gives it the same `id="main-content"`. Since
+ * PAN-171 the admin chrome takes the visitor's locale like the rest.
  */
-export function SkipLink({ label }: { label?: string }) {
+export function SkipLink() {
   const { t } = useLocale()
 
   function focusMain(event: MouseEvent<HTMLAnchorElement>) {
@@ -51,7 +50,7 @@ export function SkipLink({ label }: { label?: string }) {
       onClick={focusMain}
       className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:inline-flex focus:items-center focus:min-h-[44px] focus:px-4 focus:rounded-xl focus:border focus:border-line-strong focus:bg-surface-raised focus:shadow-overlay focus:text-sm focus:font-semibold focus:text-ink"
     >
-      {label ?? t.skipToContent}
+      {t.skipToContent}
     </a>
   )
 }

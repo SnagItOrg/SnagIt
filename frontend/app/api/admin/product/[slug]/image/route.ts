@@ -88,11 +88,23 @@ export async function POST(
       converted.webp,
     )
   } catch (e) {
+    // PAN-165: a refused curation used to leave no trace outside the operator's
+    // browser. Slug, reason and source host only — never the user.
+    console.error({
+      route: '/api/admin/product/[slug]/image',
+      slug,
+      source_host: hostOf(sourceUrl),
+      reason: e instanceof ProductImageError ? e.reason : 'unexpected',
+      error: e instanceof Error ? e.message : String(e),
+    })
     if (e instanceof ProductImageError) {
       // Fail closed: the product keeps whatever image it already had, and the
       // operator is told which of the four things went wrong.
       const status = e.reason === 'storage_failed' ? 502 : 400
-      return NextResponse.json({ error: e.reason, message: e.message }, { status })
+      return NextResponse.json(
+        { error: e.reason, message: e.message, source_status: e.sourceStatus ?? null },
+        { status },
+      )
     }
     return NextResponse.json(
       { error: 'unexpected', message: 'The image could not be processed.' },
@@ -123,6 +135,7 @@ export async function POST(
     .eq('slug', slug)
 
   if (writeErr) {
+    console.error({ route: '/api/admin/product/[slug]/image', slug, reason: 'write_failed', error: writeErr.message })
     return NextResponse.json({ error: 'write_failed', message: writeErr.message }, { status: 500 })
   }
 
@@ -134,4 +147,13 @@ export async function POST(
     bytes,
     acquired_at: provenance.acquired_at,
   })
+}
+
+/** The host alone, so a log line can say which site refused without the path. */
+function hostOf(raw: string): string | null {
+  try {
+    return new URL(raw).hostname
+  } catch {
+    return null
+  }
 }

@@ -161,7 +161,8 @@ test('an active filter is removable by keyboard and announces what it removed', 
   assert.match(ROUTES.browseRoot, /kind: 'attribute' as const/)
   assert.match(ROUTES.browseRoot, /aria-pressed=\{activeSub === null\}/)
   assert.match(ROUTES.browseRoot, /aria-pressed=\{activeSub === chip\.slug\}/)
-  assert.match(COMPONENT_CODE, /filtersShownByPage \? \(\s*<p aria-live="polite"/)
+  // PAN-168 #7: the count-only line also serves an unfiltered surface.
+  assert.match(COMPONENT_CODE, /filtersShownByPage \|\| signal\.unfiltered \? \(\s*<p aria-live="polite"/)
   // `/search` keeps its removable query chip: nothing else on that page removes it.
   assert.match(ROUTES.search, /onRemoveFilter=\{handleClearQuery\}/)
 
@@ -203,12 +204,13 @@ test('the signal is never green, and never signals state with opacity', () => {
 test('every string is a translation key, present in both locales', () => {
   const keys = [
     'positionSignalRegion',
-    'positionSignalUnfiltered',
     'positionSignalAllCategories',
     'positionSignalResultOne',
     'positionSignalResultMany',
     'positionSignalCategoryOne',
     'positionSignalCategoryMany',
+    'positionSignalModelOne',
+    'positionSignalModelMany',
     'positionSignalQueryFilter',
     'positionSignalRemoveFilter',
     'positionSignalFilterRemoved',
@@ -225,7 +227,8 @@ test('every string is a translation key, present in both locales', () => {
   // sentence without its number.
   for (const locale of ['da', 'en'] as const) {
     for (const key of ['positionSignalResultOne', 'positionSignalResultMany',
-      'positionSignalCategoryOne', 'positionSignalCategoryMany'] as const) {
+      'positionSignalCategoryOne', 'positionSignalCategoryMany',
+      'positionSignalModelOne', 'positionSignalModelMany'] as const) {
       assert.match(translations[locale][key] as string, /\{count\}/)
     }
     assert.match(translations[locale].positionSignalQueryFilter as string, /\{query\}/)
@@ -405,6 +408,8 @@ test('the "you are here" colour appears only at its permitted sites', () => {
     'components/PositionSignal.tsx',
     'components/BottomNav.tsx',
     'app/(shell)/browse/[root]/page.tsx',
+    // PAN-171 — the admin nav's current tool (use 6 in frontend/CLAUDE.md).
+    'app/admin/layout.tsx',
   ]
   const frontend = join(ROOT, 'frontend')
   const users: string[] = []

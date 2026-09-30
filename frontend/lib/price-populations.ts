@@ -183,6 +183,47 @@ export function isPriceEvidence(isValid: boolean | null | undefined): boolean {
   return isValid === true
 }
 
+/**
+ * PARTS ARE NOT SALES OF THE PRODUCT — PAN-170.
+ *
+ * Reverb's sold search for "Roland Juno-106" returns the synth and also the
+ * knobs, sliders and caps sold for it. Measured on production 2026-09-28: 10
+ * of the Juno-106's 40 sold rows were parts at 47–1,093 kr. That is enough of
+ * them to pull Q1 down to 4,369 kr, where the Tukey fence (anchored on Q1)
+ * no longer catches them, so they sat inside the published p25–p75. A price
+ * rule cannot separate them either: on the SH-1000 the parts are 15 of 25 rows
+ * and they ARE the median.
+ *
+ * The signal is Reverb's own category, a structured field picked from a fixed
+ * taxonomy (CLAUDE.md scraping lesson 2), stored raw in
+ * `reverb_price_history.reverb_categories` (migration 060). A listing is a
+ * part or accessory when any of its categories sits under the Parts,
+ * Accessories or Software roots, or in a Parts/Accessories branch of an
+ * instrument root: "Keyboards and Synths / Keyboard and Synth Parts" is a
+ * part, and a root-only check would miss it. No supported or public product
+ * lives in those branches (SELECT, 2026-09-28). If one ever does, this rule
+ * withholds its sold band rather than distorting it, and must then learn the
+ * product's own category.
+ *
+ * Unknown is KEPT, deliberately unlike `isPriceEvidence`. NULL means the row
+ * predates migration 060 and has not been backfilled, and those rows are the
+ * population the page shows today. Dropping them would blank every sold band
+ * until the backfill runs. Keeping them is exactly the behaviour before this
+ * change, so an unbackfilled row can never make a number worse than it was.
+ */
+const NON_PRODUCT_ROOTS: ReadonlySet<string> = new Set(['Parts', 'Accessories', 'Software'])
+const NON_PRODUCT_BRANCH = /\b(?:Parts|Accessories)$/
+
+export function isPartOrAccessoryListing(categories: unknown): boolean {
+  if (!Array.isArray(categories)) return false
+  return categories.some((category) => {
+    const fullName = (category as { full_name?: unknown } | null)?.full_name
+    if (typeof fullName !== 'string') return false
+    const segments = fullName.split('/').map((s) => s.trim())
+    return NON_PRODUCT_ROOTS.has(segments[0]) || segments.some((s) => NON_PRODUCT_BRANCH.test(s))
+  })
+}
+
 // ── Gates ───────────────────────────────────────────────────────────────────
 
 /** V1 §9.2 / decision 13. A band — median + Q1–Q3 — needs eight observations. */

@@ -7,6 +7,7 @@ import { useLocale } from '@/components/LocaleProvider'
 import { TextField } from '@/components/TextField'
 import { Icon } from '@/components/Icon'
 import { Button } from '@/components/Button'
+import { track } from '@/lib/analytics'
 
 interface Props {
   onSave:  (watchlist: Watchlist) => void
@@ -37,6 +38,7 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
     })
 
     if (res.ok) {
+      track('watchlist_created', { origin: 'watchlists', product_slug: null, has_max_price: maxPrice > 0 })
       onSave(await res.json() as Watchlist)
     } else {
       const data = await res.json()
