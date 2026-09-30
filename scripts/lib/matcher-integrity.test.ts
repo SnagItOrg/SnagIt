@@ -2263,13 +2263,19 @@ test('no scraper selects products by editorial tier', () => {
 test('the monitoring config reproduces the pre-change source sets exactly', () => {
   const cfg = JSON.parse(fs.readFileSync(
     path.resolve(__dirname, '../../data/klup-source-monitoring.json'), 'utf8')).sources
-  assert.equal(cfg['dba.dk'].products.length, 30)
+  // Owner-decided widenings since the tier cutover, named so that any other
+  // growth still fails here. PAN-193 (2026-09-30): Jupiter-4/-6 on dba.dk.
+  const DBA_ADDED = ['roland-jupiter-4', 'roland-jupiter-6']
+  const dbaAll: string[] = cfg['dba.dk'].products
+  for (const s of DBA_ADDED) assert.ok(dbaAll.includes(s), `dba.dk must monitor ${s}`)
+  const dbaPre = dbaAll.filter(s => !DBA_ADDED.includes(s))
+  assert.equal(dbaPre.length, 30)
   for (const s of ['finn', 'blocket', 'kleinanzeigen']) assert.equal(cfg[s].products.length, 28)
   // DBA is legendary+classic, the others legendary: a strict superset of exactly 2
-  const d = new Set<string>(cfg['dba.dk'].products)
+  const d = new Set<string>(dbaPre)
   const f: string[] = cfg.finn.products
   assert.ok(f.every(s => d.has(s)), 'dba must contain every finn product')
-  assert.equal(cfg['dba.dk'].products.length - f.length, 2)
+  assert.equal(dbaPre.length - f.length, 2)
   // Reverb is a sweep, not a product list
   assert.equal(cfg.reverb.mode, 'broad_catalogue_sweep')
   assert.equal(cfg.reverb.products, null)
