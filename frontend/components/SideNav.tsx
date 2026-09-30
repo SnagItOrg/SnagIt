@@ -446,19 +446,22 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
  * This is coarse ON PURPOSE. It is the fallback the sidebar uses when the tree
  * cannot mark a precise node, and the honest coarse answer is the section.
  *
- * A FAMILY ROUTE IS DELIBERATELY NOT IN HERE. It was, briefly, and WP-2's
- * navigation guard caught it: `/family/<slug>` is `noindex` and reachable only
- * by the legacy redirects and a gated breadcrumb, so nothing may treat it as an
- * ordinary catalogue destination. Production agrees it is consistent rather
- * than broken — the family route marks nothing in either sidebar state, which
- * is the same answer before and after this change. The orientation gap there is
- * real, it is the one PAN-121's Trunk Test flagged, and it belongs to PAN-124's
- * breadcrumb rather than to a nav highlight invented here.
+ * A FAMILY ROUTE IS IN HERE SINCE PAN-192, deliberately. WP-2 kept it out:
+ * `/family/<slug>` was then reachable only by the legacy redirects and a gated
+ * breadcrumb, so nothing could treat it as an ordinary catalogue destination.
+ * The owner's PAN-192 decision makes it one — a browse grid now links a family
+ * card straight to it, and only for a family with at least two canonical
+ * children, so it is `index, follow` whenever it is linked. A visitor who
+ * clicks the Rhodes card on El-pianoer is still in the catalogue, and the
+ * sidebar now says so instead of dropping its mark. The tree still marks no
+ * node there (`currentCatalogueNode` returns null): a family is not a kind,
+ * so the section is the honest coarse answer.
  */
 const isCataloguePath = (pathname: string) =>
   pathname === '/browse' ||
   pathname.startsWith('/browse/') ||
-  pathname.startsWith('/product/')
+  pathname.startsWith('/product/') ||
+  pathname.startsWith('/family/')
 
 const SIDEBAR_MIN_WIDTH = 256
 const SIDEBAR_MAX_WIDTH = 480

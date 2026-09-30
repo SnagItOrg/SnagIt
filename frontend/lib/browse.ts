@@ -23,6 +23,8 @@ import {
 import { translations } from '@/lib/i18n'
 import { categoryImage } from '@/lib/category-images'
 import { facetKeysFor, readFacets, type ProductFacetValues } from '@/lib/product-facets'
+import { familyForChild } from '@/lib/families'
+import type { ProductFamilyRef } from '@/lib/family-cards'
 
 export type BrowseProjectionRow = {
   id: string
@@ -171,6 +173,8 @@ export type BrowseLeafResponse = {
     active_listing_count: number
     /** PAN-140 — curated facet VALUES only; provenance never leaves admin. */
     facets: ProductFacetValues
+    /** PAN-192 — the navigation family, so the grid can collapse members. */
+    family: ProductFamilyRef | null
   }>
   page: number
   page_size: number
@@ -197,6 +201,7 @@ type DiscoverProduct = {
   image_url: string | null
   brand_name: string
   active_listing_count: number
+  family: ProductFamilyRef | null
 }
 
 type DiscoverResponse = {
@@ -569,6 +574,25 @@ async function fetchAuditBrowseRows(
   })
 }
 
+/**
+ * PAN-192 — the family a served row belongs to, from the one authority.
+ *
+ * Only rows already in the public set are tagged, so this names nothing the
+ * grid could not already see: a family slug is a public route, and its label
+ * is the family page's own `<h1>`. The unpublished children `families.ts`
+ * also holds never leave the server.
+ */
+function familyRef(slug: string): ProductFamilyRef | null {
+  const family = familyForChild(slug)
+  if (!family) return null
+  return {
+    slug: family.slug,
+    label: family.label,
+    brand: family.brand,
+    order: family.children.indexOf(slug),
+  }
+}
+
 function shapeLeafProduct(row: BrowseProjectionRow, facets: ProductFacetValues) {
   const bareSlug = row.subcategory_slug?.split('/')[1] ?? row.subcategory_slug ?? ''
   return {
@@ -582,6 +606,7 @@ function shapeLeafProduct(row: BrowseProjectionRow, facets: ProductFacetValues) 
     subcategory_slug: bareSlug,
     active_listing_count: row.active_listing_count,
     facets,
+    family: familyRef(row.slug),
   }
 }
 
@@ -932,6 +957,7 @@ export async function buildDiscoverResponse(admin: SupabaseClient): Promise<Disc
       image_url: row.image_url,
       brand_name: row.brand_name ?? '',
       active_listing_count: row.active_listing_count,
+      family: familyRef(row.slug),
     }))
 
   const popular = publicRows
@@ -949,6 +975,7 @@ export async function buildDiscoverResponse(admin: SupabaseClient): Promise<Disc
       image_url: row.image_url,
       brand_name: row.brand_name ?? '',
       active_listing_count: row.active_listing_count,
+      family: familyRef(row.slug),
     }))
 
   return { legendary, popular, categories }
