@@ -90,6 +90,7 @@ export type NoiseReason =
   | 'other_brand'         // another maker, a sub-brand (Squier), or a reference
   | 'part_or_accessory'   // the matcher's own intent guard, or an accessory head noun
   | 'wanted_or_non_sale'
+  | 'multi_unit'          // "(2-pack)", "Lot of 5": no single-unit price (PAN-196)
   | 'unbranded'           // the title never names this brand
 
 export interface BrandNetContext {

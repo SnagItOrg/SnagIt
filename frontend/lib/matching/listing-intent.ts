@@ -57,7 +57,7 @@
  * ─────────────────────────────────────────────────────────────────────────
  */
 
-export type NonProductIntent = 'part_or_accessory' | 'wanted_or_non_sale'
+export type NonProductIntent = 'part_or_accessory' | 'wanted_or_non_sale' | 'multi_unit'
 
 export interface IntentFinding {
   intent: NonProductIntent
@@ -203,6 +203,81 @@ const ACCESSORY_TOKENS: readonly string[] = [
   'eprom', 'eproms',
   'modgrip',
   'pickguard',
+  // PAN-196, measured 2026-09-30 on the ~44,100 active listings no run had ever
+  // evaluated. Outside the Fender, Gibson and Moog passes their dry run would
+  // have matched 1,894 titles; a hand-read put Prophet-5 at 64%, Wurlitzer 200A
+  // at 53%, OB-Xa at 57% and ATR-700 at 31%, and the misses cluster on these
+  // head-nouns. Every token below fired on that pool, on a part:
+  //
+  //   head stack        8  "Ampex ATR-700 1/4" 2 Track Reel to Reel Tape Deck Head Stack Assembly"
+  //   legs, plates     13  "BLACK Wurlitzer 200a Legs & Plates - set of four"
+  //   damper, hammers   4  "Wurlitzer 200 / 200A Vintage Electric Piano Damper Arm Original-Bass"
+  //   voice/data rom   11  "YAMAHA DX7 VOICE ROM VRC-106 SYNTHESIZER GROUP"
+  //   ramkarte          1  "16-fach Ramkarte für Yamaha DX7"
+  //   presets           9  "SoundsDivine 'Brass' - Sequential Prophet 5/10 Rev.4 Presets"
+  //   patch sheet(s),  11  "ARP 2600 3620 Keyboard Facsimile Pad 28 Blank Patch Sheets",
+  //    patch book,         "Korg ARP 2600 FS Patch Book", "Oberheim OB-Xa Program Patches
+  //    booklet,            Booklet 1982", "Roland Juno-6 polyphonic synthesizer brochure",
+  //    brochure,           "Vintage Sequential Circuits Prophet 5 Spec Sheet",
+  //    spec sheet,         "Roland TR-606 Troubleshooting One Sheet [USED]"
+  //    troubleshooting
+  //   cap               8  "Green Cap SH-101 MC-202 Roland", "TR-909 Clear Cap for Tact switches"
+  //   fuse, socket      3  "Fuse holder - Sequential Circuits - Prophet-5 - Pro-One"
+  //   phone jack        3  "Oberheim - OB-Xa - Phone jack"
+  //   voice card/board  2  "Oberheim OB-XA 1980s Voice Card", "Korg Polysix Voice Board Complete"
+  //   contact strip     3  "Keyboard Rubber Contact Strip, 7 positions - Korg PolySix …"
+  //   covers            1  plural of `cover`: "TB-303 - TR-606 Dust covers set for potentiometers"
+  //   lid               1  "Fender Rhodes Mark I Stage 88 Key Electric Piano Reproduction Lid"
+  //   box only          1  "Neumann U 87 Ai Studio Set • BOX ONLY"
+  //
+  // They are ACCESSORY tokens, not part tokens: a complete instrument can name
+  // any of them after an inclusion marker ("Wurlitzer 200A w/ legs"). `cap` has
+  // one suppressor of its own, HEAD_CAP_FINISH.
+  //
+  // MEASURED RECALL COST, ACCEPTED: one of the 13 `legs` titles is a complete
+  // instrument with no marker before the noun — "1970s Rhodes Mark I Stage 88
+  // Electric Piano — Buz Watson Rebuild — Legs & Pedal", 16,459 DKK. It defers,
+  // which writes no row. The other twelve are leg sets at 1,113–2,199 DKK.
+  //
+  // REFUSED ON THE RECALL MEASUREMENT (every owner-confirmed match, plus the
+  // unreviewed matches on public products):
+  //   capsule     16 confirmed titles name it, 8 with no marker before it:
+  //               "Warm Audio WA-47 M7 Capsule ZenPro Mod Edition", "WA-CX24
+  //               Dual Capsule", and Fender's "Time Capsule Finish".
+  //   plug-in,    25 confirmed titles name them: "SSL UC1 Plug-In Controller"
+  //   virtual     (20), "Arturia CS-80 V Synthesizer Virtual Instrument
+  //   instrument  Software", two Akai MPCs. The two pool titles they would have
+  //               caught, "GForce Oberheim OB-X Virtual Instrument" and "UAD
+  //               Manley VOXBOX … Plug-In", are left.
+  //   windscreen  its one pool part is caught by the model-list rule anyway, and
+  //               it would defer an unreviewed U 87 Ai bundle.
+  //   switch, pot "Boss AB-2 Foot Switch" is a product. Compound switch names
+  //               are left to the model-list rule ("Prophet 5/10/T8 - panel
+  //               switch"), which does not need the word.
+  //   rom         "Yamaha DX7 Vintage, 2 ROM, BC2, FC, Top Zustand" and "Yamaha
+  //               DX7 … Sakamoto ROM loaded w/Hardcase" are complete DX7s, so
+  //               only `voice rom` and `data rom` are taken.
+  //   jack        confirmed Boss DS-2 titles name a "Built-In Remote Jack" as a
+  //               feature; only the observed `phone jack` is taken.
+  //   Forms the report listed with no hit in the pool (caps, output/input jack,
+  //   ram card, voice cards/boards, contacts, headstack) are not adopted, on this
+  //   file's rule that an unexercised token is a latent false rejection.
+  'head stack',
+  'legs', 'plates',
+  'damper', 'hammers',
+  'voice rom', 'data rom',
+  'ramkarte',
+  'presets',
+  'patch sheet', 'patch sheets', 'patch book', 'booklet', 'brochure',
+  'spec sheet', 'troubleshooting',
+  'cap',
+  'fuse', 'socket',
+  'phone jack',
+  'voice card', 'voice board',
+  'contact strip',
+  'covers',
+  'lid',
+  'box only',
 ]
 
 /**
@@ -225,18 +300,27 @@ const ACCESSORY_TOKENS: readonly string[] = [
  * two accessories as readily as a product and an accessory, and treating them
  * as inclusion would have retained "Yamaha DX7 original operators manual og
  * performance notes", which is an accessory-only listing.
+ *
+ * `&` IS THAT CONJUNCTION, and stopped being a marker in PAN-196. It retained
+ * "Yamaha DX7 Voice ROM-1 & ROM-2 Data Cartridge Set" and "Korg MS-10 & MS-20
+ * Wood Side Panels" (the latter through the line-boundary accessory cues, which
+ * read the same marker). MEASURED RECALL COST, ACCEPTED: over every
+ * owner-confirmed match and every unreviewed match on a public product, one
+ * title changes — "SERVICED & RESTORED Dual Manual PROPHET 10 Rev3 w/ORIGINAL
+ * OWNERS MANUAL, …", kept until now only because "SERVICED & RESTORED" came
+ * before "Dual Manual". No confirmed match the matcher produces today changes.
  */
 const INCLUSION_MARKERS: readonly string[] = [
   'inkl', 'inkl.', 'incl', 'incl.', 'including', 'included', 'includes', 'inklusive',
   'with', 'w/', 'med', 'mit', 'con',
   'komplett', 'komplet', 'complete', 'fullt', 'full set',
-  'plus', '+', '&',
+  'plus', '+',
 ]
 
 /**
  * Index of the earliest inclusion marker, or -1.
  *
- * `+`, `&` and `w/` are matched literally because they are punctuation, not
+ * `+` and `w/` are matched literally because they are punctuation, not
  * words; the rest are matched on word boundaries so `medium` is not `med` and
  * `within` is not `with`.
  *
@@ -269,7 +353,7 @@ export function earliestInclusionMarker(text: string): number {
   let earliest = -1
   for (const marker of INCLUSION_MARKERS) {
     let idx: number
-    if (/^[+&]$/.test(marker) || marker === 'w/') {
+    if (marker === '+' || marker === 'w/') {
       idx = text.indexOf(marker)
     } else {
       const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -371,6 +455,15 @@ function isColourSpecPickguard(text: string): boolean {
 }
 
 /**
+ * "Painted Head Cap" is a finish, not a cap (PAN-196). Fender Custom Shop
+ * titles name the painted headstock that way: "Fender Custom Shop 1962 Jaguar
+ * Journeyman Relic Painted Head Cap Surf Green (683)" — four owner-confirmed
+ * matches. Every pool `cap` that is a part is a knob or switch cap, an end cap
+ * or a fuse-holder cap, never a head cap.
+ */
+const HEAD_CAP_FINISH = /(?<![\w-])head\s+cap(?![\w-])/i
+
+/**
  * Wanted / non-sale intent (da / de / en). The listing is a request TO BUY,
  * not an offer to sell, so it is not evidence of a price at all.
  *
@@ -396,6 +489,40 @@ const WANTED_TOKENS: readonly string[] = [
  * wanted marker, because "Tausch möglich" appears on ordinary sales.
  */
 const OFFER_MARKERS: readonly string[] = ['biete']
+
+/**
+ * A listing of several units has no single-unit price (PAN-196). Measured on
+ * the never-evaluated pool: "Boss ES-5 Effects Switching System (2-pack)",
+ * "(3-pack)" and "(5-pack)" at 6,952, 10,428 and 17,380 DKK against a ~3,400
+ * DKK unit; "Lot of 5 1981 Silver Screw Boss pedals SD-1, PH-1R, CE-2, BF-2,
+ * CS-1"; "(31 pack) Roland Alpha Juno 2 Top Panel Push Button Tact Switch".
+ *
+ * NARROW ON PURPOSE:
+ *   - a quantity after an inclusion marker counts the extras: "Boss DS-1
+ *     Distortion Pedal Bundle with 2x Strukture … Patch Cables" and "Yamaha DX7
+ *     Synthesizer inkl 4x Cartridge" are one instrument each (14 such
+ *     owner-confirmed titles).
+ *   - a bare "N pack" is not taken: "… Gator Patch Cable 3 Pack". Only the
+ *     parenthesised or hyphenated form is.
+ *   - "N x" counts only where it leads the title ("3x Moog Mother-32") or
+ *     stands in parentheses ("Warm Audio WA-87 R2 Pair (2x)"). Anywhere else
+ *     it is a model name ("Roland Cube 30X") or a spec ("2 x 12" cabinet).
+ *     N ≥ 2, so "1x TF1 Modul" is one module.
+ *
+ * WHAT IT DOES DEFER THAT THE OWNER HAS CONFIRMED, deliberately. 27 confirmed
+ * titles are several units: "API 512c 500 Series Microphone Preamp (5-pack)",
+ * "Neumann KMS 105 … (3-pack)", "2x Neumann KH120 II … (Pair)", "4x AMS Neve
+ * 1081 + Shep Associates Rack PSU", "3x As-Is For Parts / Repair Roland TR-707
+ * … Lot". Their identity is right; their price is N units, which is exactly
+ * what this rule is for. Deferral writes no row and leaves existing rows alone.
+ */
+const QUANTITY_PATTERNS: readonly RegExp[] = [
+  /\(\s*\d+\s*-?\s*pack\s*\)/,
+  /(?<![\w-])\d+-pack(?![\w-])/,
+  /(?<![\w-])lot\s+of\s+\d+(?![\w-])/,
+  /^\s*(?:[2-9]|[1-9]\d)\s*x(?![\w-])(?!\s*\d)/,
+  /\(\s*(?:[2-9]|[1-9]\d)\s*x\s*\)/,
+]
 
 /**
  * Word-boundary token test. `-` and `_` count as word characters so a token
@@ -445,7 +572,15 @@ export function detectNonProductIntent(title: string): IntentFinding | null {
     // The one token whose own evidence needs a second suppressor. Applied here
     // rather than by weakening the token, exactly as `isShippingPickup` is.
     if (token === 'pickguard' && isColourSpecPickguard(text)) continue
+    if (token === 'cap' && HEAD_CAP_FINISH.test(text)) continue
     return { intent: 'part_or_accessory', token }
+  }
+
+  // A quantity after an inclusion marker counts the extras, not the product:
+  // "Boss AW-3 Dynamic Wah + 2x Gator Patch Cable 3 Pack" is one pedal.
+  for (const re of QUANTITY_PATTERNS) {
+    const m = re.exec(text)
+    if (m && !(markerAt !== -1 && markerAt < m.index)) return { intent: 'multi_unit', token: m[0].trim() }
   }
 
   return null

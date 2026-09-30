@@ -146,8 +146,12 @@ test('Prophet-10 splits by name: the 2020 model and the Sequential Circuits orig
 test('a refused member of another line keeps a two-product title undecided', () => {
   // The vintage Prophet-10 is refused on the 2020 page, but the title still
   // names it beside the Prophet-5: the tie that deferred it stands.
-  const d = decideMatch('Sequential Circuits - Prophet 5 , Prophet 10 , PRO-ONE - Fuse Holder Red', index)
+  const d = decideMatch('Sequential Circuits - Prophet 5 , Prophet 10 , PRO-ONE', index)
   assert.equal(d.kind === 'deferred' && d.reason, 'ambiguous_tie')
+  // The real listing ends "- Fuse Holder Red"; since PAN-196 `fuse` defers it
+  // as a part before any candidate is chosen.
+  const part = decideMatch('Sequential Circuits - Prophet 5 , Prophet 10 , PRO-ONE - Fuse Holder Red', index)
+  assert.equal(part.kind === 'deferred' && part.reason, 'non_product_intent')
 })
 
 // ── PAN-154 (2/2): option A for the audit's other products, and the base
