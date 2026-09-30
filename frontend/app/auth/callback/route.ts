@@ -1,12 +1,15 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
+import { safeNextPath } from '@/lib/safe-next'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl
   const code = searchParams.get('code')
+  // PAN-187: return to the page the sign-in started from, else the homepage.
+  const next = safeNextPath(searchParams.get('next')) ?? '/'
 
   if (code) {
-    const response = NextResponse.redirect(`${origin}/`)
+    const response = NextResponse.redirect(`${origin}${next}`)
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

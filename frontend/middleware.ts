@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { requiresAdmin, requiresAuth } from '@/lib/route-access'
 import { familyRedirectTarget } from '@/lib/families'
+import { safeNextPath } from '@/lib/safe-next'
 
 // WHY THIS IS STILL `middleware.ts` ON NEXT 16 (PAN-167). Next 16 deprecates
 // the name in favour of `proxy.ts`, but `proxy` runs on the Node.js runtime
@@ -55,6 +56,16 @@ function scrapeRateAllowed(ip: string): boolean {
 // real 404 instead of 307 -> /login. The hazard that creates — a new route is
 // public unless classified — is caught by the completeness guard, which fails
 // on any routable file with no entry. See the build plan §7.7.
+
+// PAN-187: the gate remembers where the visitor was going, and every sign-in
+// path lands them back there. API routes carry no `next` — a JSON response is
+// not a place to land after signing in.
+function loginRedirect(request: NextRequest): NextResponse {
+  const url = new URL('/login', request.url)
+  const { pathname, search } = request.nextUrl
+  if (!pathname.startsWith('/api/')) url.searchParams.set('next', pathname + search)
+  return NextResponse.redirect(url)
+}
 
 function isOnboardingPath(pathname: string): boolean {
   return pathname === '/onboarding' || pathname.startsWith('/onboarding/')
@@ -119,9 +130,10 @@ export async function middleware(request: NextRequest) {
   // returning user never saw product-centred discovery — the catalogue is the
   // product, and the homepage is where it starts. See §6 of the build plan.
 
-  // Logged-in users on /login or /signup → search
+  // Logged-in users on /login or /signup → where they were going, else search
   if (user && (pathname === '/login' || pathname === '/signup')) {
-    return NextResponse.redirect(new URL('/search', request.url))
+    const next = safeNextPath(request.nextUrl.searchParams.get('next'))
+    return NextResponse.redirect(new URL(next ?? '/search', request.url))
   }
 
   // Logged-in users are bounced out of the retired onboarding flow → the
@@ -138,7 +150,7 @@ export async function middleware(request: NextRequest) {
   // the last place the middleware kept an opinion the authority did not share.
   if (requiresAdmin(pathname)) {
     if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url))
+      return loginRedirect(request)
     }
     const admin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -161,7 +173,7 @@ export async function middleware(request: NextRequest) {
   // Unauthenticated users on a route classified as requiring a session.
   // Everything else falls through to Next.js routing.
   if (!user && requiresAuth(pathname)) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    return loginRedirect(request)
   }
 
   return supabaseResponse
