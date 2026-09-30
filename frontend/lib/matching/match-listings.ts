@@ -265,6 +265,23 @@ function unlessAlso(cue: RegExp, stronger: RegExp): RegExp {
   return new RegExp(`${cue.source}(?!.*${stronger.source})(?<!${stronger.source}.*)`, 'i')
 }
 
+/** A member of `line` that refuses titles naming one of `otherMembers`; with none, it only joins the line. */
+const member = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ line, otherMembers })
+
+/** The five-string: "Jazz Bass V", "Precision Bass® V", "5-string". */
+const FIVE_STRING = /bass\W?\s+v(?![\w-])|(?<![\w-])5[-\s]?str/i
+
+/**
+ * Fender's 2025 Standard series shares its name with the Mexican Standard of
+ * 1991–2018, and sellers mostly write it bare: "Fender Standard Jazz Bass -
+ * Black". Only the new series has a laurel board or a 2025-on year, so that is
+ * required, and an American or Mexican Standard, or an older year, is refused.
+ */
+const STANDARD_2025: Pick<LineBoundary, 'requires' | 'otherMembers'> = {
+  requires: [...cues('laurel', 'lrl'), yearCue(2025, 2039)],
+  otherMembers: [...cues('american', 'usa', 'mexico', 'mexican', 'mex', 'mim'), yearCue(1950, 2023)],
+}
+
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
   'moog-minimoog': {
@@ -377,7 +394,9 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // Base: the 1968–79 US original. Every original in production carries its
   // year; a Thinline without one is as often a Classic Series or a Vintera.
   'fender-telecaster-thinline': {
-    line: 'telecaster-thinline',
+    // One line with the PAN-195 Telecaster models, so refusing it on "American
+    // Vintage II 1972 Telecaster Thinline" is evidence for that model (step 5b).
+    line: 'telecaster',
     requires: [yearCue(1968, 1979)],
     otherMembers: [
       ...cues(
@@ -392,7 +411,7 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   },
   // Frozen boundary: "Excludes Custom Shop." The reissues are other members too.
   'fender-telecaster-custom': {
-    line: 'telecaster-custom',
+    line: 'telecaster',
     otherMembers: [
       ...cues(
         'custom shop', 'journeyman', 'relic', 'road worn', 'nos', 'ltd', 'limited', 'fsr',
@@ -491,6 +510,71 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
     ],
     accessories: ['harness', 'wiring'],
   },
+
+  // ── PAN-195: the Fender series models (owner decision 2026-09-30) ─────────
+  // Where one model's name sits inside another's ("Player II Stratocaster" in
+  // "Player II Stratocaster HSS"), the shorter one refuses the longer one's
+  // extra word, and both join the family's line so the refusal picks the
+  // longer model instead of deferring (step 5b). Measured on every held and
+  // unmatched listing of the seven families.
+  // `hh`: the Limited Edition AP II Stratocaster HH Mahogany, which has no row.
+  'fender-american-professional-ii-stratocaster': member('stratocaster', ...cues('hss', 'hh', 'thinline')),
+  'fender-american-professional-ii-stratocaster-hss': member('stratocaster'),
+  'fender-american-professional-ii-stratocaster-thinline': member('stratocaster'),
+  'fender-american-professional-classic-stratocaster': member('stratocaster', cue('hss')),
+  'fender-american-professional-classic-stratocaster-hss': member('stratocaster'),
+  'fender-american-performer-stratocaster': member('stratocaster', cue('hss')),
+  'fender-american-performer-stratocaster-hss': member('stratocaster'),
+  'fender-american-ultra-stratocaster': member('stratocaster', cue('hss')),
+  'fender-american-ultra-stratocaster-hss': member('stratocaster'),
+  'fender-american-ultra-ii-stratocaster': member('stratocaster', cue('hss')),
+  'fender-american-ultra-ii-stratocaster-hss': member('stratocaster'),
+  'fender-player-ii-stratocaster': member('stratocaster', cue('hss')),
+  'fender-player-ii-stratocaster-hss': member('stratocaster'),
+  'fender-player-ii-modified-stratocaster': member('stratocaster', cue('hss')),
+  'fender-player-ii-modified-stratocaster-hss': member('stratocaster', cue('floyd')),
+  'fender-player-ii-modified-stratocaster-hss-floyd-rose': member('stratocaster'),
+  'fender-player-plus-stratocaster': member('stratocaster', cue('hss')),
+  'fender-player-plus-stratocaster-hss': member('stratocaster'),
+  'fender-standard-stratocaster': { line: 'stratocaster', ...STANDARD_2025, otherMembers: [...STANDARD_2025.otherMembers, cue('hss')] },
+  'fender-standard-stratocaster-hss': { line: 'stratocaster', ...STANDARD_2025 },
+
+  'fender-american-standard-telecaster': member('telecaster'),
+  'fender-standard-telecaster': { line: 'telecaster', ...STANDARD_2025 },
+  'fender-american-professional-ii-telecaster': member('telecaster', ...cues('deluxe', 'thinline')),
+  'fender-american-professional-ii-telecaster-deluxe': member('telecaster'),
+  'fender-american-professional-ii-telecaster-thinline': member('telecaster'),
+  'fender-american-performer-telecaster': member('telecaster', cue('hum')),
+  'fender-american-performer-telecaster-hum': member('telecaster'),
+  'fender-player-ii-telecaster': member('telecaster', cue('hh')),
+  'fender-player-ii-telecaster-hh': member('telecaster'),
+  'fender-player-ii-modified-telecaster': member('telecaster', cue('sh')),
+  'fender-player-ii-modified-telecaster-sh': member('telecaster'),
+  'fender-vintera-ii-60s-telecaster': member('telecaster', cue('thinline')),
+  'fender-vintera-ii-60s-telecaster-thinline': member('telecaster'),
+  'fender-american-vintage-ii-1972-telecaster-thinline': member('telecaster'),
+  'fender-american-vintage-ii-1977-telecaster-custom': member('telecaster'),
+
+  'fender-american-professional-ii-jazz-bass': member('jazz-bass', FIVE_STRING, cue('fretless')),
+  'fender-american-professional-ii-jazz-bass-v': member('jazz-bass'),
+  'fender-american-professional-ii-jazz-bass-fretless': member('jazz-bass'),
+  'fender-american-ultra-jazz-bass': member('jazz-bass', FIVE_STRING),
+  'fender-american-ultra-jazz-bass-v': member('jazz-bass'),
+  'fender-american-ultra-ii-jazz-bass': member('jazz-bass', FIVE_STRING),
+  'fender-american-ultra-ii-jazz-bass-v': member('jazz-bass'),
+  'fender-player-plus-jazz-bass': member('jazz-bass', FIVE_STRING),
+  'fender-player-plus-jazz-bass-v': member('jazz-bass'),
+  'fender-player-ii-modified-active-jazz-bass': member('jazz-bass', FIVE_STRING),
+  'fender-player-ii-modified-active-jazz-bass-v': member('jazz-bass'),
+  'fender-standard-jazz-bass': { line: 'jazz-bass', ...STANDARD_2025 },
+
+  'fender-american-professional-ii-precision-bass': member('precision-bass', FIVE_STRING),
+  'fender-american-professional-ii-precision-bass-v': member('precision-bass'),
+
+  // `fender-mustang-bass` already refuses these series by name.
+  'fender-vintera-ii-70s-competition-mustang-bass': member('mustang-bass'),
+  'fender-american-performer-mustang-bass': member('mustang-bass'),
+  'fender-american-professional-classic-mustang-bass': member('mustang-bass'),
 }
 
 /**
