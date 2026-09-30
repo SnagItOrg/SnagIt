@@ -108,12 +108,14 @@ test('every public listing surface mounts the signal on the rows it renders', ()
     assert.match(source, /buildPositionSignal\(/, `${name} must build it`)
   }
 
-  // `/browse/[root]` is the PAN-98 route. It must count `filteredProducts` —
-  // the array its grid maps over, after the subcategory chip — and must never
-  // hand the projection total to the signal.
+  // `/browse/[root]` is the PAN-98 route. It must count the array its grid
+  // maps over — since PAN-192 `gridCards`: the rows left after the chips, with
+  // each family of two or more collapsed into one card — and must never hand
+  // the projection total to the signal.
   const browseRoot = ROUTES.browseRoot
-  assert.match(browseRoot, /renderedRows: filteredProducts/)
-  assert.match(browseRoot, /\{filteredProducts\.map\(/)
+  assert.match(browseRoot, /const gridCards = collapseFamilies\(filteredProducts\)/)
+  assert.match(browseRoot, /renderedRows: gridCards/)
+  assert.match(browseRoot, /\{gridCards\.map\(/)
   assert.equal(
     /renderedRows:\s*[^\n]*total_public_products/.test(browseRoot),
     false,

@@ -173,6 +173,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-189: /intel prices supported products only. A family label in its
       // set is a median pooled across a whole model line.
       'scripts/lib/pan189-intel-priced-set.test.ts',
+      // PAN-192: a family card replaces its models in a browse grid. It
+      // carries no price and collapses only at two members in the rendered set.
+      'scripts/lib/pan192-family-cards.test.ts',
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',

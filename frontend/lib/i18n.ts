@@ -242,6 +242,12 @@ export const translations = {
     // rendered list rather than a separately queried total.
     familyListingsCount: '{count} aktive annoncer på familiens modeller',
     familyNoListings: 'Ingen aktive annoncer på familiens modeller lige nu.',
+    // PAN-192: the family card in a browse grid. {count} is the number of
+    // model cards it replaces in that grid — never a listing count, never a
+    // price. The label is the link's accessible name, so a screen reader hears
+    // that this card is a group and not one product.
+    familyCardModels: '{count} modeller',
+    familyCardLabel: '{label}, familie med {count} modeller',
 
     // Price evidence (WP-3)
     priceBandMedian: 'median udbudspris',
@@ -894,6 +900,8 @@ export const translations = {
     familyOtherModels: 'Other models in this family',
     familyListingsCount: '{count} active listings on this family’s models',
     familyNoListings: 'No active listings on this family’s models right now.',
+    familyCardModels: '{count} models',
+    familyCardLabel: '{label}, family of {count} models',
 
     priceBandMedian: 'median asking price',
     priceBandRange: 'typical range (p25–p75)',
