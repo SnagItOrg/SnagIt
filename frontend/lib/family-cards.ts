@@ -19,9 +19,13 @@
  *      facets — so a family split across two subcategories collapses in each
  *      only where it has two there. One member renders as its own product card,
  *      exactly as before; none renders nothing.
- *   2. The card carries NO PRICE, EVER (PAN-94), and no listing count either: a
- *      sum of the members' counts double-counts a listing matched to two of them
- *      (PAN-98). `FamilyGridCard` has no field either could travel in.
+ *   2. The card carries NO PRICE, EVER (PAN-94). `FamilyGridCard` has no field
+ *      one could travel in. It does carry "N til salg" (owner decision
+ *      2026-09-30): the SUM of the active listing counts of the members it
+ *      replaces in this set, read from the rows as served. It adds no query.
+ *      A listing matched to two members is counted under each, so the card can
+ *      read higher than `/family/<slug>`, which de-duplicates (PAN-98). The
+ *      owner accepted that when deciding for the sum.
  *   3. The image is the display image of the first member in the family's
  *      reviewed order that has one — the first canonical child's, since every
  *      row a public grid renders is canonical.
@@ -47,8 +51,9 @@ export type ProductFamilyRef = {
 export const FAMILY_CARD_MIN_CHILDREN = 2
 
 /**
- * A family card. AN EXACT KEY SET, AND NOTHING PRICE-SHAPED OR LISTING-SHAPED
- * IN IT. `modelCount` is the number of cards it replaces in this grid.
+ * A family card. AN EXACT KEY SET, AND NOTHING PRICE-SHAPED IN IT. `modelCount`
+ * is the number of cards it replaces in this grid; `activeListingCount` is the
+ * sum of those cards' own counts — a count of listings, never a price.
  */
 export type FamilyGridCard = {
   kind: 'family'
@@ -56,6 +61,7 @@ export type FamilyGridCard = {
   label: string
   brand: string
   modelCount: number
+  activeListingCount: number
   imageUrl: string | null
 }
 
@@ -63,6 +69,7 @@ export type GridCard<P> = { kind: 'product'; product: P } | FamilyGridCard
 
 type CollapsibleRow = {
   image_url: string | null
+  active_listing_count: number
   family?: ProductFamilyRef | null
 }
 
@@ -100,6 +107,7 @@ export function collapseFamilies<P extends CollapsibleRow>(rows: readonly P[]): 
       label: family.label,
       brand: family.brand,
       modelCount: group.length,
+      activeListingCount: group.reduce((sum, member) => sum + member.active_listing_count, 0),
       imageUrl: withImage[0]?.image_url ?? null,
     })
   }
