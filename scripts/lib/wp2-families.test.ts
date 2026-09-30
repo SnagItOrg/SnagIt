@@ -67,8 +67,11 @@ const PAN159_FAMILIES = [
   'fender-jaguar',
 ]
 
+/** PAN-198. A guarded line-label row, like `fender-jazzmaster`. */
+const PAN198_FAMILIES = ['gibson-sg']
+
 /** The six, plus `rhodes` (PAN-85) — the first family with canonical children — the Boss lines and `minimoog` (PAN-154). */
-const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES]
+const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES]
 
 /**
  * Production state of every configured child, SELECT-verified 2026-08-28:
@@ -113,6 +116,51 @@ test('families: children match the reviewed §6.3 map', () => {
       'gibson-les-paul-standard-60s',
       'gibson-les-paul-studio',
       'gibson-les-paul-special',
+      // PAN-198: the Gibson series models.
+      'gibson-les-paul-standard-50s-p-90',
+      'gibson-les-paul-standard-50s-faded',
+      'gibson-les-paul-standard-50s-double-trouble',
+      'gibson-les-paul-standard-60s-faded',
+      'gibson-les-paul-standard-60s-double-trouble',
+      'gibson-les-paul-studio-session',
+      'gibson-les-paul-studio-deluxe-ii',
+      'gibson-les-paul-studio-double-trouble',
+      'gibson-les-paul-special-tribute',
+      'gibson-les-paul-double-cut-special',
+      'gibson-les-paul-junior',
+      'gibson-les-paul-junior-double-cut',
+      'gibson-billie-joe-armstrong-les-paul-junior',
+      'gibson-les-paul-custom-70s',
+      'gibson-les-paul-classic',
+      'gibson-les-paul-deluxe',
+      'gibson-les-paul-70s-deluxe',
+      'gibson-les-paul-modern',
+      'gibson-les-paul-supreme',
+      'gibson-les-paul-traditional',
+      'gibson-les-paul-traditional-pro-ii',
+      'gibson-les-paul-tribute',
+      'gibson-les-paul-50s-tribute',
+      'gibson-les-paul-52-tribute',
+      'gibson-les-paul-60s-tribute',
+      'gibson-les-paul-70s-tribute',
+      'gibson-les-paul-future-tribute',
+      'gibson-the-paul',
+      'gibson-les-paul-the-paul-ii',
+      'gibson-slash-les-paul-standard',
+      'gibson-les-paul-paul-kossoff',
+      'gibson-les-paul-paul-landers-signature',
+      'gibson-custom-shop-les-paul-r0',
+      'gibson-custom-shop-les-paul-r4',
+      'gibson-custom-shop-les-paul-r6',
+      'gibson-custom-shop-les-paul-r7',
+      'gibson-custom-shop-les-paul-r8',
+      'gibson-custom-shop-les-paul-r9',
+      'gibson-custom-shop-1957-les-paul-custom-reissue',
+      'gibson-custom-shop-1968-les-paul-custom-reissue',
+      'gibson-custom-shop-1957-les-paul-junior-reissue',
+      'gibson-custom-shop-1957-les-paul-special-single-cut-reissue',
+      'gibson-custom-shop-1960-les-paul-special-double-cut-reissue',
+      'gibson-custom-shop-les-paul-special-double-cut-figured',
     ],
     'fender-telecaster': [
       'fender-telecaster-thinline',
@@ -185,7 +233,19 @@ test('families: children match the reviewed §6.3 map', () => {
       'fender-standard-stratocaster',
       'fender-standard-stratocaster-hss',
     ],
-    'gibson-es-335': ['gibson-es-335-dot'],
+    'gibson-es-335': [
+      'gibson-es-335-dot',
+      // PAN-198: the Gibson series models.
+      'gibson-es-335-block',
+      'gibson-es-335-50s',
+      'gibson-es-335-60s-block',
+      'gibson-es-335-satin',
+      'gibson-es-335-studio',
+      'gibson-custom-shop-1959-es-335-reissue',
+      'gibson-custom-shop-1961-es-335-reissue',
+      'gibson-custom-shop-1963-es-335-block-reissue',
+      'gibson-custom-shop-1964-es-335-reissue',
+    ],
     // PAN-154: the only clean rows the KG holds, all `known` today.
     'fender-jazz-bass': [
       'fender-american-standard-jazz-bass',
@@ -322,6 +382,19 @@ test('families: children match the reviewed §6.3 map', () => {
       'fender-vintera-iii-mid-60s-jaguar',
       'fender-american-professional-classic-jaguar',
     ],
+    'gibson-sg': [
+      'gibson-sg-standard',
+      'gibson-sg-standard-61',
+      'gibson-sg-standard-61-faded',
+      'gibson-sg-standard-large-guard-with-maestro-vibrola',
+      'gibson-sg-61-reissue',
+      'gibson-custom-shop-1961-les-paul-sg-standard-reissue',
+      'gibson-sg-special',
+      'gibson-sg-special-faded',
+      'gibson-custom-shop-1963-sg-special-reissue',
+      'gibson-sg-supreme',
+      'gibson-sg-modern',
+    ],
   }
   for (const family of NAVIGATION_FAMILIES) {
     assert.deepEqual([...family.children].sort(), [...expected[family.slug]].sort(), family.slug)
@@ -367,7 +440,8 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   // `fender-jazzmaster` and `fender-jaguar` are rows, but `known` + `qa_only`,
   // so their /product URLs 404ed before and 308 now: no priced page moves.
   assert.equal(GUITAR_FAMILIES.length, 6)
-  assert.equal(EXPECTED_FAMILIES.length, 18)
+  // `gibson-sg` (PAN-198) is the Jazzmaster case: a `known` + `qa_only` row.
+  assert.equal(EXPECTED_FAMILIES.length, 19)
 })
 
 test('redirects: nothing else is redirected', () => {
