@@ -272,6 +272,9 @@ async function main() {
     if (!FORCE) {
       const existing = (p.attributes as Record<string, unknown> | null)?.['reverb_csp']
       if (existing && (existing as { csp_id?: number }).csp_id != null) return false
+      // PAN-195: a person rejected this row's CSP (a family label has no Reverb
+      // product). Without a csp_id it would otherwise be re-resolved to one.
+      if (existing && (existing as { rejected_csp_id?: number }).rejected_csp_id != null) return false
     }
     return true
   })
