@@ -101,18 +101,7 @@ export function ProductCard({
             PAN-168 #9: most product photos are cut-outs on white, where a
             --card chip had no edge at all in light mode; --border-subtle is
             the edge every card already wears. */}
-        {activeListingCount > 0 && (
-          <span
-            className="absolute bottom-2 right-2 text-[11px] font-medium px-2 py-0.5 rounded-full"
-            style={{
-              background: 'var(--card)',
-              color: 'var(--foreground)',
-              border: '1px solid var(--border-subtle)',
-            }}
-          >
-            {activeListingCount} {t.discoverForSale}
-          </span>
-        )}
+        <ForSaleChip count={activeListingCount} />
       </div>
 
       {/* Text area */}
@@ -133,5 +122,26 @@ export function ProductCard({
         </p>
       </div>
     </Link>
+  )
+}
+
+/**
+ * The "N til salg" chip on a card's media box. PAN-192: `FamilyCard` wears the
+ * same one (owner decision 2026-09-30), so the two cards cannot drift apart.
+ */
+export function ForSaleChip({ count }: { count: number }) {
+  const { t } = useLocale()
+  if (count <= 0) return null
+  return (
+    <span
+      className="absolute bottom-2 right-2 text-[11px] font-medium px-2 py-0.5 rounded-full"
+      style={{
+        background: 'var(--card)',
+        color: 'var(--foreground)',
+        border: '1px solid var(--border-subtle)',
+      }}
+    >
+      {count} {t.discoverForSale}
+    </span>
   )
 }

@@ -6,6 +6,7 @@ import { useState } from 'react'
 
 import { useLocale } from '@/components/LocaleProvider'
 import { Icon } from '@/components/Icon'
+import { ForSaleChip } from '@/components/ProductCard'
 import { fill } from '@/lib/i18n'
 import type { FamilyGridCard } from '@/lib/family-cards'
 
@@ -18,21 +19,29 @@ import type { FamilyGridCard } from '@/lib/family-cards'
  * the whole card is one link with its own accessible label, which here says the
  * card is a family, not a product.
  *
- * What differs is only what it may say. Where a product card shows "N til
- * salg", this shows the stack glyph and "N modeller" — the cards it replaced.
- * It shows no price and no listing count, because it has neither (PAN-94,
- * PAN-98; see `FamilyGridCard`). The pill is neutral: a family is not a Klup
- * judgement (no green) and not the visitor's location (no `--here`).
+ * What differs is only what it may say. It wears the product card's own "N til
+ * salg" chip, summed over the models it replaced (owner decision 2026-09-30),
+ * and adds the stack glyph and "N modeller" in the slot a product card gives
+ * its tier badge — the opposite edge, so the two pills never share a row at
+ * shelf width. It shows no price, ever (PAN-94; see `FamilyGridCard`). The
+ * models pill is neutral: a family is not a Klup judgement (no green) and not
+ * the visitor's location (no `--here`).
  */
 export function FamilyCard({ card }: { card: FamilyGridCard }) {
   const { t } = useLocale()
   const [imgError, setImgError] = useState(false)
   const models = fill(t.familyCardModels, { count: card.modelCount })
+  // The link's own label replaces its text for a screen reader, so it has to
+  // say what the chip says too.
+  const label = fill(t.familyCardLabel, { label: card.label, count: card.modelCount })
+  const ariaLabel = card.activeListingCount > 0
+    ? `${label}, ${card.activeListingCount} ${t.discoverForSale}`
+    : label
 
   return (
     <Link
       href={`/family/${card.slug}`}
-      aria-label={fill(t.familyCardLabel, { label: card.label, count: card.modelCount })}
+      aria-label={ariaLabel}
       className="surface-interactive flex flex-col rounded-xl overflow-hidden"
     >
       <div className="relative w-full aspect-[4/3] overflow-hidden" style={{ background: 'var(--secondary)' }}>
@@ -51,7 +60,7 @@ export function FamilyCard({ card }: { card: FamilyGridCard }) {
           </div>
         )}
         <span
-          className="absolute bottom-2 right-2 text-[11px] font-medium pl-1.5 pr-2 py-0.5 rounded-full flex items-center gap-1"
+          className="absolute top-2 left-2 text-[11px] font-medium pl-1.5 pr-2 py-0.5 rounded-full flex items-center gap-1"
           style={{
             background: 'var(--card)',
             color: 'var(--foreground)',
@@ -61,6 +70,7 @@ export function FamilyCard({ card }: { card: FamilyGridCard }) {
           <Icon name="stacks" style={{ fontSize: 13 }} />
           {models}
         </span>
+        <ForSaleChip count={card.activeListingCount} />
       </div>
 
       <div className="p-3 flex flex-col gap-0.5">
