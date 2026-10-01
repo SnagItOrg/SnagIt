@@ -190,6 +190,8 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan203-line-boundaries.test.ts',
       // PAN-204: Martin. Era policy (1970+), series siblings, Billy Strings, case numbers.
       'scripts/lib/pan204-line-boundaries.test.ts',
+      // PAN-205: SSL. Generations (2 / 2+ / MKII, VHD Pre / VHD+), short words, parts, SKU suffixes.
+      'scripts/lib/pan205-line-boundaries.test.ts',
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',

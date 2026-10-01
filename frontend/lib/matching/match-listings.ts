@@ -650,6 +650,93 @@ const MARTIN_SERIES: readonly RegExp[] = cues(
 /** A Martin Custom Shop build carrying a series name ("Custom Shop D-28 Authentic 1937 … Stage 1 Ambertone"). */
 const MARTIN_CUSTOM: readonly RegExp[] = cues('custom shop', 'ctm', 'expert', 'stage 1')
 
+/**
+ * PAN-205. SSL's own name: "SSL" (also run into a model, "SSL2+", "SSL12", "Sslbigsix"), "Solid State
+ * Logic", and the misspellings measured on SSL titles, "Sol ID State Logic" and "Solid Stage Logic".
+ * Every SSL row requires one (manager decision 2026-10-01, brand co-occurrence): the model names are
+ * short or common words ("SiX", "Fusion", "UF8", "SSL 2"), and a title without the maker is not
+ * evidence. "Solid State" alone is not the maker ("Roland CUBE LITE Solid State Guitar Combo").
+ */
+const SSL_NAMED: readonly RegExp[] = [/(?<![a-z])ssl/i, /solid\s+sta(?:te|ge)\s+logic/i, /sol\s+id\s+state\s+logic/i]
+
+/**
+ * PAN-205. Accessories named by an SSL product, measured on the SSL titles (read-only snapshot
+ * 2026-10-01), marker-suppressible like every `accessories` list: "UC1 … with Decksaver … Cover and
+ * UC1 Rack Kit" is the UC1 with extras; "Decksaver Solid State Logic Big Six Cover" is a cover. Not a
+ * bare `desk` ("Six Mixer SSL Mic Pre Compressor Analog Desk" is the mixer), not a bare `case` ("SiX …
+ * with Case"), not a bare `mount` ("Rack Mount Kit" is caught by its own words).
+ */
+const SSL_PARTS: readonly string[] = [
+  'decksaver', 'cover', 'dust cover', 'glowcenter', 'glocoder', 'glomute', 'gloviz', 'glow buttons', 're:surface kit',
+  'rack kit', 'rackmount kit', 'rack mount kit', 'rack mount', 'rack ears', 'mise en rack',
+  'studio desk', 'controller desk', 'caddy', 'snake', 'carry case', 'custom carry case', 'protective case',
+  'task light', 'stream deck', 'tablet mount', 'mount brackets', 'insert', 'inserts', 'stand', 'stands',
+  'enclosure', 'mixer case', 'pot', 'pots', 'timecode', 'power supply',
+]
+
+/**
+ * PAN-205. Never the SSL product, whatever precedes them: a unit for parts, something made FOR an SSL
+ * product ("BSD DESK FOR SSL UF8", "Rack Kit for SSL UF8", "Snake for SSL Six, Matrix2, XL Desk",
+ * "GloCoder for SSL SIX / BIG SIX / ORIGIN"), and a title that leads with another maker: the accessory
+ * makers (Decksaver, Bazel, BSD, Mogami, Hosa, uonron, Restand) and the makers whose words collide with
+ * SSL model names (Moog Sonic Six, Sequential Six-Trak, Alesis Fusion, Rupert Neve Designs R6 "Six
+ * Space", Korg PolySix), and API ("API 500-8B HC 8-Slot Lunchbox with … SSl G Bus Compressor").
+ * No SSL row is a plug-in or software: no software-only SSL listing exists, and "plug-in" is how SSL
+ * names the UC1 hardware, so it is not a cue here (the PAN-196 decision).
+ */
+const SSL_NEVER: readonly RegExp[] = [
+  ...cues(
+    'for parts', 'for repair', 'parts only', 'not working', 'defect', 'defekt', 'broken',
+    'case for', 'cover for', 'kit for', 'for ssl', 'for solid state logic', 'compatible with',
+    // Seymour Duncan's Strat pickups are named SSL-1 … SSL-7 ("Seymour Duncan Ssl 2 Vntg Flat For Strat Rwrp").
+    'seymour duncan', 'duncan', 'pickup', 'pickups', 'strat', 'stratocaster',
+  ),
+  /^\W*(?:the\s+)?(?:decksaver|bazel|bsd|mogami|hosa|uonron|restand|m!xbling|3dwaves|mixingtable|seymour|moog|sequential|alesis|korg|rupert\s+neve|api|warm\s+audio)(?![\w-])/i,
+]
+
+/**
+ * PAN-205. Several units, or several SSL products, are never one unit: "2 x Solid State Logic SSL B-Dyn",
+ * "Two SSL SiX Ch Modules", "FOUR (4) Solid State Logic SiX CH", "4K B-DYN 611B PAIR", "SSL 18 and
+ * Alpha 8 Combo", "UF8 + UC1 + UF1 … Complete setup". SSL's part numbers end in X1 / X2 / X3
+ * ("729731 X2 500 Series Vhd+ Preamp", "729752X2 - BiG SiX", "726490X3"), which are not quantities:
+ * an "x2" right after a digit never counts. Neither does a channel count ("2x2", "2 x 2 USB").
+ * A "1 of 2" split sale is one unit and is not refused.
+ */
+const SSL_MULTI: readonly RegExp[] = [
+  ...cues('pair', 'stereo pair', 'matched pair', 'combo', 'complete setup', 'set of'),
+  /(?<![\w-])[2-9]\s?x(?!\s?\d)(?![\w-])/i,
+  /(?<![\w-])(?<!\d\s?)x\s?[2-9](?![\w-])/i,
+  /(?<![\w-])[2-9][\s-]?pack(?![\w-])/i,
+  /(?<![\w-])(?:two|three|four|five|eight)\s+(?:\(\d\)\s+)?(?:ssl|solid\s+state|sol\s+id|uf\s?-?[18]|uc\s?-?1|b-?dyn|vhd)/i,
+  // A digit before a model is a count ("2 UF8"); a digit before "SSL" is not ("8 SSL Preamps", "incl 2 SSL Plugins").
+  /(?<![\w-])[2-9]\s+(?:uf\s?-?[18]|uc\s?-?1|b-?dyn|vhd)/i,
+]
+
+/** An SSL member of `line` (PAN-205): SSL named, refuses `otherMembers` and SSL_NEVER; parts unless after a marker. */
+const ssl = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...otherMembers, ...SSL_NEVER], accessories: SSL_PARTS, requires: SSL_NAMED,
+})
+/** A single SSL unit: also refuses SSL_MULTI. Every promoted SSL row is one. */
+const sslSingle = (line: string, ...otherMembers: RegExp[]): LineBoundary => ssl(line, ...otherMembers, ...SSL_MULTI)
+
+/** The 2020 SSL 2+ (and its MKII): "SSL 2+", "SSL2+", "SSL 2 Plus", never the SSL 2. */
+const SSL_2_PLUS = /ssl\s?-?2\s?(?:\+|plus)(?![\w])/i
+/** The 2025 MKII revisions: "MKII", "MkII", "Mk II", "Mk.II", "Mk2", "Mark II", and the typo "MK11". */
+const SSL_MK2: readonly RegExp[] = [/(?<![\w-])mk\s?\.?\s?(?:ii|2|11|ll)(?![\w-])/i, /(?<![\w-])mark\s?(?:ii|2)(?![\w-])/i]
+/** A UF1 / UF8 / UC1 in any spelling ("UF-8", "UF 8", "uc1"), for the controller sets. */
+const SSL_UF1 = /(?<![\w-])uf\s?-?1(?![\w-])/i
+const SSL_UF8 = /(?<![\w-])uf\s?-?8(?![\w-])/i
+const SSL_UC1 = /(?<![\w-])uc\s?-?1(?![\w-])/i
+/** The ALPHA 8 converter, sold in bundles with the SSL 18 (and the 12): another product. */
+const SSL_ALPHA_8 = /(?<![\w-])alpha\s?-?8(?![\w-])/i
+/** The XLogic / Alpha / X-Rack VHD units, never the 500-series VHD Pre or VHD+. */
+const SSL_XLOGIC: readonly RegExp[] = cues('alpha', 'xlogic', 'x-logic', 'x-rack', 'xr627')
+/** The SiX CH 500-series channel strip ("SiX CH", "SiX Channel 500", "Channel Strip", "500-Series … Module"),
+ * never the mixer; the mixer's "Six-Channel" (hyphen) and "6-Channel" are not it. */
+const SSL_SIX_CH: readonly RegExp[] = [
+  /six\s+(?:ch|channel)(?![\w-])/i, ...cues('channel strip', '500', '500-series', '500 series', 'module', 'lunchbox'),
+]
+
 /** A title that names the 1980–84 Prophet-10: Circuits/SCI, "vintage", its years or Rev 1–3. */
 const PROPHET_10_VINTAGE =
   /(?<![\w-])(?:circuits|sci|vintage|19(?:7[89]|8[0-6])|rev\.?\s*[1-3](?!\d))(?![\w-])/i
@@ -1095,6 +1182,39 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The Joe Bonamassa 00-18 has no Reverb CSP and no row (owner): refused here, so it stays unmatched.
   'martin-00-18': martin('00-18', ...MARTIN_SERIES, ...cues('bonamassa', 'artist edition')),
   'martin-d-42-modern-deluxe': martin('d-42', ...MARTIN_CUSTOM),
+
+  // ── PAN-205: SSL (Solid State Logic) ─────────────────────────────────────
+  // Every row the PAN-205 promote SQL makes a match target. Each requires SSL's name (SSL_NAMED).
+  // Generations share a line, and the shorter name refuses the longer one's word (step 5b):
+  // SSL 2 / SSL 2 MKII / SSL 2+ / SSL 2+ MKII ("a bare SSL 2 is the MkI", manager decision 3), VHD Pre
+  // (2015–20) / VHD+ (2021–) / XLogic Alpha VHD Pre, SiX / SiX Channel / BiG SiX, UF1 / UF8 / UC1.
+  // No console row exists or is created (manager decision 7): every console-named SSL title is a part
+  // (4000 pots, a 9000 timecode card) or a snake "for SSL Six, Matrix2, XL Desk". Nor a G-series bus
+  // compressor row; one would have to require SSL and refuse "UC1" (whose titles name its bundled
+  // "Bus Compressor" plug-in) and the API 2500 "Stereo Bus Compressor".
+  'ssl-2': sslSingle('ssl-2', SSL_2_PLUS, ...SSL_MK2),
+  'ssl-2-mkii': sslSingle('ssl-2', SSL_2_PLUS),
+  'ssl-2-plus': sslSingle('ssl-2', ...SSL_MK2),
+  'ssl-2-plus-mkii': sslSingle('ssl-2'),
+  'ssl-12': sslSingle('ssl-12', SSL_ALPHA_8),
+  'ssl-18': sslSingle('ssl-18', SSL_ALPHA_8),
+  'ssl-uf1': sslSingle('ssl-uf', SSL_UF8, SSL_UC1),
+  'ssl-uf8': sslSingle('ssl-uf', SSL_UF1, SSL_UC1),
+  'ssl-uc1': sslSingle('ssl-uf', SSL_UF1, SSL_UF8),
+  'ssl-b-dyn': sslSingle('ssl-b-dyn'),
+  // The mixer. Its name is a number word: "Moog Sonic Six", "Six-Trak", "PolySix", the Rupert Neve R6
+  // "Six Space" rack and the Doepfer "SIX STAGE" filter all reached it on origin/main's matcher.
+  'ssl-six': sslSingle('ssl-six', ...SSL_SIX_CH, /big\s?six/i, ...cues('sonic', 'trak', 'six-trak', 'polysix', 'six space', 'r6', 'stage', 'fusion')),
+  'ssl-six-channel': sslSingle('ssl-six'),
+  'ssl-big-six': sslSingle('ssl-six'),
+  'ssl-fusion': sslSingle('ssl-fusion', /bus\s?(?:\+|plus)/i, ...cues('alesis', '8hd', 'jazz', 'uveq', 'ultraviolet', 'uv eq')),
+  'ssl-ultraviolet-eq': sslSingle('ssl-ultraviolet-eq'),
+  'ssl-vhd': sslSingle('ssl-vhd', ...SSL_XLOGIC, ...cues('8 channels', 'rack-ready')),
+  // The 2015–20 module. A 2021-on year is the VHD+ written without its "+" ("SSL VHD Pre 500-Series
+  // Microphone Preamp 2021 - Present - Black", the VHD+ CSP's own Reverb title).
+  'ssl-vhd-pre': sslSingle('ssl-vhd', ...SSL_XLOGIC, /vhd\s?(?:\+|plus)/i, yearCue(2021, 2039),
+    ...cues('611', '611eq', '611dyn', '4-channel', '4 channel', 'quad')),
+  'ssl-xlogic-alpha-vhd-pre': sslSingle('ssl-vhd'),
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed
