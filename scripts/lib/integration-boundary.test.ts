@@ -187,6 +187,7 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan199-line-boundaries.test.ts',
       'scripts/lib/pan200-line-boundaries.test.ts',
       'scripts/lib/pan202-line-boundaries.test.ts',
+      'scripts/lib/pan203-line-boundaries.test.ts',
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',

@@ -391,6 +391,20 @@ const RE_2 = /(?<![\w-])re[-\s]?20?2?(?![\w\d-])/i
 const MK_II = [cue('mkii'), cue('mk2'), cue('mk ii'), cue('mkⅱ')]
 
 /**
+ * PAN-203, the clone guard (direction 1). Warm Audio builds copies of other makers' classics
+ * and names the original in its titles: "WA-87 R2 (Nickel) U87 Style", "WA76 1176 Compressor
+ * Rev. D", "WA73 Single Channel Neve 1073-Style", "WA-1B Tube Tech CL1B-Style", "WA-2A LA2a".
+ * A title naming Warm Audio, or a Warm Audio model number, is never the original, whether or
+ * not it says "style" or "clone". Refused on every Neumann row (NEUMANN_NEVER) and on the
+ * Universal Audio 1176 / LA-2A, Neve 1073 and Tube-Tech CL 1B rows below. The model numbers
+ * carry no trailing boundary so "WA-87jr", "WA73-EQ" and "WA87R2" count.
+ */
+const WARM_AUDIO_COPY: readonly RegExp[] = [
+  cue('warm audio'),
+  /(?<![\w-])wa[\s-]?(?:47|67|87|251|14|8000|84|19|44|73|273|412|2a|76|12|2?mpx|1b|cx[\s-]?(?:12|24))/i,
+]
+
+/**
  * PAN-202. Neumann parts and accessories, measured on the active titles that name
  * Neumann (read-only snapshot 2026-10-01) against every Neumann row the promotion
  * would make a match target. Suppressed, like ROLAND_PARTS, by an inclusion marker
@@ -421,6 +435,8 @@ const NEUMANN_NEVER: readonly RegExp[] = [
     // "U67 Tube KK 67 microphone head set", "U67 lotto parts original ( five pz)"
     'head with', 'head set', 'head assembly', 'microphone head', 'lotto', 'pz',
   ),
+  // PAN-203: a Warm Audio copy that names the Neumann it copies ("WA-87 R2 U87", "WA-47F U47 FET").
+  ...WARM_AUDIO_COPY,
   // "Neumann KMS104 KMS105 Badge (Red)": a badge sold as a part, never "Purple Badge - West Berlin Era".
   /(?<![\w-])badge\s*\(/i,
   // A title that LEADS with a Neumann part number is that part: the EA 87 / EA 1 / EA 4 mounts,
@@ -489,6 +505,90 @@ const U67_VINTAGE: readonly RegExp[] = [...cues('vintage', 'telefunken', 'nos'),
 const U67_VINTAGE_ANY = new RegExp(`(?:${U67_VINTAGE.map((r) => r.source).join('|')})`, 'i')
 /** U 67 rebuilds by other makers ("Neumann / Max Kircher U 67", "Max Kirchner U67 re-issue"). */
 const U67_REBUILD: readonly RegExp[] = cues('kircher', 'kirchner', 'u60', 'u 60', 'm269', 'm 269', 'sm-69', 'sm 69')
+
+/**
+ * PAN-203. Warm Audio parts and accessories, measured on the titles that name Warm Audio
+ * (read-only snapshot 2026-10-01) against every Warm Audio row the promotion makes a match
+ * target: flight cases (Reverb lists them for the WA-47, WA-67, WA-87 R2 and WA-251), knobs,
+ * mounts, cables, power supplies, boom arms. Not `capsule` ("WA-44 … Dual Capsule" and "WA-CX24
+ * Dual Capsule" are the mics), not `transformer` ("WA273-EQ … Hand Wired UK Carnhill Transformer")
+ * and not a bare `case` ("WA-8000 … black carrying case included"; a case alone says "case for"). Suppressed by an inclusion marker before
+ * them ("w/ Tweed Case, PSU …", "+Shockmount"); a bundle keeps its extras (WARM_AUDIO_BUNDLE).
+ */
+const WARM_AUDIO_PARTS: readonly string[] = [
+  'flight case', 'knob', 'knobs', 'shockmount', 'shock mount', 'cable', 'cables',
+  'power supply', 'psu', 'pop filter', 'boom arm', 'mic stand', 'tube only',
+]
+
+/**
+ * PAN-203. Never the Warm Audio product, whatever precedes them: a unit for parts or repair,
+ * a modified or upgraded unit ("Revive Audio Modified: …", "M7 Capsule ZenPro Mod Edition", "WA-8000
+ * Upgraded by Erikson Labs w. Sony Capsule"), which is not price evidence for a stock one, and the clone
+ * guard's direction 2: a title that LEADS with the maker of an original Warm Audio copies is that
+ * maker's product ("Neumann U87 Ai … (not WA-87)", "Universal Audio 1176LN vs WA76").
+ */
+const WARM_AUDIO_NEVER: readonly RegExp[] = [
+  ...cues(
+    'for parts', 'for repair', 'needs repair', 'parts only', 'not working', 'defect', 'defekt', 'broken',
+    'modified', 'modded', 'mod', 'mod edition', 'zenpro', 'upgraded', 'full upgrade', 'replacement capsule',
+    // an aftermarket transformer fitted to the mic: "TAB-Funkenwerk AMI T13 Transformer Warm Audio WA-87 R2"
+    'ami t13',
+    'flight case for', 'case for', 'knob for',
+  ),
+  /^\W*(?:the\s+)?(?:neumann|telefunken|universal\s+audio|urei|teletronix|(?:ams\s+)?neve|tube[\s-]?tech|akg|api|pultec|manley)(?![\w-])/i,
+]
+
+/**
+ * PAN-203. Several units are never the single unit: "Pair (2x)", "Stereo Pair", "Coppia Stereo",
+ * "(2-pack)", "(3-pack)", "(5-pack) Bundle", a leading "(2) Warm Audio" or "2 X Warm Audio". The
+ * pair rows (WA-2A Stereo Pair, WA-84 Stereo Pair, WA-87 R2 TS) are their own products. An "Nx"
+ * followed by an accessory noun is a count of extras, not of units ("& 2x Shockmount").
+ */
+const WARM_AUDIO_PAIR: readonly RegExp[] = [
+  ...cues('pair', 'matched pair', 'stereo pair', 'stereo set', 'coppia', 'paar', 'two-pack', 'twin pack'),
+  /(?<![\w-])(?:[2-9]\s?x|x\s?[2-9])(?![\w-])(?!\s*(?:shock|cable|xlr|mount|case|tube))/i,
+  /(?<![\w-])[2-9][\s-]?pack(?![\w-])/i,
+  /^\W*\(?[2-9]\)?\s*(?:x\s+)?(?:pcs\s+)?warm(?![\w-])/i,
+]
+
+/** PAN-203: a bundle of the product keeps its extras, as PAN-202 decision 3 left Neumann bundles. */
+const WARM_AUDIO_BUNDLE: readonly RegExp[] = cues('bundle', 'kit', 'package', 'promo bundle')
+
+/** A Warm Audio member of `line` (PAN-203): refuses `otherMembers` and WARM_AUDIO_NEVER; parts unless bundled. */
+const warmAudio = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...otherMembers, ...WARM_AUDIO_NEVER], accessories: WARM_AUDIO_PARTS, bundles: WARM_AUDIO_BUNDLE,
+})
+/** A single unit (mic, one-channel preamp or compressor, pedal): also refuses WARM_AUDIO_PAIR. */
+const warmAudioSingle = (line: string, ...otherMembers: RegExp[]): LineBoundary =>
+  warmAudio(line, ...otherMembers, ...WARM_AUDIO_PAIR)
+
+/** The WA-87 R2 (2020–): "R2", "R2B", "R2N", "WA87R2", a "2020 - Present" or later year on the R1 row. */
+const WA87_R2: readonly RegExp[] = [
+  /(?<![\w-])(?:wa[\s-]?87[\s-]?)?r2[bn]?(?![\w-])/i, /2020\s*[-–]\s*present/i, yearCue(2021, 2039),
+]
+/** A "jr" (WA-87jr, WA-47jr, 2020– FET): "jr", "JR", “jr”, "Jrb", "Jrn", "Jrseb", "WA-87jr". */
+const WA_JR: readonly RegExp[] = [/(?<![\w])jr(?:se)?[bn]?(?![\w-])/i]
+/** The jr SE (cardioid-only): "SE", "SE-B", "SE-N", "WA-87JR-SE", "Jrse…", and its "Studio Essential(s)" name. */
+const WA_JR_SE: readonly RegExp[] = [
+  /(?<![\w-])se(?:[\s-]?[bn])?(?![\w-])/i, /jr[\s-]?se(?:[\s-]?[bn])?(?![\w-])/i,
+  ...cues('studio essential', 'studio essentials'),
+]
+/** The limited WA-87 R2 TS titanium stereo pair. */
+const WA87_TS: readonly RegExp[] = cues('ts', 'titanium')
+/**
+ * The fet WA-47F, and the WA-47T: the limited titanium edition ("WA-47T Limited-Edition … Titanium
+ * Finish"), held as its own row until the owner decides it is the WA-47 in another finish. Its
+ * titles without the "T" ("WA-47 … 2024 - Present - Titanium") are held with it.
+ */
+const WA47_F_T: readonly RegExp[] = [/(?<![\w-])wa[\s-]?47[\s-]?[ft](?![\w-])/i, ...cues('fet', 'titanium')]
+/** EQ versions: "WA73-EQ", "WA73 EQ", "WA73EQ", "Preamp & EQ", "Equalizer", and the WA73-500 module. */
+const WA_EQ: readonly RegExp[] = [/(?<![\w-])wa[\s-]?2?73[\s-]?eq/i, ...cues('eq', 'equalizer', 'equaliser', 'w/eq')]
+/** The two-channel WA76-D2 / -A2 and the "WA76 … Stereo Pair". */
+const WA76_STEREO: readonly RegExp[] = [/(?<![\w-])wa[\s-]?76[\s-]?[ad]?2(?![\w-])/i, /(?<![\w-])[ad]2(?![\w-])/i, ...cues('dual', 'stereo')]
+/** The two-channel WA-2MPX, never the single WA-MPX. */
+const WA_2MPX: readonly RegExp[] = [/(?<![\w-])(?:wa[\s-]?)?2[\s-]?mpx/i, cue('dual')]
+/** WA-84 pairs written without "pair": "Coppia", "Stereo", Reverb's "CP" (coppia) SKU, the omni pair. */
+const WA84_PAIR: readonly RegExp[] = [...cues('stereo', 'cp', 'omni')]
 
 /** A title that names the 1980–84 Prophet-10: Circuits/SCI, "vintage", its years or Rev 1–3. */
 const PROPHET_10_VINTAGE =
@@ -862,6 +962,50 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // Headphones and an interface: "pair" is not a quantity and "cable" is in the box.
   'neumann-ndh-20': member('ndh-20', ...NEUMANN_NEVER),
   'neumann-mt-48': member('mt-48', ...NEUMANN_NEVER),
+  // ── PAN-203: Warm Audio ──────────────────────────────────────────────────
+  // Every row the PAN-203 promote SQL makes a match target, each in its line. Pairs are refused
+  // on every single unit; the pair rows are not promoted. Bundles keep their extras.
+  // WA-87 line: the original WA-87 (2015–20), the R2 (2020–), the jr and the jr SE (2024–).
+  // "WA-87" reads inside "WA-87 R2" and "WA-87 jr", so the R1 refuses both, and the TS pair.
+  'warm-audio-wa87': warmAudioSingle('wa-87', ...WA87_R2, ...WA_JR, ...WA_JR_SE, ...WA87_TS),
+  // (Not the SE cue on the R2: "WA87 R2 …, sE Reflection Filter X … Bundle" names sE Electronics.)
+  'warm-audio-wa-87-r2': warmAudioSingle('wa-87', ...WA_JR, ...WA87_TS, cue('original version'), /\(original\)/i),
+  'warm-audio-wa-87jr': warmAudioSingle('wa-87', ...WA_JR_SE),
+  'warm-audio-wa-87jr-se': { ...warmAudioSingle('wa-87'), requires: WA_JR_SE },
+  // WA-47 line: the tube WA-47 (incl. its titanium edition), the FET WA-47jr and jr SE; the
+  // WA-47F and "WA-47T" have no target row and are refused on the tube WA-47.
+  'warm-audio-wa47': warmAudioSingle('wa-47', ...WA_JR, ...WA_JR_SE, ...WA47_F_T),
+  'warm-audio-wa-47jr': warmAudioSingle('wa-47', ...WA_JR_SE),
+  'warm-audio-wa-47jr-se': { ...warmAudioSingle('wa-47'), requires: WA_JR_SE },
+  // 1073 line: WA73 (one channel), WA73-EQ, WA273 (two channels), WA273-EQ. A title that says
+  // "EQ" is never the plain preamp; the two-channel units may say "stereo" or "dual".
+  'warm-audio-wa73': warmAudioSingle('wa73', ...WA_EQ, cue('500')),
+  'warm-audio-wa73-eq': warmAudioSingle('wa73'),
+  'warm-audio-wa273': warmAudio('wa73', ...WA_EQ),
+  'warm-audio-warm-audio-wa273-eq': warmAudio('wa73'),
+  // The single-channel WA76; the WA76-D2 / -A2 are two channels (no target row).
+  'warm-audio-wa76': warmAudioSingle('wa76', ...WA76_STEREO),
+  'warm-audio-warm-audio-wa-mpx': warmAudioSingle('wa-mpx', ...WA_2MPX),
+  'warm-audio-wa-2mpx': warmAudio('wa-mpx'),
+  'warm-audio-wa-84': warmAudioSingle('wa-84', ...WA84_PAIR),
+  'warm-audio-wa2a': warmAudioSingle('wa-2a'),
+  'warm-audio-wa-19': warmAudioSingle('wa-19'),
+  'warm-audio-wa-67': warmAudioSingle('wa-67'),
+  'warm-audio-wa-251': warmAudioSingle('wa-251'),
+  'warm-audio-wa-cx24': warmAudioSingle('wa-cx24'),
+  'warm-audio-warm-audio-wa-cx12': warmAudioSingle('wa-cx12'),
+  'warm-audio-warm-audio-wa-8000': warmAudioSingle('wa-8000'),
+  'warm-audio-warm-audio-wa-44': warmAudioSingle('wa-44'),
+  'warm-audio-warm-audio-wa-1b': warmAudioSingle('wa-1b'),
+  'warm-audio-wa-412': warmAudio('wa-412'),
+  'warm-audio-warm-bender': warmAudioSingle('warm-bender'),
+  // The clone guard on the originals Warm Audio copies (direction 1; the Neumann rows refuse
+  // it through NEUMANN_NEVER). Each line is the row's own slug, so step 5b reads exactly as before.
+  'universal-audio-urei-1176ln': member('universal-audio-urei-1176ln', ...WARM_AUDIO_COPY),
+  'ua-la-2a': member('ua-la-2a', ...WARM_AUDIO_COPY),
+  'universal-audio-teletronix-la-2a': member('universal-audio-teletronix-la-2a', ...WARM_AUDIO_COPY),
+  'neve-1073': member('neve-1073', ...WARM_AUDIO_COPY),
+  'tube-tech-cl1b': member('tube-tech-cl1b', ...WARM_AUDIO_COPY),
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed
@@ -993,6 +1137,8 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
       ),
       /(?<![\w-])rev\.?\s*[a-h](?![\w-])/i,
       yearCue(1967, 1989),
+      // PAN-203 clone guard: "Warm Audio WA76 1176 …" is the WA76.
+      ...WARM_AUDIO_COPY,
     ],
   },
   // Frozen boundary: "ORIGINAL (1978) only. MS-20 Mini, MS-20 Kit and MS-20 FS … MUST NOT land here."
