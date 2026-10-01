@@ -590,6 +590,66 @@ const WA_2MPX: readonly RegExp[] = [/(?<![\w-])(?:wa[\s-]?)?2[\s-]?mpx/i, cue('d
 /** WA-84 pairs written without "pair": "Coppia", "Stereo", Reverb's "CP" (coppia) SKU, the omni pair. */
 const WA84_PAIR: readonly RegExp[] = [...cues('stereo', 'cp', 'omni')]
 
+/**
+ * PAN-204, era policy (manager decision 2026-10-01). A Martin row is the guitar built from 1970
+ * on: years and Standard Series generations (Reimagined 2017, the 2025 refresh) are facets. A
+ * build year 1898–1969 is another price class (median of our base titles: 0-18 1947–69 39,260 DKK
+ * against 13,673 for 2017+; a 1942 D-28 at 855,842 against about 23,000), so it is refused, and so
+ * is Brazilian rosewood, the pre-1970 back-and-sides wood. Vintage stays unmatched; no vintage row
+ * exists. A year that names a modern model is not a build year: "Authentic 1937", and a 1930s year
+ * before the finish or the edition it names ("1933 Ambertone", "1935 Sunburst", "Satin 1935 Burst",
+ * "1937 Joe Bonamassa Sunburst", "1955 CFM IV 70th"). A serial or SKU digit run is not a year.
+ */
+const MARTIN_VINTAGE: readonly RegExp[] = [
+  /(?<![\w#.-])(?<!authentic\s+)(?:189[89]|19[0-5]\d|196\d)(?![\d\w])(?![\s-]*(?:ambertone|amberburst|sunburst|burst|joe\s+bonamassa|cfm))/i,
+  // "c.1928" writes the year after a full stop.
+  /(?<![\w-])c\.\s?(?:189[89]|19[0-5]\d|196\d)(?!\d)/i,
+  cue('brazilian'),
+]
+
+/**
+ * PAN-204. Never a C.F. Martin guitar, whatever else the title says: other companies and people
+ * named Martin, measured on the titles that say "martin" (read-only snapshot 2026-10-01) — the
+ * MartinLogan speakers, the Martin Band Instrument Company's Committee trumpet, Martin Sound (the
+ * Neve Flying Faders automation), Chris Martin (an IKEA chair), Mario Martin (a Stratocaster),
+ * Martin Barre (a Gibson LG-2) — and a converted guitar ("0-18 KH c.1928 Koa Conversion"), which
+ * is not price evidence for a stock one. Martin case model numbers ("C331", "12C350", "C545EC";
+ * Reverb lists them as accessories) are refused outright; a bare `case` never is, because 176
+ * guitar titles say "w/ case", "OHSC" or "Hardshell Case".
+ */
+const MARTIN_NEVER: readonly RegExp[] = [
+  /martin\s*logan/i,
+  ...cues('committee', 'martin sound', 'chris martin', 'mario martin', 'martin barre', 'conversion'),
+  /(?<![\w-])(?:\d{1,2})?c\d{3}(?:ec)?(?![\w-])/i,
+]
+
+/**
+ * PAN-204. Merchandise and parts named by a Martin model, marker-suppressible like every
+ * `accessories` list: the "D-28 Silhouette Lighted Wall Clock" (measured) and the Thomann "D-28
+ * keychain" (the page `martin-d-28` pointed at). Never `strings` ("D-28 Billy Strings") and never
+ * a bare `case`.
+ */
+const MARTIN_PARTS: readonly string[] = ['clock', 'keychain', 'key chain', 'key ring']
+
+/** A Martin member of `line` (PAN-204): refuses `otherMembers`, the vintage years and MARTIN_NEVER. */
+const martin = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...otherMembers, ...MARTIN_VINTAGE, ...MARTIN_NEVER], accessories: MARTIN_PARTS,
+})
+
+/**
+ * What a Standard Series base row refuses (PAN-204): the series and builds Martin sells under the
+ * same body and style number. Custom Shop is a category of builds, not one model, so its titles
+ * stay unmatched ("Custom Shop", "CTM", "Expert", "Custom Artist", and a bare "Custom" as in "OM-28
+ * Custom Adirondack"). Each cue was read against the base titles of the snapshot.
+ */
+const MARTIN_SERIES: readonly RegExp[] = cues(
+  'custom', 'custom shop', 'ctm', 'expert', 'custom artist',
+  'authentic', 'modern deluxe', 'satin', 'marquis', 'street legend', 'streetlegend',
+  'signature', 'limited edition', 'special edition', 'cfm', '70th', 'semiquincentennial',
+)
+/** A Martin Custom Shop build carrying a series name ("Custom Shop D-28 Authentic 1937 … Stage 1 Ambertone"). */
+const MARTIN_CUSTOM: readonly RegExp[] = cues('custom shop', 'ctm', 'expert', 'stage 1')
+
 /** A title that names the 1980–84 Prophet-10: Circuits/SCI, "vintage", its years or Rev 1–3. */
 const PROPHET_10_VINTAGE =
   /(?<![\w-])(?:circuits|sci|vintage|19(?:7[89]|8[0-6])|rev\.?\s*[1-3](?!\d))(?![\w-])/i
@@ -1006,6 +1066,35 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'universal-audio-teletronix-la-2a': member('universal-audio-teletronix-la-2a', ...WARM_AUDIO_COPY),
   'neve-1073': member('neve-1073', ...WARM_AUDIO_COPY),
   'tube-tech-cl1b': member('tube-tech-cl1b', ...WARM_AUDIO_COPY),
+
+  // ── PAN-204: Martin ──────────────────────────────────────────────────────
+  // Every row the PAN-204 promote SQL makes a match target, plus the supported `martin-d-28`
+  // (below, with its frozen boundary). One line per body size and style number: a series model's
+  // name contains its base's ("D-28 Modern Deluxe" ⊃ "D-28"), so the base refuses the series word
+  // and both share the line (step 5b). Body sizes never collide: the token boundary already keeps
+  // "00-18" off "000-18", "0-18" off "00-18" and "D-28" off "HD-28", and refuses a suffixed model
+  // ("000-28EC", "OM-28E", "D-42L", "HD-28V"). Base = Standard Series, 1970 on (MARTIN_VINTAGE).
+  'martin-d-28-modern-deluxe': martin('d-28', ...MARTIN_CUSTOM),
+  'martin-d-28-authentic-1937': martin('d-28', ...MARTIN_CUSTOM),
+  'martin-d-28-satin': martin('d-28', ...MARTIN_CUSTOM),
+  // An Artist Edition: "Custom Shop Artist Edition" names the same guitar, so no Custom Shop cue.
+  'martin-d-28-billy-strings': martin('d-28'),
+  'martin-d-18': martin('d-18', ...MARTIN_SERIES, cue('molly tuttle'), /(?<![\w-])super\s+d-?18(?![\w-])/i),
+  'martin-d-18-authentic-1937': martin('d-18', ...MARTIN_CUSTOM),
+  'martin-d-18-satin': martin('d-18', ...MARTIN_CUSTOM),
+  'martin-d-18-molly-tuttle': martin('d-18'),
+  'martin-hd-28': martin('hd-28', ...MARTIN_SERIES, /(?<![\w-])super\s+hd-?28(?![\w-])/i),
+  'martin-000-18': martin('000-18', ...MARTIN_SERIES),
+  'martin-000-18-modern-deluxe': martin('000-18', ...MARTIN_CUSTOM),
+  'martin-000-28': martin('000-28', ...MARTIN_SERIES, cue('shawn mendes')),
+  'martin-000-28-modern-deluxe': martin('000-28', ...MARTIN_CUSTOM),
+  'martin-000-28-shawn-mendes': martin('000-28'),
+  'martin-om-28': martin('om-28', ...MARTIN_SERIES),
+  'martin-om-28-modern-deluxe': martin('om-28', ...MARTIN_CUSTOM),
+  'martin-0-18': martin('0-18', ...MARTIN_SERIES),
+  // The Joe Bonamassa 00-18 has no Reverb CSP and no row (owner): refused here, so it stays unmatched.
+  'martin-00-18': martin('00-18', ...MARTIN_SERIES, ...cues('bonamassa', 'artist edition')),
+  'martin-d-42-modern-deluxe': martin('d-42', ...MARTIN_CUSTOM),
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed
@@ -1186,14 +1275,18 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
     otherMembers: cues('module', 'desktop'),
   },
   // Frozen boundary: "Excludes HD-28." (The tokenizer already refuses "HD-28".)
-  'martin-d-28': {
-    line: 'd-28',
-    otherMembers: cues(
+  // `reimagined` stays as the owner ratified it, although the 2017+ Standard Series D-28 is the
+  // Reimagined model (owner decision pending; its CSP is the 1970–84 page, also the owner's).
+  // PAN-204 adds the editions measured on D-28 titles (Billy Strings without "Signature", Rich
+  // Robinson, Elvis, Lennon, Herringbone, Golden Era, Museum), the PAN-204 era policy and
+  // MARTIN_NEVER. A human-approved match (`admin_decision`, e.g. the 1942 D-28) is not re-decided:
+  // the PAN-204 re-match skips it.
+  'martin-d-28': martin('d-28',
+    ...cues(
       'custom shop', 'ctm', 'authentic', 'modern deluxe', 'satin', 'marquis',
       'street legend', 'streetlegend', 'reimagined', 'signature',
-    ),
-    accessories: ['clock'],
-  },
+      'billy strings', 'rich robinson', 'elvis', 'lennon', 'herringbone', 'golden era', 'museum',
+    )),
 
   // ── PAN-154 (2/2): option B, the base member of the `mustang-bass` family ──
   // Base: the 1966–81 US original. Like the Thinline, every original carries
