@@ -240,6 +240,12 @@ interface LineBoundary {
   otherMembers: readonly RegExp[]
   accessories?: readonly string[]
   requires?: readonly RegExp[]
+  /**
+   * A title naming one of these is a bundle OF the product, so its accessory nouns are the
+   * extras and refuse nothing (PAN-202: a "U 87 Ai …, WS87 Windscreen, Shock Mount, XLR Cable
+   * Bundle" or a "Studio Set" stays exactly as origin/main decides it, owner decision pending).
+   */
+  bundles?: readonly RegExp[]
 }
 
 /**
@@ -383,6 +389,106 @@ const TR_06 = /(?<![\w-])tr[-\s]?06(?![\w-])/i
 const RE_2 = /(?<![\w-])re[-\s]?20?2?(?![\w\d-])/i
 /** A Mark II: "MKII", "MK2", "Mk II", "MKⅡ". */
 const MK_II = [cue('mkii'), cue('mk2'), cue('mk ii'), cue('mkⅱ')]
+
+/**
+ * PAN-202. Neumann parts and accessories, measured on the active titles that name
+ * Neumann (read-only snapshot 2026-10-01) against every Neumann row the promotion
+ * would make a match target. Suppressed, like ROLAND_PARTS, by an inclusion marker
+ * before them ("U67 1965 - with Power Supply/Cable/Shock Mount", "+ Box").
+ * Studio Set / Set Z / mic + mount bundles are NOT here (owner decision pending,
+ * PAN-202 decision 3): a bundle of the mic is left exactly as origin/main decides it.
+ */
+const NEUMANN_PARTS: readonly string[] = [
+  'capsule', 'kapsel', 'head grill', 'grill', 'grille', 'housing',
+  'shockmount', 'shock mount', 'elastic', 'spider', 'swivel', 'stand mount', 'desktop stand',
+  'table stand', 'stand extension', 'wall mount', 'bracket', 'clamp', 'isolation pads',
+  'windscreen', 'foam', 'pop filter', 'cable', 'kabel', 'connector', 'transformer', 'power supply',
+]
+
+/**
+ * PAN-202. Never the instrument, whatever precedes them: a unit sold for parts or
+ * needing repair is not price evidence for a working one (the Roland "for parts"
+ * class), and a logo, a replica, another maker's "U87 Style" mic or the MT 48's MIDI
+ * adapter is not the product.
+ */
+const NEUMANN_NEVER: readonly RegExp[] = [
+  ...cues(
+    'for parts', 'for repair', 'needs repair', 'parts only', 'not working', 'defect', 'defekt', 'broken',
+    'replica', 'clone', 'style', 'compatible with', 'diy', 'logo', 'not tested', 'nicht getestet', 'midi adapter',
+    // another maker's mic that names a Neumann as its model: "JJ Audio Huskey Pup 47: … a smaller version …"
+    'version of', 'based on', 'inspired by', 'similar to',
+    // a head or capsule assembly, a lot of parts: "U67 Head with Assembly and KK67 Capsule",
+    // "U67 Tube KK 67 microphone head set", "U67 lotto parts original ( five pz)"
+    'head with', 'head set', 'head assembly', 'microphone head', 'lotto', 'pz',
+  ),
+  // "Neumann KMS104 KMS105 Badge (Red)": a badge sold as a part, never "Purple Badge - West Berlin Era".
+  /(?<![\w-])badge\s*\(/i,
+  // A title that LEADS with a Neumann part number is that part: the EA 87 / EA 1 / EA 4 mounts,
+  // the SG 287 swivel mount, the WS 87 windscreen, the MF 4 stand, the BV 8 transformer, the
+  // NU 67 power supply, K 47 / K 67 / KK 67 / K 87 / K 870 capsules ("Neumann EA87 (Nickel)
+  // (U87ai dedicated suspension)", "Neumann BV08 Genuine Neumann U47 Transformer"). Later in a
+  // title the same name is an included extra ("U87Ai & EA87", "U87Ai U87. EA87 Mount"), a mic
+  // + EA 87 bundle that decision 3 leaves alone.
+  /^\W*(?:neumann\s+)?(?:genuine\s+|original\s+)?(?:ea[\s-]?(?:87|1|4)|sg[\s-]?287|ws[\s-]?87|mf[\s-]?4|bv[\s-]?0?8|nu[\s-]?67\s?v?|kk?[\s-]?(?:47|67|87|870))(?![\w-])/i,
+]
+
+/**
+ * PAN-202 decision 2. Several units are never the single mic or monitor: "Factory Matched
+ * Pair", "Stereo Set", "KM 184 MT STEREO SET Coppia di Microfoni", "KH 80 DSP - Pair",
+ * "2x Neumann KH120 II", "Two Neumann KM 184 mt", "U47 fet microphones x 3". The pair rows
+ * (neumann-skm-184) are their own products and carry no boundary.
+ */
+const NEUMANN_PAIR: readonly RegExp[] = [
+  ...cues('pair', 'matched pair', 'stereo pair', 'stereo set', 'stero set', 'stereoset', 'coppia', 'paar'),
+  /(?<![\w-])stereo\s+(?:\w+\s+)?set(?![\w-])/i,
+  /(?<![\w-])(?:[2-9]\s?x|x\s?[2-9])(?![\w-])/i,
+  /^\W*(?:[2-9]|two|three|four)\s+(?:x\s+)?neumann(?![\w-])/i,
+]
+
+/**
+ * PAN-202 decision 3. A bundle of the mic: Studio Set, Set Z, a kit, a package, a retailer's
+ * "… Bundle". Its accessory nouns are the extras (LineBoundary.bundles).
+ */
+const NEUMANN_BUNDLE: readonly RegExp[] = cues('bundle', 'set', 'kit', 'package', 'pak', 'paket')
+
+/** A Neumann member of `line` (PAN-202): refuses `otherMembers`, NEUMANN_NEVER and NEUMANN_PARTS. */
+const neumann = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...otherMembers, ...NEUMANN_NEVER], accessories: NEUMANN_PARTS, bundles: NEUMANN_BUNDLE,
+})
+/** A single mic or monitor: also refuses NEUMANN_PAIR. */
+const neumannSingle = (line: string, ...otherMembers: RegExp[]): LineBoundary =>
+  neumann(line, ...otherMembers, ...NEUMANN_PAIR)
+
+/** Several monitors: "KH 120 II Studio Monitors", "(monitor speakers)", "KH 80 + KH750 5.1 Surround Sound System". */
+const MONITORS = cues('monitors', 'speakers', 'surround')
+
+/** "U 87 Ai" in every spelling: "U87Ai", "U87 AI", "U 87Ai", "U-87 Ai", "U87A i" (a seller's "U 87 A i"). */
+const U87_AI = /(?<![\w-])u[\s-]?87[\s-]?a[\s-]?i(?![\w-])/i
+/**
+ * The pre-Ai U 87 (frozen boundary, neumann-u87ai: "U 87 Ai (1986-) ONLY; the vintage
+ * U 87/U87i is a different circuit and price"): a year 1967–1985, a '60s/'70s decade,
+ * "U87i" / "U 87 i", or "NOT Ai". A bare "1980s" is not one: "U 87 A i 1980s ... 2nd
+ * Generation" is a 1986–89 Ai.
+ */
+const U87_PRE_AI: readonly RegExp[] = [
+  /(?<![\w-])(?:196[7-9]|197\d|198[0-5])(?![\ds])/,
+  /(?<![\w'’])['’]?(?:19)?[67]0['’]?s(?![\w-])/i,
+  /(?<![\w-])u[\s-]?87[\s-]?i(?![\w-])/i,
+  cue('not ai'),
+]
+/** The U 47 fet (1969–86) and its 2014 Collector's Edition: "U47 FET", "U 47 fet", "U47FET". */
+const U47_FET = [cue('fet'), /(?<![\w-])u[\s-]?47[\s-]?fet(?![\w-])/i]
+/** "Collector's Edition", "Collectors Edition", "Collector’s". */
+const COLLECTOR = /(?<![\w-])collector(?:['’]?s)?(?![\w-])/i
+/** The U 67 reissue (2018–; sold as the "U 67 Set"): never the 1960–71 original. */
+const U67_REISSUE: readonly RegExp[] = [
+  ...cues('reissue', 're-issue', 'b-stock', 'open box', 'warranty'), yearCue(2018, 2039),
+]
+/** The original U 67: a vintage word, a year to 2017, or the Telefunken badge. */
+const U67_VINTAGE: readonly RegExp[] = [...cues('vintage', 'telefunken', 'nos'), yearCue(1950, 2017)]
+const U67_VINTAGE_ANY = new RegExp(`(?:${U67_VINTAGE.map((r) => r.source).join('|')})`, 'i')
+/** U 67 rebuilds by other makers ("Neumann / Max Kircher U 67", "Max Kirchner U67 re-issue"). */
+const U67_REBUILD: readonly RegExp[] = cues('kircher', 'kirchner', 'u60', 'u 60', 'm269', 'm 269', 'sm-69', 'sm 69')
 
 /** A title that names the 1980–84 Prophet-10: Circuits/SCI, "vintage", its years or Rev 1–3. */
 const PROPHET_10_VINTAGE =
@@ -714,6 +820,48 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'roland-tr-08': roland('tr-808'),
   'roland-tr-8s': roland('tr-808'),
   'roland-tr-09': roland('tr-909'),
+  // ── PAN-202: Neumann ─────────────────────────────────────────────────────
+  // The public U 87 Ai first (its frozen prose boundary encoded), then every row the PAN-202
+  // promote SQL makes a match target, each in its line. Pairs are refused on every single mic
+  // and monitor (decision 2); Studio Sets and mic + mount bundles are left as origin/main
+  // decides them (decision 3, owner pending).
+  // Frozen: "U 87 Ai (1986-) ONLY; the vintage U 87/U87i is a different circuit and price."
+  'neumann-u87ai': neumannSingle('u87', ...U87_PRE_AI),
+  // The pre-Ai U 87 (1967–85, incl. the U 87 i): never an Ai, nor the anniversary editions
+  // (Gold 1998, Rhodium 2017), whose titles often carry no "Ai".
+  'neumann-u87': neumannSingle('u87', U87_AI, cue('ai'), yearCue(1986, 2039), ...cues('rhodium', 'anniversary', 'gold')),
+  // The tube U 47 (1947–65): never the U 47 fet or its Collector's Edition, nor the U 47a
+  // (K47 capsule, Nuvistor tube) or a rebuild. This holds at the SKU tier too: the row's own
+  // "U47" identifier fires on "U47 FET", and the refusal removes that candidate (step 2).
+  'neumann-u47': neumannSingle('u47', ...U47_FET, COLLECTOR, /(?<![\w-])u[\s-]?47\s?a(?![\w-])/i, ...cues('wagner', 'archut', 'bon scott')),
+  // The vintage U 47 fet; the 2014 Collector's Edition is another member.
+  'neumann-u47-fet': neumannSingle('u47', COLLECTOR, ...cues('bon scott')),
+  // The Collector's Edition shares the fet's model name, so it fails closed without its name.
+  'neumann-neumann-u47-fet-collectors-edition': { ...neumannSingle('u47'), requires: [COLLECTOR] },
+  // The original U 67 (1960–71) and the 2018 reissue, sold as the "U 67 Set". A plain
+  // "U67 Set" with no vintage word is the reissue.
+  'neumann-u67': neumannSingle('u67', ...U67_REISSUE, ...U67_REBUILD, unlessAlso(cue('set'), U67_VINTAGE_ANY)),
+  'neumann-u67-reissue': {
+    ...neumannSingle('u67', ...U67_VINTAGE, ...U67_REBUILD),
+    requires: [...U67_REISSUE, cue('set')],
+  },
+  // KH 120 A (2010–23), KH 120 II (2023–) and the digital-input KH 120 D.
+  'neumann-kh-120-a': neumannSingle('kh120', /(?<![\w-])kh[\s-]?120[\s-]?(?:ii|2|mk\s?ii|mk\s?2|d)(?![\w-])/i, ...MK_II, ...MONITORS),
+  'neumann-kh-120-ii': neumannSingle('kh120', /(?<![\w-])kh[\s-]?120[\s-]?d(?![\w-])/i, ...MONITORS),
+  'neumann-kh-80': neumannSingle('kh-80', ...MONITORS),
+  // KMS 104 and the KMS 104 Plus (extended low end) are separate models.
+  'neumann-kms-104': neumannSingle('kms104', cue('plus'), /(?<![\w-])kms[\s-]?104[\s-]?d(?![\w-])/i),
+  'neumann-kms-104-plus': neumannSingle('kms104'),
+  // The single KM 184; the SKM 184 stereo set is its own row.
+  'neumann-km-184': neumannSingle('km-184', /(?<![\w-])skm[\s-]?184/i),
+  // The digital TLM 103 D (Solution-D) is not the TLM 103, nor are its anniversary editions
+  // (Reverb lists the 25th and 75th apart: 169359, 13790, 146979).
+  'neumann-tlm-103': neumannSingle('tlm-103', /(?<![\w-])tlm[\s-]?103[\s-]?d(?![\w-])/i, ...cues('anniversary', 'limited edition')),
+  'neumann-tlm-102': neumannSingle('tlm-102'),
+  'neumann-tlm-49': neumannSingle('tlm-49'),
+  // Headphones and an interface: "pair" is not a quantity and "cable" is in the box.
+  'neumann-ndh-20': member('ndh-20', ...NEUMANN_NEVER),
+  'neumann-mt-48': member('mt-48', ...NEUMANN_NEVER),
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed
@@ -1357,7 +1505,8 @@ export function lineBoundaryRefusal(title: string, slug: string): string | null 
     if (m) return `other_member:${m[0].toLowerCase()}`
   }
   const markerAt = earliestInclusionMarker(title.toLowerCase())
-  for (const noun of boundary.accessories ?? []) {
+  const bundle = boundary.bundles?.some((re) => re.test(title)) ?? false
+  for (const noun of bundle ? [] : boundary.accessories ?? []) {
     const m = cue(noun).exec(title)
     if (m && !(markerAt !== -1 && markerAt < m.index)) return `accessory:${noun}`
   }
