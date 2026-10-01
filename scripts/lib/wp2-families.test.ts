@@ -336,6 +336,8 @@ test('families: children match the reviewed §6.3 map', () => {
       'roland-juno-6',
       'roland-juno-60',
       'roland-juno-106',
+      // PAN-200: the Juno-106S, the Boutique JU-06/JU-06A, the Juno-X and the JUNO-D6/D7/D8.
+      'roland-juno-106s',
       'roland-alpha-juno-1',
       'roland-alpha-juno-2',
       'roland-juno-d',
@@ -343,12 +345,21 @@ test('families: children match the reviewed §6.3 map', () => {
       'roland-juno-stage',
       'roland-juno-di',
       'roland-juno-ds-61',
+      'roland-ju-06',
+      'roland-ju-06a',
+      'roland-juno-x',
+      'roland-juno-d6',
+      'roland-juno-d7',
+      'roland-juno-d8',
     ],
     'roland-jupiter': [
       'roland-jupiter-4',
       'roland-jupiter-8',
       'roland-jupiter-6',
       'roland-jupiter-80',
+      // PAN-200: the Jupiter-50 and the Boutique JP-08.
+      'roland-jupiter-50',
+      'roland-jp-08',
       'roland-jupiter-xm',
     ],
     'sequential-prophet': [
@@ -363,7 +374,8 @@ test('families: children match the reviewed §6.3 map', () => {
       'sequential-prophet-5',
       'sequential-prophet-10',
     ],
-    'roland-space-echo': ['roland-re-201', 'roland-re-501'],
+    // PAN-200: the RE-301, RE-150 and SRE-555.
+    'roland-space-echo': ['roland-re-201', 'roland-re-301', 'roland-re-150', 'roland-re-501', 'roland-sre-555'],
     'arp-2600-semi-modular': ['arp-2600', 'arp-korg-arp-2600'],
     'fender-jazzmaster': [
       'fender-jim-root-jazzmaster',
