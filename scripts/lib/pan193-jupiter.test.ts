@@ -22,6 +22,7 @@ import assert from 'node:assert/strict'
 import {
   buildMatchIndex,
   decideMatch,
+  lineBoundaryRefusal,
   type Product,
 } from '../../frontend/lib/matching/match-listings'
 
@@ -72,7 +73,10 @@ test('a title that names the product only as what a part is for is not the produ
     'hamburg·wave MIDI-/CPU-upgrade kit for Roland Jupiter-4',
     'AC power switch (220V) for Roland Jupiter 8',
   ]) {
+    // PAN-200: the Roland parts vocabulary (LINE_BOUNDARIES) now refuses "Key Holder" at
+    // step 2, before step 5c; either stop writes no row.
     const d = decideMatch(title, index)
-    assert.equal(d.kind === 'deferred' && d.reason, 'non_product_intent', title)
+    const refused = d.kind === 'none' && lineBoundaryRefusal(title.toLowerCase(), 'roland-jupiter-4') !== null
+    assert.ok((d.kind === 'deferred' && d.reason === 'non_product_intent') || refused, title)
   }
 })
