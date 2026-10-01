@@ -301,6 +301,89 @@ const moog = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
   line, otherMembers: [...otherMembers, ...MOOG_NEVER], accessories: MOOG_PARTS,
 })
 
+/**
+ * PAN-200. Parts and accessories measured on the 5,353 active titles that name
+ * Roland (read-only snapshot 2026-10-01), on every Roland row the promotion
+ * would make a match target. Roland has a large parts trade: tact switches,
+ * boards, displays, ROM cards, patch banks, tape-echo service parts. Suppressed,
+ * like MOOG_PARTS, by an inclusion marker before them ("+ Flight Case",
+ * "w/ original front panel"). Deliberately NOT here, each measured on an
+ * instrument title it would have refused:
+ *   bare `case`, `flight case`, `hard case`  "Flight Case Included", "(Serviced / Hard Case)"
+ *   `stand`, `keyboard stand`                 Danish "i pen stand" (its condition); a retailer's
+ *                                             "Synthesizer, Keyboard Stand, Bench" bundle
+ *   `display`, `screen`, `library`            "New Display + Memory Card", "Full Serviced / Library"
+ *   `firmware`, `upgrade`                     a Tauntek-upgraded Jupiter-6; "MIDI upgrade optional"
+ *   `decksaver`, `carry bag`                  a retailer's "- Decksaver Kit" is the unit
+ *   `battery`, `psu`, `power supply`          "new internal battery", "upgraded PSU", "new power supply"
+ *   `switches`, `motor`, `boards`             "NEW SWITCHES", "Re-Capped, Motor", "Expansion Boards"
+ *   `programmer`                              "D-50 and PG-1000 programmer"
+ */
+const ROLAND_PARTS: readonly string[] = [
+  'board', 'key contact', 'mainboard', 'motherboard', 'pcb', 'pwb',
+  'knob', 'knobs', 'button', 'buttons', 'switch', 'caps', 'springs', 'screws', 'spacers',
+  'bracket', 'inlet', 'escutcheon', 'battery holder', 'battery door', 'rubber foot', 'feet', 'backlight', 'sensor',
+  'screw', 'holder', 'magnet', 'patch list', 'note key', 'display mod', 'prom', 'staubschutzcover', 'cavo',
+  'subchasis', 'grip', 'grib', 'dimm', 'sdram', 'capuchons', 'bedienungsanleitung', 'instandsetzung', 'wartung',
+  'panel', 'panels', 'side panels', 'lcd', 'oled', 'display upgrade', 'graphic display', 'led display',
+  'oled display', 'lcd display', 'power supply unit', 'power supply board', 'power cable', 'power cord', 'power adapter',
+  'ac adapter', 'dram adapter', 'power transformer', 'internal cables', 'internal wiring', 'flat cable',
+  'ribbons', 'transistor', 'cpu', 'ic', 'rom', 'pot', 'pots', 'potentiometers',
+  'rom card', 'sound card', 'synthesizer card', 'memory card', 'data card', 'ram card', 'expansion card', 'card reader',
+  'expansion board', 'sound library', 'patches', 'data disk', 'disk', 'disks', 'floppy drive', 'data tape', 'upgrade kit',
+  'data-tape', 'cd rom', 'chart',
+  'gig bag', 'carrying case', 'carry case', 'outer case', 'thon', 'portable storage', 'angle stand', 'desktop stand', 'sampler stand', 'riser',
+  'ks-j8', 'rack ears', 'rack ear', 'pad mount', 'mounting plate',
+  'service kit', 'rebuild kit', 'repair kit', 'tape loops', 'tape echo loops', 'pinch roller', 'roller', 'solenoid', 'bearing',
+  'latches', 'thumb nuts', 'vu meter', 'felts', 'sticker', 'magnets', 'catalog', 'poster',
+]
+
+/**
+ * PAN-200. Never the instrument, whatever precedes them: "Full set of 39
+ * Pushbuttons Tact Switches" and "Complete set (20 pcs) - sliders" carry an
+ * inclusion marker, and a unit sold "For Parts / Repair" or "an Bastler" is not
+ * price evidence for a working one. The eight-digit number is Roland's part
+ * number: "ORIGINAL Roland Dual Button, Black (22495209) for D-10 & D-20".
+ */
+const ROLAND_NEVER: readonly RegExp[] = [
+  ...cues(
+    't-shirt', 'tshirt', 'shirt', 'for parts', 'for repair', 'parts only', 'donor', 'not working', 'bastler',
+    'clone', 'repro', 'replica', 'plug-in', 'editor', 'digital download', 'bank set', 'synth patches',
+    'tact switch', 'tact switches', 'pushbutton', 'pushbuttons', 'myvolts', 'compatible', 'pcs',
+    'contact rubber', 'rubber contacts', 'assy', 'assembly', 'sample pack', 'pdf', 'pcb set', 'panel switches',
+    'empty case', 'patch notes', 'many more', 'style', 'non-functioning', 'lot', 'two pack', 'three pack',
+    'four pack', 'prong', 'sound source unlimited', 'similar to', 'eurorack', 'aus roland', 'psu till', 'promo 12',
+    'rolling rack', 'ceramic', 'service notes', 'documents', 'edit map', 'data cassette', 'taster',
+    'non-functional',
+  ),
+  // "Roland S-220 parts - encoder", "Roland Parts - U-20 Display", "Sequencer Part: Black TAP Button";
+  // never "Full original parts – Fully Serviced".
+  /(?:\d|roland|sequencer)\s+parts?\s*[-–:]/i,
+  /\d\s?pcs(?![\w-])/i,
+  // Several units: "2 Roland PDX-6 V-Drum Pads", "Roland PDX-6 Pads(3)".
+  /^\W*[2-9]\s+roland(?![\w-])/i,
+  /pads?\s?\(\s?[2-9]\s?\)/i,
+  /(?<![\w-])\d{8}(?:[a-z]\d)?(?![\w-])/i,
+]
+
+/** A Roland member of `line` (PAN-200): refuses `otherMembers`, ROLAND_NEVER and ROLAND_PARTS. */
+const roland = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...otherMembers, ...ROLAND_NEVER], accessories: ROLAND_PARTS,
+})
+
+/** A Boutique (2015–) re-creation: "Roland Boutique JU-06 JUNO-106 Sound Module" is the JU-06. */
+const BOUTIQUE = cue('boutique')
+/** The JU-06 / JU-06A Boutique Junos. */
+const JU_06 = /(?<![\w-])ju[-\s]?06a?(?![\w-])/i
+/** TR-08 (Boutique), TR-8 (AIRA), TR-8S — never "TR-808" or "TR 808". */
+const TR_08 = /(?<![\w-])tr[-\s]?0?8s?(?![\w-])/i
+/** The TR-06 (Boutique TR-606). */
+const TR_06 = /(?<![\w-])tr[-\s]?06(?![\w-])/i
+/** Boss's RE-2, RE-20 and RE-202 Space Echo pedals — never "RE-201". */
+const RE_2 = /(?<![\w-])re[-\s]?20?2?(?![\w\d-])/i
+/** A Mark II: "MKII", "MK2", "Mk II", "MKⅡ". */
+const MK_II = [cue('mkii'), cue('mk2'), cue('mk ii'), cue('mkⅱ')]
+
 /** A title that names the 1980–84 Prophet-10: Circuits/SCI, "vintage", its years or Rev 1–3. */
 const PROPHET_10_VINTAGE =
   /(?<![\w-])(?:circuits|sci|vintage|19(?:7[89]|8[0-6])|rev\.?\s*[1-3](?!\d))(?![\w-])/i
@@ -451,6 +534,186 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'moog-taurus-i': moog('moog-taurus-i'),
   'moog-taurus-ii': moog('moog-taurus-ii'),
   'moog-theremini': moog('moog-theremini'),
+  // ── PAN-200: Roland ──────────────────────────────────────────────────────
+  // The public rows first: the frozen prose boundaries (data/klup-launch-cohort-frozen.csv,
+  // owner-ratified) encoded, plus the Roland parts vocabulary. Then every row the PAN-200
+  // promote SQL makes a match target, each in its line; the Boutique re-creations share
+  // their original's line so a title naming both resolves to the Boutique (step 5b).
+  // Frozen boundary: "Single page. Juno-6/60 are separate pages. HS-60 is the consumer-badged
+  // 106 and shares this page." The Boutique JU-06 and the Juno-106S are other members.
+  'roland-juno-106': roland('juno', JU_06, BOUTIQUE, /(?<![\w-])juno[-\s]?106\s?s(?![\w-])/i),
+  // Frozen: "Distinct from Juno-6 (patch memory) and Juno-106 (MIDI)."
+  'roland-juno-60': roland('juno', JU_06, BOUTIQUE),
+  // Frozen: "Split from Juno-60/106."
+  'roland-juno-6': roland('juno', JU_06, BOUTIQUE),
+  // Frozen: "Distinct from Jupiter-6/-4 and from Jupiter-X/Xm." The Boutique JP-08 and the
+  // MKS-80 Super Jupiter rack are other members.
+  'roland-jupiter-8': roland('jupiter', /(?<![\w-])jp[-\s]?08(?![\w-])/i, BOUTIQUE, /(?<![\w-])jupiter[-\s]?x/i, cue('mks-80'), cue('super jupiter')),
+  // Frozen: "Distinct from Jupiter-6/-8 and the Compuphonic badge variant." The Jupiter-4's own
+  // panel reads Compuphonic (manager decision 2026-10-01), so that word is not a cue.
+  'roland-jupiter-4': roland('jupiter'),
+  // Frozen: "Exclude TR-08/TR-8/TR-8S and clones." Behringer's RD-8 and RD-9 are the clones by name.
+  'roland-tr-808': roland('tr-808', TR_08, BOUTIQUE, cue('aira'), /(?<![\w-])rd[-\s]?[89](?![\w-])/i),
+  // Frozen: "Exclude TR-09 (Boutique)."
+  'roland-tr-909': roland('tr-909', /(?<![\w-])tr[-\s]?0?9(?![\w-])/i, BOUTIQUE, /(?<![\w-])rd[-\s]?9(?![\w-])/i),
+  // Frozen: "Distinct from TR-626 and the TB-303 it was sold alongside." The Boutique TR-06
+  // ("TR-06 Authentic TR-606 Boutique") is another member.
+  'roland-tr-606': roland('tr-606', TR_06, BOUTIQUE),
+  // Frozen: "SPLIT from TR-727 (different voice set, different buyer). Distinct from TR-06 Boutique."
+  'roland-tr-707': roland('tr-707', TR_06, BOUTIQUE),
+  // Frozen: "Exclude SH-01/SH-01A (Boutique) and SH-4d."
+  'roland-sh-101': roland('sh-101', /(?<![\w-])sh[-\s]?01a?(?![\w-])/i, BOUTIQUE, /(?<![\w-])sh[-\s]?4\s?d(?![\w-])/i),
+  // Frozen: "RE-201 only. Distinct from RE-101/RE-150/RE-301 (same gross-list family) and from
+  // RE-2/RE-20 pedals." Boss makes the pedals (and the RE-202); "BOSS Roland Space Echo RE-201" is
+  // still the RE-201, so the brand word is not a cue, the pedal names are.
+  'roland-re-201': roland('space-echo', RE_2, /(?<![\w-])sre[-\s]?555(?![\w-])/i),
+  // Frozen: "RE-501 Chorus Echo. SRE-555 is the rack sibling in the same gross-list family."
+  'roland-re-501': roland('space-echo', /(?<![\w-])sre[-\s]?555(?![\w-])/i, RE_2),
+  // Frozen: "SPLIT from System-100M. The 100 is semi-modular; the 100M is a modular rack system."
+  // The row is the Model 101 synthesizer (its CSP); the 102 expander, 103 mixer, 104 sequencer and
+  // 109 speakers are the system's other pieces, priced apart.
+  'roland-system-100': roland('system-100', /(?<![\w-])(?:system[-\s]?)?100[-\s]?m(?![\w-])/i, /(?<![\w-])model\s?10[2-9](?![\w-])/i),
+  // The other public rows and every promoted row.
+  'roland-alpha-juno-1': roland('alpha-juno'),
+  'roland-alpha-juno-2': roland('alpha-juno'),
+  'roland-d-50': roland('d-50', /(?<![\w-])d[-\s]?05(?![\w-])/i, BOUTIQUE),
+  'roland-d-550': roland('d-50'),
+  'roland-fantom-x6': roland('fantom-x'),
+  'roland-fantom-x8': roland('fantom-x'),
+  'roland-fantom-xa': roland('fantom-x'),
+  'roland-jd-08': roland('jd-800'),
+  // The Boutique JD-08 re-creates the JD-800; the Boutique JX-08 and JX-03 the JX-8P and JX-3P;
+  // the D-05 the D-50; the TB-03 and the AIRA TB-3 the TB-303.
+  'roland-jd-800': roland('jd-800', /(?<![\w-])jd[-\s]?08(?![\w-])/i, BOUTIQUE),
+  'roland-ju-06': roland('juno'),
+  'roland-ju-06a': roland('juno'),
+  'roland-juno-106s': roland('juno'),
+  'roland-juno-d': roland('juno-d'),
+  'roland-juno-d6': roland('juno-d'),
+  'roland-juno-d7': roland('juno-d'),
+  'roland-juno-d8': roland('juno-d'),
+  'roland-jp-08': roland('jupiter'),
+  'roland-jupiter-50': roland('jupiter'),
+  'roland-jupiter-6': roland('jupiter'),
+  'roland-jupiter-80': roland('jupiter'),
+  'roland-jupiter-xm': roland('jupiter'),
+  'roland-jx-03': roland('jx-3p'),
+  'roland-jx-3p': roland('jx-3p', /(?<![\w-])jx[-\s]?03(?![\w-])/i, BOUTIQUE),
+  'roland-jx-08': roland('jx-8p'),
+  'roland-jx-8p': roland('jx-8p', /(?<![\w-])jx[-\s]?08(?![\w-])/i, BOUTIQUE),
+  'roland-cr-68': roland('roland-cr-68'),
+  'roland-cr-78': roland('roland-cr-78'),
+  'roland-cr-8000': roland('roland-cr-8000'),
+  'roland-cube-lite': roland('roland-cube-lite'),
+  'roland-d-110': roland('roland-d-110'),
+  'roland-d-20': roland('roland-d-20'),
+  'roland-d-70': roland('roland-d-70'),
+  'roland-dj-70': roland('roland-dj-70'),
+  'roland-em101': roland('roland-em101'),
+  'roland-fantom-s': roland('roland-fantom-s'),
+  'roland-gr-300': roland('roland-gr-300'),
+  'roland-gr-700': roland('roland-gr-700'),
+  'roland-jc-120h': roland('roland-jc-120h'),
+  'roland-jc-22': roland('roland-jc-22'),
+  'roland-jc-85': roland('roland-jc-85'),
+  'roland-jd-990': roland('roland-jd-990'),
+  'roland-jd-xa': roland('roland-jd-xa'),
+  'roland-jp-8000': roland('roland-jp-8000'),
+  'roland-jp-8080': roland('roland-jp-8080'),
+  'roland-juno-di': roland('roland-juno-di'),
+  'roland-juno-ds-61': roland('roland-juno-ds-61'),
+  'roland-juno-g': roland('roland-juno-g'),
+  'roland-juno-stage': roland('roland-juno-stage'),
+  'roland-juno-x': roland('roland-juno-x'),
+  'roland-jv-1000': roland('roland-jv-1000'),
+  'roland-jv-1010': roland('roland-jv-1010'),
+  'roland-jv-1080': roland('roland-jv-1080'),
+  'roland-jv-2080': roland('roland-jv-2080'),
+  'roland-jv-30': roland('roland-jv-30'),
+  'roland-jv-880': roland('roland-jv-880'),
+  'roland-jv-90': roland('roland-jv-90'),
+  'roland-jx-1': roland('roland-jx-1'),
+  'roland-jx-10': roland('roland-jx-10'),
+  'roland-jx-305': roland('roland-jx-305'),
+  'roland-kc-200': roland('roland-kc-200'),
+  'roland-kc-400': roland('roland-kc-400'),
+  'roland-mc-09': roland('roland-mc-09'),
+  'roland-mc-202': roland('roland-mc-202'),
+  'roland-mc-303': roland('roland-mc-303'),
+  'roland-mc-307': roland('roland-mc-307'),
+  'roland-mc-505': roland('roland-mc-505'),
+  'roland-mc-808': roland('roland-mc-808'),
+  'roland-mc-909': roland('roland-mc-909'),
+  'roland-mks-10': roland('roland-mks-10'),
+  'roland-mks-30': roland('roland-mks-30'),
+  'roland-mks-50': roland('roland-mks-50'),
+  'roland-mks-7': roland('roland-mks-7'),
+  'roland-mks-70': roland('roland-mks-70'),
+  'roland-mks-80': roland('roland-mks-80'),
+  'roland-mobile-cube': roland('roland-mobile-cube'),
+  'roland-mrs-2': roland('roland-mrs-2'),
+  'roland-mt-32': roland('roland-mt-32'),
+  'roland-pdx-6': roland('roland-pdx-6'),
+  'roland-r-70': roland('roland-r-70'),
+  // The R-8 MKII (1992) is its own model, and so is the R-8M module ("Roland R 8 M").
+  'roland-r-8': roland('roland-r-8', /(?<![\w-])r[-\s]?8\s?m(?![\w-])/i, ...MK_II),
+  // The RS-09 MKII has its own Reverb CSP (81037).
+  'roland-rs-09': roland('roland-rs-09', ...MK_II),
+  'roland-rs-101': roland('roland-rs-101'),
+  'roland-rs-202-strings': roland('roland-rs-202-strings'),
+  'roland-rs-50': roland('roland-rs-50'),
+  'roland-rs-505-paraphonic': roland('roland-rs-505-paraphonic'),
+  'roland-s-10': roland('roland-s-10'),
+  'roland-s-220': roland('roland-s-220'),
+  'roland-s-330': roland('roland-s-330'),
+  'roland-s-50': roland('roland-s-50'),
+  'roland-s-770': roland('roland-s-770'),
+  'roland-saturn-09': roland('roland-saturn-09'),
+  'roland-sh-01-gaia': roland('roland-sh-01-gaia'),
+  'roland-sh-09': roland('roland-sh-09'),
+  'roland-sh-1': roland('roland-sh-1'),
+  'roland-sh-1000': roland('roland-sh-1000'),
+  'roland-sh-2': roland('roland-sh-2'),
+  'roland-sh-2000': roland('roland-sh-2000'),
+  'roland-sh-201': roland('roland-sh-201'),
+  'roland-sh-32': roland('roland-sh-32'),
+  'roland-sh-3a': roland('roland-sh-3a'),
+  'roland-sh-5': roland('roland-sh-5'),
+  'roland-sh-7': roland('roland-sh-7'),
+  'roland-sp-808': roland('roland-sp-808'),
+  'roland-svc-350': roland('roland-svc-350'),
+  'roland-tb-303': roland('tb-303', /(?<![\w-])tb[-\s]?0?3(?![\w-])/i, BOUTIQUE, cue('aira'), cue('td-3'), cue('xoxbox'), cue('x0xb0x')),
+  'roland-tr-626': roland('roland-tr-626'),
+  'roland-u-110': roland('roland-u-110'),
+  'roland-u-20': roland('roland-u-20'),
+  // The V-Synth XT (rack) and GT are their own models; the 1980 SPV-355 is a "P/V Synth".
+  'roland-v-synth': roland('roland-v-synth', /(?<![\w-])v[-\s]?synth\s?(?:xt|gt)(?![\w-])/i, /(?<![\w-])spv[-\s]?355(?![\w-])/i),
+  'roland-vp-330': roland('roland-vp-330'),
+  'roland-vp-550': roland('roland-vp-550'),
+  'roland-vp-770': roland('roland-vp-770'),
+  'roland-vp-9000': roland('roland-vp-9000'),
+  'roland-w-30': roland('roland-w-30'),
+  'roland-xp-10': roland('roland-xp-10'),
+  'roland-xp-30': roland('roland-xp-30'),
+  'roland-xp-50': roland('roland-xp-50'),
+  'roland-xp-60': roland('roland-xp-60'),
+  'roland-xp-80': roland('roland-xp-80'),
+  'roland-xv-3080': roland('roland-xv-3080'),
+  'roland-xv-5080': roland('roland-xv-5080'),
+  'roland-sh-01a': roland('sh-101'),
+  // The 2005 SP-404 is not the SX (2011), the A (2019) or the MKII (2021): "SP-404 MK2".
+  'roland-SP-404': roland('sp-404', /(?<![\w-])sp[-\s]?404[-\s]?(?:sx|a|mk\s?(?:ii|2|Ⅱ))(?![\w-])/i, ...MK_II),
+  'roland-sp-404-mkii': roland('sp-404'),
+  'roland-sp-404a': roland('sp-404'),
+  'roland-sp-404sx': roland('sp-404'),
+  'roland-re-150': roland('space-echo'),
+  'roland-re-301': roland('space-echo'),
+  'roland-sre-555': roland('space-echo'),
+  'roland-tr-06': roland('tr-606'),
+  'roland-tr-727': roland('tr-707'),
+  'roland-tr-08': roland('tr-808'),
+  'roland-tr-8s': roland('tr-808'),
+  'roland-tr-09': roland('tr-909'),
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed

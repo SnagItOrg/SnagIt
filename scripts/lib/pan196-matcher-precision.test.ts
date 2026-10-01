@@ -20,7 +20,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { buildMatchIndex, decideMatch, type Product } from '../../frontend/lib/matching/match-listings'
+import { buildMatchIndex, decideMatch, lineBoundaryRefusal, type Product } from '../../frontend/lib/matching/match-listings'
 import { detectNonProductIntent, earliestInclusionMarker } from '../../frontend/lib/matching/listing-intent'
 import { tokenFollowedByReference, tokenInModelList } from '../../frontend/lib/matching/brand-guard'
 
@@ -56,6 +56,16 @@ const deferral = (title: string): string | null => {
   const d = decideMatch(title, index)
   return d.kind === 'deferred' ? `${d.reason}${d.intent ? ':' + d.intent : ''}` : null
 }
+/**
+ * PAN-200: the Roland parts and copy vocabulary (LINE_BOUNDARIES) now refuses some
+ * Roland titles below at step 2, before the rule under test is reached. Either stop
+ * writes no row, so both count.
+ */
+const stops = (title: string, reason: string): boolean => {
+  if (deferral(title) === reason) return true
+  return decideMatch(title, index).kind === 'none' &&
+    index.products.some((p) => lineBoundaryRefusal(title.toLowerCase(), p.slug) !== null)
+}
 
 // ── Rule 1: a list of models means a part ────────────────────────────────────
 
@@ -72,7 +82,7 @@ test('rule 1: a model inside a list of models is what a part fits', () => {
     '9V AC Power Adapter for Boss PSA-120S Guitar Distortion Effects Pedal DS-1 RC-1 RC-3 TU-2 TU-3 SD-1 RV-6 DD-3 DD-7',
     'Jellinghaus DX Programmer Midi Controller for Yamaha DX DX1 DX5 DX7 Synthesizer Rare Vintage Synth',
   ]) {
-    assert.equal(deferral(title), 'non_product_intent:part_or_accessory', title)
+    assert.ok(stops(title, 'non_product_intent:part_or_accessory'), title)
   }
 })
 
@@ -210,8 +220,8 @@ test('rule 5: "Juno 60 clone" is a copy whichever way the model is written', () 
   assert.equal(tokenFollowedByReference('roland juno 60 clone', 'juno-60'), true)
   assert.equal(tokenFollowedByReference('roland juno-60 clone', 'juno-60'), true)
   assert.equal(tokenFollowedByReference('roland juno 60 synthesizer', 'juno-60'), false)
-  assert.equal(deferral('Roland Juno 60 clone'), 'copy_or_reference')
-  assert.equal(deferral('Roland JU06 Boutique MK1 NEU Juno 60 Clone in OVP'), 'copy_or_reference')
+  assert.ok(stops('Roland Juno 60 clone', 'copy_or_reference'))
+  assert.ok(stops('Roland JU06 Boutique MK1 NEU Juno 60 Clone in OVP', 'copy_or_reference'))
   assert.equal(matchedSlug('Roland Juno 60'), 'roland-juno-60')
   assert.equal(matchedSlug('Roland Juno-60'), 'roland-juno-60')
 })
