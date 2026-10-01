@@ -516,11 +516,16 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     brand: 'Roland',
     categoryRoot: 'keyboards-and-synths',
     // `roland-juno-ds61` duplicates `roland-juno-ds-61` (same CSP, 6679).
-    // Behringer JU-06 is a clone, never a member.
+    // Behringer JU-06 is a clone, never a member. PAN-200: Roland's own Boutique
+    // re-creations (JU-06, JU-06A) join, as the Minimoog reissues and the Korg
+    // ARP 2600 do theirs; a family never aggregates price, and each listing is
+    // attributed to its own child.
     children: [
       'roland-juno-6',
       'roland-juno-60',
       'roland-juno-106',
+      // PAN-200: created from Reverb CSP 34065.
+      'roland-juno-106s',
       'roland-alpha-juno-1',
       'roland-alpha-juno-2',
       'roland-juno-d',
@@ -528,6 +533,13 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
       'roland-juno-stage',
       'roland-juno-di',
       'roland-juno-ds-61',
+      'roland-ju-06',
+      // PAN-200: created from Reverb CSPs 108971, 149238, 183070, 183066, 183068.
+      'roland-ju-06a',
+      'roland-juno-x',
+      'roland-juno-d6',
+      'roland-juno-d7',
+      'roland-juno-d8',
     ],
     aliases: [],
   },
@@ -542,6 +554,10 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
       'roland-jupiter-8',
       'roland-jupiter-6',
       'roland-jupiter-80',
+      // PAN-200: created from Reverb CSPs 27661 and 1917. The JP-08 is Roland's
+      // Boutique Jupiter-8, a member as the JU-06 is of `roland-juno`.
+      'roland-jupiter-50',
+      'roland-jp-08',
       'roland-jupiter-xm',
     ],
     aliases: [],
@@ -580,7 +596,9 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     label: 'Roland Space Echo',
     brand: 'Roland',
     categoryRoot: 'effects-and-pedals',
-    children: ['roland-re-201', 'roland-re-501'],
+    // PAN-200: the RE-301 and RE-150 (created from Reverb CSPs 26233, 24231) and
+    // the SRE-555 rack Chorus Echo are Roland tape echoes too.
+    children: ['roland-re-201', 'roland-re-301', 'roland-re-150', 'roland-re-501', 'roland-sre-555'],
     aliases: [],
   },
   /*
