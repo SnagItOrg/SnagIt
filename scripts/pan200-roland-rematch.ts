@@ -6,7 +6,7 @@
  * (`roland-juno`, `roland-jupiter` and `roland-space-echo` are not rows, so the
  * Gibson `held` cohort is empty here):
  *
- *   stale     — listings whose live match (is_valid NULL or true) sits on one
+ *   stale     — listings whose UNREVIEWED live match (is_valid NULL) sits on one
  *               of the PROMOTED rows or on a row supported today whose live
  *               matches the PAN-200 boundaries change (`roland-juno-106`,
  *               `roland-juno-60`, `roland-tr-606`, `roland-tr-909`): the fold
@@ -16,6 +16,11 @@
  *               on the public rows.
  *   unmatched — active listings whose title names Roland and that hold no live
  *               match anywhere.
+ *
+ * Two kinds of verdict are never re-decided, released or rewritten, in any
+ * cohort: a match a person decided (`explain.admin_decision`) and a match the
+ * AI pass confirmed (`is_valid=true`). Both are counted and listed by the dry
+ * run, for the owner (scripts/lib/rematch-verdicts.ts).
  *
  * Every decision is `decideMatch`'s. Nothing here scores a title.
  *
@@ -67,6 +72,7 @@ import {
   type Product,
 } from '../frontend/lib/matching/match-listings'
 import { filterByIlike, readActiveTitles } from './lib/rematch-active-titles'
+import { AI_TRUE, HUMAN_DECISION } from './lib/rematch-verdicts'
 
 /** Roland's family slugs are not rows, so no held cohort. */
 export const LABELS: readonly string[] = []
@@ -224,27 +230,37 @@ async function heldRowIds(db: SupabaseClient): Promise<Map<string, string>> {
   return out
 }
 
+/** Live rows on the re-decided rows that a person decided (admin_decision), skipped by `pool`. */
+const humanDecided: string[] = []
+/** Live rows the AI pass confirmed (is_valid=true), skipped by `pool`. */
+const aiTrue: string[] = []
+
 /**
  * Held and stale rows are one entry per (listing, row) — a listing can sit on
  * two rows, and each is released and restored on its own. Unmatched listings
  * are one entry per listing.
  */
-async function pool(db: SupabaseClient, ids: Map<string, string>): Promise<PoolListing[]> {
+export async function pool(db: SupabaseClient, ids: Map<string, string>): Promise<PoolListing[]> {
   const held: PoolListing[] = []
   for (const slug of [...LABELS, ...RE_DECIDED]) {
     type H = {
       listing_id: string
       is_valid: boolean | null
       rejected_reason: string | null
+      explain: unknown
       listings: { title: string | null } | { title: string | null }[] | null
     }
     const productId = ids.get(slug)!
     const rows = await readAll<H>(() => db.from('listing_product_match')
-      .select('listing_id, is_valid, rejected_reason, listings!inner(title)')
+      .select('listing_id, is_valid, rejected_reason, explain, listings!inner(title)')
       .eq('product_id', productId).or('is_valid.is.null,is_valid.eq.true').order('listing_id'))
     for (const r of rows) {
       const l = Array.isArray(r.listings) ? r.listings[0] : r.listings
       if (!l?.title) continue
+      // A verdict stands: never re-decided, never released (and its listing, which holds a live
+      // match, is not in the unmatched cohort either). Listed for the owner instead.
+      if (HUMAN_DECISION(r.explain)) { humanDecided.push(`${slug} | ${l.title}`); continue }
+      if (AI_TRUE(r.is_valid)) { aiTrue.push(`${slug} | ${l.title}`); continue }
       held.push({
         id: r.listing_id, title: l.title, cohort: LABELS.includes(slug) ? 'held' : 'stale', group: slug,
         product_id: productId, prior_is_valid: r.is_valid, prior_rejected_reason: r.rejected_reason,
@@ -311,6 +327,10 @@ async function rematch(db: SupabaseClient, apply: boolean, outDir: string, show:
   }
 
   console.log(`PAN-200 Roland re-match — ${apply ? 'APPLY' : 'DRY RUN'}`)
+  console.log(`  ${humanDecided.length} live rows skipped: a person decided them (admin_decision), never re-decided`)
+  if (show > 0 && humanDecided.length) console.log(humanDecided.slice(0, show).map((h) => `  skipped ${h}`).join('\n'))
+  console.log(`  ${aiTrue.length} live rows skipped: the AI pass confirmed them (is_valid=true), never re-decided`)
+  if (show > 0 && aiTrue.length) console.log(aiTrue.slice(0, show).map((h) => `  skipped ${h}`).join('\n'))
   console.log(`  ${listings.filter((l) => l.cohort === 'held').length} held on label rows, ` +
     `${listings.filter((l) => l.cohort === 'stale').length} held on promoted or re-decided supported rows, ` +
     `${listings.filter((l) => l.cohort === 'unmatched').length} unmatched`)

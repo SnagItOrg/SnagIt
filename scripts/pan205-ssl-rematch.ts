@@ -65,6 +65,7 @@ import {
   type Product,
 } from '../frontend/lib/matching/match-listings'
 import { filterByIlike, readActiveTitles } from './lib/rematch-active-titles'
+import { AI_TRUE, HUMAN_DECISION } from './lib/rematch-verdicts'
 
 /** SSL has no family label rows, so no held cohort. */
 export const LABELS: readonly string[] = []
@@ -98,20 +99,6 @@ export const LINES: ReadonlyArray<{ line: string; names: RegExp; ilike: string[]
     ilike: ['%ssl%', '%solid state logic%', '%solid stage logic%', '%sol id state logic%'],
   },
 ]
-
-/**
- * A match row a person decided. The re-match never re-decides, releases or rewrites it, whatever
- * the boundaries now say (manager decision 2026-10-01): `explain.admin_decision` (the admin
- * surfaces and the pan-95 qualification write it).
- */
-export const HUMAN_DECISION = (explain: unknown): boolean =>
-  !!explain && typeof explain === 'object' && 'admin_decision' in (explain as Record<string, unknown>)
-
-/**
- * A match the AI pass confirmed (`is_valid=true`). Manager decision 8 (PAN-205): never touched by this
- * pass, whatever the boundaries now say; the wrong ones are listed for the owner.
- */
-export const AI_TRUE = (isValid: boolean | null): boolean => isValid === true
 
 export const REJECTED_REASON = 'pan205_moved_to_model'
 
