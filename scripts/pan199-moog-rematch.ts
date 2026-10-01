@@ -65,6 +65,7 @@ import {
   type MatchIndex,
   type Product,
 } from '../frontend/lib/matching/match-listings'
+import { filterByIlike, readActiveTitles } from './lib/rematch-active-titles'
 
 /** Moog has no family label rows (`minimoog` and `moogerfooger` are not rows), so no held cohort. */
 export const LABELS: readonly string[] = []
@@ -224,12 +225,11 @@ async function pool(db: SupabaseClient, ids: Map<string, string>): Promise<PoolL
 
   const out = new Map<string, PoolListing>()
   const heldIds = new Set(held.map((l) => l.id))
-  type L = { id: string; title: string | null }
+  // One plan-proof keyset read of every active title; the ILIKE patterns are applied in memory.
+  const active = await readActiveTitles(db)
   for (const line of LINES) {
-    const rows = (await readAll<L>(() => db.from('listings').select('id, title').eq('is_active', true)
-      .or(line.ilike.map((p) => `title.ilike.${p}`).join(',')).order('id')))
-      .filter((l): l is { id: string; title: string } =>
-        !!l.title && line.names.test(l.title) && !heldIds.has(l.id) && !out.has(l.id))
+    const rows = filterByIlike(active, line.ilike)
+      .filter((l) => line.names.test(l.title) && !heldIds.has(l.id) && !out.has(l.id))
     const live = new Set<string>()
     for (const group of chunks(rows.map((l) => l.id))) {
       const { data, error } = await db.from('listing_product_match').select('listing_id')
