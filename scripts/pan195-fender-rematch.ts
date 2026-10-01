@@ -57,6 +57,7 @@ import {
   type MatchIndex,
   type Product,
 } from '../frontend/lib/matching/match-listings'
+import { filterByIlike, readActiveTitles } from './lib/rematch-active-titles'
 
 /**
  * The seven Fender lines: the family slug, the label row it guards (null for
@@ -186,12 +187,11 @@ async function pool(db: SupabaseClient, labels: Map<string, string>): Promise<Po
 
   const out = new Map<string, PoolListing>()
   const heldIds = new Set(held.map((l) => l.id))
-  type L = { id: string; title: string | null }
+  // One plan-proof keyset read of every active title; the ILIKE patterns are applied in memory.
+  const active = await readActiveTitles(db)
   for (const line of LINES) {
-    const rows = (await readAll<L>(() => db.from('listings').select('id, title').eq('is_active', true)
-      .or(line.ilike.map((p) => `title.ilike.${p}`).join(',')).order('id')))
-      .filter((l): l is { id: string; title: string } =>
-        !!l.title && line.names.test(l.title) && !heldIds.has(l.id) && !out.has(l.id))
+    const rows = filterByIlike(active, line.ilike)
+      .filter((l) => line.names.test(l.title) && !heldIds.has(l.id) && !out.has(l.id))
     const live = new Set<string>()
     for (const ids of chunks(rows.map((l) => l.id))) {
       const { data, error } = await db.from('listing_product_match').select('listing_id')

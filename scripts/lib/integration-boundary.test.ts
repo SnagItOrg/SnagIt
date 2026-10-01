@@ -223,6 +223,11 @@ test('integration: every package suite is registered exactly once', () => {
       // restated whole, so the next redefinition could copy the old
       // unfiltered count back in; this suite pins the two to one rule.
       'scripts/lib/projection-listing-count.test.ts',
+      // The brand re-match scripts' unmatched-cohort scan: a keyset read of
+      // active titles plus an in-memory ILIKE. Its own suite because the
+      // in-memory filter must select exactly what SQL ILIKE selected, and a
+      // drift there silently changes which listings a re-match touches.
+      'scripts/lib/rematch-active-titles.test.ts',
       // PAN-107: the category seeder must never write `name_da` on a row that
       // already exists. The column is hand-maintained Danish, one re-run used
       // to revert all 23 corrected rows, and nothing about that failure is
