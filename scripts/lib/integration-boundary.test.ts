@@ -230,6 +230,7 @@ test('integration: every package suite is registered exactly once', () => {
       // in-memory filter must select exactly what SQL ILIKE selected, and a
       // drift there silently changes which listings a re-match touches.
       'scripts/lib/rematch-active-titles.test.ts',
+      'scripts/lib/rematch-verdicts.test.ts',
       // PAN-107: the category seeder must never write `name_da` on a row that
       // already exists. The column is hand-maintained Danish, one re-run used
       // to revert all 23 corrected rows, and nothing about that failure is

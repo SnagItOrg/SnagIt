@@ -66,6 +66,7 @@ import {
   type Product,
 } from '../frontend/lib/matching/match-listings'
 import { filterByIlike, readActiveTitles } from './lib/rematch-active-titles'
+import { HUMAN_DECISION } from './lib/rematch-verdicts'
 
 /** Martin has no family label rows, so no held cohort. */
 export const LABELS: readonly string[] = []
@@ -97,14 +98,6 @@ export const RE_DECIDED: readonly string[] = [...PROMOTED, ...SUPPORTED_TODAY]
 export const LINES: ReadonlyArray<{ line: string; names: RegExp; ilike: string[] }> = [
   { line: 'martin', names: /martin/i, ilike: ['%martin%'] },
 ]
-
-/**
- * A match row a person decided. The re-match never re-decides, releases or rewrites it, whatever
- * the boundaries now say (manager decision 2026-10-01): `explain.admin_decision` (the admin
- * surfaces and the pan-95 qualification write it).
- */
-export const HUMAN_DECISION = (explain: unknown): boolean =>
-  !!explain && typeof explain === 'object' && 'admin_decision' in (explain as Record<string, unknown>)
 
 export const REJECTED_REASON = 'pan204_moved_to_model'
 
