@@ -400,6 +400,15 @@ function isShippingPickup(text: string): boolean {
 }
 
 /**
+ * `strings` inside an ARTIST'S NAME is not a set of strings (PAN-204). Billy Strings has a
+ * Martin signature D-28 (Reverb CSP 182836) and D-X2E; 14 of the snapshot's titles that say
+ * "martin" are "Martin D-28 Billy Strings …", every one a guitar at 20,000–27,000 DKK, and
+ * `strings` deferred all of them. The phrase is removed before the PART_TOKENS test, so a
+ * title that ALSO sells strings ("Billy Strings … + New Strings") still defers.
+ */
+const ARTIST_NAMED_STRINGS = /(?<![\w-])billy\s+strings(?![\w-])/gi
+
+/**
  * `<colour> pickguard` is a SPECIFICATION, not a head noun.
  *
  * THE INCLUSION-MARKER RULE IS NOT SUFFICIENT HERE, and this is the only place
@@ -571,9 +580,10 @@ export function detectNonProductIntent(title: string): IntentFinding | null {
   }
 
   const shippingPickup = isShippingPickup(text)
+  const partText = text.replace(ARTIST_NAMED_STRINGS, ' ')
   for (const token of PART_TOKENS) {
     if (shippingPickup && (token === 'pickup' || token === 'pickups')) continue
-    if (containsWord(text, token)) return { intent: 'part_or_accessory', token }
+    if (containsWord(partText, token)) return { intent: 'part_or_accessory', token }
   }
 
   // Accessory head-nouns, suppressed by an inclusion marker that PRECEDES them.
