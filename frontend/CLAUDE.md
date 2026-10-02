@@ -162,6 +162,7 @@ page-view event, which fires once per view even under strict mode.
 | `listing_saved` | product page, after the save is accepted | `source`, `product_slug` |
 | `watchlist_created` | every creation path, after the server accepts it | `origin`, `product_slug`, `has_max_price` (never the query) |
 | `signup_completed` | `/watchlists`, when the email link confirmed a **new** account | `method` |
+| `price_check_result` | `/tjek-prisen`, when a pasted link is answered | `state`, `source` (never the link) |
 
 Every event also carries `klup_schema_version`, `app_env`, `surface`, `locale`,
 `is_internal` and `internal_role`. `$identify` sends the Supabase user id only.

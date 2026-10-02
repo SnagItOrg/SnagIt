@@ -127,6 +127,16 @@ async function fetchThomannListing(url: string): Promise<ScrapedListingResult> {
     }
   }
 
+  // Strategy 3: schema.org microdata. Thomann dropped the JSON-LD block
+  // (seen 2026-10-02, PAN-207) and now states the price in meta tags.
+  if (rawPrice === null) {
+    const m = html.match(/itemprop="price"\s+content="([\d.]+)"/)
+    if (m) {
+      rawPrice = parseFloat(m[1])
+      currency = html.match(/itemprop="priceCurrency"\s+content="([A-Z]{3})"/)?.[1] ?? currency
+    }
+  }
+
   const rate = rates[currency] ?? FALLBACK_RATES[currency] ?? 1
   const price = rawPrice !== null ? Math.round(rawPrice * rate) : null
 

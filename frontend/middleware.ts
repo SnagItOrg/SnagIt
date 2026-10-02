@@ -12,7 +12,8 @@ import { familyRedirectTarget } from '@/lib/families'
 // deployment target. That is a behaviour change, and a product-owner decision,
 // not an upgrade step. The build prints a deprecation warning until then.
 
-// Per-IP rate limit for /api/scrape only. The route is unauthenticated and
+// Per-IP rate limit for /api/scrape and /api/tjek-prisen (PAN-207), which
+// fetches a pasted link and writes. The route is unauthenticated and
 // performs DB writes, so any caller can otherwise drive scraper + DB load by
 // varying ?q= (which bypasses Vercel's edge cache). In-memory map per Edge
 // instance is intentional — at our traffic an external store is overkill.
@@ -61,8 +62,8 @@ function isOnboardingPath(pathname: string): boolean {
 
 export async function middleware(request: NextRequest) {
   // Rate-limit gate runs before Supabase auth so abusive callers don't load
-  // the auth client. Scoped to /api/scrape — every other route is unaffected.
-  if (request.nextUrl.pathname === '/api/scrape') {
+  // the auth client. Scoped to these two routes — every other route is unaffected.
+  if (request.nextUrl.pathname === '/api/scrape' || request.nextUrl.pathname === '/api/tjek-prisen') {
     if (!scrapeRateAllowed(clientIp(request))) {
       return NextResponse.json(
         { error: 'rate_limit', retry_after: 60 },

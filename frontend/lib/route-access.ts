@@ -73,6 +73,7 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   { route: '/browse', access: 'public_page' },
   { route: '/browse/[root]', access: 'public_page' },
   { route: '/search', access: 'public_page' },
+  { route: '/tjek-prisen', access: 'public_page' },
   { route: '/login', access: 'public_page' },
   { route: '/signup', access: 'public_page' },
   { route: '/auth/callback', access: 'public_page', note: 'OAuth + magic-link callback; no session yet by definition' },
@@ -139,6 +140,11 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   },
   { route: '/api/discover', access: 'public_api', note: 'filters to the canonical set in SQL' },
   { route: '/api/brands', access: 'public_api' },
+  {
+    route: '/api/tjek-prisen',
+    access: 'public_api_data_gated',
+    note: 'PAN-207; rate-limited per IP in middleware; names a product only when /api/product would',
+  },
   { route: '/api/price-observations', access: 'public_api' },
   {
     route: '/api/health/freshness',
