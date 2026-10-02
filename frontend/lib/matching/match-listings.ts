@@ -786,6 +786,11 @@ const TAYLOR_GS_MINI_OTHER: readonly RegExp[] = [...cues('mahogany', 'koa', 'ros
 /** A Taylor member of `line`: Taylor named, refuses `otherMembers`. */
 const taylor = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ line, otherMembers, requires: TAYLOR_NAMED })
 
+/** Guild named (PAN-226): "D-55" alone is a short code. */
+const GUILD_NAMED: readonly RegExp[] = [/(?<![a-z])guild(?![a-z])/i]
+/** A Guild member of `line`: Guild named, refuses `otherMembers`. */
+const guild = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ line, otherMembers, requires: GUILD_NAMED })
+
 /** An SSL member of `line` (PAN-205): SSL named, refuses `otherMembers` and SSL_NEVER; parts unless after a marker. */
 const ssl = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
   line, otherMembers: [...otherMembers, ...SSL_NEVER], accessories: SSL_PARTS, requires: SSL_NAMED,
@@ -1389,6 +1394,13 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'taylor-gs-mini-e-rosewood': taylor('taylor-gs-mini', ...cues('plus', 'ltd')),
   'taylor-gs-mini-e-rosewood-plus': taylor('taylor-gs-mini'),
   'taylor-gs-mini-e-special-edition': taylor('taylor-gs-mini'),
+
+  // ── PAN-226: Guild ───────────────────────────────────────────────────────
+  // The two rows the PAN-226 promote SQL makes match targets. The token boundary keeps the electro
+  // "D-55E" off the D-55.
+  // "1979 Guild Guitars Color promotional Ad Framed Guild D-55" is a framed advertisement.
+  'guild-d-55': { ...guild('guild-d-55'), accessories: ['promotional'] },
+  'guild-d-55e': guild('guild-d-55'),
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed
