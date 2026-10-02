@@ -757,6 +757,15 @@ const rickenbacker = (line: string, ...otherMembers: RegExp[]): LineBoundary => 
   line, otherMembers, accessories: RICKENBACKER_PARTS, requires: RICKENBACKER_NAMED,
 })
 
+/** Suhr named (PAN-223): "Classic S" and "Classic T" are ordinary words. */
+const SUHR_NAMED: readonly RegExp[] = [/(?<![a-z])suhr(?![a-z])/i]
+/** A signature model is another guitar: Mateus Asato, Ian Thornley, Andre Nieri. */
+const SUHR_SIGNATURE: readonly RegExp[] = cues('signature', 'asato')
+/** "Custom Shop Classic S", "Classic S Custom", "Custom Order": a custom build, its own row and price. */
+const SUHR_CUSTOM = cue('custom')
+/** A Suhr member of `line`: Suhr named, refuses `otherMembers`. */
+const suhr = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ line, otherMembers, requires: SUHR_NAMED })
+
 /** An SSL member of `line` (PAN-205): SSL named, refuses `otherMembers` and SSL_NEVER; parts unless after a marker. */
 const ssl = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
   line, otherMembers: [...otherMembers, ...SSL_NEVER], accessories: SSL_PARTS, requires: SSL_NAMED,
@@ -1312,6 +1321,20 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'rickenbacker-4003': rickenbacker('rickenbacker-4003'),
   'rickenbacker-4003s': rickenbacker('rickenbacker-4003'),
   'rickenbacker-360-12': rickenbacker('rickenbacker-360-12'),
+
+  // ── PAN-223: Suhr ────────────────────────────────────────────────────────
+  // Every row the PAN-223 promote SQL makes a match target. The production Classic S and Classic T
+  // refuse the longer names in their line (Antique, Paulownia, Studio), a custom build and a
+  // signature model. Vintage LE, Metallic and Roasted Pine editions stay on the production row.
+  'suhr-classic-s': suhr('suhr-classic-s', ...cues('antique', 'paulownia', 'studio'), SUHR_CUSTOM, ...SUHR_SIGNATURE),
+  'suhr-classic-s-antique': suhr('suhr-classic-s', SUHR_CUSTOM, ...SUHR_SIGNATURE),
+  'suhr-classic-s-paulownia': suhr('suhr-classic-s'),
+  'suhr-classic-s-studio': suhr('suhr-classic-s'),
+  'suhr-custom-shop-classic-s': suhr('suhr-classic-s', cue('antique'), ...SUHR_SIGNATURE),
+  'suhr-classic-t': suhr('suhr-classic-t', ...cues('antique', 'paulownia'), SUHR_CUSTOM, ...SUHR_SIGNATURE),
+  'suhr-classic-t-antique': suhr('suhr-classic-t', SUHR_CUSTOM, ...SUHR_SIGNATURE),
+  'suhr-custom-shop-classic-t': suhr('suhr-classic-t', cue('antique'), ...SUHR_SIGNATURE),
+  'suhr-mateus-asato-signature-classic-t': suhr('suhr-classic-t'),
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed
