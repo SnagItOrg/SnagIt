@@ -198,6 +198,7 @@ test('integration: every package suite is registered exactly once', () => {
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',
       'scripts/lib/pan220-line-boundaries.test.ts',
+      'scripts/lib/pan222-line-boundaries.test.ts',
       // PAN-86: the homepage category shelf is the first surface to render the
       // taxonomy itself rather than products, so domain scope and the "never
       // print a count the destination cannot honour" rule are both exercised

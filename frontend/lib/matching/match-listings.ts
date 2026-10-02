@@ -748,6 +748,15 @@ const prs = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
 /** A Core (USA) member: also refuses the SE and S2 series. */
 const prsCore = (line: string, ...otherMembers: RegExp[]): LineBoundary => prs(line, ...otherMembers, ...PRS_SERIES)
 
+/** Rickenbacker named (PAN-222): its model names are bare numbers ("4001", "4003", "360/12"). */
+const RICKENBACKER_NAMED: readonly RegExp[] = [/(?<![a-z])rickenbacker/i]
+/** Measured on the bass titles: "Thumb Rest for Older 4001 Series", "4003 Scratchplate", "4001 Wiring". */
+const RICKENBACKER_PARTS: readonly string[] = ['thumb rest', 'scratchplate', 'wiring']
+/** A Rickenbacker member of `line`: Rickenbacker named, refuses `otherMembers`; parts unless after a marker. */
+const rickenbacker = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers, accessories: RICKENBACKER_PARTS, requires: RICKENBACKER_NAMED,
+})
+
 /** An SSL member of `line` (PAN-205): SSL named, refuses `otherMembers` and SSL_NEVER; parts unless after a marker. */
 const ssl = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
   line, otherMembers: [...otherMembers, ...SSL_NEVER], accessories: SSL_PARTS, requires: SSL_NAMED,
@@ -1294,6 +1303,15 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'prs-s2-mccarty-594-singlecut': prs('prs-mccarty-594'),
   'prs-s2-mccarty-594-thinline': prs('prs-mccarty-594'),
   'prs-silver-sky': { ...prsCore('prs-silver-sky'), accessories: PRS_SILVER_SKY_PARTS },
+
+  // ── PAN-222: Rickenbacker ────────────────────────────────────────────────
+  // Every row the PAN-222 promote SQL makes a match target. The token boundary already keeps the
+  // suffixed models apart ("4003S", "360/12C63", "360/12W" are not "4003" or "360/12").
+  // The 4001 V63 is the 1984-2000 vintage reissue, its own Reverb page; two titles, no row.
+  'rickenbacker-4001': rickenbacker('rickenbacker-4001', cue('v63')),
+  'rickenbacker-4003': rickenbacker('rickenbacker-4003'),
+  'rickenbacker-4003s': rickenbacker('rickenbacker-4003'),
+  'rickenbacker-360-12': rickenbacker('rickenbacker-360-12'),
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed
