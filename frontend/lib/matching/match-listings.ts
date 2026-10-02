@@ -766,6 +766,15 @@ const SUHR_CUSTOM = cue('custom')
 /** A Suhr member of `line`: Suhr named, refuses `otherMembers`. */
 const suhr = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ line, otherMembers, requires: SUHR_NAMED })
 
+/** Heritage named (PAN-224). A Gibson in "Heritage Cherry Sunburst" carries no Heritage model code. */
+const HERITAGE_NAMED: readonly RegExp[] = [/(?<![a-z])heritage(?![a-z])/i]
+/** "Standard II" or "Standard-II", the 2024 generation: its own model beside the Standard. */
+const HERITAGE_STANDARD_II = /(?<![\w-])standard[\s-]+ii(?![\w-])/i
+/** Custom Shop builds: "Custom Shop Core", "Custom Core", "Custom Shop Factory Special", "Custom Shop Relic". */
+const HERITAGE_CUSTOM: readonly RegExp[] = cues('custom', 'core', 'factory special')
+/** A Heritage member of `line`: Heritage named, refuses `otherMembers`. */
+const heritage = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ line, otherMembers, requires: HERITAGE_NAMED })
+
 /** An SSL member of `line` (PAN-205): SSL named, refuses `otherMembers` and SSL_NEVER; parts unless after a marker. */
 const ssl = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
   line, otherMembers: [...otherMembers, ...SSL_NEVER], accessories: SSL_PARTS, requires: SSL_NAMED,
@@ -1335,6 +1344,17 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'suhr-classic-t-antique': suhr('suhr-classic-t', SUHR_CUSTOM, ...SUHR_SIGNATURE),
   'suhr-custom-shop-classic-t': suhr('suhr-classic-t', cue('antique'), ...SUHR_SIGNATURE),
   'suhr-mateus-asato-signature-classic-t': suhr('suhr-classic-t'),
+
+  // ── PAN-224: Heritage ────────────────────────────────────────────────────
+  // Every row the PAN-224 promote SQL makes a match target. "H-150" and "H-535" alone are the
+  // Standard Collection; a title that names Standard II, a Custom Shop build or (on the H-535)
+  // Artisan Aged is that model, or nothing where it has no row (Standard II H-535, Factory Special).
+  'heritage-h-150': heritage('heritage-h-150', HERITAGE_STANDARD_II, ...HERITAGE_CUSTOM),
+  'heritage-standard-ii-h-150': heritage('heritage-h-150', ...HERITAGE_CUSTOM),
+  'heritage-custom-shop-core-h-150': heritage('heritage-h-150', HERITAGE_STANDARD_II, cue('factory special')),
+  'heritage-h-535': heritage('heritage-h-535', HERITAGE_STANDARD_II, ...HERITAGE_CUSTOM, cue('artisan aged')),
+  'heritage-custom-shop-core-h-535': heritage('heritage-h-535', HERITAGE_STANDARD_II),
+  'heritage-h-535-artisan-aged': heritage('heritage-h-535', HERITAGE_STANDARD_II, ...HERITAGE_CUSTOM),
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed
