@@ -1,15 +1,21 @@
 /**
- * scripts/pan222-rickenbacker-rematch.ts — PAN-222. DRY RUN unless --apply.
- * A copy of scripts/pan220-prs-rematch.ts for the Rickenbacker pass.
+ * scripts/rematch-brand.ts — the brand re-match runner (PAN-229). DRY RUN unless --apply.
  *
- * Re-decides two cohorts against the Rickenbacker models PAN-222 creates and promotes (no Rickenbacker
- * navigation family exists, so the Gibson `held` cohort is empty here):
+ * One runner for every brand pass. A brand is a config in scripts/rematch-configs/<name>.ts: its
+ * ticket, the rows it promotes and re-decides, and the title lines of its unmatched cohort. The
+ * procedure is the one the copied scripts pan195, pan198–pan205 and pan218–pan226 carried, taken
+ * verbatim from the last copy (pan226-guild-rematch.ts); a fix lands here once instead of fifteen times.
  *
- *   stale     — listings whose UNREVIEWED live match (is_valid NULL) sits on one of the PROMOTED rows.
- *               Empty today: no Rickenbacker row held a match before this pass. A match a person decided
- *               (`admin_decision`, HUMAN_DECISION) or the AI pass confirmed (`is_valid=true`, AI_TRUE)
- *               is never re-decided, released or rewritten; the dry run counts both.
- *   unmatched — active listings whose title names Rickenbacker and that hold no live match anywhere.
+ * Re-decides three cohorts against the config's rows:
+ *
+ *   held      — listings whose UNREVIEWED live match (is_valid NULL) sits on one of the config's
+ *               family LABEL rows. A label is never a match target (PAN-84), so these are stranded.
+ *   stale     — listings whose UNREVIEWED live match sits on one of the PROMOTED or SUPPORTED_TODAY
+ *               rows. A match a person decided (`admin_decision`, HUMAN_DECISION) or the AI pass
+ *               confirmed (`is_valid=true`, AI_TRUE) is never re-decided, released or rewritten;
+ *               the dry run counts both.
+ *   unmatched — active listings whose title names one of the config's LINES and that hold no live
+ *               match anywhere.
  *
  * Every decision is `decideMatch`'s. Nothing here scores a title.
  *
@@ -27,8 +33,8 @@
  * listing ids, and every held row's prior is_valid / rejected_reason), then:
  *   1. hands every listing to `matchListings`, the one writer, which writes
  *      what `decideMatch` decides against the real index;
- *   2. for a stale listing that step 1 gave a live row on ANOTHER product, marks
- *      the old row is_valid=false, rejected_reason 'pan222_moved_to_model',
+ *   2. for a held or stale listing that step 1 gave a live row on ANOTHER product,
+ *      marks the old row is_valid=false, rejected_reason '<pan>_moved_to_model',
  *      guarded on the prior is_valid it read. A stale listing that lands nowhere
  *      keeps its row and is listed for review: undecidable is not wrong.
  * A listing whose live match is human-decided is in neither cohort, so --apply
@@ -40,9 +46,9 @@
  * rejected_reason. Also a dry run without --apply.
  *
  * Usage (from the repository root):
- *   npx tsx scripts/pan222-rickenbacker-rematch.ts [--show=N]
- *   npx tsx scripts/pan222-rickenbacker-rematch.ts --apply [--out-dir=DIR]
- *   npx tsx scripts/pan222-rickenbacker-rematch.ts --rollback=DIR/pan222-rollback-<ts>.json [--apply]
+ *   npx tsx scripts/rematch-brand.ts --brand=<name> [--show=N]
+ *   npx tsx scripts/rematch-brand.ts --brand=<name> --apply [--out-dir=DIR]
+ *   npx tsx scripts/rematch-brand.ts --brand=<name> --rollback=DIR/<pan>-rollback-<ts>.json [--apply]
  */
 
 import * as fs from 'fs'
@@ -64,27 +70,35 @@ import {
 import { filterByIlike, readActiveTitles } from './lib/rematch-active-titles'
 import { AI_TRUE, HUMAN_DECISION } from './lib/rematch-verdicts'
 
-/** Rickenbacker has no family label rows, so no held cohort. */
-export const LABELS: readonly string[] = []
+/** One brand pass: scripts/rematch-configs/<name>.ts exports one of these as its default. */
+export interface RematchConfig {
+  /** The brand ticket, printed in the report header: 'PAN-226'. */
+  ticket: string
+  /** Its short tag: the rollback file is `<pan>-rollback-<ts>.json`, a released row gets `<pan>_moved_to_model`. */
+  pan: string
+  /** The brand as the report names it: 'Guild'. */
+  brand: string
+  /** Family label rows. Never match targets; their held matches move. */
+  labels: readonly string[]
+  /** The rows the ticket's promote SQL moves from `known` to `supported`: the same reviewed list, verbatim. */
+  promoted: readonly string[]
+  /** Rows that were supported before the ticket and whose unreviewed live matches are re-decided too. */
+  supportedToday: readonly string[]
+  /** The unmatched cohort: a title names a line when `names` matches; `ilike` pre-selects the titles as SQL would. */
+  lines: ReadonlyArray<{ line: string; names: RegExp; ilike: string[] }>
+}
 
-/**
- * The rows the PAN-222 promote SQL moves from `known` to `supported`: the same reviewed list,
- * verbatim. The three rows Rickenbacker had (4001, 4003, 360/12) and the 4003S PAN-222 step 2 created.
- */
-export const PROMOTED: readonly string[] = ['rickenbacker-360-12', 'rickenbacker-4001', 'rickenbacker-4003', 'rickenbacker-4003s']
+export function loadConfig(name: string): RematchConfig {
+  if (!/^[a-z0-9-]+$/.test(name)) throw new Error(`not a config name: ${name}`)
+  const file = path.join(__dirname, 'rematch-configs', `${name}.ts`)
+  if (!fs.existsSync(file)) throw new Error(`no config at scripts/rematch-configs/${name}.ts`)
+  return (require(file) as { default: RematchConfig }).default
+}
 
-/** No Rickenbacker row is supported today. */
-export const SUPPORTED_TODAY: readonly string[] = []
+const rejectedReason = (cfg: RematchConfig) => `${cfg.pan}_moved_to_model`
 
-/** Every row this script re-decides stale matches on. */
-export const RE_DECIDED: readonly string[] = [...PROMOTED, ...SUPPORTED_TODAY]
-
-/** The unmatched cohort: active titles that name Rickenbacker (the boundary's RICKENBACKER_NAMED). */
-export const LINES: ReadonlyArray<{ line: string; names: RegExp; ilike: string[] }> = [
-  { line: 'rickenbacker', names: /(?<![a-z])rickenbacker/i, ilike: ['%rickenbacker%'] },
-]
-
-export const REJECTED_REASON = 'pan222_moved_to_model'
+/** Every row whose unreviewed live matches are re-decided. */
+const reDecided = (cfg: RematchConfig) => [...cfg.promoted, ...cfg.supportedToday]
 
 export interface PoolListing {
   id: string
@@ -122,7 +136,7 @@ export function forecastIndex(real: Product[], promoted: Product[], idents: Matc
 /* ── I/O ─────────────────────────────────────────────────────────────────── */
 
 // The frontend copy of supabase-js, because the client is handed to
-// frontend/lib/matching (the pattern scripts/pan195-fender-rematch.ts uses).
+// frontend/lib/matching (the pattern scripts/pan195-fender-rematch.ts used).
 const CHUNK = 100
 
 function client(): SupabaseClient {
@@ -150,9 +164,9 @@ async function readAll<T>(build: () => any): Promise<T[]> {
 const chunks = <T>(xs: T[]): T[][] =>
   Array.from({ length: Math.ceil(xs.length / CHUNK) }, (_, i) => xs.slice(i * CHUNK, (i + 1) * CHUNK))
 
-/** slug -> id for the re-decided rows; every one must exist. */
-async function heldRowIds(db: SupabaseClient): Promise<Map<string, string>> {
-  const slugs = [...LABELS, ...RE_DECIDED]
+/** slug -> id for the labels and the re-decided rows; every one must exist. */
+async function heldRowIds(db: SupabaseClient, cfg: RematchConfig): Promise<Map<string, string>> {
+  const slugs = [...cfg.labels, ...reDecided(cfg)]
   const out = new Map<string, string>()
   for (const group of chunks(slugs)) {
     const { data, error } = await db.from('kg_product').select('id, slug').in('slug', group)
@@ -163,19 +177,22 @@ async function heldRowIds(db: SupabaseClient): Promise<Map<string, string>> {
   return out
 }
 
+/** The live rows `pool` skips, listed for the owner by the dry run. */
+export interface Skipped {
+  /** A person decided them (admin_decision): never re-decided. */
+  humanDecided: string[]
+  /** The AI pass confirmed them (is_valid=true): never re-decided. */
+  aiTrue: string[]
+}
+
 /**
  * Held and stale rows are one entry per (listing, row) — a listing can sit on
  * two rows, and each is released and restored on its own. Unmatched listings
  * are one entry per listing.
  */
-/** Live rows on the re-decided rows that a person decided, skipped by `pool` (printed by the dry run). */
-const humanDecided: string[] = []
-/** Live rows the AI pass confirmed (is_valid=true), skipped by `pool` (counted by the dry run). */
-const aiTrue: string[] = []
-
-async function pool(db: SupabaseClient, ids: Map<string, string>): Promise<PoolListing[]> {
+export async function pool(db: SupabaseClient, ids: Map<string, string>, cfg: RematchConfig, skipped: Skipped = { humanDecided: [], aiTrue: [] }): Promise<PoolListing[]> {
   const held: PoolListing[] = []
-  for (const slug of [...LABELS, ...RE_DECIDED]) {
+  for (const slug of [...cfg.labels, ...reDecided(cfg)]) {
     type H = {
       listing_id: string
       is_valid: boolean | null
@@ -192,11 +209,11 @@ async function pool(db: SupabaseClient, ids: Map<string, string>): Promise<PoolL
       if (!l?.title) continue
       // A person's verdict stands: never re-decided, never released (and its listing, which holds a
       // live match, is not in the unmatched cohort either).
-      if (HUMAN_DECISION(r.explain)) { humanDecided.push(`${slug} | ${l.title}`); continue }
+      if (HUMAN_DECISION(r.explain)) { skipped.humanDecided.push(`${slug} | ${l.title}`); continue }
       // An AI-confirmed verdict stands too (decision 8): listed, never moved or released.
-      if (AI_TRUE(r.is_valid)) { aiTrue.push(`${slug} | ${l.title}`); continue }
+      if (AI_TRUE(r.is_valid)) { skipped.aiTrue.push(`${slug} | ${l.title}`); continue }
       held.push({
-        id: r.listing_id, title: l.title, cohort: LABELS.includes(slug) ? 'held' : 'stale', group: slug,
+        id: r.listing_id, title: l.title, cohort: cfg.labels.includes(slug) ? 'held' : 'stale', group: slug,
         product_id: productId, prior_is_valid: r.is_valid, prior_rejected_reason: r.rejected_reason,
       })
     }
@@ -206,7 +223,7 @@ async function pool(db: SupabaseClient, ids: Map<string, string>): Promise<PoolL
   const heldIds = new Set(held.map((l) => l.id))
   // One plan-proof keyset read of every active title; the ILIKE patterns are applied in memory.
   const active = await readActiveTitles(db)
-  for (const line of LINES) {
+  for (const line of cfg.lines) {
     const rows = filterByIlike(active, line.ilike)
       .filter((l) => line.names.test(l.title) && !heldIds.has(l.id) && !out.has(l.id))
     const live = new Set<string>()
@@ -221,15 +238,16 @@ async function pool(db: SupabaseClient, ids: Map<string, string>): Promise<PoolL
   return [...held, ...Array.from(out.values())]
 }
 
-async function loadPromoted(db: SupabaseClient): Promise<Product[]> {
+async function loadPromoted(db: SupabaseClient, cfg: RematchConfig): Promise<Product[]> {
   const rows = await readAll<Parameters<typeof normalizeProductRow>[0]>(() =>
-    db.from('kg_product').select(PRODUCT_SELECT).in('slug', [...PROMOTED]).order('id'))
+    db.from('kg_product').select(PRODUCT_SELECT).in('slug', [...cfg.promoted]).order('id'))
   return rows.map(normalizeProductRow)
 }
 
-async function rematch(db: SupabaseClient, apply: boolean, outDir: string, show: number): Promise<void> {
-  const ids = await heldRowIds(db)
-  const [listings, index, promoted] = await Promise.all([pool(db, ids), loadMatchIndex(db), loadPromoted(db)])
+async function rematch(db: SupabaseClient, cfg: RematchConfig, apply: boolean, outDir: string, show: number): Promise<void> {
+  const ids = await heldRowIds(db, cfg)
+  const skipped: Skipped = { humanDecided: [], aiTrue: [] }
+  const [listings, index, promoted] = await Promise.all([pool(db, ids, cfg, skipped), loadMatchIndex(db), loadPromoted(db, cfg)])
   const brands = index.catalogueBrands
   const forecast = forecastIndex(index.products, promoted, index.idents, index.synonyms, brands)
   const notMatchable = promoted.filter((c) => !isMatchableProduct(c)).length
@@ -260,10 +278,10 @@ async function rematch(db: SupabaseClient, apply: boolean, outDir: string, show:
     }
   }
 
-  console.log(`PAN-222 Rickenbacker re-match — ${apply ? 'APPLY' : 'DRY RUN'}`)
-  console.log(`  ${humanDecided.length} live rows skipped: a person decided them (admin_decision), never re-decided`)
-  if (show > 0 && humanDecided.length) console.log(humanDecided.map((h) => `  skipped ${h}`).join('\n'))
-  console.log(`  ${aiTrue.length} live rows skipped: the AI pass confirmed them (is_valid=true), never re-decided`)
+  console.log(`${cfg.ticket} ${cfg.brand} re-match — ${apply ? 'APPLY' : 'DRY RUN'}`)
+  console.log(`  ${skipped.humanDecided.length} live rows skipped: a person decided them (admin_decision), never re-decided`)
+  if (show > 0 && skipped.humanDecided.length) console.log(skipped.humanDecided.map((h) => `  skipped ${h}`).join('\n'))
+  console.log(`  ${skipped.aiTrue.length} live rows skipped: the AI pass confirmed them (is_valid=true), never re-decided`)
   console.log(`  ${listings.filter((l) => l.cohort === 'held').length} held on label rows, ` +
     `${listings.filter((l) => l.cohort === 'stale').length} held on promoted or re-decided supported rows, ` +
     `${listings.filter((l) => l.cohort === 'unmatched').length} unmatched`)
@@ -276,7 +294,7 @@ async function rematch(db: SupabaseClient, apply: boolean, outDir: string, show:
   if (!apply) return
 
   fs.mkdirSync(outDir, { recursive: true })
-  const file = path.join(outDir, `pan222-rollback-${Date.now()}.json`)
+  const file = path.join(outDir, `${cfg.pan}-rollback-${Date.now()}.json`)
   const held = listings.filter((l) => l.cohort !== 'unmatched')
   const listingIds = Array.from(new Set(listings.map((l) => l.id)))
   const fd = fs.openSync(file, 'wx')
@@ -298,7 +316,7 @@ async function rematch(db: SupabaseClient, apply: boolean, outDir: string, show:
 
   // A held or stale listing moves only if step 1 gave it a live row on a real
   // product other than the one it is held on.
-  const labelIds = new Set(LABELS.map((s) => ids.get(s)!))
+  const labelIds = new Set(cfg.labels.map((s) => ids.get(s)!))
   let moved = 0
   for (const group of chunks(held)) {
     const { data, error } = await db.from('listing_product_match').select('listing_id, product_id')
@@ -308,7 +326,7 @@ async function rematch(db: SupabaseClient, apply: boolean, outDir: string, show:
     for (const l of group) {
       const landed = live.some((r) => r.listing_id === l.id && r.product_id !== l.product_id && !labelIds.has(r.product_id))
       if (!landed) continue
-      let q = db.from('listing_product_match').update({ is_valid: false, rejected_reason: REJECTED_REASON })
+      let q = db.from('listing_product_match').update({ is_valid: false, rejected_reason: rejectedReason(cfg) })
         .eq('listing_id', l.id).eq('product_id', l.product_id!)
       q = l.prior_is_valid === null || l.prior_is_valid === undefined ? q.is('is_valid', null) : q.eq('is_valid', l.prior_is_valid)
       const { error: uErr } = await q
@@ -319,12 +337,16 @@ async function rematch(db: SupabaseClient, apply: boolean, outDir: string, show:
   console.log(`held rows released: ${moved}`)
 }
 
-async function rollback(db: SupabaseClient, file: string, apply: boolean): Promise<void> {
-  const { started_at, listing_ids, held_rows } = JSON.parse(fs.readFileSync(file, 'utf8')) as {
+async function rollback(db: SupabaseClient, cfg: RematchConfig, file: string, apply: boolean): Promise<void> {
+  const parsed = JSON.parse(fs.readFileSync(file, 'utf8')) as {
     started_at: string
     listing_ids: string[]
-    held_rows: Array<{ listing_id: string; product_id: string; is_valid: boolean | null; rejected_reason: string | null }>
+    held_rows?: Array<{ listing_id: string; product_id: string; is_valid: boolean | null; rejected_reason: string | null }>
+    /** The pan195 Fender run wrote its held rows under this key. */
+    label_rows?: Array<{ listing_id: string; product_id: string; is_valid: boolean | null; rejected_reason: string | null }>
   }
+  const { started_at, listing_ids } = parsed
+  const held_rows = parsed.held_rows ?? parsed.label_rows ?? []
   // A held row existed before the run, so it is restored below, never deleted.
   const heldPairs = new Set(held_rows.map((r) => `${r.listing_id}|${r.product_id}`))
   const created: Array<{ id: string }> = []
@@ -335,7 +357,7 @@ async function rollback(db: SupabaseClient, file: string, apply: boolean): Promi
     created.push(...((data ?? []) as Array<{ id: string; listing_id: string; product_id: string }>)
       .filter((r) => !heldPairs.has(`${r.listing_id}|${r.product_id}`)))
   }
-  console.log(`PAN-222 rollback — ${apply ? 'APPLY' : 'DRY RUN'} — ${created.length} rows created since ${started_at}; ${held_rows.length} held rows to restore`)
+  console.log(`${cfg.ticket} rollback — ${apply ? 'APPLY' : 'DRY RUN'} — ${created.length} rows created since ${started_at}; ${held_rows.length} held rows to restore`)
   if (!apply) return
   for (const group of chunks(created.map((r) => r.id))) {
     const { error } = await db.from('listing_product_match').delete().in('id', group).or('is_valid.is.null,is_valid.eq.false')
@@ -343,7 +365,7 @@ async function rollback(db: SupabaseClient, file: string, apply: boolean): Promi
   }
   for (const r of held_rows) {
     const { error } = await db.from('listing_product_match').update({ is_valid: r.is_valid, rejected_reason: r.rejected_reason })
-      .eq('listing_id', r.listing_id).eq('product_id', r.product_id).eq('rejected_reason', REJECTED_REASON)
+      .eq('listing_id', r.listing_id).eq('product_id', r.product_id).eq('rejected_reason', rejectedReason(cfg))
     if (error) throw new Error(error.message)
   }
   console.log('restored')
@@ -354,10 +376,16 @@ if (require.main === module) {
   const flag = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=')
   const APPLY = args.includes('--apply')
   const ROLLBACK = flag('rollback')
+  const name = flag('brand')
+  if (!name) {
+    console.error('Usage: npx tsx scripts/rematch-brand.ts --brand=<name> [--show=N] [--apply [--out-dir=DIR]] [--rollback=FILE [--apply]]')
+    process.exit(1)
+  }
+  const cfg = loadConfig(name)
   const db = client()
   ;(ROLLBACK
-    ? rollback(db, ROLLBACK, APPLY)
-    : rematch(db, APPLY, flag('out-dir') ?? path.join(os.tmpdir(), 'pan222'), Number(flag('show') ?? 200))
+    ? rollback(db, cfg, ROLLBACK, APPLY)
+    : rematch(db, cfg, APPLY, flag('out-dir') ?? path.join(os.tmpdir(), cfg.pan), Number(flag('show') ?? 200))
   ).catch((err) => {
     console.error(err instanceof Error ? err.message : err)
     process.exit(1)

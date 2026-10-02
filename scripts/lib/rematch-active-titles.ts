@@ -1,8 +1,8 @@
 /**
  * scripts/lib/rematch-active-titles.ts
  *
- * The unmatched-cohort scan shared by the brand re-match scripts
- * (scripts/pan195-…-rematch.ts through pan204-…).
+ * The unmatched-cohort scan of the brand re-match runner
+ * (scripts/rematch-brand.ts).
  *
  * WHY NOT ILIKE IN SQL. The scripts used to ask PostgREST for
  * `is_active = true AND (title ILIKE p1 OR …) ORDER BY id`, OFFSET-paged.
