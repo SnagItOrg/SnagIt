@@ -27,6 +27,8 @@ These are raw `.sql` files applied manually via the Supabase Studio SQL editor
 > (the live view carries `lpm.is_valid IS NOT FALSE` and 061's `COMMENT`).
 > **062 is applied in production**: 2026-10-02, on the owner's authorisation
 > recorded on PAN-190. See the 062 section at the end of this file.
+> **063 is applied in production**: 2026-10-02, on the owner's authorisation
+> recorded on PAN-213. See the 063 section at the end of this file.
 
 | File | Action | Notes |
 |---|---|---|
@@ -474,3 +476,32 @@ remaining findings are WARN/INFO only — `find_clean_candidates` has a mutable
 `search_path`, `pg_trgm` is installed in `public`, leaked-password protection
 is off, and 16 tables have RLS enabled with no policy (deny-all, intended for
 the 053/054 archives and the scrape pipeline tables).
+
+## 063 — an archive table for duplicate sold-price rows. **APPLIED 2026-10-02.**
+
+Applied through Supabase MCP `apply_migration` (version `20261002200245`), on
+the owner's authorisation recorded on PAN-213. Verified the same minute: the
+table exists with 15 columns, RLS on, no policy, and an ACL of `postgres` and
+`service_role` only (`anon` and `authenticated` hold nothing).
+
+`063_reverb_price_history_dedup_archive.sql` (PAN-213) creates
+`reverb_price_history_dedup_archive`: the columns of `reverb_price_history`
+plus `archived_at` and `archive_batch`, primary key on the original `id`. It
+moves no row.
+
+| Property | |
+|---|---|
+| Why | 97,815 of the table's 100,345 rows were copies of 585 sales (the May 2026 reprocessing loop and the pre-PAN-210 queue worker). The cleanup had to be reversible, so the rows are archived in full before they are removed. |
+| P0 | A new `public` table: RLS is enabled and every `anon` / `authenticated` privilege revoked in the same transaction ([`../CLAUDE.md`](../CLAUDE.md) P0). |
+| PRE / POST / DRIFT | PRE creates; POST is a no-op; an archive in another shape, or one `anon` or `authenticated` can reach, raises before any change. |
+| Rollback | `063_rollback.sql`. Refuses while the archive holds a row; drops the table when it is empty; absent is a no-op. |
+| Rehearsal | PGlite, 30 checks, with the data step and both rollbacks (`rehearse213.mjs`, attached to PAN-213). `verify-migrations-isolated.sh` has no section for it: it was not run on the authoring machine, which has no local PostgreSQL. |
+| Readers | None. No application code reads or writes the table. |
+
+**The data step is not a migration.** `pan213-dedup-apply.sql` and
+`pan213-dedup-rollback.sql` are attached to PAN-213. The apply ran once on
+2026-10-02: it locked `reverb_price_history`, copied 97,815 rows to the archive
+under batch `pan213-dedup-2026-10-02`, and removed them, leaving 2,530 rows.
+A linked row (`kg_product_id` set) is never removed. To undo: run the rollback
+(it re-inserts the rows byte for byte and empties the archive), then
+`063_rollback.sql`.
