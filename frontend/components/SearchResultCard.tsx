@@ -149,7 +149,7 @@ const VERDICT_TONE: Readonly<Record<'under' | 'typical' | 'over', {
   over:    { bg: 'var(--destructive-subtle)', border: 'var(--destructive-border)', fg: 'var(--destructive-text)', glyph: 'north_east' },
 }
 
-function MarketVerdictBadge({
+export function MarketVerdictBadge({
   verdict,
   basisLabelKey,
   t,

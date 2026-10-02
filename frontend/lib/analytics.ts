@@ -496,6 +496,12 @@ export interface KlupEventMap {
     has_email: boolean
     suggested_shown: number
   }
+
+  /** PAN-207 — /tjek-prisen answered a pasted link. Never the link itself. */
+  price_check_result: {
+    state: 'verdict' | 'not_enough_data' | 'not_recognised' | 'cant_read'
+    source: 'dba' | 'thomann' | null
+  }
 }
 
 export type KlupEventName = keyof KlupEventMap
@@ -519,6 +525,7 @@ const EVENT_NAMES: Record<KlupEventName, true> = {
   search_resolved: true,
   search_unsupported: true,
   demand_signal_submitted: true,
+  price_check_result: true,
 }
 
 /** Every tracked event name, for the transmit allow-list and the taxonomy assertions. */

@@ -1165,7 +1165,10 @@ test('no ANONYMOUSLY REACHABLE route can invoke a marketplace scraper', () => {
     }
   }
   walk(join(FRONTEND, 'app'))
-  assert.deepEqual(offenders, [], 'an anonymously reachable route imports a marketplace scraper')
+  // ONE exception, by product-owner decision (PAN-207, 2026-10-02):
+  // /api/tjek-prisen fetches the single link a visitor pasted. It runs no
+  // search, takes no free text, and is rate-limited per IP in middleware.ts.
+  assert.deepEqual(offenders, ['/api/tjek-prisen'], 'an anonymously reachable route imports a marketplace scraper')
 })
 
 test('the resolver route is classified, public and documented as data-gated', () => {
