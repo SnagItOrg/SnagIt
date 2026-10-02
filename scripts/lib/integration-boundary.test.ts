@@ -201,6 +201,7 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan222-line-boundaries.test.ts',
       'scripts/lib/pan223-line-boundaries.test.ts',
       'scripts/lib/pan224-line-boundaries.test.ts',
+      'scripts/lib/pan225-line-boundaries.test.ts',
       // PAN-86: the homepage category shelf is the first surface to render the
       // taxonomy itself rather than products, so domain scope and the "never
       // print a count the destination cannot honour" rule are both exercised

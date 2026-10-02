@@ -775,6 +775,17 @@ const HERITAGE_CUSTOM: readonly RegExp[] = cues('custom', 'core', 'factory speci
 /** A Heritage member of `line`: Heritage named, refuses `otherMembers`. */
 const heritage = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ line, otherMembers, requires: HERITAGE_NAMED })
 
+/** Taylor named (PAN-225): "GS Mini" and the model numbers are short. */
+const TAYLOR_NAMED: readonly RegExp[] = [/(?<![a-z])taylor(?![a-z])/i]
+/** "Builder's Edition", "Builders Edition", "Builders Ed.": the bevelled-armrest build, its own model and price. */
+const TAYLOR_BUILDERS = /(?<![\w-])builder['’]?s?\s+ed(?:ition)?(?![a-z])/i
+/** "Next Generation", "Next-Gen": the 2025 generation, its own Reverb page. */
+const TAYLOR_NEXT_GEN = /(?<![\w-])next[\s-]?gen(?:eration)?(?![\w-])/i
+/** The GS Mini woods are different instruments; "GS Mini e Koa" is the electro model written with a space. */
+const TAYLOR_GS_MINI_OTHER: readonly RegExp[] = [...cues('mahogany', 'koa', 'rosewood', 'special edition', 'ltd', 'bass'), /mini\s+e(?![\w-])/i]
+/** A Taylor member of `line`: Taylor named, refuses `otherMembers`. */
+const taylor = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ line, otherMembers, requires: TAYLOR_NAMED })
+
 /** An SSL member of `line` (PAN-205): SSL named, refuses `otherMembers` and SSL_NEVER; parts unless after a marker. */
 const ssl = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
   line, otherMembers: [...otherMembers, ...SSL_NEVER], accessories: SSL_PARTS, requires: SSL_NAMED,
@@ -1355,6 +1366,29 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'heritage-h-535': heritage('heritage-h-535', HERITAGE_STANDARD_II, ...HERITAGE_CUSTOM, cue('artisan aged')),
   'heritage-custom-shop-core-h-535': heritage('heritage-h-535', HERITAGE_STANDARD_II),
   'heritage-h-535-artisan-aged': heritage('heritage-h-535', HERITAGE_STANDARD_II, ...HERITAGE_CUSTOM),
+
+  // ── PAN-225: Taylor ──────────────────────────────────────────────────────
+  // Every row the PAN-225 promote SQL makes a match target. The plain 314ce and 814ce refuse the
+  // Studio, DLX, Builder's Edition, Next Generation and nylon models; V-Class, LTD and Special
+  // Edition finishes stay on them. The plain GS Mini is the spruce-and-sapele original.
+  'taylor-314ce': taylor('taylor-314ce', cue('studio'), TAYLOR_BUILDERS, TAYLOR_NEXT_GEN, cue('nylon')),
+  'taylor-314ce-studio': taylor('taylor-314ce'),
+  'taylor-next-generation-314ce': taylor('taylor-314ce', TAYLOR_BUILDERS),
+  'taylor-builders-edition-314ce': taylor('taylor-314ce', TAYLOR_NEXT_GEN),
+  // "814ce Gold Label" is the 2025 Gold Label collection, another guitar.
+  'taylor-814ce': taylor('taylor-814ce', ...cues('dlx', 'deluxe', 'gold label'), TAYLOR_BUILDERS, TAYLOR_NEXT_GEN, cue('nylon')),
+  'taylor-814ce-dlx': taylor('taylor-814ce', TAYLOR_BUILDERS, TAYLOR_NEXT_GEN),
+  'taylor-next-generation-814ce': taylor('taylor-814ce', TAYLOR_BUILDERS),
+  'taylor-builders-edition-814ce': taylor('taylor-814ce', TAYLOR_NEXT_GEN),
+  'taylor-next-generation-builders-edition-814ce': taylor('taylor-814ce'),
+  'taylor-gs-mini': taylor('taylor-gs-mini', ...TAYLOR_GS_MINI_OTHER),
+  'taylor-gs-mini-mahogany': taylor('taylor-gs-mini'),
+  'taylor-gs-mini-e-mahogany': taylor('taylor-gs-mini'),
+  'taylor-gs-mini-e-koa': taylor('taylor-gs-mini', ...cues('plus', 'bass', 'ltd', 'deluxe')),
+  'taylor-gs-mini-e-koa-plus': taylor('taylor-gs-mini'),
+  'taylor-gs-mini-e-rosewood': taylor('taylor-gs-mini', ...cues('plus', 'ltd')),
+  'taylor-gs-mini-e-rosewood-plus': taylor('taylor-gs-mini'),
+  'taylor-gs-mini-e-special-edition': taylor('taylor-gs-mini'),
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed
