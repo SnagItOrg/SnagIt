@@ -25,8 +25,8 @@ These are raw `.sql` files applied manually via the Supabase Studio SQL editor
 > exist). Their sections below still read "NOT APPLIED" as written at authoring
 > time. **061 is applied in production too**: verified read-only on 2026-09-30
 > (the live view carries `lpm.is_valid IS NOT FALSE` and 061's `COMMENT`).
-> **062 is written and rehearsed but NOT applied**; it needs an explicit
-> product-owner authorisation. See the 062 section at the end of this file.
+> **062 is applied in production**: 2026-10-02, on the owner's authorisation
+> recorded on PAN-190. See the 062 section at the end of this file.
 
 | File | Action | Notes |
 |---|---|---|
@@ -419,7 +419,14 @@ distinct, since `(listing_id, product_id)` is unique), and gating `is_public`
 on `support_state` (PAN-98 defect 1, which removes rows and needs its own owner
 decision).
 
-## 062 — both advisor-flagged views become SECURITY INVOKER. WRITTEN, REHEARSED (PGlite), **NOT APPLIED**.
+## 062 — both advisor-flagged views become SECURITY INVOKER. **APPLIED 2026-10-02.**
+
+Applied through Supabase MCP `apply_migration` (version `20261002124505`).
+Verified the same minute: both advisor findings gone; `service_role` reads the
+same md5 over all 4,325 projection rows before and after; ten anonymous
+captures of the public surface (browse, product, search, Tjek prisen) are
+byte-identical before and after. The text below is as written at authoring
+time, 2026-09-30.
 
 `062_security_invoker_views.sql` (PAN-190; PAN-191 is its duplicate) clears the
 two ERROR-level `security_definer_view` findings in the Supabase advisor:
