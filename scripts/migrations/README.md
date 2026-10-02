@@ -23,8 +23,10 @@ These are raw `.sql` files applied manually via the Supabase Studio SQL editor
 > `browse_product_projection` carries 058's `image_resolved` LATERAL, and
 > `kg_product.year_discontinued` and `reverb_price_history.reverb_categories`
 > exist). Their sections below still read "NOT APPLIED" as written at authoring
-> time. **061 is written and rehearsed but NOT applied**; it needs an explicit
-> product-owner authorisation. See the 061 section at the end of this file.
+> time. **061 is applied in production too**: verified read-only on 2026-09-30
+> (the live view carries `lpm.is_valid IS NOT FALSE` and 061's `COMMENT`).
+> **062 is applied in production**: 2026-10-02, on the owner's authorisation
+> recorded on PAN-190. See the 062 section at the end of this file.
 
 | File | Action | Notes |
 |---|---|---|
@@ -416,3 +418,59 @@ across a family (PAN-98's second half — per product the count is already
 distinct, since `(listing_id, product_id)` is unique), and gating `is_public`
 on `support_state` (PAN-98 defect 1, which removes rows and needs its own owner
 decision).
+
+## 062 — both advisor-flagged views become SECURITY INVOKER. **APPLIED 2026-10-02.**
+
+Applied through Supabase MCP `apply_migration` (version `20261002124505`).
+Verified the same minute: both advisor findings gone; `service_role` reads the
+same md5 over all 4,325 projection rows before and after; ten anonymous
+captures of the public surface (browse, product, search, Tjek prisen) are
+byte-identical before and after. The text below is as written at authoring
+time, 2026-09-30.
+
+`062_security_invoker_views.sql` (PAN-190; PAN-191 is its duplicate) clears the
+two ERROR-level `security_definer_view` findings in the Supabase advisor:
+`browse_product_projection` and `market_price_observations_trusted`. Both are
+owned by `postgres` (BYPASSRLS), sit in `public`, and carried ALL for `anon` and
+`authenticated` from the default privilege in [`../CLAUDE.md`](../CLAUDE.md) P0.
+
+**Exposure, measured read-only on production 2026-09-30** (`SET LOCAL ROLE anon`
+inside `BEGIN READ ONLY`; writes only ever `EXPLAIN`ed, never executed):
+
+| View | What anon could do | Evidence |
+|---|---|---|
+| `market_price_observations_trusted` | **write past RLS** — INSERT fabricated observations, UPDATE / DELETE trusted rows. The view is auto-updatable and a definer view checks base-table RLS as its owner. Reads: nothing extra (its WHERE equals the table's public SELECT policy). | `is_insertable_into = YES`; `EXPLAIN DELETE` as anon: table → `One-Time Filter: false`, view → plain index scan. 0 of 1,977 rows are currently trusted. |
+| `browse_product_projection` | **read aggregate counts past RLS** — `active_listing_count` over `listings`, which anon cannot read (0 rows directly). No listing row, price or user. Not updatable. | as anon: `listings` 0 rows; view `sum(active_listing_count)` 10,091. |
+
+**Readers.** Every `browse_product_projection` reader uses the service role
+(`getSupabaseAdmin()`); 24h of edge logs show 457 requests, all `sb_secret_`.
+`market_price_observations_trusted` has no reader in code or logs.
+
+| Property | |
+|---|---|
+| DDL | `ALTER VIEW … SET (security_invoker = on)` on both; `REVOKE ALL … FROM anon, authenticated` on both; `GRANT SELECT` on the trusted view back to anon/authenticated (039's public read — under invoker it shows exactly what the table's own policy shows). |
+| DML | **none.** No view body, column or base-table grant changes. |
+| Readers | unchanged. service_role has BYPASSRLS, so it reads an identical projection: its defining query run as service_role hashes to the live view's md5 over all 4,150 rows. |
+| Why anon loses the projection | under invoker, anon's `listings` RLS would give every public product `active_listing_count = 0` / `no_live_listings` — wrong rather than denied. Nothing reads it as anon. |
+| Guard | PRE applies; POST (both invoker, grants narrowed) is a no-op; DRIFT raises before mutating: a half-applied state, an explicit `security_invoker=off`, service_role without BYPASSRLS, or a trusted-observations policy that no longer equals the view's WHERE (invoker would then change what it returns). A pre-commit block asserts the POST state and reads both views as `service_role`. |
+| Rollback | `062_rollback.sql` **refuses by default** (full reversal re-opens anonymous writes). `klup.rollback_mode=restore_browse_read` restores only the projection's pre-062 state, for an anon reader 062 missed; `unsafe_reexpose` restores both exactly. |
+| Rehearsal | No local PostgreSQL on the authoring machine, so `verify-migrations-isolated.sh` was **not run**; its new section **17** covers 062. The same sequence — both defects reproduced, apply, byte-identical service-role projection, anon denied, POST, CREATE OR REPLACE resets the option but not the revoke, rollback in all three modes, four DRIFT cases — was run in PGlite (PostgreSQL 18.3 in WASM): all 37 checks pass. Production is PostgreSQL 17.6. |
+
+**Keep it invoker.** `CREATE OR REPLACE VIEW` replaces a view's reloptions with
+its WITH clause, so any later migration restating either view must say
+`CREATE OR REPLACE VIEW … WITH (security_invoker = on) AS`.
+`scripts/lib/security-invoker-views.test.ts` fails on one that does not. The
+older restating files — 036, 058, 061, `058_rollback.sql`, `061_rollback.sql` —
+predate 062 and do not carry it: running one after 062 turns the view back
+into a definer view (the advisor finding returns), though 062's REVOKE survives
+and keeps anon out. For the same reason the 061 section's warning that DROP +
+CREATE "would strip the anon/authenticated SELECT PostgREST needs and blank
+/browse" no longer holds after 062: browse reads through the service role.
+
+**Not in scope, measured and listed for follow-up:** `anon` still holds ALL on
+the base table `market_price_observations` (RLS refuses the writes) and on
+every other `public` table via the default privilege (P0); the advisor's
+remaining findings are WARN/INFO only — `find_clean_candidates` has a mutable
+`search_path`, `pg_trgm` is installed in `public`, leaked-password protection
+is off, and 16 tables have RLS enabled with no policy (deny-all, intended for
+the 053/054 archives and the scrape pipeline tables).

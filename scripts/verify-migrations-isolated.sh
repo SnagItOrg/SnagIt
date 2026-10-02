@@ -623,5 +623,110 @@ fi
 [ "$(cq "SELECT position('is_valid' in pg_get_viewdef('browse_product_projection'::regclass, true))")" = "0" ] \
   && pass "the refused 061 left the view untouched" || fail "061 mutated the view before refusing"
 
+# =============================================================================
+# 17. Migration 062 — both views become security_invoker (PAN-190)
+#
+# Its OWN database. Built the way production got here — fixture, 038, 036, 058,
+# 061 for the projection; 039/039b's table, public-read policy and view for the
+# trusted observations — plus the Supabase role model (anon, authenticated,
+# service_role BYPASSRLS; roles are cluster-global, and this cluster is
+# disposable) and production's RLS on the projection's base tables. Reproduces
+# BOTH defects before fixing them: anon writes through the trusted view, and
+# anon reads listing counts that RLS on `listings` hides.
+# =============================================================================
+echo
+echo "── 17. migration 062: security_invoker views ──"
+
+SDB=klupinvoker
+createdb "$SDB"
+sq()   { psql -d "$SDB" -tAX -c "$1"; }
+srun() { psql -d "$SDB" -v ON_ERROR_STOP=1 -q -f "$1" 2>&1; }
+# Run one statement as a role, in its own session. Prints the result or the error.
+as_role() { psql -d "$SDB" -qtAX -v ON_ERROR_STOP=1 -c "SET ROLE $1" -c "$2" 2>&1; }
+
+psql -d "$SDB" -v ON_ERROR_STOP=1 -q -f scripts/fixtures/browse_projection_fixture.sql
+for f in 038_add_match_quality_to_listing_product_match 036_browse_visibility_projection \
+         058_browse_projection_resolves_curated_image 061_browse_projection_excludes_rejected_matches; do
+  srun "scripts/migrations/$f.sql" >/dev/null
+done
+psql -d "$SDB" -v ON_ERROR_STOP=1 -q <<'SQL'
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN BYPASSRLS; END IF;
+END $$;
+CREATE TABLE market_price_observations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), kg_product_id uuid REFERENCES kg_product(id),
+  source text NOT NULL, country char(2) NOT NULL, price_type text NOT NULL, price_raw numeric NOT NULL,
+  currency text NOT NULL, price_dkk numeric NOT NULL, condition text, listing_url text, listing_title text,
+  external_id text, match_confidence smallint, match_method text, is_valid boolean,
+  observed_at timestamptz NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE market_price_observations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read trusted market price observations" ON market_price_observations FOR SELECT
+  USING (kg_product_id IS NOT NULL AND is_valid IS DISTINCT FROM false);
+CREATE VIEW market_price_observations_trusted AS
+  SELECT * FROM market_price_observations WHERE kg_product_id IS NOT NULL AND is_valid IS DISTINCT FROM false;
+ALTER TABLE kg_product ENABLE ROW LEVEL SECURITY;            CREATE POLICY "Public read" ON kg_product FOR SELECT USING (true);
+ALTER TABLE kg_brand ENABLE ROW LEVEL SECURITY;              CREATE POLICY "Public read" ON kg_brand FOR SELECT USING (true);
+ALTER TABLE kg_category ENABLE ROW LEVEL SECURITY;           CREATE POLICY "Public read" ON kg_category FOR SELECT USING (true);
+ALTER TABLE listing_product_match ENABLE ROW LEVEL SECURITY; CREATE POLICY "Public read" ON listing_product_match FOR SELECT USING (true);
+ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can read their own listings" ON listings FOR SELECT TO authenticated USING (false);
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+SQL
+
+S_MD5="SELECT md5(string_agg(t::text, '|' ORDER BY t.id)) FROM browse_product_projection t"
+S_OWNER_MD5="$(sq "$S_MD5")"
+S_SUM="$(sq "SELECT sum(active_listing_count) FROM browse_product_projection")"
+S_INS="INSERT INTO market_price_observations_trusted (kg_product_id, source, country, price_type, price_raw, currency, price_dkk, observed_at) SELECT id, 'anon-view', 'DK', 'asking', 1, 'DKK', 1, now() FROM kg_product LIMIT 1"
+
+# ── 17a. reproduce both defects ──
+[ "$(as_role anon "SELECT count(*) FROM listings")" = "0" ] \
+  && pass "anon reads 0 listings directly" || fail "anon reads listings directly"
+[ "$S_SUM" -gt 0 ] && [ "$(as_role anon "SELECT sum(active_listing_count) FROM browse_product_projection")" = "$S_SUM" ] \
+  && pass "DEFECT REPRODUCED: anon reads listing counts past RLS through the projection" \
+  || fail "expected anon to read the definer projection's counts ($S_SUM)"
+as_role anon "$S_INS" >/dev/null \
+  && [ "$(sq "SELECT count(*) FROM market_price_observations WHERE source='anon-view'")" = "1" ] \
+  && pass "DEFECT REPRODUCED: anon inserts through the trusted view past RLS" \
+  || fail "expected anon INSERT through the definer view to succeed"
+sq "DELETE FROM market_price_observations WHERE source='anon-view'" >/dev/null
+
+# ── 17b. apply ──
+OUT="$(srun scripts/migrations/062_security_invoker_views.sql)"
+echo "$OUT" | grep -q "state=PRE" && pass "062 detected PRE and applied" || fail "062 did not detect PRE: $OUT"
+[ "$(sq "SELECT count(*) FROM pg_class WHERE relname IN ('browse_product_projection','market_price_observations_trusted') AND reloptions @> ARRAY['security_invoker=on']")" = "2" ] \
+  && pass "both views are security_invoker" || fail "a view is not security_invoker"
+[ "$(as_role service_role "$S_MD5")" = "$S_OWNER_MD5" ] \
+  && pass "service_role reads a byte-identical projection" || fail "the service-role projection changed"
+OUT="$(as_role anon "SELECT 1 FROM browse_product_projection LIMIT 1" || true)"
+echo "$OUT" | grep -q "permission denied" \
+  && pass "FIXED: anon can no longer read the projection" || fail "anon still reads the projection: $OUT"
+OUT="$(as_role anon "$S_INS" || true)"
+echo "$OUT" | grep -q "permission denied" \
+  && pass "FIXED: anon can no longer write through the trusted view" || fail "anon still writes through the trusted view: $OUT"
+OUT="$(as_role anon "SELECT count(*) FROM market_price_observations_trusted" || true)"
+echo "$OUT" | grep -qE '^[0-9]+$' \
+  && pass "anon still reads the trusted view (039's public read)" || fail "anon lost SELECT on the trusted view"
+
+# ── 17c. POST is a successful no-op ──
+OUT="$(srun scripts/migrations/062_security_invoker_views.sql)"
+echo "$OUT" | grep -q "state=POST" && pass "062 re-run detects POST" || fail "062 re-run did not detect POST: $OUT"
+
+# ── 17d. rollback refuses by default; the unsafe escape restores pre-062 exactly ──
+OUT="$(srun scripts/migrations/062_rollback.sql || true)"
+echo "$OUT" | grep -q "REFUSED" && pass "062_rollback refuses by default" || fail "062_rollback did not refuse: $OUT"
+PGOPTIONS="-c klup.rollback_mode=unsafe_reexpose" psql -d "$SDB" -v ON_ERROR_STOP=1 -q -f scripts/migrations/062_rollback.sql >/dev/null 2>&1 \
+  && [ "$(sq "SELECT count(*) FROM pg_class WHERE relname IN ('browse_product_projection','market_price_observations_trusted') AND reloptions IS NULL")" = "2" ] \
+  && pass "062_rollback unsafe_reexpose restores both definer views" || fail "062_rollback unsafe_reexpose did not restore"
+
+# ── 17e. drift: half-applied by hand aborts before mutating ──
+sq "ALTER VIEW browse_product_projection SET (security_invoker = on)" >/dev/null
+OUT="$(srun scripts/migrations/062_security_invoker_views.sql || true)"
+echo "$OUT" | grep -q "062 ABORT: drifted state" && pass "062 refuses a half-applied state" || fail "062 did not abort on drift: $OUT"
+[ "$(sq "SELECT has_table_privilege('anon','market_price_observations_trusted','INSERT')")" = "t" ] \
+  && pass "the refused 062 mutated nothing" || fail "062 mutated before refusing"
+
 echo
 if [ "$FAILED" = "0" ]; then echo "ALL ISOLATED CHECKS PASSED"; else echo "SOME CHECKS FAILED"; exit 1; fi

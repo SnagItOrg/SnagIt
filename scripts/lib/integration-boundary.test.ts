@@ -237,6 +237,10 @@ test('integration: every package suite is registered exactly once', () => {
       // to revert all 23 corrected rows, and nothing about that failure is
       // loud — so the insert-only semantics carry their own suite.
       'scripts/lib/reverb-category-seed.test.ts',
+      // PAN-190: the two advisor-flagged views stay SECURITY INVOKER. Its own
+      // suite because CREATE OR REPLACE VIEW silently drops the option, and
+      // nothing else would notice until the advisor did.
+      'scripts/lib/security-invoker-views.test.ts',
       // The magic-link send on the public funnel. Its own suite because
       // signInWithOtp RETURNS its failures instead of throwing them, so a
       // success state set unconditionally is invisible to every other gate.
