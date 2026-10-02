@@ -225,3 +225,31 @@ test('rule 5: "Juno 60 clone" is a copy whichever way the model is written', () 
   assert.equal(matchedSlug('Roland Juno 60'), 'roland-juno-60')
   assert.equal(matchedSlug('Roland Juno-60'), 'roland-juno-60')
 })
+
+/**
+ * PAN-201: `chip(s)` deferred serviced instruments whose title mentions their
+ * chips. Every title below is a real production listing title.
+ */
+test('PAN-201: chips in a service note are not chips for sale', () => {
+  for (const title of [
+    'Roland Juno-106 Serviced, New Chips, Calibrated, Chorus Input Option',
+    'Roland Juno 106 Synthesizer - Serviced - New Voice Chips - Signed by Kip Winger',
+    '1984 Roland Juno-106 61-Key Programmable Polyphonic Synthesizer (all VCA/VCF chips replaced) with Hard Shell Case',
+    "Roland Juno-106 ALL NEW Double Heart Voice Chips - Tech'd! 1984",
+    'Roland Juno 106 - 6 New Voice Chips Included! + original case',
+    'Roland MKS-7 Super Quartet with new voice chips',
+  ]) {
+    assert.equal(detectNonProductIntent(title), null, title)
+  }
+  // Chips that are the thing for sale stay deferred, firmware chips sold as
+  // "Brand New" included: a bare `new` is not a service note.
+  for (const title of [
+    'Juno-106 voice chip 80017A',
+    'Juno 106 voice chips',
+    'Roland 80017A Voice Chips for Juno 106 106S HS-60 MKS Epoxy Stripped',
+    'Roland Juno 106 Chip - 80017A clone LanthanElectronics Chip - 80017A 2024',
+    'Akai S-900 OS v1.2c EPROM Firmware Upgrade SET / Brand New ROM Chips Final Update S900',
+  ]) {
+    assert.equal(detectNonProductIntent(title)?.intent, 'part_or_accessory', title)
+  }
+})
