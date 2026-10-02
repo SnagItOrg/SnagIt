@@ -300,6 +300,9 @@ export const translations = {
     dkMarketAskingNowNotePlural: 'De faktiske udbudspriser, ikke et prisniveau.',
     dkMarketTypical: 'Typisk dansk udbudspris',
     dkMarketThinNote: 'For få danske annoncer til et typisk spænd. Priserne herunder er de faktiske annoncer.',
+    /** PAN-109, owner decision 2026-10-02: show thin Danish data, and say it is thin. */
+    dkFewCaveat: 'Baseret på kun {n} danske annoncer — tag det med forbehold',
+    dkFewCaveatOne: 'Baseret på kun 1 dansk annonce — tag det med forbehold',
     reverbSoldHeading: 'Bekræftede internationale salg på Reverb',
     reverbAskingHeading: 'International udbudspris på Reverb',
     reverbAskingNote: 'Udbudspriser, ikke salg. Reverb er et internationalt marked og er ikke en dansk markedspris.',
@@ -974,6 +977,8 @@ export const translations = {
     dkMarketAskingNowNotePlural: 'The actual asking prices, not a price level.',
     dkMarketTypical: 'Typical Danish asking price',
     dkMarketThinNote: 'Too few Danish listings for a typical range. The prices below are the actual listings.',
+    dkFewCaveat: 'Based on only {n} Danish listings — treat with caution',
+    dkFewCaveatOne: 'Based on only 1 Danish listing — treat with caution',
     reverbSoldHeading: 'Confirmed international sales on Reverb',
     reverbAskingHeading: 'International asking price on Reverb',
     reverbAskingNote: 'Asking prices, not sales. Reverb is an international market and is not a Danish market price.',

@@ -100,6 +100,8 @@ export function DanishMarketBlock({
     stats.nFiltered === 1 ? t.dkMarketCount : t.dkMarketCountPlural,
     { count: stats.nFiltered },
   )
+  // PAN-109: wherever this block shows a thin Danish price, it says how thin.
+  const fewCaveat = (n: number) => (n === 1 ? t.dkFewCaveatOne : fill(t.dkFewCaveat, { n }))
 
   if (stats.tier === 'listings-only') {
     /**
@@ -131,7 +133,7 @@ export function DanishMarketBlock({
         <p className="type-meta">
           {observed.length === 1 ? t.dkMarketAskingNowNote : t.dkMarketAskingNowNotePlural}
         </p>
-        <p className="type-meta">{countLine}</p>
+        <p className="type-meta">{fewCaveat(observed.length)}</p>
       </div>
     )
   }
@@ -146,7 +148,7 @@ export function DanishMarketBlock({
         <p className="type-meta">
           {fill(t.dkMarketMedianDescriptive, { count: stats.nFiltered })}
         </p>
-        <p className="type-meta">{t.dkMarketThinNote}</p>
+        <p className="type-meta">{fewCaveat(stats.nFiltered)}</p>
       </div>
     )
   }

@@ -30,6 +30,11 @@ export interface PriceCheckResult {
   verdict: Verdict | null
   /** Each range belongs to one market and is labelled by it. Never blended. */
   ranges: Array<{ market: 'dk-asking' | 'reverb-sold'; low: number; high: number }>
+  /**
+   * 1–7 Danish asking prices: too few for a band, shown as they are with a
+   * small-sample caveat (PAN-109). Never a verdict.
+   */
+  dkFew: { n: number; low: number; high: number; median: number | null } | null
   guide: { href: string; label: string } | null
 }
 
@@ -70,9 +75,11 @@ export function classify(facts: {
   matched: boolean
   priceDkk: number | null
   populations: Populations | null
-}): Pick<PriceCheckResult, 'state' | 'verdict' | 'ranges'> {
-  if (facts.cause) return { state: 'cant_read', verdict: null, ranges: [] }
-  if (!facts.matched) return { state: 'not_recognised', verdict: null, ranges: [] }
+  /** The product's adjudicated Danish asking prices, as /api/product returns them. */
+  dkAskingPrices: readonly number[]
+}): Pick<PriceCheckResult, 'state' | 'verdict' | 'ranges' | 'dkFew'> {
+  if (facts.cause) return { state: 'cant_read', verdict: null, ranges: [], dkFew: null }
+  if (!facts.matched) return { state: 'not_recognised', verdict: null, ranges: [], dkFew: null }
 
   const band = (market: 'dk-asking' | 'reverb-sold') => {
     const p = facts.populations?.[market]
@@ -80,14 +87,20 @@ export function classify(facts: {
     return [{ market, low: p.q1 ?? p.median, high: p.q3 ?? p.median }]
   }
 
+  const dk = facts.populations?.['dk-asking']
+  const prices = facts.dkAskingPrices
+  // The median is the population's own, so it exists only from n >= 3.
+  const dkFew = dk && dk.tier !== 'band' && prices.length > 0
+    ? { n: prices.length, low: Math.min(...prices), high: Math.max(...prices), median: dk.median }
+    : null
+
   if (facts.source === 'dba') {
-    const dk = facts.populations?.['dk-asking']
     const verdict = dk ? verdictFor(facts.priceDkk, 'dk-asking', dk).verdict : null
-    return verdict
-      ? { state: 'verdict', verdict, ranges: band('dk-asking') }
-      : { state: 'not_enough_data', verdict: null, ranges: [] }
+    if (verdict) return { state: 'verdict', verdict, ranges: band('dk-asking'), dkFew: null }
+    // Reverb sold rides along as a labelled reference, never as a verdict.
+    return { state: 'not_enough_data', verdict: null, ranges: dkFew ? band('reverb-sold') : [], dkFew }
   }
 
   const ranges = [...band('dk-asking'), ...band('reverb-sold')]
-  return { state: ranges.length > 0 ? 'verdict' : 'not_enough_data', verdict: null, ranges }
+  return { state: ranges.length > 0 ? 'verdict' : 'not_enough_data', verdict: null, ranges, dkFew }
 }

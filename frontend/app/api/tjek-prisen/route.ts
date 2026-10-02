@@ -32,6 +32,7 @@ async function publicPage(req: NextRequest, slug: string) {
   const page = (await res.json()) as {
     product: { canonical_name: string }
     populations: Record<PopulationKey, PopulationStats>
+    dkAskingPrices: number[]
     adminPreview: boolean
   }
   return page.adminPreview ? null : page
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
   const link = readLink(typeof body?.url === 'string' ? body.url : '')
   const empty: PriceCheckResult = {
     state: 'cant_read', source: null, cause: null, title: null, priceDkk: null,
-    product: null, verdict: null, ranges: [], guide: null,
+    product: null, verdict: null, ranges: [], dkFew: null, guide: null,
   }
   if ('cause' in link) {
     return NextResponse.json({ ...empty, cause: link.cause, guide: await guideFor(req, link.query) })
@@ -105,7 +106,11 @@ export async function POST(req: NextRequest) {
   const page = product && !cause ? await publicPage(req, product.slug) : null
   const title = listing?.title ?? known?.canonical_name ?? (source === 'thomann' ? slugName : null)
   const priceDkk = listing?.price ?? known?.price_dkk ?? null
-  const outcome = classify({ source, cause, matched: !!product, priceDkk, populations: page?.populations ?? null })
+  const outcome = classify({
+    source, cause, matched: !!product, priceDkk,
+    populations: page?.populations ?? null,
+    dkAskingPrices: page?.dkAskingPrices ?? [],
+  })
 
   if (outcome.state === 'not_enough_data' && product) {
     // Watch it. A plain insert: the unique index on pending slugs makes a
