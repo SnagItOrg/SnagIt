@@ -15,6 +15,7 @@
 import * as path from 'path'
 import * as fs from 'fs'
 import { createClient } from '@supabase/supabase-js'
+import { partitionHeld } from './lib/price-queue-held'
 
 // ── Load env ─────────────────────────────────────────────────────────────────
 const envPaths = [
@@ -258,18 +259,43 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
   // cannot deduplicate: watchlist_id is NULL, and NULLs never conflict. So the
   // sales this product already holds are left out here, or each run would add
   // them again and weight the sold band by how often the product was checked.
-  const { data: held, error: heldError } = await supabase
+  const urls = rows.map(r => r.listing_url).filter(Boolean)
+  const { data: linked, error: heldError } = await supabase
     .from('reverb_price_history')
-    .select('listing_url')
+    .select('id, listing_url, kg_product_id')
     .eq('kg_product_id', product.id)
-    .in('listing_url', rows.map(r => r.listing_url).filter(Boolean))
+    .in('listing_url', urls)
 
-  if (heldError) {
+  // Rows written before PAN-210 carry the slug and no product id. They are the
+  // same sales, so they count as held too, and are linked below (PAN-231).
+  const { data: unlinked, error: unlinkedError } = await supabase
+    .from('reverb_price_history')
+    .select('id, listing_url, kg_product_id')
+    .is('kg_product_id', null)
+    .is('watchlist_id', null)
+    .eq('query', item.product_slug)
+    .in('listing_url', urls)
+
+  if (heldError || unlinkedError) {
     await finaliseQueueRow(item.id, 'failed', 'price_history_read_failed')
     return false
   }
-  const heldUrls = new Set((held ?? []).map(r => r.listing_url))
-  const fresh = rows.filter(r => !heldUrls.has(r.listing_url))
+  const { fresh, toLink } = partitionHeld(rows, [...(linked ?? []), ...(unlinked ?? [])])
+
+  for (const old of toLink) {
+    const categories = rows.find(r => r.listing_url === old.listing_url)?.reverb_categories
+    const { error } = await supabase
+      .from('reverb_price_history')
+      .update({ kg_product_id: product.id, ...(categories ? { reverb_categories: categories } : {}) })
+      .eq('id', old.id)
+      .is('kg_product_id', null)
+
+    if (error) {
+      await finaliseQueueRow(item.id, 'failed', 'price_history_link_failed')
+      return false
+    }
+  }
+  if (toLink.length > 0) console.log(`    Linked ${toLink.length} held price records`)
 
   if (fresh.length > 0) {
     const { error } = await supabase
