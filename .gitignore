@@ -20,3 +20,7 @@ data/*.bak
 data/thomann-sitemap.json
 scripts/*-log.json
 .vercel
+
+# Claude Code: machine-specific settings and agent worktrees
+.claude/settings.local.json
+.claude/worktrees/

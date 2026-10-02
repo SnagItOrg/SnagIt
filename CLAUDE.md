@@ -57,6 +57,11 @@ authorisation, each time.
   `npm run build-product-artefacts`;
 - re-apply a migration that is already applied.
 
+**A writer never overrides a verdict.** A re-match, cleanup or backfill skips
+any `listing_product_match` row that is `is_valid = true` or carries
+`explain.admin_decision`, and lists it for the owner instead
+([`scripts/lib/rematch-verdicts.ts`](scripts/lib/rematch-verdicts.ts), #153).
+
 **Vercel Cron Jobs are Disabled, deliberately.** `/api/cron/scrape` duplicates
 dba.dk ingestion and races the PM2 promotion path through a different
 `ON CONFLICT` target on a shared unique index. `frontend/vercel.json` still
@@ -71,8 +76,14 @@ an SSH hop and do not assume you are on the MacBook. Start a job with
 `pm2 start ecosystem.config.js --only <name>`. **Never `pm2 resurrect`** — the
 saved dump predates the retirement of `match-listings`.
 
+**Nightly matching runs inside `scrape-reverb`** (`matchScrapedBatch`), from
+panter's checkout `~/Workspace/SnagIt`, like every PM2 job. Pull panter before
+or with any matcher or KG promotion: on 2026-10-01 a stale checkout wrote 1,534
+old-code matches onto freshly promoted rows (PAN-198, the "pan206" release).
+
 **Deploy is `git push` to `main`**, through Vercel. **Never the Vercel CLI.**
-A docs-only push to `main` still deploys production.
+A docs-only push to `main` still deploys production. Friday deploys are fine
+(owner, 2026-10-02: low traffic, and the owner works weekends).
 
 ---
 
