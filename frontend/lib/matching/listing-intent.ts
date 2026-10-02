@@ -487,6 +487,22 @@ const HEAD_CAP_FINISH = /(?<![\w-])head\s+cap(?![\w-])/i
 const KEYBOARD_COUNT_MANUAL = /(?<![\w-])(?:dual|two)[\s-]+manual(?![\w-])/i
 
 /**
+ * Chips named in a service note are not chips for sale (PAN-201). "Roland
+ * Juno-106 Serviced, New Chips, Calibrated" is a complete, well-kept synth,
+ * deferred only because `chips` fired on the note. Eleven confirmed Juno-106
+ * matches in the recall set read this way.
+ *
+ * Two forms, both measured: the unit was `serviced` or something on it was
+ * `replaced`, or the chips are `new` and named as chips ("new chips", "new
+ * voice chips", "ALL NEW Double Heart Voice Chips"). A bare `new` is not
+ * taken: firmware chips are sold as "Brand New ROM Update Chip". Chips offered
+ * for sale carry neither form ("Juno 106 voice chips", "Juno-106 voice chip
+ * 80017A", "80017A Voice Chips for Juno 106") and stay deferred.
+ */
+const CHIPS_SERVICE_NOTE =
+  /(?<![\w-])(?:serviced|replaced)(?![\w-])|(?<![\w-])new\s+(?:(?:\S+\s+){0,2}voice\s+)?chips?(?![\w-])/i
+
+/**
  * Wanted / non-sale intent (da / de / en). The listing is a request TO BUY,
  * not an offer to sell, so it is not evidence of a price at all.
  *
@@ -583,6 +599,7 @@ export function detectNonProductIntent(title: string): IntentFinding | null {
   const partText = text.replace(ARTIST_NAMED_STRINGS, ' ')
   for (const token of PART_TOKENS) {
     if (shippingPickup && (token === 'pickup' || token === 'pickups')) continue
+    if ((token === 'chip' || token === 'chips') && CHIPS_SERVICE_NOTE.test(text)) continue
     if (containsWord(partText, token)) return { intent: 'part_or_accessory', token }
   }
 
