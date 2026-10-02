@@ -1,8 +1,8 @@
 /**
  * scripts/lib/rematch-verdicts.ts
  *
- * The standing rule for the brand re-match scripts (scripts/pan198-…-rematch.ts
- * through pan205-…): a live match row that carries a verdict is never
+ * The standing rule for the brand re-match runner (scripts/rematch-brand.ts):
+ * a live match row that carries a verdict is never
  * re-decided, released or rewritten, whatever the boundaries now say. The
  * scripts skip such a row, count it and list it for the owner instead.
  */

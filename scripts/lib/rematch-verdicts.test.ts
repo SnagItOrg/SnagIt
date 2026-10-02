@@ -16,11 +16,12 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { AI_TRUE, HUMAN_DECISION } from './rematch-verdicts'
-import * as gibson from '../pan198-gibson-rematch'
-import * as moog from '../pan199-moog-rematch'
-import * as roland from '../pan200-roland-rematch'
-import * as neumann from '../pan202-neumann-rematch'
-import * as warm from '../pan203-warm-audio-rematch'
+import { pool } from '../rematch-brand'
+import gibson from '../rematch-configs/gibson'
+import moog from '../rematch-configs/moog'
+import roland from '../rematch-configs/roland'
+import neumann from '../rematch-configs/neumann'
+import warm from '../rematch-configs/warm-audio'
 
 test('HUMAN_DECISION is explain.admin_decision, whatever is_valid says', () => {
   assert.equal(HUMAN_DECISION({ admin_decision: { verdict: 'approve' } }), true)
@@ -86,11 +87,11 @@ function fakeDb(tables: Record<string, Row[]>) {
   }
 }
 
-// A title every script's unmatched LINES selects, so a skipped listing would land in
+// A title every config's unmatched lines select, so a skipped listing would land in
 // the unmatched cohort (and so in `matchListings`) if the live-match check missed it.
 const TITLE = 'Gibson Les Paul Moog Roland Neumann Warm Audio'
 
-const SCRIPTS = [
+const CONFIGS = [
   ['pan198 Gibson', gibson],
   ['pan199 Moog', moog],
   ['pan200 Roland', roland],
@@ -98,13 +99,13 @@ const SCRIPTS = [
   ['pan203 Warm Audio', warm],
 ] as const
 
-for (const [name, mod] of SCRIPTS) {
+for (const [name, cfg] of CONFIGS) {
   test(`${name}: an is_valid=true or admin_decision row is never held, stale or unmatched`, async () => {
-    const slugs = [...mod.LABELS, ...mod.PROMOTED, ...('RE_DECIDED' in mod ? mod.RE_DECIDED : [])]
+    const slugs = [...cfg.labels, ...cfg.promoted, ...cfg.supportedToday]
     const ids = new Map(slugs.map((s) => [s, `p:${s}`]))
-    // The held cohort (a family LABEL row) where the script has one, and the stale cohort.
-    const targets = [...mod.LABELS.slice(0, 1), mod.PROMOTED[0]]
-    if ('SUPPORTED_TODAY' in mod && mod.SUPPORTED_TODAY.length) targets.push(mod.SUPPORTED_TODAY[0])
+    // The held cohort (a family LABEL row) where the config has one, and the stale cohort.
+    const targets = [...cfg.labels.slice(0, 1), cfg.promoted[0]]
+    if (cfg.supportedToday.length) targets.push(cfg.supportedToday[0])
 
     const matches: Row[] = []
     const listings: Row[] = [{ id: 'free', title: TITLE, is_active: true }]
@@ -124,13 +125,13 @@ for (const [name, mod] of SCRIPTS) {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const out = await mod.pool(fakeDb({ listing_product_match: matches, listings }) as any, ids)
+    const out = await pool(fakeDb({ listing_product_match: matches, listings }) as any, ids, cfg)
 
     const held = out.filter((l) => l.cohort !== 'unmatched')
     // Only the unreviewed rows are re-decided, each on its own row, with its prior state for rollback.
     assert.deepEqual(
       held.map((l) => [l.id, l.cohort, l.product_id, l.prior_is_valid]).sort(),
-      targets.map((s) => [`${s}/unreviewed`, mod.LABELS.includes(s) ? 'held' : 'stale', `p:${s}`, null]).sort(),
+      targets.map((s) => [`${s}/unreviewed`, cfg.labels.includes(s) ? 'held' : 'stale', `p:${s}`, null]).sort(),
     )
     // A verdict's listing holds a live match, so it is not handed on as unmatched either. The
     // rejected row is not live, so its listing is unmatched: that is unchanged.

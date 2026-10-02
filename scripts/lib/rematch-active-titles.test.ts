@@ -13,8 +13,8 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { filterByIlike, ilikeToRegExp, readActiveTitles, type ActiveTitle } from './rematch-active-titles'
-import { LINES as GIBSON } from '../pan198-gibson-rematch'
-import { LINES as WARM } from '../pan203-warm-audio-rematch'
+import gibson from '../rematch-configs/gibson'
+import warm from '../rematch-configs/warm-audio'
 
 const like = (title: string, pattern: string) => ilikeToRegExp(pattern).test(title)
 
@@ -94,12 +94,12 @@ test('the in-memory filter equals SQL ILIKE on the scripts\' real LINES', () => 
     { id: 'i', title: 'WARMAUDIO WA76' },
     { id: 'j', title: 'Audio Warm' },
   ]
-  const ids = (line: string) => filterByIlike(rows, GIBSON.find((l) => l.line === line)!.ilike).map((r) => r.id)
+  const ids = (line: string) => filterByIlike(rows, gibson.lines.find((l) => l.line === line)!.ilike).map((r) => r.id)
   // Postgres: title ILIKE ANY ('%es-3%','%es 3%','%es3%','%es-les%','%es les%')
   assert.deepEqual(ids('es'), ['a', 'b', 'c'])
   // Postgres: '%j-45%' / '%j45%' / '%hummingbird%' among the acoustic patterns
   assert.deepEqual(ids('acoustic'), ['d', 'e', 'f'])
-  assert.deepEqual(filterByIlike(rows, WARM[0].ilike).map((r) => r.id), ['h', 'i'])
+  assert.deepEqual(filterByIlike(rows, warm.lines[0].ilike).map((r) => r.id), ['h', 'i'])
 })
 
 test('readActiveTitles pages by keyset on id, never OFFSET, with no ILIKE in SQL', async () => {

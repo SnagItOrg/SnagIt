@@ -32,6 +32,14 @@ Commands below are written to run from the repository root.
   casually — that filter is the precondition for authorising historical
   population at all.
 
+## Brand re-matches
+
+One runner, `scripts/rematch-brand.ts`, and one config per brand in
+`scripts/rematch-configs/<name>.ts` (the ticket, the promoted and re-decided
+rows, the title lines). A new brand pass adds a config, never a script; a fix
+to the procedure lands in the runner once. Dry run by default:
+`npx tsx scripts/rematch-brand.ts --brand=<name>`; `--apply` runs on panter.
+
 ## PM2 jobs
 
 Defined in [`../ecosystem.config.js`](../ecosystem.config.js).
