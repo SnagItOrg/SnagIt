@@ -193,6 +193,7 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-205: SSL. Generations (2 / 2+ / MKII, VHD Pre / VHD+), short words, parts, SKU suffixes.
       'scripts/lib/pan205-line-boundaries.test.ts',
       'scripts/lib/pan207-price-check.test.ts',
+      'scripts/lib/pan218-line-boundaries.test.ts',
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',

@@ -712,6 +712,18 @@ const SSL_MULTI: readonly RegExp[] = [
   /(?<![\w-])[2-9]\s+(?:uf\s?-?[18]|uc\s?-?1|b-?dyn|vhd)/i,
 ]
 
+/** Gretsch named (PAN-218). A Greco or Epiphone title that only cites "(Gretsch 6120)" carries no Gretsch model code. */
+const GRETSCH_NAMED: readonly RegExp[] = [/(?<![a-z])gretsch/i]
+/**
+ * A Custom Shop build of a production model is another, far dearer guitar: "Gretsch Custom Shop
+ * G6128T-GH George Harrison Tribute Duo Jet" (its own Reverb CSP), "Stephen Stern Masterbuilt".
+ */
+const GRETSCH_CUSTOM: readonly RegExp[] = cues('custom shop', 'masterbuilt', 'masterbuild', 'tribute')
+/** A Gretsch member of `line`: Gretsch named, refuses `otherMembers` and the Custom Shop builds. */
+const gretsch = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...otherMembers, ...GRETSCH_CUSTOM], requires: GRETSCH_NAMED,
+})
+
 /** An SSL member of `line` (PAN-205): SSL named, refuses `otherMembers` and SSL_NEVER; parts unless after a marker. */
 const ssl = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
   line, otherMembers: [...otherMembers, ...SSL_NEVER], accessories: SSL_PARTS, requires: SSL_NAMED,
@@ -1215,6 +1227,27 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'ssl-vhd-pre': sslSingle('ssl-vhd', ...SSL_XLOGIC, /vhd\s?(?:\+|plus)/i, yearCue(2021, 2039),
     ...cues('611', '611eq', '611dyn', '4-channel', '4 channel', 'quad')),
   'ssl-xlogic-alpha-vhd-pre': sslSingle('ssl-vhd'),
+  // ── PAN-218: Gretsch ─────────────────────────────────────────────────────
+  // Every row the PAN-218 promote SQL makes a match target: the G5420T and the 14 models step 2
+  // created. Each is named by its model code ("G6128T-53"), so two members never share a title;
+  // the one shared name is the G5420T, whose 2021 "Electromatic Classic" generation is its own row
+  // and refuses on the earlier one (step 5b). The four generic rows (Country Gentleman, Duo Jet,
+  // G6120 Chet Atkins, G6136 White Falcon) are not promoted and have no entry.
+  'gretsch-g5420t-electromatic': gretsch('gretsch-g5420t', cue('classic')),
+  'gretsch-g5420t-electromatic-classic': gretsch('gretsch-g5420t'),
+  'gretsch-g6122t-62-vintage-select-country-gentleman': gretsch('gretsch-g6122'),
+  'gretsch-g6122t-59-vintage-select-country-gentleman': gretsch('gretsch-g6122'),
+  'gretsch-g6122t-players-edition-country-gentleman': gretsch('gretsch-g6122'),
+  'gretsch-g6120t-55-vintage-select-chet-atkins': gretsch('gretsch-g6120'),
+  'gretsch-g6120t-59-vintage-select-chet-atkins': gretsch('gretsch-g6120'),
+  'gretsch-g6128t-gh-george-harrison-duo-jet': gretsch('gretsch-g6128'),
+  'gretsch-g6128t-53-vintage-select-duo-jet': gretsch('gretsch-g6128'),
+  'gretsch-g6128t-57-vintage-select-duo-jet': gretsch('gretsch-g6128'),
+  'gretsch-g6128t-59-vintage-select-duo-jet': gretsch('gretsch-g6128'),
+  'gretsch-g6136-55-vintage-select-falcon': gretsch('gretsch-g6136'),
+  'gretsch-g6136t-59-vintage-select-falcon': gretsch('gretsch-g6136'),
+  'gretsch-g6136-1958-stephen-stills-white-falcon': gretsch('gretsch-g6136'),
+  'gretsch-g6136t-mgc-michael-guy-chislett-falcon': gretsch('gretsch-g6136'),
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed
