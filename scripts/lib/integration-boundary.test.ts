@@ -222,6 +222,7 @@ test('integration: every package suite is registered exactly once', () => {
       // accessory with more used listings than the base model is a silent
       // failure that only surfaces as a wrong photograph.
       'scripts/lib/pan99-csp-ranking.test.ts',
+      'scripts/lib/price-queue-held.test.ts',
       // PAN-133: the product-image precedence has one authority. Two columns
       // encode one concept — curated and ingested — and each surface deciding
       // its own precedence produced the same defect twice, in opposite
