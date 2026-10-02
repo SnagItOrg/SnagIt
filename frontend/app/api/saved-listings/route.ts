@@ -105,12 +105,16 @@ export async function POST(req: NextRequest) {
 
       if ((count ?? 0) >= 5) return
 
-      await admin
+      // A plain insert, as in /api/tjek-prisen (PAN-209). The table's only
+      // unique index is partial (one pending or processing row per slug), so
+      // an upsert has no constraint to target and failed on every call. A
+      // repeat is a unique violation, 23505, and that is the no-op wanted.
+      const { error: queueError } = await admin
         .from('price_fetch_queue')
-        .upsert(
-          { product_slug: slug, status: 'pending' },
-          { onConflict: 'product_slug,status' },
-        )
+        .insert({ product_slug: slug, status: 'pending' })
+      if (queueError && queueError.code !== '23505') {
+        console.error('[saved-listings] queue write failed', { code: queueError.code })
+      }
     } catch (err) {
       console.error('[saved-listings] queue insert failed', {
         error: err instanceof Error ? err.message : String(err)
