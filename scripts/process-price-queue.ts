@@ -203,7 +203,7 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
   // Look up product for search query
   const { data: product } = await supabase
     .from('kg_product')
-    .select('model_name, kg_brand!inner(name)')
+    .select('id, model_name, kg_brand!inner(name)')
     .eq('slug', item.product_slug)
     .limit(1)
     .single()
@@ -238,6 +238,9 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
     .filter(l => l.price && parseFloat(l.price.amount) > 0)
     .map(l => ({
       watchlist_id: null,
+      // The product page reads sold history by this id, never by `query`
+      // (PAN-210). Without it the row is fetched and then never shown.
+      kg_product_id: product.id,
       query: item.product_slug,
       source: 'reverb',
       price: convertToDKK(parseFloat(l.price!.amount), l.price!.currency),
@@ -251,16 +254,33 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
       sold_at: l.published_at ?? l.created_at ?? null,
     }))
 
-  if (rows.length > 0) {
+  // A product is re-queued every time it is checked, and the upsert below
+  // cannot deduplicate: watchlist_id is NULL, and NULLs never conflict. So the
+  // sales this product already holds are left out here, or each run would add
+  // them again and weight the sold band by how often the product was checked.
+  const { data: held, error: heldError } = await supabase
+    .from('reverb_price_history')
+    .select('listing_url')
+    .eq('kg_product_id', product.id)
+    .in('listing_url', rows.map(r => r.listing_url).filter(Boolean))
+
+  if (heldError) {
+    await finaliseQueueRow(item.id, 'failed', 'price_history_read_failed')
+    return false
+  }
+  const heldUrls = new Set((held ?? []).map(r => r.listing_url))
+  const fresh = rows.filter(r => !heldUrls.has(r.listing_url))
+
+  if (fresh.length > 0) {
     const { error } = await supabase
       .from('reverb_price_history')
-      .upsert(rows, { onConflict: 'listing_url,watchlist_id', ignoreDuplicates: true })
+      .upsert(fresh, { onConflict: 'listing_url,watchlist_id', ignoreDuplicates: true })
 
     if (error) {
       await finaliseQueueRow(item.id, 'failed', 'price_history_write_failed')
       return false
     }
-    console.log(`    Upserted ${rows.length} price records`)
+    console.log(`    Upserted ${fresh.length} price records (${rows.length - fresh.length} already held)`)
   }
 
   await finaliseQueueRow(item.id, 'done', 'complete')
