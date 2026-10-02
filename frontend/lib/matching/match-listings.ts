@@ -712,6 +712,85 @@ const SSL_MULTI: readonly RegExp[] = [
   /(?<![\w-])[2-9]\s+(?:uf\s?-?[18]|uc\s?-?1|b-?dyn|vhd)/i,
 ]
 
+/** Gretsch named (PAN-218). A Greco or Epiphone title that only cites "(Gretsch 6120)" carries no Gretsch model code. */
+const GRETSCH_NAMED: readonly RegExp[] = [/(?<![a-z])gretsch/i]
+/**
+ * A Custom Shop build of a production model is another, far dearer guitar: "Gretsch Custom Shop
+ * G6128T-GH George Harrison Tribute Duo Jet" (its own Reverb CSP), "Stephen Stern Masterbuilt".
+ */
+const GRETSCH_CUSTOM: readonly RegExp[] = cues('custom shop', 'masterbuilt', 'masterbuild', 'tribute')
+/** A Gretsch member of `line`: Gretsch named, refuses `otherMembers` and the Custom Shop builds. */
+const gretsch = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...otherMembers, ...GRETSCH_CUSTOM], requires: GRETSCH_NAMED,
+})
+
+/** PRS named (PAN-220): "Custom 22" and "Custom 24" are other makers' words too. */
+const PRS_NAMED: readonly RegExp[] = [/(?<![a-z])prs(?![a-z])/i, cue('paul reed smith')]
+/** The import (SE) and Stevensville (S2) series: other guitars at a fraction of the Core price. */
+const PRS_SERIES: readonly RegExp[] = cues('se', 's2')
+/** "Semi-Hollow", "Semi Hollow Body", "Hollowbody II": a chambered or hollow build is its own model. */
+const PRS_HOLLOW: readonly RegExp[] = [/(?<![\w-])semi[\s-]?hollow/i, /(?<![\w-])hollow\s?body/i]
+/** "Singlecut", "Single Cut", the measured typo "Singelcut", "594SC", "SC594". */
+const PRS_SINGLECUT: readonly RegExp[] = [/(?<![\w-])sing(?:le|el)\s?cut/i, /(?<![a-z])sc\s?594|594\s?sc(?![a-z])/i]
+/** The piezo models: "Custom 22 Piezo", "P22", "P24", "… 10-Top Piezo". */
+const PRS_PIEZO: readonly RegExp[] = [cue('piezo'), /(?<![\w-])p2[24](?![\w-])/i]
+/** "Custom 24-08", "Custom 24 08": the eight-way switching model, never a "Custom 24 2008". */
+const PRS_24_08 = /(?<![\w-])24[\s-]?08(?!\d)/
+/**
+ * Silver Sky parts, measured on the 52 active part titles that name it (2026-10-02). Saddles, tuner
+ * screws and the bridge arm are already deferred by PART_TOKENS. Marker-suppressible like every list.
+ */
+const PRS_SILVER_SKY_PARTS: readonly string[] = ['knob', 'knobs', 'pickguard', 'switch cap', 'nut', 'tremolo arm', 'kit']
+/** A PRS member of `line`: PRS named, refuses `otherMembers` and Private Stock (one-off custom builds). */
+const prs = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...otherMembers, cue('private stock')], requires: PRS_NAMED,
+})
+/** A Core (USA) member: also refuses the SE and S2 series. */
+const prsCore = (line: string, ...otherMembers: RegExp[]): LineBoundary => prs(line, ...otherMembers, ...PRS_SERIES)
+
+/** Rickenbacker named (PAN-222): its model names are bare numbers ("4001", "4003", "360/12"). */
+const RICKENBACKER_NAMED: readonly RegExp[] = [/(?<![a-z])rickenbacker/i]
+/** Measured on the bass titles: "Thumb Rest for Older 4001 Series", "4003 Scratchplate", "4001 Wiring". */
+const RICKENBACKER_PARTS: readonly string[] = ['thumb rest', 'scratchplate', 'wiring']
+/** A Rickenbacker member of `line`: Rickenbacker named, refuses `otherMembers`; parts unless after a marker. */
+const rickenbacker = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers, accessories: RICKENBACKER_PARTS, requires: RICKENBACKER_NAMED,
+})
+
+/** Suhr named (PAN-223): "Classic S" and "Classic T" are ordinary words. */
+const SUHR_NAMED: readonly RegExp[] = [/(?<![a-z])suhr(?![a-z])/i]
+/** A signature model is another guitar: Mateus Asato, Ian Thornley, Andre Nieri. */
+const SUHR_SIGNATURE: readonly RegExp[] = cues('signature', 'asato')
+/** "Custom Shop Classic S", "Classic S Custom", "Custom Order": a custom build, its own row and price. */
+const SUHR_CUSTOM = cue('custom')
+/** A Suhr member of `line`: Suhr named, refuses `otherMembers`. */
+const suhr = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ line, otherMembers, requires: SUHR_NAMED })
+
+/** Heritage named (PAN-224). A Gibson in "Heritage Cherry Sunburst" carries no Heritage model code. */
+const HERITAGE_NAMED: readonly RegExp[] = [/(?<![a-z])heritage(?![a-z])/i]
+/** "Standard II" or "Standard-II", the 2024 generation: its own model beside the Standard. */
+const HERITAGE_STANDARD_II = /(?<![\w-])standard[\s-]+ii(?![\w-])/i
+/** Custom Shop builds: "Custom Shop Core", "Custom Core", "Custom Shop Factory Special", "Custom Shop Relic". */
+const HERITAGE_CUSTOM: readonly RegExp[] = cues('custom', 'core', 'factory special')
+/** A Heritage member of `line`: Heritage named, refuses `otherMembers`. */
+const heritage = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ line, otherMembers, requires: HERITAGE_NAMED })
+
+/** Taylor named (PAN-225): "GS Mini" and the model numbers are short. */
+const TAYLOR_NAMED: readonly RegExp[] = [/(?<![a-z])taylor(?![a-z])/i]
+/** "Builder's Edition", "Builders Edition", "Builders Ed.": the bevelled-armrest build, its own model and price. */
+const TAYLOR_BUILDERS = /(?<![\w-])builder['’]?s?\s+ed(?:ition)?(?![a-z])/i
+/** "Next Generation", "Next-Gen": the 2025 generation, its own Reverb page. */
+const TAYLOR_NEXT_GEN = /(?<![\w-])next[\s-]?gen(?:eration)?(?![\w-])/i
+/** The GS Mini woods are different instruments; "GS Mini e Koa" is the electro model written with a space. */
+const TAYLOR_GS_MINI_OTHER: readonly RegExp[] = [...cues('mahogany', 'koa', 'rosewood', 'special edition', 'ltd', 'bass'), /mini\s+e(?![\w-])/i]
+/** A Taylor member of `line`: Taylor named, refuses `otherMembers`. */
+const taylor = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ line, otherMembers, requires: TAYLOR_NAMED })
+
+/** Guild named (PAN-226): "D-55" alone is a short code. */
+const GUILD_NAMED: readonly RegExp[] = [/(?<![a-z])guild(?![a-z])/i]
+/** A Guild member of `line`: Guild named, refuses `otherMembers`. */
+const guild = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ line, otherMembers, requires: GUILD_NAMED })
+
 /** An SSL member of `line` (PAN-205): SSL named, refuses `otherMembers` and SSL_NEVER; parts unless after a marker. */
 const ssl = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
   line, otherMembers: [...otherMembers, ...SSL_NEVER], accessories: SSL_PARTS, requires: SSL_NAMED,
@@ -1215,6 +1294,113 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'ssl-vhd-pre': sslSingle('ssl-vhd', ...SSL_XLOGIC, /vhd\s?(?:\+|plus)/i, yearCue(2021, 2039),
     ...cues('611', '611eq', '611dyn', '4-channel', '4 channel', 'quad')),
   'ssl-xlogic-alpha-vhd-pre': sslSingle('ssl-vhd'),
+  // ── PAN-218: Gretsch ─────────────────────────────────────────────────────
+  // Every row the PAN-218 promote SQL makes a match target: the G5420T and the 14 models step 2
+  // created. Each is named by its model code ("G6128T-53"), so two members never share a title;
+  // the one shared name is the G5420T, whose 2021 "Electromatic Classic" generation is its own row
+  // and refuses on the earlier one (step 5b). The four generic rows (Country Gentleman, Duo Jet,
+  // G6120 Chet Atkins, G6136 White Falcon) are not promoted and have no entry.
+  'gretsch-g5420t-electromatic': gretsch('gretsch-g5420t', cue('classic')),
+  'gretsch-g5420t-electromatic-classic': gretsch('gretsch-g5420t'),
+  'gretsch-g6122t-62-vintage-select-country-gentleman': gretsch('gretsch-g6122'),
+  'gretsch-g6122t-59-vintage-select-country-gentleman': gretsch('gretsch-g6122'),
+  'gretsch-g6122t-players-edition-country-gentleman': gretsch('gretsch-g6122'),
+  'gretsch-g6120t-55-vintage-select-chet-atkins': gretsch('gretsch-g6120'),
+  'gretsch-g6120t-59-vintage-select-chet-atkins': gretsch('gretsch-g6120'),
+  'gretsch-g6128t-gh-george-harrison-duo-jet': gretsch('gretsch-g6128'),
+  'gretsch-g6128t-53-vintage-select-duo-jet': gretsch('gretsch-g6128'),
+  'gretsch-g6128t-57-vintage-select-duo-jet': gretsch('gretsch-g6128'),
+  'gretsch-g6128t-59-vintage-select-duo-jet': gretsch('gretsch-g6128'),
+  'gretsch-g6136-55-vintage-select-falcon': gretsch('gretsch-g6136'),
+  'gretsch-g6136t-59-vintage-select-falcon': gretsch('gretsch-g6136'),
+  'gretsch-g6136-1958-stephen-stills-white-falcon': gretsch('gretsch-g6136'),
+  'gretsch-g6136t-mgc-michael-guy-chislett-falcon': gretsch('gretsch-g6136'),
+
+  // ── PAN-220: PRS ─────────────────────────────────────────────────────────
+  // Every row the PAN-220 promote SQL makes a match target. Each requires PRS's name and refuses
+  // Private Stock. Within a line the shorter name refuses the longer one's word (step 5b): a Core
+  // "Custom 22" is not the Piezo, the Soapbar, a semi-hollow, a Singlecut or the 12-string; a Core
+  // "McCarty 594" is not the Singlecut, the Hollowbody II or a Thinline; no Core row takes an SE or S2.
+  'prs-custom-22': prsCore('prs-custom-22', ...PRS_HOLLOW, ...PRS_PIEZO, ...PRS_SINGLECUT, cue('soapbar'), /(?<![\w-])12[\s-]?string/i),
+  'prs-custom-22-piezo': prsCore('prs-custom-22'),
+  'prs-custom-22-soapbar': prsCore('prs-custom-22'),
+  'prs-se-custom-22-semi-hollow': prs('prs-custom-22'),
+  'prs-custom-24': prsCore('prs-custom-24', PRS_24_08, ...PRS_HOLLOW, ...PRS_PIEZO),
+  'prs-custom-24-08': prsCore('prs-custom-24', ...PRS_HOLLOW, ...PRS_PIEZO),
+  'prs-custom-24-semi-hollow': prsCore('prs-custom-24'),
+  'prs-custom-24-piezo': prsCore('prs-custom-24'),
+  // "PRS McCarty 594 Drop In - 2 volume, 2 Push/Pull Tone" is a wiring harness.
+  'prs-mccarty-594': { ...prsCore('prs-mccarty-594', ...PRS_HOLLOW, ...PRS_SINGLECUT, cue('thinline')), accessories: ['drop in'] },
+  'prs-mccarty-594-hollowbody-ii': prsCore('prs-mccarty-594'),
+  'prs-mccarty-594-singlecut': prsCore('prs-mccarty-594'),
+  'prs-s2-mccarty-594': prs('prs-mccarty-594', ...PRS_SINGLECUT, cue('thinline')),
+  'prs-s2-mccarty-594-singlecut': prs('prs-mccarty-594'),
+  'prs-s2-mccarty-594-thinline': prs('prs-mccarty-594'),
+  'prs-silver-sky': { ...prsCore('prs-silver-sky'), accessories: PRS_SILVER_SKY_PARTS },
+
+  // ── PAN-222: Rickenbacker ────────────────────────────────────────────────
+  // Every row the PAN-222 promote SQL makes a match target. The token boundary already keeps the
+  // suffixed models apart ("4003S", "360/12C63", "360/12W" are not "4003" or "360/12").
+  // The 4001 V63 is the 1984-2000 vintage reissue, its own Reverb page; two titles, no row.
+  'rickenbacker-4001': rickenbacker('rickenbacker-4001', cue('v63')),
+  'rickenbacker-4003': rickenbacker('rickenbacker-4003'),
+  'rickenbacker-4003s': rickenbacker('rickenbacker-4003'),
+  'rickenbacker-360-12': rickenbacker('rickenbacker-360-12'),
+
+  // ── PAN-223: Suhr ────────────────────────────────────────────────────────
+  // Every row the PAN-223 promote SQL makes a match target. The production Classic S and Classic T
+  // refuse the longer names in their line (Antique, Paulownia, Studio), a custom build and a
+  // signature model. Vintage LE, Metallic and Roasted Pine editions stay on the production row.
+  'suhr-classic-s': suhr('suhr-classic-s', ...cues('antique', 'paulownia', 'studio'), SUHR_CUSTOM, ...SUHR_SIGNATURE),
+  'suhr-classic-s-antique': suhr('suhr-classic-s', SUHR_CUSTOM, ...SUHR_SIGNATURE),
+  'suhr-classic-s-paulownia': suhr('suhr-classic-s'),
+  'suhr-classic-s-studio': suhr('suhr-classic-s'),
+  'suhr-custom-shop-classic-s': suhr('suhr-classic-s', cue('antique'), ...SUHR_SIGNATURE),
+  'suhr-classic-t': suhr('suhr-classic-t', ...cues('antique', 'paulownia'), SUHR_CUSTOM, ...SUHR_SIGNATURE),
+  'suhr-classic-t-antique': suhr('suhr-classic-t', SUHR_CUSTOM, ...SUHR_SIGNATURE),
+  'suhr-custom-shop-classic-t': suhr('suhr-classic-t', cue('antique'), ...SUHR_SIGNATURE),
+  'suhr-mateus-asato-signature-classic-t': suhr('suhr-classic-t'),
+
+  // ── PAN-224: Heritage ────────────────────────────────────────────────────
+  // Every row the PAN-224 promote SQL makes a match target. "H-150" and "H-535" alone are the
+  // Standard Collection; a title that names Standard II, a Custom Shop build or (on the H-535)
+  // Artisan Aged is that model, or nothing where it has no row (Standard II H-535, Factory Special).
+  'heritage-h-150': heritage('heritage-h-150', HERITAGE_STANDARD_II, ...HERITAGE_CUSTOM),
+  'heritage-standard-ii-h-150': heritage('heritage-h-150', ...HERITAGE_CUSTOM),
+  'heritage-custom-shop-core-h-150': heritage('heritage-h-150', HERITAGE_STANDARD_II, cue('factory special')),
+  'heritage-h-535': heritage('heritage-h-535', HERITAGE_STANDARD_II, ...HERITAGE_CUSTOM, cue('artisan aged')),
+  'heritage-custom-shop-core-h-535': heritage('heritage-h-535', HERITAGE_STANDARD_II),
+  'heritage-h-535-artisan-aged': heritage('heritage-h-535', HERITAGE_STANDARD_II, ...HERITAGE_CUSTOM),
+
+  // ── PAN-225: Taylor ──────────────────────────────────────────────────────
+  // Every row the PAN-225 promote SQL makes a match target. The plain 314ce and 814ce refuse the
+  // Studio, DLX, Builder's Edition, Next Generation and nylon models; V-Class, LTD and Special
+  // Edition finishes stay on them. The plain GS Mini is the spruce-and-sapele original.
+  'taylor-314ce': taylor('taylor-314ce', cue('studio'), TAYLOR_BUILDERS, TAYLOR_NEXT_GEN, cue('nylon')),
+  'taylor-314ce-studio': taylor('taylor-314ce'),
+  'taylor-next-generation-314ce': taylor('taylor-314ce', TAYLOR_BUILDERS),
+  'taylor-builders-edition-314ce': taylor('taylor-314ce', TAYLOR_NEXT_GEN),
+  // "814ce Gold Label" is the 2025 Gold Label collection, another guitar.
+  'taylor-814ce': taylor('taylor-814ce', ...cues('dlx', 'deluxe', 'gold label'), TAYLOR_BUILDERS, TAYLOR_NEXT_GEN, cue('nylon')),
+  'taylor-814ce-dlx': taylor('taylor-814ce', TAYLOR_BUILDERS, TAYLOR_NEXT_GEN),
+  'taylor-next-generation-814ce': taylor('taylor-814ce', TAYLOR_BUILDERS),
+  'taylor-builders-edition-814ce': taylor('taylor-814ce', TAYLOR_NEXT_GEN),
+  'taylor-next-generation-builders-edition-814ce': taylor('taylor-814ce'),
+  'taylor-gs-mini': taylor('taylor-gs-mini', ...TAYLOR_GS_MINI_OTHER),
+  'taylor-gs-mini-mahogany': taylor('taylor-gs-mini'),
+  'taylor-gs-mini-e-mahogany': taylor('taylor-gs-mini'),
+  'taylor-gs-mini-e-koa': taylor('taylor-gs-mini', ...cues('plus', 'bass', 'ltd', 'deluxe')),
+  'taylor-gs-mini-e-koa-plus': taylor('taylor-gs-mini'),
+  'taylor-gs-mini-e-rosewood': taylor('taylor-gs-mini', ...cues('plus', 'ltd')),
+  'taylor-gs-mini-e-rosewood-plus': taylor('taylor-gs-mini'),
+  'taylor-gs-mini-e-special-edition': taylor('taylor-gs-mini'),
+
+  // ── PAN-226: Guild ───────────────────────────────────────────────────────
+  // The two rows the PAN-226 promote SQL makes match targets. The token boundary keeps the electro
+  // "D-55E" off the D-55.
+  // "1979 Guild Guitars Color promotional Ad Framed Guild D-55" is a framed advertisement.
+  'guild-d-55': { ...guild('guild-d-55'), accessories: ['promotional'] },
+  'guild-d-55e': guild('guild-d-55'),
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed

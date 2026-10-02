@@ -193,9 +193,16 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-205: SSL. Generations (2 / 2+ / MKII, VHD Pre / VHD+), short words, parts, SKU suffixes.
       'scripts/lib/pan205-line-boundaries.test.ts',
       'scripts/lib/pan207-price-check.test.ts',
+      'scripts/lib/pan218-line-boundaries.test.ts',
       // PAN-22: the publication contract is pure and import-free precisely so
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',
+      'scripts/lib/pan220-line-boundaries.test.ts',
+      'scripts/lib/pan222-line-boundaries.test.ts',
+      'scripts/lib/pan223-line-boundaries.test.ts',
+      'scripts/lib/pan224-line-boundaries.test.ts',
+      'scripts/lib/pan225-line-boundaries.test.ts',
+      'scripts/lib/pan226-line-boundaries.test.ts',
       // PAN-86: the homepage category shelf is the first surface to render the
       // taxonomy itself rather than products, so domain scope and the "never
       // print a count the destination cannot honour" rule are both exercised
