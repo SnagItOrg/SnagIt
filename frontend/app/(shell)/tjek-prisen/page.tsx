@@ -63,7 +63,7 @@ export default function TjekPrisenPage() {
     : result.state === 'cant_read'
       ? t[CAUSE_KEY[result.cause ?? 'unreachable']]
       : result.state === 'not_enough_data'
-        ? t.priceCheckWatching
+        ? result.dkFew ? null : t.priceCheckWatching
         : result.state === 'not_recognised'
           ? result.guide
             ? t.priceCheckUnknownModel
@@ -121,6 +121,20 @@ export default function TjekPrisenPage() {
                 basisLabelKey="verdictBasisDk"
                 t={t as unknown as Record<string, string>}
               />
+              {result.dkFew && (
+                <p className="type-body">
+                  <span className="type-meta block">{t.dkMarketAskingNow}</span>
+                  {result.dkFew.low === result.dkFew.high
+                    ? kr(result.dkFew.low)
+                    : `${kr(result.dkFew.low)}–${kr(result.dkFew.high)}`} kr
+                  {result.dkFew.median != null && (
+                    <span className="type-meta block">{kr(result.dkFew.median)} kr {t.priceBandMedian}</span>
+                  )}
+                  <span className="type-meta block">
+                    {result.dkFew.n === 1 ? t.dkFewCaveatOne : fill(t.dkFewCaveat, { n: result.dkFew.n })}
+                  </span>
+                </p>
+              )}
               {result.ranges.map((r) => (
                 <p key={r.market} className="type-body">
                   <span className="type-meta block">{t[MARKET_KEY[r.market]]}</span>
