@@ -24,6 +24,26 @@ import { GET as resolveSearch } from '@/app/api/search/resolve/route'
  */
 export const dynamic = 'force-dynamic'
 
+/**
+ * The match index is four paginated catalogue reads, and it only changes when
+ * a product is promoted. One build serves every check on this instance for ten
+ * minutes (PAN-212). The promise is what is cached, so concurrent checks share
+ * one load; a failed load is dropped, so the next check tries again.
+ */
+const MATCH_INDEX_TTL_MS = 10 * 60_000
+let matchIndex: { at: number; index: ReturnType<typeof loadMatchIndex> } | null = null
+
+function cachedMatchIndex(admin: Parameters<typeof loadMatchIndex>[0]) {
+  if (!matchIndex || Date.now() - matchIndex.at > MATCH_INDEX_TTL_MS) {
+    const index = loadMatchIndex(admin)
+    index.catch(() => {
+      if (matchIndex?.index === index) matchIndex = null
+    })
+    matchIndex = { at: Date.now(), index }
+  }
+  return matchIndex.index
+}
+
 async function publicPage(req: NextRequest, slug: string) {
   const res = await getProduct(new NextRequest(new URL(`/api/product/${slug}`, req.url)), {
     params: Promise.resolve({ slug }),
@@ -63,7 +83,7 @@ export async function POST(req: NextRequest) {
   const admin = getSupabaseAdmin()
   const [fetched, index, known] = await Promise.all([
     fetchListingFromUrl(url).then((r) => r?.listing ?? null, (e: unknown) => String(e)),
-    loadMatchIndex(admin),
+    cachedMatchIndex(admin),
     source === 'thomann'
       ? admin.from('thomann_product').select('canonical_name, price_dkk, kg_product_id')
           .eq('thomann_url', url).maybeSingle().then((r) => r.data)
