@@ -724,6 +724,30 @@ const gretsch = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
   line, otherMembers: [...otherMembers, ...GRETSCH_CUSTOM], requires: GRETSCH_NAMED,
 })
 
+/** PRS named (PAN-220): "Custom 22" and "Custom 24" are other makers' words too. */
+const PRS_NAMED: readonly RegExp[] = [/(?<![a-z])prs(?![a-z])/i, cue('paul reed smith')]
+/** The import (SE) and Stevensville (S2) series: other guitars at a fraction of the Core price. */
+const PRS_SERIES: readonly RegExp[] = cues('se', 's2')
+/** "Semi-Hollow", "Semi Hollow Body", "Hollowbody II": a chambered or hollow build is its own model. */
+const PRS_HOLLOW: readonly RegExp[] = [/(?<![\w-])semi[\s-]?hollow/i, /(?<![\w-])hollow\s?body/i]
+/** "Singlecut", "Single Cut", the measured typo "Singelcut", "594SC", "SC594". */
+const PRS_SINGLECUT: readonly RegExp[] = [/(?<![\w-])sing(?:le|el)\s?cut/i, /(?<![a-z])sc\s?594|594\s?sc(?![a-z])/i]
+/** The piezo models: "Custom 22 Piezo", "P22", "P24", "… 10-Top Piezo". */
+const PRS_PIEZO: readonly RegExp[] = [cue('piezo'), /(?<![\w-])p2[24](?![\w-])/i]
+/** "Custom 24-08", "Custom 24 08": the eight-way switching model, never a "Custom 24 2008". */
+const PRS_24_08 = /(?<![\w-])24[\s-]?08(?!\d)/
+/**
+ * Silver Sky parts, measured on the 52 active part titles that name it (2026-10-02). Saddles, tuner
+ * screws and the bridge arm are already deferred by PART_TOKENS. Marker-suppressible like every list.
+ */
+const PRS_SILVER_SKY_PARTS: readonly string[] = ['knob', 'knobs', 'pickguard', 'switch cap', 'nut', 'tremolo arm', 'kit']
+/** A PRS member of `line`: PRS named, refuses `otherMembers` and Private Stock (one-off custom builds). */
+const prs = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...otherMembers, cue('private stock')], requires: PRS_NAMED,
+})
+/** A Core (USA) member: also refuses the SE and S2 series. */
+const prsCore = (line: string, ...otherMembers: RegExp[]): LineBoundary => prs(line, ...otherMembers, ...PRS_SERIES)
+
 /** An SSL member of `line` (PAN-205): SSL named, refuses `otherMembers` and SSL_NEVER; parts unless after a marker. */
 const ssl = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
   line, otherMembers: [...otherMembers, ...SSL_NEVER], accessories: SSL_PARTS, requires: SSL_NAMED,
@@ -1248,6 +1272,28 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'gretsch-g6136t-59-vintage-select-falcon': gretsch('gretsch-g6136'),
   'gretsch-g6136-1958-stephen-stills-white-falcon': gretsch('gretsch-g6136'),
   'gretsch-g6136t-mgc-michael-guy-chislett-falcon': gretsch('gretsch-g6136'),
+
+  // ── PAN-220: PRS ─────────────────────────────────────────────────────────
+  // Every row the PAN-220 promote SQL makes a match target. Each requires PRS's name and refuses
+  // Private Stock. Within a line the shorter name refuses the longer one's word (step 5b): a Core
+  // "Custom 22" is not the Piezo, the Soapbar, a semi-hollow, a Singlecut or the 12-string; a Core
+  // "McCarty 594" is not the Singlecut, the Hollowbody II or a Thinline; no Core row takes an SE or S2.
+  'prs-custom-22': prsCore('prs-custom-22', ...PRS_HOLLOW, ...PRS_PIEZO, ...PRS_SINGLECUT, cue('soapbar'), /(?<![\w-])12[\s-]?string/i),
+  'prs-custom-22-piezo': prsCore('prs-custom-22'),
+  'prs-custom-22-soapbar': prsCore('prs-custom-22'),
+  'prs-se-custom-22-semi-hollow': prs('prs-custom-22'),
+  'prs-custom-24': prsCore('prs-custom-24', PRS_24_08, ...PRS_HOLLOW, ...PRS_PIEZO),
+  'prs-custom-24-08': prsCore('prs-custom-24', ...PRS_HOLLOW, ...PRS_PIEZO),
+  'prs-custom-24-semi-hollow': prsCore('prs-custom-24'),
+  'prs-custom-24-piezo': prsCore('prs-custom-24'),
+  // "PRS McCarty 594 Drop In - 2 volume, 2 Push/Pull Tone" is a wiring harness.
+  'prs-mccarty-594': { ...prsCore('prs-mccarty-594', ...PRS_HOLLOW, ...PRS_SINGLECUT, cue('thinline')), accessories: ['drop in'] },
+  'prs-mccarty-594-hollowbody-ii': prsCore('prs-mccarty-594'),
+  'prs-mccarty-594-singlecut': prsCore('prs-mccarty-594'),
+  'prs-s2-mccarty-594': prs('prs-mccarty-594', ...PRS_SINGLECUT, cue('thinline')),
+  'prs-s2-mccarty-594-singlecut': prs('prs-mccarty-594'),
+  'prs-s2-mccarty-594-thinline': prs('prs-mccarty-594'),
+  'prs-silver-sky': { ...prsCore('prs-silver-sky'), accessories: PRS_SILVER_SKY_PARTS },
   // Prophet-10 is split BY NAME (owner decision 2026-09-28): `sequential-prophet-10`
   // is the 2020 model, `sequential-circuits-prophet-10` the 1980–84 original.
   // The 2020 model is also sold as "Sequential" (Dave Smith Instruments renamed
