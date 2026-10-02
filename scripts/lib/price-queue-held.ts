@@ -6,6 +6,8 @@
  * to it, or unlinked under the product's slug (written before PAN-210). An
  * unlinked row is linked in place instead of getting a linked row beside it —
  * unless the sale already has a linked row, which would then count it twice.
+ * Only one unlinked row per sale is linked: old duplicates stay unlinked for
+ * the PAN-213 archive pass, so a sale is never counted twice.
  */
 export interface HeldRow {
   id: string
@@ -18,9 +20,11 @@ export function partitionHeld<T extends { listing_url: string | null }>(
   held: HeldRow[],
 ): { fresh: T[]; toLink: HeldRow[] } {
   const heldUrls = new Set(held.map(h => h.listing_url))
-  const linkedUrls = new Set(held.filter(h => h.kg_product_id !== null).map(h => h.listing_url))
-  return {
-    fresh: rows.filter(r => !heldUrls.has(r.listing_url)),
-    toLink: held.filter(h => h.kg_product_id === null && !linkedUrls.has(h.listing_url)),
-  }
+  const claimed = new Set(held.filter(h => h.kg_product_id !== null).map(h => h.listing_url))
+  const toLink = held.filter(h => {
+    if (h.kg_product_id !== null || claimed.has(h.listing_url)) return false
+    claimed.add(h.listing_url)
+    return true
+  })
+  return { fresh: rows.filter(r => !heldUrls.has(r.listing_url)), toLink }
 }

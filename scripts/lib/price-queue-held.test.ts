@@ -25,6 +25,18 @@ test('PAN-231: a sale that already has a linked row is left alone — its unlink
   assert.deepEqual(toLink, [])
 })
 
+test('PAN-231: two unlinked copies of one sale — only one is linked', () => {
+  const { fresh, toLink } = partitionHeld(
+    [sale('u/1')],
+    [
+      { id: 'a', listing_url: 'u/1', kg_product_id: null },
+      { id: 'b', listing_url: 'u/1', kg_product_id: null },
+    ],
+  )
+  assert.deepEqual(fresh, [])
+  assert.deepEqual(toLink.map(h => h.id), ['a'])
+})
+
 test('PAN-231: a sale without a URL is never held', () => {
   const { fresh, toLink } = partitionHeld([sale(null)], [])
   assert.deepEqual(fresh, [sale(null)])
