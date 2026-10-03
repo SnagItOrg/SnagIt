@@ -968,6 +968,66 @@ test('the ambiguous reason is a static code carrying no listing content', () => 
 })
 
 /* ------------------------------------------------------------------ *
+ * PAN-185 — equal halves are a placeholder, not a discount
+ *
+ * `999.999 €` is a valid grouped German number, 999999, and its halves passed
+ * every structural check with `previous >= current`. It was split into a made-up
+ * 999 EUR ask that entered the evidence. A struck-through price equal to the
+ * current one reduces nothing, so the shape is refused, not split.
+ * ------------------------------------------------------------------ */
+
+test('the 999.999 € placeholder is absent at source, not a 999 EUR ask', () => {
+  const outcome = parseGermanPriceOutcome('999.999 €')
+  assert.equal(outcome.value, null, 'must not become 999')
+  assert.equal(outcome.reason, 'ambiguous_pair')
+  // The card's own answer, so the run gate does not count it as a read failure,
+  // and not an observation, so it cannot overwrite a stored price either.
+  assert.equal(priceAbsentAtSource(outcome.reason), true)
+  assert.equal(mayReplaceStoredPrice(outcome.value, outcome.reason), false)
+})
+
+test('equal halves fail closed at every length, and never pass as one big price', () => {
+  // `99.999.999 €` used to become 9999. `450450` sits under the impossible
+  // bound, so reporting it as "no pair here" would have stored 450,450 EUR.
+  for (const [text, raw] of [
+    ['999.999 €', 999999], ['99.999.999 €', 99999999], ['450.450 €', 450450], ['100.100 €', 100100],
+  ] as const) {
+    assert.equal(parseGermanPriceOutcome(text).value, null, text)
+    assert.equal(looksLikeConcatenatedPair(raw).ambiguous, true, `${raw}`)
+    assert.equal(classifyKleinanzeigenPrice(raw).reason, 'ambiguous_pair', `${raw}`)
+    assert.equal(recoverKleinanzeigenPrice(raw).recovered, false, `${raw}`)
+    // A legacy row stored unsplit is blanked at the read boundary, in both currencies.
+    assert.deepEqual(
+      sanitizeListingPrice({ source: 'kleinanzeigen', price: raw, price_dkk: raw * 7 }),
+      { price: null, price_dkk: null },
+      `${raw}`,
+    )
+  }
+  // An odd-length placeholder was never pair-shaped; the impossible bound refuses it.
+  assert.equal(parseGermanPriceOutcome('9.999.999 €').reason, 'above_impossible_bound')
+})
+
+test('one euro of discount is still a discount: the boundary next to equal halves', () => {
+  assert.equal(parseGermanPriceOutcome('998.999 €').value, 998, '999 -> 998 is a real reduction')
+  assert.equal(recoverKleinanzeigenPrice(220221).value, 220)
+  assert.equal(recoverKleinanzeigenPrice(220221).previous, 221)
+  assert.equal(recoverKleinanzeigenPrice(220220).recovered, false)
+  // The observed production pairs are untouched, through the parser's own entry point too.
+  assert.equal(parseGermanPriceOutcome('220.250 €').value, 220)
+  assert.equal(parseGermanPriceOutcome('235.240 €').value, 235)
+  assert.equal(parseGermanPriceOutcome('150.290 €').value, 150)
+  assert.equal(parseGermanPriceOutcome('100.200 €').value, 100)
+})
+
+test('a real repeated-digit price is not a placeholder', () => {
+  // No rule on how a number looks: 999 and 9.999 are ordinary asks, and one
+  // active 9.999 € Les Paul is a plausible price. Only the pair shape is refused.
+  assert.equal(parseGermanPriceOutcome('999 €').value, 999)
+  assert.equal(parseGermanPriceOutcome('9.999 €').value, 9999)
+  assert.equal(parseGermanPriceOutcome('999 € VB').value, 999)
+})
+
+/* ------------------------------------------------------------------ *
  * PAN-19 — the two behaviours PAN-24 proved were unprotected
  * ------------------------------------------------------------------ */
 

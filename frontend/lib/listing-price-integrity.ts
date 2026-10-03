@@ -33,9 +33,9 @@
  * SCOPE — deliberately NOT a global price ceiling, and deliberately narrow
  * about what it will split. High-end gear is legitimately expensive: a Roland
  * Jupiter-8 has an observed active median of ~162,000 DKK. Recovery requires an
- * even digit count of six or more, equal halves, no leading zero, both halves
- * plausible asking prices, and the second larger than the first — an ordered
- * discount. An ordinary four- or five-figure price can never satisfy that.
+ * even digit count of six or more, halves of equal length, no leading zero,
+ * both halves plausible asking prices, and the second strictly larger than the
+ * first — an ordered discount. An ordinary four- or five-figure price can never satisfy that.
  */
 
 /**
@@ -93,7 +93,8 @@ export const MAX_DISCOUNT_RATIO = 2.0
 export type PriceRejectionReason =
   | 'above_impossible_bound'
   /**
-   * Pair-shaped, but the two halves are too far apart to be a discount.
+   * Pair-shaped, but the two halves are too far apart to be a discount, or
+   * equal, which is no discount at all (`999999`, PAN-185).
    *
    * Not a confirmed pair and not a believable single price — the value is left
    * unsplit and refused, because inventing either reading would be a claim the
@@ -161,6 +162,18 @@ export function looksLikeConcatenatedPair(
   if (previous > KLEINANZEIGEN_UNCONDITIONAL_MAX_EUR) return { suspect: false }
   // A discount: the struck-through price is the higher one.
   if (previous < current) return { suspect: false }
+
+  /**
+   * Equal halves are not a discount (PAN-185).
+   *
+   * A struck-through price equal to the current one reduces nothing, so this
+   * is not the welded pair the shape describes. It is the placeholder shape:
+   * `999.999 €` parses to 999999, and splitting it produced a made-up 999 EUR
+   * ask. Pair-shaped, so it is reported as ambiguous and fails closed, exactly
+   * like `123456` below. It is not "no pair here": that would let 450450
+   * through as a 450,450 EUR price, because it is under the impossible bound.
+   */
+  if (previous === current) return { suspect: false, ambiguous: true }
 
   /**
    * Too far apart to be a discount.
