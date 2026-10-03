@@ -505,3 +505,30 @@ under batch `pan213-dedup-2026-10-02`, and removed them, leaving 2,530 rows.
 A linked row (`kg_product_id` set) is never removed. To undo: run the rollback
 (it re-inserts the rows byte for byte and empties the archive), then
 `063_rollback.sql`.
+
+## 064 — the co-creation foundation (claims, votes, flags, history). **NOT APPLIED.**
+
+`064_cocreation_claims.sql` (PAN-239) creates five tables and four functions:
+`product_claim` (a fact about a product: `type` ∈ played_by · iconic_use ·
+spec, plus the phase-2 values fair_price · thomann_link · similar; `value`
+jsonb; `source_url`; `author_id`, NULL for a Klup-seeded fact; `status` ∈
+pending · accepted · hidden · rejected; `score`; `flag_count`), `claim_vote`
+(one row per user and claim, ±1), `claim_flag` (spam · wrong · offensive),
+`claim_event` (append-only history; `claim_id` is not a foreign key so the
+record outlives the claim) and `cocreation_user` (`role`, `shadow_banned`,
+`reputation`). `cocreation_recount()` derives `score` and `flag_count` from
+the votes and flags of users who are not shadow-banned and applies the two
+automatic transitions — pending → accepted at score ≥ 3, accepted → hidden at
+score ≤ −3 or 3 flags — and the triggers log every change and enforce the
+rate limits (10 claims and 60 votes per user per 24 h). It moves no row.
+
+The owner decides when it is applied. Until then no code reads these tables.
+
+| Property | |
+|---|---|
+| Why | "Played by" (PAN-237), "Known from" (PAN-238) and specs (PAN-236) are one shape — a sourced fact with a status — and the owner's vision (PAN-239) is a wiki for gear: votes, moderation and a history. One model, new `type` values for new features. |
+| P0 | All five tables are born in `public`: every `anon` / `authenticated` privilege is revoked in the same transaction, RLS is enabled on each, and the grants are then the narrowest: anyone reads accepted claims; a signed-in user reads their own pending claims, votes and flags and writes only their own; `claim_event` and `cocreation_user` moderation are service-role only. |
+| PRE / POST / DRIFT | PRE creates when none of the five tables exists; POST is an explicit no-op when all five exist in this shape with RLS on and nothing readable by `anon` beyond `product_claim`; some-but-not-all tables, another column set, or an open table raise before any change. |
+| Rollback | `064_rollback.sql`. Drops the tables and functions only while every table is empty; absent is a no-op. A claim, vote, flag or history row is user data and is never destroyed by it. |
+| Rehearsal | PGlite, 23 checks (`rehearse064.mjs`, attached to PAN-239 and kept in `~/klup-rollbacks/fable-2026-10-03/pan239/`): apply, POST no-op, DRIFT, RLS as `anon` and as a signed-in user, score thresholds, flags, a shadow-banned vote, the rate limit, the history order, rollback refusal with rows, rollback when empty, re-apply. `verify-migrations-isolated.sh` has no section for it: no local PostgreSQL on the authoring machine. |
+| Readers | None until the UI ships behind its flag (PAN-239). |
