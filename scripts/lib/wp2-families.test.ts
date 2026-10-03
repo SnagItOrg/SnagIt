@@ -73,8 +73,11 @@ const PAN198_FAMILIES = ['gibson-sg']
 /** PAN-199. The `rhodes` case: no row. */
 const PAN199_FAMILIES = ['moogerfooger']
 
+/** PAN-230. The `rhodes` case: no row. Not `neumann-u87`, which is the vintage U 87's own priced page. */
+const PAN230_FAMILIES = ['neumann-u87-condenser']
+
 /** The six, plus `rhodes` (PAN-85) — the first family with canonical children — the Boss lines and `minimoog` (PAN-154). */
-const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES]
+const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES, ...PAN230_FAMILIES]
 
 /**
  * Production state of every configured child, SELECT-verified 2026-08-28:
@@ -425,6 +428,8 @@ test('families: children match the reviewed §6.3 map', () => {
       'moog-mf-105m-midi-murf',
       'moog-cp-251',
     ],
+    // PAN-230. The vintage U 87 and the U 87 Ai: two priced models, one navigation concept.
+    'neumann-u87-condenser': ['neumann-u87', 'neumann-u87ai'],
   }
   for (const family of NAVIGATION_FAMILIES) {
     assert.deepEqual([...family.children].sort(), [...expected[family.slug]].sort(), family.slug)
@@ -471,8 +476,9 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   // so their /product URLs 404ed before and 308 now: no priced page moves.
   assert.equal(GUITAR_FAMILIES.length, 6)
   // `gibson-sg` (PAN-198) is the Jazzmaster case: a `known` + `qa_only` row.
-  // `moogerfooger` (PAN-199) is the `rhodes` case: no row.
-  assert.equal(EXPECTED_FAMILIES.length, 20)
+  // `moogerfooger` (PAN-199) and `neumann-u87-condenser` (PAN-230) are the
+  // `rhodes` case: no row.
+  assert.equal(EXPECTED_FAMILIES.length, 21)
 })
 
 test('redirects: nothing else is redirected', () => {
