@@ -530,6 +530,9 @@ export const translations = {
        call site so a new key never renders blank. */
     relatedGear: 'Relateret udstyr',
     similarGear: 'Lignende udstyr',
+    playedBy: 'Spillet af',
+    knownFrom: 'Kendt fra',
+    factSource: 'Kilde',
     similarReasonClone: 'Klon',
     similarReasonOriginal: 'Original',
     similarReasonSuccessor: 'Efterfølger',
@@ -1171,6 +1174,9 @@ export const translations = {
     /* ── Product page ─────────────────────────────────────────── */
     relatedGear: 'Related gear',
     similarGear: 'Similar gear',
+    playedBy: 'Played by',
+    knownFrom: 'Known from',
+    factSource: 'Source',
     similarReasonClone: 'Clone',
     similarReasonOriginal: 'Original',
     similarReasonSuccessor: 'Successor',

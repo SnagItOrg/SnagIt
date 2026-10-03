@@ -33,6 +33,9 @@ export const PUBLIC_ATTRIBUTE_KEYS = [
   'history',
   'external_links',
   'related_products',
+  // PAN-237 / PAN-238: sourced facts, each item a fact plus the page it came from.
+  'played_by',
+  'iconic_uses',
 ] as const
 
 /**
@@ -92,6 +95,8 @@ export type PublicAttributes = {
   history?: Array<{ year: number; title: string; body: string }>
   external_links?: Array<{ label: string; url: string }>
   related_products?: Array<{ slug: string; reason: string }>
+  played_by?: Array<{ artist: string; source_url: string }>
+  iconic_uses?: Array<{ song: string; artist: string; year: number | null; source_url: string }>
 }
 
 export type PublicBrand = { name: string; slug: string }
@@ -219,6 +224,22 @@ export function toPublicAttributes(raw: unknown): PublicAttributes | null {
       .map((r) => ({ slug: asString(r.slug) ?? '', reason: asString(r.reason) ?? '' }))
       .filter((r) => r.slug !== '')
     if (related.length > 0) out.related_products = related
+  }
+
+  if (Array.isArray(src.played_by)) {
+    const played = src.played_by
+      .filter((f): f is Record<string, unknown> => !!f && typeof f === 'object')
+      .map((f) => ({ artist: asString(f.artist) ?? '', source_url: asString(f.source_url) ?? '' }))
+      .filter((f) => f.artist !== '' && f.source_url !== '')
+    if (played.length > 0) out.played_by = played
+  }
+
+  if (Array.isArray(src.iconic_uses)) {
+    const uses = src.iconic_uses
+      .filter((f): f is Record<string, unknown> => !!f && typeof f === 'object')
+      .map((f) => ({ song: asString(f.song) ?? '', artist: asString(f.artist) ?? '', year: asNumber(f.year), source_url: asString(f.source_url) ?? '' }))
+      .filter((f) => f.song !== '' && f.artist !== '' && f.source_url !== '')
+    if (uses.length > 0) out.iconic_uses = uses
   }
 
   return Object.keys(out).length > 0 ? out : null
