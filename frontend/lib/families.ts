@@ -710,6 +710,22 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     ],
     aliases: [],
   },
+  /*
+   * PAN-230, owner decision 2026-10-03. The U 87 is two priced models, not one:
+   * the vintage U 87 (1967–1986) and the U 87 Ai (1986–) sell in different
+   * price universes and each keeps its own Reverb CSP. "Neumann U 87" is the
+   * navigation concept over both, like `arp-2600-semi-modular` over the ARP
+   * 2600 pages: never a `kg_product` row, never a price. The slug is not
+   * `neumann-u87` because that is the vintage page's own slug. No aliases:
+   * the slug gives the key.
+   */
+  'neumann-u87-condenser': {
+    label: 'Neumann U 87',
+    brand: 'Neumann',
+    categoryRoot: 'pro-audio',
+    children: ['neumann-u87', 'neumann-u87ai'],
+    aliases: [],
+  },
 }
 
 /** Every family, in `FAMILY_SLUGS` order. */

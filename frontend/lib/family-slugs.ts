@@ -59,6 +59,9 @@ export const FAMILY_SLUGS = [
   'gibson-sg',
   // PAN-199. The `rhodes` case: no row today.
   'moogerfooger',
+  // PAN-230 (owner, 2026-10-03). Not `neumann-u87`: that slug is the vintage
+  // U 87's own priced page, so the family takes a slug no product holds.
+  'neumann-u87-condenser',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]
