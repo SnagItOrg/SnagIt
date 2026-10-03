@@ -861,6 +861,33 @@ const GIBSON_CUSTOM: readonly RegExp[] = cues(
   'm2m', 'made to measure', 'made 2 measure',
 )
 
+/**
+ * PAN-230 step 5 (measured on the unmatched titles of the legendary rows, 2026-10-03). A pair, a
+ * trio or a lot of one unit: the Neumann pair cues plus what Shure and Sony sellers write ("Sony
+ * C-37A … Pair w PSU's", "Matched Trio Neumann Km84", "LOT OF 7 ORIGINAL CABLES Sony C37A").
+ */
+const PAIR_OR_LOT: readonly RegExp[] = [...NEUMANN_PAIR, ...cues('trio', 'matched trio', 'lot', 'lot of', 'set of', 'qty', 'quantity')]
+/** A UAD or other plug-in listing that names the hardware it models: software is never the unit (PAN-214). */
+const UAD_SOFTWARE: readonly RegExp[] = cues('plug-in', 'plugin', 'plug in', 'uad', 'download', 'activation card', 'activation', 'native', 'vst', 'aax')
+/** A vacuum tube sold for the unit ("1 x NOS 6AU6A … ~ Sony C800g", "NOS KEN-RAD 6K6GT … Fender 6G15"). */
+const TUBE_LISTING: readonly RegExp[] = cues(
+  'nos', 'new old stock', '6au6', '6au6a', '12at7', '12at7wa', '12at7wc', '12ax7', 'ecc81', 'ecc83', 'ef94',
+  '6k6', '6k6gt', '6v6', '7025', 'tubes', 'valves', 'tube only', 'tube set',
+)
+/** Mic parts sold alone (a windscreen "for SM7, SM7A, and SM7B", a capsule, connectors) unless after a marker. */
+const MIC_PARTS: readonly string[] = [
+  'grille', 'grill', 'screen', 'windscreen', 'windscreens', 'cable set', 'cable', 'cables', 'clip', 'mic clip', 'pouch',
+  'case', 'bag', 'stand', 'mount', 'shock mount', 'shockmount', 'adapter', 'cartridge', 'capsule', 'transformer',
+  'connector', 'connectors', 'psu', 'power supply', 'foam', 'pop filter',
+]
+/** Amp parts: the retube kits and covers that dominate the 5150 and 2555 titles. */
+const AMP_PARTS: readonly string[] = [
+  'retube', 'tube kit', 'kit', 'tubes', 'valves', 'cover', 'footswitch', 'handle', 'handles', 'grill', 'grille',
+  'logo', 'badge', 'knob', 'knobs', 'faceplate', 'chassis', 'transformer', 'transformers', 'trannies', 'panel',
+]
+/** Pedal parts. */
+const PEDAL_PARTS: readonly string[] = ['cover', 'knob', 'knobs', 'footswitch', 'pcb', 'adapter', 'power supply', 'box only', 'manual']
+
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
   'moog-minimoog': {
@@ -1001,6 +1028,8 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'roland-re-201': roland('space-echo', RE_2, /(?<![\w-])sre[-\s]?555(?![\w-])/i),
   // Frozen: "RE-501 Chorus Echo. SRE-555 is the rack sibling in the same gross-list family."
   'roland-re-501': roland('space-echo', /(?<![\w-])sre[-\s]?555(?![\w-])/i, RE_2),
+  // PAN-230. The SDD-320 Dimension D rack (1979–87): never Boss's DC-2 / DC-2W Dimension C pedals.
+  'roland-sdd-320-dimension-d': roland('sdd-320', /(?<![\w-])dc[\s-]?2w?(?![\w-])/i, ...cues('dimension c', 'rack ears')),
   // Frozen: "SPLIT from System-100M. The 100 is semi-modular; the 100M is a modular rack system."
   // The row is the Model 101 synthesizer (its CSP); the 102 expander, 103 mixer, 104 sequencer and
   // 109 speakers are the system's other pieces, priced apart.
@@ -1180,6 +1209,9 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'neumann-kms-104-plus': neumannSingle('kms104'),
   // The single KM 184; the SKM 184 stereo set is its own row.
   'neumann-km-184': neumannSingle('km-184', /(?<![\w-])skm[\s-]?184/i),
+  // PAN-230. The vintage KM 84 (1966–92, incl. the KM 84 i): never the KM 184 that replaced it,
+  // the KM 83/85/86/88 siblings or the KM 284; trios are refused like pairs.
+  'neumann-km-84': neumannSingle('km-84', /(?<![\w-])km[\s-]?(?:183|184|185|284|83|85|86|88|64)(?![\w-])/i, ...cues('trio', 'matched trio')),
   // The digital TLM 103 D (Solution-D) is not the TLM 103, nor are its anniversary editions
   // (Reverb lists the 25th and 75th apart: 169359, 13790, 146979).
   'neumann-tlm-103': neumannSingle('tlm-103', /(?<![\w-])tlm[\s-]?103[\s-]?d(?![\w-])/i, ...cues('anniversary', 'limited edition')),
@@ -1228,7 +1260,12 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The clone guard on the originals Warm Audio copies (direction 1; the Neumann rows refuse
   // it through NEUMANN_NEVER). Each line is the row's own slug, so step 5b reads exactly as before.
   'universal-audio-urei-1176ln': member('universal-audio-urei-1176ln', ...WARM_AUDIO_COPY),
-  'ua-la-2a': member('ua-la-2a', ...WARM_AUDIO_COPY),
+  // PAN-230. The hardware reissue (2000–, "Teletronix LA-2A Classic Leveling Amplifier"): never
+  // the 2023 UAFX "Studio Compressor" pedal that carries the same name, a UAD plug-in, the LA-610
+  // channel strip, a 1960s original (no row today, so it fails closed), a pair or a bundle.
+  'ua-la-2a': member('ua-la-2a', ...WARM_AUDIO_COPY, ...UAD_SOFTWARE, ...PAIR_OR_LOT,
+    ...cues('pedal', 'uafx', 'studio compressor', 'guitar', 'compact', 'bundle', 'overlay', 'dust cover', 'la-610', 'la 610', 'la610', '6176', '2-la-2', 'leveler collection'),
+    yearCue(1960, 1999)),
   'universal-audio-teletronix-la-2a': member('universal-audio-teletronix-la-2a', ...WARM_AUDIO_COPY),
   'neve-1073': member('neve-1073', ...WARM_AUDIO_COPY),
   'tube-tech-cl1b': member('tube-tech-cl1b', ...WARM_AUDIO_COPY),
@@ -1360,6 +1397,8 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'suhr-classic-t-antique': suhr('suhr-classic-t', SUHR_CUSTOM, ...SUHR_SIGNATURE),
   'suhr-custom-shop-classic-t': suhr('suhr-classic-t', cue('antique'), ...SUHR_SIGNATURE),
   'suhr-mateus-asato-signature-classic-t': suhr('suhr-classic-t'),
+  // PAN-230. The PT100 head: its 2x12 and 4x12 cabinets are their own products, the PT15 IR another.
+  'suhr-pt100': suhr('suhr-pt100', ...cues('cabinet', 'cab', '2x12', '212', '4x12', '412', 'speaker', 'pt15', 'pt-15', 'pt 15')),
 
   // ── PAN-224: Heritage ────────────────────────────────────────────────────
   // Every row the PAN-224 promote SQL makes a match target. "H-150" and "H-535" alone are the
@@ -2034,6 +2073,66 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'gibson-g-45': member('g-45', ...cues('studio', 'standard'), ...GIBSON_CUSTOM),
   'gibson-g-45-studio': member('g-45'),
   'gibson-southern-jumbo-original': member('southern-jumbo', ...cues('dealer select', 'sinker', 'custom')),
+
+  // ── PAN-230: legendary gear, step 5 ──────────────────────────────────────
+  // The known legendary rows with live demand (3+ unmatched active titles naming them, measured
+  // 2026-10-03), each in its own line; every cue below is one those titles carried.
+  // The SM57 and SM7B: one mic; screens, clips and cables sold alone are not it.
+  'shure-sm57': { line: 'sm57', otherMembers: [...PAIR_OR_LOT, ...cues('bundle', 'beta 57', 'beta 57a')], accessories: MIC_PARTS },
+  'shure-sm7b': { line: 'sm7b', otherMembers: [...PAIR_OR_LOT, ...cues('bundle', 'headphones'), /(?<![\w-])sm7a?(?![\w-])/i], accessories: MIC_PARTS },
+  // The 1992–2004 "Block Letter" 5150 head: never the 5150 II / III, the 6505 line or EVH's own, nor
+  // the 2x12 combo or a cabinet; the retube kits and covers are not the amp.
+  'peavey-5150': {
+    line: '5150',
+    otherMembers: cues('combo', '2x12', '212', '4x12', '412', 'cabinet', 'cab', 'slant', 'straight', 'ii', 'iii', '6505', '6534', 'evh', 'signature', 'stealth', 'lbx'),
+    accessories: AMP_PARTS,
+  },
+  // The 1987–88 JCM 25/50 model 2555 head: never the 2015– 2555X reissue, the 2556/2558 combos, the
+  // 2553/2554 and 2525 Mini, nor the 2551 cabinets or a stack built with them.
+  'marshall-2555-silver-jubilee': {
+    line: '2555',
+    otherMembers: [
+      ...cues('2555x', '2555x-u', 'reissue', 're-issue', '2556', '2558', '2553', '2554', '2525', '2525h', '2525c', '2536', '2551',
+        'cabinet', 'cabinets', 'cab', 'stack', 'full stack', 'half stack', 'combo', '1x12', '2x12', '4x12', 'mini'),
+      /(?<![\w-])2551\s?[ab]v?(?![\w-])/i,
+      yearCue(2015, 2039),
+    ],
+    accessories: AMP_PARTS,
+  },
+  // The 2004– M117R reissue: a bare "M-117" / "M117" is the 1976 original, its own price.
+  'mxr-m117r-flanger': { line: 'm117r', otherMembers: [/(?<![\w-])m[\s-]?117(?![\w-]|\s?r)/i], accessories: PEDAL_PARTS },
+  // The C800G and the 1950s C-37A: one mic each; the tubes sold for them, clones and parts are not.
+  'sony-c800g': {
+    line: 'c800g',
+    otherMembers: [...PAIR_OR_LOT, ...TUBE_LISTING, ...cues('clone', 'wa-8000', 'wa8000', 'sa-800g', 'ga-8000', 'akita')],
+    accessories: MIC_PARTS,
+  },
+  'sony-c-37a': {
+    line: 'c-37a',
+    otherMembers: [...PAIR_OR_LOT, ...TUBE_LISTING, ...cues('c-37p', 'c37p', 'c-17', 'c-17b', 'c17', 'c17b')],
+    accessories: MIC_PARTS,
+  },
+  // The 1961–66 6G15 Reverb Unit, a vintage identity: a year, "vintage" or a period finish is
+  // required, and the '63 reissue (1990s–), a tank or transformer sold alone are not it.
+  'fender-6g15-reverb-unit': {
+    line: '6g15',
+    otherMembers: [
+      ...cues('reissue', 're-issue', "'63", '’63', 'pacific transformer', 'vibroverb', 'twin', 'deluxe reverb', 'stand alone', 'tank only'),
+      ...TUBE_LISTING,
+      yearCue(1990, 2039),
+    ],
+    accessories: ['transformer', 'transformers', 'tank', 'pan', 'footswitch', 'cover', 'knob', 'knobs', 'chassis', 'faceplate', 'logo', 'badge', 'handle', 'grille', 'grill', 'cabinet'],
+    requires: [yearCue(1961, 1979), ...cues('vintage', 'brownface', 'blackface', 'blonde', 'brown', 'pre-cbs', 'pre cbs', 'tolex')],
+  },
+  // The ATR-102: never the ATR-100/104 or the MM series, a UAD plug-in or "parts"; the cards,
+  // remote, heads and stand sold alone are not the machine.
+  'ampex-atr-102': {
+    line: 'atr-102',
+    otherMembers: [...UAD_SOFTWARE, ...cues('atr-100', 'atr 100', 'atr100', 'atr-104', 'atr 104', 'atr104', 'mm1100', 'mm1200', 'mm-1100', 'mm-1200', 'parts', 'parts and accessories', 'stand only')],
+    accessories: ['card', 'cards', 'remote', 'remote control', 'heads', 'head', 'extender', 'servo', 'feet', 'feets', 'sticker', 'scale', 'meter', 'board', 'kit', 'panel', 'control panel', 'padnet', 'cable', 'stand', 'cue amplifier'],
+  },
+  // The LA-3A (the Urei original and UA's reissue share the row): never a UAD plug-in, a pair or a bundle.
+  'ua-la-3a': member('ua-la-3a', ...WARM_AUDIO_COPY, ...UAD_SOFTWARE, ...PAIR_OR_LOT, ...cues('bundle', 'pedal')),
 }
 
 /**
