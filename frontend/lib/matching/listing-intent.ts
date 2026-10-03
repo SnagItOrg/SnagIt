@@ -84,7 +84,7 @@ const PART_TOKENS: readonly string[] = [
   // neck
   'neck', 'hals',
   // body
-  'body', 'krop', 'korpus',
+  'body', 'krop', 'kropp', 'korpus',
   // bridge / saddle
   'bridge', 'brücke', 'bruecke', 'bro', 'sadel', 'saddle', 'saddles',
   // strings
@@ -503,6 +503,54 @@ const CHIPS_SERVICE_NOTE =
   /(?<![\w-])(?:serviced|replaced)(?![\w-])|(?<![\w-])new\s+(?:(?:\S+\s+){0,2}voice\s+)?chips?(?![\w-])/i
 
 /**
+ * A body TYPE is not a body for sale (PAN-219). "Gretsch G5420T Electromatic
+ * Classic Hollow Body Single-Cut with Bigsby" and "Epiphone ES-335 Semi-Hollow
+ * Body Electric Guitar" are complete guitars, deferred only because `body`
+ * fired on the body type; 88 of the 436 unlisted Gretsch titles read this way.
+ *
+ * Measured 2026-10-03 on every active or confirmed-match title that `body`
+ * defers (388): 193 carry hollow / semi-hollow / solid / chambered / thinline /
+ * archtop / full directly before the word, every one a complete instrument
+ * (15 of them confirmed matches); the other 195 are bodies for sale and stay
+ * deferred. A body sold WITH its type word carries a sale word — "Telecaster
+ * Thinline Body Fully Loaded", "Replacement Solid Walnut Chassis / Body / Case",
+ * "BODY & HARDWARE" — and those keep the deferral. A material alone ("Ash
+ * Body", "Alder Body") is not taken: it is written on bodies for sale as often
+ * as on guitars.
+ */
+const BODY_TYPE = /(?<![\w-])(?:semi[\s-]?hollow|hollow|solid|chambered|thinline|archtop|full)[\s-]*body(?![\w-])/i
+const BODY_FOR_SALE =
+  /(?<![\w-])(?:loaded|unloaded|replacement|unfinished|husk|only|bare|routed|unrouted|stripped|project|parts?|blank)(?![\w-])|(?<![\w-])body\s*(?:&|and|\+|\/)\s*(?:neck|hardware|pickguard|case)(?![\w-])/i
+function bodyIsType(text: string): boolean {
+  return BODY_TYPE.test(text) && !BODY_FOR_SALE.test(text)
+}
+
+/**
+ * Pickups named AFTER an inclusion marker are the instrument's spec, not pickups
+ * for sale (PAN-219): "Gretsch G6128T-53 Vintage Select '53 Duo Jet … with TV
+ * Jones Pickups", "Fender MIM Jazz Bass w/ Custom Shop pickups", "Martin D-18 …
+ * with Fishman Pickup". Measured 2026-10-03 on every active or confirmed-match
+ * title that `pickup(s)` defers (619): 130 carry such a marker before the word,
+ * every one a complete instrument (14 of them confirmed matches). The loaded
+ * bodies and pickguards among them ("Loaded Body with Original Pickups",
+ * "Pickguard … with "ledge" pickups") are still deferred by `body` and the
+ * accessory rule. `plus` and `+` are NOT markers here: "Player Plus" is a series
+ * name, and "+ Seymour Duncan Pickups" is a set for sale as often as an upgrade.
+ */
+const PICKUP_SPEC_MARKERS: readonly string[] = [
+  'inkl', 'inkl.', 'incl', 'incl.', 'including', 'included', 'includes', 'inklusive', 'with', 'w/', 'med', 'mit', 'con',
+]
+function pickupsAreSpec(text: string): boolean {
+  const at = Math.min(...['pickup', 'pickups'].map((t) => wordIndex(text, t)).filter((i) => i !== -1))
+  if (!Number.isFinite(at)) return false
+  for (const marker of PICKUP_SPEC_MARKERS) {
+    const idx = marker === 'w/' ? text.indexOf(marker) : wordIndex(text, marker)
+    if (idx !== -1 && idx < at) return true
+  }
+  return false
+}
+
+/**
  * Wanted / non-sale intent (da / de / en). The listing is a request TO BUY,
  * not an offer to sell, so it is not evidence of a price at all.
  *
@@ -599,7 +647,9 @@ export function detectNonProductIntent(title: string): IntentFinding | null {
   const partText = text.replace(ARTIST_NAMED_STRINGS, ' ')
   for (const token of PART_TOKENS) {
     if (shippingPickup && (token === 'pickup' || token === 'pickups')) continue
+    if ((token === 'pickup' || token === 'pickups') && pickupsAreSpec(text)) continue
     if ((token === 'chip' || token === 'chips') && CHIPS_SERVICE_NOTE.test(text)) continue
+    if (token === 'body' && bodyIsType(text)) continue
     if (containsWord(partText, token)) return { intent: 'part_or_accessory', token }
   }
 
