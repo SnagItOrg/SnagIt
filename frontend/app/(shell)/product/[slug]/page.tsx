@@ -96,6 +96,8 @@ type ProductAttributes = {
   history?:         Array<{ year: number; title: string; body: string }>
   external_links?:  Array<{ label: string; url: string }>
   related_products?: Array<{ slug: string; reason: string }>
+  played_by?: Array<{ artist: string; source_url: string }>
+  iconic_uses?: Array<{ song: string; artist: string; year: number | null; source_url: string }>
 }
 
 type Product = {
@@ -801,6 +803,42 @@ export default function ProductPage() {
                     </div>
                   )
                 })()}
+
+                {/*
+                  ── Played by / Known from (PAN-237, PAN-238) ───
+                  Sourced facts from `attributes`, each linked to the page it
+                  was read from. Render only when data exists.
+                */}
+                {product.attributes?.played_by && product.attributes.played_by.length > 0 && (
+                  <div className="flex flex-col gap-2 mb-10">
+                    <p className="text-sm font-medium text-foreground">{t.playedBy}</p>
+                    <p className="type-meta text-foreground max-w-[38rem]">
+                      {product.attributes.played_by.map((f, i) => (
+                        <span key={`${f.artist}-${i}`}>
+                          {i > 0 && ' · '}
+                          <a href={f.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline" title={t.factSource}>
+                            {f.artist}
+                          </a>
+                        </span>
+                      ))}
+                    </p>
+                  </div>
+                )}
+
+                {product.attributes?.iconic_uses && product.attributes.iconic_uses.length > 0 && (
+                  <div className="flex flex-col gap-2 mb-10">
+                    <p className="text-sm font-medium text-foreground">{t.knownFrom}</p>
+                    <ul className="type-meta text-foreground flex flex-col gap-1">
+                      {product.attributes.iconic_uses.map((f, i) => (
+                        <li key={`${f.song}-${i}`}>
+                          <a href={f.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline" title={t.factSource}>
+                            “{f.song}” — {f.artist}{f.year ? ` (${f.year})` : ''}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* ── External links ────────────────────────────── */}
                 {product.attributes?.external_links && product.attributes.external_links.length > 0 && (
