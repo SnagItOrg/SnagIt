@@ -44,7 +44,19 @@ import type { Listing } from '@/lib/supabase'
 // which wp4a-boundary.test.ts forbids any client component to pull in by
 // value. A `type` edge is erased at compile time, so the family CONFIGURATION
 // never enters this bundle — only the canonical siblings the server filtered.
-import type { FamilyContext, PricePoint, RelatedProduct } from '@/app/api/product/[slug]/route'
+import type { FamilyContext, PricePoint } from '@/app/api/product/[slug]/route'
+import type { SimilarProduct } from '@/app/api/product/[slug]/similar/route'
+
+/** Reason chip copy per `lib/similar-gear.ts` reason (PAN-235). */
+const SIMILAR_REASON_KEY = {
+  clone: 'similarReasonClone',
+  original: 'similarReasonOriginal',
+  successor: 'similarReasonSuccessor',
+  predecessor: 'similarReasonPredecessor',
+  alternative: 'similarReasonAlternative',
+  same_family: 'similarReasonSameFamily',
+  same_type: 'similarReasonSameType',
+} as const
 import type { ProductPlacement } from '@/lib/catalogue-tree'
 import { Icon } from '@/components/Icon'
 import { Button } from '@/components/Button'
@@ -142,7 +154,8 @@ export default function ProductPage() {
    *  platform row from flashing an all-inactive state while loading. */
   const [monitoredSources, setMonitoredSources] = useState<string[]>([])
 
-  const [relatedProducts, setRelatedProducts] = useState<RelatedProduct[]>([])
+  /** "Lignende udstyr" (PAN-235), fetched on its own so it never holds the page back. */
+  const [similar, setSimilar] = useState<SimilarProduct[]>([])
 
   /** Null for a product with no family — six of the seven families, and every
    *  product outside one. The breadcrumb then has no family crumb. */
@@ -225,7 +238,6 @@ export default function ProductPage() {
       setAwaitingReview(data.awaitingReview ?? 0)
       setDkAskingPrices(data.dkAskingPrices ?? [])
       setSoldCounts(data.soldCounts ?? null)
-      setRelatedProducts(data.relatedProducts ?? [])
       setMonitoredSources(data.monitoredSources ?? [])
       setFamilyContext(data.familyContext ?? null)
       setCatalogueContext(data.catalogueContext ?? null)
@@ -237,6 +249,13 @@ export default function ProductPage() {
   }, [slug])
 
   useEffect(() => { void loadProduct() }, [loadProduct])
+
+  useEffect(() => {
+    fetch(`/api/product/${slug}/similar`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setSimilar(data?.similar ?? []))
+      .catch(() => setSimilar([]))
+  }, [slug])
 
   useEffect(() => {
     fetch('/api/saved-listings')
@@ -832,34 +851,25 @@ export default function ProductPage() {
                 )}
 
                 {/*
-                  ── Related products ────────────────────────────
+                  ── Similar gear (PAN-235) ──────────────────────
+
+                  Explicit kg_relation rows, family siblings and same-type
+                  rows, ranked in lib/similar-gear.ts and read from
+                  /api/product/[slug]/similar, which gates every card with
+                  isCanonical(): never a private product, never a family
+                  label. It absorbs the authored `related_products` shelf
+                  that stood here (as "alternative").
 
                   TWO IS THE SMALLEST NUMBER THAT IS A SHELF. `grid-fluid-sm`
-                  lays out auto-fill columns of min 9.5rem, so at 1440px a
-                  single survivor sits in the first of eight columns with the
-                  rest of the row empty — a heading promising related gear
-                  above what reads as a grid that failed to load.
-
-                  This is the normal case, not an edge case, because related
-                  links are resolved through isCanonical() and most authored
-                  targets are qa_only. Measured on production 2026-09-23 over
-                  the seven products that author related_products at all:
-                  four resolve to 0 canonical targets (fender-stratocaster,
-                  fender-telecaster, gibson-es-335, gibson-les-paul) and
-                  already render nothing; roland-juno-106 and roland-juno-60
-                  resolve to exactly 1; only roland-jupiter-8 resolves to 2.
-
-                  So the shelf is suppressed below two rather than restyled:
-                  the single-item layout would be a new visual case built for
-                  two pages, and the threshold is self-healing — when a target
-                  becomes canonical the shelf returns on its own, with no data
-                  change and no flag. The cost is two links on two pages.
+                  lays out auto-fill columns of min 9.5rem, so a single card
+                  sits in the first of eight columns above an empty row — a
+                  heading promising gear above a grid that looks broken.
                 */}
-                {relatedProducts.length > 1 && (
+                {similar.length > 1 && (
                   <div className="flex flex-col gap-3 mb-10">
-                    <p className="text-sm font-medium text-foreground">{t.relatedGear}</p>
+                    <p className="text-sm font-medium text-foreground">{t.similarGear}</p>
                     <div className="grid-fluid-sm gap-3">
-                      {relatedProducts.map((rel) => (
+                      {similar.map((rel) => (
                         <a
                           key={rel.slug}
                           href={`/product/${rel.slug}`}
@@ -883,7 +893,22 @@ export default function ProductPage() {
                               />
                             )}
                           </div>
-                          <p className="type-meta text-foreground wrap-anywhere px-3 pb-3">{rel.name}</p>
+                          <div className="flex flex-col gap-1 px-3 pb-3">
+                            <span
+                              className="self-start text-[11px] font-medium px-2 py-0.5 rounded-full"
+                              style={{ background: 'var(--secondary)', color: 'var(--foreground)' }}
+                            >
+                              {t[SIMILAR_REASON_KEY[rel.reason]]}
+                            </span>
+                            <p className="type-meta text-foreground wrap-anywhere">{rel.name}</p>
+                            {rel.active_listing_count > 0 && (
+                              <p className="type-meta text-muted-foreground">
+                                {rel.active_listing_count === 1
+                                  ? t.productListingsOne
+                                  : fill(t.productListings, { count: rel.active_listing_count })}
+                              </p>
+                            )}
+                          </div>
                         </a>
                       ))}
                     </div>

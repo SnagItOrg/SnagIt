@@ -97,6 +97,11 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
     note: 'reachable by anyone; the route applies §3.1 and 404s otherwise',
   },
   {
+    route: '/api/product/[slug]/similar',
+    access: 'public_api_data_gated',
+    note: 'PAN-235; the similar-gear cards, every candidate gated by isCanonical()',
+  },
+  {
     route: '/family/[slug]',
     access: 'public_page_data_gated',
     note: 'WP-2. noindex and unlisted while it has zero canonical children (§4.2)',

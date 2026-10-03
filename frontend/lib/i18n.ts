@@ -529,6 +529,14 @@ export const translations = {
        unmapped key falls back to the humanised identifier at the
        call site so a new key never renders blank. */
     relatedGear: 'Relateret udstyr',
+    similarGear: 'Lignende udstyr',
+    similarReasonClone: 'Klon',
+    similarReasonOriginal: 'Original',
+    similarReasonSuccessor: 'Efterfølger',
+    similarReasonPredecessor: 'Forgænger',
+    similarReasonAlternative: 'Alternativ',
+    similarReasonSameFamily: 'Samme familie',
+    similarReasonSameType: 'Samme type',
     specifications: 'Specifikationer',
     productHistory: 'Produkthistorie',
     specYes: 'Ja',
@@ -1162,6 +1170,14 @@ export const translations = {
 
     /* ── Product page ─────────────────────────────────────────── */
     relatedGear: 'Related gear',
+    similarGear: 'Similar gear',
+    similarReasonClone: 'Clone',
+    similarReasonOriginal: 'Original',
+    similarReasonSuccessor: 'Successor',
+    similarReasonPredecessor: 'Predecessor',
+    similarReasonAlternative: 'Alternative',
+    similarReasonSameFamily: 'Same family',
+    similarReasonSameType: 'Same type',
     specifications: 'Specifications',
     productHistory: 'Product history',
     specYes: 'Yes',
