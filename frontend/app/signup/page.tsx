@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { use, useState } from 'react'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { safeNextPath } from '@/lib/safe-next'
 import { useLocale } from '@/components/LocaleProvider'
 import { OnboardingHeader } from '@/components/OnboardingHeader'
 import type { Locale } from '@/lib/i18n'
@@ -10,8 +11,16 @@ import { TextField } from '@/components/TextField'
 import { Icon } from '@/components/Icon'
 import { Button } from '@/components/Button'
 
-export default function SignupPage() {
+export default function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string | string[] }>
+}) {
   const { locale, setLocale, t } = useLocale()
+  // PAN-187: carried from /login, so the confirmation link returns there.
+  const { next: rawNext } = use(searchParams)
+  const next = safeNextPath(Array.isArray(rawNext) ? rawNext[0] : rawNext)
+  const nextQuery = next ? `?next=${encodeURIComponent(next)}` : ''
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [error,    setError]    = useState<string | null>(null)
@@ -31,14 +40,14 @@ export default function SignupPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
+        options: { emailRedirectTo: `${window.location.origin}/auth/confirm${nextQuery}` },
       })
       if (error) { setError(t.signupError); setLoading(false); return }
     } else {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+          emailRedirectTo: `${window.location.origin}/auth/confirm${nextQuery}`,
           shouldCreateUser: true,
         },
       })
@@ -184,7 +193,7 @@ export default function SignupPage() {
               <p className="mt-5 text-center text-xs" style={{ color: 'var(--muted-foreground)' }}>
                 {t.alreadyHaveAccount}{' '}
                 <Link
-                  href="/login"
+                  href={`/login${nextQuery}`}
                   className="font-bold underline hover:text-foreground transition-colors"
                   style={{ color: 'var(--foreground)' }}
                 >

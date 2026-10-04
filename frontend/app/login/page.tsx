@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { use, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { safeNextPath } from '@/lib/safe-next'
 import { useLocale } from '@/components/LocaleProvider'
 import type { Locale } from '@/lib/i18n'
 import { TextField } from '@/components/TextField'
@@ -12,9 +13,17 @@ import { Button } from '@/components/Button'
 
 type Tab = 'password' | 'magic'
 
-export default function LoginPage() {
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string | string[] }>
+}) {
   const router = useRouter()
   const { locale, setLocale, t } = useLocale()
+  // PAN-187: where the visitor was going when the gate sent them here.
+  const { next: rawNext } = use(searchParams)
+  const next = safeNextPath(Array.isArray(rawNext) ? rawNext[0] : rawNext)
+  const nextQuery = next ? `?next=${encodeURIComponent(next)}` : ''
 
   const [tab,                setTab]                = useState<Tab>('password')
   const [email,              setEmail]              = useState('')
@@ -38,14 +47,15 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    router.push('/search')
+    // replace, not push: Back must not return to a sign-in form.
+    router.replace(next ?? '/search')
   }
 
   async function handleResetPassword() {
     if (!email) return
     const supabase = createSupabaseBrowserClient()
     await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/auth/confirm',
+      redirectTo: window.location.origin + '/auth/confirm' + nextQuery,
     })
     setResetSent(true)
   }
@@ -58,7 +68,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/confirm`,
+        emailRedirectTo: `${window.location.origin}/auth/confirm${nextQuery}`,
         shouldCreateUser: false,
       },
     })
@@ -300,7 +310,7 @@ export default function LoginPage() {
         {/* Signup link */}
         <p className="text-sm text-center" style={{ color: 'var(--muted-foreground)' }}>
           {t.newUser}{' '}
-          <Link href="/signup" className="underline hover:opacity-80 transition-opacity" style={{ color: 'var(--foreground)' }}>
+          <Link href={`/signup${nextQuery}`} className="underline hover:opacity-80 transition-opacity" style={{ color: 'var(--foreground)' }}>
             {t.createFreeAccount}
           </Link>
         </p>
