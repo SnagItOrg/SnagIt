@@ -56,6 +56,21 @@ export interface NavigationFamily {
   children: string[]
   /** Navigation-only aliases. Never matcher aliases. */
   aliases: string[]
+  /**
+   * "Kendt fra" (PAN-238): songs whose celebrated solo was played on a guitar
+   * of this family, as the source states them. Facts belong to the FAMILY
+   * because the source names "a Les Paul", never a model; a member page never
+   * shows them. Each carries the page it was read from and the date.
+   */
+  iconicUses?: FamilyIconicUse[]
+}
+
+export interface FamilyIconicUse {
+  song: string
+  artist: string
+  soloBy: string
+  sourceUrl: string
+  readAt: string
 }
 
 /**
@@ -92,6 +107,9 @@ export interface NavigationFamily {
  * unlisted slug, a type error — so this file, `lib/catalogue.ts` and
  * `lib/publication.ts` cannot disagree about which families exist.
  */
+/** PAN-238: the one best-of page read for the family facts (2026-10-04); the list ranks solos, not guitars. */
+const SOLOS_SOURCE = 'https://equipboard.com/posts/guitars-used-in-the-50-best-guitar-solos'
+
 const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
   'gibson-les-paul': {
     label: 'Gibson Les Paul',
@@ -153,6 +171,25 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
       'gibson-custom-shop-les-paul-special-double-cut-figured',
     ],
     aliases: ['les paul', 'lespaul', 'gibson les paul'],
+    iconicUses: [
+      { song: 'Sweet Child O’ Mine', artist: 'Guns N’ Roses', soloBy: 'Slash', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Hey Hey My My', artist: 'Neil Young', soloBy: 'Neil Young', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Sympathy For The Devil', artist: 'The Rolling Stones', soloBy: 'Keith Richards', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Live Forever', artist: 'Oasis', soloBy: 'Noel Gallagher', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'November Rain', artist: 'Guns N’ Roses', soloBy: 'Slash', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'The Boys Are Back In Town', artist: 'Thin Lizzy', soloBy: 'Scott Gorham and Brian Robertson', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Since I’ve Been Loving You', artist: 'Led Zeppelin', soloBy: 'Jimmy Page', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Free Bird', artist: 'Lynyrd Skynyrd', soloBy: 'Gary Rossington', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'While My Guitar Gently Weeps', artist: 'The Beatles', soloBy: 'Eric Clapton', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Sway', artist: 'The Rolling Stones', soloBy: 'Mick Taylor', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'I Love Rock N Roll', artist: 'Joan Jett and the Blackhearts', soloBy: 'Ricky Byrd', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Rosin Dubh (Black Rose)', artist: 'Thin Lizzy', soloBy: 'Gary Moore', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Holy Are You', artist: 'The Electric Prunes', soloBy: 'Ken Williams', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'La Tristesse Durera', artist: 'Manic Street Preachers', soloBy: 'James Dean Bradfield', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Animal Nitrate', artist: 'Suede', soloBy: 'Bernard Butler', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Carry On My Wayward Son', artist: 'Kansas', soloBy: 'Kerry Livgren', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'The Mexican', artist: 'Babe Ruth', soloBy: 'Alan Shacklock', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+    ],
   },
   'fender-stratocaster': {
     label: 'Fender Stratocaster',
@@ -195,6 +232,16 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
       'fender-standard-stratocaster-hss',
     ],
     aliases: ['stratocaster', 'strat', 'fender stratocaster', 'fender strat'],
+    iconicUses: [
+      { song: 'All Along the Watchtower', artist: 'Jimi Hendrix (Bob Dylan)', soloBy: 'Jimi Hendrix', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Shine On You Crazy Diamond', artist: 'Pink Floyd', soloBy: 'David Gilmour', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Highway Star', artist: 'Deep Purple', soloBy: 'Ritchie Blackmore', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'I Am The Resurrection', artist: 'The Stone Roses', soloBy: 'John Squire', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Venus', artist: 'Television', soloBy: 'Richard Lloyd', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Banned In D.C.', artist: 'Bad Brains', soloBy: 'Dr. Know', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Rosin Dubh (Black Rose)', artist: 'Thin Lizzy', soloBy: 'Gary Moore', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Soma', artist: 'The Smashing Pumpkins', soloBy: 'Billy Corgan', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+    ],
   },
   'fender-telecaster': {
     label: 'Fender Telecaster',
@@ -241,6 +288,16 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
       'fender-standard-telecaster',
     ],
     aliases: ['telecaster', 'tele', 'fender telecaster', 'fender tele'],
+    iconicUses: [
+      { song: 'Stairway To Heaven', artist: 'Led Zeppelin', soloBy: 'Jimmy Page', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Killing In The Name', artist: 'Rage Against The Machine', soloBy: 'Tom Morello', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'The Bends', artist: 'Radiohead', soloBy: 'Jonny Greenwood', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Paranoid Android', artist: 'Radiohead', soloBy: 'Jonny Greenwood', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Communication Breakdown', artist: 'Led Zeppelin', soloBy: 'Jimmy Page', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Hotel California', artist: 'The Eagles', soloBy: 'Joe Walsh', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Just', artist: 'Radiohead', soloBy: 'Jonny Greenwood', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Coffee And TV', artist: 'Blur', soloBy: 'Graham Coxon', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+    ],
   },
   'gibson-es-335': {
     label: 'Gibson ES-335',
@@ -261,6 +318,9 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
       'gibson-custom-shop-1964-es-335-reissue',
     ],
     aliases: ['es-335', 'es335', 'gibson es-335'],
+    iconicUses: [
+      { song: 'Johnny B. Goode', artist: 'Chuck Berry', soloBy: 'Chuck Berry', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+    ],
   },
   /*
    * PAN-154 (owner decision 2026-09-26: Precision Bass and Jazz Bass are
@@ -642,6 +702,10 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
       'fender-american-ultra-jazzmaster',
     ],
     aliases: [],
+    iconicUses: [
+      { song: 'Venus', artist: 'Television', soloBy: 'Tom Verlaine', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Get Me', artist: 'Dinosaur Jr.', soloBy: 'J Mascis', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+    ],
   },
   'fender-jaguar': {
     label: 'Fender Jaguar',
@@ -683,6 +747,11 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
       'gibson-sg-modern',
     ],
     aliases: ['sg', 'gibson sg'],
+    iconicUses: [
+      { song: 'Crossroads', artist: 'Cream', soloBy: 'Eric Clapton', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Let There Be Rock', artist: 'AC/DC', soloBy: 'Angus Young', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+      { song: 'Soul Sacrifice', artist: 'Santana', soloBy: 'Carlos Santana', sourceUrl: SOLOS_SOURCE, readAt: '2026-10-04' },
+    ],
   },
   /*
    * PAN-199. Moog's pedal line (1998–2018, the 2020s white re-runs): each
