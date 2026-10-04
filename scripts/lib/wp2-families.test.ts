@@ -376,6 +376,11 @@ test('families: children match the reviewed §6.3 map', () => {
       'sequential-prophet-rev2',
       'sequential-prophet-5',
       'sequential-prophet-10',
+      // PAN-221: the desktop modules and the Prophet X.
+      'sequential-prophet-5-desktop',
+      'sequential-prophet-6-desktop',
+      'sequential-prophet-10-desktop',
+      'sequential-prophet-x',
     ],
     // PAN-200: the RE-301, RE-150 and SRE-555.
     'roland-space-echo': ['roland-re-201', 'roland-re-301', 'roland-re-150', 'roland-re-501', 'roland-sre-555'],

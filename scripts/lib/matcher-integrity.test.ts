@@ -2093,8 +2093,10 @@ test('the copy/reference rule is a closed table, not an open ontology', () => {
   assert.ok(!/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/.test(code),
     'brand-guard code must not reference listing ids')
   assert.ok(!/Anthrax|Flashback/i.test(code), 'brand-guard code must not deny-list full titles')
-  // Every token in the external list is a single brand word/phrase, not a title.
-  for (const m of code.matchAll(/'([a-z ]+)',/g)) {
+  // Every token in the external list is a single brand word/phrase, not a title. (The SAME_MAKER
+  // groups beside it hold kg_brand names as they are, "dave smith instruments" included: PAN-221.)
+  const external = code.slice(code.indexOf('EXTERNAL_BRAND_TOKENS'), code.indexOf(']', code.indexOf('EXTERNAL_BRAND_TOKENS')))
+  for (const m of external.matchAll(/'([a-z ]+)',/g)) {
     assert.ok(m[1].split(' ').length <= 2, `external brand entry too long: ${m[1]}`)
   }
 })
