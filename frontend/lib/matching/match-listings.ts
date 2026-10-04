@@ -2166,12 +2166,13 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'ua-la-3a': member('ua-la-3a', ...WARM_AUDIO_COPY, ...UAD_SOFTWARE, ...PAIR_OR_LOT, ...cues('bundle', 'pedal')),
 
   // ── PAN-230: legendary gear, step 5, tranche 2 ───────────────────────────
-  // Manley's three legendary rows are the standard versions (CSPs 1856, 28955, 5318): the Mastering
+  // Manley's three legendary rows are the standard versions (CSPs 1856, 28955, 28964): the Mastering
   // Versions, the XXV / 30th anniversary editions and the Nu Mu are their own Reverb pages and prices.
   'manley-massive-passive': { line: 'massive-passive', otherMembers: [...UAD_SOFTWARE, ...PAIR_OR_LOT, ...cues('mastering', 'anniversary', 'xxv', 'bundle')], accessories: STUDIO_PARTS },
   'manley-variable-mu': { line: 'variable-mu', otherMembers: [...UAD_SOFTWARE, ...PAIR_OR_LOT, ...cues('mastering', 'anniversary', 'nu mu', 'numu', 'slam', 'bundle')], accessories: STUDIO_PARTS },
-  // The ELOP and its "+" revision share the row (Reverb's page is the ELOP+); Langevin's ELOP and the CORE strip do not.
-  'manley-elop': { line: 'elop', otherMembers: [...UAD_SOFTWARE, ...PAIR_OR_LOT, /(?<![\w-])core(?![a-z])/i, ...cues('langevin', 'bundle')], accessories: STUDIO_PARTS },
+  // The standard ELOP (CSP 28964). The ELOP+ is a different product with its own Reverb page and price (its row
+  // comes with the Manley pass); Langevin's ELOP and the CORE strip are not it either.
+  'manley-elop': { line: 'elop', otherMembers: [...UAD_SOFTWARE, ...PAIR_OR_LOT, /(?<![\w-])elop\s*(?:\+|plus(?![\w-]))/i, /(?<![\w-])core(?![a-z])/i, ...cues('langevin', 'bundle')], accessories: STUDIO_PARTS },
   // The 2007– API 550A (CSP 3855): never a 1970s original (Huntington / Melville, its own price), the Saul Walker
   // "Classic" and Anniversary editions, a 550B, a loaded rack, console or channel strip, a pair, or a power supply for it.
   'api-550a': {
