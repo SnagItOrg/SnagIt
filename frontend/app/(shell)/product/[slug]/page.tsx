@@ -624,6 +624,14 @@ export default function ProductPage() {
                         Math.max(...points.map((pt) => pt.price)),
                       )
                     : []
+                  /**
+                   * PAN-242. On a time-scaled x-axis Recharts takes its ticks
+                   * from the data values, so two sales at the same instant
+                   * rendered two ticks with one key (240 console errors on
+                   * the Juno-60). The same values, each once; the labels are
+                   * still thinned by `minTickGap` below.
+                   */
+                  const xTicks = Array.from(new Set(points.map((pt) => pt.ts)))
 
                   return (
                     <ChartFrame
@@ -682,6 +690,7 @@ export default function ProductPage() {
                               tickFormatter={(v: number) =>
                                 new Date(v).toLocaleDateString('da-DK', { month: 'short', year: '2-digit' })
                               }
+                              ticks={xTicks.length > 0 ? xTicks : undefined}
                               minTickGap={28}
                             />
                             {/* Kroner, visible — the unit rides on every tick
