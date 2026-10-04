@@ -388,6 +388,27 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
         )}
 
         {/*
+          ── Kendt fra (PAN-238) ─────────────────────────────
+          Family-level facts: the source names the family, so the family
+          page carries them and no member page does. Each line links to the
+          page it was read from. Absent when a family has none.
+        */}
+        {family.iconicUses && family.iconicUses.length > 0 && (
+          <section className="mt-10 flex flex-col gap-3">
+            <h2 className="type-label">{t.knownFrom}</h2>
+            <ul className="flex flex-col gap-1 text-base leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              {family.iconicUses.map((u, i) => (
+                <li key={`${u.song}-${i}`}>
+                  <a href={u.sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline" title={t.factSource}>
+                    “{u.song}” — {u.artist} · {t.soloBy} {u.soloBy}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/*
           ── The market under this family (PAN-94) ──────────────
           The count is `listings.length`: the number printed and the rows
           printed under it are the same array, so no read can disagree with
