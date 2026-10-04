@@ -2,7 +2,7 @@
  * scripts/lib/pan230-tranche2-boundaries.test.ts
  *
  * PAN-230 step 5, tranche 2: the six legendary rows the second promote SQL moves to `supported` —
- * Manley Massive Passive, Variable Mu and ELOP (the standard versions), the 2007– API 550A, the vintage
+ * Manley Massive Passive, Variable Mu and ELOP (the standard versions; the ELOP+ is its own page), the 2007– API 550A, the vintage
  * Neve 1073 module and the 1970s "Metal Knob" 33609 — with the aliases it adds and without the ones it
  * detaches. On production titles (the unmatched active titles naming each model, read-only snapshot
  * 2026-10-03, decided 2026-10-04).
@@ -60,9 +60,13 @@ test('PAN-230 tranche 2: the standard Variable Mu in every spelling, never the M
   assert.equal(matchedSlug('UAD Manley Variable Mu Limiter Compressor Plug-in (Activation Card)'), null)
 })
 
-test('PAN-230 tranche 2: the ELOP and the ELOP+ share the row; Langevin\'s ELOP, the CORE strip and a manual do not', () => {
+test('PAN-230 tranche 2: the standard ELOP, never the ELOP+ (its own page), Langevin\'s ELOP, the CORE strip or a manual', () => {
   assert.equal(matchedSlug('Manley Labs ELOP Dual Channel Electro-Optical Leveling Amplifier / Compressor 2000s - Purple'), 'manley-elop')
-  assert.equal(matchedSlug('Manley Labs ELOP+ Dual-Channel Electo-Optical Tube Compressor / Limiter 2010s - Purple'), 'manley-elop')
+  assert.equal(matchedSlug('Manley Stereo ELOP Electro-Optical Compressor/Limiter'), 'manley-elop')
+  assert.equal(matchedSlug('Manley Labs ELOP+ Dual-Channel Electo-Optical Tube Compressor / Limiter 2010s - Purple'), null)
+  assert.equal(matchedSlug('Manley ELOP+'), null)
+  assert.equal(matchedSlug('Manley ELOP + Stereo Limiter Compressor'), null)
+  assert.equal(matchedSlug('Manley ELOP Plus Dual Channel Tube Compressor'), null)
   assert.equal(matchedSlug('Manley Labs Langevin ELOP Limiter'), null)
   assert.equal(matchedSlug('Manley Labs CORE-Channel Strip with Microphone and Preamp ELOP Compressor'), null)
   assert.equal(matchedSlug('Manley Labs Elop Manual unknown - paper/plastic'), null)
