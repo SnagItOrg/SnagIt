@@ -62,6 +62,8 @@ export const FAMILY_SLUGS = [
   // PAN-230 (owner, 2026-10-03). Not `neumann-u87`: that slug is the vintage
   // U 87's own priced page, so the family takes a slug no product holds.
   'neumann-u87-condenser',
+  // PAN-230 (owner, 2026-10-04). Not `ua-1176ln`: that is the reissue's own priced page.
+  'universal-audio-1176',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]
