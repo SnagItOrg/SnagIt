@@ -36,6 +36,8 @@ export const PUBLIC_ATTRIBUTE_KEYS = [
   // PAN-237 / PAN-238: sourced facts, each item a fact plus the page it came from.
   'played_by',
   'iconic_uses',
+  // PAN-236: spec facets as controlled tokens; `facets_source` stays server-side.
+  'facets',
 ] as const
 
 /**
@@ -97,7 +99,11 @@ export type PublicAttributes = {
   related_products?: Array<{ slug: string; reason: string }>
   played_by?: Array<{ artist: string; source_url: string }>
   iconic_uses?: Array<{ song: string; artist: string; year: number | null; source_url: string }>
+  facets?: PublicFacets
 }
+
+/** PAN-236: one value or a list of tokens per facet key; labels live in i18n. */
+export type PublicFacets = Record<string, string | number | boolean | string[]>
 
 export type PublicBrand = { name: string; slug: string }
 
@@ -240,6 +246,15 @@ export function toPublicAttributes(raw: unknown): PublicAttributes | null {
       .map((f) => ({ song: asString(f.song) ?? '', artist: asString(f.artist) ?? '', year: asNumber(f.year), source_url: asString(f.source_url) ?? '' }))
       .filter((f) => f.song !== '' && f.artist !== '' && f.source_url !== '')
     if (uses.length > 0) out.iconic_uses = uses
+  }
+
+  if (src.facets && typeof src.facets === 'object' && !Array.isArray(src.facets)) {
+    const facets: PublicFacets = {}
+    for (const [key, value] of Object.entries(src.facets as Record<string, unknown>)) {
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') facets[key] = value
+      else if (Array.isArray(value) && value.every((v) => typeof v === 'string')) facets[key] = value as string[]
+    }
+    if (Object.keys(facets).length > 0) out.facets = facets
   }
 
   return Object.keys(out).length > 0 ? out : null

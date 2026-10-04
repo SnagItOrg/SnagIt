@@ -69,6 +69,8 @@ const FULL_ROW = {
     related_products: [{ slug: 'roland-juno-60', reason: 'sibling' }],
     played_by: [{ artist: 'Vince Clarke', source_url: 'https://example.org/juno106', read_at: '2026-10-03' }],
     iconic_uses: [{ song: 'Take On Me', artist: 'a-ha', year: 1985, source_url: 'https://example.org/list', read_at: '2026-10-03' }],
+    facets: { mic_type: 'condenser', patterns: ['cardioid', 'omni'], pad: true, pattern_count: 9 },
+    facets_source: { url: 'https://example.org/spec', read_at: '2026-10-03', kind: 'manufacturer' },
     reverb_csp: 'csp-abc-123',
     reverb_csp_candidates: ['csp-abc-123', 'csp-def-456'],
     type: 'synthesizer',

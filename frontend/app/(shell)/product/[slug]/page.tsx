@@ -46,6 +46,7 @@ import type { Listing } from '@/lib/supabase'
 // never enters this bundle — only the canonical siblings the server filtered.
 import type { FamilyContext, PricePoint } from '@/app/api/product/[slug]/route'
 import type { SimilarProduct } from '@/app/api/product/[slug]/similar/route'
+import { facetLine } from '@/lib/product-facet-line'
 
 /** Reason chip copy per `lib/similar-gear.ts` reason (PAN-235). */
 const SIMILAR_REASON_KEY = {
@@ -98,6 +99,7 @@ type ProductAttributes = {
   related_products?: Array<{ slug: string; reason: string }>
   played_by?: Array<{ artist: string; source_url: string }>
   iconic_uses?: Array<{ song: string; artist: string; year: number | null; source_url: string }>
+  facets?: Record<string, string | number | boolean | string[]>
 }
 
 type Product = {
@@ -470,6 +472,14 @@ export default function ProductPage() {
                       </div>
                       {product.era && (
                         <p className="text-sm text-muted-foreground">{product.era}</p>
+                      )}
+                      {/* PAN-236: the spec facets as one line of tokens; absent when a row has none. */}
+                      {product.attributes?.facets && facetLine(product.attributes.facets).length > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          {facetLine(product.attributes.facets)
+                            .map((item) => (item.count !== undefined ? fill(t[item.key as 'facetPatternCount'], { count: item.count }) : t[item.key as keyof typeof t]))
+                            .join(' · ')}
+                        </p>
                       )}
                     </div>
 
