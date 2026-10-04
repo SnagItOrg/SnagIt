@@ -887,6 +887,26 @@ const AMP_PARTS: readonly string[] = [
 ]
 /** Pedal parts. */
 const PEDAL_PARTS: readonly string[] = ['cover', 'knob', 'knobs', 'footswitch', 'pcb', 'adapter', 'power supply', 'box only', 'manual']
+/** Outboard parts and papers sold alone (a Massive Passive's spare band, an ELOP's manual) unless after a marker. */
+const STUDIO_PARTS: readonly string[] = ['manual', 'faceplate', 'knob', 'knobs', 'tubes', 'tube set', 'power supply', 'psu', 'rack ears', 'cover', 'spare']
+/**
+ * PAN-230 tranche 2, Neve. Another maker's module that names the Neve it copies, measured on the
+ * unmatched 1073 / 1081 / 33609 titles: "BAE 1073 Mic Pre/EQ Pair", "Audio maintenance Limited AML NEVE
+ * 1073", "Vintech Audio X81 … Neve 1081 clone", "Chandler Limited LTD-1 … Neve clone", "Rupert Neve Designs
+ * Shelford Channel … based off of Rupert's classic", "BAKU Pro Audio NEVE 1073 2-SLOT 3U RACK".
+ */
+const NEVE_CLONES: readonly RegExp[] = cues(
+  'bae', 'brent averill', 'aml', 'audio maintenance', 'vintech', 'heritage audio', 'golden age', 'aurora', 'chandler',
+  'shelford', 'rupert neve designs', 'baku', 'cranborne', 'clone', 'copy', 'copys', 'style', 'type', 'like', 'ala', '1023', '1075',
+)
+/** A title that names other 80-series modules beside the one in question is a parts lot or a console, not the unit. */
+const NEVE_OTHER_MODULES: readonly RegExp[] = cues('1081', '1084', '1066', '1272', '2254', '31102', '33135', '33115', '35102', '31105', 'bcm-10', 'console', 'sidecar')
+/** The Neve parts trade: screws, panels, connectors, transformers, empty racks, option cards, service mods. */
+const NEVE_PARTS: readonly string[] = [
+  'screw', 'screws', 'thumb screws', 'panel', 'side panel', 'blank panel', 'connector', 'connectors', 'amphenol', 'power supply', 'psu',
+  'faceplate', 'switch', 'switches', 'caps', 'button', 'transformer', 'carnhill', 'marinair', 'rack', 'lunchbox', 'option card', 'card',
+  'service', 'mod', 'kit', 'board',
+]
 
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
@@ -1267,7 +1287,18 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
     ...cues('pedal', 'uafx', 'studio compressor', 'guitar', 'compact', 'bundle', 'overlay', 'dust cover', 'la-610', 'la 610', 'la610', '6176', '2-la-2', 'leveler collection'),
     yearCue(1960, 1999)),
   'universal-audio-teletronix-la-2a': member('universal-audio-teletronix-la-2a', ...WARM_AUDIO_COPY),
-  'neve-1073': member('neve-1073', ...WARM_AUDIO_COPY),
+  // PAN-230 tranche 2. The vintage 1073 module (1970s, CSP 52862): never AMS Neve's reissues (1073 N / R / DPX /
+  // DPA / SPX / OPX / LB / CH / CV), a clone, a module converted from a 2074, a dual or a pair, the parts trade
+  // or a title that lists the other 80-series modules beside it.
+  'neve-1073': {
+    line: 'neve-1073',
+    otherMembers: [
+      ...WARM_AUDIO_COPY, ...UAD_SOFTWARE, ...PAIR_OR_LOT, ...NEVE_CLONES, ...NEVE_OTHER_MODULES,
+      /(?<![\w-])1073\s?(?:n|r|dpx|dpa|spx|opx|lb|lbeq|ch|cv|cvr)(?![\w-])/i,
+      ...cues('ams', 'reissue', 'horizontal', 'vertical', 'converted', 'dual', '2-channel', 'two', '33609'),
+    ],
+    accessories: NEVE_PARTS,
+  },
   'tube-tech-cl1b': member('tube-tech-cl1b', ...WARM_AUDIO_COPY),
 
   // ── PAN-204: Martin ──────────────────────────────────────────────────────
@@ -2133,6 +2164,36 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   },
   // The LA-3A (the Urei original and UA's reissue share the row): never a UAD plug-in, a pair or a bundle.
   'ua-la-3a': member('ua-la-3a', ...WARM_AUDIO_COPY, ...UAD_SOFTWARE, ...PAIR_OR_LOT, ...cues('bundle', 'pedal')),
+
+  // ── PAN-230: legendary gear, step 5, tranche 2 ───────────────────────────
+  // Manley's three legendary rows are the standard versions (CSPs 1856, 28955, 5318): the Mastering
+  // Versions, the XXV / 30th anniversary editions and the Nu Mu are their own Reverb pages and prices.
+  'manley-massive-passive': { line: 'massive-passive', otherMembers: [...UAD_SOFTWARE, ...PAIR_OR_LOT, ...cues('mastering', 'anniversary', 'xxv', 'bundle')], accessories: STUDIO_PARTS },
+  'manley-variable-mu': { line: 'variable-mu', otherMembers: [...UAD_SOFTWARE, ...PAIR_OR_LOT, ...cues('mastering', 'anniversary', 'nu mu', 'numu', 'slam', 'bundle')], accessories: STUDIO_PARTS },
+  // The ELOP and its "+" revision share the row (Reverb's page is the ELOP+); Langevin's ELOP and the CORE strip do not.
+  'manley-elop': { line: 'elop', otherMembers: [...UAD_SOFTWARE, ...PAIR_OR_LOT, /(?<![\w-])core(?![a-z])/i, ...cues('langevin', 'bundle')], accessories: STUDIO_PARTS },
+  // The 2007– API 550A (CSP 3855): never a 1970s original (Huntington / Melville, its own price), the Saul Walker
+  // "Classic" and Anniversary editions, a 550B, a loaded rack, console or channel strip, a pair, or a power supply for it.
+  'api-550a': {
+    line: '550a',
+    otherMembers: [
+      ...UAD_SOFTWARE, ...PAIR_OR_LOT, yearCue(1968, 1999),
+      ...cues('vintage', 'huntington', 'melville', 'saul walker', 'anniversary', 'classic', 'gold', '550a-1', '550b', '560', '5500', '550l', '512c',
+        'radial cube', 'console', 'mixer', 'the box', '1608', '7600', 'tcs', 'tcs-ii', 'channel strip', 'input module', 'rack', 'lunchbox', 'loaded', 'bundle'),
+    ],
+    accessories: ['power supply', 'psu', 'knob', 'knobs', 'faceplate', 'op-amp', 'op-amps', 'opamp', 'opamps'],
+  },
+  // The 1970s "Metal Knob" 33609 (CSP 56137): never AMS Neve's 33609/J, /JD and /N, the later 33609 C, the console
+  // 34628, a Siemens module sold "like" it, or a transformer out of one.
+  'neve-33609': {
+    line: '33609',
+    otherMembers: [
+      ...UAD_SOFTWARE, ...PAIR_OR_LOT, ...NEVE_CLONES,
+      /(?<![\w-])33609\s?\/?\s?(?:j|jd|n|c)(?![\w-])/i,
+      ...cues('ams', 'reissue', '34628', 'siemens', '601433', 'u73', 'u273', 'module', 'modules', 'dealer display', '1073', '1081', '1084'),
+    ],
+    accessories: NEVE_PARTS,
+  },
 }
 
 /**
