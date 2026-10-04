@@ -72,4 +72,8 @@ test('dot segments are resolved, and cannot climb out of the origin', () => {
   assert.equal(safeNextPath('/admin/../profile'), '/profile')
   assert.equal(safeNextPath('/../../evil.com'), '/evil.com')
   assert.equal(safeNextPath('/x/../login'), null)
+  // Resolving can itself produce a protocol-relative path.
+  for (const raw of ['/.//evil.com', '/a/..//evil.com', '/%2e//evil.com']) {
+    assert.equal(safeNextPath(raw), null, raw)
+  }
 })

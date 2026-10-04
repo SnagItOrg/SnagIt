@@ -46,6 +46,9 @@ export function safeNextPath(raw: string | null | undefined): string | null {
   }
   if (url.origin !== PROBE_ORIGIN) return null
   if (isAuthPage(url.pathname)) return null
+  // Resolving dot segments can produce `//host` (`/.//evil.com`), which a
+  // caller resolving it against its own origin reads as another host.
+  if (url.pathname.startsWith('//')) return null
 
   return url.pathname + url.search + url.hash
 }
