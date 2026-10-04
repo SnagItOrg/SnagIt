@@ -726,6 +726,22 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: ['neumann-u87', 'neumann-u87ai'],
     aliases: [],
   },
+  /*
+   * PAN-230, owner decision 2026-10-04: keep both 1176 rows, do not fold. The
+   * vintage Urei 1176LN (1967–85, 20–97 k DKK on today's listings) and the
+   * UA 1176LN reissue (2000–, CSP 1970) are two priced models; PAN-154 split
+   * their matches on purpose and the matcher keeps `urei`/`vintage`/`rev A–H`
+   * as other-member cues on the reissue. "Universal Audio 1176" is the
+   * navigation concept over both, like `neumann-u87-condenser`: never a
+   * `kg_product` row, never a price. No aliases: the slug gives the key.
+   */
+  'universal-audio-1176': {
+    label: 'Universal Audio 1176',
+    brand: 'Universal Audio',
+    categoryRoot: 'pro-audio',
+    children: ['ua-1176ln', 'universal-audio-urei-1176ln'],
+    aliases: [],
+  },
 }
 
 /** Every family, in `FAMILY_SLUGS` order. */
