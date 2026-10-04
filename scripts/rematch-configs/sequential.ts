@@ -12,8 +12,8 @@ const config: RematchConfig = {
   pan: 'pan221',
   brand: 'Sequential (three eras)',
 
-  /** The Prophet navigation family: never a match target; its held matches move. */
-  labels: ['sequential-prophet'],
+  /** The Prophet navigation family is a families.ts concept with no kg_product row, so there is no held cohort. */
+  labels: [],
 
   /**
    * The rows the PAN-221 promote SQL moves from `known` to `supported`, verbatim: the five clean
