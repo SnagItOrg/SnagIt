@@ -79,6 +79,44 @@ const CHILD_TO_PARENTS = new Map<string, readonly string[]>(
 )
 
 /**
+ * One maker under several `kg_brand` names (PAN-221, owner decision 2 of 2026-10-04). Each
+ * entry lists the names one manufacturer has sold under across its eras, lowercase as the
+ * index holds them, plus the short forms sellers write. A title naming any of them is
+ * evidence FOR a product of any of them: "Sequential Mopho" is not a brand mismatch against
+ * a Dave Smith Instruments row, "Dave Smith Instruments Sequential Prophet X" names one
+ * maker, not two, and "DSI Tempest" proves the Dave Smith Instruments brand for the
+ * confidence floor.
+ *
+ * The opposite relationship to BRAND_COLLISION_RULES (a licensed subsidiary is a different
+ * maker that reuses the parent's model names) and, like it, a closed list: the three rows
+ * stay three brands in the catalogue (three eras, three names on the units and on Reverb).
+ * Add a group only for a maker whose own products carry more than one of its names.
+ */
+export const SAME_MAKER: readonly (readonly string[])[] = [
+  // Sequential Circuits (1974–87), Dave Smith Instruments (2002–18), Sequential (2018–).
+  ['sequential', 'sequential circuits', 'dave smith instruments', 'dave smith', 'dsi'],
+]
+const MAKER_OF = new Map<string, string>()
+SAME_MAKER.forEach((group) => group.forEach((name) => MAKER_OF.set(name, group[0])))
+
+/** The maker a brand name stands for: its SAME_MAKER group's first name, or the brand itself. */
+export function makerOf(brand: string): string {
+  const b = brand.trim().toLowerCase()
+  return MAKER_OF.get(b) ?? b
+}
+
+/** True when two brand names are one maker: equal, or in one SAME_MAKER group. */
+export function sameMaker(a: string, b: string): boolean {
+  return makerOf(a) === makerOf(b)
+}
+
+/** True when `title` names `brand` or any other name of the same maker. */
+export function makerNamed(title: string, brand: string): boolean {
+  const names = SAME_MAKER.find((group) => group.includes(makerOf(brand))) ?? [brand]
+  return names.some((name) => name.length >= MIN_BRAND_TOKEN_LENGTH && containsBrandToken(title, name))
+}
+
+/**
  * Instrument brands that are NOT in `kg_brand` but appear as the OFFERED brand
  * in observed contamination. Without these the catalogue-brand layer is blind
  * to the seller's own brand and reads a referenced model as the offer.

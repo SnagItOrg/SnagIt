@@ -32,6 +32,8 @@ const product = (slug: string, brand: string, model_name: string): Product => ({
 const index = buildMatchIndex(
   [
     product('sequential-prophet-5', 'Sequential', 'Prophet-5'),
+    // PAN-221: the 1978–84 original has its own row, split by name like the Prophet-10.
+    product('sequential-circuits-prophet-5', 'Sequential Circuits', 'Prophet-5'),
     product('roland-juno-6', 'Roland', 'Juno-6'),
     product('roland-juno-60', 'Roland', 'Juno-60'),
     product('roland-sh-101', 'Roland', 'SH-101'),
@@ -45,7 +47,7 @@ const index = buildMatchIndex(
     product('ampex-atr-700', 'Ampex', 'ATR-700'),
   ],
   [], [],
-  ['sequential', 'roland', 'boss', 'wurlitzer', 'yamaha', 'oberheim', 'ampex'],
+  ['sequential', 'sequential circuits', 'roland', 'boss', 'wurlitzer', 'yamaha', 'oberheim', 'ampex'],
 )
 
 const matchedSlug = (title: string): string | null => {
@@ -89,8 +91,9 @@ test('rule 1: a model inside a list of models is what a part fits', () => {
 test('rule 1: the instrument, and the same model written twice, still match', () => {
   for (const [title, slug] of [
     ['Sequential Prophet-5 Rev 4', 'sequential-prophet-5'],
-    ['Sequential Prophet 5 Rev3 61-Key 5-Voice Polyphonic Synthesizer 1980 - 1984 + Flight case', 'sequential-prophet-5'],
-    ['Sequential Circuits Prophet-5  Rev3.3  120 Programs w/Factory MIDI', 'sequential-prophet-5'],
+    // PAN-221: a Rev 3 or a "Sequential Circuits" is the 1978–84 original, not the 2020 model.
+    ['Sequential Prophet 5 Rev3 61-Key 5-Voice Polyphonic Synthesizer 1980 - 1984 + Flight case', 'sequential-circuits-prophet-5'],
+    ['Sequential Circuits Prophet-5  Rev3.3  120 Programs w/Factory MIDI', 'sequential-circuits-prophet-5'],
     ['Wurlitzer 200 / 200A – Fully Restored – Custom Automotive-Grade Color Finish', 'wurlitzer-200a'],
     ['Wurlitzer 200A 64-Key Electric Piano 1974 - 1983 - Black', 'wurlitzer-200a'],
     ['Roland Juno-60', 'roland-juno-60'],

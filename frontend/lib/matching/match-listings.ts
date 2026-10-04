@@ -13,12 +13,14 @@ import {
   brandCollisionReason,
   detectCatalogueBrands,
   detectOfferedBrand,
+  makerNamed,
+  makerOf,
+  sameMaker,
   tokenFollowedByReference,
   tokenIsObjectOfFor,
   tokenInModelList,
   wordIndexOf,
   OFFERED_BRAND_LEAD_WORDS,
-  containsBrandToken,
   type BrandCollision,
 } from './brand-guard'
 import { detectNonProductIntent, earliestInclusionMarker, type NonProductIntent } from './listing-intent'
@@ -823,6 +825,33 @@ const PROPHET_10_VINTAGE =
 const PROPHET_10_2020 =
   /(?<![\w-])(?:rev\.?\s*4|reissue|desktop|module|new|20(?:19|[23]\d))(?![\w\d-])/i
 
+// ── PAN-221: Sequential, three eras, one maker ────────────────────────────
+/**
+ * A title that names a 1978–84 Prophet-5 (the Prophet-10 split, applied to its sibling under
+ * owner decision 1 of 2026-10-02): Rev 1–3, SCI, "Circuits", "vintage" or a year of the run.
+ */
+const PROPHET_5_VINTAGE =
+  /(?<![\w-])(?:circuits|sci|vintage|19(?:7[89]|8[0-4])|rev\.?\s*[1-3](?!\d))(?![\w-])/i
+/** A title that names the 2020 Prophet-5: Rev 4, Reissue, Desktop, Module, New, or 2020 on. */
+const PROPHET_5_2020 =
+  /(?<![\w-])(?:rev\.?\s*4|reissue|desktop|module|new|20(?:2\d|3\d))(?![\w\d-])/i
+/** The desktop / module version of a Sequential keyboard: its own Reverb page and price. */
+const SEQ_DESKTOP = cues('desktop', 'module', 'modul', 'tabletop')
+/**
+ * Sequential, Sequential Circuits and Dave Smith Instruments parts and accessories, measured on
+ * the 1,305 active titles naming them (2026-10-04): the parts trade outnumbers the units on every
+ * vintage row (switches, side panels, EPROM sets, batteries) and sits on the new ones as stands and
+ * controllers. Only what listing-intent.ts does not already read (covers, manuals, EPROMs, presets,
+ * fuses, pots and sliders defer there, auditably). Marker-aware, so "DrumTraks with 30 EPROM
+ * sounds" and "Tempest … + Decksaver" stay the instrument.
+ */
+const SEQ_PARTS: readonly string[] = [
+  'knob', 'knobs', 'knob set', 'knob caps', 'pushbuttons', 'switch', 'switches', 'bushing', 'bushings', 'contacts',
+  'contact strip', 'sides', 'side panels', 'wood panels', 'panels', 'enclosure', 'rom', 'firmware', 'os', 'ics', 'pcb',
+  'transformer', 'power supply', 'psu', 'battery', 'cable', 'patches', 'sounds', 'sound set', 'sample pack',
+  'binary files', 'badge', 'stand', 'controller', 'emulator', 'display', 'upgrade', 'kit', 'decksaver',
+]
+
 /** `cue`, unless `stronger` also appears anywhere in the title. */
 function unlessAlso(cue: RegExp, stronger: RegExp): RegExp {
   return new RegExp(`${cue.source}(?!.*${stronger.source})(?<!${stronger.source}.*)`, 'i')
@@ -1477,15 +1506,17 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // itself in 2018), so the brand word cannot separate them; these cues do,
   // measured on all 163 production titles. A 2020 cue wins over a vintage one:
   // "Sequential Circuits Prophet 10 Desktop" is the 2021 desktop module.
+  // PAN-221 adds the desktop module as its own member and the measured parts list.
   'sequential-prophet-10': {
     line: 'prophet-10',
-    otherMembers: [unlessAlso(PROPHET_10_VINTAGE, PROPHET_10_2020)],
+    otherMembers: [unlessAlso(PROPHET_10_VINTAGE, PROPHET_10_2020), ...SEQ_DESKTOP],
+    accessories: SEQ_PARTS,
   },
   'sequential-circuits-prophet-10': {
     line: 'prophet-10',
     requires: [PROPHET_10_VINTAGE],
     otherMembers: [PROPHET_10_2020],
-    accessories: ['rom', 'ics', 'upgrade'],
+    accessories: SEQ_PARTS,
   },
 
   // ── PAN-154 (2/2): option A, the name is the base model ───────────────────
@@ -1645,10 +1676,13 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
     ],
     accessories: ['book'],
   },
-  // Form factor only; the vintage/Rev4 split is unresolved (frozen boundary).
+  // Split by name like the Prophet-10 (PAN-221, owner decision 1 of 2026-10-02 on the clean rows):
+  // `sequential-prophet-5` is the 2020 model, `sequential-circuits-prophet-5` the 1978–84 original,
+  // `sequential-prophet-5-desktop` the 2021 module. A 2020 cue wins over a vintage one.
   'sequential-prophet-5': {
     line: 'prophet-5',
-    otherMembers: cues('module', 'desktop'),
+    otherMembers: [unlessAlso(PROPHET_5_VINTAGE, PROPHET_5_2020), ...SEQ_DESKTOP],
+    accessories: SEQ_PARTS,
   },
   // Frozen boundary: "Excludes HD-28." (The tokenizer already refuses "HD-28".)
   // `reimagined` stays as the owner ratified it, although the 2017+ Standard Series D-28 is the
@@ -2195,6 +2229,46 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
     ],
     accessories: NEVE_PARTS,
   },
+
+  // ── PAN-221: Sequential, three eras, one maker ───────────────────────────
+  // The 2018– keyboards and their desktop / module versions are their own Reverb pages and prices,
+  // so one line per model splits them on the form factor; the 1978–84 Prophet-5 is split from the
+  // 2020 model as the Prophet-10 is (above); every vintage Sequential Circuits and Dave Smith
+  // Instruments row refuses the parts trade that outnumbers its units. Measured on the 1,305
+  // active titles naming the maker, 2026-10-04 (scripts/lib/pan221-sequential.test.ts).
+  'sequential-prophet-5-desktop': { line: 'prophet-5', requires: SEQ_DESKTOP, otherMembers: [], accessories: SEQ_PARTS },
+  'sequential-circuits-prophet-5': { line: 'prophet-5', requires: [PROPHET_5_VINTAGE], otherMembers: [PROPHET_5_2020], accessories: SEQ_PARTS },
+  'sequential-prophet-6': { line: 'prophet-6', otherMembers: SEQ_DESKTOP, accessories: SEQ_PARTS },
+  'sequential-prophet-6-desktop': { line: 'prophet-6', requires: SEQ_DESKTOP, otherMembers: [], accessories: SEQ_PARTS },
+  'sequential-prophet-10-desktop': { line: 'prophet-10', requires: SEQ_DESKTOP, otherMembers: [], accessories: SEQ_PARTS },
+  'sequential-ob-6': { line: 'ob-6', otherMembers: SEQ_DESKTOP, accessories: SEQ_PARTS },
+  'sequential-ob-6-desktop': { line: 'ob-6', requires: SEQ_DESKTOP, otherMembers: [], accessories: SEQ_PARTS },
+  'sequential-take-5': { line: 'take-5', otherMembers: SEQ_DESKTOP, accessories: SEQ_PARTS },
+  'sequential-take-5-desktop': { line: 'take-5', requires: SEQ_DESKTOP, otherMembers: [], accessories: SEQ_PARTS },
+  'sequential-trigon-6': { line: 'trigon-6', otherMembers: SEQ_DESKTOP, accessories: SEQ_PARTS },
+  'sequential-trigon-6-desktop': { line: 'trigon-6', requires: SEQ_DESKTOP, otherMembers: [], accessories: SEQ_PARTS },
+  'sequential-pro-3': { line: 'pro-3', otherMembers: cues('se', 'special edition'), accessories: SEQ_PARTS },
+  'sequential-pro-3-se': { line: 'pro-3', requires: cues('se', 'special edition'), otherMembers: [], accessories: SEQ_PARTS },
+  'sequential-prophet-rev2': { line: 'prophet-rev2', otherMembers: SEQ_DESKTOP, accessories: SEQ_PARTS },
+  'sequential-prophet-x': { line: 'prophet-x', otherMembers: cues('xl'), accessories: SEQ_PARTS },
+  'sequential-drumtraks': { line: 'drumtraks', otherMembers: [], accessories: SEQ_PARTS },
+  'sequential-circuits-pro-one': { line: 'pro-one', otherMembers: cues('behringer', 'pro-2', 'pro 2', 'pro-3', 'pro 3'), accessories: SEQ_PARTS },
+  'sequential-circuits-prophet-600': { line: 'prophet-600', otherMembers: [], accessories: SEQ_PARTS },
+  'sequential-circuits-prophet-vs': { line: 'prophet-vs', otherMembers: cues('rack', 'rackmount'), accessories: SEQ_PARTS },
+  'sequential-circuits-six-trak': { line: 'six-trak', otherMembers: [], accessories: SEQ_PARTS },
+  'sequential-circuits-prophet-2000': { line: 'prophet-2000', otherMembers: cues('2002'), accessories: SEQ_PARTS },
+  'sequential-circuits-prophet-t8': { line: 'prophet-t8', otherMembers: [], accessories: SEQ_PARTS },
+  // Dave Smith Instruments: the Mopho is the yellow desktop box; the keyboard, the SE and the x4 are their own pages.
+  'dave-smith-instruments-mopho': { line: 'mopho', otherMembers: cues('keyboard', 'x4', 'se', '32-key', '32 key', '42-key'), accessories: SEQ_PARTS },
+  'dave-smith-instruments-mopho-x4': { line: 'mopho', requires: [cue('x4')], otherMembers: [], accessories: SEQ_PARTS },
+  // The Evolver is the 2002 desktop; the Poly Evolver and the Mono Evolver are keyboards, the Poly Evolver Rack its own row.
+  'dave-smith-instruments-evolver': { line: 'evolver', otherMembers: cues('poly', 'polyevolver', 'mono', 'mek', 'keyboard', 'rack'), accessories: SEQ_PARTS },
+  'dave-smith-instruments-poly-evolver': { line: 'evolver', requires: cues('poly', 'polyevolver'), otherMembers: cues('rack'), accessories: SEQ_PARTS },
+  'dave-smith-instruments-mono-evolver': { line: 'evolver', requires: cues('mono', 'mek'), otherMembers: [], accessories: SEQ_PARTS },
+  'dave-smith-instruments-prophet-08': { line: 'prophet-08', otherMembers: SEQ_DESKTOP, accessories: SEQ_PARTS },
+  'dave-smith-instruments-tempest': { line: 'tempest', otherMembers: [], accessories: SEQ_PARTS },
+  'dave-smith-instruments-tetra': { line: 'tetra', otherMembers: [], accessories: SEQ_PARTS },
+  'davesmithinstruments-pro2': { line: 'pro-2', otherMembers: [], accessories: SEQ_PARTS },
 }
 
 /**
@@ -2649,8 +2723,12 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   // A set of size != 1 is unusable evidence: zero means no brand was named,
   // more than one means the title names several unrelated brands ("Squier
   // Jazz Bass + Harley Benton amp"). Neither may be used to pick a winner.
+  //
+  // Several names of ONE maker ("Sequential Circuits", "Sequential") are one brand's worth
+  // of evidence (PAN-221, SAME_MAKER): the first named stands for the maker.
   const detected = detectCatalogueBrands(norm, index.catalogueBrands)
-  const brandEvidence = detected.size === 1 ? Array.from(detected)[0] : null
+  const makers = new Set(Array.from(detected).map(makerOf))
+  const brandEvidence = makers.size === 1 ? Array.from(detected)[0] : null
 
   let admissible = surviving
   if (brandEvidence) {
@@ -2658,7 +2736,7 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
     // are therefore not eliminated.
     admissible = surviving.filter((c) => {
       const b = index.productById.get(c.product_id)?.brand_name
-      return !b || b === brandEvidence
+      return !b || sameMaker(b, brandEvidence)
     })
     if (admissible.length === 0) {
       return {
@@ -2737,7 +2815,7 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   const rival = lineRefused.find((c) => {
     if (c.score < best.score || lineOf(c.product_id) === lineOf(best.product_id)) return false
     const b = index.productById.get(c.product_id)?.brand_name
-    return !brandEvidence || !b || b === brandEvidence
+    return !brandEvidence || !b || sameMaker(b, brandEvidence)
   })
   if (rival) {
     return {
@@ -2786,7 +2864,7 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   // uniquely safe is the product's OWN brand appearing verbatim in the title.
   if (best.score < AUTO_CONFIDENCE_MIN) {
     const ownBrand = index.productById.get(best.product_id)?.brand_name ?? null
-    const brandProven = !!ownBrand && containsBrandToken(norm, ownBrand)
+    const brandProven = !!ownBrand && makerNamed(norm, ownBrand)
     if (!brandProven) {
       return {
         kind: 'deferred',
@@ -2822,7 +2900,7 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   const bestBrand = index.productById.get(best.product_id)?.brand_name ?? null
   if (bestBrand) {
     const offered = detectOfferedBrand(norm, index.catalogueBrands)
-    if (offered && offered !== bestBrand) {
+    if (offered && !sameMaker(offered, bestBrand)) {
       const at = wordIndexOf(norm, bestBrand)
       if (at === null || at > OFFERED_BRAND_LEAD_WORDS) {
         return {

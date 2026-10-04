@@ -645,6 +645,11 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
       'sequential-prophet-rev2',
       'sequential-prophet-5',
       'sequential-prophet-10',
+      // PAN-221: the desktop modules and the Prophet X, their own Reverb pages and prices.
+      'sequential-prophet-5-desktop',
+      'sequential-prophet-6-desktop',
+      'sequential-prophet-10-desktop',
+      'sequential-prophet-x',
     ],
     aliases: [],
   },

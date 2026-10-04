@@ -32,6 +32,8 @@ const index = buildMatchIndex([
   product('moog-minimoog', 'Minimoog', 'moog'),
   product('moog-model-d', 'Model D', 'moog'),
   product('sequential-prophet-10', 'Prophet-10', 'sequential'),
+  // PAN-221: the 2021 desktop module shares the name; the line boundary splits them on the form factor.
+  product('sequential-prophet-10-desktop', 'Prophet-10', 'sequential'),
   // `known` in production today, with model_name "Prophet 10" (which does not
   // read "Prophet-10"). Supported and hyphenated here, as it must be before it
   // can receive matches, so its boundary is exercised.
@@ -122,15 +124,17 @@ test('Prophet-10 splits by name: the 2020 model and the Sequential Circuits orig
   // sold as "Sequential", so a bare title is never evidence for the 1980 one.
   for (const title of [
     'Sequential Prophet-10 61-Key 10-Voice Polyphonic Synthesizer 2020 - Present - Black with Wood Sides',
-    'Sequential Prophet-10 Desktop Module',
     'Sequential Prophet 10 - rev4',
     'Sequential Prophet-10',
     'Prophet 10 Sequential',
     // "Circuits" does not survive a 2020 cue.
-    'Sequential Circuits Prophet 10 Desktop',
     'Sequential Circuits Prophet 10 Rev 4 Analog Poly Synth',
   ]) {
     assert.equal(matchedSlug(title), 'sequential-prophet-10', title)
+  }
+  // PAN-221: the desktop module is its own row; "Circuits" does not survive that cue either.
+  for (const title of ['Sequential Prophet-10 Desktop Module', 'Sequential Circuits Prophet 10 Desktop']) {
+    assert.equal(matchedSlug(title), 'sequential-prophet-10-desktop', title)
   }
   // A vintage cue is never the 2020 model.
   for (const title of [
@@ -143,9 +147,9 @@ test('Prophet-10 splits by name: the 2020 model and the Sequential Circuits orig
     assert.notEqual(matchedSlug(title), 'sequential-prophet-10', title)
   }
   assert.equal(matchedSlug('Sequential Circuits - Prophet-10 // restored by VS&C'), 'sequential-circuits-prophet-10')
-  // Without "Circuits" the brand evidence is "Sequential", so the original is
-  // deferred rather than matched: fail closed.
-  assert.equal(decideMatch('Vintage Sequential Prophet 10 - fully serviced & sold with a warranty', index).kind, 'deferred')
+  // "Sequential" and "Sequential Circuits" are one maker (PAN-221, owner decision 2 of 2026-10-04),
+  // so a vintage cue under the newer name reaches the original instead of deferring.
+  assert.equal(matchedSlug('Vintage Sequential Prophet 10 - fully serviced & sold with a warranty'), 'sequential-circuits-prophet-10')
   // …and a part for the original is not the original either.
   assert.equal(matchedSlug('Sequential Circuits Prophet-10 Diagnostics ROM ICs'), null)
 })

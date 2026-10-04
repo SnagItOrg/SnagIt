@@ -202,6 +202,7 @@ test('integration: every package suite is registered exactly once', () => {
       // it can be exercised here without Next.js or Supabase in scope.
       'scripts/lib/pan22-publication.test.ts',
       'scripts/lib/pan220-line-boundaries.test.ts',
+      'scripts/lib/pan221-sequential.test.ts',
       'scripts/lib/pan222-line-boundaries.test.ts',
       'scripts/lib/pan223-line-boundaries.test.ts',
       'scripts/lib/pan224-line-boundaries.test.ts',
