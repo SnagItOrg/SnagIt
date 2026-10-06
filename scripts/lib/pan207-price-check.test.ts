@@ -51,6 +51,9 @@ test("can't read the link: each kind of link names its own cause", () => {
   assert.deepEqual(readLink('https://www.dba.dk/recommerce/forsale/item/24525470?ref=share'), {
     source: 'dba', url: 'https://www.dba.dk/recommerce/forsale/item/24525470',
   })
+  assert.deepEqual(readLink('https://www.dba.dk/25415330'), {
+    source: 'dba', url: 'https://www.dba.dk/recommerce/forsale/item/25415330',
+  })
   assert.equal(classify({ source: 'dba', cause: 'no_price', matched: true, priceDkk: null, populations: null, dkAskingPrices: [] }).state, 'cant_read')
 })
 
