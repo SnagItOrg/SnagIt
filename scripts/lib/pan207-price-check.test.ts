@@ -5,7 +5,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { classify, readLink } from '../../frontend/lib/price-check'
+import { classify, listingsUnderAnswer, readLink } from '../../frontend/lib/price-check'
 import { buildPopulationStats } from '../../frontend/lib/price-populations'
 
 const rows = (prices: number[], source: string) =>
@@ -76,4 +76,21 @@ test('PAN-109: 1–7 Danish prices are shown as a range with a caveat, never as 
     classify({ source: 'dba', cause: null, matched: true, priceDkk: 3500, populations: { 'dk-asking': two }, dkAskingPrices: [4000, 5000] }).dkFew,
     { n: 2, low: 4000, high: 5000, median: null },
   )
+})
+
+test('PAN-244: listings under the answer are Danish first, the pasted ad left out, five at most', () => {
+  const l = (id: string, url: string, source: string, country: string | null) => ({ id, url, source, country })
+  const wall = [
+    l('a', 'https://reverb.com/item/1', 'reverb', null),
+    l('b', 'https://www.dba.dk/recommerce/forsale/item/25415330/', 'dba.dk', 'DK'),
+    l('c', 'https://www.dba.dk/recommerce/forsale/item/2?utm_source=x', 'dba.dk', 'DK'),
+    l('d', 'https://www.kleinanzeigen.de/s-anzeige/3', 'kleinanzeigen', 'DE'),
+    l('e', 'https://www.dba.dk/recommerce/forsale/item/4', 'dba.dk', 'DK'),
+    l('f', 'https://reverb.com/item/5', 'reverb', null),
+    l('g', 'https://www.finn.no/6', 'finn.no', 'NO'),
+  ]
+  // The short share link reads as the canonical ad URL, so 'b' is the pasted ad and leaves.
+  const pasted = readLink('https://www.dba.dk/25415330')
+  assert.ok('url' in pasted)
+  assert.deepEqual(listingsUnderAnswer(wall, pasted.url).map((x) => x.id), ['c', 'e', 'a', 'd', 'f'])
 })

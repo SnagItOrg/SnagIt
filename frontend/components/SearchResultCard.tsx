@@ -83,8 +83,9 @@ function timeSince(dateStr: string, locale: string): string {
 
 interface Props {
   listing:            Listing
-  onCreateWatchlist:  (listingTitle?: string) => void
-  creating:           boolean
+  /** Save and watch render only when the page owns the flow; /tjek-prisen passes neither (PAN-244). */
+  onCreateWatchlist?: (listingTitle?: string) => void
+  creating?:          boolean
   variant?:           'list' | 'grid'
   isSaved?:           boolean
   onToggleSave?:      (listing: Listing) => void
@@ -177,7 +178,7 @@ export function MarketVerdictBadge({
   )
 }
 
-export function SearchResultCard({ listing, onCreateWatchlist, creating, variant = 'list', isSaved = false, onToggleSave, thomannPriceDkk, thomannUrl, productSlug, trackedProductSlug, thomannImageUrl, marketVerdict, marketVerdictBasisLabel }: Props) {
+export function SearchResultCard({ listing, onCreateWatchlist, creating = false, variant = 'list', isSaved = false, onToggleSave, thomannPriceDkk, thomannUrl, productSlug, trackedProductSlug, thomannImageUrl, marketVerdict, marketVerdictBasisLabel }: Props) {
   const { locale, t } = useLocale()
 
   function trackOutbound() {
@@ -246,7 +247,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
     const supabase = createSupabaseBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      onCreateWatchlist(listing.title)
+      onCreateWatchlist?.(listing.title)
     } else {
       setShowCapture(true)
     }
@@ -606,6 +607,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               {t.viewListing}
             </a>
             {/* Heart — save listing */}
+            {onToggleSave && (
             <button
               onClick={(e) => { e.stopPropagation(); handleHeartClick() }}
               className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl text-xs font-semibold transition-colors"
@@ -618,7 +620,9 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               {/* Saved state is carried by the word, not only by the filled heart. */}
               {isSaved ? t.listingSavedShort : t.listingSaveShort}
             </button>
+            )}
             {/* Bell — create watchlist alert */}
+            {onCreateWatchlist && (
             <Button
               variant="secondary"
               onClick={(e) => { e.stopPropagation(); handleWatchlistClick() }}
@@ -628,6 +632,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating, variant
               <Icon name="notifications" style={{ fontSize: '14px' }} />
               {t.createWatchlist}
             </Button>
+            )}
             {productSlug && (
               <a
                 href={`/product/${productSlug}`}
