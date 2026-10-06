@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 import { decideMatch, loadMatchIndex } from '@/lib/matching/match-listings'
-import { classify, listingsUnderAnswer, readLink, type PriceCheckCause, type PriceCheckListing, type PriceCheckResult } from '@/lib/price-check'
+import { classify, guessProducts, listingsUnderAnswer, readLink, type PriceCheckCause, type PriceCheckGuess, type PriceCheckListing, type PriceCheckResult } from '@/lib/price-check'
+import { detectCatalogueBrands } from '@/lib/matching/brand-guard'
+import { CANONICAL_STATUS, CANONICAL_SUPPORT, CATALOGUE_STATE_SELECT, loadCanonicalSlugs } from '@/lib/catalogue'
 import type { PopulationKey, PopulationStats } from '@/lib/price-populations'
 import type { SearchOutcome } from '@/lib/search-contract'
 import { GET as getProduct } from '@/app/api/product/[slug]/route'
@@ -52,11 +54,52 @@ async function publicPage(req: NextRequest, slug: string) {
   const page = (await res.json()) as {
     product: { canonical_name: string }
     listings: PriceCheckListing[]
+    priceRange: { low: number; high: number } | null
     populations: Record<PopulationKey, PopulationStats>
     dkAskingPrices: number[]
     adminPreview: boolean
   }
   return page.adminPreview ? null : page
+}
+
+/**
+ * PAN-244 part 2: what an unrecognised DBA ad may mean, for the user to confirm.
+ * Public products only, decided by the one authority (`loadCanonicalSlugs`, never
+ * cached). Two signals, never a silent match: the ad's own description naming
+ * exactly one catalogue brand (then the title plus that brand is an ordinary
+ * `decideMatch`, shown as the top guess), and the title naming a model name in
+ * full. The price range is read only for the few candidates in front, so the
+ * common case costs one small read.
+ */
+async function guessesFor(
+  req: NextRequest,
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  index: Awaited<ReturnType<typeof loadMatchIndex>>,
+  listing: { title: string; description?: string | null },
+  priceDkk: number | null,
+): Promise<PriceCheckGuess[]> {
+  const canonical = await loadCanonicalSlugs(async () => {
+    const res = await admin.from('kg_product').select(CATALOGUE_STATE_SELECT)
+      .eq('status', CANONICAL_STATUS).eq('support_state', CANONICAL_SUPPORT)
+    return { data: res.data, error: res.error }
+  })
+  const brands = Array.from(detectCatalogueBrands(listing.description ?? '', index.catalogueBrands))
+  const decision = brands.length === 1 ? decideMatch(`${brands[0]} ${listing.title}`, index) : null
+  const hit = decision?.kind === 'matched' ? index.productById.get(decision.best.product_id) : undefined
+  const top: PriceCheckGuess[] = hit && canonical.has(hit.slug) ? [{ slug: hit.slug, name: hit.canonical_name }] : []
+
+  const candidates = index.products.filter((p) => canonical.has(p.slug))
+    .map((p) => ({ slug: p.slug, name: p.canonical_name, model_name: p.model_name }))
+  const lead = guessProducts(listing.title, priceDkk, candidates, new Map(), 6)
+  const ranges = new Map<string, { low: number; high: number }>()
+  if (lead.length > 1) {
+    for (const g of lead) {
+      const page = await publicPage(req, g.slug)
+      if (page?.priceRange) ranges.set(g.slug, page.priceRange)
+    }
+  }
+  const ranked = guessProducts(listing.title, priceDkk, candidates.filter((c) => lead.some((g) => g.slug === c.slug)), ranges)
+  return [...top, ...ranked.filter((g) => g.slug !== top[0]?.slug)].slice(0, 3)
 }
 
 /** "See Telecaster prices": the resolver's one unambiguous target, or nothing. */
@@ -71,11 +114,13 @@ async function guideFor(req: NextRequest, text: string | null): Promise<PriceChe
 }
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => null)) as { url?: unknown } | null
+  const body = (await req.json().catch(() => null)) as { url?: unknown; pick?: unknown } | null
   const link = readLink(typeof body?.url === 'string' ? body.url : '')
+  // PAN-244 part 2: the slug the user picked from the guesses, if any.
+  const pick = typeof body?.pick === 'string' ? body.pick : null
   const empty: PriceCheckResult = {
     state: 'cant_read', source: null, cause: null, title: null, priceDkk: null,
-    product: null, verdict: null, ranges: [], dkFew: null, guide: null, listings: [],
+    product: null, verdict: null, ranges: [], dkFew: null, guide: null, listings: [], guesses: [], fromPick: false,
   }
   if ('cause' in link) {
     return NextResponse.json({ ...empty, cause: link.cause, guide: await guideFor(req, link.query) })
@@ -100,10 +145,15 @@ export async function POST(req: NextRequest) {
   // Thomann identity, cheapest first: the stored link, the name in the URL,
   // then the fetched title. Only the new price depends on the fetch.
   const slugName = new URL(url).pathname.replace(/^\/|\.html?$/g, '').replace(/_/g, ' ')
-  const product = source === 'dba'
+  const recognised = source === 'dba'
     ? match(listing?.title)
     : (known?.kg_product_id ? index.productById.get(known.kg_product_id) : undefined)
       ?? match(known?.canonical_name) ?? match(slugName) ?? match(listing?.title)
+  // PAN-244 part 2: a pick replaces the recognition, never the verdict rules, and only a
+  // public product can be picked — anything else falls back to what was recognised.
+  const picked = pick && source === 'dba' && listing ? index.products.find((p) => p.slug === pick) : undefined
+  const pickedPage = picked ? await publicPage(req, picked.slug) : null
+  const product = pickedPage ? picked : recognised
 
   let cause: PriceCheckCause | null = null
   if (!listing && !(source === 'thomann' && (product || known))) {
@@ -124,7 +174,7 @@ export async function POST(req: NextRequest) {
     if (error) console.error('[tjek-prisen] thomann_product write failed', error.code)
   }
 
-  const page = product && !cause ? await publicPage(req, product.slug) : null
+  const page = pickedPage && !cause ? pickedPage : (product && !cause ? await publicPage(req, product.slug) : null)
   const title = listing?.title ?? known?.canonical_name ?? (source === 'thomann' ? slugName : null)
   const priceDkk = listing?.price ?? known?.price_dkk ?? null
   const outcome = classify({
@@ -151,5 +201,8 @@ export async function POST(req: NextRequest) {
     // The page's own listings, so a product that is not public has none here either.
     listings: page ? listingsUnderAnswer(page.listings ?? [], url) : [],
     guide: outcome.state === 'not_recognised' ? await guideFor(req, title) : null,
+    guesses: outcome.state === 'not_recognised' && source === 'dba' && listing
+      ? await guessesFor(req, admin, index, listing, priceDkk) : [],
+    fromPick: !!pickedPage,
   } satisfies PriceCheckResult)
 }

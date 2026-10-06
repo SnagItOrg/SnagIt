@@ -1,7 +1,8 @@
 import * as cheerio from 'cheerio'
 import type { Listing } from '../supabase'
 
-type ScrapedListing = Omit<Listing, 'id' | 'scraped_at'>
+/** PAN-244: `description` is the ad's own text (JSON-LD, else og:description), never the rest of the page. */
+type ScrapedListing = Omit<Listing, 'id' | 'scraped_at'> & { description: string | null }
 
 export function isDbaListingUrl(input: string): boolean {
   try {
@@ -53,6 +54,7 @@ export async function scrapeDbaListing(listingUrl: string): Promise<ScrapedListi
     const offers = product['offers'] as Record<string, unknown> | undefined
     const rawPrice = offers?.['price']
     const price = rawPrice != null ? parseInt(String(rawPrice), 10) : null
+    const rawDescription = product['description'] as unknown
     const rawImage = product['image']
     const image_url = rawImage
       ? String(Array.isArray(rawImage) ? rawImage[0] : rawImage)
@@ -66,6 +68,7 @@ export async function scrapeDbaListing(listingUrl: string): Promise<ScrapedListi
       image_url,
       location: null,
       source: 'dba.dk',
+      description: typeof rawDescription === 'string' ? rawDescription.trim() : null,
     }
   }
 
@@ -87,5 +90,6 @@ export async function scrapeDbaListing(listingUrl: string): Promise<ScrapedListi
     image_url,
     location: null,
     source: 'dba.dk',
+    description: $('meta[property="og:description"]').attr('content')?.trim() ?? null,
   }
 }

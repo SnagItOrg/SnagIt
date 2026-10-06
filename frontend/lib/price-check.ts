@@ -21,6 +21,9 @@ export type PriceCheckCause =
 /** A listing as /api/product/[slug] returns it: the row plus the verdict it computed. */
 export type PriceCheckListing = Listing & { marketVerdict?: Verdict | null; marketVerdictBasisLabel?: string | null }
 
+/** A public product the answer offers as a guess (PAN-244 part 2). */
+export interface PriceCheckGuess { slug: string; name: string }
+
 export interface PriceCheckResult {
   state: PriceCheckState
   source: PriceCheckSource | null
@@ -42,10 +45,57 @@ export interface PriceCheckResult {
   guide: { href: string; label: string } | null
   /** Up to five of the product's live listings, Danish first, the pasted ad left out (PAN-244). Empty unless `product` is set. */
   listings: PriceCheckListing[]
+  /** When nothing was recognised: the public products the title may mean, best first, three at most (PAN-244 part 2). */
+  guesses: PriceCheckGuess[]
+  /** The answer is for a product the user picked from the guesses, not one Klup recognised. */
+  fromPick: boolean
 }
 
 /** How many of the product's listings the answer shows. The product page shows them all. */
 const LISTINGS_UNDER_ANSWER = 5
+
+export interface GuessCandidate { slug: string; name: string; model_name: string | null }
+
+/** How many guesses the answer offers. */
+const GUESSES = 3
+
+/** Lower-case words: letters (Latin, incl. æøå) and digits, so "Juno-60" and "juno 60" are the same two words. */
+const words = (s: string) => s.toLowerCase().split(/[^0-9a-z\u00c0-\u024f]+/).filter(Boolean)
+
+const namesInOrder = (title: readonly string[], model: readonly string[]) =>
+  model.length > 0 && title.some((_, i) => model.every((m, j) => title[i + j] === m))
+
+/**
+ * PAN-244 part 2: which public products an unrecognised title may mean. A
+ * product is a candidate when the title names its model name in full, brand
+ * or no brand ("vintage juno 60" names "Juno-60"). Best first: the most name
+ * words shared with the title, then the price inside the product's observed
+ * range, then the name. Pure: the caller decides which products are public
+ * and supplies the ranges it knows.
+ */
+export function guessProducts(
+  title: string,
+  priceDkk: number | null,
+  products: readonly GuessCandidate[],
+  ranges: ReadonlyMap<string, { low: number; high: number }>,
+  limit = GUESSES,
+): PriceCheckGuess[] {
+  const t = words(title)
+  return products
+    .filter((p) => p.model_name != null && namesInOrder(t, words(p.model_name)))
+    .map((p) => {
+      const name = new Set(words(p.name))
+      const r = ranges.get(p.slug)
+      return {
+        p,
+        overlap: t.filter((w) => name.has(w)).length,
+        inRange: priceDkk != null && r != null && priceDkk >= r.low && priceDkk <= r.high ? 1 : 0,
+      }
+    })
+    .sort((a, b) => b.overlap - a.overlap || b.inRange - a.inRange || a.p.name.localeCompare(b.p.name))
+    .slice(0, limit)
+    .map(({ p }) => ({ slug: p.slug, name: p.name }))
+}
 
 const adUrl = (url: string) => {
   try {
