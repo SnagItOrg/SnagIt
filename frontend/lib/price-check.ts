@@ -55,7 +55,7 @@ export function readLink(
   if (source === 'dba' && url.pathname.includes('/item/')) return { source, url: clean }
   // DBA's short share link, dba.dk/<id>, is the same ad: it redirects to /recommerce/forsale/item/<id>.
   const shortId = source === 'dba' ? /^\/(\d+)\/?$/.exec(url.pathname)?.[1] : undefined
-  if (shortId) return { source, url: `${url.origin}/recommerce/forsale/item/${shortId}` }
+  if (source === 'dba' && shortId) return { source, url: `${url.origin}/recommerce/forsale/item/${shortId}` }
   const host = url.hostname.replace(/^www\./, '')
   if (host === 'dba.dk' || host.startsWith('thomann.')) {
     return { cause: 'not_single_ad', query: url.searchParams.get('q') }
