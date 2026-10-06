@@ -502,6 +502,12 @@ export interface KlupEventMap {
     state: 'verdict' | 'not_enough_data' | 'not_recognised' | 'cant_read'
     source: 'dba' | 'thomann' | null
   }
+
+  /** PAN-244 — the guess row on /tjek-prisen was answered: how many were shown, which was picked. */
+  price_check_guess: {
+    shown: number
+    picked: 0 | 1 | 2 | 'none'
+  }
 }
 
 export type KlupEventName = keyof KlupEventMap
@@ -526,6 +532,7 @@ const EVENT_NAMES: Record<KlupEventName, true> = {
   search_unsupported: true,
   demand_signal_submitted: true,
   price_check_result: true,
+  price_check_guess: true,
 }
 
 /** Every tracked event name, for the transmit allow-list and the taxonomy assertions. */

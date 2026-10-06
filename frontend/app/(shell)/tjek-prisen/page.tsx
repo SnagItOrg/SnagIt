@@ -36,18 +36,21 @@ export default function TjekPrisenPage() {
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
   const [result, setResult] = useState<PriceCheckResult | null>(null)
+  /** "Ingen af dem": the guesses go, the answer stays. */
+  const [guessesDismissed, setGuessesDismissed] = useState(false)
 
-  async function check(e: React.FormEvent) {
-    e.preventDefault()
+  /** One check; with `pick`, the same link answered for the product the user chose (PAN-244 part 2). */
+  async function check(pick?: string) {
     if (!url.trim() || loading) return
     setLoading(true)
     setFailed(false)
     setResult(null)
+    setGuessesDismissed(false)
     try {
       const res = await fetch('/api/tjek-prisen', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify(pick ? { url, pick } : { url }),
       })
       if (!res.ok) throw new Error(String(res.status))
       const data = (await res.json()) as PriceCheckResult
@@ -58,6 +61,13 @@ export default function TjekPrisenPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function choose(picked: 0 | 1 | 2 | 'none') {
+    if (!result) return
+    track('price_check_guess', { shown: result.guesses.length, picked })
+    if (picked === 'none') setGuessesDismissed(true)
+    else void check(result.guesses[picked].slug)
   }
 
   const message = !result
@@ -81,7 +91,7 @@ export default function TjekPrisenPage() {
           <p className="type-body-secondary mt-2">{t.priceCheckIntro}</p>
         </div>
 
-        <form onSubmit={check} className="flex flex-col gap-2">
+        <form onSubmit={(e) => { e.preventDefault(); void check() }} className="flex flex-col gap-2">
           <label htmlFor="klup-price-check" className="sr-only">{t.priceCheckInputLabel}</label>
           {/* 16px text: anything smaller makes iOS Safari zoom on focus. */}
           <TextField
@@ -111,6 +121,7 @@ export default function TjekPrisenPage() {
           {result && (
             <section className="surface-card rounded-2xl p-5 flex flex-col gap-3">
               {result.title && <h2 className="type-card-title">{result.title}</h2>}
+              {result.fromPick && <p className="type-meta">{t.priceCheckFromPick}</p>}
               {result.priceDkk != null && (
                 <p className="text-2xl font-semibold text-ink">
                   {kr(result.priceDkk)} kr
@@ -145,6 +156,28 @@ export default function TjekPrisenPage() {
                 </p>
               ))}
               {message && <p className="type-body">{message}</p>}
+              {result.guesses.length > 0 && !guessesDismissed && (
+                <div className="flex flex-col gap-2">
+                  <p className="type-body">{fill(t.priceCheckGuess, { label: result.guesses[0].name })}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {result.guesses.map((g, i) => (
+                      <Button
+                        key={g.slug}
+                        type="button"
+                        variant={i === 0 ? 'primary' : 'secondary'}
+                        disabled={loading}
+                        onClick={() => choose(i as 0 | 1 | 2)}
+                        className="min-h-[44px] rounded-xl px-4 text-sm font-semibold"
+                      >
+                        {g.name}
+                      </Button>
+                    ))}
+                    <Button type="button" variant="secondary" disabled={loading} onClick={() => choose('none')} className="min-h-[44px] rounded-xl px-4 text-sm font-semibold">
+                      {t.priceCheckGuessNone}
+                    </Button>
+                  </div>
+                </div>
+              )}
               {result.product && (
                 <Link href={`/product/${result.product.slug}`} className="text-sm font-semibold text-ink underline underline-offset-4">
                   {result.product.name} →

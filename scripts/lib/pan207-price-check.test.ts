@@ -5,7 +5,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { classify, listingsUnderAnswer, readLink } from '../../frontend/lib/price-check'
+import { classify, guessProducts, listingsUnderAnswer, readLink } from '../../frontend/lib/price-check'
 import { buildPopulationStats } from '../../frontend/lib/price-populations'
 
 const rows = (prices: number[], source: string) =>
@@ -93,4 +93,29 @@ test('PAN-244: listings under the answer are Danish first, the pasted ad left ou
   const pasted = readLink('https://www.dba.dk/25415330')
   assert.ok('url' in pasted)
   assert.deepEqual(listingsUnderAnswer(wall, pasted.url).map((x) => x.id), ['c', 'e', 'a', 'd', 'f'])
+})
+
+test('PAN-244 part 2: a guess names the model in full without the brand; overlap, then the price in range, then the name; three at most', () => {
+  const products = [
+    { slug: 'roland-juno-60', name: 'Roland Juno-60', model_name: 'Juno-60' },
+    { slug: 'roland-juno-6', name: 'Roland Juno-6', model_name: 'Juno-6' },
+    { slug: 'roland-juno-106', name: 'Roland Juno-106', model_name: 'Juno-106' },
+    { slug: 'sequential-prophet-5', name: 'Sequential Prophet-5', model_name: 'Prophet-5' },
+    { slug: 'sequential-circuits-prophet-5', name: 'Sequential Circuits Prophet-5', model_name: 'Prophet-5' },
+    { slug: 'a-prophet-5-clone', name: 'A Prophet-5 Clone', model_name: 'Prophet-5' },
+    { slug: 'b-prophet-5-desktop', name: 'B Prophet-5 Desktop', model_name: 'Prophet-5' },
+    { slug: 'no-model', name: 'No Model', model_name: null },
+  ]
+  // "juno 60" is "Juno-60"; "Juno-6" is not, and the brand is not needed.
+  assert.deepEqual(guessProducts('VINTAGE JUNO 60', 21000, products, new Map()).map((g) => g.slug), ['roland-juno-60'])
+  // Four share the overlap: the one whose observed range holds the price leads, then the name, and the fourth is cut.
+  const ranges = new Map([
+    ['sequential-circuits-prophet-5', { low: 60000, high: 120000 }],
+    ['b-prophet-5-desktop', { low: 15000, high: 25000 }],
+  ])
+  assert.deepEqual(
+    guessProducts('Prophet 5 synth', 20000, products, ranges).map((g) => g.slug),
+    ['b-prophet-5-desktop', 'a-prophet-5-clone', 'sequential-circuits-prophet-5'],
+  )
+  assert.deepEqual(guessProducts('Bosch GOP 12V-28 Professional', 1200, products, new Map()), [])
 })

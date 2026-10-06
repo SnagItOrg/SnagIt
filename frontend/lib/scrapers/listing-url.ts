@@ -51,7 +51,10 @@ const BROWSER_HEADERS = {
   'Accept-Language': 'da-DK,da;q=0.9,en-US;q=0.8,en;q=0.7',
 }
 
-export type ScrapedListingResult = Omit<Listing, 'id' | 'scraped_at'>
+export type ScrapedListingResult = Omit<Listing, 'id' | 'scraped_at'> & {
+  /** PAN-244: the ad's own text, when the page states it (DBA does). */
+  description?: string | null
+}
 
 const FALLBACK_RATES: Record<string, number> = { USD: 7.1, EUR: 7.46, GBP: 8.8, DKK: 1.0 }
 
