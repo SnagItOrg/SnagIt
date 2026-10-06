@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 import { decideMatch, loadMatchIndex } from '@/lib/matching/match-listings'
-import { classify, readLink, type PriceCheckCause, type PriceCheckResult } from '@/lib/price-check'
+import { classify, listingsUnderAnswer, readLink, type PriceCheckCause, type PriceCheckListing, type PriceCheckResult } from '@/lib/price-check'
 import type { PopulationKey, PopulationStats } from '@/lib/price-populations'
 import type { SearchOutcome } from '@/lib/search-contract'
 import { GET as getProduct } from '@/app/api/product/[slug]/route'
@@ -51,6 +51,7 @@ async function publicPage(req: NextRequest, slug: string) {
   if (!res.ok) return null
   const page = (await res.json()) as {
     product: { canonical_name: string }
+    listings: PriceCheckListing[]
     populations: Record<PopulationKey, PopulationStats>
     dkAskingPrices: number[]
     adminPreview: boolean
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
   const link = readLink(typeof body?.url === 'string' ? body.url : '')
   const empty: PriceCheckResult = {
     state: 'cant_read', source: null, cause: null, title: null, priceDkk: null,
-    product: null, verdict: null, ranges: [], dkFew: null, guide: null,
+    product: null, verdict: null, ranges: [], dkFew: null, guide: null, listings: [],
   }
   if ('cause' in link) {
     return NextResponse.json({ ...empty, cause: link.cause, guide: await guideFor(req, link.query) })
@@ -147,6 +148,8 @@ export async function POST(req: NextRequest) {
     title,
     priceDkk,
     product: page && product ? { slug: product.slug, name: page.product.canonical_name } : null,
+    // The page's own listings, so a product that is not public has none here either.
+    listings: page ? listingsUnderAnswer(page.listings ?? [], url) : [],
     guide: outcome.state === 'not_recognised' ? await guideFor(req, title) : null,
   } satisfies PriceCheckResult)
 }

@@ -5,7 +5,8 @@
  * fetching and the reads; everything it learns is classified here.
  */
 import { detectListingUrl } from './scrapers/listing-url'
-import { verdictFor, type PopulationStats, type Verdict } from './price-populations'
+import { classifyListing, verdictFor, type PopulationStats, type Verdict } from './price-populations'
+import type { Listing } from './supabase'
 
 export type PriceCheckState = 'verdict' | 'not_enough_data' | 'not_recognised' | 'cant_read'
 export type PriceCheckSource = 'dba' | 'thomann'
@@ -16,6 +17,9 @@ export type PriceCheckCause =
   | 'gone'
   | 'no_price'
   | 'unreachable'
+
+/** A listing as /api/product/[slug] returns it: the row plus the verdict it computed. */
+export type PriceCheckListing = Listing & { marketVerdict?: Verdict | null; marketVerdictBasisLabel?: string | null }
 
 export interface PriceCheckResult {
   state: PriceCheckState
@@ -36,6 +40,32 @@ export interface PriceCheckResult {
    */
   dkFew: { n: number; low: number; high: number; median: number | null } | null
   guide: { href: string; label: string } | null
+  /** Up to five of the product's live listings, Danish first, the pasted ad left out (PAN-244). Empty unless `product` is set. */
+  listings: PriceCheckListing[]
+}
+
+/** How many of the product's listings the answer shows. The product page shows them all. */
+const LISTINGS_UNDER_ANSWER = 5
+
+const adUrl = (url: string) => {
+  try {
+    const u = new URL(url)
+    return (u.origin + u.pathname).replace(/\/$/, '')
+  } catch {
+    return null
+  }
+}
+
+/**
+ * PAN-244: the product page's listings, as the page orders them, with the
+ * Danish ones first and the pasted ad itself left out. Danish is decided by
+ * `classifyListing`, the same rule that places a listing in its population.
+ */
+export function listingsUnderAnswer<T extends Pick<Listing, 'url' | 'source' | 'country'>>(listings: readonly T[], pastedUrl: string): T[] {
+  const pasted = adUrl(pastedUrl)
+  const rest = listings.filter((l) => adUrl(l.url) !== pasted)
+  const danish = (l: T) => classifyListing(l).population === 'dk-asking'
+  return [...rest.filter(danish), ...rest.filter((l) => !danish(l))].slice(0, LISTINGS_UNDER_ANSWER)
 }
 
 /** What the pasted text is, before any request is made. */

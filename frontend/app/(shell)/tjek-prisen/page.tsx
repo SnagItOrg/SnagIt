@@ -5,7 +5,9 @@ import Link from 'next/link'
 import { useLocale } from '@/components/LocaleProvider'
 import { TextField } from '@/components/TextField'
 import { Button } from '@/components/Button'
-import { MarketVerdictBadge } from '@/components/SearchResultCard'
+import { MarketVerdictBadge, SearchResultCard } from '@/components/SearchResultCard'
+import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
+import { stripDecorativeEmoji } from '@/lib/listing-title'
 import { track } from '@/lib/analytics'
 import { fill } from '@/lib/i18n'
 import type { PriceCheckCause, PriceCheckResult } from '@/lib/price-check'
@@ -69,6 +71,7 @@ export default function TjekPrisenPage() {
             ? t.priceCheckUnknownModel
             : result.source === 'thomann' ? t.priceCheckNotFollowed : t.priceCheckUnknownItem
           : null
+  const product = result?.product ?? null
 
   return (
     <main id="main-content" className="flex-1 min-w-0 shell-offset pb-24 md:pb-10">
@@ -155,6 +158,29 @@ export default function TjekPrisenPage() {
             </section>
           )}
         </div>
+
+        {/* PAN-244: the product's own listings under the answer, Danish first. Outside the live region: five cards are not an announcement. */}
+        {product && result && result.listings.length > 0 && (
+          <section className="flex flex-col gap-3" aria-labelledby="klup-price-check-listings">
+            <h2 id="klup-price-check-listings" className="text-sm font-medium text-foreground">{t.priceCheckListings}</h2>
+            <div className="grid-wall grid-wall-lg">
+              {result.listings.map((listing) => (
+                <ListingErrorBoundary key={listing.id} listingId={listing.id}>
+                  <SearchResultCard
+                    listing={{ ...listing, title: stripDecorativeEmoji(listing.title) }}
+                    marketVerdict={listing.marketVerdict}
+                    marketVerdictBasisLabel={listing.marketVerdictBasisLabel}
+                    variant="list"
+                    trackedProductSlug={product.slug}
+                  />
+                </ListingErrorBoundary>
+              ))}
+            </div>
+            <Link href={`/product/${product.slug}`} className="text-sm font-semibold text-ink underline underline-offset-4 self-start">
+              {t.priceCheckSeeAll}
+            </Link>
+          </section>
+        )}
       </div>
     </main>
   )
