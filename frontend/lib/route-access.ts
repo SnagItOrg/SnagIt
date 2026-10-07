@@ -152,6 +152,11 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   },
   { route: '/api/price-observations', access: 'public_api' },
   {
+    route: '/api/feedback',
+    access: 'public_api',
+    note: 'PAN-251; rate-limited per IP in middleware; honeypot; one email to the owner, nothing stored, never the IP',
+  },
+  {
     route: '/api/health/freshness',
     access: 'public_api',
     note: 'PAN-158 scraper heartbeat for the off-box GitHub check; timestamps only',

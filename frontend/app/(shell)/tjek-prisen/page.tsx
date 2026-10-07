@@ -7,6 +7,7 @@ import { useLocale } from '@/components/LocaleProvider'
 import { TextField } from '@/components/TextField'
 import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
+import { FeedbackLink } from '@/components/FeedbackSheet'
 import { MarketVerdictBadge, SearchResultCard } from '@/components/SearchResultCard'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 import { stripDecorativeEmoji } from '@/lib/listing-title'
@@ -268,6 +269,7 @@ export default function TjekPrisenPage() {
                   {fill(t.priceCheckGuide, { label: result.guide.label })}
                 </Link>
               )}
+              <FeedbackLink surface="tjek-prisen" productSlug={result.product?.slug ?? null} state={result.state} className="self-start" />
             </section>
           )}
         </div>
