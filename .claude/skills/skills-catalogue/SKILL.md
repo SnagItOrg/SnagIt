@@ -1,13 +1,13 @@
 ---
 name: skills-catalogue
-description: 'Locate and use the 75 shared agent skills in SnagItOrg/skills. Use when a task calls for an established method rather than improvisation — UX and usability review, visual design, copy and messaging, conversion, product strategy, code craftsmanship, or system architecture — or when the user names a domain ("UX", "code quality") or a book ("Don''t Make Me Think", "Clean Code") without naming a skill. Routing only: it tells you which skill to read and where it lives.'
+description: 'Locate and use the 78 shared agent skills in SnagItOrg/skills. Use when a task calls for an established method rather than improvisation — UX and usability review, visual design, copy and messaging, conversion, product strategy, code craftsmanship, or system architecture — or when the user names a domain ("UX", "code quality") or a book ("Don''t Make Me Think", "Clean Code") without naming a skill. Routing only: it tells you which skill to read and where it lives.'
 license: MIT
 ---
 
 # Shared skills catalogue
 
-75 skills live in a separate repo, `SnagItOrg/skills` — not in this one. This
-file exists so you can find them without knowing 75 names.
+78 skills live in a separate repo, `SnagItOrg/skills` — not in this one. This
+file exists so you can find them without knowing 78 names.
 
 ## Getting them
 
@@ -16,6 +16,7 @@ Check first: type `/ux-design`. If it resolves, the marketplace is installed.
 ```
 /plugin marketplace add SnagItOrg/skills
 /plugin install ux-design@snagit-skills
+/plugin install agent-practice@snagit-skills
 ```
 
 If the plugin cannot be installed, read the files directly:
@@ -25,13 +26,14 @@ git clone git@github.com:SnagItOrg/skills.git
 plugins/<collection>/skills/<skill-name>/SKILL.md
 ```
 
-## The ten domains
+## The eleven domains
 
 Each has an index skill named after it — `/ux-design`, `/code-craftsmanship` —
 that lists its members and routes onward.
 
 | Domain | Reach for it when |
 |---|---|
+| `agent-practice` (2) | how to work on any task: assumptions, scope, surgical changes, which verification a change needs — the `karpathy-guidelines` and `risk-based-verification` the app used to carry |
 | `ux-design` (11) | usability, visual hierarchy, typography, interaction, retention |
 | `code-craftsmanship` (7) | naming, refactoring, legacy code, documentation, domain modelling |
 | `systems-architecture` (6) | system design, scalability, resilience, performance |
@@ -55,6 +57,7 @@ The ones that come up most here:
 | "Clean Code", naming, long functions, code smells | `clean-code` |
 | "Design of Everyday Things", affordances, feedback | `design-everyday-things` |
 | conversion audit, funnel, "why don't they convert" | `cro-methodology` |
+| Karpathy, "think before coding", scope creep, "how much should I verify" | `karpathy-guidelines`, `risk-based-verification` |
 
 ## The Klup constraint — this overrides the skills
 
