@@ -5,7 +5,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { classify, guessCandidates, guessProducts, listingsUnderAnswer, readLink, trigramSimilarity, type GuessCandidate } from '../../frontend/lib/price-check'
+import { classify, guessCandidates, guessProducts, listingsUnderAnswer, modelToken, namesModel, parseLot, readLink, reverbSoldQuery, soldRange, trigramSimilarity, type GuessCandidate } from '../../frontend/lib/price-check'
 import { buildPopulationStats } from '../../frontend/lib/price-populations'
 
 const rows = (prices: number[], source: string) =>
@@ -153,4 +153,52 @@ test('PAN-245 stage 1: the candidate step — trigram neighbours, names in full 
   // Ranked: the family, named in full and nearest by trigram, leads a variant with the same overlap.
   const title = 'Fender Vintage Stratocaster'
   assert.equal(guessProducts(title, 37500, guessCandidates(title, rows, 'fender'), new Map())[0]?.slug, 'fender-stratocaster')
+})
+
+test('PAN-250: the lot parser — a leading count, "stk", a pair; nothing for a single unit or a model number', () => {
+  assert.deepEqual(parseLot('4 x Urei LA4 (pairs)'), { count: 4 })
+  assert.deepEqual(parseLot('7x Neumann PVM70 mic preamps'), { count: 7 })
+  assert.deepEqual(parseLot('2 stk. BSS DPR 402'), { count: 2 })
+  assert.deepEqual(parseLot('NTP compressor pair (Danish broadcast)'), { count: 2 })
+  assert.deepEqual(parseLot('Et par Neve BBC AM6'), { count: 2 })
+  assert.equal(parseLot('1 x Lexicon 200'), null)
+  assert.equal(parseLot('AKG BX20 - Reverb from 1971'), null)
+  assert.equal(parseLot('Roland Juno-60 synthesizer'), null)
+  assert.equal(reverbSoldQuery('4 x Urei LA4 (pairs)'), 'Urei LA4')
+  assert.equal(reverbSoldQuery('Neumann W495 (10+ available, €800 each)'), 'Neumann W495')
+})
+
+test('PAN-250: the confidence rule — the model token as a word, hyphens joined, a letter-token may lead; parts, software, lots and strangers do not count', () => {
+  assert.equal(modelToken('4 x Urei LA4 (pairs)'), 'la4')
+  assert.equal(modelToken('AKG BX20'), 'bx20')
+  assert.equal(modelToken('Marshall Time Modulator'), 'modulator')
+  assert.equal(modelToken('Fender Stratocaster 1977'), 'stratocaster')
+  assert.equal(modelToken('Lexicon 200'), '200')
+  assert.equal(modelToken('Roland DEP-5'), 'dep5')
+  assert.equal(modelToken('EMT 140'), 'emt140')
+  assert.ok(namesModel('Urei LA-4 Compressor Limiter', 'la4'))
+  assert.ok(namesModel('Roland DEP-5 Digital Effects Processor', 'dep5'))
+  assert.ok(!namesModel('Roland DEP-3 Digital Effects Processor', 'dep5'))
+  assert.ok(namesModel('AKG BX-20E Rare Vintage Spring Reverb', 'bx20'))
+  assert.ok(!namesModel('Lexicon MX200 Dual Reverb', '200'))
+  assert.ok(!namesModel('Lexicon Model 2000', '200'))
+  const kr = (title: string, priceDkk: number) => ({ title, priceDkk })
+  // Three genuine LA-4 sales make a range; the rack ears, the pair and the LA-3 do not count.
+  assert.deepEqual(
+    soldRange('4 x Urei LA4 (pairs)', [
+      kr('Urei LA3 / LA4 2024 - Black Rack Ears', 280), kr('Urei LA-4 compressor pair just serviced', 11700),
+      kr('Urei LA-4 UPGRADED', 5300), kr('Urei LA-4 Compressor Limiter', 6760), kr('Urei LA-4 Silverface', 4260), kr('Urei LA-3A', 9000),
+    ]),
+    { low: 4260, high: 6760, n: 3 },
+  )
+  // The console: its sales are cards, a plug-in and one rack — fewer than two of the thing, so nothing.
+  assert.equal(
+    soldRange('SSL 4000G, 56 ch', [
+      kr('Hell Audio / SSL 4000G Custom Rack', 56000), kr('SSL Fader Bus Card 82E037 4000G Console', 2100),
+      kr('SSL 611G Lower Bus Card 4000G', 2100), kr('UAD SSL 4000 G Bus Compressor Plug-in', 1050), kr('SSL 82E023 SLS Card 4000G', 3500),
+    ]),
+    null,
+  )
+  // Sales that span more than tenfold are not one thing.
+  assert.equal(soldRange('Lexicon 200', [kr('Lexicon 200 Digital Reverberator', 19000), kr('Lexicon 200 Digital Reverberator', 16000), kr('Lexicon 200 rack screws', 93), kr('Lexicon 200 front panel', 150)]), null)
 })

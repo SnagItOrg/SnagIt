@@ -112,7 +112,7 @@ export default function TjekPrisenPage() {
         : result.state === 'not_recognised'
           ? result.guide
             ? t.priceCheckUnknownModel
-            : result.source === 'thomann' ? t.priceCheckNotFollowed : t.priceCheckUnknownItem
+            : result.source === 'thomann' || result.reverbSold ? t.priceCheckNotFollowed : t.priceCheckUnknownItem
           : null
   const product = result?.product ?? null
 
@@ -188,6 +188,14 @@ export default function TjekPrisenPage() {
                   )}
                 </p>
               )}
+              {result.lot && (
+                <p className="type-body">
+                  {result.lot.perUnitDkk != null && (
+                    <span className="block">{fill(t.priceCheckLot, { n: result.lot.count, price: kr(result.lot.perUnitDkk) })}</span>
+                  )}
+                  <span className="type-meta block">{t.priceCheckLotNoVerdict}</span>
+                </p>
+              )}
               <MarketVerdictBadge
                 verdict={result.verdict}
                 basisLabelKey="verdictBasisDk"
@@ -213,6 +221,20 @@ export default function TjekPrisenPage() {
                   {r.low === r.high ? kr(r.low) : `${kr(r.low)}–${kr(r.high)}`} kr
                 </p>
               ))}
+              {result.reverbSold && (
+                <p className="type-body">
+                  <span className="type-meta block">{t.priceCheckReverbSold}</span>
+                  {result.reverbSold.low === result.reverbSold.high
+                    ? kr(result.reverbSold.low)
+                    : `${kr(result.reverbSold.low)}–${kr(result.reverbSold.high)}`} kr
+                  <span className="type-meta block">
+                    {fill(t.priceCheckReverbSoldBasis, { n: result.reverbSold.n })}{' '}
+                    <a href={result.reverbSold.href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">
+                      {t.priceCheckReverbLink}
+                    </a>
+                  </span>
+                </p>
+              )}
               {message && <p className="type-body">{message}</p>}
               {result.guesses.length > 0 && !guessesDismissed && (
                 <div className="flex flex-col gap-2">

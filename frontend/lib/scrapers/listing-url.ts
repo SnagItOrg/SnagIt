@@ -65,7 +65,7 @@ const FALLBACK_RATES: Record<string, number> = { USD: 7.1, EUR: 7.46, GBP: 8.8, 
 // Product-owner decision 2026-09-22: keep the Next 14 behaviour exactly. This
 // directive is what holds it, so the upgrade changes no price a visitor sees.
 // FALLBACK_RATES still covers an unreachable Frankfurter.
-async function fetchExchangeRates(): Promise<Record<string, number>> {
+export async function fetchExchangeRates(): Promise<Record<string, number>> {
   try {
     const res = await fetch('https://api.frankfurter.app/latest?from=DKK&to=USD,EUR,GBP', {
       signal: AbortSignal.timeout(5_000),

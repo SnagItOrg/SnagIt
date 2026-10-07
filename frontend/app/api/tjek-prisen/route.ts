@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 import { decideMatch, loadMatchIndex } from '@/lib/matching/match-listings'
-import { classify, guessCandidates, guessProducts, listingsUnderAnswer, readLink, type GuessCandidate, type PriceCheckCause, type PriceCheckGuess, type PriceCheckListing, type PriceCheckResult } from '@/lib/price-check'
+import { classify, guessCandidates, guessProducts, listingsUnderAnswer, parseLot, readLink, type GuessCandidate, type PriceCheckCause, type PriceCheckGuess, type PriceCheckListing, type PriceCheckResult } from '@/lib/price-check'
+import { reverbSoldGuide } from '@/lib/reverb-sold'
 import { NAVIGATION_FAMILIES } from '@/lib/families'
 import { detectBrandCollision, detectCatalogueBrands, detectOfferedBrand } from '@/lib/matching/brand-guard'
 import { detectNonProductIntent } from '@/lib/matching/listing-intent'
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
   const pick = typeof body?.pick === 'string' ? body.pick : null
   const empty: PriceCheckResult = {
     state: 'cant_read', source: null, cause: null, title: null, priceDkk: null,
-    product: null, verdict: null, ranges: [], dkFew: null, guide: null, listings: [], guesses: [], fromPick: false,
+    product: null, verdict: null, ranges: [], dkFew: null, guide: null, listings: [], guesses: [], fromPick: false, reverbSold: null, lot: null,
   }
   if ('cause' in link) {
     return NextResponse.json({ ...empty, cause: link.cause, guide: await guideFor(req, link.query) })
@@ -206,13 +207,23 @@ export async function POST(req: NextRequest) {
     if (error && error.code !== '23505') console.error('[tjek-prisen] queue write failed', error.code)
   }
 
+  // PAN-250: a lot has no single-unit price, so it gets no verdict; an ad Klup does not recognise, and the
+  // user did not pick a guess for, gets what the item went for on Reverb — unless it is a part or a wanted ad.
+  const lot = source === 'dba' && listing ? parseLot(listing.title) : null
+  const intent = listing ? detectNonProductIntent(listing.title)?.intent : undefined
+  const reverbSold = outcome.state === 'not_recognised' && source === 'dba' && listing && !pick && intent !== 'part_or_accessory' && intent !== 'wanted_or_non_sale'
+    ? await reverbSoldGuide(listing.title) : null
+
   return NextResponse.json({
     ...empty,
     ...outcome,
+    verdict: lot ? null : outcome.verdict,
     source,
     cause,
     title,
     priceDkk,
+    lot: lot ? { count: lot.count, perUnitDkk: priceDkk != null ? Math.round(priceDkk / lot.count) : null } : null,
+    reverbSold,
     product: page && product ? { slug: product.slug, name: page.product.canonical_name } : null,
     // The page's own listings, so a product that is not public has none here either.
     listings: page ? listingsUnderAnswer(page.listings ?? [], url) : [],
