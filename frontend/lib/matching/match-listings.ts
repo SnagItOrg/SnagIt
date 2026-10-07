@@ -11,6 +11,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   detectBrandCollision,
   brandCollisionReason,
+  containsBrandToken,
   detectCatalogueBrands,
   detectOfferedBrand,
   makerNamed,
@@ -2554,7 +2555,14 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   const byProduct = new Map<string, MatchCandidate>()
   const offer = (c: MatchCandidate) => {
     const prev = byProduct.get(c.product_id)
-    if (!prev || c.score > prev.score) byProduct.set(c.product_id, c)
+    if (!prev) { byProduct.set(c.product_id, c); return }
+    const [kept, dropped] = c.score > prev.score ? [c, prev] : [prev, c]
+    // PAN-221: a curated alias on the same product must survive a higher-scoring
+    // identifier, or the catalogue-brand elimination below cannot read it.
+    const alias = dropped.explain.matched_alias
+    byProduct.set(c.product_id, typeof alias === 'string' && kept.explain.matched_alias === undefined
+      ? { ...kept, explain: { ...kept.explain, offered_alias: alias } }
+      : kept)
   }
 
   // Products this title independently supports via their OWN model_name.
@@ -2733,10 +2741,18 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   let admissible = surviving
   if (brandEvidence) {
     // Products with no brand recorded are not "a different explicit brand" and
-    // are therefore not eliminated.
-    admissible = surviving.filter((c) => {
+    // are therefore not eliminated. Neither is a product offered by a curated
+    // alias that itself names the title's brand: "Oberheim OB-6" is the
+    // Sequential OB-6, a reissue, not an Oberheim (PAN-221, owner 2026-10-07).
+    // The admission is audited as `alias_carries_brand`; the maker group is
+    // untouched, so "Oberheim OB-X8" is still Oberheim's.
+    admissible = surviving.flatMap((c) => {
       const b = index.productById.get(c.product_id)?.brand_name
-      return !b || sameMaker(b, brandEvidence)
+      if (!b || sameMaker(b, brandEvidence)) return [c]
+      const alias = c.explain.matched_alias ?? c.explain.offered_alias
+      return typeof alias === 'string' && containsBrandToken(alias, brandEvidence)
+        ? [{ ...c, explain: { ...c.explain, alias_carries_brand: brandEvidence } }]
+        : []
     })
     if (admissible.length === 0) {
       return {
@@ -2900,7 +2916,9 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   const bestBrand = index.productById.get(best.product_id)?.brand_name ?? null
   if (bestBrand) {
     const offered = detectOfferedBrand(norm, index.catalogueBrands)
-    if (offered && !sameMaker(offered, bestBrand)) {
+    // A product admitted by a brand-carrying alias (step 4) IS the offer: "Oberheim
+    // OB-6" leads the title and names the Sequential row, it does not reference it.
+    if (offered && !sameMaker(offered, bestBrand) && best.explain.alias_carries_brand !== offered) {
       const at = wordIndexOf(norm, bestBrand)
       if (at === null || at > OFFERED_BRAND_LEAD_WORDS) {
         return {
