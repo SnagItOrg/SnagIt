@@ -44,7 +44,8 @@ const config: RematchConfig = {
     { line: 'prophet-5', names: /prophet[\s-]*(?:5|five)(?![\w-])/i, ilike: ['%prophet-5%', '%prophet 5%', '%prophet5%', '%prophet five%'] },
     { line: 'prophet-6', names: /prophet[\s-]*(?:6|six)(?![\w-])/i, ilike: ['%prophet-6%', '%prophet 6%', '%prophet6%', '%prophet six%'] },
     { line: 'prophet-10', names: /prophet[\s-]*(?:10|ten)(?![\w-])/i, ilike: ['%prophet-10%', '%prophet 10%', '%prophet10%', '%prophet ten%'] },
-    { line: 'prophet-rev2', names: /prophet[\s-]*rev[\s.-]*2(?![\w-])|(?<![\w-])rev[\s-]?2(?![\w-])/i, ilike: ['%rev2%', '%rev 2%', '%rev-2%'] },
+    // A bare "Rev 2" counts only with the maker named: a Moog or Roland "rev 2" is not a Prophet (manager, 2026-10-07).
+    { line: 'prophet-rev2', names: /prophet[\s-]*rev[\s.-]*2(?![\w-])|^(?=[\s\S]*(?:sequential|dsi|dave\s*smith))[\s\S]*(?<![\w-])rev[\s.-]*2(?![\w-])/i, ilike: ['%rev2%', '%rev 2%', '%rev-2%'] },
     { line: 'prophet-x', names: /prophet[\s-]*x(?![\w-])/i, ilike: ['%prophet x%', '%prophet-x%'] },
     { line: 'prophet-08', names: /prophet[\s-]*['’]?08(?![\w-])/i, ilike: ['%prophet 08%', "%prophet '08%", '%prophet-08%', '%prophet ’08%'] },
     { line: 'prophet-600', names: /prophet[\s-]*600(?![\w-])/i, ilike: ['%prophet 600%', '%prophet-600%', '%prophet600%'] },

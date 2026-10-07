@@ -20,6 +20,7 @@ import assert from 'node:assert/strict'
 
 import { buildMatchIndex, decideMatch, type Product } from '../../frontend/lib/matching/match-listings'
 import { makerNamed, makerOf, sameMaker } from '../../frontend/lib/matching/brand-guard'
+import sequentialConfig from '../rematch-configs/sequential'
 
 const row = (slug: string, brand_name: string, canonical_name: string, model_name: string): Product => ({
   id: `p-${slug}`, slug, canonical_name, model_name, brand_name, status: 'active', support_state: 'supported',
@@ -80,6 +81,10 @@ const ALIASES = [
   { alias: 'Sequential Take-5 Desktop', canonical_query: 'sequential-take-5-desktop' },
   { alias: 'Dave Smith Instruments Pro-2', canonical_query: 'davesmithinstruments-pro2' },
   { alias: 'Sequential Pro-2', canonical_query: 'davesmithinstruments-pro2' },
+  // The owner's call of 2026-10-07 (option 2a): the "Oberheim OB-6" is the Sequential OB-6, a reissue; the
+  // alias carries the brand, and the matcher admits it past the catalogue-brand elimination (audited).
+  { alias: 'Oberheim OB-6', canonical_query: 'sequential-ob-6' },
+  { alias: 'Oberheim OB-6', canonical_query: 'sequential-ob-6-desktop' },
 ]
 
 const BRANDS = ['sequential', 'sequential circuits', 'dave smith instruments', 'ssl', 'oberheim', 'behringer', 'arturia', 'creamware', 'moog', 'roland', 'korg']
@@ -123,8 +128,9 @@ test('PAN-221: an era name is never a brand mismatch for the same maker', () => 
 })
 
 test('PAN-221: a different maker is still a different maker', () => {
-  // Oberheim is Tom Oberheim's own brand: an "Oberheim OB-6" without the maker's name stays a mismatch (listed, not matched).
-  assert.equal(reason('Oberheim OB-6 6-voice Polyphonic Analog Synthesizer'), 'brand_mismatch')
+  // Oberheim is Tom Oberheim's own brand, but the "Oberheim OB-6" is the Sequential OB-6 (owner, 2026-10-07):
+  // the brand-carrying alias admits it; the maker group does not change.
+  assert.equal(matchedSlug('Oberheim OB-6 6-voice Polyphonic Analog Synthesizer'), 'sequential-ob-6')
   // The OB-X8 names both makers up front: a collaboration, unchanged.
   assert.equal(matchedSlug('Sequential Oberheim OB-X8 Eight-voice Analog Poly Synth'), 'oberheim-ob-x8')
   assert.equal(matchedSlug('Arturia Prophet-5 V (Download)'), null)
@@ -196,8 +202,9 @@ test('PAN-221: the DrumTraks takes units, never EPROM sets, side panels or sampl
   assert.equal(matchedSlug('Sequential Circuits Drumtraks OS version 0.5 EPROM Firmware Upgrade KIT / New ROM Final Update Chip'), null)
   assert.equal(matchedSlug('Reverb Sequential Circuits DrumTraks Sample Pack'), null)
   // The TOM stays `known` (one complete unit in the pool): "Tom" is Tom Oberheim on every OB-6 box.
-  // "Dave Smith & Tom Oberheim" names Oberheim as a catalogue brand and the maker only by a short form: listed, not matched.
-  assert.equal(reason('Dave Smith &Tom Oberheim OB-6 6 Voice Analog Synth Desktop Module  box //ARMENS//'), 'brand_mismatch')
+  // "Dave Smith & Tom Oberheim" names Oberheim as a catalogue brand and the maker only by a short form: the
+  // alias admits the OB-6, and the form factor sends the box to the desktop row.
+  assert.equal(matchedSlug('Dave Smith &Tom Oberheim OB-6 6 Voice Analog Synth Desktop Module  box //ARMENS//'), 'sequential-ob-6-desktop')
 })
 
 test('PAN-221: the vintage Sequential Circuits rows take units, never the parts trade', () => {
@@ -238,4 +245,40 @@ test('PAN-221: Dave Smith Instruments — the Mopho box, the x4, the three Evolv
   assert.equal(matchedSlug('Dave Smith Tetra Real  Rack Wood Stand Side Panel Wooden Oak'), null)
   assert.equal(matchedSlug('Dave Smith Instruments Pro 2 44-Key Monophonic / Paraphonic Synthesizer 2014 - 2018 - Black with Wood Sides'), 'davesmithinstruments-pro2')
   assert.equal(matchedSlug('DSI Dave Smith Sequential Pro-2 Synthesizer + OVP + Top Zustand + 1,5J Garantie'), 'davesmithinstruments-pro2')
+})
+
+test('PAN-221: a brand-carrying alias admits its product past the catalogue-brand elimination (owner, 2026-10-07)', () => {
+  // Production titles: the ones panter's dry run of 2026-10-06 kept for review, the desktop and the module.
+  assert.equal(matchedSlug('Oberheim OB-6 - Synthesizer'), 'sequential-ob-6')
+  assert.equal(matchedSlug('Oberheim OB-6 Keyboard - Refurbished'), 'sequential-ob-6')
+  assert.equal(matchedSlug('Oberheim OB-6 Polyphonic Analog Keyboard Synthesizer'), 'sequential-ob-6')
+  assert.equal(matchedSlug('Oberheim OB-6 6-Voice Polyphonic Analogue Synthesiser'), 'sequential-ob-6')
+  assert.equal(matchedSlug('Oberheim OB-6 Desktop 6-Voice Polyphonic Analog Synthesizer'), 'sequential-ob-6-desktop')
+  assert.equal(matchedSlug('Oberheim OB-6 Module 6-voice Polyphonic Analog Synthesizer Module'), 'sequential-ob-6-desktop')
+  // The admission is audited with the brand the alias carried.
+  const d = decided('Oberheim OB-6 - Synthesizer')
+  assert.equal(d.kind === 'matched' ? d.best.explain.alias_carries_brand : d.kind, 'oberheim')
+  // Oberheim stays its own maker: its products are unchanged, and an OB-8 reaches no Sequential row.
+  assert.equal(matchedSlug('Sequential Oberheim OB-X8 Eight-voice Analog Poly Synth'), 'oberheim-ob-x8')
+  assert.equal(matchedSlug('Oberheim OB-X8 8-Voice Polyphonic Analog Synthesizer'), 'oberheim-ob-x8')
+  assert.equal(matchedSlug('Oberheim OB-8 8-voice analog synthesizer'), null)
+  // A cover is a part of the line, alias or not.
+  assert.equal(matchedSlug('Oberheim OB-6 desktop cover'), null)
+  assert.equal(matchedSlug('Oberheim OB-6 keyboard cover'), null)
+})
+
+test('PAN-221: the alias survives a higher-scoring identifier on the same product', () => {
+  // A dealer SKU on the keyboard row offers it at 95 and, one candidate per product, would shadow the alias at 80.
+  const idx2 = buildMatchIndex(PRODUCTS, [{ product_id: 'p-sequential-ob-6', type: 'SKU', value: 'OB6D1' }], ALIASES, BRANDS)
+  const d = decideMatch('Oberheim OB-6 6-voice Polyphonic Analog Synthesizer (OB6d1)', idx2)
+  assert.equal(d.kind === 'matched' ? idx2.productById.get(d.best.product_id)?.slug : d.kind, 'sequential-ob-6')
+  assert.equal(d.kind === 'matched' ? d.best.explain.offered_alias : null, 'Oberheim OB-6')
+})
+
+test('PAN-221: the prophet-rev2 cohort line takes a bare "Rev 2" only with the maker named', () => {
+  const line = sequentialConfig.lines.find((l) => l.line === 'prophet-rev2')!
+  for (const t of ['Sequential Prophet Rev2 16-voice Keyboard - Refurbished', 'Dave Smith Instruments Prophet Rev2 8-Voice Desktop',
+                   'Sequential Rev2 16 Voice Polysynth', 'DSI Rev 2 Desktop Module']) assert.ok(line.names.test(t), t)
+  for (const t of ['Moog Minitaur Rev 2 Analog Bass Synthesizer', 'Roland TR-8 Rhythm Performer rev2 firmware', 'Strymon Timeline Rev 2'])
+    assert.ok(!line.names.test(t), t)
 })
