@@ -213,6 +213,7 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan235-similar-gear.test.ts',
       'scripts/lib/pan236-facet-line.test.ts',
     'scripts/lib/pan249-studio.test.ts',
+      'scripts/lib/pan251-feedback.test.ts',
       // PAN-86: the homepage category shelf is the first surface to render the
       // taxonomy itself rather than products, so domain scope and the "never
       // print a count the destination cannot honour" rule are both exercised
