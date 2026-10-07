@@ -508,6 +508,12 @@ export interface KlupEventMap {
     shown: number
     picked: 0 | 1 | 2 | 'none'
   }
+
+  /** PAN-251 — feedback was sent: the kind and the surface, never the text, never the email. */
+  feedback_sent: {
+    kind: 'wrong_product' | 'wrong_price' | 'missing' | 'other'
+    surface: 'product' | 'tjek-prisen'
+  }
 }
 
 export type KlupEventName = keyof KlupEventMap
@@ -533,6 +539,7 @@ const EVENT_NAMES: Record<KlupEventName, true> = {
   demand_signal_submitted: true,
   price_check_result: true,
   price_check_guess: true,
+  feedback_sent: true,
 }
 
 /** Every tracked event name, for the transmit allow-list and the taxonomy assertions. */

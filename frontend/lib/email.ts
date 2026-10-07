@@ -61,3 +61,33 @@ export async function sendNewListingsEmail({
 
   if (error) throw new Error(`resend_rejected:${error.name}`)
 }
+
+/**
+ * PAN-251: one piece of feedback to the owner. The visitor's email rides along
+ * only when they typed it, as the reply-to; the visitor's IP never does.
+ */
+export async function sendFeedbackEmail(
+  to: string,
+  f: { kind: string; surface: string; path: string; text: string | null; email: string | null; productSlug: string | null; state: string | null },
+) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.klup.dk'
+  const text = [
+    `Kind: ${f.kind}`,
+    `Surface: ${f.surface}`,
+    `Page: ${appUrl}${f.path}`,
+    f.productSlug ? `Product: ${f.productSlug}` : null,
+    f.state ? `Check state: ${f.state}` : null,
+    f.email ? `Reply to: ${f.email}` : 'Reply to: (not given)',
+    '',
+    f.text ?? '(no text)',
+  ].filter((line) => line !== null).join('\n')
+
+  const { error } = await getResend().emails.send({
+    from: process.env.RESEND_FROM_EMAIL!,
+    to,
+    replyTo: f.email ?? undefined,
+    subject: `Klup feedback: ${f.kind} (${f.surface})`,
+    text,
+  })
+  if (error) throw new Error(`resend_rejected:${error.name}`)
+}
