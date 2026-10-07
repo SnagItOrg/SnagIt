@@ -2231,6 +2231,34 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
     accessories: NEVE_PARTS,
   },
 
+  // ── PAN-249: the studio-gear pass (one Danish studio's 33 ads) ───────────
+  // Measured on every active title naming the model (read-only, 2026-10-07; scripts/lib/pan249-studio.test.ts).
+  // The 2004–2008 LA-610 (CSP 24819): never the MkII — 57 of the 58 live titles, its own Reverb page and price —
+  // nor the Bill Putnam Jr. edition; a plug-in, a pair or a bundle is not the unit.
+  'ua-la-610': member('ua-la-610', ...UAD_SOFTWARE, ...PAIR_OR_LOT, /(?<![\w-])mk\s?(?:ii|2)(?![\w-])/i, ...cues('mkii', 'mk2', 'putnam', 'signature', 'bundle')),
+  // The ARP Solina String Ensemble (CSP 15989): the Behringer is another brand's product (the brand guard defers it);
+  // the parts trade that outnumbers its units — caps, switches, knobs, keys, the transformer, manuals — is refused
+  // unless an inclusion marker precedes it ("OG Volume Pedal Included" stays).
+  'arp-solina-string-ensemble': {
+    line: 'solina',
+    otherMembers: [...PAIR_OR_LOT, ...cues('behringer', 'phone jack')],
+    accessories: [
+      'cap', 'caps', 'slidercap', 'slider cap', 'button caps', 'pushbutton cap', 'switch', 'powerswitch', 'power switch', 'knob', 'knobs',
+      'key', 'keys', 'replacement keys', 'transformer', 'power transformer', 'manual', 'service manual', 'documentation',
+    ],
+  },
+  // The Clariphonic Dual-Channel (CSP 45994): the 500-series module and the MS version are other models with their own
+  // pages; a UBK-branded unit is the original.
+  'kush-clariphonic': member('kush-clariphonic', ...UAD_SOFTWARE, ...PAIR_OR_LOT, /(?<![\w-])500(?![\w-])/i, /(?<![\w-])ms(?![\w-])/i, ...cues('500 series', 'bundle')),
+  // The Fairchild 670 (CSP 15156): never a Stam Audio / Stamchild or other clone, a unit sold "style" / "type" / "like",
+  // a plug-in, a tube sold for it or a pair; the 660 is the mono unit, its own product.
+  'fairchild-670': member('fairchild-670', ...UAD_SOFTWARE, ...PAIR_OR_LOT, ...TUBE_LISTING,
+    ...cues('stam', 'stam audio', 'stamchild', 'sa-670', 'sa670', 'sa-660', 'undertone', 'analoguetube', 'heritage audio', 'herchild',
+      'style', 'type', 'clone', 'copy', 'like', 'ala', 'inspired', 'kit', '660', 'bundle')),
+  // The Lexicon 200 (CSP 14065), a bare-number model: never the MX200 / MPX 200 / PCM / LXP units or the 224 / 480L
+  // that share the brand, nor a plug-in or a bundle. No live title names it today; the boundary guards the number.
+  'lexicon-200': member('lexicon-200', ...UAD_SOFTWARE, ...PAIR_OR_LOT, ...cues('mx200', 'mx-200', 'mpx', 'mpx200', 'mpx-200', 'pcm', 'lxp', '224', '224x', '224xl', '480', '480l', 'bundle')),
+
   // ── PAN-221: Sequential, three eras, one maker ───────────────────────────
   // The 2018– keyboards and their desktop / module versions are their own Reverb pages and prices,
   // so one line per model splits them on the form factor; the 1978–84 Prophet-5 is split from the
