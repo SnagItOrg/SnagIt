@@ -280,6 +280,12 @@ const ACCESSORY_TOKENS: readonly string[] = [
   'covers',
   'lid',
   'box only',
+  // PAN-252 (owner, 2026-10-07): Klup does not support accessories. A breath
+  // controller (Yamaha BC1/BC2/BC3) sold on its own is refused here. The bare
+  // model codes are not tokens: "Yamaha DX7 Vintage, 2 ROM, BC2, FC, Top
+  // Zustand" is a complete DX7, and the inclusion-marker rule keeps "Yamaha
+  // DX7 with memory cards and BC1 Breath Controller".
+  'breath controller',
 ]
 
 /**
