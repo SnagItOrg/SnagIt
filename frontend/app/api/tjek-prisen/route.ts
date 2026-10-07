@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 import { decideMatch, loadMatchIndex } from '@/lib/matching/match-listings'
-import { classify, guessProducts, listingsUnderAnswer, readLink, type PriceCheckCause, type PriceCheckGuess, type PriceCheckListing, type PriceCheckResult } from '@/lib/price-check'
-import { detectCatalogueBrands } from '@/lib/matching/brand-guard'
+import { classify, guessCandidates, guessProducts, listingsUnderAnswer, readLink, type GuessCandidate, type PriceCheckCause, type PriceCheckGuess, type PriceCheckListing, type PriceCheckResult } from '@/lib/price-check'
+import { NAVIGATION_FAMILIES } from '@/lib/families'
+import { detectBrandCollision, detectCatalogueBrands, detectOfferedBrand } from '@/lib/matching/brand-guard'
+import { detectNonProductIntent } from '@/lib/matching/listing-intent'
 import { CANONICAL_STATUS, CANONICAL_SUPPORT, CATALOGUE_STATE_SELECT, loadCanonicalSlugs } from '@/lib/catalogue'
 import type { PopulationKey, PopulationStats } from '@/lib/price-populations'
 import type { SearchOutcome } from '@/lib/search-contract'
@@ -63,13 +65,15 @@ async function publicPage(req: NextRequest, slug: string) {
 }
 
 /**
- * PAN-244 part 2: what an unrecognised DBA ad may mean, for the user to confirm.
- * Public products only, decided by the one authority (`loadCanonicalSlugs`, never
- * cached). Two signals, never a silent match: the ad's own description naming
- * exactly one catalogue brand (then the title plus that brand is an ordinary
- * `decideMatch`, shown as the top guess), and the title naming a model name in
- * full. The price range is read only for the few candidates in front, so the
- * common case costs one small read.
+ * PAN-244 part 2, PAN-245 stage 1: what an unrecognised DBA ad may mean, for
+ * the user to confirm — suggest only, never a match. The rows are the public
+ * products (`loadCanonicalSlugs`, the one authority, never cached) and the
+ * navigation families; `guessCandidates` picks the trigram neighbours, the
+ * rows named in full and the named brand's rows behind the brand guard, and
+ * `guessProducts` ranks them. The ad's own description naming exactly one
+ * catalogue brand makes the title plus that brand an ordinary `decideMatch`,
+ * shown as the top guess. The price range is read only for the few product
+ * candidates in front, so the common case costs one small read.
  */
 async function guessesFor(
   req: NextRequest,
@@ -86,14 +90,26 @@ async function guessesFor(
   const brands = Array.from(detectCatalogueBrands(listing.description ?? '', index.catalogueBrands))
   const decision = brands.length === 1 ? decideMatch(`${brands[0]} ${listing.title}`, index) : null
   const hit = decision?.kind === 'matched' ? index.productById.get(decision.best.product_id) : undefined
-  const top: PriceCheckGuess[] = hit && canonical.has(hit.slug) ? [{ slug: hit.slug, name: hit.canonical_name }] : []
+  const top: PriceCheckGuess[] = hit && canonical.has(hit.slug)
+    ? [{ slug: hit.slug, name: hit.canonical_name, kind: 'product', href: `/product/${hit.slug}` }] : []
 
-  const candidates = index.products.filter((p) => canonical.has(p.slug))
-    .map((p) => ({ slug: p.slug, name: p.canonical_name, model_name: p.model_name }))
+  const rows: GuessCandidate[] = [
+    ...index.products.filter((p) => canonical.has(p.slug))
+      .map((p) => ({ slug: p.slug, name: p.canonical_name, model_name: p.model_name, brand_name: p.brand_name, kind: 'product' as const })),
+    ...NAVIGATION_FAMILIES
+      .map((f) => ({ slug: f.slug, name: f.label, model_name: null, brand_name: f.brand.toLowerCase(), kind: 'family' as const, aliases: f.aliases })),
+  ]
+  // The matcher's own refusals hold here too: a part, a wanted ad or a lot is not guessed at; a row whose brand
+  // the title names a competitor of (Squier against Fender) is out; and the brand the title offers first — a
+  // catalogue brand or an external one such as Jackson or Harley Benton — decides which rows may stay.
+  if (detectNonProductIntent(listing.title)) return top
+  const offered = detectOfferedBrand(listing.title, index.catalogueBrands)
+  const candidates = guessCandidates(listing.title, rows.filter((r) => !detectBrandCollision(listing.title, r.brand_name)), offered)
   const lead = guessProducts(listing.title, priceDkk, candidates, new Map(), 6)
   const ranges = new Map<string, { low: number; high: number }>()
   if (lead.length > 1) {
     for (const g of lead) {
+      if (g.kind !== 'product') continue
       const page = await publicPage(req, g.slug)
       if (page?.priceRange) ranges.set(g.slug, page.priceRange)
     }
