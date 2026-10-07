@@ -542,7 +542,7 @@ export const translations = {
        call site so a new key never renders blank. */
     relatedGear: 'Relateret udstyr',
     similarGear: 'Lignende udstyr',
-    playedBy: 'Spillet af',
+    playedBy: 'Brugt af',
     knownFrom: 'Kendt fra',
     soloBy: 'solo af',
     factSource: 'Kilde',
