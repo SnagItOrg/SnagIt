@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/LocaleProvider'
 import { TextField } from '@/components/TextField'
 import { Button } from '@/components/Button'
+import { Icon } from '@/components/Icon'
 import { MarketVerdictBadge, SearchResultCard } from '@/components/SearchResultCard'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 import { stripDecorativeEmoji } from '@/lib/listing-title'
@@ -35,6 +36,7 @@ export default function TjekPrisenPage() {
   const { t } = useLocale()
   const router = useRouter()
   const [url, setUrl] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
   const [result, setResult] = useState<PriceCheckResult | null>(null)
@@ -42,8 +44,8 @@ export default function TjekPrisenPage() {
   const [guessesDismissed, setGuessesDismissed] = useState(false)
 
   /** One check; with `pick`, the same link answered for the product the user chose (PAN-244 part 2). */
-  async function check(pick?: string) {
-    if (!url.trim() || loading) return
+  async function check(pick?: string, link = url) {
+    if (!link.trim() || loading) return
     setLoading(true)
     setFailed(false)
     setResult(null)
@@ -52,7 +54,7 @@ export default function TjekPrisenPage() {
       const res = await fetch('/api/tjek-prisen', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pick ? { url, pick } : { url }),
+        body: JSON.stringify(pick ? { url: link, pick } : { url: link }),
       })
       if (!res.ok) throw new Error(String(res.status))
       const data = (await res.json()) as PriceCheckResult
@@ -63,6 +65,33 @@ export default function TjekPrisenPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  /** PAN-248: the field, the answer and the guesses go; the focus comes back to the field for the next link. */
+  function clear() {
+    setUrl('')
+    setResult(null)
+    setFailed(false)
+    setGuessesDismissed(false)
+    inputRef.current?.focus()
+  }
+
+  /**
+   * PAN-248: "Ryd og indsæt". The click is the user gesture the clipboard read
+   * needs; what it reads goes straight into a check. A browser that refuses or
+   * lacks the read leaves a cleared, focused field and shows nothing.
+   */
+  async function clearAndPaste() {
+    clear()
+    let text = ''
+    try {
+      text = (await navigator.clipboard?.readText())?.trim() ?? ''
+    } catch {
+      text = ''
+    }
+    if (!text) return
+    setUrl(text)
+    void check(undefined, text)
   }
 
   function choose(picked: 0 | 1 | 2 | 'none') {
@@ -97,27 +126,52 @@ export default function TjekPrisenPage() {
 
         <form onSubmit={(e) => { e.preventDefault(); void check() }} className="flex flex-col gap-2">
           <label htmlFor="klup-price-check" className="sr-only">{t.priceCheckInputLabel}</label>
-          {/* 16px text: anything smaller makes iOS Safari zoom on focus. */}
-          <TextField
-            id="klup-price-check"
-            type="text"
-            inputMode="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://www.dba.dk/…"
-            autoComplete="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            className="w-full rounded-xl px-4 py-3 text-base font-medium"
-          />
-          <Button
-            variant="primary"
-            type="submit"
-            disabled={loading}
-            className="w-full min-h-[44px] rounded-xl px-5 text-sm font-semibold md:w-auto md:self-start md:px-6"
-          >
-            {loading ? t.loading : t.priceCheckHeading}
-          </Button>
+          <div className="relative">
+            {/* 16px text: anything smaller makes iOS Safari zoom on focus. */}
+            <TextField
+              ref={inputRef}
+              id="klup-price-check"
+              type="text"
+              inputMode="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://www.dba.dk/…"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              className="w-full rounded-xl px-4 py-3 pr-12 text-base font-medium"
+            />
+            {url && (
+              <button
+                type="button"
+                onClick={clear}
+                aria-label={t.priceCheckClear}
+                className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl"
+                style={{ color: 'var(--muted-foreground)' }}
+              >
+                <Icon name="close" style={{ fontSize: '20px' }} />
+              </button>
+            )}
+          </div>
+          <div className="flex flex-col gap-2 md:flex-row">
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={loading}
+              className="w-full min-h-[44px] rounded-xl px-5 text-sm font-semibold md:w-auto md:px-6"
+            >
+              {loading ? t.loading : t.priceCheckHeading}
+            </Button>
+            <Button
+              variant="secondary"
+              type="button"
+              disabled={loading}
+              onClick={() => { void clearAndPaste() }}
+              className="w-full min-h-[44px] rounded-xl px-5 text-sm font-semibold md:w-auto"
+            >
+              {t.priceCheckPaste}
+            </Button>
+          </div>
         </form>
 
         <div aria-live="polite">
