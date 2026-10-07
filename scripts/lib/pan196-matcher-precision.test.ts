@@ -256,3 +256,26 @@ test('PAN-201: chips in a service note are not chips for sale', () => {
     assert.equal(detectNonProductIntent(title)?.intent, 'part_or_accessory', title)
   }
 })
+
+/**
+ * PAN-252 (owner decision, 2026-10-07): Klup does not support accessories. A
+ * breath controller sold on its own is an accessory; a DX7 sold with one is a
+ * DX7. Every title is a real production listing title; the first was the
+ * top-ranked listing on /product/yamaha-dx7 until the owner rejected it.
+ */
+test('PAN-252: a breath controller is an accessory; a DX7 sold with one is still a DX7', () => {
+  for (const title of [
+    'Yamaha  BC1 Breath Controller *CS01,VL-1,VL-70M,DX7,DX11,DX100*',
+    'Yamaha BC1 Breath Controller Vintage Synth tillbehör Yamaha DX7 DX100 DX11 CS01',
+    'Breath controller, Yamaha BC1',
+  ]) {
+    assert.deepEqual(detectNonProductIntent(title), { intent: 'part_or_accessory', token: 'breath controller' }, title)
+  }
+  for (const title of [
+    'Yamaha DX7 with memory cards and BC1 Breath Controller',
+    'Yamaha DX7 mit Breath Controller BC2 und Cartrige (bitte lesen!)',
+    'Yamaha DX7 Vintage, 2 ROM, BC2, FC, Top Zustand',
+  ]) {
+    assert.equal(detectNonProductIntent(title), null, title)
+  }
+})
