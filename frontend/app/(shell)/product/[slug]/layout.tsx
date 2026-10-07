@@ -1,3 +1,5 @@
+import { cache } from 'react'
+import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { isCurrentUserAdmin } from '@/lib/admin-auth'
@@ -8,6 +10,8 @@ import {
   isCanonical,
   type CatalogueStateRow,
 } from '@/lib/catalogue'
+import { translations } from '@/lib/i18n'
+import { SITE_URL } from '@/lib/site-metadata'
 
 /**
  * Server-side eligibility gate for the canonical product segment.
@@ -33,7 +37,94 @@ import {
  *
  * The predicate is identical to /api/product/[slug]'s, and is imported from
  * lib/catalogue.ts rather than restated, so the two can never drift.
+ *
+ * PAN-246: the same file also sets the page's `<title>` and canonical URL,
+ * because page.tsx is a client component and cannot. One lookup serves both
+ * the gate and the metadata through `cache()`, as the family page does.
  */
+
+/** The product page renders Danish; the family page reads the same table. */
+const t = translations.da
+
+type ProductState = { canonical_name: string | null; state: CatalogueStateRow }
+
+/**
+ * The product's eligibility axes, or null when no such slug exists.
+ *
+ * ABSENCE IS NOT UNAVAILABILITY.
+ *
+ * maybeSingle() returns data:null with error:null when there is no such
+ * slug, and a populated error for anything else. Calling notFound() on a
+ * query error would tell a visitor, a crawler and an uptime monitor that a
+ * product does not exist because the database was briefly unreachable.
+ * Throwing instead routes into the Next.js server error path — a 5xx, which
+ * is the honest answer and the one nothing will cache.
+ */
+const loadProductState = cache(async (slug: string): Promise<ProductState | null> => {
+  const admin = getSupabaseAdmin()
+
+  const [productRes, projectionRes] = await Promise.all([
+    admin
+      .from('kg_product')
+      .select('slug, canonical_name, status, support_state, browse_visibility')
+      .eq('slug', slug)
+      .maybeSingle(),
+    admin
+      .from('browse_product_projection')
+      .select('slug, browse_domain')
+      .eq('slug', slug)
+      .maybeSingle(),
+  ]).catch(() => {
+    // Transport-level failure rejects rather than returning { error }.
+    throw new CatalogueUnavailableError('product_gate_transport')
+  })
+
+  if (productRes.error) throw new CatalogueUnavailableError('product_gate_lookup')
+  if (projectionRes.error) throw new CatalogueUnavailableError('projection_gate_lookup')
+
+  const product = productRes.data as {
+    canonical_name?: string | null
+    status?: string | null
+    support_state?: string | null
+    browse_visibility?: string | null
+  } | null
+
+  if (!product) return null
+
+  return {
+    canonical_name: product.canonical_name ?? null,
+    state: {
+      status: product.status ?? null,
+      support_state: product.support_state ?? null,
+      browse_visibility: product.browse_visibility ?? null,
+      browse_domain:
+        (projectionRes.data as { browse_domain?: string | null } | null)?.browse_domain ?? null,
+    },
+  }
+})
+
+/**
+ * PAN-246. A canonical product names itself in the `<title>` and carries its
+ * canonical URL. Everything else — a family slug on its way to the redirect, an
+ * admin-only row, a missing slug — keeps the site default, so a private
+ * product's name never reaches the `<title>` of its 404.
+ */
+export async function generateMetadata(
+  ctx: { params: Promise<{ slug: string }> },
+): Promise<Metadata> {
+  const { slug } = await ctx.params
+  if (isFamilySlug(slug)) return {}
+
+  const product = await loadProductState(slug)
+  if (!product || !isCanonical(product.state) || !product.canonical_name) return {}
+
+  return {
+    title: product.canonical_name,
+    description: `${product.canonical_name} — ${t.headline}`,
+    alternates: { canonical: `${SITE_URL}/product/${slug}` },
+  }
+}
+
 export default async function ProductSegmentLayout({
   children,
   params,
@@ -49,56 +140,15 @@ export default async function ProductSegmentLayout({
     permanentRedirect(`/family/${slug}`)
   }
 
-  const admin = getSupabaseAdmin()
-
-  const [productRes, projectionRes] = await Promise.all([
-    admin
-      .from('kg_product')
-      .select('slug, status, support_state, browse_visibility')
-      .eq('slug', slug)
-      .maybeSingle(),
-    admin
-      .from('browse_product_projection')
-      .select('slug, browse_domain')
-      .eq('slug', slug)
-      .maybeSingle(),
-  ]).catch(() => {
-    // Transport-level failure rejects rather than returning { error }.
-    throw new CatalogueUnavailableError('product_gate_transport')
-  })
-
-  // ABSENCE IS NOT UNAVAILABILITY.
-  //
-  // maybeSingle() returns data:null with error:null when there is no such
-  // slug, and a populated error for anything else. Calling notFound() on a
-  // query error would tell a visitor, a crawler and an uptime monitor that a
-  // product does not exist because the database was briefly unreachable.
-  // Throwing instead routes into the Next.js server error path — a 5xx, which
-  // is the honest answer and the one nothing will cache.
-  if (productRes.error) throw new CatalogueUnavailableError('product_gate_lookup')
-  if (projectionRes.error) throw new CatalogueUnavailableError('projection_gate_lookup')
-
-  const product = productRes.data as {
-    status?: string | null
-    support_state?: string | null
-    browse_visibility?: string | null
-  } | null
+  const product = await loadProductState(slug)
 
   if (!product) notFound()
 
-  const state: CatalogueStateRow = {
-    status: product.status ?? null,
-    support_state: product.support_state ?? null,
-    browse_visibility: product.browse_visibility ?? null,
-    browse_domain:
-      (projectionRes.data as { browse_domain?: string | null } | null)?.browse_domain ?? null,
-  }
-
-  if (isCanonical(state)) return <>{children}</>
+  if (isCanonical(product.state)) return <>{children}</>
 
   // The 34 supported+private products render for a verified admin session only.
   // The session lookup happens only when it could change the outcome.
-  if (isAdminOnly(state) && (await isCurrentUserAdmin())) return <>{children}</>
+  if (isAdminOnly(product.state) && (await isCurrentUserAdmin())) return <>{children}</>
 
   notFound()
 }
