@@ -54,6 +54,8 @@ const BROWSER_HEADERS = {
 export type ScrapedListingResult = Omit<Listing, 'id' | 'scraped_at'> & {
   /** PAN-244: the ad's own text, when the page states it (DBA does). */
   description?: string | null
+  /** PAN-247: the offer's schema.org availability, when the page states it (DBA does). */
+  availability?: string | null
 }
 
 const FALLBACK_RATES: Record<string, number> = { USD: 7.1, EUR: 7.46, GBP: 8.8, DKK: 1.0 }

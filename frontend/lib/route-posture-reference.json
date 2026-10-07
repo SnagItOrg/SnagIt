@@ -37,6 +37,7 @@
     "/api/market-price": "protected_api",
     "/admin": "admin_page",
     "/admin/cleanup": "admin_page",
+    "/admin/demand": "admin_page",
     "/admin/families/propose": "admin_page",
     "/admin/images": "admin_page",
     "/admin/match": "admin_page",

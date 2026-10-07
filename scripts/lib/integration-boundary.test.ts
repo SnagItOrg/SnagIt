@@ -212,6 +212,7 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan230-tranche2-boundaries.test.ts',
       'scripts/lib/pan235-similar-gear.test.ts',
       'scripts/lib/pan236-facet-line.test.ts',
+      'scripts/lib/pan247-demand.test.ts',
       // PAN-86: the homepage category shelf is the first surface to render the
       // taxonomy itself rather than products, so domain scope and the "never
       // print a count the destination cannot honour" rule are both exercised
@@ -285,7 +286,7 @@ test('integration: no script was lost resolving the package.json conflicts', () 
   // Two cherry-picks conflicted on this file. A resolution that took one side
   // wholesale would silently drop the other's work and, more quietly, could
   // drop unrelated operational scripts.
-  assert.equal(Object.keys(pkg.scripts).length, 33, 'the script count moved')
+  assert.equal(Object.keys(pkg.scripts).length, 34, 'the script count moved')
   for (const required of [
     'test',
     'typecheck',
