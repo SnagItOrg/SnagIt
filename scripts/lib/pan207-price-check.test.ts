@@ -5,7 +5,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { classify, guessProducts, listingsUnderAnswer, readLink } from '../../frontend/lib/price-check'
+import { classify, guessCandidates, guessProducts, listingsUnderAnswer, readLink, trigramSimilarity, type GuessCandidate } from '../../frontend/lib/price-check'
 import { buildPopulationStats } from '../../frontend/lib/price-populations'
 
 const rows = (prices: number[], source: string) =>
@@ -95,27 +95,62 @@ test('PAN-244: listings under the answer are Danish first, the pasted ad left ou
   assert.deepEqual(listingsUnderAnswer(wall, pasted.url).map((x) => x.id), ['c', 'e', 'a', 'd', 'f'])
 })
 
-test('PAN-244 part 2: a guess names the model in full without the brand; overlap, then the price in range, then the name; three at most', () => {
-  const products = [
-    { slug: 'roland-juno-60', name: 'Roland Juno-60', model_name: 'Juno-60' },
-    { slug: 'roland-juno-6', name: 'Roland Juno-6', model_name: 'Juno-6' },
-    { slug: 'roland-juno-106', name: 'Roland Juno-106', model_name: 'Juno-106' },
-    { slug: 'sequential-prophet-5', name: 'Sequential Prophet-5', model_name: 'Prophet-5' },
-    { slug: 'sequential-circuits-prophet-5', name: 'Sequential Circuits Prophet-5', model_name: 'Prophet-5' },
-    { slug: 'a-prophet-5-clone', name: 'A Prophet-5 Clone', model_name: 'Prophet-5' },
-    { slug: 'b-prophet-5-desktop', name: 'B Prophet-5 Desktop', model_name: 'Prophet-5' },
-    { slug: 'no-model', name: 'No Model', model_name: null },
+const P = (slug: string, name: string, model_name: string | null, brand_name: string | null): GuessCandidate =>
+  ({ slug, name, model_name, brand_name, kind: 'product' })
+const F = (slug: string, name: string, brand_name: string, aliases: string[]): GuessCandidate =>
+  ({ slug, name, model_name: null, brand_name, kind: 'family', aliases })
+
+test('PAN-244 part 2: the ranking — the row the title supports best, then the price in range, then the nearest; three at most', () => {
+  const rows = [
+    P('roland-juno-60', 'Roland Juno-60', 'Juno-60', 'roland'),
+    P('roland-juno-6', 'Roland Juno-6', 'Juno-6', 'roland'),
+    P('roland-juno-106', 'Roland Juno-106', 'Juno-106', 'roland'),
+    P('sequential-prophet-5', 'Sequential Prophet-5', 'Prophet-5', 'sequential'),
+    P('sequential-circuits-prophet-5', 'Sequential Circuits Prophet-5', 'Prophet-5', 'sequential circuits'),
+    P('a-prophet-5-clone', 'A Prophet-5 Clone', 'Prophet-5', 'a'),
+    P('b-prophet-5-desktop', 'B Prophet-5 Desktop', 'Prophet-5', 'b'),
+    P('no-model', 'No Model', null, null),
   ]
-  // "juno 60" is "Juno-60"; "Juno-6" is not, and the brand is not needed.
-  assert.deepEqual(guessProducts('VINTAGE JUNO 60', 21000, products, new Map()).map((g) => g.slug), ['roland-juno-60'])
-  // Four share the overlap: the one whose observed range holds the price leads, then the name, and the fourth is cut.
+  const rank = (title: string, price: number, ranges = new Map<string, { low: number; high: number }>()) =>
+    guessProducts(title, price, guessCandidates(title, rows, null), ranges).map((g) => g.slug)
+  // "juno 60" is "Juno-60", and the Juno-60 leads the other Junos the title does not name.
+  assert.equal(rank('VINTAGE JUNO 60', 21000)[0], 'roland-juno-60')
+  // Two rows the title supports in full ("Prophet-5" is all their names say beyond the brand) lead the two it
+  // supports in part (a clone, a desktop); between the two, the one whose observed range holds the price leads.
   const ranges = new Map([
-    ['sequential-circuits-prophet-5', { low: 60000, high: 120000 }],
+    ['sequential-circuits-prophet-5', { low: 15000, high: 25000 }],
     ['b-prophet-5-desktop', { low: 15000, high: 25000 }],
   ])
-  assert.deepEqual(
-    guessProducts('Prophet 5 synth', 20000, products, ranges).map((g) => g.slug),
-    ['b-prophet-5-desktop', 'a-prophet-5-clone', 'sequential-circuits-prophet-5'],
-  )
-  assert.deepEqual(guessProducts('Bosch GOP 12V-28 Professional', 1200, products, new Map()), [])
+  const out = rank('Prophet 5 synth', 20000, ranges)
+  assert.deepEqual(out.slice(0, 2), ['sequential-circuits-prophet-5', 'sequential-prophet-5'])
+  assert.equal(out.length, 3)
+})
+
+test('PAN-245 stage 1: the candidate step — trigram neighbours, names in full and the offered brand\'s rows, behind the brand guard', () => {
+  const rows = [
+    P('roland-juno-60', 'Roland Juno-60', 'Juno-60', 'roland'),
+    P('roland-juno-106', 'Roland Juno-106', 'Juno-106', 'roland'),
+    P('roland-juno-stage', 'Roland Juno Stage', 'Juno Stage', 'roland'),
+    P('fender-player-ii-stratocaster', 'Fender Player II Stratocaster', 'Player II Stratocaster', 'fender'),
+    P('fender-american-standard-jazz-bass', 'Fender American Standard Jazz Bass', 'American Standard Jazz Bass', 'fender'),
+    P('gibson-les-paul-standard-50s', 'Gibson Les Paul Standard 50s', 'Les Paul Standard 50s', 'gibson'),
+    F('fender-stratocaster', 'Fender Stratocaster', 'fender', ['stratocaster', 'strat']),
+    F('fender-jazz-bass', 'Fender Jazz Bass', 'fender', ['jazz bass', 'j-bass']),
+  ]
+  // pg_trgm's own numbers, as measured on PAN-245: the hyphen is no boundary, and "Juno-60" scores 0.50 against the title.
+  assert.equal(trigramSimilarity('Juno 60', 'Juno-60'), 1)
+  assert.equal(Math.round(trigramSimilarity('VINTAGE JUNO 60', 'Juno-60') * 100), 50)
+  const slugs = (title: string, brand: string | null = null) => guessCandidates(title, rows, brand).map((c) => c.slug)
+  // The trigram neighbours and the model name in full let the Juno-60 in; the drone shares no word with any row.
+  assert.ok(slugs('VINTAGE JUNO 60').includes('roland-juno-60'))
+  assert.deepEqual(slugs('DJI Mavic Air 2 drone med fjernbetjening'), [])
+  // A variant the catalogue lacks: the family row comes in through its alias and its brand.
+  assert.ok(slugs('Fender American Standard Stratocaster', 'fender').includes('fender-stratocaster'))
+  // The brand guard: Squier is offered, so Fender's rows are out and nothing is guessed.
+  assert.deepEqual(slugs('Squier Jazz Bass el-bas Korea', 'squier'), [])
+  // The brand alone is not a guess.
+  assert.deepEqual(slugs('Fender (US) 1979 Sienna Sunburst', 'fender'), [])
+  // Ranked: the family, named in full and nearest by trigram, leads a variant with the same overlap.
+  const title = 'Fender Vintage Stratocaster'
+  assert.equal(guessProducts(title, 37500, guessCandidates(title, rows, 'fender'), new Map())[0]?.slug, 'fender-stratocaster')
 })

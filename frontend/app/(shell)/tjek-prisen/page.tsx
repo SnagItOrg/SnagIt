@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/LocaleProvider'
 import { TextField } from '@/components/TextField'
 import { Button } from '@/components/Button'
@@ -32,6 +33,7 @@ const kr = (n: number) => Math.round(n).toLocaleString('da-DK')
 
 export default function TjekPrisenPage() {
   const { t } = useLocale()
+  const router = useRouter()
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -67,6 +69,8 @@ export default function TjekPrisenPage() {
     if (!result) return
     track('price_check_guess', { shown: result.guesses.length, picked })
     if (picked === 'none') setGuessesDismissed(true)
+    // A family has no price of its own (PAN-94): its guess leads to the family page, as the guide link does.
+    else if (result.guesses[picked].kind === 'family') router.push(result.guesses[picked].href)
     else void check(result.guesses[picked].slug)
   }
 
