@@ -904,6 +904,8 @@ const TUBE_LISTING: readonly RegExp[] = cues(
   'nos', 'new old stock', '6au6', '6au6a', '12at7', '12at7wa', '12at7wc', '12ax7', 'ecc81', 'ecc83', 'ef94',
   '6k6', '6k6gt', '6v6', '7025', 'tubes', 'valves', 'tube only', 'tube set',
 )
+/** PAN-249: a dbx 160 plug-in, a pair, or a count before the brand ("2 dbx 160 1980s - black"). */
+const DBX_160_NOT_THE_UNIT: readonly RegExp[] = [...UAD_SOFTWARE, ...PAIR_OR_LOT, /^\W*(?:[2-9]|two|three|four)\s+(?:x\s+)?dbx(?![\w-])/i]
 /** Mic parts sold alone (a windscreen "for SM7, SM7A, and SM7B", a capsule, connectors) unless after a marker. */
 const MIC_PARTS: readonly string[] = [
   'grille', 'grill', 'screen', 'windscreen', 'windscreens', 'cable set', 'cable', 'cables', 'clip', 'mic clip', 'pouch',
@@ -2258,6 +2260,21 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The Lexicon 200 (CSP 14065), a bare-number model: never the MX200 / MPX 200 / PCM / LXP units or the 224 / 480L
   // that share the brand, nor a plug-in or a bundle. No live title names it today; the boundary guards the number.
   'lexicon-200': member('lexicon-200', ...UAD_SOFTWARE, ...PAIR_OR_LOT, ...cues('mx200', 'mx-200', 'mpx', 'mpx200', 'mpx-200', 'pcm', 'lxp', '224', '224x', '224xl', '480', '480l', 'bundle')),
+  // The LA-610 MkII (2008–, CSP 1969) shares the classic's line, so the classic's MkII refusal separates them instead
+  // of deferring a two-line tie (step 5b). Without a Mark II cue a title is the classic; a listing that bundles
+  // headphones, monitors or cables (measured: Audio-Technica, KRK, Mackie, Mogami) is not the unit.
+  'universal-audio-la-610-mkii': {
+    line: 'ua-la-610',
+    otherMembers: [...UAD_SOFTWARE, ...PAIR_OR_LOT, ...cues('putnam', 'signature', 'bundle', 'audio-technica', 'krk', 'mackie', 'mogami')],
+    requires: MK_II,
+  },
+  // The dbx 160 family, one row per Reverb page (manager's call 2026-10-07): the 1970s VU unit (CSP 29953), the 160A
+  // (2562), the 160X (55335) and the 160XT (51557). Each model number is its own token, so the rows already separate;
+  // what none of them is: the UAD and Waves plug-ins named after the 160, a pair, or "2 dbx 160" (two units).
+  'dbx-160': member('dbx-160', ...DBX_160_NOT_THE_UNIT),
+  'dbx-160a': member('dbx-160', ...DBX_160_NOT_THE_UNIT),
+  'dbx-160x': member('dbx-160', ...DBX_160_NOT_THE_UNIT),
+  'dbx-160xt': member('dbx-160', ...DBX_160_NOT_THE_UNIT),
 
   // ── PAN-221: Sequential, three eras, one maker ───────────────────────────
   // The 2018– keyboards and their desktop / module versions are their own Reverb pages and prices,
