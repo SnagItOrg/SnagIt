@@ -550,3 +550,24 @@ no row: rows arrive as links are pasted.
 | Rollback | `065_rollback.sql`. Refuses while the table holds a row (a demand row is the only record of a pasted link); drops it when empty; absent is a no-op. |
 | Rehearsal | PGlite, 22 checks: apply, POST, the route's and the nightly's writes against the CHECK constraints, rollback refusing with a row and dropping without, DRIFT on an open grant and on an extra column (`rehearse247.mjs`, attached to PAN-247). `verify-migrations-isolated.sh` was not run: the authoring machine has no local PostgreSQL. |
 | Writers | `/api/tjek-prisen` (`frontend/lib/price-check-demand.ts`, `recordDemand`) and `scripts/recheck-demand.ts`. Reader: `/admin/demand`. All three fail soft while the table is absent. |
+
+## 066 — `watchlist_notification`, the watchlist email's delivery record. **NOT APPLIED.**
+
+`066_watchlist_notification.sql` (PAN-12) creates `watchlist_notification`:
+one row per (watchlist, listing) the watchlist email has handled, unique on
+the pair, with the outcome (`seen` · `pending` · `sent` · `failed` ·
+`no_recipient` · `opted_out`), the provider's bounded reason code on a failure,
+and the attempt time. No address, no title, no provider message. In the same
+transaction it marks the 324 historical pairs — `listings` rows the disabled
+Vercel cron tied to a watchlist and never notified — as `seen`. Their
+`attempted_at` is the go-live: `scripts/notify-watchlists.ts` never sends a
+listing ingested before it. `listings` itself is not touched.
+
+| Property | |
+|---|---|
+| Why | Owner decisions 1–4 on PAN-12, 2026-10-07: a PM2 trigger on panter, the 324 marked seen and never sent, every supported marketplace, a small restricted delivery table. |
+| P0 | A new `public` table: RLS enabled with no policy and every `anon` / `authenticated` privilege revoked in the same transaction. The runner writes through the service role. |
+| PRE / POST / DRIFT | PRE (table absent, legacy set exactly 324 pairs with md5 `0a6c0a9a…c324`, measured on production 2026-10-08) creates and inserts, then a postflight in the transaction; POST (this shape, closed, those 324 seen pairs) is a no-op; anything else raises before any change. |
+| Rollback | `066_rollback.sql`. Refuses while the table holds any row other than the 324 `seen` pairs (a delivery row is the only record of a mail); drops it otherwise; absent is a no-op. |
+| Rehearsal | PGlite, 16 checks (`rehearse066.mjs`, kept in `~/klup-rollbacks/opus1-2026-10-08/pan12/` on the MacBook): PRE, listings untouched, closed despite the open default privilege, POST, the runner's claim once per pair, the CHECK, rollback refusing with a delivery row, rollback to byte-identical `listings`, absent no-op, re-apply, and DRIFT on a changed legacy set, an open grant and a missing seen row. `verify-migrations-isolated.sh` was not run: the authoring machine has no local PostgreSQL. |
+| Writer | `scripts/notify-watchlists.ts` (PM2 on panter). It refuses to run until 066 is applied. |
