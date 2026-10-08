@@ -16,6 +16,7 @@ import assert from 'node:assert/strict'
 
 import { buildMatchIndex, decideMatch, type Product } from '../../frontend/lib/matching/match-listings'
 import studioConfig from '../rematch-configs/pan249-studio'
+import dbxMkiiConfig from '../rematch-configs/pan249-dbx-mkii'
 
 const row = (slug: string, brand_name: string, canonical_name: string, model_name: string): Product => ({
   id: `p-${slug}`, slug, canonical_name, model_name, brand_name, status: 'active', support_state: 'supported',
@@ -37,9 +38,19 @@ const PRODUCTS: Product[] = [
   row('arp-solina-string-ensemble', 'arp', 'ARP Solina String Ensemble', 'Solina String Ensemble'),
   row('fairchild-670', 'fairchild', 'Fairchild 670', '670'),
   row('kush-clariphonic', 'kush audio', 'Kush Audio Clariphonic', 'Clariphonic'),
+  row('universal-audio-la-610-mkii', 'universal audio', 'Universal Audio LA-610 MkII', 'LA-610 MkII'),
+  row('dbx-160', 'dbx', 'dbx 160', '160'),
+  row('dbx-160a', 'dbx', 'dbx 160A', '160A'),
+  row('dbx-160x', 'dbx', 'dbx 160X', '160X'),
+  row('dbx-160xt', 'dbx', 'dbx 160XT', '160XT'),
 ]
-const BRANDS = new Set(['universal audio', 'lexicon', 'roland', 'ssl', 'altec', 'focusrite', 'anthony demaria labs', 'amek', 'joemeek', 'arp', 'fairchild', 'kush audio', 'behringer', 'stam audio', 'retro instruments'])
-const index = buildMatchIndex(PRODUCTS, [], [], BRANDS)
+/** The spelling aliases the PAN-249 second promote SQL writes (the `ssl-2-mkii` pattern). */
+const SYNONYMS = [
+  ...['LA-610 Mk II', 'LA-610 Mk2', 'LA610 MKII'].map((alias) => ({ alias, canonical_query: 'universal-audio-la-610-mkii' })),
+  { alias: 'dbx 160VU', canonical_query: 'dbx-160' },
+]
+const BRANDS = new Set(['universal audio', 'lexicon', 'roland', 'ssl', 'altec', 'focusrite', 'anthony demaria labs', 'amek', 'joemeek', 'arp', 'fairchild', 'kush audio', 'behringer', 'stam audio', 'retro instruments', 'dbx'])
+const index = buildMatchIndex(PRODUCTS, [], SYNONYMS, BRANDS)
 
 const decide = (title: string) => {
   const d = decideMatch(title, index)
@@ -139,4 +150,51 @@ test('PAN-249: the re-match config names the thirteen promoted rows and its line
   }
   for (const l of studioConfig.lines) assert.ok(l.names.test(hits[l.line]), l.line)
   assert.ok(!studioConfig.lines.find((l) => l.line === 'la-4')!.names.test('ORIGINAL Sanyo LA4140 Headphone Amplifier IC for Roland TB-303, TR-606'))
+})
+
+// Second promote (2026-10-08): every title below is a live production title read that day.
+test('PAN-249: the LA-610 MkII takes its own titles, in every spelling, and the classic still takes none', () => {
+  for (const t of [
+    'Universal Audio LA-610 MkII Tube Channel Strip 2008 - Present - Black',
+    'Universal Audio LA 610 MKII Mic Pre Compressor Channel Strip',
+    'Universal Audio LA-610 Mk II Classic Tube Recording Channel Regular',
+    'Universal Audio LA-610 Mk2 Classic Tube Recording Channel',
+    'Universal Audio LA610 MKII Classic Tube Recording Channel',
+    'Universal Audio Classic LA-610 Mk II 2025 - Black',
+    'Universal Audio LA-610 MkII MODDED',
+  ]) matched(t, 'universal-audio-la-610-mkii')
+  // A listing that bundles headphones, monitors or cables is not the unit.
+  for (const t of [
+    'Universal Audio LA-610 MKII - Audio-Technica ATH M50X - Mogami Gold TRSXLRM-10 (2)',
+    'Universal Audio LA-610 MKII - KRK RP5G4 (2) - Mogami Gold TRSXLRM-10 (2)',
+    'Universal Audio LA-610 MKII - Mackie Big Knob - XLR to 1/4 Cable (2)',
+  ]) notMatched(t, 'universal-audio-la-610-mkii')
+  // Without a Mark II cue the title is the classic.
+  matched('Universal Audio LA-610 Tube Channel Strip', 'ua-la-610')
+})
+
+test('PAN-249: the dbx 160 family resolves per model and refuses the plug-ins and the pairs', () => {
+  matched('dbx 160 Compressor / Limiter 1970s VU - Wood Sides', 'dbx-160')
+  matched('dbx 160VU 1960s - Black', 'dbx-160')
+  matched('dbx 160A Compressor Limiter 2000s Overeasy EU Model', 'dbx-160a')
+  matched('dbx 160X Compressor / Jim Williams Upgraded', 'dbx-160x')
+  matched('dbx 160XT Compressor / Limiter — Recapped & Serviced, Jensen Transformer Installed, Balanced XLR I/O, 115V', 'dbx-160xt')
+  for (const t of [
+    'Universal Audio UAD dbx 160 Compressor / Limiter Plug-In',
+    'Waves dbx 160 Compressor / Limiter (Download)',
+    'Dbx 160 Compressor - Pair',
+    'Pair of dbx 160 (Matched) Record Plant',
+    '2 dbx 160 1980s - black',
+  ]) notMatched(t, 'dbx-160')
+  notMatched('dbx 160X Compressors, stereo pair, sequential serial numbers, fully recapped, 110/220 Volt, set #71', 'dbx-160x')
+  notMatched('dbx 160XT Compressors, stereo pair, 110/220 Volt, recapped power supplies, set #79', 'dbx-160xt')
+  // The 160S / 160SL (the Blue series) has no row and lands on none of the four.
+  assert.ok(!decide('dbx 160SL Stereo Compressor / Limiter').startsWith('matched:'))
+})
+
+test('PAN-249: the second re-match config names the five promoted rows and its lines find their titles', () => {
+  assert.deepEqual([...dbxMkiiConfig.promoted], ['dbx-160', 'dbx-160a', 'dbx-160x', 'dbx-160xt', 'universal-audio-la-610-mkii'])
+  for (const slug of [...dbxMkiiConfig.promoted, ...dbxMkiiConfig.supportedToday]) assert.ok(PRODUCTS.some((p) => p.slug === slug), slug)
+  const hits: Record<string, string> = { 'dbx-160': 'Pair of dbx 160 (Matched) Record Plant', 'la-610': 'Universal Audio LA610 MKII Classic Tube Recording Channel' }
+  for (const l of dbxMkiiConfig.lines) assert.ok(l.names.test(hits[l.line]), l.line)
 })
