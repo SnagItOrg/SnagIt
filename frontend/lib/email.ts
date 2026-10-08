@@ -103,3 +103,49 @@ export async function sendFeedbackEmail(
   })
   if (error) throw new Error(`resend_rejected:${error.name}`)
 }
+
+/**
+ * PAN-258: the nightly scrape did not run for these sources. Sent once per
+ * incident (missedNight() in scrape-freshness.ts decides); the idempotency key
+ * names the incident, so a retried request inside Resend's 24 h window cannot
+ * send it twice.
+ */
+export async function sendMissedNightEmail(
+  to: string,
+  stale: string[],
+  latest: Record<string, string | null>,
+  now: Date,
+) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.klup.dk'
+  const label = (source: string) => sourceForStored(source)?.label ?? source
+  const hoursAgo = (at: string) => Math.floor((now.getTime() - Date.parse(at)) / 3_600_000)
+  const lines = stale.map((source) => {
+    const at = latest[source]
+    return at
+      ? `• ${label(source)}: ${at.slice(0, 16).replace('T', ' ')} UTC (${hoursAgo(at)} h ago)`
+      : `• ${label(source)}: no listings at all`
+  })
+
+  const text = [
+    'No new listings since:',
+    ...lines,
+    '',
+    'The nightly scrape did not run. Panter may be off, or rebooted without PM2 (PAN-258).',
+    'On panter: `which pm2`, then `pm2 ls`. Start one job with',
+    '  pm2 start ecosystem.config.js --only scrape-dba',
+    'Never `pm2 resurrect`.',
+    '',
+    `Sent once per incident. Status now: ${appUrl}/api/health/freshness`,
+  ].join('\n')
+
+  const { error } = await getResend().emails.send(
+    {
+      from: process.env.RESEND_FROM_EMAIL!,
+      to,
+      subject: `Klup: no new ${stale.map(label).join(' or ')} listings for over a day — check panter`,
+      text,
+    },
+    { idempotencyKey: `missed-night/${stale.map((s) => `${s}@${latest[s]}`).join(',')}` },
+  )
+  if (error) throw new Error(`resend_rejected:${error.name}`)
+}

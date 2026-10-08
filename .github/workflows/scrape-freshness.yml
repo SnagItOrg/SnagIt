@@ -1,6 +1,11 @@
 # PAN-158. The scrapers run on the Mac Mini, and when it loses its network a
 # run cannot record its own failure. This check runs off-box and fails - so
 # GitHub emails - when any daily source has gone a night without new data.
+#
+# PAN-258. It also asks klup.dk to email the owner through Resend when DBA or
+# Reverb missed a night. The cache carries the last answer's `stale` list to
+# the next run, so one incident is one email. Until the FRESHNESS_ALERT_SECRET
+# repository secret exists the email step is skipped and only the check runs.
 name: Scrape freshness
 
 on:
@@ -15,4 +20,34 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - run: curl --fail-with-body --silent --show-error --retry 3 https://www.klup.dk/api/health/freshness
+      - uses: actions/cache/restore@v4
+        with:
+          path: missed-night-stale.json
+          key: missed-night-${{ github.run_id }}
+          restore-keys: missed-night-
+
+      - name: Missed-night email (PAN-258)
+        env:
+          FRESHNESS_ALERT_SECRET: ${{ secrets.FRESHNESS_ALERT_SECRET }}
+        run: |
+          if [ -z "$FRESHNESS_ALERT_SECRET" ]; then
+            echo "::warning::FRESHNESS_ALERT_SECRET is not set; skipping the missed-night email"
+            exit 0
+          fi
+          previous=$(cat missed-night-stale.json 2>/dev/null || echo '[]')
+          curl --fail-with-body --silent --show-error --retry 3 -X POST \
+            -H "Authorization: Bearer $FRESHNESS_ALERT_SECRET" \
+            -H 'Content-Type: application/json' \
+            --data "{\"previouslyStale\":$previous}" \
+            https://www.klup.dk/api/health/freshness/alert > answer.json || { cat answer.json; exit 1; }
+          cat answer.json
+          jq -c .stale answer.json > missed-night-stale.json
+
+      - uses: actions/cache/save@v4
+        if: hashFiles('missed-night-stale.json') != ''
+        with:
+          path: missed-night-stale.json
+          key: missed-night-${{ github.run_id }}
+
+      - if: ${{ !cancelled() }}
+        run: curl --fail-with-body --silent --show-error --retry 3 https://www.klup.dk/api/health/freshness

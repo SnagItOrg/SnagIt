@@ -233,6 +233,11 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
    * their own credential in-route: CRON_SECRET, and the Supabase webhook
    * signature. Putting them behind the session gate would break them. */
   { route: '/api/cron/scrape', access: 'machine_api', note: 'dormant; the Vercel cron feature is disabled' },
+  {
+    route: '/api/health/freshness/alert',
+    access: 'machine_api',
+    note: 'PAN-258 missed-night email; FRESHNESS_ALERT_SECRET bearer, called by the off-box GitHub check',
+  },
   // S2. `/api/webhooks/auth` used to sit here. It was `machine_api`, so the
   // edge exempted it from the session gate by design — and it then
   // authenticated nothing, so any caller could make Klup send an email from
