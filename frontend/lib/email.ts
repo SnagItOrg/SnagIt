@@ -72,7 +72,10 @@ export async function sendNewListingsEmail({
  */
 export async function sendFeedbackEmail(
   to: string,
-  f: { kind: string; surface: string; path: string; text: string | null; email: string | null; productSlug: string | null; state: string | null },
+  f: {
+    kind: string; surface: string; path: string; text: string | null; email: string | null; productSlug: string | null; state: string | null
+    tipPriceDkk: number | null; tipName: string | null; listingUrl: string | null
+  },
 ) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.klup.dk'
   const text = [
@@ -81,6 +84,9 @@ export async function sendFeedbackEmail(
     `Page: ${appUrl}${f.path}`,
     f.productSlug ? `Product: ${f.productSlug}` : null,
     f.state ? `Check state: ${f.state}` : null,
+    f.tipPriceDkk != null ? `Tip: ${f.tipPriceDkk.toLocaleString('da-DK')} kr used` : null,
+    f.tipName ? `Tip says it is: ${f.tipName}` : null,
+    f.listingUrl ? `Ad: ${f.listingUrl}` : null,
     f.email ? `Reply to: ${f.email}` : 'Reply to: (not given)',
     '',
     f.text ?? '(no text)',
@@ -90,7 +96,9 @@ export async function sendFeedbackEmail(
     from: process.env.RESEND_FROM_EMAIL!,
     to,
     replyTo: f.email ?? undefined,
-    subject: `Klup feedback: ${f.kind} (${f.surface})`,
+    subject: f.kind === 'price_tip'
+      ? `Klup tip: ${f.tipPriceDkk?.toLocaleString('da-DK')} kr${f.tipName ? ` for ${f.tipName}` : ''}`
+      : `Klup feedback: ${f.kind} (${f.surface})`,
     text,
   })
   if (error) throw new Error(`resend_rejected:${error.name}`)

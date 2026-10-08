@@ -13,7 +13,7 @@ test('PAN-251: the feedback read — the four kinds, the two surfaces, bounded f
   assert.ok(ok.ok)
   if (ok.ok) {
     assert.equal(ok.honeypot, false)
-    assert.deepEqual(ok.feedback, { kind: 'wrong_price', surface: 'tjek-prisen', path: '/tjek-prisen', text: 'Prisen er for lav', email: 'mig@example.com', productSlug: 'roland-juno-60', state: 'verdict' })
+    assert.deepEqual(ok.feedback, { kind: 'wrong_price', surface: 'tjek-prisen', path: '/tjek-prisen', text: 'Prisen er for lav', email: 'mig@example.com', productSlug: 'roland-juno-60', state: 'verdict', tipPriceDkk: null, tipName: null, listingUrl: null })
   }
   // Optional fields left empty arrive as null; the honeypot filled is a bot, still "ok" so it learns nothing.
   const bare = readFeedback({ kind: 'other', surface: 'product', path: '/product/roland-juno-60', text: '', email: '', website: 'http://spam' })
@@ -31,4 +31,18 @@ test('PAN-251: the feedback read — the four kinds, the two surfaces, bounded f
   assert.equal(reason({ kind: 'other', surface: 'product', path: '/x', productSlug: 'Bad Slug!' }), 'slug')
   assert.equal(reason({ kind: 'other', surface: 'product', path: '/x', state: 'guessing' }), 'state')
   assert.equal(reason(null), 'kind')
+})
+
+test('PAN-256: a price tip needs a whole-kroner price; name and ad link are optional and bounded', () => {
+  const ok = readFeedback({ kind: 'price_tip', surface: 'tjek-prisen', path: '/tjek-prisen', state: 'not_recognised', tipPriceDkk: '4500', tipName: ' Roland Juno-106 ', listingUrl: 'https://www.dba.dk/recommerce/forsale/item/123', website: '' })
+  assert.ok(ok.ok)
+  if (ok.ok) assert.deepEqual([ok.feedback.kind, ok.feedback.tipPriceDkk, ok.feedback.tipName, ok.feedback.listingUrl], ['price_tip', 4500, 'Roland Juno-106', 'https://www.dba.dk/recommerce/forsale/item/123'])
+  const reason = (body: Record<string, unknown>) => { const r = readFeedback({ kind: 'price_tip', surface: 'product', path: '/product/x', ...body }); return r.ok ? 'ok' : r.reason }
+  assert.equal(reason({ tipPriceDkk: 4500 }), 'ok')
+  for (const tipPriceDkk of [undefined, '', 0, -5, 12.5, 'abc', 10_000_001]) assert.equal(reason({ tipPriceDkk }), 'tip', String(tipPriceDkk))
+  assert.equal(reason({ tipPriceDkk: 4500, tipName: 'a'.repeat(201) }), 'tip')
+  assert.equal(reason({ tipPriceDkk: 4500, listingUrl: 'javascript:alert(1)' }), 'tip')
+  // Another kind never carries tip fields, whatever the body says.
+  const other = readFeedback({ kind: 'other', surface: 'product', path: '/x', tipPriceDkk: 4500 })
+  assert.ok(other.ok && other.feedback.tipPriceDkk === null)
 })

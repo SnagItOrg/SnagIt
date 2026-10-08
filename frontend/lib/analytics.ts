@@ -514,6 +514,10 @@ export interface KlupEventMap {
     kind: 'wrong_product' | 'wrong_price' | 'missing' | 'other'
     surface: 'product' | 'tjek-prisen'
   }
+  /** PAN-256: a price tip was accepted. Never the price, the name, the text or the email. */
+  price_tip_sent: {
+    surface: 'product' | 'tjek-prisen'
+  }
 }
 
 export type KlupEventName = keyof KlupEventMap
@@ -540,6 +544,7 @@ const EVENT_NAMES: Record<KlupEventName, true> = {
   price_check_result: true,
   price_check_guess: true,
   feedback_sent: true,
+  price_tip_sent: true,
 }
 
 /** Every tracked event name, for the transmit allow-list and the taxonomy assertions. */
