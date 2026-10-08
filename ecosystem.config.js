@@ -117,6 +117,22 @@ module.exports = {
       },
     },
     {
+      // PAN-247: re-read every DBA ad pasted into /tjek-prisen, mark it sold or
+      // removed, refresh the identification and queue a Reverb price fetch for a
+      // matched active ad. After scrape-dba (00:30), before fetch-reverb-prices
+      // (03:00). Writes only price_check_demand and price_fetch_queue.
+      name: 'recheck-demand',
+      script: 'npx',
+      args: 'tsx scripts/recheck-demand.ts --apply',
+      cron_restart: '30 1 * * *', // daily at 01:30
+      autorestart: false,
+      max_restarts: 0,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
       name: 'process-price-queue',
       script: 'npx',
       args: 'tsx scripts/process-price-queue.ts',
