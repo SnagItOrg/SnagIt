@@ -48,7 +48,10 @@ const ADMIN_NAV: { title: AdminNavKey; items: AdminNavItem[] }[] = [
   },
   {
     title: 'sectionMarket',
-    items: [{ href: '/intel', label: 'intel', icon: 'monitoring' }],
+    items: [
+      { href: '/admin/demand', label: 'demand', icon: 'manage_search' },
+      { href: '/intel', label: 'intel', icon: 'monitoring' },
+    ],
   },
   {
     title: 'sectionAccess',

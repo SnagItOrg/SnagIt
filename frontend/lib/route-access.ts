@@ -123,6 +123,7 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   /* ---------------- admin pages ---------------- */
   { route: '/admin', access: 'admin_page' },
   { route: '/admin/cleanup', access: 'admin_page' },
+  { route: '/admin/demand', access: 'admin_page', note: 'PAN-247; the demand list' },
   { route: '/admin/families/propose', access: 'admin_page' },
   { route: '/admin/images', access: 'admin_page' },
   { route: '/admin/match', access: 'admin_page' },

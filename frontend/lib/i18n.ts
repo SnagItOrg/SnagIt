@@ -662,6 +662,7 @@ export const translations = {
       suggestions: 'Forslag',
       suggestionsBulk: 'Bulk review',
       match: 'Match',
+      demand: 'Efterspørgsel',
       intel: 'Intel',
       users: 'Brugere',
       backToSite: 'Til klup.dk',
@@ -761,6 +762,29 @@ export const translations = {
       unavailable: 'Udgået er ikke slået til endnu (migration 059).',
       error: 'Produktionsår kunne ikke gemmes. Prøv igen.',
     },
+    // PAN-247 — /admin/demand: every DBA link pasted into Tjek prisen.
+    adminDemand: {
+      title: 'Efterspørgsel',
+      intro: 'Hvert DBA-link tjekket på Tjek prisen, og hvad Klup svarede. Mest tjekkede først.',
+      summary: '{rows} links · {unrecognised} uden produkt',
+      empty: 'Ingen links tjekket endnu.',
+      loadFailed: 'Listen kunne ikke hentes.',
+      colChecks: 'Tjek',
+      colAd: 'Annonce',
+      colAnswer: 'Svar',
+      colGuesses: 'Gæt',
+      colLastSeen: 'Sidst set',
+      noTitle: 'Uden titel',
+      picked: 'Valgt',
+      state: {
+        verdict: 'Vurdering',
+        not_enough_data: 'For lidt data',
+        not_recognised: 'Ikke genkendt',
+        cant_read: 'Kunne ikke læses',
+      },
+      adState: { sold: 'Solgt', removed: 'Fjernet' },
+    },
+
     // PAN-194 — /admin/families/propose. Keyed by the issue code in
     // lib/family-proposal.ts, so the route and the form say one sentence.
     adminFamilyProposal: {
@@ -1349,6 +1373,7 @@ export const translations = {
       suggestions: 'Suggestions',
       suggestionsBulk: 'Bulk review',
       match: 'Match',
+      demand: 'Demand',
       intel: 'Intel',
       users: 'Users',
       backToSite: 'Back to klup.dk',
@@ -1440,6 +1465,29 @@ export const translations = {
       unavailable: 'Discontinued is not switched on yet (migration 059).',
       error: 'Production years could not be saved. Try again.',
     },
+    // PAN-247 — see the Danish block.
+    adminDemand: {
+      title: 'Demand',
+      intro: 'Every DBA link checked on Tjek prisen, and what Klup answered. Most checked first.',
+      summary: '{rows} links · {unrecognised} without a product',
+      empty: 'No links checked yet.',
+      loadFailed: 'The list could not be loaded.',
+      colChecks: 'Checks',
+      colAd: 'Ad',
+      colAnswer: 'Answer',
+      colGuesses: 'Guesses',
+      colLastSeen: 'Last seen',
+      noTitle: 'No title',
+      picked: 'Picked',
+      state: {
+        verdict: 'Verdict',
+        not_enough_data: 'Not enough data',
+        not_recognised: 'Not recognised',
+        cant_read: 'Could not read',
+      },
+      adState: { sold: 'Sold', removed: 'Removed' },
+    },
+
     // PAN-194 — family proposal refusals (see the `da` block).
     adminFamilyProposal: {
       nearDuplicateFamily: 'Looks like the family «{family}» ({label}). Add the members there instead of creating a new family.',

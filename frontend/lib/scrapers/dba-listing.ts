@@ -1,8 +1,11 @@
 import * as cheerio from 'cheerio'
 import type { Listing } from '../supabase'
 
-/** PAN-244: `description` is the ad's own text (JSON-LD, else og:description), never the rest of the page. */
-type ScrapedListing = Omit<Listing, 'id' | 'scraped_at'> & { description: string | null }
+/**
+ * PAN-244: `description` is the ad's own text (JSON-LD, else og:description), never the rest of the page.
+ * PAN-247: `availability` is the offer's schema.org availability (InStock on a live ad), when the page states it.
+ */
+type ScrapedListing = Omit<Listing, 'id' | 'scraped_at'> & { description: string | null; availability: string | null }
 
 export function isDbaListingUrl(input: string): boolean {
   try {
@@ -69,6 +72,7 @@ export async function scrapeDbaListing(listingUrl: string): Promise<ScrapedListi
       location: null,
       source: 'dba.dk',
       description: typeof rawDescription === 'string' ? rawDescription.trim() : null,
+      availability: typeof offers?.['availability'] === 'string' ? offers['availability'] : null,
     }
   }
 
@@ -91,5 +95,6 @@ export async function scrapeDbaListing(listingUrl: string): Promise<ScrapedListi
     location: null,
     source: 'dba.dk',
     description: $('meta[property="og:description"]').attr('content')?.trim() ?? null,
+    availability: $('meta[property="product:availability"]').attr('content') ?? null,
   }
 }

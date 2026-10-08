@@ -532,3 +532,21 @@ The owner decides when it is applied. Until then no code reads these tables.
 | Rollback | `064_rollback.sql`. Drops the tables and functions only while every table is empty; absent is a no-op. A claim, vote, flag or history row is user data and is never destroyed by it. |
 | Rehearsal | PGlite, 23 checks (`rehearse064.mjs`, attached to PAN-239 and kept in `~/klup-rollbacks/fable-2026-10-03/pan239/`): apply, POST no-op, DRIFT, RLS as `anon` and as a signed-in user, score thresholds, flags, a shadow-banned vote, the rate limit, the history order, rollback refusal with rows, rollback when empty, re-apply. `verify-migrations-isolated.sh` has no section for it: no local PostgreSQL on the authoring machine. |
 | Readers | None until the UI ships behind its flag (PAN-239). |
+
+## 065 — `price_check_demand`, the demand list. **NOT APPLIED.**
+
+`065_price_check_demand.sql` (PAN-247) creates `price_check_demand`: one row
+per DBA ad URL pasted into `/tjek-prisen`, with the ad's title and asking
+price, the answer Klup gave (`state`, `matched_slug`, `guesses`,
+`picked_slug`), a check count, and what the nightly re-check last saw of the
+ad (`ad_state`: active, sold or removed). No IP, no user id, no PII. It moves
+no row: rows arrive as links are pasted.
+
+| Property | |
+|---|---|
+| Why | Only a matched product's slug reached `price_fetch_queue`; an unrecognised link, its title and its price were saved nowhere. The owner, 2026-10-07: "We must save every DBA link and turn it into a demand list." |
+| P0 | A new `public` table: RLS is enabled with no policy and every `anon` / `authenticated` privilege revoked in the same transaction ([`../CLAUDE.md`](../CLAUDE.md) P0). The route and the nightly write through the service role. |
+| PRE / POST / DRIFT | PRE creates; POST is a no-op; a table in another shape, or one `anon` or `authenticated` can reach, raises before any change. |
+| Rollback | `065_rollback.sql`. Refuses while the table holds a row (a demand row is the only record of a pasted link); drops it when empty; absent is a no-op. |
+| Rehearsal | PGlite, 22 checks: apply, POST, the route's and the nightly's writes against the CHECK constraints, rollback refusing with a row and dropping without, DRIFT on an open grant and on an extra column (`rehearse247.mjs`, attached to PAN-247). `verify-migrations-isolated.sh` was not run: the authoring machine has no local PostgreSQL. |
+| Writers | `/api/tjek-prisen` (`frontend/lib/price-check-demand.ts`, `recordDemand`) and `scripts/recheck-demand.ts`. Reader: `/admin/demand`. All three fail soft while the table is absent. |

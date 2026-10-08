@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { fetchListingFromUrl } from '@/lib/scrapers/listing-url'
 import { decideMatch, loadMatchIndex } from '@/lib/matching/match-listings'
-import { classify, guessCandidates, guessProducts, listingsUnderAnswer, parseLot, readLink, type GuessCandidate, type PriceCheckCause, type PriceCheckGuess, type PriceCheckListing, type PriceCheckResult } from '@/lib/price-check'
+import { classify, listingsUnderAnswer, parseLot, readLink, type PriceCheckCause, type PriceCheckListing, type PriceCheckResult } from '@/lib/price-check'
+import { adStateFrom, canonicalSlugs, guessesFor, recordDemand } from '@/lib/price-check-demand'
 import { reverbSoldGuide } from '@/lib/reverb-sold'
-import { NAVIGATION_FAMILIES } from '@/lib/families'
-import { detectBrandCollision, detectCatalogueBrands, detectOfferedBrand } from '@/lib/matching/brand-guard'
 import { detectNonProductIntent } from '@/lib/matching/listing-intent'
-import { CANONICAL_STATUS, CANONICAL_SUPPORT, CATALOGUE_STATE_SELECT, loadCanonicalSlugs } from '@/lib/catalogue'
 import type { PopulationKey, PopulationStats } from '@/lib/price-populations'
 import type { SearchOutcome } from '@/lib/search-contract'
 import { GET as getProduct } from '@/app/api/product/[slug]/route'
@@ -19,7 +17,8 @@ import { GET as resolveSearch } from '@/app/api/search/resolve/route'
  * Public and unauthenticated, so it is rate-limited per IP in middleware.ts and
  * makes at most one request to the pasted site. Its only writes are the two
  * idempotent ones the ticket names: the Thomann new price (`thomann_product`)
- * and the watch queue (`price_fetch_queue`).
+ * and the watch queue (`price_fetch_queue`) — plus, since PAN-247, the demand
+ * row for a DBA link (`price_check_demand`, keyed by the ad's URL).
  *
  * The two sibling routes are called in-process rather than re-implemented:
  * /api/product/[slug] owns "is this product public, and what are its price
@@ -63,60 +62,6 @@ async function publicPage(req: NextRequest, slug: string) {
     adminPreview: boolean
   }
   return page.adminPreview ? null : page
-}
-
-/**
- * PAN-244 part 2, PAN-245 stage 1: what an unrecognised DBA ad may mean, for
- * the user to confirm — suggest only, never a match. The rows are the public
- * products (`loadCanonicalSlugs`, the one authority, never cached) and the
- * navigation families; `guessCandidates` picks the trigram neighbours, the
- * rows named in full and the named brand's rows behind the brand guard, and
- * `guessProducts` ranks them. The ad's own description naming exactly one
- * catalogue brand makes the title plus that brand an ordinary `decideMatch`,
- * shown as the top guess. The price range is read only for the few product
- * candidates in front, so the common case costs one small read.
- */
-async function guessesFor(
-  req: NextRequest,
-  admin: ReturnType<typeof getSupabaseAdmin>,
-  index: Awaited<ReturnType<typeof loadMatchIndex>>,
-  listing: { title: string; description?: string | null },
-  priceDkk: number | null,
-): Promise<PriceCheckGuess[]> {
-  const canonical = await loadCanonicalSlugs(async () => {
-    const res = await admin.from('kg_product').select(CATALOGUE_STATE_SELECT)
-      .eq('status', CANONICAL_STATUS).eq('support_state', CANONICAL_SUPPORT)
-    return { data: res.data, error: res.error }
-  })
-  const brands = Array.from(detectCatalogueBrands(listing.description ?? '', index.catalogueBrands))
-  const decision = brands.length === 1 ? decideMatch(`${brands[0]} ${listing.title}`, index) : null
-  const hit = decision?.kind === 'matched' ? index.productById.get(decision.best.product_id) : undefined
-  const top: PriceCheckGuess[] = hit && canonical.has(hit.slug)
-    ? [{ slug: hit.slug, name: hit.canonical_name, kind: 'product', href: `/product/${hit.slug}` }] : []
-
-  const rows: GuessCandidate[] = [
-    ...index.products.filter((p) => canonical.has(p.slug))
-      .map((p) => ({ slug: p.slug, name: p.canonical_name, model_name: p.model_name, brand_name: p.brand_name, kind: 'product' as const })),
-    ...NAVIGATION_FAMILIES
-      .map((f) => ({ slug: f.slug, name: f.label, model_name: null, brand_name: f.brand.toLowerCase(), kind: 'family' as const, aliases: f.aliases })),
-  ]
-  // The matcher's own refusals hold here too: a part, a wanted ad or a lot is not guessed at; a row whose brand
-  // the title names a competitor of (Squier against Fender) is out; and the brand the title offers first — a
-  // catalogue brand or an external one such as Jackson or Harley Benton — decides which rows may stay.
-  if (detectNonProductIntent(listing.title)) return top
-  const offered = detectOfferedBrand(listing.title, index.catalogueBrands)
-  const candidates = guessCandidates(listing.title, rows.filter((r) => !detectBrandCollision(listing.title, r.brand_name)), offered)
-  const lead = guessProducts(listing.title, priceDkk, candidates, new Map(), 6)
-  const ranges = new Map<string, { low: number; high: number }>()
-  if (lead.length > 1) {
-    for (const g of lead) {
-      if (g.kind !== 'product') continue
-      const page = await publicPage(req, g.slug)
-      if (page?.priceRange) ranges.set(g.slug, page.priceRange)
-    }
-  }
-  const ranked = guessProducts(listing.title, priceDkk, candidates.filter((c) => lead.some((g) => g.slug === c.slug)), ranges)
-  return [...top, ...ranked.filter((g) => g.slug !== top[0]?.slug)].slice(0, 3)
 }
 
 /** "See Telecaster prices": the resolver's one unambiguous target, or nothing. */
@@ -214,6 +159,24 @@ export async function POST(req: NextRequest) {
   const reverbSold = outcome.state === 'not_recognised' && source === 'dba' && listing && !pick && intent !== 'part_or_accessory' && intent !== 'wanted_or_non_sale'
     ? await reverbSoldGuide(listing.title) : null
 
+  // Only public products are guessed (lib/price-check-demand.ts, shared with the nightly); the price
+  // range of a front-runner comes from its page.
+  const guesses = outcome.state === 'not_recognised' && source === 'dba' && listing
+    ? await guessesFor(await canonicalSlugs(admin), index, listing, priceDkk,
+        async (slug) => (await publicPage(req, slug))?.priceRange ?? null)
+    : []
+
+  if (source === 'dba') {
+    // PAN-247: every DBA link is demand, whatever the answer. The recognised
+    // product is saved public or not — a private match is the signal. A pick
+    // continues the check it belongs to rather than counting as a new one.
+    await recordDemand(admin, {
+      url, source, title, price: priceDkk, currency: listing?.currency ?? null, state: outcome.state,
+      matched_slug: recognised?.slug ?? null, guesses, picked_slug: picked && pickedPage ? picked.slug : null,
+      ad_state: adStateFrom(fetched),
+    }, !pick)
+  }
+
   return NextResponse.json({
     ...empty,
     ...outcome,
@@ -228,8 +191,7 @@ export async function POST(req: NextRequest) {
     // The page's own listings, so a product that is not public has none here either.
     listings: page ? listingsUnderAnswer(page.listings ?? [], url) : [],
     guide: outcome.state === 'not_recognised' ? await guideFor(req, title) : null,
-    guesses: outcome.state === 'not_recognised' && source === 'dba' && listing
-      ? await guessesFor(req, admin, index, listing, priceDkk) : [],
+    guesses,
     fromPick: !!pickedPage,
   } satisfies PriceCheckResult)
 }
