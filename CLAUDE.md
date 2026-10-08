@@ -199,10 +199,12 @@ and these apply before you know what the task is.
 4. **Goal-driven execution.** Turn the task into verifiable criteria, and for
    multi-step work state a short plan with a verification step per item.
 
-Full text: `.claude/skills/karpathy-guidelines/SKILL.md`.
+Full text: `karpathy-guidelines` in `SnagItOrg/skills`
+(`plugins/agent-practice/skills/karpathy-guidelines/SKILL.md`; install with
+`/plugin install agent-practice@snagit-skills`).
 
-**Shared method skills.** 75 skills — UX, code craftsmanship, architecture,
-product, marketing — live in `SnagItOrg/skills`, not here. See
+**Shared method skills.** 78 skills — agent practice, UX, code craftsmanship,
+architecture, product, marketing — live in `SnagItOrg/skills`, not here. See
 `.claude/skills/skills-catalogue/SKILL.md` for how to find and install them.
 They give method, not permission: where one conflicts with this file or
 `frontend/CLAUDE.md`, the repo wins.
