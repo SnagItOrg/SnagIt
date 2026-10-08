@@ -9,9 +9,11 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { CANONICAL_STATUS, CANONICAL_SUPPORT, CATALOGUE_STATE_SELECT, loadCanonicalSlugs } from './catalogue'
-import { detectCatalogueBrands } from './matching/brand-guard'
+import { NAVIGATION_FAMILIES } from './families'
+import { detectBrandCollision, detectCatalogueBrands, detectOfferedBrand } from './matching/brand-guard'
+import { detectNonProductIntent } from './matching/listing-intent'
 import { decideMatch, type MatchIndex } from './matching/match-listings'
-import { guessProducts, type PriceCheckGuess, type PriceCheckSource, type PriceCheckState } from './price-check'
+import { guessCandidates, guessProducts, type GuessCandidate, type PriceCheckGuess, type PriceCheckSource, type PriceCheckState } from './price-check'
 
 /** What the last read of the ad itself showed. */
 export type DemandAdState = 'active' | 'sold' | 'removed'
@@ -60,14 +62,16 @@ export function canonicalSlugs(admin: SupabaseClient): Promise<Set<string>> {
 }
 
 /**
- * PAN-244 part 2: what an unrecognised DBA ad may mean, for a person to
- * confirm — never a silent match. Public products only. Two signals: the ad's
- * own description naming exactly one catalogue brand (then the title plus
- * that brand is an ordinary `decideMatch`, shown as the top guess), and the
- * title naming a model name in full. `priceRangeFor` supplies a product's
- * observed range when the caller has one — the route reads the product page
- * for the few candidates in front; the nightly has no page and ranks by name
- * alone.
+ * PAN-244 part 2, PAN-245 stage 1: what an unrecognised DBA ad may mean, for a
+ * person to confirm — suggest only, never a match. The rows are the public
+ * products (`canonical`, from the one authority) and the navigation families;
+ * `guessCandidates` picks the trigram neighbours, the rows named in full and
+ * the named brand's rows behind the brand guard, and `guessProducts` ranks
+ * them. The ad's own description naming exactly one catalogue brand makes the
+ * title plus that brand an ordinary `decideMatch`, shown as the top guess.
+ * `priceRangeFor` supplies a product's observed range when the caller has one
+ * — the route reads the product page for the few candidates in front; the
+ * nightly has no page and ranks by name alone.
  */
 export async function guessesFor(
   canonical: ReadonlySet<string>,
@@ -79,14 +83,26 @@ export async function guessesFor(
   const brands = Array.from(detectCatalogueBrands(listing.description ?? '', index.catalogueBrands))
   const decision = brands.length === 1 ? decideMatch(`${brands[0]} ${listing.title}`, index) : null
   const hit = decision?.kind === 'matched' ? index.productById.get(decision.best.product_id) : undefined
-  const top: PriceCheckGuess[] = hit && canonical.has(hit.slug) ? [{ slug: hit.slug, name: hit.canonical_name }] : []
+  const top: PriceCheckGuess[] = hit && canonical.has(hit.slug)
+    ? [{ slug: hit.slug, name: hit.canonical_name, kind: 'product', href: `/product/${hit.slug}` }] : []
 
-  const candidates = index.products.filter((p) => canonical.has(p.slug))
-    .map((p) => ({ slug: p.slug, name: p.canonical_name, model_name: p.model_name }))
+  const rows: GuessCandidate[] = [
+    ...index.products.filter((p) => canonical.has(p.slug))
+      .map((p) => ({ slug: p.slug, name: p.canonical_name, model_name: p.model_name, brand_name: p.brand_name, kind: 'product' as const })),
+    ...NAVIGATION_FAMILIES
+      .map((f) => ({ slug: f.slug, name: f.label, model_name: null, brand_name: f.brand.toLowerCase(), kind: 'family' as const, aliases: f.aliases })),
+  ]
+  // The matcher's own refusals hold here too: a part, a wanted ad or a lot is not guessed at; a row whose brand
+  // the title names a competitor of (Squier against Fender) is out; and the brand the title offers first — a
+  // catalogue brand or an external one such as Jackson or Harley Benton — decides which rows may stay.
+  if (detectNonProductIntent(listing.title)) return top
+  const offered = detectOfferedBrand(listing.title, index.catalogueBrands)
+  const candidates = guessCandidates(listing.title, rows.filter((r) => !detectBrandCollision(listing.title, r.brand_name)), offered)
   const lead = guessProducts(listing.title, priceDkk, candidates, new Map(), 6)
   const ranges = new Map<string, { low: number; high: number }>()
   if (lead.length > 1) {
     for (const g of lead) {
+      if (g.kind !== 'product') continue
       const range = await priceRangeFor(g.slug)
       if (range) ranges.set(g.slug, range)
     }

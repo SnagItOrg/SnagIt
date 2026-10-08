@@ -164,6 +164,7 @@ page-view event, which fires once per view even under strict mode.
 | `signup_completed` | `/watchlists`, when the email link confirmed a **new** account | `method` |
 | `price_check_result` | `/tjek-prisen`, when a pasted link is answered | `state`, `source` (never the link) |
 | `price_check_guess` | `/tjek-prisen`, when the guess row is answered | `shown`, `picked` (0, 1, 2 or `none`) |
+| `feedback_sent` | the feedback sheet, after the route accepted it | `kind`, `surface` (never the text or the email) |
 
 Every event also carries `klup_schema_version`, `app_env`, `surface`, `locale`,
 `is_internal` and `internal_role`. `$identify` sends the Supabase user id only.

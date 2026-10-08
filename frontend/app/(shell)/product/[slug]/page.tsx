@@ -28,6 +28,7 @@ import {
 import { ScrapeSection } from '@/components/admin/ScrapeSection'
 import { TrackView } from '@/components/TrackView'
 import { track } from '@/lib/analytics'
+import { FeedbackLink } from '@/components/FeedbackSheet'
 
 /** The product API enriches each listing with a server-computed deal signal. */
 type ListingWithVerdict = {
@@ -1179,6 +1180,8 @@ export default function ProductPage() {
                   the same fact with the coverage attached. Deleting it removes
                   a repetition, not a statement.
                 */}
+                {/* PAN-251: the user loop, closed from here too. */}
+                <FeedbackLink surface="product" productSlug={product.slug} className="self-start" />
               </div>
             </>
           )}

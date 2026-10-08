@@ -71,7 +71,7 @@ export default function DemandTable({ rows, failed }: { rows: DemandRow[]; faile
                     </td>
                     <td className={TD}>
                       {row.guesses.map((g) => (
-                        <Link key={g.slug} href={`/admin/product/${g.slug}`} className={`${LINK} block text-xs`}>{g.name}</Link>
+                        <Link key={g.slug} href={g.kind === 'family' ? g.href : `/admin/product/${g.slug}`} className={`${LINK} block text-xs`}>{g.name}</Link>
                       ))}
                     </td>
                     <td className={`${TD} whitespace-nowrap text-muted-foreground`}>{date(row.last_seen_at)}</td>
