@@ -21,6 +21,7 @@ import assert from 'node:assert/strict'
 
 import { notifyWatchlist } from '../../frontend/lib/watchlist-notify'
 import { sendNewListingsEmail } from '../../frontend/lib/email'
+import { isHit, notifyHits } from './watchlist-hits'
 
 type Db = Parameters<typeof notifyWatchlist>[0]
 
@@ -208,4 +209,79 @@ test('sendNewListingsEmail rejects when the provider refuses the message', async
     if (originalFrom === undefined) delete process.env.RESEND_FROM_EMAIL
     else process.env.RESEND_FROM_EMAIL = originalFrom
   }
+})
+
+/* ── PAN-12: the panter runner's step (scripts/lib/watchlist-hits.ts) ───── */
+
+/** A watchlist_notification table: the claim inserts only unseen pairs. */
+function notificationTable() {
+  const rows = new Map<string, { outcome: string; detail: string | null }>()
+  const db = {
+    from(_table: string) {
+      return {
+        upsert(input: Array<{ watchlist_id: string; listing_id: string; outcome: string }>) {
+          const inserted = input.filter((r) => !rows.has(`${r.watchlist_id}:${r.listing_id}`))
+          for (const r of inserted) rows.set(`${r.watchlist_id}:${r.listing_id}`, { outcome: r.outcome, detail: null })
+          return { select: () => Promise.resolve({ data: inserted.map((r) => ({ listing_id: r.listing_id })), error: null }) }
+        },
+        update(values: { outcome: string; detail: string | null }) {
+          return {
+            eq: (_c: string, watchlistId: string) => ({
+              in: (_c2: string, ids: string[]) => {
+                for (const id of ids) rows.set(`${watchlistId}:${id}`, { outcome: values.outcome, detail: values.detail })
+                return Promise.resolve({ error: null })
+              },
+            }),
+          }
+        },
+      }
+    },
+  }
+  return { db: db as unknown as Parameters<typeof notifyHits>[0], rows }
+}
+
+const WATCHLIST = { id: 'w-9', query: 'Juno 60', min_price: null, max_price: 20000, created_at: '2026-10-01T00:00:00+00:00' }
+const HIT = {
+  id: 'l-1', title: 'Roland Juno-60 synth', price: 1800, currency: 'EUR', price_dkk: 13400,
+  url: 'https://example.invalid/r', source: 'reverb', ingested_at: '2026-10-08T02:00:00+00:00',
+}
+
+test('PAN-12: a pair already handled is never mailed again, and only whole-word hits qualify', async () => {
+  assert.equal(isHit(WATCHLIST, HIT), true)
+  assert.equal(isHit({ ...WATCHLIST, query: 'ph 5' }, { ...HIT, title: 'MXR Phase 90' }), false)
+  assert.equal(isHit(WATCHLIST, { ...HIT, price_dkk: 25000 }), false, 'over max_price')
+
+  const { db, rows } = notificationTable()
+  let sends = 0
+  const send = async () => { sends += 1 }
+  const args = { watchlist: WATCHLIST, hits: [HIT], email: 'owner@example.invalid', optedOut: false }
+
+  assert.deepEqual(await notifyHits(db, args, send), { outcome: 'sent', listings: 1 })
+  assert.deepEqual(await notifyHits(db, args, send), { outcome: null, listings: 0 })
+  assert.equal(sends, 1, 'the second run must not send')
+  assert.equal(rows.get('w-9:l-1')?.outcome, 'sent')
+})
+
+test('PAN-12: a rejected send is recorded without the address and the next watchlist still goes out', async () => {
+  const { db, rows } = notificationTable()
+  const log = captureErrors()
+  const sentTo: string[] = []
+  const send = async ({ to }: { to: string }) => {
+    if (to === 'a@example.invalid') throw new Error('resend_rejected:validation_error')
+    sentTo.push(to)
+  }
+
+  let first, second
+  try {
+    first = await notifyHits(db, { watchlist: WATCHLIST, hits: [HIT], email: 'a@example.invalid', optedOut: false }, send)
+    second = await notifyHits(db, { watchlist: { ...WATCHLIST, id: 'w-10' }, hits: [HIT], email: 'b@example.invalid', optedOut: false }, send)
+  } finally {
+    log.restore()
+  }
+
+  assert.deepEqual(first, { outcome: 'failed', listings: 1 })
+  assert.deepEqual(rows.get('w-9:l-1'), { outcome: 'failed', detail: 'resend_rejected:validation_error' })
+  assert.deepEqual(second, { outcome: 'sent', listings: 1 })
+  assert.deepEqual(sentTo, ['b@example.invalid'])
+  assert.ok(!log.lines.join('\n').includes('a@example.invalid'), 'the recipient must never be logged')
 })

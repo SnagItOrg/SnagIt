@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { sourceForStored } from './admin-match-sources'
 
 function getResend(): Resend {
   const apiKey = process.env.RESEND_API_KEY
@@ -11,6 +12,8 @@ export type ListingSnippet = {
   price: number | null
   currency: string
   url: string
+  /** `listings.source`. PAN-12: the mail names each listing's own marketplace. */
+  source?: string
 }
 
 export async function sendNewListingsEmail({
@@ -27,7 +30,8 @@ export async function sendNewListingsEmail({
   const listingLines = preview
     .map((l) => {
       const price = l.price != null ? `${l.price.toLocaleString('da-DK')} ${l.currency}` : 'Price not listed'
-      return `• ${l.title} — ${price}\n  ${l.url}`
+      const source = l.source ? ` (${sourceForStored(l.source)?.label ?? l.source})` : ''
+      return `• ${l.title} — ${price}${source}\n  ${l.url}`
     })
     .join('\n\n')
 
@@ -36,7 +40,7 @@ export async function sendNewListingsEmail({
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.klup.dk'
 
   const text = [
-    `${listings.length} new listing${listings.length === 1 ? '' : 's'} for "${query}" on dba.dk:`,
+    `${listings.length} new listing${listings.length === 1 ? '' : 's'} for "${query}":`,
     '',
     listingLines,
     overflow,
@@ -55,7 +59,7 @@ export async function sendNewListingsEmail({
   const { error } = await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to,
-    subject: `${listings.length} new${listings.length === 1 ? '' : ' listings'}: "${query}" on dba.dk`,
+    subject: `${listings.length} new${listings.length === 1 ? '' : ' listings'}: "${query}"`,
     text,
   })
 
