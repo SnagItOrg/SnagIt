@@ -7,7 +7,7 @@ import { useLocale } from '@/components/LocaleProvider'
 import { TextField } from '@/components/TextField'
 import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
-import { FeedbackLink } from '@/components/FeedbackSheet'
+import { FeedbackLink, PriceTipLink } from '@/components/FeedbackSheet'
 import { MarketVerdictBadge, SearchResultCard } from '@/components/SearchResultCard'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 import { stripDecorativeEmoji } from '@/lib/listing-title'
@@ -268,6 +268,17 @@ export default function TjekPrisenPage() {
                 <Link href={result.guide.href} className="text-sm font-semibold text-ink underline underline-offset-4">
                   {fill(t.priceCheckGuide, { label: result.guide.label })}
                 </Link>
+              )}
+              {/* PAN-256: where Klup has no good answer, the visitor may know it. */}
+              {(result.state === 'not_recognised' || result.state === 'not_enough_data') && (
+                <PriceTipLink
+                  surface="tjek-prisen"
+                  productSlug={result.product?.slug ?? null}
+                  state={result.state}
+                  guessName={result.product?.name ?? result.guesses[0]?.name ?? result.title}
+                  listingUrl={/^https?:\/\/\S+$/.test(url.trim()) && url.trim().length <= 500 ? url.trim() : null}
+                  className="self-start"
+                />
               )}
               <FeedbackLink surface="tjek-prisen" productSlug={result.product?.slug ?? null} state={result.state} className="self-start" />
             </section>

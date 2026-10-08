@@ -28,7 +28,7 @@ import {
 import { ScrapeSection } from '@/components/admin/ScrapeSection'
 import { TrackView } from '@/components/TrackView'
 import { track } from '@/lib/analytics'
-import { FeedbackLink } from '@/components/FeedbackSheet'
+import { FeedbackLink, PriceTipLink } from '@/components/FeedbackSheet'
 
 /** The product API enriches each listing with a server-computed deal signal. */
 type ListingWithVerdict = {
@@ -498,6 +498,10 @@ export default function ProductPage() {
                           awaitingReview={awaitingReview}
                           askingPrices={dkAskingPrices}
                         />
+                        {/* PAN-256: a thin Danish market is where a visitor's tip helps most. */}
+                        {populations['dk-asking'].tier !== 'band' && (
+                          <PriceTipLink surface="product" productSlug={product.slug} guessName={product.canonical_name} className="self-start" />
+                        )}
 
                         {(populations['reverb-sold'].tier === 'band' ||
                           populations['reverb-asking'].tier === 'band') && (
