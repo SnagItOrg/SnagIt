@@ -18,3 +18,20 @@ export function staleSources(latest: Record<string, string | null>, now: Date): 
     return !at || Date.parse(at) < cutoff
   })
 }
+
+// PAN-258: a missed night on these sources emails the owner. The others only
+// fail the workflow, as before.
+export const ALERT_SOURCES: readonly string[] = ['dba.dk', 'reverb']
+
+// One email per incident, not per check. `previouslyStale` is the `stale` the
+// last check returned (the workflow carries it between runs), so an outage that
+// lasts for days emails once, and a source that recovers and fails again emails
+// again. With no memory (an empty list) a stale source always emails.
+export function missedNight(
+  latest: Record<string, string | null>,
+  now: Date,
+  previouslyStale: readonly string[],
+): { stale: string[]; alert: boolean } {
+  const stale = staleSources(latest, now).filter((source) => ALERT_SOURCES.includes(source))
+  return { stale, alert: stale.some((source) => !previouslyStale.includes(source)) }
+}
