@@ -95,7 +95,7 @@ export function loadConfig(name: string): RematchConfig {
   return (require(file) as { default: RematchConfig }).default
 }
 
-const rejectedReason = (cfg: RematchConfig) => `${cfg.pan}_moved_to_model`
+const rejectedReason = (cfg: Pick<RematchConfig, 'pan'>) => `${cfg.pan}_moved_to_model`
 
 /** Every row whose unreviewed live matches are re-decided. */
 const reDecided = (cfg: RematchConfig) => [...cfg.promoted, ...cfg.supportedToday]
@@ -337,7 +337,8 @@ async function rematch(db: SupabaseClient, cfg: RematchConfig, apply: boolean, o
   console.log(`held rows released: ${moved}`)
 }
 
-async function rollback(db: SupabaseClient, cfg: RematchConfig, file: string, apply: boolean): Promise<void> {
+/** Also the rollback of `match-listings.ts --historical-backfill`, whose file has no held rows. */
+export async function rollback(db: SupabaseClient, cfg: Pick<RematchConfig, 'ticket' | 'pan'>, file: string, apply: boolean): Promise<void> {
   const parsed = JSON.parse(fs.readFileSync(file, 'utf8')) as {
     started_at: string
     listing_ids: string[]
