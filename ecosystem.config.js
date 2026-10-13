@@ -5,6 +5,9 @@ module.exports = {
       // price gaps live here. Runs at 00:30, before the other Nordic scrapers,
       // so the most important market is collected first if anything wedges.
       // Also appends asking-price history to market_price_observations.
+      // PAN-254: a brand net — one query per brand in
+      // data/klup-source-monitoring.json, ~215 requests, ~20 min, done before
+      // recheck-demand reads dba.dk ad pages at 01:30.
       name: 'scrape-dba',
       script: 'npx',
       args: 'tsx scripts/scrape-dba.ts',

@@ -19,7 +19,10 @@ Commands below are written to run from the repository root.
 - Monitoring is the explicit per-source product set in
   [`../data/klup-source-monitoring.json`](../data/klup-source-monitoring.json),
   loaded by [`lib/source-monitoring.ts`](lib/source-monitoring.ts). Widening it
-  is a product-owner decision, not a code change.
+  is a product-owner decision, not a code change. For `dba.dk` the set is a
+  **brand net** (PAN-254): an explicit list of `kg_brand` slugs, one query
+  each, plus `model_queries` for products whose ads omit the brand — never
+  derived from publication state at run time.
 - **`tier` is not a scraper selector.** It is editorial only. Selecting by tier
   would couple monitoring to editorial prominence — the coupling that was
   removed and must not come back.

@@ -215,6 +215,9 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan247-demand.test.ts',
       'scripts/lib/pan249-studio.test.ts',
       'scripts/lib/pan251-feedback.test.ts',
+      // PAN-254: the DBA brand net — the monitoring reader, the frontend's
+      // brand gate and the scraper's query construction.
+      'scripts/lib/pan254-brand-net.test.ts',
       // PAN-258: a missed night on DBA or Reverb emails the owner once per
       // incident, not once per check.
       'scripts/lib/pan258-missed-night.test.ts',

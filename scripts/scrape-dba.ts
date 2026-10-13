@@ -15,35 +15,37 @@
  * what this script does. Verified live 2026-08-06.
  *
  * Features:
- *   - Reads active legendary + classic products from kg_product + kg_brand
+ *   - A BRAND NET (PAN-254): one search query per kg_brand slug in
+ *     data/klup-source-monitoring.json, plus one model-name query per listed
+ *     product whose ads omit the brand. Before PAN-254 it queried 32 products
+ *     while 590 public products were never searched on DBA.
  *   - Scrapes search pages via frontend/lib/scrapers/dba.ts (Schibsted engine),
  *     scoped to Musikinstrumenter (`sub_category=1.86.92`, PAN-151: 0 of 38
- *     resolving listings sat outside it)
- *   - Jittered rate limiting (3-5s) between products — politer than the flat
+ *     resolving listings sat outside it), newest first, to exhaustion
+ *   - Jittered rate limiting (3-5s) between queries — politer than the flat
  *     3s the Finn/Blocket scripts use, since DBA is the bot-sensitive host
  *   - Upserts on (external_id, source) using listing.url as the stable key
  *   - Appends day-bucketed rows to market_price_observations (idempotent)
  *   - After a lifecycle-grade run, marks rows unseen for STALE_AFTER_DAYS
- *     inactive (PAN-160)
+ *     inactive (PAN-160) — only rows this scraper published itself (PAN-260)
  *
  * Usage:
  *   npx tsx scripts/scrape-dba.ts
  *   npx tsx scripts/scrape-dba.ts --limit=5
- *   npx tsx scripts/scrape-dba.ts --product="juno 106"
- *   npx tsx scripts/scrape-dba.ts --tier=legendary
+ *   npx tsx scripts/scrape-dba.ts --brand=manley
  *   npx tsx scripts/scrape-dba.ts --dry-run        # scrape + report, no writes
  */
 
 import * as path from 'path'
 import * as fs from 'fs'
 import type { SupabaseClient } from '../frontend/node_modules/@supabase/supabase-js'
-import { scrapeDbaWithCoverage, DBA_MUSIKINSTRUMENTER } from '../frontend/lib/scrapers/dba'
+import { scrapeDbaWithCoverage } from '../frontend/lib/scrapers/dba'
 import type { SchibstedSearchOptions } from '../frontend/lib/scrapers/schibsted'
 import * as crypto from 'crypto'
 import { evaluateRun, startRun, finishRun, reportRun, type ListingSample } from './lib/scrape-health'
 import { stageListings, promoteRunAtomic, hasEstablishedScopeCoverage, GATE_VERSION, type StagedListing } from './lib/publish'
 import { resolveBaseline, baselineNotAttempted, cohortOf, type Baseline } from './lib/baseline'
-import { monitoredSlugs, assertResolved } from './lib/source-monitoring'
+import { monitoredBrands, assertResolved } from './lib/source-monitoring'
 import { matchScrapedBatch, reportBatchMatch, fetchBatchListingIds } from './lib/match-new-inflow'
 
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
@@ -78,9 +80,8 @@ const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY
 const args = process.argv.slice(2)
 const limitArg = args.find(a => a.startsWith('--limit='))?.split('=')[1]
 const LIMIT = limitArg ? parseInt(limitArg, 10) : Infinity
-const productFilter = args.find(a => a.startsWith('--product='))?.split('=')[1]?.toLowerCase() ?? null
-const tierArg = args.find(a => a.startsWith('--tier='))?.split('=')[1]
-const TIERS = tierArg ? tierArg.split(',') : ['legendary', 'classic']
+// Substring on the brand or product slug: `--brand=manley` runs one query.
+const brandFilter = args.find(a => a.startsWith('--brand='))?.split('=')[1]?.toLowerCase() ?? null
 const DRY_RUN = args.includes('--dry-run')
 // Fault injection for verifying the gate is fail-closed. Nulls price_dkk on
 // every scraped row, reproducing the Finn/Blocket bug. Used to prove that a
@@ -105,22 +106,35 @@ const DELAY_JITTER_MS = 2000
 // Bump when scrape/parse behaviour changes, so a run's output can be
 // attributed to the code that produced it.
 // 2.1.0 (PAN-160): a zero-result search terminates as a real empty page.
-const SCRAPER_VERSION = 'dba-2.1.0'
+// 3.0.0 (PAN-254): brand net — brand and model-name queries, newest first.
+const SCRAPER_VERSION = 'dba-3.0.0'
 // Bump when the extraction/normalisation of a page changes. Separate from
 // SCRAPER_VERSION because a parser change alters what "one listing" MEANS,
 // which breaks volume comparability even when fetching is untouched. Both are
 // independent dimensions of the baseline cohort.
 const PARSER_VERSION = 'dba-jsonld-1.0.0'
 const PAGINATION_STRATEGY = 'page-increment-until-empty'
+/**
+ * The brand net for 'dba.dk', from data/klup-source-monitoring.json: the
+ * kg_brand slugs to query, the products to query by model name, and the
+ * sub-category scope. This scraper no longer selects on kg_product.tier: tier
+ * is an EDITORIAL classification, and using it as a query selector meant an
+ * editorial promotion silently widened monitoring. The brand list is explicit
+ * for the same reason — deriving it from publication state at run time would
+ * couple monitoring to visibility.
+ */
+const NET = monitoredBrands('dba.dk')
 // Part of the scope hash: a scoped query measures a different universe than
-// an unscoped one, so it needs its own baseline and its own bootstrap.
-const SEARCH_OPTIONS: SchibstedSearchOptions = { subCategory: DBA_MUSIKINSTRUMENTER }
+// an unscoped one, so it needs its own baseline and its own bootstrap. Newest
+// first costs nothing and makes a query cut by the fuse lose the oldest ads
+// rather than random ones.
+const SEARCH_OPTIONS: SchibstedSearchOptions = { subCategory: NET.subCategory, sort: 'PUBLISHED_DESC' }
 // Whether this invocation attempts the FULL expected manifest or a subset.
 // Recorded from the run's own intent BEFORE scraping: a targeted run must
 // never seed a baseline for a complete scope, and that must not depend on
 // counts a fault could have changed.
 const RUN_SCOPE: 'complete' | 'targeted' =
-  productFilter === null && LIMIT === Infinity ? 'complete' : 'targeted'
+  brandFilter === null && LIMIT === Infinity ? 'complete' : 'targeted'
 // Safety fuse only. Reaching it means coverage is NOT proven — never a
 // success signal. Set high enough that real queries exhaust naturally.
 const MAX_PAGES_FUSE = 40
@@ -153,12 +167,11 @@ const STALE_AFTER_DAYS = 3
  * universe: change the product set, queries, filters, market, pagination
  * strategy, or scraper version and a fresh bootstrap is required.
  */
-function computeScopeHash(productIds: string[], queries: string[]): string {
+function computeScopeHash(queryIds: string[], queries: string[]): string {
   const payload = JSON.stringify({
     source: 'dba.dk',
     country: 'DK',
-    tiers: [...TIERS].sort(),
-    product_ids: [...productIds].sort(),
+    query_ids: [...queryIds].sort(),
     queries: [...queries].sort(),
     search: SEARCH_OPTIONS,
     pagination: PAGINATION_STRATEGY,
@@ -175,74 +188,60 @@ function jitteredDelay(): Promise<void> {
   return sleep(DELAY_MIN_MS + Math.random() * DELAY_JITTER_MS)
 }
 
-type ProductRow = {
-  id: string
-  canonical_name: string
-  kg_brand: { name: string } | { name: string }[] | null
-}
-
-function resolveBrandName(brand: ProductRow['kg_brand']): string | null {
-  if (!brand) return null
-  if (Array.isArray(brand)) return brand[0]?.name ?? null
-  return brand.name ?? null
-}
-
-function buildSearchQuery(brandName: string, canonicalName: string): string {
-  const canonical = canonicalName.trim()
-  const brand = brandName.trim()
-  if (canonical.toLowerCase().startsWith(brand.toLowerCase())) return canonical
-  return `${brand} ${canonical}`.trim()
-}
-
 function normalizeText(title: string): string {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 }
 
 /**
- * Explicit marketplace-monitoring set for 'dba.dk', from
- * data/klup-source-monitoring.json. This scraper no longer selects on
- * kg_product.tier: tier is an EDITORIAL classification, and using it as a
- * query selector meant an editorial promotion silently widened monitoring.
+ * One search query. A brand query carries the brand's own id and no product;
+ * a model query carries the product it was issued for, which the coverage
+ * row records as before.
  */
-const MONITORED_SLUGS = monitoredSlugs('dba.dk')
+type NetQuery = { id: string; slug: string; query: string; kg_product_id: string | null }
 
-async function loadProducts(): Promise<Array<{ id: string; canonical_name: string; brand_name: string; query: string }>> {
-  const { data, error } = await supabase
-    .from('kg_product')
-    .select('id, slug, canonical_name, kg_brand!inner(name)')
-    .in('slug', MONITORED_SLUGS)
-    .eq('status', 'active')
-    .order('canonical_name')
-
-  if (error) {
-    console.error(`❌ Failed to load kg_product: ${error.message}`)
+async function loadQueries(): Promise<NetQuery[]> {
+  const { data: brandRows, error: brandErr } = await supabase
+    .from('kg_brand')
+    .select('id, slug, name')
+    .in('slug', NET.brands)
+    .order('name')
+  if (brandErr) {
+    console.error(`❌ Failed to load kg_brand: ${brandErr.message}`)
     process.exit(1)
   }
-  // Fail loud: a configured product that no longer resolves would silently
-  // shrink 'dba.dk' coverage.
-  assertResolved('dba.dk', MONITORED_SLUGS, ((data ?? []) as Array<{ slug?: string }>).map(r => r.slug ?? ''))
+  const brands = (brandRows ?? []) as Array<{ id: string; slug: string; name: string }>
+  // Fail loud: a configured brand or product that no longer resolves would
+  // silently shrink 'dba.dk' coverage.
+  assertResolved('dba.dk', NET.brands, brands.map(b => b.slug), 'brand')
 
+  const { data: productRows, error: productErr } = await supabase
+    .from('kg_product')
+    .select('id, slug, model_name')
+    .in('slug', NET.modelQueries)
+    .eq('status', 'active')
+    .order('slug')
+  if (productErr) {
+    console.error(`❌ Failed to load kg_product: ${productErr.message}`)
+    process.exit(1)
+  }
+  const products = (productRows ?? []) as Array<{ id: string; slug: string; model_name: string | null }>
+  assertResolved('dba.dk', NET.modelQueries, products.map(p => p.slug))
+  const unnamed = products.filter(p => !p.model_name?.trim())
+  if (unnamed.length) {
+    throw new Error(`source-monitoring: model_queries without a model_name: ${unnamed.map(p => p.slug).join(', ')}`)
+  }
 
-  let products = ((data ?? []) as ProductRow[])
-    .map((product) => {
-      const brandName = resolveBrandName(product.kg_brand)
-      if (!brandName || !product.canonical_name) return null
-      return {
-        id: product.id,
-        canonical_name: product.canonical_name,
-        brand_name: brandName,
-        query: buildSearchQuery(brandName, product.canonical_name),
-      }
-    })
-    .filter((p): p is { id: string; canonical_name: string; brand_name: string; query: string } => p !== null)
-
-  if (productFilter) {
-    products = products.filter(p => p.canonical_name.toLowerCase().includes(productFilter))
+  let queries: NetQuery[] = [
+    ...brands.map(b => ({ id: b.id, slug: b.slug, query: b.name.trim(), kg_product_id: null })),
+    ...products.map(p => ({ id: p.id, slug: p.slug, query: p.model_name!.trim(), kg_product_id: p.id })),
+  ]
+  if (brandFilter) {
+    queries = queries.filter(q => q.slug.includes(brandFilter))
   }
   if (LIMIT !== Infinity) {
-    products = products.slice(0, LIMIT)
+    queries = queries.slice(0, LIMIT)
   }
-  return products
+  return queries
 }
 
 type ScrapedListings = Awaited<ReturnType<typeof scrapeDbaWithCoverage>>['listings']
@@ -268,21 +267,20 @@ function buildRows(listings: ScrapedListings) {
 }
 
 async function main() {
-  console.log('⚙️  DBA.dk → Listings + Price History Scraper')
-  if (productFilter) console.log(`   Product filter: ${productFilter}`)
+  console.log('⚙️  DBA.dk → Listings + Price History Scraper (brand net)')
+  if (brandFilter) console.log(`   Brand filter: ${brandFilter}`)
   if (DRY_RUN) console.log('   [dry-run] No writes will be made.')
-  console.log(`   Tiers: ${TIERS.join(', ')}`)
-  console.log(`   Limit: ${LIMIT === Infinity ? '∞' : LIMIT} products`)
-  console.log(`   Rate limit: ${DELAY_MIN_MS / 1000}–${(DELAY_MIN_MS + DELAY_JITTER_MS) / 1000}s jittered between products`)
+  console.log(`   Limit: ${LIMIT === Infinity ? '∞' : LIMIT} queries`)
+  console.log(`   Rate limit: ${DELAY_MIN_MS / 1000}–${(DELAY_MIN_MS + DELAY_JITTER_MS) / 1000}s jittered between queries`)
   console.log()
 
-  const products = await loadProducts()
+  const products = await loadQueries()
   if (products.length === 0) {
-    console.log('No matching products found. Exiting.')
+    console.log('No matching queries found. Exiting.')
     return
   }
 
-  console.log(`Loaded ${products.length} products from knowledge graph.\n`)
+  console.log(`Loaded ${products.length} queries (${NET.brands.length} brands, ${NET.modelQueries.length} model queries configured).\n`)
 
   let scrapedProducts = 0
   let totalListings = 0
@@ -310,8 +308,8 @@ async function main() {
     try {
       const res = await scrapeDbaWithCoverage(product.query, MAX_PAGES_FUSE, SEARCH_OPTIONS)
       listings = res.listings
-      // One coverage row per expected product, aggregated over its query
-      // variants. A product is only terminal if EVERY variant terminated
+      // One coverage row per expected query, aggregated over its spelling
+      // variants. A query is only terminal if EVERY variant terminated
       // for a known-exhausted reason.
       const variants = res.coverage
       const terminal = new Set(['empty_page', 'no_next_token', 'known_last_page'])
@@ -319,7 +317,7 @@ async function main() {
       const allCompleted = variants.every(v => v.queryCompleted)
       coverageRows.push({
         query: product.query,
-        kg_product_id: product.id,
+        kg_product_id: product.kg_product_id,
         query_started: true,
         query_completed: allCompleted,
         pages_fetched: variants.reduce((a, v) => a + v.pagesFetched, 0),
@@ -335,12 +333,12 @@ async function main() {
     } catch (err) {
       failedProducts += 1
       coverageRows.push({
-        query: product.query, kg_product_id: product.id,
+        query: product.query, kg_product_id: product.kg_product_id,
         query_started: true, query_completed: false, pages_fetched: 0,
         termination_reason: 'error', raw_count: 0, parsed_count: 0,
         parse_error_count: 0, unique_staged_count: 0, pagination_tokens: [],
       })
-      console.error(`[scrape-dba] ${product.canonical_name}: scrape failed (${err instanceof Error ? err.message : err})`)
+      console.error(`[scrape-dba] ${product.slug}: scrape failed (${err instanceof Error ? err.message : err})`)
       continue
     }
 
@@ -373,7 +371,7 @@ async function main() {
 
     scrapedProducts += 1
     totalListings += listings.length
-    console.log(`[scrape-dba] ${product.canonical_name}: ${listings.length} listings`)
+    console.log(`[scrape-dba] ${product.slug}: ${listings.length} listings`)
   }
 
   // ── 1. STAGE ──────────────────────────────────────────────────────────
@@ -474,10 +472,10 @@ async function main() {
 
   const { status, violations, metrics } = evaluateRun(allSamples, counters, baseline)
 
-  console.log(`\n[scrape-dba] ${scrapedProducts}/${products.length} products, ${totalListings} listings scraped, ${stagedCount} staged.`)
+  console.log(`\n[scrape-dba] ${scrapedProducts}/${products.length} queries, ${totalListings} listings scraped, ${stagedCount} staged.`)
   reportRun(status, violations, metrics, baseline)
 
-  // Coverage manifest: every expected product actually scraped. "No
+  // Coverage manifest: every expected query actually scraped. "No
   // exceptions thrown" is not proof — a changed pagination can silently
   // drop pages while still returning HTTP 200.
   // Expected and recorded query counts must be identical — a missing
@@ -614,6 +612,13 @@ async function main() {
       // counter: complete coverage, an established scope, and the run's own
       // coverage evidence (run_has_lifecycle_coverage). The cutoff comes from
       // the run's start, so no row this run saw can be swept.
+      //
+      // Only rows this scraper published itself, i.e. rows promotion stamped
+      // with a scope hash (PAN-260). A row that entered by another path — a
+      // watchlist, a pasted ad, a legacy import — was never searched for by
+      // any query here, so its absence from a run proves nothing about it.
+      // The first PAN-160 sweep (2026-09-28) deactivated a live Manley VoxBox
+      // ad exactly that way.
       if (pr.lifecycleApplied && run) {
         const cutoff = new Date(Date.parse(run.startedAt) - STALE_AFTER_DAYS * 24 * 60 * 60 * 1000).toISOString()
         const { error: staleError, count } = await supabase
@@ -621,6 +626,7 @@ async function main() {
           .update({ is_active: false, delisted_at: new Date().toISOString() }, { count: 'exact' })
           .eq('source', 'dba.dk')
           .eq('is_active', true)
+          .not('coverage_scope_hash', 'is', null)
           .lt('scraped_at', cutoff)
         if (staleError) {
           console.error(`   Stale sweep failed: ${staleError.message}`)
