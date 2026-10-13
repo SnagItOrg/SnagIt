@@ -634,10 +634,31 @@ const MARTIN_NEVER: readonly RegExp[] = [
  */
 const MARTIN_PARTS: readonly string[] = ['clock', 'keychain', 'key chain', 'key ring']
 
-/** A Martin member of `line` (PAN-204): refuses `otherMembers`, the vintage years and MARTIN_NEVER. */
+/**
+ * PAN-262. Shenandoah was Martin's 1983–93 line of imported bodies finished in Nazareth, sold under
+ * the Standard Series style numbers ("1984 Martin D-18 Shenandoah"). It is a Martin, but none of
+ * these rows, and another price class.
+ */
+const MARTIN_SHENANDOAH = cue('shenandoah')
+
+/** A Martin member of `line` (PAN-204): refuses `otherMembers`, the vintage years, MARTIN_NEVER and Shenandoah. */
 const martin = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
-  line, otherMembers: [...otherMembers, ...MARTIN_VINTAGE, ...MARTIN_NEVER], accessories: MARTIN_PARTS,
+  line, otherMembers: [...otherMembers, ...MARTIN_VINTAGE, ...MARTIN_NEVER, MARTIN_SHENANDOAH], accessories: MARTIN_PARTS,
 })
+
+/**
+ * PAN-262. Martin's style codes written without the hyphen: "Martin D28 Reimagined", "Martin HD28",
+ * "Martin OM28". The model tier reads "D-28" and its space form "D 28", never "D28", so such a title
+ * named nothing; this writes the hyphen back before anything reads the title. Only in a title that
+ * names Martin, and only the D, HD, OM and 000 sizes: a bare "018" or "0018" reads as a serial as
+ * readily as a 0-18 or 00-18. A suffix keeps the code glued ("D28E"), so it stays another model,
+ * exactly as "D-28E" does.
+ */
+const MARTIN_NAMED = /(?<![\w-])martin(?![\w-])/i
+const MARTIN_GLUED_CODE = /(?<![\w-])(d|hd|om|000)(\d{2})(?![\w-])/gi
+export function hyphenateMartinCodes(text: string): string {
+  return MARTIN_NAMED.test(text) ? text.replace(MARTIN_GLUED_CODE, '$1-$2') : text
+}
 
 /**
  * What a Standard Series base row refuses (PAN-204): the series and builds Martin sells under the
@@ -2593,7 +2614,7 @@ function strongest(candidates: MatchCandidate[]): MatchCandidate {
  * broken by explicit evidence or fails closed.
  */
 export function decideMatch(title: string, index: MatchIndex): MatchDecision {
-  const norm = title.toLowerCase().trim()
+  const norm = hyphenateMartinCodes(title.toLowerCase().trim())
 
   // Best candidate per product, so one product cannot appear twice and inflate
   // or mask a tie.
