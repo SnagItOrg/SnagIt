@@ -940,6 +940,54 @@ const NEVE_PARTS: readonly string[] = [
   'service', 'mod', 'kit', 'board',
 ]
 
+/**
+ * PAN-261. The amp trade's extras beyond AMP_PARTS, measured on the section's 1,938 titles: an output
+ * transformer or recap kit for a Twin, a capacitor or pot set and a turret board for a JCM800, a Vox vent
+ * or voltage selector, speakers, a flightcase sold alone ("Flightcase til Fender Bassman"), a slip cover.
+ * A bundle keeps them: the inclusion-marker rule in lineBoundaryRefusal leaves "Twin Reverb m hardcase"
+ * and "2203 + Cassa 1960AX" alone.
+ */
+const AMP_ACCESSORIES: readonly string[] = [
+  ...AMP_PARTS, 'tube', 'tube set', 'valve', 'valves', 'retube', 'recap', 'recap kit', 'capacitor', 'capacitors', 'capacitor set', 'cap set',
+  'resistor', 'resistor set', 'pot', 'pots', 'pot set', 'turret', 'turret board', 'headshell', 'head shell', 'gehäuse', 'cabinet only', 'speaker', 'speakers',
+  'reverb tank', 'tank', 'choke', 'strap', 'fixings', 'vent', 'vents', 'voltage selector', 'switch', 'power lead', 'power cord', 'cable', 'cables',
+  'flightcase', 'flight case', 'road case', 'safe case', 'gig bag', 'gigbag', 'clamshell', 'slip cover', 'stand', 'manual', 'schematic',
+  'sticker', 'pedal', 'overdrive pedal', 'di box', 'plugin', 'plug-in', 'cabinet', 'ata', 'anvil', 'poster', 'jewel', 'pilot light', 'lens',
+  'transformator', 'udgangstransformator', 'udgangs transformator',
+]
+/** A two-digit year as the reissues write it: "'65 Twin Reverb", "65 Twin Reverb", "’68 Custom"; "1965" is not one. */
+const YY = (yy: string): RegExp => new RegExp(`(?<![\\w-])['’‘]?${yy}(?![\\w-])`)
+const REISSUE: readonly RegExp[] = cues('reissue', 're-issue', 'ri', 'avri')
+const TONE_MASTER: readonly RegExp[] = cues('tone master', 'tonemaster')
+const CUSTOM_68: readonly RegExp[] = [YY('68'), cue('68 custom')]
+const CUSTOM_64: readonly RegExp[] = [YY('64'), cue('64 custom')]
+/** A Boss "Legend series" pedal named for the amp (FBM-1 '59 Bassman, FDR-1 '65 Deluxe Reverb), 40 of 75 Bassman titles. */
+const BOSS_LEGEND: readonly RegExp[] = cues('boss', 'fbm-1', 'fbm1', 'fdr-1', 'fdr1', 'legend series')
+/** Another maker's amp built like it, or a kit of it: "guyatone twin reverb", "Amp-N Custom 5E3", "Mojotone JCM 800 2204 Marshall Clone". */
+const AMP_COPY: readonly RegExp[] = cues('guyatone', 'music man', 'musicman', 'clone', 'kit', 'style', 'tribute', 'amp-n', 'mojotone', 'ceriatone')
+const BLUES_JUNIOR_NOT: readonly RegExp[] = [...BOSS_LEGEND, ...AMP_COPY, ...PAIR_OR_LOT, ...TUBE_LISTING, ...cues('hot rod', 'pro junior', 'blues deluxe', 'blues deville', 'junior collection')]
+/** A Fender blackface original (1963–67; the silverface years stay with it): never a reissue, the Tone Master, a '68 / '64 Custom, a Boss pedal or a 1982-on year. */
+const fenderVintageAmp = (line: string, ...more: RegExp[]): LineBoundary => ({
+  line,
+  otherMembers: [...REISSUE, ...TONE_MASTER, ...CUSTOM_68, ...CUSTOM_64, YY('65'), YY('57'), YY('59'), YY('62'), ...BOSS_LEGEND, ...AMP_COPY, ...PAIR_OR_LOT, ...TUBE_LISTING, ...cues('tremolux', 'vibro champ', 'vibro-champ', 'bandmaster', 'showman', 'b15n', 'b-15n'), yearCue(1982, 2039), ...more],
+  accessories: AMP_ACCESSORIES,
+})
+/** A reissue row of the same line: it requires its own cue and refuses the others; a vintage-year title is the original's. */
+const fenderReissueAmp = (line: string, requires: readonly RegExp[], ...more: RegExp[]): LineBoundary => ({
+  line,
+  requires,
+  otherMembers: [...BOSS_LEGEND, ...AMP_COPY, ...PAIR_OR_LOT, ...TUBE_LISTING, yearCue(1963, 1981), ...more],
+  accessories: AMP_ACCESSORIES,
+})
+const marshallJcm800 = (own: string, ...others: string[]): LineBoundary => ({
+  line: 'jcm800',
+  otherMembers: [
+    ...PAIR_OR_LOT, ...TUBE_LISTING, ...AMP_COPY,
+    ...cues(...others, `${own}x`, `${own}kk`, `${own}zw`, `${own}ms`, 'kerry king', 'zakk wylde', 'reissue', 're-issue', 'sc20', 'sc20h', 'sc20c', 'studio classic',
+      '4210', '2205', '2210', '2555', 'jcm900', 'jcm 900', 'jcm2000', 'jcm 2000', 'dsl', 'tsl', 'combo', '2x12', '1x12', 'stack', 'half stack', 'full stack', '1959', 'super lead', 'plexi', 'jmp', 'anniversary'),
+  ],
+  accessories: [...AMP_ACCESSORIES, '1960', '1960a', '1960b', '1960ax', '1960bx', '1982b', 'cab', '4x12', 'cassa', 'tb'],
+})
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
   'moog-minimoog': {
@@ -2201,6 +2249,145 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   },
   // The LA-3A (the Urei original and UA's reissue share the row): never a UAD plug-in, a pair or a bundle.
   'ua-la-3a': member('ua-la-3a', ...WARM_AUDIO_COPY, ...UAD_SOFTWARE, ...PAIR_OR_LOT, ...cues('bundle', 'pedal')),
+
+  // ── PAN-261: the amp section ─────────────────────────────────────────────
+  // Measured on the 1,938 active titles that name one of the section's models (read-only snapshot
+  // 2026-10-13). The Fender blackface rows are the vintage originals and their reissue rows are the
+  // '65 Reissue, the '68 Custom and the Tone Master, each on its own Reverb page and price, so every
+  // row of a line names what it is NOT and a reissue row requires its own cue (the Minimoog pattern).
+  // The whole section shares the amp trade's extras: a Boss "legend" pedal named for the amp (40 of 75
+  // Bassman titles), covers, recap and retube kits, capacitor sets, turret boards, headshells, speakers
+  // and a flightcase sold alone.
+  'fender-twin-reverb-vintage': fenderVintageAmp('twin-reverb', ...cues('twin reverb ii', 'ii', 'super twin', 'twin amp', 'twin-amp', 'the twin', 'evil twin', 'cyber twin', 'cyber-twin', 'pro tube')),
+  'fender-65-twin-reverb-reissue': fenderReissueAmp('twin-reverb', [YY('65'), ...REISSUE], ...TONE_MASTER, ...CUSTOM_68, cue('ii'), cue('super twin')),
+  'fender-tone-master-twin-reverb': fenderReissueAmp('twin-reverb', TONE_MASTER, cue('super')),
+  'fender-deluxe-reverb-vintage': fenderVintageAmp('deluxe-reverb', ...cues('deluxe reverb ii', 'ii', 'super deluxe', 'hot rod deluxe', 'blues deluxe', 'deluxe 85', 'deluxe 90', 'deluxe 112', 'deluxe vm', 'tweed deluxe', '5e3')),
+  'fender-65-deluxe-reverb-reissue': fenderReissueAmp('deluxe-reverb', [YY('65'), ...REISSUE], ...TONE_MASTER, ...CUSTOM_68, ...CUSTOM_64, cue('ii')),
+  'fender-68-custom-deluxe-reverb': fenderReissueAmp('deluxe-reverb', CUSTOM_68, ...TONE_MASTER, YY('65'), ...CUSTOM_64),
+  'fender-tone-master-deluxe-reverb': fenderReissueAmp('deluxe-reverb', TONE_MASTER),
+  'fender-princeton-reverb-vintage': fenderVintageAmp('princeton-reverb', ...cues('princeton reverb ii', 'ii', 'princeton chorus', 'princeton 65', 'princeton 112', 'princeton 650', 'princeton recording')),
+  'fender-65-princeton-reverb-reissue': fenderReissueAmp('princeton-reverb', [YY('65'), ...REISSUE], ...TONE_MASTER, ...CUSTOM_68, ...CUSTOM_64, cue('ii')),
+  'fender-tone-master-princeton-reverb': fenderReissueAmp('princeton-reverb', TONE_MASTER),
+  'fender-super-reverb': fenderVintageAmp('super-reverb', ...cues('super six', 'super twin', 'super champ', 'super sonic', 'super-sonic', 'super 60', 'super 112', 'super 210', 'super amp', 'super bassman')),
+  'fender-vibrolux-reverb': fenderVintageAmp('vibrolux', ...cues('custom vibrolux', 'custom', 'vibrolux reverb-amp')),
+  'fender-pro-reverb': fenderVintageAmp('pro-reverb', ...cues('pro junior', 'vibro champ', 'vibro-champ', 'pro reverb-amp', 'custom')),
+  // The tweed 5F6 / 5F6-A Bassman of 1957–60, the amp the owner's list means: a title must say so, and
+  // the blackface and silverface heads, the '59 LTD reissue, the Tone Master and every numbered bass
+  // Bassman (10, 100, 135, 500, 800 …) are other products.
+  'fender-bassman': {
+    line: 'bassman',
+    requires: [...cues('tweed', '5f6', '5f6-a', '5f6a', 'narrow panel', 'narrowpanel', "50's", '50s'), yearCue(1952, 1960)],
+    otherMembers: [
+      ...REISSUE, ...TONE_MASTER, ...BOSS_LEGEND, ...AMP_COPY, ...PAIR_OR_LOT, ...TUBE_LISTING,
+      ...cues('ltd', 'limited', 'blackface', 'black panel', 'silverface', 'silver face', 'drip edge', 'piggyback', 'head', 'super bassman',
+        'ten', 'twenty', 'fifty', 'pro', 'ts', 'neo', 'rumble', '10', '20', '50', '70', '100', '100t', '135', '150', '250', '300', '400', '410', '500', '800', '115', '1200'),
+      yearCue(1961, 2039),
+    ],
+    accessories: AMP_ACCESSORIES,
+  },
+  // The Blues Junior line: the 1995–2015 base model, the III (2010–18) and the IV (2018–) are three pages
+  // and three prices; the LTD / Lacquered Tweed / NOS editions are the base model in another dress.
+  'fender-blues-junior': { line: 'blues-junior', otherMembers: [...BLUES_JUNIOR_NOT, ...cues('iii', 'iv', 'mk iii', 'mkiii', 'mk iv', 'mkiv')], accessories: AMP_ACCESSORIES },
+  'fender-blues-junior-iii': { line: 'blues-junior', requires: cues('iii', 'mk iii', 'mkiii'), otherMembers: [...BLUES_JUNIOR_NOT, ...cues('iv', 'mk iv', 'mkiv')], accessories: AMP_ACCESSORIES },
+  'fender-blues-junior-iv': { line: 'blues-junior', requires: cues('iv', 'mk iv', 'mkiv'), otherMembers: [...BLUES_JUNIOR_NOT, ...cues('iii', 'mk iii', 'mkiii')], accessories: AMP_ACCESSORIES },
+  // The 1955–60 narrow-panel tweed Deluxe (CSP 23302): never the Custom Shop '57 Custom Deluxe, a kit or a
+  // boutique copy ("Amp-N Custom 5E3"), nor the Deluxe Reverb.
+  'fender-5e3-tweed-deluxe': {
+    line: 'tweed-deluxe',
+    otherMembers: [
+      ...REISSUE, ...BOSS_LEGEND, ...AMP_COPY, ...PAIR_OR_LOT, ...TUBE_LISTING,
+      ...cues('custom shop', 'customshop', 'custom', 'handwired', 'hand-wired', 'hand wired', 'deluxe reverb', 'eric clapton', 'vibro champ', 'vibro-champ', 'champ', 'hot rod', 'blues deluxe', 'pro junior'),
+      YY('57'), YY('53'), YY('55'), yearCue(1961, 2039),
+    ],
+    accessories: AMP_ACCESSORIES,
+  },
+  // The JMI-era and 1970s Top Boost AC30 (CSP 106533): a title must place it (Top Boost / TB, JMI, a 1958–89
+  // year, "vintage"); the Korg-era C2 / CC / HW / VR / S1 lines, the 1992 "Vintage Edition", the AC15 / AC10
+  // / AC4 and an Escort or WEM named for it are other products; vents, selectors, tubes and speakers are parts.
+  'vox-ac30-vintage': {
+    line: 'ac30',
+    requires: [...cues('top boost', 'tb', 'tbx', 'jmi', 'vintage', 'treble', 'copper', 'copper top', 'ac30/6', 'ac-30/6', 'ac30-6', 'bulldog', 'bulldogs', 'silver bulldogs'), yearCue(1958, 1989), /(?<![\w-])['’]?[67]0['’]?s(?![\w-])/i],
+    otherMembers: [
+      ...PAIR_OR_LOT, ...TUBE_LISTING, ...AMP_COPY,
+      ...cues('c2', 'c2x', 'cc1', 'cc2', 'cc', 'ch', 'hw', 'hw2', 'hwx', 'vr', 's1', 'c1', 'vtx', 'custom', 'reissue', 're-issue', 'vintage edition', 'amplug', 'escort', 'wem', 'dominator',
+        'ac15', 'ac-15', 'ac10', 'ac-10', 'ac4', 'ac-4', 'ac50', 'ac-50', 'ac100', 'ac-100', 'mini', 'head', 'cabinet', 'cab', 'korg', 'pathfinder'),
+      /(?<![\w-])ac-?30\s?(?:c|cc|ch|hw|vr|s|vt|tbx)\w*/i,
+      yearCue(1990, 2039),
+    ],
+    accessories: AMP_ACCESSORIES,
+  },
+  // The 1965–81 JMP 1959 Super Lead (CSP 106245; "Plexi" is a curated alias): never the SLP / HW reissues, the
+  // Randy Rhoads, the Studio Vintage SV20, the 50-watt 1987, a JCM / JTM, a 1960 cabinet or a stack, a kit or a
+  // boutique copy, nor an overdrive pedal named for it.
+  'marshall-super-lead-plexi': {
+    line: 'plexi',
+    otherMembers: [
+      ...PAIR_OR_LOT, ...TUBE_LISTING, ...AMP_COPY,
+      ...cues('hw', 'handwired', 'hand-wired', 'hand wired', 'slp', '1959slp', '1959hw', '1959rr', 'reissue', 're-issue', 'rr', 'randy rhoads', 'studio vintage', 'sv20', 'sv20h', 'sv20c', 'sv212',
+        '1987', '1987x', '2203', '2204', 'jcm', 'jcm800', 'jcm 800', 'jtm', 'jtm45', 'jtm 45', '1962', 'bluesbreaker', 'stack', 'half stack', 'full stack', 'cabinet', 'cab', '4x12', '1960', '1960a', '1960b', '1960ax', '1960bx',
+        'pedal', 'overdrive', 'metropoulos', 'germino', 'friedman', 'sozo', 'k&e', 'straight 8'),
+      yearCue(1982, 2039),
+    ],
+    accessories: AMP_ACCESSORIES,
+  },
+  // The JCM800 2203 (100 W, CSP 1541) and 2204 (50 W, CSP 23895), 1981–90: never each other, the 2203X / KK / ZW
+  // / MS reissues, the Studio Classic SC20, the 4103 / 4104 combos or the 2205 / 2210 split-channel heads; a bare
+  // "2203" with a 2000s year is the unlabelled reissue at the original's price and stays; a 1960 cabinet in the
+  // title is a bundle after "+" or "with" and a part before it.
+  'marshall-jcm800-2203': marshallJcm800('2203', '2204', '4104', '4010'),
+  'marshall-jcm800-2204': marshallJcm800('2204', '2203', '4103'),
+  // The Dual Rectifier head across its revisions (CSP 121251, the 1992–2000 Solo Head): never the Roadster, Road
+  // King, Trem-o-Verb, Blue Angel, Maverick, Triple / Single / Mini / Rect-o-Verb, a combo or cabinet, a retube
+  // kit, a Jack Rack or a standalone preamp built from it.
+  'mesa-boogie-dual-rectifier': {
+    line: 'rectifier',
+    otherMembers: [
+      ...PAIR_OR_LOT, ...TUBE_LISTING, ...AMP_COPY, ...UAD_SOFTWARE,
+      ...cues('roadster', 'road king', 'roadking', 'triple', 'single', 'mini', 'rect-o-verb', 'rectoverb', 'recto-verb', 'trem-o-verb', 'tremoverb', 'trem o verb', 'blue angel', 'maverick', 'badlander',
+        'solo 50', 'rectifier 50', 'combo', '1x12', '2x12', '4x12', 'cab', 'cabinet', 'rack', 'jack rack', 'preamp', 'pre amp', 'pre-amp', 'jessup', 'retube', 'tube set', 'anniversary', 'reborn', 'reissue'),
+    ],
+    accessories: AMP_ACCESSORIES,
+  },
+  // The 6505 head (CSP 8435), the 5150 renamed in 2004: never the 6505+ / II / MH / Mini / Piranha, the 5150
+  // itself (its own row, same line), a cabinet, combo, module or preamp.
+  'peavey-6505': {
+    line: '5150',
+    otherMembers: [...PAIR_OR_LOT, ...AMP_COPY, ...cues('5150', '6505+', 'plus', 'ii', 'mh', 'mini', 'micro', 'piranha', 'invective', '6534', 'synergy', 'module', 'preamp', 'cab', '412', '4x12', '212', '2x12', '112', 'combo', 'slant', 'straight')],
+    accessories: AMP_ACCESSORIES,
+  },
+  // The JC-120 combo (CSP 1674): never the JC-120H head, the JC-160 / 40 / 22 / 85 / 77 / 50 / 20, the 50th
+  // Anniversary edition (its own page), a gig bag or slip cover.
+  'roland-jc-120': {
+    line: 'jc',
+    otherMembers: [...PAIR_OR_LOT, ...AMP_COPY, ...cues('jc-120h', 'jc120h', 'jc-160', 'jc160', 'jc-40', 'jc-22', 'jc-85', 'jc-77', 'jc-50', 'jc-20', 'jc-01', 'jc-10', 'anniversary', '50th', 'studio slips', 'clamshell')],
+    accessories: AMP_ACCESSORIES,
+  },
+  // The Hiwatt DR103 Custom 100 head (CSP 25625): never the DR504 / DR201, the Custom 50 / 20, an SE4123
+  // cabinet, a Maxwatt, nor a Hi-Tone or Reeves built like it.
+  'hiwatt-dr103': {
+    line: 'dr103',
+    otherMembers: [...PAIR_OR_LOT, ...TUBE_LISTING, ...AMP_COPY, ...cues('dr504', 'dr-504', 'dr201', 'dr-201', 'custom 50', 'custom 20', 'se4123', 'se 4123', 'se-4123', 'cab', 'cabinet', '4x12', 'hi-tone', 'hitone', 'reeves', 'maxwatt', 'solid state', 'bulldog')],
+    accessories: AMP_ACCESSORIES,
+  },
+  // The Soldano SLO-100 head (CSP 45958, the pre-2019 Soldano-built original): never the SLO-30, the SLO-100R
+  // rack, the Custom Shop production since 2019 (its own page and half the price), a mini, a pedal or a plug-in.
+  'soldano-slo-100': {
+    line: 'slo',
+    otherMembers: [...PAIR_OR_LOT, ...TUBE_LISTING, ...AMP_COPY, ...UAD_SOFTWARE, ...cues('slo-30', 'slo 30', 'slo30', 'slo-100r', 'slo 100r', 'slo-100x', 'slo-100+', 'custom shop', 'mini', 'pedal', 'cab', 'cabinet', '4x12', '2x12', 'combo', 'astro', 'avenger', 'hot rod', 'hr50')],
+    accessories: AMP_ACCESSORIES,
+  },
+  // The 1969–85 tube SVT head (CSP 22627, the 1969–72 "Blue Line" page): never the SVT-CL / VR / AV, the II–8 and
+  // Pro hybrids, the Micro / Mini, any SVT cabinet (810, 410, 210, 212, 115 …), a DI box or a stack.
+  'ampeg-svt': {
+    line: 'svt',
+    otherMembers: [
+      ...PAIR_OR_LOT, ...TUBE_LISTING, ...AMP_COPY,
+      /(?<![\w-])svt[\s-]*(?:cl|vr|av|ii|iii|iv|vi|v|[2-8]|pro|classic|heritage|micro|mini|tube|di|\d{3,4}[a-z]*)(?![\w])/i,
+      ...cues('classic', 'heritage', 'pro', 'micro', 'mini', 'cab', 'cabinet', 'cabs', 'speaker cabinet', '8x10', '4x10', '2x10', '1x15', '2x12', '810', '410', '210', '212', '115', '15e', 'hen', 'hlf', 'he', 'av', 'di box', 'tube di',
+        'full stack', 'stack', 'b-15', 'b15', 'portaflex', 'v-4', 'v4', 'v-4b', 'rocket', 'reissue'),
+    ],
+    accessories: AMP_ACCESSORIES,
+  },
 
   // ── PAN-230: legendary gear, step 5, tranche 2 ───────────────────────────
   // Manley's three legendary rows are the standard versions (CSPs 1856, 28955, 28964): the Mastering
