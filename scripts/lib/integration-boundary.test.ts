@@ -67,6 +67,9 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/admin-review-hotfix.test.ts',
       'scripts/lib/baseline.test.ts',
       'scripts/lib/data-presentation.test.ts',
+      // PAN-262: the historical backfill's cohort must be a total order, or
+      // its --max cut and its selection md5 change between dry run and apply.
+      'scripts/lib/historical-backfill.test.ts',
       // PAN-114: entity decoding is the ingest boundary for every scraped
       // title. It decodes exactly once — decode twice and a literal `&#39;`
       // becomes an apostrophe, decode zero times and React escapes the

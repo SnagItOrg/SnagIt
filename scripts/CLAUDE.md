@@ -30,10 +30,14 @@ Commands below are written to run from the repository root.
   driven by the monitoring config.
 - The historical matcher is gated behind `--historical-backfill` plus
   `--sources=` and `--max=`, and is dry-run by default
-  (`npm run match-listings:historical-dry-run`). It still has **no
-  product-scoped filter**, so it cannot be aimed at a cohort. Do not add one
-  casually — that filter is the precondition for authorising historical
-  population at all.
+  (`npm run match-listings:historical-dry-run`). Its cohort is fixed in
+  [`lib/historical-backfill.ts`](lib/historical-backfill.ts): active listings
+  with no `listing_product_match` row, oldest `scraped_at` first, ties by id.
+  The dry run runs `decideMatch` in memory and prints the per-product forecast
+  and a selection md5; `--apply` is refused unless `--expect-selection=` equals
+  that md5 (PAN-262). It still has **no product-scoped filter**. Do not add one
+  casually — that filter is the precondition for authorising a wider
+  population.
 
 ## Brand re-matches
 

@@ -1,14 +1,16 @@
 /**
  * scripts/match-listings.ts
  *
- * Finds listings without an entry in listing_product_match and runs the
- * matching pipeline against the knowledge graph.
+ * The historical backfill: offers listings that hold no listing_product_match
+ * row to the matcher. Ordinary new inflow is matched by each scraper through
+ * scripts/lib/match-new-inflow.ts using its own batch ids; this command exists
+ * for the rows that predate those batches (PAN-262).
  *
- * Processes up to MAX_PER_RUN listings then exits cleanly. Let PM2 schedule
- * the next run via cron_restart — do NOT rely on autorestart-on-crash.
- *
- * Usage:
- *   npm run match-listings
+ * Usage (from the repository root):
+ *   npx tsx scripts/match-listings.ts --historical-backfill --sources=dba.dk --max=N [--ids=a,b] [--show=N]
+ *   npx tsx scripts/match-listings.ts --historical-backfill --sources=dba.dk --max=N --apply \
+ *     --expect-selection=<md5 printed by the dry run> [--out-dir=DIR]
+ *   npx tsx scripts/match-listings.ts --rollback=DIR/backfill-rollback-<ts>.json [--apply]
  *
  * Env (loaded from frontend/.env.local or .env.local at repo root):
  *   NEXT_PUBLIC_SUPABASE_URL
@@ -16,11 +18,14 @@
  */
 
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 import dotenv from 'dotenv'
-import { createClient } from '@supabase/supabase-js'
-import { matchListings } from '../frontend/lib/matching/match-listings'
+import { createClient, type SupabaseClient } from '../frontend/node_modules/@supabase/supabase-js'
+import { loadMatchIndex, matchListings, type MatchIndex } from '../frontend/lib/matching/match-listings'
 import { matcherSourceList } from '../frontend/lib/matching/sources'
+import { backfillCohort, selectionDigest, type BackfillRow } from './lib/historical-backfill'
+import { outcome, rollback } from './rematch-brand'
 
 // ── Env ───────────────────────────────────────────────────────────────────────
 for (const p of [
@@ -38,33 +43,53 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
   process.exit(1)
 }
 
+// The frontend copy of supabase-js, because the client is handed to
+// frontend/lib/matching (as scripts/rematch-brand.ts does).
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false },
 })
 
 // ── HISTORICAL BACKLOG MODE — explicitly opt-in, dry-run by default ──────────
 //
-// This command is the ONLY code path that can select listings by recency
-// rather than by scrape batch, i.e. the only one that can reach the
-// pre-activation unmatched backlog. It is therefore fail-closed:
+// This command is the ONLY code path that can reach the unmatched backlog
+// outside a scrape batch. It is therefore fail-closed:
 //
 //   no flags                       -> refuse, ZERO writes, exit 0
-//   --historical-backfill          -> DRY RUN; requires --sources and --max
-//   ... plus --apply               -> would write; still requires --sources
-//                                     and --max, and is NOT authorised in this
-//                                     revision (never run here)
+//   --historical-backfill          -> DRY RUN; requires --sources and --max.
+//                                     Runs decideMatch in memory against the
+//                                     real index and prints the forecast and
+//                                     the selection md5. Writes nothing.
+//   ... plus --apply               -> an owner-authorised production write, run
+//                                     on panter. Refused unless
+//                                     --expect-selection= equals the md5 of the
+//                                     cohort it selects now, i.e. the cohort
+//                                     the dry run forecast. Writes the rollback
+//                                     file first, then hands the cohort to
+//                                     matchListings, the one writer.
 //
-// Ordinary new inflow is matched by each scraper through
-// scripts/lib/match-new-inflow.ts using its own batch ids. PM2 must never
-// invoke this command — see ecosystem.config.js.
+// The cohort (scripts/lib/historical-backfill.ts): active listings from
+// --sources with NO listing_product_match row, oldest scraped_at first, ties
+// broken by id. A listing with any row, so any verdict, is never selected, and
+// is re-checked just before its batch is written. PM2 must never invoke this
+// command — see ecosystem.config.js.
 const argv = process.argv.slice(2)
+const flag = (name: string) => argv.find(a => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=')
 const HISTORICAL = argv.includes('--historical-backfill')
 const APPLY      = argv.includes('--apply')
-const SOURCES_ARG = argv.find(a => a.startsWith('--sources='))?.split('=')[1] ?? null
-const MAX_ARG     = argv.find(a => a.startsWith('--max='))?.split('=')[1] ?? null
+const DRY_RUN = !APPLY
+const ROLLBACK   = flag('rollback')
+const SOURCES_ARG = flag('sources') ?? null
+const MAX_ARG     = flag('max') ?? null
+const IDS         = flag('ids') ? new Set(flag('ids')!.split(',').map(s => s.trim()).filter(Boolean)) : undefined
+const EXPECT      = flag('expect-selection')
+const SHOW        = Number(flag('show') ?? 3)
+const OUT_DIR     = flag('out-dir') ?? path.join(os.tmpdir(), 'backfill')
 
-/** Ceiling for any future apply run; a larger --max is refused outright. */
+/** Ceiling for any apply run; a larger --max is refused outright. */
 const MAX_HISTORICAL_APPLY = 5_000
+
+/** The rollback runs through rematch-brand's; a backfill file has no held rows to restore. */
+const BACKFILL_RUN = { ticket: 'Historical backfill', pan: 'backfill' }
 
 function refuse(reason: string): never {
   console.log('[match-listings] REFUSING TO RUN — 0 listings selected, 0 rows written.')
@@ -73,150 +98,144 @@ function refuse(reason: string): never {
   console.log('  scripts/lib/match-new-inflow.ts, bounded to that run\'s own listing ids.')
   console.log('  Historical backlog mode (separately authorised) requires:')
   console.log('    npx tsx scripts/match-listings.ts --historical-backfill \\')
-  console.log(`      --sources=<a,b> --max=<n<=${MAX_HISTORICAL_APPLY}> [--apply]`)
+  console.log(`      --sources=<a,b> --max=<n<=${MAX_HISTORICAL_APPLY}> [--apply --expect-selection=<md5>]`)
   process.exit(0)
 }
 
-if (!HISTORICAL) {
-  refuse('this command no longer has an unbounded default mode; --historical-backfill is required')
+const PAGE  = 1000
+const CHUNK = 100
+
+const chunks = <T>(xs: T[]): T[][] =>
+  Array.from({ length: Math.ceil(xs.length / CHUNK) }, (_, i) => xs.slice(i * CHUNK, (i + 1) * CHUNK))
+
+/** Every listing from the sources, keyset-paged on the primary key (see rematch-active-titles.ts for why). */
+async function readSourceListings(db: SupabaseClient, sources: string[]): Promise<BackfillRow[]> {
+  const rows: BackfillRow[] = []
+  let last: string | null = null
+  for (;;) {
+    let q = db.from('listings').select('id, title, external_id, scraped_at, is_active')
+      .in('source', sources).order('id').limit(PAGE)
+    if (last !== null) q = q.gt('id', last)
+    const { data, error } = await q
+    if (error) throw new Error(`Fetch listings: ${error.message}`)
+    const page = (data ?? []) as BackfillRow[]
+    rows.push(...page)
+    if (page.length < PAGE) return rows
+    last = page[page.length - 1].id
+  }
 }
-if (!SOURCES_ARG) refuse('--historical-backfill requires an explicit --sources= set')
-if (!MAX_ARG)     refuse('--historical-backfill requires an explicit --max=')
 
-const HISTORICAL_SOURCES = SOURCES_ARG.split(',').map(s => s.trim()).filter(Boolean)
-const invalidSources = HISTORICAL_SOURCES.filter(s => !matcherSourceList().includes(s))
-if (HISTORICAL_SOURCES.length === 0) refuse('--sources= resolved to an empty set')
-if (invalidSources.length > 0)       refuse(`unsupported source(s): ${invalidSources.join(', ')}`)
+/** The listings among `ids` that hold a listing_product_match row of any kind. */
+async function withMatchRow(db: SupabaseClient, ids: string[]): Promise<Set<string>> {
+  const out = new Set<string>()
+  for (const group of chunks(ids)) {
+    const { data, error } = await db.from('listing_product_match').select('listing_id').in('listing_id', group)
+    if (error) throw new Error(`Fetch listing_product_match: ${error.message}`)
+    for (const r of data ?? []) out.add(r.listing_id as string)
+  }
+  return out
+}
 
-const MAX_PER_RUN = Number(MAX_ARG)
-if (!Number.isInteger(MAX_PER_RUN) || MAX_PER_RUN <= 0) refuse(`--max must be a positive integer, got ${MAX_ARG}`)
-if (MAX_PER_RUN > MAX_HISTORICAL_APPLY) refuse(`--max=${MAX_PER_RUN} exceeds the ${MAX_HISTORICAL_APPLY} ceiling`)
+const adNo = (r: BackfillRow) => r.external_id?.split('/').pop() ?? r.id
 
-const DRY_RUN = !APPLY
-console.log(
-  `[match-listings] HISTORICAL BACKLOG MODE — sources=${HISTORICAL_SOURCES.join(',')} ` +
-  `max=${MAX_PER_RUN} ${DRY_RUN ? '(DRY RUN — no rows will be written)' : '(APPLY — rows WILL be written)'}`,
-)
+/** The forecast: every decision is decideMatch's, against the index matchListings loads. Nothing is written. */
+function forecast(cohort: BackfillRow[], index: MatchIndex, show: number): Record<string, number> {
+  const totals: Record<string, number> = {}
+  const byProduct = new Map<string, BackfillRow[]>()
+  for (const l of cohort) {
+    const o = outcome(l.title!, index)
+    const kind = o.key.startsWith('deferred:') ? o.key : o.key.split(':')[0]
+    totals[kind] = (totals[kind] ?? 0) + 1
+    if (o.slug) byProduct.set(o.key, [...(byProduct.get(o.key) ?? []), l])
+    if (IDS) console.log(`  ${adNo(l)} | ${l.id} | ${o.key} | ${l.title}`)
+  }
+  console.log('totals by outcome:')
+  for (const [k, n] of Object.entries(totals).sort()) console.log(`  ${k}: ${n}`)
+  console.log(`per product (${byProduct.size}), outcome:slug → count, then up to ${show} sample titles:`)
+  for (const [k, ls] of Array.from(byProduct.entries()).sort((a, b) => b[1].length - a[1].length || (a[0] < b[0] ? -1 : 1))) {
+    console.log(`  ${k} → ${ls.length}`)
+    for (const l of ls.slice(0, show)) console.log(`      ${adNo(l)} | ${l.title}`)
+  }
+  return totals
+}
 
-const BATCH            = 50       // listings fetched per batch
-const QUERY_TIMEOUT_MS = 30_000   // per-query timeout; on timeout skip batch instead of crashing
-const BATCH_SLEEP_MS   = 500      // pause between batches
+async function backfill(db: SupabaseClient, sources: string[], max: number): Promise<void> {
+  const [rows, index] = await Promise.all([readSourceListings(db, sources), loadMatchIndex(db)])
+  const active = rows.filter(r => r.is_active)
+  const matched = await withMatchRow(db, active.map(r => r.id))
+  const cohort = backfillCohort(rows, matched, max, IDS)
+  const digest = selectionDigest(cohort)
+  const pool = backfillCohort(rows, matched, Number.MAX_SAFE_INTEGER).length
 
-const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
+  console.log(`${rows.length} listings from ${sources.join(',')}: ${active.length} active, ${matched.size} of them hold a match row`)
+  console.log(`${rows.length - active.length} inactive listings are not selected`)
+  console.log(`cohort: ${pool} active listings with no match row, ordered scraped_at, id; selected ${cohort.length}` +
+    (IDS ? ` of ${IDS.size} named by --ids` : ` (--max=${max})`))
+  if (IDS) for (const id of Array.from(IDS)) if (!cohort.some(r => r.id === id)) {
+    const r = rows.find(x => x.id === id)
+    console.log(`  NOT SELECTED ${id}: ${!r ? 'not a listing from these sources' : !r.is_active ? 'inactive' : matched.has(id) ? 'holds a match row' : 'no title'}`)
+  }
+  if (cohort.length > 0) console.log(`first ${cohort[0].scraped_at} ${cohort[0].id}, last ${cohort[cohort.length - 1].scraped_at} ${cohort[cohort.length - 1].id}`)
+  console.log(`selection md5=${digest}`)
+  const totals = forecast(cohort, index, SHOW)
+  if (DRY_RUN) return
 
-function withTimeout<T>(p: PromiseLike<T>, ms: number, label: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error(`timeout ${ms}ms: ${label}`)), ms)
-    Promise.resolve(p).then(
-      v => { clearTimeout(t); resolve(v) },
-      e => { clearTimeout(t); reject(e) },
-    )
-  })
+  if (EXPECT !== digest) refuse(`--expect-selection=${EXPECT ?? '(missing)'} does not equal the selection md5 ${digest}; re-run the dry run`)
+
+  fs.mkdirSync(OUT_DIR, { recursive: true })
+  const file = path.join(OUT_DIR, `backfill-rollback-${Date.now()}.json`)
+  const fd = fs.openSync(file, 'wx')
+  fs.writeSync(fd, JSON.stringify({
+    started_at: new Date().toISOString(),
+    selection_md5: digest,
+    forecast: totals,
+    listing_ids: cohort.map(r => r.id),
+    held_rows: [],
+  }))
+  fs.fsyncSync(fd)
+  fs.closeSync(fd)
+  console.log(`rollback written first: ${file}`)
+
+  const written = { matched: 0, rejected: 0, deferred: 0, total: 0, raced: 0 }
+  for (const group of chunks(cohort.map(r => r.id))) {
+    // A row may have appeared since the selection (a scrape's own matcher, a person): leave those.
+    const now = await withMatchRow(db, group)
+    const ids = group.filter(id => !now.has(id))
+    written.raced += group.length - ids.length
+    const r = await matchListings(db, ids)
+    written.matched += r.matched; written.rejected += r.rejected; written.deferred += r.deferred; written.total += r.total
+  }
+  console.log(`✅  written: ${JSON.stringify(written)} (forecast matched ${totals.matched ?? 0}, rejected ${totals.rejected ?? 0})`)
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  let offset       = 0
-  let processed    = 0
-  let totalMatched = 0
-  let totalRejected = 0
-  let totalDeferred = 0
-  let totalFound   = 0
-  let timeouts     = 0
+  if (ROLLBACK) return rollback(supabase, BACKFILL_RUN, ROLLBACK, APPLY)
 
-  console.log(`🔍  Historical scan: up to ${MAX_PER_RUN} listings in batches of ${BATCH}…\n`)
-
-  while (processed < MAX_PER_RUN) {
-    let batch: Array<{ id: string; title: string }> | null = null
-
-    try {
-      const res = await withTimeout(
-        supabase
-          .from('listings')
-          .select('id, title')
-          .not('title', 'is', null)
-          // Was ['reverb','finn','blocket','dba'] — 'dba' never matched a row
-          // because DBA listings are stored as 'dba.dk', and 'kleinanzeigen'
-          // was missing entirely. See frontend/lib/matching/sources.ts.
-          .in('source', HISTORICAL_SOURCES)
-          .order('scraped_at', { ascending: false })
-          .range(offset, offset + BATCH - 1),
-        QUERY_TIMEOUT_MS,
-        `listings range ${offset}`,
-      )
-      if (res.error) throw new Error(`Fetch listings: ${res.error.message}`)
-      batch = (res.data ?? []) as Array<{ id: string; title: string }>
-    } catch (err) {
-      timeouts++
-      console.warn(`⚠️  skip offset ${offset} — ${(err as Error).message}`)
-      offset += BATCH
-      await sleep(BATCH_SLEEP_MS)
-      continue
-    }
-
-    if (!batch || batch.length === 0) break
-
-    const batchIds = batch.map(r => r.id)
-
-    try {
-      const res = await withTimeout(
-        supabase
-          .from('listing_product_match')
-          .select('listing_id')
-          .in('listing_id', batchIds),
-        QUERY_TIMEOUT_MS,
-        `listing_product_match offset ${offset}`,
-      )
-      if (res.error) throw new Error(`Fetch listing_product_match: ${res.error.message}`)
-
-      const matchedSet   = new Set(((res.data ?? []) as Array<{ listing_id: string }>).map(r => r.listing_id))
-      const unmatchedIds = batchIds.filter(id => !matchedSet.has(id))
-
-      if (unmatchedIds.length > 0) {
-        totalFound += unmatchedIds.length
-        if (DRY_RUN) {
-          process.stdout.write(`  offset ${offset}: ${unmatchedIds.length} would be considered (dry run — no write)\n`)
-          processed += batch.length
-          if (batch.length < BATCH) break
-          offset += BATCH
-          await sleep(BATCH_SLEEP_MS)
-          continue
-        }
-        const { matched, rejected, deferred } = await withTimeout(
-          matchListings(supabase, unmatchedIds),
-          QUERY_TIMEOUT_MS,
-          `matchListings offset ${offset}`,
-        )
-        totalMatched += matched
-        totalRejected += rejected
-        totalDeferred += deferred
-        process.stdout.write(
-          `  offset ${offset}: ${matched}/${unmatchedIds.length} matched` +
-          (rejected ? `, ${rejected} brand-collision rejected` : '') +
-          (deferred ? `, ${deferred} deferred (no row)` : '') + '\n',
-        )
-      }
-    } catch (err) {
-      timeouts++
-      console.warn(`⚠️  skip offset ${offset} — ${(err as Error).message}`)
-    }
-
-    processed += batch.length
-    if (batch.length < BATCH) break
-    offset += BATCH
-    await sleep(BATCH_SLEEP_MS)
+  if (!HISTORICAL) {
+    refuse('this command no longer has an unbounded default mode; --historical-backfill is required')
   }
+  if (!SOURCES_ARG) refuse('--historical-backfill requires an explicit --sources= set')
+  if (!MAX_ARG)     refuse('--historical-backfill requires an explicit --max=')
+
+  const sources = SOURCES_ARG.split(',').map(s => s.trim()).filter(Boolean)
+  const invalidSources = sources.filter(s => !matcherSourceList().includes(s))
+  if (sources.length === 0)       refuse('--sources= resolved to an empty set')
+  if (invalidSources.length > 0)  refuse(`unsupported source(s): ${invalidSources.join(', ')}`)
+
+  const max = Number(MAX_ARG)
+  if (!Number.isInteger(max) || max <= 0) refuse(`--max must be a positive integer, got ${MAX_ARG}`)
+  if (max > MAX_HISTORICAL_APPLY) refuse(`--max=${max} exceeds the ${MAX_HISTORICAL_APPLY} ceiling`)
+  if (APPLY && !EXPECT) refuse('--apply requires --expect-selection=<the md5 the dry run printed>')
 
   console.log(
-    `\n✅  Done — scanned ${processed}, matched ${totalMatched}/${totalFound} unmatched` +
-    (totalRejected ? `, ${totalRejected} brand-collision rejected` : '') +
-    (totalDeferred ? `, ${totalDeferred} deferred as unsafe (no row written)` : '') +
-    (timeouts ? `, ${timeouts} skipped batch(es)` : ''),
+    `[match-listings] HISTORICAL BACKLOG MODE — sources=${sources.join(',')} ` +
+    `max=${max} ${DRY_RUN ? '(DRY RUN — no rows will be written)' : '(APPLY — rows WILL be written)'}`,
   )
-  process.exit(0)
+  await backfill(supabase, sources, max)
 }
 
-main().catch(err => {
+main().then(() => process.exit(0), err => {
   console.error('❌', (err as Error).message)
   process.exit(1)
 })
