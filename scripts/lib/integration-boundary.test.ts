@@ -224,6 +224,10 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-258: a missed night on DBA or Reverb emails the owner once per
       // incident, not once per check.
       'scripts/lib/pan258-missed-night.test.ts',
+      // PAN-261: the amp section — a Fender line's vintage, reissue, custom and
+      // Tone Master rows, the Marshall / Vox / Mesa / Ampeg boundaries, measured
+      // on the section's 1,938 production titles.
+      'scripts/lib/pan261-amps.test.ts',
       // PAN-86: the homepage category shelf is the first surface to render the
       // taxonomy itself rather than products, so domain scope and the "never
       // print a count the destination cannot honour" rule are both exercised
