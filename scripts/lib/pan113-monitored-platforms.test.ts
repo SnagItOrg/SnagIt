@@ -26,14 +26,16 @@ test('every monitored source renders regardless of listing count', () => {
 
   // oberheim-ob-x is the product this ticket exists for: watched by every
   // source and matched by none of them. The whole registry must come back, so
-  // the page can render five badges for a product with zero listings.
-  const watched = monitoredSourcesFor('oberheim-ob-x', { inCatalogueSweep: true })
+  // the page can render five badges for a product with zero listings. dba.dk
+  // is a brand net since PAN-254, so the product's brand is what it reads.
+  const watched = monitoredSourcesFor('oberheim-ob-x', { inCatalogueSweep: true, brandSlug: 'oberheim' })
   assert.deepEqual(watched, Object.keys(registry))
   assert.ok(watched.length > 0)
 
-  // Monitoring is per-source, not global: a slug outside the explicit sets is
-  // watched only by the sweep source, and nothing invents coverage for it.
-  const sweepOnly = monitoredSourcesFor('not-a-monitored-slug', { inCatalogueSweep: true })
+  // Monitoring is per-source, not global: a slug outside the explicit sets,
+  // of a brand outside the net, is watched only by the sweep source, and
+  // nothing invents coverage for it.
+  const sweepOnly = monitoredSourcesFor('not-a-monitored-slug', { inCatalogueSweep: true, brandSlug: 'not-a-brand' })
   assert.deepEqual(
     sweepOnly,
     Object.entries(registry)
@@ -41,7 +43,7 @@ test('every monitored source renders regardless of listing count', () => {
       .map(([source]) => source),
   )
   assert.deepEqual(
-    monitoredSourcesFor('not-a-monitored-slug', { inCatalogueSweep: false }),
+    monitoredSourcesFor('not-a-monitored-slug', { inCatalogueSweep: false, brandSlug: null }),
     [],
   )
 

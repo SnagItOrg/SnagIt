@@ -766,6 +766,7 @@ async function handle(req: NextRequest, slug: string) {
 
   const monitoredSources = monitoredSourcesFor(slug, {
     inCatalogueSweep: state.status === 'active' && state.browse_domain === 'music',
+    brandSlug: product.kg_brand?.slug || null,
   })
 
   return NextResponse.json(

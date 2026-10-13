@@ -2253,11 +2253,13 @@ test('the activation package never publishes or changes monitoring', () => {
 
 test('no scraper selects products by editorial tier', () => {
   const root = path.resolve(__dirname, '../..')
-  for (const [rel, source] of [['scripts/scrape-dba.ts','dba.dk'], ['scripts/scrape-finn.ts','finn'],
-      ['scripts/scrape-blocket.ts','blocket'], ['scripts/scrape-kleinanzeigen.ts','kleinanzeigen']] as const) {
+  // dba.dk is a brand net since PAN-254 and reads its brand set; the three
+  // others still read their explicit product set.
+  for (const [rel, source, reader] of [['scripts/scrape-dba.ts','dba.dk','monitoredBrands'], ['scripts/scrape-finn.ts','finn','monitoredSlugs'],
+      ['scripts/scrape-blocket.ts','blocket','monitoredSlugs'], ['scripts/scrape-kleinanzeigen.ts','kleinanzeigen','monitoredSlugs']] as const) {
     const src = fs.readFileSync(path.join(root, rel), 'utf8')
     assert.ok(!/\.(in|eq)\('tier'/.test(src), `${rel} must not select products by tier`)
-    assert.ok(src.includes(`monitoredSlugs('${source}')`), `${rel} must read the explicit set for ${source}`)
+    assert.ok(src.includes(`${reader}('${source}')`), `${rel} must read the explicit set for ${source}`)
     assert.ok(src.includes("assertResolved("), `${rel} must fail loud on an unresolved configured product`)
   }
 })
@@ -2265,24 +2267,24 @@ test('no scraper selects products by editorial tier', () => {
 test('the monitoring config reproduces the pre-change source sets exactly', () => {
   const cfg = JSON.parse(fs.readFileSync(
     path.resolve(__dirname, '../../data/klup-source-monitoring.json'), 'utf8')).sources
-  // Owner-decided widenings since the tier cutover, named so that any other
-  // growth still fails here. PAN-193 (2026-09-30): Jupiter-4/-6 on dba.dk.
-  const DBA_ADDED = ['roland-jupiter-4', 'roland-jupiter-6']
-  const dbaAll: string[] = cfg['dba.dk'].products
-  for (const s of DBA_ADDED) assert.ok(dbaAll.includes(s), `dba.dk must monitor ${s}`)
-  const dbaPre = dbaAll.filter(s => !DBA_ADDED.includes(s))
-  assert.equal(dbaPre.length, 30)
+  // dba.dk is a brand net (PAN-254, owner 2026-10-13). The brand list is
+  // explicit; it must still cover the brands of the 32 products it queried
+  // before, so the cutover never narrowed monitoring.
+  assert.equal(cfg['dba.dk'].mode, 'brand_net')
+  assert.equal(cfg['dba.dk'].products, null)
+  const dbaBrands: string[] = cfg['dba.dk'].brands
+  for (const b of ['ampex', 'arp', 'fender', 'gibson', 'korg', 'linn-electronics', 'moog', 'oberheim',
+      'rhodes', 'roland', 'sequential', 'strymon', 'wurlitzer', 'yamaha']) {
+    assert.ok(dbaBrands.includes(b), `dba.dk brand net must keep ${b}`)
+  }
+  assert.equal(new Set(dbaBrands).size, dbaBrands.length, 'dba.dk has duplicate brand slugs')
+  assert.equal(cfg['dba.dk'].sub_category, '1.86.92')
   for (const s of ['finn', 'blocket', 'kleinanzeigen']) assert.equal(cfg[s].products.length, 28)
-  // DBA is legendary+classic, the others legendary: a strict superset of exactly 2
-  const d = new Set<string>(dbaPre)
-  const f: string[] = cfg.finn.products
-  assert.ok(f.every(s => d.has(s)), 'dba must contain every finn product')
-  assert.equal(dbaPre.length - f.length, 2)
   // Reverb is a sweep, not a product list
   assert.equal(cfg.reverb.mode, 'broad_catalogue_sweep')
   assert.equal(cfg.reverb.products, null)
   // no duplicates anywhere
-  for (const s of ['dba.dk', 'finn', 'blocket', 'kleinanzeigen']) {
+  for (const s of ['finn', 'blocket', 'kleinanzeigen']) {
     const p: string[] = cfg[s].products
     assert.equal(new Set(p).size, p.length, `${s} has duplicate slugs`)
   }
