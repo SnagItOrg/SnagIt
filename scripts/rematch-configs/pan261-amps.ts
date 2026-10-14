@@ -2,8 +2,12 @@
  * scripts/rematch-configs/pan261-amps.ts — the PAN-261 amp section: the rows the PAN-261 promote files move from
  * `known` to `supported` (11 created on 2026-10-13 with a verified Reverb CSP, 16 re-anchored that existed as
  * `known` since PAN-178), each with its LINE_BOUNDARIES entry. One config across brands because the pass is one
- * section of the catalogue, not a brand; the lines are the models' names. `roland-jc-120` is left out: it is
- * clean-marked, which the promote guard refuses, so its promote waits for the owner's word (listed on PAN-261).
+ * section of the catalogue, not a brand; the lines are the models' names.
+ *
+ * Round 2 (owner decisions of 2026-10-14): the 12 reissue rows that have their own Reverb page and that the vintage
+ * rows refuse join `promoted` (created known + hidden, promoted by the round-2 file), and `roland-jc-120`, released
+ * by the owner and supported since 2026-10-14, joins `supportedToday` with its own line so its older titles that
+ * never met a supported row are re-decided.
  */
 
 import type { RematchConfig } from '../rematch-brand'
@@ -26,10 +30,17 @@ const config: RematchConfig = {
     'fender-blues-junior', 'fender-blues-junior-iii', 'fender-blues-junior-iv',
     'vox-ac30-vintage', 'marshall-super-lead-plexi', 'marshall-jcm800-2203', 'marshall-jcm800-2204',
     'mesa-boogie-dual-rectifier', 'peavey-6505', 'ampeg-svt',
+    // Round 2: the reissue rows, each with its own Reverb CSP.
+    'vox-ac30c2', 'vox-ac30cc2', 'fender-59-bassman-ltd', 'marshall-1959slp', 'marshall-1959hw', 'soldano-slo-100-custom-shop',
+    'peavey-6505-plus', 'peavey-6505-ii', 'fender-tone-master-super-reverb',
+    'fender-68-custom-twin-reverb', 'fender-68-custom-princeton-reverb', 'fender-68-custom-vibrolux-reverb',
   ],
 
-  /** The 5150 shares the 6505's line and keeps its PAN-230 boundary; its live matches are re-decided too. */
-  supportedToday: ['peavey-5150'],
+  /**
+   * The 5150 shares the 6505's line and keeps its PAN-230 boundary; its live matches are re-decided too. The JC-120
+   * was released and made supported by the owner on 2026-10-14 (round 1 left it out as clean-marked).
+   */
+  supportedToday: ['peavey-5150', 'roland-jc-120'],
 
   /** The unmatched cohort: active titles that name one of the models. */
   lines: [
@@ -50,6 +61,7 @@ const config: RematchConfig = {
     { line: 'dr103', names: /dr[\s-]?103/i, ilike: ['%dr103%', '%dr-103%', '%dr 103%'] },
     { line: 'slo', names: /slo[\s-]?100/i, ilike: ['%slo-100%', '%slo 100%', '%slo100%'] },
     { line: 'svt', names: /ampeg.*(?<![\w-])svt(?![\w-])/i, ilike: ['%ampeg%svt%'] },
+    { line: 'jc-120', names: /jc[\s-]?120/i, ilike: ['%jc-120%', '%jc120%', '%jc 120%'] },
   ],
 }
 
