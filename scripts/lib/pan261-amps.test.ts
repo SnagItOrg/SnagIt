@@ -16,6 +16,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { buildMatchIndex, decideMatch, lineBoundaryRefusal, type Product } from '../../frontend/lib/matching/match-listings'
+import { earliestInclusionMarker } from '../../frontend/lib/matching/listing-intent'
 import config from '../rematch-configs/pan261-amps'
 
 const row = (slug: string, brand_name: string, canonical_name: string, model_name: string): Product => ({
@@ -172,7 +173,10 @@ test('the Marshalls: Plexi by alias, 2203 and 2204 apart, never a part, a kit or
   matches('Marshall JCM800 2203 1987', 'marshall-jcm800-2203')
   matches('Marshall JCM 800 Lead Series Model 2203 100-Watt Master Volume Head 1981 - 1989 - Black', 'marshall-jcm800-2203')
   matches('Marshall JCM 800 2204 1982', 'marshall-jcm800-2204')
-  matches('Marshall Jcm800 Lead Series 2203 + Cassa 1960AX del 2002', 'marshall-jcm800-2203')
+  // Owner decision 2026-10-14: a head sold with its cabinet is refused, before or after a marker; the price is the pair's.
+  notMatched('Marshall Jcm800 Lead Series 2203 + Cassa 1960AX del 2002')
+  notMatched('Marshall JCM 800 Lead Series Model 2204 50-Watt with 1982B 400W Cab')
+  notMatched('Marshall JCM800 2203 m kabinet')
   notMatched('Marshall SC20H 20-Watt 2203 JCM800 Guitar Head - Open Box')
   notMatched('1983 Marshall JCM800 4104 2x12 combo (2204)')
   notMatched('New F&T Electrolytic Capacitor Set for Early 80s Marshall 100 watt JCM800 2203')
@@ -305,4 +309,23 @@ test("round 2: the reissues with their own page take their titles and leave the 
   // A drip-edge or silverface title that writes the year as "68" is the original, never a '68 Custom.
   notMatched('Fender Princeton Reverb 68 silverface drip edge')
   notMatched('Fender Deluxe Reverb 68 silverface drip edge')
+})
+
+
+test('Danish "m" / "m." is "med": an inclusion marker, except after a number (owner decision 2026-10-14)', () => {
+  matches('Fender Twin Reverb m cover', 'fender-twin-reverb-vintage')
+  matches('Fender Twin Reverb guitarforstærker m. cover og footswitch', 'fender-twin-reverb-vintage')
+  matches('Roland JC-120 Jazz Chorus 2x12 m cover', 'roland-jc-120')
+  assert.equal(earliestInclusionMarker('fender twin reverb m cover'), 19)
+  // A bare "m" after a number is a metre, and a glued letter is a model code: neither suppresses the noun that follows.
+  matches('Fender Twin Reverb 1966 m cover', 'fender-twin-reverb-vintage')
+  assert.equal(earliestInclusionMarker('4 m kabel'), -1)
+  assert.equal(earliestInclusionMarker('10m kabel'), -1)
+  assert.equal(earliestInclusionMarker('korg m1 cover'), -1)
+  assert.equal(earliestInclusionMarker('korg m1 m. cover'), 8)
+  assert.equal(lineBoundaryRefusal('fender twin reverb 4 m cable', 'fender-twin-reverb-vintage'), 'accessory:cable')
+  assert.equal(lineBoundaryRefusal('fender twin reverb 4 m. cable', 'fender-twin-reverb-vintage'), 'accessory:cable')
+  // An accessory with no marker is still refused.
+  notMatched('Vox Vintage Voltage selector 1960-64 AC30')
+  notMatched('Udgangs transformator 125A29AX til FENDER TWIN REVERB (radiorør)')
 })

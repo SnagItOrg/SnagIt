@@ -1061,9 +1061,12 @@ const marshallJcm800 = (own: string, ...others: string[]): LineBoundary => ({
   otherMembers: [
     ...PAIR_OR_LOT, ...TUBE_LISTING, ...AMP_COPY,
     ...cues(...others, `${own}x`, `${own}kk`, `${own}zw`, `${own}ms`, 'kerry king', 'zakk wylde', 'reissue', 're-issue', 'sc20', 'sc20h', 'sc20c', 'studio classic',
-      '4210', '2205', '2210', '2555', 'jcm900', 'jcm 900', 'jcm2000', 'jcm 2000', 'dsl', 'tsl', 'combo', '2x12', '1x12', 'stack', 'half stack', 'full stack', '1959', 'super lead', 'plexi', 'jmp', 'anniversary'),
+      '4210', '2205', '2210', '2555', 'jcm900', 'jcm 900', 'jcm2000', 'jcm 2000', 'dsl', 'tsl', 'combo', '2x12', '1x12', 'stack', 'half stack', 'full stack', '1959', 'super lead', 'plexi', 'jmp', 'anniversary',
+      // Owner decision 2026-10-14 (PAN-261): a head sold with its cabinet is a bundle whose price is the pair's, so a
+      // cabinet in the title refuses the row whether it comes before or after an inclusion marker, as on the plexi rows.
+      '1960', '1960a', '1960b', '1960ax', '1960bx', '1982a', '1982b', 'cab', 'cabinet', 'kabinet', 'cassa', '4x12', '412'),
   ],
-  accessories: [...AMP_ACCESSORIES, '1960', '1960a', '1960b', '1960ax', '1960bx', '1982b', 'cab', '4x12', 'cassa', 'tb'],
+  accessories: [...AMP_ACCESSORIES, 'tb'],
 })
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
