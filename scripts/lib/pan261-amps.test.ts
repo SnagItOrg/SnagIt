@@ -54,6 +54,20 @@ const PRODUCTS: Product[] = [
   row('hiwatt-dr103', 'hiwatt', 'Hiwatt DR103', 'DR103'),
   row('soldano-slo-100', 'soldano', 'Soldano SLO-100', 'SLO-100'),
   row('ampeg-svt', 'ampeg', 'Ampeg SVT', 'SVT'),
+  // Round 2 (2026-10-14): the reissue rows. A variant whose titles never spell its own name shares the base's model
+  // name (the Minimoog pattern) and its boundary decides; the others carry the name Reverb gives them.
+  row('vox-ac30c2', 'vox', 'Vox AC30C2', 'AC30C2'),
+  row('vox-ac30cc2', 'vox', 'Vox AC30CC2', 'AC30CC2'),
+  row('fender-59-bassman-ltd', 'fender', "Fender '59 Bassman LTD", 'Bassman'),
+  row('marshall-1959slp', 'marshall', 'Marshall 1959SLP', 'Super Lead'),
+  row('marshall-1959hw', 'marshall', 'Marshall 1959HW', 'Super Lead'),
+  row('soldano-slo-100-custom-shop', 'soldano', 'Soldano SLO-100 Custom Shop', 'SLO-100'),
+  row('peavey-6505-plus', 'peavey', 'Peavey 6505+', '6505'),
+  row('peavey-6505-ii', 'peavey', 'Peavey 6505 II', '6505'),
+  row('fender-tone-master-super-reverb', 'fender', 'Fender Tone Master Super Reverb', 'Tone Master Super Reverb'),
+  row('fender-68-custom-twin-reverb', 'fender', "Fender '68 Custom Twin Reverb", '68 Custom Twin Reverb'),
+  row('fender-68-custom-princeton-reverb', 'fender', "Fender '68 Custom Princeton Reverb", '68 Custom Princeton Reverb'),
+  row('fender-68-custom-vibrolux-reverb', 'fender', "Fender '68 Custom Vibrolux Reverb", '68 Custom Vibrolux Reverb'),
   // Brand protection and a Telecaster bundle partner.
   row('boss-ds-1', 'boss', 'Boss DS-1', 'DS-1'),
   row('gibson-les-paul-standard', 'gibson', 'Gibson Les Paul Standard', 'Les Paul Standard'),
@@ -64,6 +78,12 @@ const IDENTS = [
   ['fender-65-deluxe-reverb-reissue', 'Deluxe Reverb Reissue'], ['fender-tone-master-deluxe-reverb', 'Tonemaster Deluxe Reverb'],
   ['fender-65-princeton-reverb-reissue', 'Princeton Reverb Reissue'], ['fender-tone-master-princeton-reverb', 'Tonemaster Princeton Reverb'],
   ['mesa-boogie-dual-rectifier', 'Dual Rectifier'], ['vox-ac30-vintage', 'AC-30'], ['fender-5e3-tweed-deluxe', 'Tweed Deluxe'], ['hiwatt-dr103', 'DR-103'],
+  // Round 2: the spellings the model names cannot see (spaced and hyphenated Vox codes, Reverb's "Reverb-Amp").
+  ['vox-ac30c2', 'AC30 C2'], ['vox-ac30c2', 'AC-30C2'], ['vox-ac30c2', 'AC-30 C2'], ['vox-ac30c2', 'AC30 Custom'],
+  ['vox-ac30cc2', 'AC30 CC2'], ['vox-ac30cc2', 'AC-30CC2'], ['vox-ac30cc2', 'AC-30 CC2'], ['vox-ac30cc2', 'Custom Classic'],
+  ['marshall-1959slp', '1959SLP'], ['marshall-1959slp', '1959 SLP'], ['marshall-1959hw', '1959HW'], ['marshall-1959hw', '1959 HW'],
+  ['peavey-6505-ii', '6505II'], ['fender-tone-master-super-reverb', 'Tonemaster Super Reverb'],
+  ['fender-68-custom-twin-reverb', 'Custom Twin Reverb-Amp'], ['fender-68-custom-princeton-reverb', 'Custom Princeton Reverb-Amp'], ['fender-68-custom-vibrolux-reverb', 'Custom Vibrolux Reverb-Amp'],
 ].map(([slug, value]) => ({ product_id: `p-${slug}`, type: 'MODEL', value }))
 const SYNONYMS = [{ alias: 'Plexi', canonical_query: 'marshall-super-lead-plexi' }]
 
@@ -115,7 +135,7 @@ test('the amp trade\'s extras and other makers\' amps are not the amp', () => {
 test('the Bassman row is the tweed 5F6, and the Boss pedal named for it is a pedal', () => {
   matches('Fender Bassman fra 1958', 'fender-bassman')
   notMatched("Boss FBM-1 Fender '59 Bassman 2007 - Present - Tan")
-  notMatched('Fender 59 Bassman LTD')
+  matches('Fender 59 Bassman LTD', 'fender-59-bassman-ltd')
   notMatched('Fender Bassman 100')
   notMatched('Fender Bassman 135 Blackface')
   notMatched('Flightcase til Fender Bassman 100T – 100 W')
@@ -198,7 +218,8 @@ test('panter\'s G1 dry run (2026-10-14): a harmonica, a guitar + amp bundle and 
   // "i god stand" is the condition, not a stand; a stand sold alone still is one.
   assert.equal(lineBoundaryRefusal('Marshall JCM800 2203 100W top, lyder fantastisk og er i god stand', 'marshall-jcm800-2203'), null)
   assert.equal(lineBoundaryRefusal('Stand til Marshall JCM800 2203', 'marshall-jcm800-2203'), 'accessory:stand')
-  notMatched('FENDER BASSMAN 59 tweed')
+  // Round 2 gave the '59 LTD its own row, so the title the vintage row refuses is now that row's (owner, 2026-10-14).
+  matches('FENDER BASSMAN 59 tweed', 'fender-59-bassman-ltd')
   notMatched('Fender Super Reverb 1966 with a new vibroverb cabinet and two baffles  1x15 & 2x10 (without speakers)')
   // The LTD / FSR finishes are the same amp and stay with their row.
   matches('2018 Fender Blues Junior - FSR Bordeaux Reserve -  Limited Edition', 'fender-blues-junior')
@@ -216,8 +237,72 @@ test('panter\'s G1 dry run (2026-10-14): a harmonica, a guitar + amp bundle and 
 test('the config names every promoted row and a line for each', () => {
   const slugs = new Set(PRODUCTS.map((p) => p.slug))
   for (const s of config.promoted) assert.ok(slugs.has(s), `${s} is in the test index`)
-  assert.equal(new Set(config.promoted).size, 27)
-  assert.ok(!config.promoted.includes('roland-jc-120'), 'the clean-marked JC-120 waits for the owner')
-  assert.deepEqual(config.supportedToday, ['peavey-5150'])
+  assert.equal(new Set(config.promoted).size, 39, '27 from round 1 and the 12 reissue rows of round 2')
+  assert.ok(!config.promoted.includes('roland-jc-120'), 'the JC-120 was supported by the owner, not by a PAN-261 promote file')
+  assert.deepEqual(config.supportedToday, ['peavey-5150', 'roland-jc-120'])
+  assert.ok(config.lines.some((l) => l.line === 'jc-120' && l.names.test('Roland JC-120 Jazz Chorus') && l.names.test('Roland JC120')), 'the JC-120 line')
   for (const l of config.lines) assert.ok(l.ilike.length > 0 && l.names instanceof RegExp)
+})
+
+test("round 2: the reissues with their own page take their titles and leave the originals' alone", () => {
+  // Vox: the C2 and CC2 Custom lines, spelt glued, spaced or hyphenated; the X editions, the CC1 and the heads stay out.
+  matches('Vox AC30C2 guitarforstærker', 'vox-ac30c2')
+  matches('Vox AC30 C2 rørforstærker', 'vox-ac30c2')
+  matches('Vox AC-30C2 Custom 2x12 combo', 'vox-ac30c2')
+  matches('Vox AC30 Custom 2x12', 'vox-ac30c2')
+  matches('Vox AC30CC2 Custom Classic', 'vox-ac30cc2')
+  matches('Vox AC30 CC2 i god stand', 'vox-ac30cc2')
+  matches('Vox AC30 Custom Classic 2x12', 'vox-ac30cc2')
+  notMatched('Vox AC30C2X Blue Alnico')
+  notMatched('Vox AC30CC2X Custom Classic Blue Alnico')
+  notMatched('Vox AC30CC1 Custom Classic 1x12')
+  notMatched('Vox AC30CH head')
+  notMatched('Vox AC15 Custom Classic')
+  matches('VOX AC30 Top Boost 1967 Silver Bulldogs, TOP, Vintage', 'vox-ac30-vintage')
+  // Bassman: a two-digit "59", "LTD" or "reissue" is the LTD; a 1950s year written in full is the tweed original's.
+  matches('FENDER BASSMAN 59 tweed', 'fender-59-bassman-ltd')
+  matches("Fender '59 Bassman LTD Reissue 45-Watt 4x10\" Guitar Combo", 'fender-59-bassman-ltd')
+  matches('Fender Bassman 1959 reissue', 'fender-59-bassman-ltd')
+  matches('Fender Bassman fra 1958', 'fender-bassman')
+  matches('Fender Bassman tweed 1959 original', 'fender-bassman')
+  notMatched('Fender Bassman 100')
+  // Marshall: the SLP and the HW each by its cue; a reissue with a 1990-on year is the SLP; the 35th Anniversary and a stack stay out.
+  matches('Marshall 1959SLP Super Lead reissue', 'marshall-1959slp')
+  matches('Marshall 1959 SLP 100W plexi', 'marshall-1959slp')
+  matches('Marshall 1959 Super Lead plexi reissue 2008', 'marshall-1959slp')
+  matches('Marshall 1959HW Handwired JMP Reissue 2-Channel 100-Watt Guitar Amp Head', 'marshall-1959hw')
+  matches('Marshall 1959 HW hand wired plexi', 'marshall-1959hw')
+  matches('1967 Marshall Superlead 100 plexi', 'marshall-super-lead-plexi')
+  notMatched('Marshall 1959SLP 35th Anniversary')
+  notMatched('Marshall 1959SLP + 1960AX cab')
+  notMatched('Marshall SV20H Plexi Super Lead (1959)')
+  // Soldano: "Custom Shop" or a 2019-on year is the Custom Shop head; a 1987–2018 year is the original's.
+  matches('Soldano SLO-100 Custom Shop 2-Channel 100-Watt Guitar Amp Head', 'soldano-slo-100-custom-shop')
+  matches('Soldano SLO-100 2022 head', 'soldano-slo-100-custom-shop')
+  matches('Soldano SLO 100 fra 1998 (Pre B.A.D.)', 'soldano-slo-100')
+  matches('Soldano SLO 100', 'soldano-slo-100')
+  notMatched('Soldano SLO-100 Custom Shop half stack')
+  // Peavey: the 6505+ (also "6505 Plus" and "6505 +") and the 6505 II; the base, the combo and the cabinet stay apart.
+  matches('Peavey 6505+ 2-Channel 120-Watt Guitar Amp Head', 'peavey-6505-plus')
+  matches('Peavey 6505 Plus head', 'peavey-6505-plus')
+  matches('Peavey 6505 + topteil', 'peavey-6505-plus')
+  matches('Peavey 6505 II head 2023', 'peavey-6505-ii')
+  matches('Peavey 6505II', 'peavey-6505-ii')
+  matches('Peavey 6505 2-Channel 120-Watt Guitar Amp Head', 'peavey-6505')
+  notMatched('Peavey 6505+ 112 combo')
+  notMatched('Peavey 6505 II 4x12 cabinet')
+  notMatched('Peavey 5150 II')
+  // Fender: the Tone Master Super Reverb and the '68 Customs, including Reverb's "Reverb-Amp" spelling.
+  matches('Fender Tone Master Super Reverb 2-Channel 45-Watt 4x10\" Digital Guitar Combo', 'fender-tone-master-super-reverb')
+  matches('Fender tonemaster super reverb', 'fender-tone-master-super-reverb')
+  matches('Fender Blackface 1966 Super Reverb Amp guitarforstærker', 'fender-super-reverb')
+  matches("Fender '68 Custom Twin Reverb-Amp 2-Channel 85-Watt 2x12\" Guitar Combo", 'fender-68-custom-twin-reverb')
+  matches('Fender 68 Custom Twin Reverb', 'fender-68-custom-twin-reverb')
+  matches('Fender ’68 Custom Princeton Reverb', 'fender-68-custom-princeton-reverb')
+  matches("Fender '68 Custom Vibrolux Reverb-Amp 2-Channel 35-Watt 2x10\" Guitar Combo", 'fender-68-custom-vibrolux-reverb')
+  matches('Fender Vibrolux Reverb 1966', 'fender-vibrolux-reverb')
+  matches('Fender 65 Twin Reverb guitarforstærker', 'fender-65-twin-reverb-reissue')
+  // A drip-edge or silverface title that writes the year as "68" is the original, never a '68 Custom.
+  notMatched('Fender Princeton Reverb 68 silverface drip edge')
+  notMatched('Fender Deluxe Reverb 68 silverface drip edge')
 })
