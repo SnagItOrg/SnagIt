@@ -324,6 +324,7 @@ test('Danish "m" / "m." is "med": an inclusion marker, except after a number (ow
   assert.equal(earliestInclusionMarker('korg m1 cover'), -1)
   assert.equal(earliestInclusionMarker('korg m1 m. cover'), 8)
   assert.equal(lineBoundaryRefusal('fender twin reverb 4 m cable', 'fender-twin-reverb-vintage'), 'accessory:cable')
+  assert.equal(lineBoundaryRefusal('fender twin reverb 4 m. cable', 'fender-twin-reverb-vintage'), 'accessory:cable')
   // An accessory with no marker is still refused.
   notMatched('Vox Vintage Voltage selector 1960-64 AC30')
   notMatched('Udgangs transformator 125A29AX til FENDER TWIN REVERB (radiorør)')

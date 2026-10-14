@@ -332,10 +332,11 @@ const INCLUSION_MARKERS: readonly string[] = [
   'plus', '+',
   // Danish "m" / "m." = "med" (owner decision 2026-10-14, PAN-261): "Twin Reverb m cover" sells the amp. A bare "m"
   // after a standalone 1–3-digit number is a metre ("4 m kabel", "10m"), never a marker; after a year ("1966 m cover")
-  // or a speaker count ("2x12 m cover") it is "med"; a glued letter ("M1", "M-1") never was one.
-  'm', 'm.',
+  // or a speaker count ("2x12 m cover") it is "med"; a glued letter ("M1", "M-1") never was one. BARE_M also finds
+  // "m." ("." is not a word character), so "4 m. kabel" takes the same metre guard.
+  'm',
 ]
-const BARE_M = /(?<![\w-])(?<!(?<![x×\d.,])\d{1,3}(?:[.,]\d+)?\s?)m(?![\w-])/i
+const BARE_M = /(?<![\w-])(?<!(?<![\w×.,])\d{1,3}(?:[.,]\d+)?\s?)m(?![\w-])/i
 
 /**
  * Index of the earliest inclusion marker, or -1.
