@@ -966,7 +966,9 @@ const NEVE_PARTS: readonly string[] = [
  * transformer or recap kit for a Twin, a capacitor or pot set and a turret board for a JCM800, a Vox vent
  * or voltage selector, speakers, a flightcase sold alone ("Flightcase til Fender Bassman"), a slip cover.
  * A bundle keeps them: the inclusion-marker rule in lineBoundaryRefusal leaves "Twin Reverb m hardcase"
- * and "2203 + Cassa 1960AX" alone.
+ * and "2203 + Cassa 1960AX" alone. Panter's G1 dry run (2026-10-14) added Fender's "Blues Junior Harmonica
+ * with Necklace Lanyard" (a mouth harmonica) and a Danish "og" joining two products before any inclusion
+ * marker ("Fender USA Stratocaster og Fender Blues Junior."); after a marker, "m cover og footswitch" stays.
  */
 const AMP_ACCESSORIES: readonly string[] = [
   ...AMP_PARTS, 'tube', 'tube set', 'valve', 'valves', 'retube', 'recap', 'recap kit', 'capacitor', 'capacitors', 'capacitor set', 'cap set',
@@ -974,7 +976,7 @@ const AMP_ACCESSORIES: readonly string[] = [
   'reverb tank', 'tank', 'choke', 'strap', 'fixings', 'vent', 'vents', 'voltage selector', 'switch', 'power lead', 'power cord', 'cable', 'cables',
   'flightcase', 'flight case', 'road case', 'safe case', 'gig bag', 'gigbag', 'clamshell', 'slip cover', 'stand', 'manual', 'schematic',
   'sticker', 'pedal', 'overdrive pedal', 'di box', 'plugin', 'plug-in', 'cabinet', 'ata', 'anvil', 'poster', 'jewel', 'pilot light', 'lens',
-  'transformator', 'udgangstransformator', 'udgangs transformator',
+  'transformator', 'udgangstransformator', 'udgangs transformator', 'harmonica', 'harmonicas', 'mundharmonika', 'lanyard',
 ]
 /** A two-digit year as the reissues write it: "'65 Twin Reverb", "65 Twin Reverb", "’68 Custom"; "1965" is not one. */
 const YY = (yy: string): RegExp => new RegExp(`(?<![\\w-])['’‘]?${yy}(?![\\w-])`)
@@ -986,7 +988,8 @@ const CUSTOM_64: readonly RegExp[] = [YY('64'), cue('64 custom')]
 const BOSS_LEGEND: readonly RegExp[] = cues('boss', 'fbm-1', 'fbm1', 'fdr-1', 'fdr1', 'legend series')
 /** Another maker's amp built like it, or a kit of it: "guyatone twin reverb", "Amp-N Custom 5E3", "Mojotone JCM 800 2204 Marshall Clone". */
 const AMP_COPY: readonly RegExp[] = cues('guyatone', 'music man', 'musicman', 'clone', 'kit', 'style', 'tribute', 'amp-n', 'mojotone', 'ceriatone')
-const BLUES_JUNIOR_NOT: readonly RegExp[] = [...BOSS_LEGEND, ...AMP_COPY, ...PAIR_OR_LOT, ...TUBE_LISTING, ...cues('hot rod', 'pro junior', 'blues deluxe', 'blues deville', 'junior collection')]
+/** A guitar sold with the amp ("Fender Telecaster Vinteras Roadworn + Fender blues junior förstärkare"): the price is the pair's. */
+const BLUES_JUNIOR_NOT: readonly RegExp[] = [...BOSS_LEGEND, ...AMP_COPY, ...PAIR_OR_LOT, ...TUBE_LISTING, ...cues('hot rod', 'pro junior', 'blues deluxe', 'blues deville', 'junior collection', 'stratocaster', 'telecaster')]
 /** A Fender blackface original (1963–67; the silverface years stay with it): never a reissue, the Tone Master, a '68 / '64 Custom, a Boss pedal or a 1982-on year. */
 const fenderVintageAmp = (line: string, ...more: RegExp[]): LineBoundary => ({
   line,
@@ -2289,17 +2292,18 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'fender-princeton-reverb-vintage': fenderVintageAmp('princeton-reverb', ...cues('princeton reverb ii', 'ii', 'princeton chorus', 'princeton 65', 'princeton 112', 'princeton 650', 'princeton recording')),
   'fender-65-princeton-reverb-reissue': fenderReissueAmp('princeton-reverb', [YY('65'), ...REISSUE], ...TONE_MASTER, ...CUSTOM_68, ...CUSTOM_64, cue('ii')),
   'fender-tone-master-princeton-reverb': fenderReissueAmp('princeton-reverb', TONE_MASTER),
-  'fender-super-reverb': fenderVintageAmp('super-reverb', ...cues('super six', 'super twin', 'super champ', 'super sonic', 'super-sonic', 'super 60', 'super 112', 'super 210', 'super amp', 'super bassman')),
+  'fender-super-reverb': fenderVintageAmp('super-reverb', ...cues('super six', 'super twin', 'super champ', 'super sonic', 'super-sonic', 'super 60', 'super 112', 'super 210', 'super amp', 'super bassman', 'without speakers')),
   'fender-vibrolux-reverb': fenderVintageAmp('vibrolux', ...cues('custom vibrolux', 'custom', 'vibrolux reverb-amp')),
   'fender-pro-reverb': fenderVintageAmp('pro-reverb', ...cues('pro junior', 'vibro champ', 'vibro-champ', 'pro reverb-amp', 'custom')),
   // The tweed 5F6 / 5F6-A Bassman of 1957–60, the amp the owner's list means: a title must say so, and
   // the blackface and silverface heads, the '59 LTD reissue, the Tone Master and every numbered bass
-  // Bassman (10, 100, 135, 500, 800 …) are other products.
+  // Bassman (10, 100, 135, 500, 800 …) are other products. A two-digit "59" is the reissue: every amp title
+  // that writes it is one ("Fender 59 Bassman LTD", "Bassman 59 4x10 1990", "FENDER BASSMAN 59 tweed").
   'fender-bassman': {
     line: 'bassman',
     requires: [...cues('tweed', '5f6', '5f6-a', '5f6a', 'narrow panel', 'narrowpanel', "50's", '50s'), yearCue(1952, 1960)],
     otherMembers: [
-      ...REISSUE, ...TONE_MASTER, ...BOSS_LEGEND, ...AMP_COPY, ...PAIR_OR_LOT, ...TUBE_LISTING,
+      ...REISSUE, ...TONE_MASTER, ...BOSS_LEGEND, ...AMP_COPY, ...PAIR_OR_LOT, ...TUBE_LISTING, YY('59'),
       ...cues('ltd', 'limited', 'blackface', 'black panel', 'silverface', 'silver face', 'drip edge', 'piggyback', 'head', 'super bassman',
         'ten', 'twenty', 'fifty', 'pro', 'ts', 'neo', 'rumble', '10', '20', '50', '70', '100', '100t', '135', '150', '250', '300', '400', '410', '500', '800', '115', '1200'),
       yearCue(1961, 2039),
@@ -2529,6 +2533,9 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
  * Why `title` is not `slug` under its line boundary, or null when it may be.
  * Exported so the PAN-154 data script refuses exactly what the matcher refuses.
  */
+/** Danish condition phrases ending in "stand" (PAN-261 review, 2026-10-14). */
+const CONDITION_STAND = /\b(?:i|god|godt|fin|fint|pæn|pænt|flot|perfekt|nydelig|super|fejlfri|velholdt|top|ok|rigtig god|meget god)\s+stand\b/gi
+
 export function lineBoundaryRefusal(title: string, slug: string): string | null {
   const boundary = LINE_BOUNDARIES[slug]
   if (!boundary) return null
@@ -2540,8 +2547,10 @@ export function lineBoundaryRefusal(title: string, slug: string): string | null 
   }
   const markerAt = earliestInclusionMarker(title.toLowerCase())
   const bundle = boundary.bundles?.some((re) => re.test(title)) ?? false
+  // "i god stand" / "flot stand" is the condition, not a stand sold alone.
+  const accessoryTitle = title.replace(CONDITION_STAND, (m) => ' '.repeat(m.length))
   for (const noun of bundle ? [] : boundary.accessories ?? []) {
-    const m = cue(noun).exec(title)
+    const m = cue(noun).exec(accessoryTitle)
     if (m && !(markerAt !== -1 && markerAt < m.index)) return `accessory:${noun}`
   }
   if (boundary.requires && !boundary.requires.some((re) => re.test(title))) {
