@@ -286,6 +286,11 @@ const ACCESSORY_TOKENS: readonly string[] = [
   // Zustand" is a complete DX7, and the inclusion-marker rule keeps "Yamaha
   // DX7 with memory cards and BC1 Breath Controller".
   'breath controller',
+  // PAN-262, the same owner rule (PAN-252): Danish "tangenter", keys sold as a part, as in "ORIG !
+  // ROLAND SH 1000 / 2000 SYNTHESIZER TANGENTER.", the one title seen. Keys described by a size
+  // or an adjective are the instrument's ("61 tangenter", "hvide tangenter": KEY_SPEC_TANGENTER),
+  // and an inclusion marker before the noun keeps "… med tangenter".
+  'tangenter',
 ]
 
 /**
@@ -493,6 +498,16 @@ const HEAD_CAP_FINISH = /(?<![\w-])head\s+cap(?![\w-])/i
 const KEYBOARD_COUNT_MANUAL = /(?<![\w-])(?:dual|two)[\s-]+manual(?![\w-])/i
 
 /**
+ * Keys DESCRIBED are the instrument's, not keys for sale (PAN-262): the word before the noun is a
+ * keyboard size ("Yamaha DX7 61 tangenter") or a Danish plural adjective, which ends in -e. The
+ * adjective form is measured: "Roland Juno-106 – fuldt fungerende – meget flot stand – hvide
+ * tangenter" is a trusted Juno-106 match ("88 vægtede tangenter" and "nye tangenter" read the same).
+ * The one part title names the instrument noun instead: "… SYNTHESIZER TANGENTER.". Sizes, not any
+ * number, because "Juno 106 tangenter" names the model the keys fit.
+ */
+const KEY_SPEC_TANGENTER = /(?<![\w-])(?:25|32|37|44|49|61|73|76|88|[a-zæøå]+e)\s+tangenter(?![\w-])/i
+
+/**
  * Chips named in a service note are not chips for sale (PAN-201). "Roland
  * Juno-106 Serviced, New Chips, Calibrated" is a complete, well-kept synth,
  * deferred only because `chips` fired on the note. Eleven confirmed Juno-106
@@ -672,6 +687,7 @@ export function detectNonProductIntent(title: string): IntentFinding | null {
     if (token === 'pickguard' && isColourSpecPickguard(text)) continue
     if (token === 'cap' && HEAD_CAP_FINISH.test(text)) continue
     if (token === 'manual' && KEYBOARD_COUNT_MANUAL.test(text)) continue
+    if (token === 'tangenter' && KEY_SPEC_TANGENTER.test(text)) continue
     return { intent: 'part_or_accessory', token }
   }
 

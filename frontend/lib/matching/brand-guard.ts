@@ -204,13 +204,17 @@ export function tokenFollowedByReference(title: string, token: string): boolean 
  * adjudicated is_valid=false, and the unmatched rest are keys, springs,
  * covers, power supplies, chips, cartridges and other makers' products sold
  * for it ("Yamaha BC1 Breath Controller for DX7").
+ *
+ * Danish "til" is the same word (PAN-262): "GoXLR (perfekt til Shure SM7b)" is a mixer sold as a
+ * match for the microphone. The model must follow "til" directly, as it must follow "for", so
+ * "til salg" and "sælges til 2000 kr" never fire.
  */
 export function tokenIsObjectOfFor(title: string, token: string, brand: string | null): boolean {
   if (!token) return false
   const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const model = esc(token).replace(/-/g, '[-\\s]')
   const brandPart = brand ? `(?:${esc(brand).replace(/ /g, '\\s+')}\\s+)?` : ''
-  return new RegExp(`(?<![\\w-])for\\s+${brandPart}${model}(?![\\w-])`, 'i').test(title)
+  return new RegExp(`(?<![\\w-])(?:for|til)\\s+${brandPart}${model}(?![\\w-])`, 'i').test(title)
 }
 
 /**
