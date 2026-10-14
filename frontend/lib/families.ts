@@ -816,6 +816,21 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: ['ua-1176ln', 'universal-audio-urei-1176ln'],
     aliases: [],
   },
+  /*
+   * PAN-261, owner decision C 2026-10-14. The Blues Junior (1995–2015), the
+   * III and the IV are three priced models, each with its own Reverb CSP
+   * (10616, 14, 80684). "Fender Blues Junior" is the navigation concept over
+   * them, like `neumann-u87-condenser`: never a `kg_product` row, never a
+   * price. The slug is not `fender-blues-junior` because that is the
+   * original's own priced page. No aliases: the slug gives the key.
+   */
+  'fender-blues-junior-amp': {
+    label: 'Fender Blues Junior',
+    brand: 'Fender',
+    categoryRoot: 'amps',
+    children: ['fender-blues-junior', 'fender-blues-junior-iii', 'fender-blues-junior-iv'],
+    aliases: [],
+  },
 }
 
 /** Every family, in `FAMILY_SLUGS` order. */
