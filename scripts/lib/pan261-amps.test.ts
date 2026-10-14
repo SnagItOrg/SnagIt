@@ -15,7 +15,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { buildMatchIndex, decideMatch, type Product } from '../../frontend/lib/matching/match-listings'
+import { buildMatchIndex, decideMatch, lineBoundaryRefusal, type Product } from '../../frontend/lib/matching/match-listings'
 import config from '../rematch-configs/pan261-amps'
 
 const row = (slug: string, brand_name: string, canonical_name: string, model_name: string): Product => ({
@@ -184,6 +184,29 @@ test('the Dual Rectifier, the 6505, the JC-120, the DR103, the SLO-100 and the S
   notMatched('Ampeg SVT 4-PRO basforstærker i rack med tuner')
   notMatched('Ampeg SVT Tube DI Box')
   notMatched('Ampeg SVT 410 HEN/500 watts 8ohm')
+})
+
+test('panter\'s G1 dry run (2026-10-14): a harmonica, a guitar + amp bundle and the \'59 LTD are not the amp', () => {
+  notMatched('Fender Blues Junior Harmonica with Necklace Lanyard, Key of A, 099-0701-203')
+  notMatched('Fender Blues Junior Harmonica with Necklace Lanyard, Key of C, 099-0701-201')
+  notMatched('Fender Blues Junior Harmonica with Necklace Lanyard, Key of G, 099-0701-202')
+  notMatched('Fender  USA Stratocaster og Fender Blues Junior.')
+  notMatched('Fender Telecaster Vinteras Roadworn + Fender blues junior förstärkare')
+  // The Danish "og" refuses on every amp row, not only through the guitar's name.
+  assert.equal(lineBoundaryRefusal('Fender  USA Stratocaster og Fender Blues Junior.', 'fender-super-reverb'), 'accessory:og')
+  notMatched('FENDER BASSMAN 59 tweed')
+  notMatched('Fender Super Reverb 1966 with a new vibroverb cabinet and two baffles  1x15 & 2x10 (without speakers)')
+  // The LTD / FSR finishes are the same amp and stay with their row.
+  matches('2018 Fender Blues Junior - FSR Bordeaux Reserve -  Limited Edition', 'fender-blues-junior')
+  matches('Fender - Blues Junior Ltd - Lacquered Tweed - 0213205700', 'fender-blues-junior')
+  matches('Fender Blues Junior Texas Red Limited Edition **COLLECTION ONLY** - 2nd Hand', 'fender-blues-junior')
+  matches('Fender   Blues Junior Iii Ltd. Sparkling Red', 'fender-blues-junior-iii')
+  matches('Fender Blues Junior IV FSR Limited Edition "LA Vice" 15-Watt 1x12" Guitar Combo 2020 - Hot Pink / Seafoam Green', 'fender-blues-junior-iv')
+  matches('New Fender Blues Junior IV 30th Anniversary', 'fender-blues-junior-iv')
+  matches('Fender Blues Junior III with Speaker Upgrade', 'fender-blues-junior-iii')
+  matches('Fender Super Reverb Silverface 1969', 'fender-super-reverb')
+  matches('Fender Vibrolux Reverb Blackface (60s)', 'fender-vibrolux-reverb')
+  matches('1956 Fender Deluxe 5E3 Amplifier Vintage Tweed', 'fender-5e3-tweed-deluxe')
 })
 
 test('the config names every promoted row and a line for each', () => {
