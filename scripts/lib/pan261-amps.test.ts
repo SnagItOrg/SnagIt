@@ -192,8 +192,12 @@ test('panter\'s G1 dry run (2026-10-14): a harmonica, a guitar + amp bundle and 
   notMatched('Fender Blues Junior Harmonica with Necklace Lanyard, Key of G, 099-0701-202')
   notMatched('Fender  USA Stratocaster og Fender Blues Junior.')
   notMatched('Fender Telecaster Vinteras Roadworn + Fender blues junior förstärkare')
-  // The Danish "og" refuses on every amp row, not only through the guitar's name.
-  assert.equal(lineBoundaryRefusal('Fender  USA Stratocaster og Fender Blues Junior.', 'fender-super-reverb'), 'accessory:og')
+  // "og" alone is ordinary Danish, never a refusal (manager review, 2026-10-14); the bundle is refused by the guitar's name.
+  assert.equal(lineBoundaryRefusal('Fender Twin Reverb 1966 flot og velholdt', 'fender-twin-reverb-vintage'), null)
+  assert.equal(lineBoundaryRefusal('Fender Blues Junior III - god og billig', 'fender-blues-junior-iii'), null)
+  // "i god stand" is the condition, not a stand; a stand sold alone still is one.
+  assert.equal(lineBoundaryRefusal('Marshall JCM800 2203 100W top, lyder fantastisk og er i god stand', 'marshall-jcm800-2203'), null)
+  assert.equal(lineBoundaryRefusal('Stand til Marshall JCM800 2203', 'marshall-jcm800-2203'), 'accessory:stand')
   notMatched('FENDER BASSMAN 59 tweed')
   notMatched('Fender Super Reverb 1966 with a new vibroverb cabinet and two baffles  1x15 & 2x10 (without speakers)')
   // The LTD / FSR finishes are the same amp and stay with their row.

@@ -976,7 +976,7 @@ const AMP_ACCESSORIES: readonly string[] = [
   'reverb tank', 'tank', 'choke', 'strap', 'fixings', 'vent', 'vents', 'voltage selector', 'switch', 'power lead', 'power cord', 'cable', 'cables',
   'flightcase', 'flight case', 'road case', 'safe case', 'gig bag', 'gigbag', 'clamshell', 'slip cover', 'stand', 'manual', 'schematic',
   'sticker', 'pedal', 'overdrive pedal', 'di box', 'plugin', 'plug-in', 'cabinet', 'ata', 'anvil', 'poster', 'jewel', 'pilot light', 'lens',
-  'transformator', 'udgangstransformator', 'udgangs transformator', 'harmonica', 'harmonicas', 'mundharmonika', 'lanyard', 'og',
+  'transformator', 'udgangstransformator', 'udgangs transformator', 'harmonica', 'harmonicas', 'mundharmonika', 'lanyard',
 ]
 /** A two-digit year as the reissues write it: "'65 Twin Reverb", "65 Twin Reverb", "’68 Custom"; "1965" is not one. */
 const YY = (yy: string): RegExp => new RegExp(`(?<![\\w-])['’‘]?${yy}(?![\\w-])`)
@@ -2533,6 +2533,9 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
  * Why `title` is not `slug` under its line boundary, or null when it may be.
  * Exported so the PAN-154 data script refuses exactly what the matcher refuses.
  */
+/** Danish condition phrases ending in "stand" (PAN-261 review, 2026-10-14). */
+const CONDITION_STAND = /\b(?:i|god|godt|fin|fint|pæn|pænt|flot|perfekt|nydelig|super|fejlfri|velholdt|top|ok|rigtig god|meget god)\s+stand\b/gi
+
 export function lineBoundaryRefusal(title: string, slug: string): string | null {
   const boundary = LINE_BOUNDARIES[slug]
   if (!boundary) return null
@@ -2544,8 +2547,10 @@ export function lineBoundaryRefusal(title: string, slug: string): string | null 
   }
   const markerAt = earliestInclusionMarker(title.toLowerCase())
   const bundle = boundary.bundles?.some((re) => re.test(title)) ?? false
+  // "i god stand" / "flot stand" is the condition, not a stand sold alone.
+  const accessoryTitle = title.replace(CONDITION_STAND, (m) => ' '.repeat(m.length))
   for (const noun of bundle ? [] : boundary.accessories ?? []) {
-    const m = cue(noun).exec(title)
+    const m = cue(noun).exec(accessoryTitle)
     if (m && !(markerAt !== -1 && markerAt < m.index)) return `accessory:${noun}`
   }
   if (boundary.requires && !boundary.requires.some((re) => re.test(title))) {
