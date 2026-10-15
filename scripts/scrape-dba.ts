@@ -231,8 +231,10 @@ async function loadQueries(): Promise<NetQuery[]> {
     throw new Error(`source-monitoring: model_queries without a model_name: ${unnamed.map(p => p.slug).join(', ')}`)
   }
 
+  // A "/" in a brand name is a space to a seller: normalizeQuery drops it, and dba.dk answers
+  // "mesaboogie" with 1 ad and "mesa boogie" with 53 (PAN-266, 2026-10-15).
   let queries: NetQuery[] = [
-    ...brands.map(b => ({ id: b.id, slug: b.slug, query: b.name.trim(), kg_product_id: null })),
+    ...brands.map(b => ({ id: b.id, slug: b.slug, query: b.name.trim().replace(/\//g, ' '), kg_product_id: null })),
     ...products.map(p => ({ id: p.id, slug: p.slug, query: p.model_name!.trim(), kg_product_id: p.id })),
   ]
   if (brandFilter) {
