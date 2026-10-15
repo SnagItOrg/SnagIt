@@ -233,6 +233,8 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan261-amps.test.ts',
       // PAN-262: Danish "til", glued Martin codes, Shenandoah and "tangenter", on the brand net's titles.
       'scripts/lib/pan262-matcher-misses.test.ts',
+      // PAN-266: the wall's page never drops a Danish ad for a foreign one.
+      'scripts/lib/pan266-wall-home-market.test.ts',
       // PAN-86: the homepage category shelf is the first surface to render the
       // taxonomy itself rather than products, so domain scope and the "never
       // print a count the destination cannot honour" rule are both exercised

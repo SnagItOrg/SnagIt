@@ -10,6 +10,7 @@ import {
   buildPopulationStats,
   classifyListing,
   groupByPopulation,
+  homeMarketFirst,
   isPartOrAccessoryListing,
   isPriceEvidence,
   verdictBasisLabelKey,
@@ -542,8 +543,12 @@ async function buildProductPayload(
    * The wall shows a page of the wall population; statistics use the whole
    * verified population. A median over "the 50 newest listings" is a different
    * statistic from a median over the product's verified listings.
+   *
+   * The page is the Danish listings first, then the newest of the rest
+   * (PAN-266, `homeMarketFirst`): a foreign row never pushes a home-market ad
+   * off the page.
    */
-  const listings = allListings.slice(0, DISPLAY_LISTING_LIMIT)
+  const listings = homeMarketFirst(allListings).slice(0, DISPLAY_LISTING_LIMIT)
 
   // Build price history time-series. Parts and accessories sold under the
   // product are not sales of it (PAN-170), and they leave here, before the
