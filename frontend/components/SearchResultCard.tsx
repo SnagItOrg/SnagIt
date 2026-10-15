@@ -8,7 +8,7 @@ import { fill } from '@/lib/i18n'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { priceDkkBucket, track } from '@/lib/analytics'
 import { formatOriginalPrice } from '@/lib/currency'
-import { classifyListing, firstSeenTimestamp, isApproximateDkk } from '@/lib/price-populations'
+import { classifyListing, firstSeenTimestamp, isApproximateDkk, longOnMarketDays } from '@/lib/price-populations'
 import { classifyOtpError, type OtpErrorKey } from '@/lib/otp-error'
 import { TextField } from '@/components/TextField'
 import { SourceBadge } from '@/components/SourceBadge'
@@ -255,6 +255,11 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating = false,
 
   /** Real listing age, or nothing. `scraped_at` is when Klup looked. */
   const firstSeen = firstSeenTimestamp(listing)
+  // PAN-265: a DBA ad up for 60+ days says so in words, in the age's own place.
+  const onMarketDays = longOnMarketDays(listing)
+  const age = firstSeen
+    ? onMarketDays != null ? fill(t.onMarketDays, { n: onMarketDays }) : timeSince(firstSeen, locale)
+    : null
 
   async function handleWatchlistClick() {
     const supabase = createSupabaseBrowserClient()
@@ -400,8 +405,8 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating = false,
                 <span>·</span>
               </>
             )}
-            {firstSeen && (
-              <span className="flex-shrink-0">{timeSince(firstSeen, locale)}</span>
+            {age && (
+              <span className="flex-shrink-0">{age}</span>
             )}
           </div>
         </div>
@@ -514,10 +519,10 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating = false,
 
           <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
             <SourceBadge source={listing.platform ?? listing.source} />
-            {firstSeen && (
+            {age && (
               <>
                 <span>·</span>
-                <span>{timeSince(firstSeen, locale)}</span>
+                <span>{age}</span>
               </>
             )}
             {getLocationDisplay(listing) && (

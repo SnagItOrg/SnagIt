@@ -585,6 +585,33 @@ export function firstSeenTimestamp(listing: {
   return Number.isFinite(new Date(trimmed).getTime()) ? trimmed : null
 }
 
+/** PAN-265: from this many days a DBA card says how long the ad has been for sale. */
+export const LONG_ON_MARKET_DAYS = 60
+
+/**
+ * PAN-265, owner decision 2a: whole days a DBA listing has been for sale, from
+ * LONG_ON_MARKET_DAYS up; null otherwise.
+ *
+ * DBA only. Its scraper is the only one that records `first_seen_at` per ad and
+ * marks delistings (promote_scrape_run); on Finn, Blocket, Kleinanzeigen and
+ * Reverb the column is the migration-040 seed date or missing.
+ *
+ * It can understate, never overstate: a row is DBA's item id, and the same ad
+ * keeps its `first_seen_at`, while an ad reposted as a new ad gets a new item
+ * id and starts again (at most 39 of 709 delisted DBA rows had a same-title
+ * successor, measured 2026-10-15).
+ */
+export function longOnMarketDays(
+  listing: { source?: string | null; first_seen_at?: string | null; scraped_at?: string | null },
+  now: number = Date.now(),
+): number | null {
+  if (listing.source !== 'dba.dk') return null
+  const firstSeen = firstSeenTimestamp(listing)
+  if (firstSeen == null) return null
+  const days = Math.floor((now - new Date(firstSeen).getTime()) / 86_400_000)
+  return days >= LONG_ON_MARKET_DAYS ? days : null
+}
+
 /**
  * The i18n key naming the population a verdict was measured against.
  *
