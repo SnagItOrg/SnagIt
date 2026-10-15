@@ -49,7 +49,7 @@ import * as path from 'path'
 import dotenv from 'dotenv'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
-import { inPublicScope, isAiReviewable } from './lib/ai-validate-scope'
+import { guardedIsValid, inPublicScope, isAiReviewable, variantGuard } from './lib/ai-validate-scope'
 
 // ── Env ───────────────────────────────────────────────────────────────────────
 for (const p of [
@@ -122,6 +122,7 @@ interface CandidateRow {
   listingSource: string
   listingCountry: string | null
   listingCondition: string | null
+  productSlug: string | null
   productCanonicalName: string
   productModelName: string | null
   productTier: string
@@ -167,6 +168,16 @@ function decideIsValid(v: AiVerdict): boolean | null {
   return null
 }
 
+/**
+ * What the pass writes for one row (PAN-265): the model's decision, except that
+ * a variant guard turns a "valid" into NULL. Live runs and --eval both use it,
+ * so the eval scores exactly what an apply would write.
+ */
+function finalIsValid(v: AiVerdict, row: CandidateRow): { isValid: boolean | null; guard: string | null } {
+  const guard = variantGuard(row.listingTitle, row.productSlug)
+  return { isValid: guardedIsValid(decideIsValid(v), guard), guard }
+}
+
 function fmtMoney(n: number | null): string {
   return n == null ? 'unknown' : `${n.toLocaleString('da-DK')} DKK`
 }
@@ -191,6 +202,15 @@ Watch for: knob, key, slider, pot, cap, knob, dust cover, flight case, gig bag, 
 PRICE SIGNAL IS ASYMMETRIC — read this carefully, it is easy to over-apply:
 - LOW price relative to price_min_dkk/price_max_dkk (a small fraction of the real instrument's range — e.g. a few hundred DKK for something that normally sells for tens of thousands) IS a strong signal of an accessory/part, even if the title reads clean. This is the important direction to catch.
 - HIGH price relative to price_max_dkk is WEAK evidence on its own and must NOT be treated as a reject rule. The recorded price range can be stale or too narrow, and a genuine listing can legitimately price well above it: rare/vintage examples (MIJ, early serial numbers), Custom Shop or premium variants, exceptional condition, or a bundle with cables/case/accessories included. A clean, unambiguous title (no accessory-pattern keywords, correct model, matches the candidate) describing the real instrument stays "valid" even at 2-3x the recorded price_max_dkk — do not reject a genuine listing on price-above-range alone. Only let a high price count against validity when it's paired with another red flag (an accessory keyword, wrong generation, a clone/replica label).
+
+VARIANTS AND EDITIONS ARE NOT THE BASE PRODUCT — the second most common error, read this too:
+Compare the listing with candidate_product (the product's canonical name) and candidate_model_name. If the listing names a specific variant, edition, series, generation, year reissue, Custom Shop build, or signature/artist model that candidate_product does not itself include, the listing is a DIFFERENT, more specific product and is NOT the candidate. Decide "invalid", or "uncertain" if you are not sure. Never "valid". Klup prices each specific model separately, so a specific model counted on its broader line corrupts both prices. Examples, all NOT valid:
+- "Fender American Ultra II Telecaster" for candidate "Fender Telecaster"
+- "Gibson '50s J-45 Original" or "Gibson J-45 Studio Rosewood" for candidate "Gibson J-45"
+- "Gibson Custom Shop 1957 Les Paul Custom Black Beauty VOS" for candidate "Gibson Les Paul Custom"
+- "Fender American Professional II Precision Bass" for candidate "Fender Precision Bass"
+- "Fender American Vintage II 1966 Jazz Bass" for candidate "Fender Jazz Bass"
+What does NOT make a different product: colour or finish, condition, the year a unit of the SAME model was built, a case or cables included, or the seller's own wording. When the listing's model words are all inside candidate_product, judge it on the accessory and price checks above.
 
 OTHER REASONS TO REJECT: wrong generation/variant (e.g. a MkII listing matched to a MkI-specific product entry, if the candidate is generation-specific), a clone/tribute/replica explicitly labeled as such, or the listing clearly being for a different, unrelated product that happens to share a word.
 
@@ -365,6 +385,7 @@ async function fetchCandidates(): Promise<CandidateRow[]> {
       listingSource: listing.source,
       listingCountry: listing.country,
       listingCondition: listing.condition,
+      productSlug: product.slug ?? null,
       productCanonicalName: product.canonical_name,
       productModelName: product.model_name,
       productTier: product.tier,
@@ -420,7 +441,7 @@ async function fetchEvalSet(): Promise<CandidateRow[]> {
   const productIds = [...new Set(matches.map(m => m.product_id))]
   const { data: products, error: prodErr } = await supabase
     .from('kg_product')
-    .select('id, canonical_name, model_name, tier, price_min_dkk, price_max_dkk, msrp_dkk, thomann_price_dkk')
+    .select('id, slug, canonical_name, model_name, tier, price_min_dkk, price_max_dkk, msrp_dkk, thomann_price_dkk')
     .in('id', productIds)
 
   if (prodErr || !products) {
@@ -464,6 +485,7 @@ async function fetchEvalSet(): Promise<CandidateRow[]> {
       listingSource: listing.source,
       listingCountry: listing.country,
       listingCondition: listing.condition,
+      productSlug: product.slug ?? null,
       productCanonicalName: product.canonical_name,
       productModelName: product.model_name,
       productTier: product.tier,
@@ -581,7 +603,7 @@ async function runEval() {
     if (i < totalBatches - 1) await sleep(DELAY_MS)
   }
 
-  let tp = 0, tn = 0, fp = 0, fn = 0, uncertainOnLabeled = 0, missing = 0
+  let tp = 0, tn = 0, fp = 0, fn = 0, uncertainOnLabeled = 0, missing = 0, guardedValid = 0
   const disagreements: { title: string; product: string; tier: string; known: boolean; predicted: string; confidence: number; reason: string }[] = []
   const byTier = new Map<string, { tp: number; tn: number; fp: number; fn: number; uncertain: number }>()
 
@@ -592,7 +614,8 @@ async function runEval() {
     const pred = predictions.get(id)
     if (!pred) { missing++; continue }
 
-    const predictedValid = decideIsValid(pred)
+    const { isValid: predictedValid, guard } = finalIsValid(pred, row)
+    if (guard && decideIsValid(pred) === true) guardedValid++
     if (predictedValid === null) { uncertainOnLabeled++; tierStats.uncertain++; continue }
 
     if (row.knownIsValid === true && predictedValid === true) { tp++; tierStats.tp++ }
@@ -608,6 +631,7 @@ async function runEval() {
 
   console.log('\n' + '─'.repeat(60))
   console.log(`Decided (confidence >=85 or <=20): ${decided}/${rows.length}  |  Left uncertain: ${uncertainOnLabeled}  |  Missing from response: ${missing}`)
+  console.log(`Variant guard (PAN-265): ${guardedValid} model 'valid' verdicts left NULL (family label or line boundary)`)
   console.log(`Accuracy on decided:  ${(accuracy * 100).toFixed(1)}%`)
   console.log(`Precision (valid):    ${(precision * 100).toFixed(1)}%   Recall (valid): ${(recall * 100).toFixed(1)}%`)
   console.log(`TP=${tp} TN=${tn} FP=${fp} FN=${fn}`)
@@ -689,7 +713,8 @@ async function runLive() {
         },
       }
 
-      const isValid = decideIsValid(v)
+      const { isValid, guard } = finalIsValid(v, row)
+      if (guard) (mergedExplain[passKey] as Record<string, unknown>).guard = guard
       const rejectedReason = isValid === false ? v.reason : null
       if (isValid === true) autoValid++
       else if (isValid === false) autoInvalid++

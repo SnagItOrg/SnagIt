@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { inPublicScope, isAiReviewable } from './ai-validate-scope'
+import { guardedIsValid, inPublicScope, isAiReviewable, variantGuard } from './ai-validate-scope'
 
 const PUBLIC = { slug: 'roland-juno-106', status: 'active', support_state: 'supported', browse_visibility: 'public', browse_domain: 'music' }
 
@@ -40,4 +40,43 @@ test('the script uses both predicates and guards its write against a concurrent 
   assert.ok(code.includes('inPublicScope('), '--public-only is applied')
   // The update only lands on a row that is still unreviewed when it is written.
   assert.match(code, /\.eq\('id', row\.matchId\)\s*\n\s*\.is\('is_valid', null\)/)
+})
+
+/* ── PAN-265: the eval of 2026-10-15 failed one way — a variant called valid on a broader row ── */
+
+test('variant guard: a family label row is never valid, whatever the title', () => {
+  // Four of the eval's broader products are FAMILY_SLUGS rows (lines, not priced products).
+  assert.equal(variantGuard('Fender American Ultra II Telecaster Texas Tea', 'fender-telecaster'), 'family_label')
+  assert.equal(variantGuard('Gibson Les Paul Deluxe -73 Gold Top', 'gibson-les-paul'), 'family_label')
+  assert.equal(variantGuard('Fender American Vintage II 1966 Jazz Bass', 'fender-jazz-bass'), 'family_label')
+  assert.equal(variantGuard('Fender American Professional II Precision Bass', 'fender-precision-bass'), 'family_label')
+})
+
+test('variant guard: the matcher\'s own line boundary refuses another member of the line', () => {
+  assert.equal(variantGuard("Gibson '50s J-45 Original Vintage Sunburst", 'gibson-j-45'), "line_boundary:other_member:'50s")
+  assert.equal(variantGuard('Gibson J-45 Studio Rosewood', 'gibson-j-45'), 'line_boundary:other_member:studio')
+  assert.equal(variantGuard('Gibson Custom Shop 1957 Les Paul Custom Black Beauty VOS', 'gibson-les-paul-custom'), 'line_boundary:other_member:vos')
+})
+
+test('variant guard: the product itself, and a specific product, are not guarded', () => {
+  assert.equal(variantGuard('Gibson J-45 Standard', 'gibson-j-45'), null)
+  assert.equal(variantGuard('Roland Juno-106 synthesizer', 'roland-juno-106'), null)
+  assert.equal(variantGuard('Fender American Professional II Stratocaster', 'fender-american-professional-ii-stratocaster'), null)
+  assert.equal(variantGuard('anything', null), null)
+})
+
+test('a guarded "valid" is left NULL; "invalid" and unguarded verdicts pass through', () => {
+  assert.equal(guardedIsValid(true, 'family_label'), null)
+  assert.equal(guardedIsValid(false, 'family_label'), false)
+  assert.equal(guardedIsValid(null, 'line_boundary:other_member:vos'), null)
+  assert.equal(guardedIsValid(true, null), true)
+})
+
+test('the eval scores what an apply writes, and the prompt carries the variant rule', () => {
+  const code = readFileSync(join(__dirname, '..', 'ai-validate-matches.ts'), 'utf8')
+  assert.equal((code.match(/finalIsValid\(/g) ?? []).length, 3, 'defined once, used by --eval and by the live write')
+  assert.equal(code.includes('const predictedValid = decideIsValid(pred)'), false)
+  assert.ok(code.includes('VARIANTS AND EDITIONS ARE NOT THE BASE PRODUCT'))
+  assert.ok(code.includes('"Fender American Ultra II Telecaster" for candidate "Fender Telecaster"'))
+  assert.ok(code.includes('Never "valid"'))
 })
