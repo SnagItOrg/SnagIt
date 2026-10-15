@@ -164,6 +164,7 @@ function exactMatches(entities: SearchEntity[], key: string): SearchEntity[] {
 function relatedMatches(
   entities: SearchEntity[],
   raw: string,
+  floor = 0,
 ): { entities: SearchEntity[]; best: number } {
   const key = modelKey(raw)
   const tokens = queryTokens(raw).filter((token) => token.length >= 2)
@@ -203,6 +204,12 @@ function relatedMatches(
         score += 15
       }
 
+      // A sub-phrase of the identity (PAN-266). "fender player jazz bass" names
+      // every Player Jazz Bass, and "roland sp-404" every SP-404, the way the
+      // prefix rule above reads "roland sp-404" against "roland sp-404 mkii":
+      // every token of the query is a whole word of the label.
+      if (isSubPhraseOf(tokens, entity)) score = Math.max(score, 60)
+
       return { entity, score }
     })
     .filter(({ score }) => score > 0)
@@ -213,7 +220,7 @@ function relatedMatches(
   // brand hit sits in the same list as an exact model hit and the
   // disambiguation screen stops disambiguating anything.
   const best = Math.max(...scored.map((s) => s.score))
-  const threshold = best / 2
+  const threshold = Math.max(best / 2, floor)
 
   return {
     best,
@@ -225,6 +232,21 @@ function relatedMatches(
       })
       .map(({ entity }) => entity),
   }
+}
+
+/** The label's words as model keys, the qualifier in parentheses left out. */
+function labelWords(entity: SearchEntity): Set<string> {
+  return new Set(
+    queryTokens(entity.label.replace(/\s*\([^)]*\)\s*/g, ' ')).map(modelKey).filter((w) => w.length > 0),
+  )
+}
+
+/** True when every query token is a word of the label. */
+function isSubPhraseOf(tokens: string[], entity: SearchEntity): boolean {
+  const keys = tokens.map(modelKey).filter((k) => k.length >= 2)
+  if (keys.length === 0) return false
+  const words = labelWords(entity)
+  return keys.every((k) => words.has(k))
 }
 
 /**
@@ -329,9 +351,15 @@ export function resolveQuery(rawQuery: string, index: SearchIndex): SearchOutcom
       // the gate later refuses — a private supported product, or one withdrawn
       // since the index was read — can still degrade into "not
       // followed, here is the nearest" rather than a bare dead end.
-      suggestions: relatedMatches(entities, effective)
-        .entities.filter((e) => e.slug !== hit.slug)
-        .map(toCandidate),
+      //
+      // Over the OTHER entities, at the model-evidence floor (PAN-266). With
+      // the hit in the set its own score set the relevance threshold, which
+      // rose above its siblings: "sp-404" offered nothing once the plain
+      // SP-404 was refused, although the MkII and SX sat one prefix away. The
+      // floor keeps what the hit's score used to guarantee — a brand-only
+      // neighbour is never offered, so "roland tr-707" still lists no Roland.
+      suggestions: relatedMatches(entities.filter((e) => e.slug !== hit.slug), effective, MODEL_EVIDENCE_MIN)
+        .entities.map(toCandidate),
     }
   }
 
@@ -480,22 +508,31 @@ export function applyEligibility(
   if (outcome.navigateTo && !navigateTo) {
     // The target is private, or was withdrawn since the index was read.
     // Either way it stops being a navigation and never leaks as one.
+    //
+    // Two or more eligible suggestions are the set the query names (PAN-266):
+    // "roland sp-404" hits the private plain SP-404 exactly, and the public
+    // MkII and SX are what it means on Klup. They are model-level evidence by
+    // construction — on a navigation they scored at least half the hit's 100 —
+    // so this is the disambiguation step 5 would have produced had the private
+    // row not existed, not a wider "nearest". One suggestion stays "not
+    // followed, here is the nearest", as before.
     const hasSet = candidates.length > 0
+    const set = hasSet ? candidates : suggestions.length > 1 ? suggestions : []
     return {
       ...outcome,
       navigateTo: null,
       navigateKind: null,
       navigateSlug: null,
       autoNavigated: false,
-      outcome: hasSet ? 'disambiguation' : suggestions.length > 0 ? 'unsupported' : 'no_result',
-      resolution: hasSet ? 'disambiguation' : 'unsupported',
-      resolutionClass: hasSet
+      outcome: set.length > 0 ? 'disambiguation' : suggestions.length > 0 ? 'unsupported' : 'no_result',
+      resolution: set.length > 0 ? 'disambiguation' : 'unsupported',
+      resolutionClass: set.length > 0
         ? 'ambiguous'
         : suggestions.length > 0
           ? 'unsupported'
           : 'zero_results_supported',
-      candidates,
-      suggestions,
+      candidates: set,
+      suggestions: set.length > 0 ? [] : suggestions,
     }
   }
 
