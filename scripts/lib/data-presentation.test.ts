@@ -278,6 +278,7 @@ import {
   buildPopulationStats,
   classifyListing,
   firstSeenTimestamp,
+  longOnMarketDays,
   groupByPopulation,
   hasUsableConditionData,
   isApproximateDkk,
@@ -531,6 +532,29 @@ test('null first_seen_at yields no age copy and never falls back to scraped_at',
   assert.equal(firstSeenTimestamp({ first_seen_at: '  ', scraped_at: '2026-09-01T00:00:00Z' }), null)
   assert.equal(firstSeenTimestamp({ first_seen_at: 'not-a-date' }), null)
   assert.equal(firstSeenTimestamp({ first_seen_at: '2026-07-01T10:00:00Z' }), '2026-07-01T10:00:00Z')
+})
+
+test('PAN-265: a DBA ad says how long it has been for sale from 60 days, and nothing else does', () => {
+  const now = Date.parse('2026-10-15T12:00:00Z')
+  const seen = (days: number) => new Date(now - days * 86_400_000).toISOString()
+  assert.equal(longOnMarketDays({ source: 'dba.dk', first_seen_at: seen(59.9) }, now), null, 'under 60 days: the plain age stays')
+  assert.equal(longOnMarketDays({ source: 'dba.dk', first_seen_at: seen(60) }, now), 60)
+  assert.equal(longOnMarketDays({ source: 'dba.dk', first_seen_at: seen(64.5) }, now), 64, 'whole days, rounded down')
+  // Finn / Blocket / Kleinanzeigen / Reverb carry the migration-040 seed date, not a first sighting.
+  for (const source of ['finn', 'blocket', 'kleinanzeigen', 'reverb'])
+    assert.equal(longOnMarketDays({ source, first_seen_at: seen(90) }, now), null, source)
+  assert.equal(longOnMarketDays({ source: 'dba.dk', first_seen_at: null, scraped_at: seen(90) }, now), null, 'never from scraped_at')
+})
+
+test('PAN-265: the card puts "Til salg i N dage" in the age\'s own place, in both variants', async () => {
+  const code = codeOf(join(__dirname, '..', '..', 'frontend', 'components', 'SearchResultCard.tsx'))
+  assert.ok(code.includes('longOnMarketDays(listing)'))
+  assert.ok(code.includes('fill(t.onMarketDays, { n: onMarketDays })'))
+  assert.equal((code.match(/\{age\}/g) ?? []).length, 2, 'both variants render the one age string')
+  assert.equal(code.includes('{timeSince(firstSeen, locale)}'), false, 'no second, plain age beside it')
+  const { translations } = await import('../../frontend/lib/i18n')
+  assert.equal(translations.da.onMarketDays, 'Til salg i {n} dage')
+  assert.equal(translations.en.onMarketDays, 'For sale for {n} days')
 })
 
 // ── verdict boundaries ──────────────────────────────────────────────────────
