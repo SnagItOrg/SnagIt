@@ -208,13 +208,16 @@ export function tokenFollowedByReference(title: string, token: string): boolean 
  * Danish "til" is the same word (PAN-262): "GoXLR (perfekt til Shure SM7b)" is a mixer sold as a
  * match for the microphone. The model must follow "til" directly, as it must follow "for", so
  * "til salg" and "sælges til 2000 kr" never fire.
+ *
+ * A reissue year may wear its apostrophe (PAN-261): "\"Always On\" Plug (TM) for Fender '68 Custom Vibrolux
+ * Reverb Reissue" names the model as "'68 Custom …", and the model tier read it without the quote.
  */
 export function tokenIsObjectOfFor(title: string, token: string, brand: string | null): boolean {
   if (!token) return false
   const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const model = esc(token).replace(/-/g, '[-\\s]')
   const brandPart = brand ? `(?:${esc(brand).replace(/ /g, '\\s+')}\\s+)?` : ''
-  return new RegExp(`(?<![\\w-])(?:for|til)\\s+${brandPart}${model}(?![\\w-])`, 'i').test(title)
+  return new RegExp(`(?<![\\w-])(?:for|til)\\s+${brandPart}['’‘]?${model}(?![\\w-])`, 'i').test(title)
 }
 
 /**
