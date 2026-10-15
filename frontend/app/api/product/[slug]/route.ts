@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { isCurrentUserAdmin } from '@/lib/admin-auth'
+import { CATALOGUE_CACHE_CONTROL, CATALOGUE_REVALIDATE_SECONDS } from '@/lib/browse-cache'
 import { hasPlausibleListingPrice, sanitizeListingPrice } from '@/lib/listing-price-integrity'
 import { median as t7Median, partitionByIqr } from '@/lib/statistics'
 import { fetchAllPages } from '@/lib/exhaustive-fetch'
@@ -66,10 +68,44 @@ import {
  *     survived a refresh; the other half was local state.
  *
  * One contract, two reasons. Removing it breaks both.
+ *
+ * PAN-263 BOUNDED BOTH AT ONE MINUTE. Measured on production 2026-10-15 this
+ * route answered in 0.39–1.79 s (7 reads, the match population paged to
+ * exhaustion) and the page is a skeleton until it lands — 2.8 s of the 5.6 s
+ * mobile LCP. The canonical payload is now built through `unstable_cache`
+ * with the catalogue's `CATALOGUE_REVALIDATE_SECONDS` (lib/browse-cache.ts)
+ * and sent with the CDN `Cache-Control` from the same module, so:
+ *   - prices lag an ingestion run by at most a minute (the scrapers run
+ *     nightly; a one-hour bound was accepted on PAN-263);
+ *   - a rejected listing can stay on the PUBLIC wall for at most a minute.
+ *     The review surface itself is unaffected: after a decision the page
+ *     refetches with `?fresh=1`, which bypasses the cache (see `GET`).
+ * `fetchCache = 'force-no-store'` is gone because it bypasses `unstable_cache`
+ * (see app/api/search/resolve); `force-dynamic` + `revalidate = 0` still keep
+ * the route itself off the build-time and full-route caches. Admin previews
+ * of unpublished products never enter the cache: the cached build runs with
+ * no session and returns null for anything that is not canonical.
  */
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
-export const fetchCache = 'force-no-store'
+
+/** The fully assembled public body, and whether it is an admin preview. */
+type BuiltProduct = { body: Record<string, unknown>; adminPreview: boolean }
+
+/**
+ * The canonical payload, cached per slug. Runs with no session (cookies are
+ * not readable inside the cache scope), so an admin-only row resolves to
+ * `null` here and the route falls through to the uncached, session-aware
+ * build. Errors are not stored: a failed read still 503s and is retried.
+ */
+const cachedCanonicalProduct = unstable_cache(
+  async (slug: string): Promise<Record<string, unknown> | null> => {
+    const built = await buildProductPayload(slug, { resolveAdmin: false })
+    return built && !built.adminPreview ? built.body : null
+  },
+  ['product'],
+  { revalidate: CATALOGUE_REVALIDATE_SECONDS },
+)
 
 /** How many listings the wall renders. Not a statistical bound. */
 const DISPLAY_LISTING_LIMIT = 50
@@ -168,7 +204,33 @@ function catalogueUnavailable() {
 export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   const params = await ctx.params
   try {
-    return await handle(req, params.slug)
+    // Family labels resolve FIRST: they are public-but-unsupported rows that
+    // must redirect, not 404. WP-2 fills lib/families.ts; until then the list
+    // is empty and those six slugs correctly 404.
+    if (isFamilySlug(params.slug)) {
+      return NextResponse.redirect(new URL(`/family/${params.slug}`, req.url), 308)
+    }
+
+    // `?fresh=1` is the review surface's refetch after a decision: it must
+    // see the verdict it just wrote, not the minute-old copy. Anyone may send
+    // it; all it buys is an uncached read.
+    const fresh = req.nextUrl.searchParams.get('fresh') === '1'
+    if (!fresh) {
+      const cached = await cachedCanonicalProduct(params.slug)
+      if (cached) {
+        return NextResponse.json(cached, { headers: { 'Cache-Control': CATALOGUE_CACHE_CONTROL } })
+      }
+    }
+
+    // Not canonical (or a fresh read): the session-aware build, never cached.
+    const built = await buildProductPayload(params.slug, { resolveAdmin: true })
+    if (!built) return notFound()
+    return NextResponse.json(built.body, {
+      headers: built.adminPreview
+        // An unpublished product must never enter a shared cache.
+        ? { 'Cache-Control': 'private, no-store' }
+        : { 'Cache-Control': 'no-store' },
+    })
   } catch (error) {
     if (isCatalogueUnavailable(error)) {
       console.error('[operational] product eligibility unavailable', {
@@ -181,7 +243,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: strin
   }
 }
 
-async function handle(req: NextRequest, slug: string) {
+async function buildProductPayload(
+  slug: string,
+  opts: { resolveAdmin: boolean },
+): Promise<BuiltProduct | null> {
   const admin = getSupabaseAdmin()
 
   // -------------------------------------------------------------------
@@ -194,13 +259,8 @@ async function handle(req: NextRequest, slug: string) {
   // mountain bike) and 3,669 known/reserve rows that were never meant to have
   // a page. See docs/stage-3-v1-decision-and-build-plan.md §3.1.
   //
-  // Family labels resolve FIRST: they are public-but-unsupported rows that
-  // must redirect, not 404. WP-2 fills lib/families.ts; until then the list is
-  // empty and those six slugs correctly 404.
+  // Family labels resolve FIRST — in `GET`, before this build is reached.
   // -------------------------------------------------------------------
-  if (isFamilySlug(slug)) {
-    return NextResponse.redirect(new URL(`/family/${slug}`, req.url), 308)
-  }
 
   // A transport-level throw (DNS failure, connection refused, TLS error) never
   // reaches the `{ data, error }` shape at all — it rejects. Both failure modes
@@ -231,7 +291,7 @@ async function handle(req: NextRequest, slug: string) {
   if (projectionRes.error) throw new CatalogueUnavailableError('projection_lookup')
 
   const productRow = productRes.data as Record<string, unknown> | null
-  if (!productRow) return notFound()
+  if (!productRow) return null
 
   const state: CatalogueStateRow = {
     status: productRow.status as string | null,
@@ -243,13 +303,15 @@ async function handle(req: NextRequest, slug: string) {
 
   // Admin state is resolved server-side from user_preferences.is_admin, and
   // only when it could change the outcome — an anonymous request for a
-  // canonical product must not pay for a session lookup.
+  // canonical product must not pay for a session lookup. The cached build
+  // (PAN-263) passes `resolveAdmin: false`: no session exists in that scope.
   const canonical = isCanonical(state)
-  const isAdmin = canonical ? false : isAdminOnly(state) ? await isCurrentUserAdmin() : false
+  const isAdmin =
+    canonical ? false : isAdminOnly(state) && opts.resolveAdmin ? await isCurrentUserAdmin() : false
 
   const role = resolveSlugRole({ row: state, isFamilySlug: false, isAdmin })
   if (role !== 'canonical' && role !== 'admin_only') {
-    return notFound()
+    return null
   }
 
   const adminPreview = role === 'admin_only'
@@ -769,17 +831,12 @@ async function handle(req: NextRequest, slug: string) {
     brandSlug: product.kg_brand?.slug || null,
   })
 
-  return NextResponse.json(
-    { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, dkAskingPrices, awaitingReview, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, familyContext, catalogueContext, adminPreview, monitoredSources },
-    {
-      headers: adminPreview
-        // An unpublished product must never enter a shared cache.
-        ? { 'Cache-Control': 'private, no-store' }
-        // Eligibility is a correctness boundary, so a canonical response is not
-        // handed to a shared cache either: a 60-second s-maxage meant a
-        // depublished product could still be served from the CDN after the
-        // origin had started refusing it. Same reasoning as /api/discover.
-        : { 'Cache-Control': 'no-store' },
-    },
-  )
+  // The headers are `GET`'s: the preview stays `private, no-store`; a canonical
+  // body is cached for one minute (PAN-263 — the earlier "a 60-second s-maxage
+  // let a depublished product outlive the origin's refusal" is now the
+  // accepted, stated bound, the same one /api/discover runs).
+  return {
+    body: { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, dkAskingPrices, awaitingReview, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, familyContext, catalogueContext, adminPreview, monitoredSources },
+    adminPreview,
+  }
 }
