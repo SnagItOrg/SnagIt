@@ -70,7 +70,8 @@ test('I2: rejecting or moving refetches the populations, not just the listings',
   }
   for (const handler of ['onDecided', 'onReassigned']) {
     const h = page.indexOf(handler)
-    assert.ok(page.slice(h, h + 900).includes('void loadProduct()'), `${handler} refetches`)
+    // PAN-263 (owner, 2026-10-15): the refetch after a decision is an explicit fresh read.
+    assert.ok(page.slice(h, h + 900).includes('void loadProduct(true)'), `${handler} refetches fresh`)
   }
 })
 
@@ -79,7 +80,10 @@ test('I2: rejecting or moving refetches the populations, not just the listings',
 test('I3: the wall filter and the freshness contract both survived P2', () => {
   const route = codeOf(...ROUTE)
   assert.ok(route.includes("not('is_valid', 'is', false)"), 'rejections stay off the wall')
-  assert.ok(/export const fetchCache = 'force-no-store'/.test(route), 'and are not re-served')
+  // PAN-263 (owner, 2026-10-15): the public payload is cached for a minute; a fresh read
+  // (every admin fetch, and the refetch after a decision) bypasses the cache and is never stored.
+  assert.ok(route.includes("searchParams.get('fresh') === '1'") && /if \(!fresh\)/.test(route), 'and a fresh read is not re-served')
+  assert.ok(/'Cache-Control': 'no-store'/.test(route), 'the uncached build is never stored')
   assert.ok(/export const dynamic = 'force-dynamic'/.test(route))
   assert.ok(/export const revalidate = 0/.test(route))
 })
