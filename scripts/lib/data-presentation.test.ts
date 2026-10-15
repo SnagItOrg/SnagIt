@@ -718,9 +718,12 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const PRODUCT_PAGE = join(__dirname, '..', '..', 'frontend', 'app', '(shell)', 'product', '[slug]', 'page.tsx')
+/** PAN-263: the chart's markup moved into its own module, loaded with `next/dynamic`. */
+const SCATTER = join(__dirname, '..', '..', 'frontend', 'components', 'SoldPriceScatter.tsx')
 
 test('chart: sales are drawn as unconnected observations', () => {
-  const src = codeOf(PRODUCT_PAGE)
+  // Both files: the page must not have grown a connected chart beside the moved one.
+  const src = codeOf(SCATTER) + codeOf(PRODUCT_PAGE)
   assert.ok(src.includes('<ScatterChart'), 'must be a ScatterChart')
   assert.ok(src.includes('<Scatter'), 'points, not a path')
   assert.equal(src.includes('<AreaChart'), false, 'AreaChart connects observations')
@@ -738,7 +741,7 @@ function codeOf(path: string): string {
 }
 
 test('chart: the x-axis is a real time domain, not a category index', () => {
-  const code = codeOf(PRODUCT_PAGE)
+  const code = codeOf(SCATTER)
   // The original defect: an XAxis bound to `sold_at` with no `type`, which
   // Recharts silently treats as a CATEGORY scale — plotting sale index, not time.
   assert.equal(code.includes('dataKey="sold_at"'), false, 'sold_at as a category key was the bug')
@@ -747,7 +750,7 @@ test('chart: the x-axis is a real time domain, not a category index', () => {
 })
 
 test('chart: both axes are visible and the y-axis is in kroner', () => {
-  const src = codeOf(PRODUCT_PAGE)
+  const src = codeOf(SCATTER)
   assert.equal(/<XAxis[^>]*\shide\b/.test(src), false, 'x-axis must not be hidden')
   assert.equal(/<YAxis[^>]*\shide\b/.test(src), false, 'y-axis must not be hidden')
   // PAN-168 #5: the unit rides on the y ticks, not on a caption under the plot.
@@ -762,7 +765,9 @@ test('chart: it plots the population its n describes', () => {
 })
 
 test('chart: the tooltip carries date, price and condition', () => {
-  const src = readFileSync(PRODUCT_PAGE, 'utf8')
+  // The tooltip lives in the scatter module; the null-condition name is given
+  // where the points are built, on the page.
+  const src = readFileSync(SCATTER, 'utf8') + readFileSync(PRODUCT_PAGE, 'utf8')
   assert.ok(src.includes('labelFormatter'), 'date')
   assert.ok(src.includes('formatDkkAmount'), 'price')
   assert.ok(src.includes('conditionUnknown'), 'null condition is named, not dropped')
