@@ -296,6 +296,7 @@ export default function TjekPrisenPage() {
                     listing={{ ...listing, title: stripDecorativeEmoji(listing.title) }}
                     marketVerdict={listing.marketVerdict}
                     marketVerdictBasisLabel={listing.marketVerdictBasisLabel}
+                    marketVerdictFewN={listing.marketVerdictFewN}
                     variant="list"
                     trackedProductSlug={product.slug}
                   />

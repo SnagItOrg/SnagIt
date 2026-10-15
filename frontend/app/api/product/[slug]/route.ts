@@ -624,10 +624,10 @@ async function handle(req: NextRequest, slug: string) {
    * The deal signal, computed SERVER-SIDE against the listing's OWN population.
    *
    * The client never re-derives quartiles or boundaries — it renders a label.
-   * `verdictFor` refuses anything that is not a complete, banded, width-passing
-   * population whose key equals the listing's own, so every gate (unreviewed,
-   * missing price_dkk, unknown population, n < 8, median-only, listings-only,
-   * none, truncated, too wide, population mismatch) resolves to null here
+   * `verdictFor` refuses anything that is not a complete, width-passing
+   * population of n >= 3 whose key equals the listing's own, so every gate (unreviewed,
+   * missing price_dkk, unknown population, n < 3, listings-only, none,
+   * truncated, too wide, population mismatch) resolves to null here
    * rather than in a template.
    *
    * Only asking populations can ever produce one: `reverb-sold` is not a
@@ -642,12 +642,14 @@ async function handle(req: NextRequest, slug: string) {
     const stats = population ? populations[population] : null
     const outcome = stats
       ? verdictFor(listing.price_dkk, population, stats)
-      : { verdict: null, against: null }
+      : { verdict: null, against: null, fewN: null }
     return {
       ...listing,
       marketVerdict: outcome.verdict,
       marketVerdictPopulation: outcome.against,
       marketVerdictBasisLabel: verdictBasisLabelKey(outcome.against),
+      // PAN-265: set when the verdict rests on 3–7 observations; the card shows it.
+      marketVerdictFewN: outcome.fewN,
     }
   })
 

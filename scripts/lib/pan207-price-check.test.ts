@@ -57,25 +57,27 @@ test("can't read the link: each kind of link names its own cause", () => {
   assert.equal(classify({ source: 'dba', cause: 'no_price', matched: true, priceDkk: null, populations: null, dkAskingPrices: [] }).state, 'cant_read')
 })
 
-test('PAN-109: 1–7 Danish prices are shown as a range with a caveat, never as a verdict', () => {
+test('PAN-109 / PAN-265: 3–7 Danish prices give a verdict and keep the range and its caveat beside it', () => {
   const prices = [4000, 4600, 5200]
   const dk = buildPopulationStats('dk-asking', rows(prices, 'dba.dk'))
   const few = classify({
     source: 'dba', cause: null, matched: true, priceDkk: 3500,
     populations: { 'dk-asking': dk, 'reverb-sold': soldBand }, dkAskingPrices: prices,
   })
-  assert.equal(few.state, 'not_enough_data')
-  assert.equal(few.verdict, null)
+  // Median 4,600: typisk is 3,910–5,290, so 3,500 is under.
+  assert.equal(few.state, 'verdict')
+  assert.equal(few.verdict, 'under')
   assert.deepEqual(few.dkFew, { n: 3, low: 4000, high: 5200, median: 4600 })
-  // Reverb sold is a labelled reference beside it, not a band the ad is judged against.
-  assert.deepEqual(few.ranges.map((r) => r.market), ['reverb-sold'])
+  // No band below n = 8, and Reverb sold never rides along with a verdict.
+  assert.deepEqual(few.ranges, [])
 
-  // Two prices: a range, but no median below n = 3.
+  // Two prices: a range, but no median and no verdict below n = 3.
   const two = buildPopulationStats('dk-asking', rows([4000, 5000], 'dba.dk'))
-  assert.deepEqual(
-    classify({ source: 'dba', cause: null, matched: true, priceDkk: 3500, populations: { 'dk-asking': two }, dkAskingPrices: [4000, 5000] }).dkFew,
-    { n: 2, low: 4000, high: 5000, median: null },
-  )
+  const twoResult = classify({ source: 'dba', cause: null, matched: true, priceDkk: 3500, populations: { 'dk-asking': two, 'reverb-sold': soldBand }, dkAskingPrices: [4000, 5000] })
+  assert.equal(twoResult.state, 'not_enough_data')
+  assert.deepEqual(twoResult.dkFew, { n: 2, low: 4000, high: 5000, median: null })
+  // Reverb sold is a labelled reference beside it, not a band the ad is judged against.
+  assert.deepEqual(twoResult.ranges.map((r) => r.market), ['reverb-sold'])
 })
 
 test('PAN-244: listings under the answer are Danish first, the pasted ad left out, five at most', () => {
