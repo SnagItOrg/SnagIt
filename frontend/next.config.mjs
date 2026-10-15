@@ -1,11 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    // Next.js 16 raised the default from 60 s to 4 h. Pinned to the Next 15
-    // value so the upgrade (PAN-167) changes no caching behaviour: stable-key
-    // product images re-uploaded to Storage would otherwise stay stale up to
-    // 4 h. Raising it is a separate, deliberate decision.
-    minimumCacheTTL: 60,
+    // Next.js 16 raised the default from 60 s to 4 h; PAN-167 pinned the Next
+    // 15 value (60) so the upgrade changed no caching behaviour, and called
+    // raising it a separate, deliberate decision. PAN-263 is that decision.
+    // Supabase Storage answers `cache-control: no-cache`, so at 60 s the
+    // optimiser re-fetched and re-encoded every product image after a minute
+    // idle: measured MISS, 420 ms TTFB for an 18 kB hero. One day. The cost
+    // is the one PAN-167 named: a product image re-uploaded under the SAME
+    // storage key shows the old file for up to a day — upload under a new
+    // key instead.
+    minimumCacheTTL: 86400,
     remotePatterns: [
       // Supabase Storage (onboarding assets, etc.)
       {

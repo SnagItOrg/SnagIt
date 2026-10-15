@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '@/lib/supabase-admin'
-import { buildDiscoverResponse } from '@/lib/browse'
 import { isCatalogueUnavailable } from '@/lib/catalogue'
+import { CATALOGUE_CACHE_CONTROL, cachedDiscover } from '@/lib/browse-cache'
 import type { ProductFamilyRef } from '@/lib/family-cards'
 
 /**
- * NEVER PRERENDERED, NEVER CACHED.
+ * NEVER PRERENDERED; CACHED FOR ONE MINUTE (PAN-263).
  *
  * This route has no dynamic inputs — no params, no searchParams, no cookies —
  * so Next.js will happily treat it as static and bake a catalogue payload into
@@ -14,16 +13,19 @@ import type { ProductFamilyRef } from '@/lib/family-cards'
  * promotion seam would keep appearing on the homepage of a running deployment,
  * with no way to correct it short of redeploying.
  *
- * Eligibility is a correctness boundary, so it is resolved per request:
+ * Eligibility is a correctness boundary, so it is never baked in:
  *   - `force-dynamic` stops build-time prerendering;
  *   - `revalidate = 0` stops the full-route data cache;
- *   - `no-store` stops the CDN and the browser holding it;
- *   - lib/catalogue.ts holds no memo, so the supported set is re-read too.
- * A withdrawal is visible on the NEXT request.
+ *   - the payload comes from lib/browse-cache.ts, which re-reads the supported
+ *     set every `CATALOGUE_REVALIDATE_SECONDS`, and the `Cache-Control` lets
+ *     the CDN hold it for the same window.
+ * A withdrawal is visible within one minute. This used to be "on the NEXT
+ * request" at a measured cost of 0.55–1.5 s per homepage view; the trade is
+ * recorded in lib/browse-cache.ts. No `fetchCache = 'force-no-store'` here: it
+ * would bypass the cache (see app/api/search/resolve).
  */
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
-export const fetchCache = 'force-no-store'
 
 export type DiscoverProduct = {
   slug: string
@@ -44,12 +46,10 @@ export type DiscoverProduct = {
  * lib/browse.ts, so opening the route cannot expose an unsupported product.
  */
 export async function GET() {
-  const admin = getSupabaseAdmin()
-
   try {
-    const response = await buildDiscoverResponse(admin)
+    const response = await cachedDiscover()
     return NextResponse.json(response, {
-      headers: { 'Cache-Control': 'no-store' },
+      headers: { 'Cache-Control': CATALOGUE_CACHE_CONTROL },
     })
   } catch (error) {
     // Absence and unavailability are different facts. A catalogue we cannot

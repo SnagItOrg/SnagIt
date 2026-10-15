@@ -16,6 +16,9 @@ interface Props {
   imageUrl?: string | null
   tier?: 'standard' | 'classic' | 'legendary'
   variant?: 'grid' | 'list'
+  /** PAN-263: eager-load the image — for the cards above the fold, whose first
+   *  image is the browse grid's LCP element and was `loading="lazy"`. */
+  priority?: boolean
 }
 
 export function ProductCard({
@@ -27,6 +30,7 @@ export function ProductCard({
   imageUrl,
   tier,
   variant = 'grid',
+  priority = false,
 }: Props) {
   const { t } = useLocale()
   const [imgError, setImgError] = useState(false)
@@ -75,6 +79,7 @@ export function ProductCard({
             className="object-cover"
             sizes="(max-width: 768px) 50vw, 25vw"
             onError={() => setImgError(true)}
+            priority={priority}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

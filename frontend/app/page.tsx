@@ -1,10 +1,6 @@
 import { Suspense } from 'react'
-import { getSupabaseAdmin } from '@/lib/supabase-admin'
-import {
-  buildDiscoverResponse,
-  DISCOVER_LEGENDARY_LIMIT,
-  DISCOVER_POPULAR_LIMIT,
-} from '@/lib/browse'
+import { DISCOVER_LEGENDARY_LIMIT, DISCOVER_POPULAR_LIMIT } from '@/lib/browse'
+import { cachedDiscover } from '@/lib/browse-cache'
 import { isCatalogueUnavailable } from '@/lib/catalogue'
 import { LandingShell } from '@/components/LandingShell'
 import { DiscoverShelves } from '@/components/DiscoverShelves'
@@ -50,10 +46,18 @@ import { CategoryShelf } from '@/components/CategoryShelf'
  * Measured on production before this change: TTFB 0.24-0.51 s over five warm
  * requests, `x-vercel-cache: MISS` every time, 104 KB of HTML that gzips to
  * 8.3 KB on the wire.
+ *
+ * PAN-263 RE-MEASURED THE COST AND BOUNDED THE FRESHNESS. The shell still
+ * streamed at 0.17–0.55 s, but the HTML finished at 0.8–4.6 s because the
+ * shelves waited on three serial PostgREST round trips on every request. The
+ * shelves now come from lib/browse-cache.ts, re-read once a minute, so a
+ * withdrawal is visible within one minute rather than on the next request;
+ * the trade is recorded there. `fetchCache = 'force-no-store'` is gone
+ * because it bypasses that cache (see app/api/search/resolve); `force-dynamic`
+ * still stops the build-time prerender this file's header describes.
  */
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
-export const fetchCache = 'force-no-store'
 
 /**
  * Mirrors /api/discover's failure contract. The homepage degrades to no
@@ -64,7 +68,7 @@ export const fetchCache = 'force-no-store'
  */
 async function readShelves() {
   try {
-    return await buildDiscoverResponse(getSupabaseAdmin())
+    return await cachedDiscover()
   } catch (error) {
     if (isCatalogueUnavailable(error)) {
       console.error('[operational] discover eligibility unavailable', {

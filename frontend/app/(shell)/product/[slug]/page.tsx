@@ -436,6 +436,10 @@ export default function ProductPage() {
                         className="object-cover"
                         onError={() => setImgError(true)}
                         sizes="(max-width: 1024px) 100vw, 50vw"
+                        // PAN-263: this is the page's LCP element, and it was
+                        // `loading="lazy"` (Lighthouse `lcp-lazy-loaded`, 2.3 s
+                        // of a 5.6 s mobile LCP). Eager + fetchpriority=high.
+                        priority
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
