@@ -62,3 +62,58 @@ export function variantGuard(title: string, productSlug: string | null | undefin
 export function guardedIsValid(decided: boolean | null, guard: string | null): boolean | null {
   return decided === true && guard != null ? null : decided
 }
+
+/**
+ * PAN-265: a rejection reason that rests on a price comparison.
+ *
+ * 2,322 ai_pass1 rejections cite `kg_product.thomann_price_dkk` (measured
+ * 2026-10-15), and many of those values were wrong: korg-minilogue-xd read 399
+ * DKK, so 36 real minilogue XDs were rejected as "8–13× the Thomann price".
+ * Price is never a reason for invalid. This is the same test as the
+ * pan265-reset SQL, kept identical to it: Thomann, MSRP, or a price multiple
+ * ("13×", "3x the"), but not a "2x12" cabinet or an "x2" quantity.
+ */
+const PRICE_MULTIPLE = /[0-9]\s*(?:x|×)(?![\p{L}\p{N}])/iu
+
+export function citesPriceComparison(reason: string | null | undefined): boolean {
+  if (typeof reason !== 'string') return false
+  return /thomann|msrp/i.test(reason) || PRICE_MULTIPLE.test(reason)
+}
+
+/**
+ * Why a NEW "invalid" may not be written, or null: its reason rests on price.
+ * The prompt now gives only the product's own valid-listing median, so a reason
+ * citing it, or any comparison above, is a price rejection. Left NULL for
+ * /admin/match; price may make a match uncertain, never invalid.
+ */
+export function priceReasonGuard(reason: string | null | undefined): string | null {
+  if (typeof reason !== 'string') return null
+  return citesPriceComparison(reason) || /median/i.test(reason) ? 'price_reason' : null
+}
+
+/**
+ * A label the eval must not treat as ground truth: an earlier AI rejection on a
+ * price comparison, the rows the pan265-reset SQL returns to unreviewed.
+ * `merged_into:` rejections are correct and stay.
+ */
+export function isPriceRejectionLabel(row: { is_valid: boolean | null; rejected_reason: string | null; explain: unknown }): boolean {
+  if (row.is_valid !== false) return false
+  const explain = row.explain as Record<string, unknown> | null
+  if (!explain || typeof explain !== 'object' || !('ai_pass1' in explain) || 'admin_decision' in explain) return false
+  if (typeof row.rejected_reason !== 'string' || row.rejected_reason.startsWith('merged_into:')) return false
+  return citesPriceComparison(row.rejected_reason)
+}
+
+/** Below this share of its product's own valid-listing median, a price hints at a part (PAN-265). */
+export const PART_PRICE_SHARE = 0.05
+
+/**
+ * Whether a listing's price is far below what this product's own adjudicated
+ * listings cost. A hint for the model, never a verdict: on its own it can make a
+ * match uncertain, never invalid. Null when there is no reference (fewer than
+ * three valid listings, or no price).
+ */
+export function farBelowOwnMedian(priceDkk: number | null | undefined, ownValidMedianDkk: number | null | undefined): boolean | null {
+  if (priceDkk == null || ownValidMedianDkk == null || !(priceDkk > 0) || !(ownValidMedianDkk > 0)) return null
+  return priceDkk < PART_PRICE_SHARE * ownValidMedianDkk
+}

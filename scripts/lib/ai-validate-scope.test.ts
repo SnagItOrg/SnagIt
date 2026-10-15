@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { guardedIsValid, inPublicScope, isAiReviewable, variantGuard } from './ai-validate-scope'
+import { citesPriceComparison, farBelowOwnMedian, guardedIsValid, inPublicScope, isAiReviewable, isPriceRejectionLabel, priceReasonGuard, variantGuard } from './ai-validate-scope'
 
 const PUBLIC = { slug: 'roland-juno-106', status: 'active', support_state: 'supported', browse_visibility: 'public', browse_domain: 'music' }
 
@@ -79,4 +79,50 @@ test('the eval scores what an apply writes, and the prompt carries the variant r
   assert.ok(code.includes('VARIANTS AND EDITIONS ARE NOT THE BASE PRODUCT'))
   assert.ok(code.includes('"Fender American Ultra II Telecaster" for candidate "Fender Telecaster"'))
   assert.ok(code.includes('Never "valid"'))
+})
+
+/* ── PAN-265: price is never a reason for invalid (2,322 rejections cited a wrong Thomann price) ── */
+
+test('a price comparison is recognised; a cabinet size or a quantity is not', () => {
+  assert.equal(citesPriceComparison('Price is 8–13× the Thomann price of 399 DKK, likely a different item'), true)
+  assert.equal(citesPriceComparison('Listed at 3x the MSRP'), true)
+  assert.equal(citesPriceComparison('Asking 5 x the new price'), true)
+  assert.equal(citesPriceComparison('Marshall 2x12 cabinet, not the head'), false)
+  assert.equal(citesPriceComparison('Shure SM57 x2 bundle of two mics'), false)
+  assert.equal(citesPriceComparison('A footpedal accessory, not the unit'), false)
+  assert.equal(citesPriceComparison(null), false)
+})
+
+test('a new "invalid" resting on price is left NULL; a title reason is kept', () => {
+  assert.equal(priceReasonGuard('Price is about 2% of the median, likely a part'), 'price_reason')
+  assert.equal(priceReasonGuard('10x the Thomann price'), 'price_reason')
+  assert.equal(priceReasonGuard('Dust cover for the Juno-106, not the synth'), null)
+})
+
+test('the eval drops exactly the reset labels: AI price rejections, never a person\'s or a merge', () => {
+  const ai = { ai_pass1: { verdict: 'invalid' } }
+  const reason = '8–13× the Thomann price of 399 DKK'
+  assert.equal(isPriceRejectionLabel({ is_valid: false, rejected_reason: reason, explain: ai }), true)
+  assert.equal(isPriceRejectionLabel({ is_valid: false, rejected_reason: reason, explain: { ...ai, admin_decision: {} } }), false, 'a person decided it')
+  assert.equal(isPriceRejectionLabel({ is_valid: false, rejected_reason: 'merged_into: moog-one-16-voice (3x)', explain: ai }), false, 'merges are correct')
+  assert.equal(isPriceRejectionLabel({ is_valid: false, rejected_reason: reason, explain: {} }), false, 'not an AI label')
+  assert.equal(isPriceRejectionLabel({ is_valid: true, rejected_reason: null, explain: ai }), false)
+  assert.equal(isPriceRejectionLabel({ is_valid: false, rejected_reason: 'A footpedal accessory', explain: ai }), false)
+})
+
+test('price far below the own median is a hint (5 %), and there is no hint without a reference', () => {
+  assert.equal(farBelowOwnMedian(300, 10000), true)
+  assert.equal(farBelowOwnMedian(500, 10000), false, 'exactly 5 % is not below it')
+  assert.equal(farBelowOwnMedian(300, null), null)
+  assert.equal(farBelowOwnMedian(null, 10000), null)
+})
+
+test('the prompt carries no Thomann, MSRP or KG price range, and both paths apply the price guard', () => {
+  const code = readFileSync(join(__dirname, '..', 'ai-validate-matches.ts'), 'utf8')
+  const prompt = code.slice(code.indexOf('const SYSTEM_PROMPT'), code.indexOf('async function fetchCandidates'))
+  assert.equal(/thomann|msrp|price_min|price_max|price_range/i.test(prompt), false)
+  assert.ok(prompt.includes('PRICE IS NEVER A REASON FOR "invalid"'))
+  assert.ok(prompt.includes('candidate_own_valid_median_dkk: c.ownValidMedianDkk'))
+  assert.ok(code.includes('priceReasonGuard(v.reason)'), 'finalIsValid, used by --eval and the live write')
+  assert.ok(code.includes('data.filter(m => !isPriceRejectionLabel(m))'), 'the eval set drops the reset labels')
 })
