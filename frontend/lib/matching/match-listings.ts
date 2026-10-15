@@ -661,6 +661,49 @@ export function hyphenateMartinCodes(text: string): string {
 }
 
 /**
+ * PAN-266. A model code in the one form every spelling reduces to, so a title and a KG row are
+ * compared on the code and not on where the seller put a hyphen or a space. Sellers write
+ * "SP404 MKII", "SP-404 MK2", "SP 404MKII" and "SP-404MKII" for the row whose `model_name` is
+ * "SP-404MKII"; the model tier read the KG spelling and its space form only, so the first two
+ * named nothing (DBA 24878338, the owner's third ad) and "Roland TR808", "Juno106", "MS20", "DS1",
+ * "SH01a" and "U87 Ai" named nothing either. The Martin fix above was the first instance of this
+ * class, done as one brand's rewrite; this is the rule.
+ *
+ * Lower case; a space between a letter and a following digit ("tr808" -> "tr 808"); a hyphen as a
+ * space; and a generation as its numeral ("mk 2", "mk-ii", "404mk2", "MKII" -> "ii", so "SP-404MKII"
+ * and "Blues Junior III" read their "Mk2" and "mk3" titles alike). What follows the
+ * digits stays glued — a letter run ("d28e", "404sx", "87ai"), a hyphenated number ("dx7-2",
+ * "g6122t-62", "2-1176") or a hyphenated short suffix ("wa73-eq"): the suffix is part of the code,
+ * so "D28E", "DX7-2" and "WA73-EQ" still are not the D-28, the DX7 and the WA73, exactly as "D-28E" is not —
+ * while the KG's own "SP-404SX" and "U 87 Ai" reduce to "sp 404sx" and "u 87 ai", and the title
+ * that spells them the same way lands. A hyphenated WORD after the digits is a word
+ * ("Juno-60-Keyboard" -> "juno 60 keyboard").
+ */
+/**
+ * PAN-266. "Jr." is "Junior" in a title, as "Blues Jr.", "Pro Jr" and "Les Paul Jr" are written:
+ * three of the ten Blues Junior ads on DBA on 2026-10-15 wrote "Blues Jr.", and none matched.
+ * Read by the model tier only, on a copy of the title: the boundary cues keep reading "jr" as
+ * written, because Warm Audio names its products that way ("WA-87jr", PAN-203).
+ */
+const JUNIOR_ABBREVIATION = /(?<![a-z])jr\.?(?![a-z])/g
+export function expandJunior(text: string): string {
+  return text.replace(JUNIOR_ABBREVIATION, 'junior')
+}
+
+export function modelCodeForm(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/(?<![a-z])mk[\s-]?(?:2|ii|ⅱ)(?![a-z0-9])/g, ' ii')
+    .replace(/(?<![a-z])mk[\s-]?(?:3|iii)(?![a-z0-9])/g, ' iii')
+    .replace(/(?<![a-z])mk[\s-]?(?:4|iv)(?![a-z0-9])/g, ' iv')
+    .replace(/([a-z0-9]*)-(?=([a-z0-9]*))/g, (m, before: string, after: string) =>
+      /\d/.test(before) && /^(?:\d|[a-z]{1,3}$)/.test(after) ? m : `${before} `)
+    .replace(/([a-z])(\d)/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
  * What a Standard Series base row refuses (PAN-204): the series and builds Martin sells under the
  * same body and style number. Custom Shop is a category of builds, not one model, so its titles
  * stay unmatched ("Custom Shop", "CTM", "Expert", "Custom Artist", and a bare "Custom" as in "OM-28
@@ -2385,9 +2428,11 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   },
   // The Blues Junior line: the 1995–2015 base model, the III (2010–18) and the IV (2018–) are three pages
   // and three prices; the LTD / Lacquered Tweed / NOS editions are the base model in another dress.
-  'fender-blues-junior': { line: 'blues-junior', otherMembers: [...BLUES_JUNIOR_NOT, ...cues('iii', 'iv', 'mk iii', 'mkiii', 'mk iv', 'mkiv')], accessories: AMP_ACCESSORIES },
-  'fender-blues-junior-iii': { line: 'blues-junior', requires: cues('iii', 'mk iii', 'mkiii'), otherMembers: [...BLUES_JUNIOR_NOT, ...cues('iv', 'mk iv', 'mkiv')], accessories: AMP_ACCESSORIES },
-  'fender-blues-junior-iv': { line: 'blues-junior', requires: cues('iv', 'mk iv', 'mkiv'), otherMembers: [...BLUES_JUNIOR_NOT, ...cues('iii', 'mk iii', 'mkiii')], accessories: AMP_ACCESSORIES },
+  // "mk3" / "mk 3" is how DBA sellers write the III ("Fender blues Jr. mk3", 2026-10-15; PAN-266): refused on the
+  // other members, so it cannot land on the base model.
+  'fender-blues-junior': { line: 'blues-junior', otherMembers: [...BLUES_JUNIOR_NOT, ...cues('iii', 'iv', 'mk iii', 'mkiii', 'mk 3', 'mk3', 'mk iv', 'mkiv', 'mk 4', 'mk4')], accessories: AMP_ACCESSORIES },
+  'fender-blues-junior-iii': { line: 'blues-junior', requires: cues('iii', 'mk iii', 'mkiii'), otherMembers: [...BLUES_JUNIOR_NOT, ...cues('iv', 'mk iv', 'mkiv', 'mk 4', 'mk4')], accessories: AMP_ACCESSORIES },
+  'fender-blues-junior-iv': { line: 'blues-junior', requires: cues('iv', 'mk iv', 'mkiv'), otherMembers: [...BLUES_JUNIOR_NOT, ...cues('iii', 'mk iii', 'mkiii', 'mk 3', 'mk3')], accessories: AMP_ACCESSORIES },
   // The 1955–60 narrow-panel tweed Deluxe (CSP 23302): never the Custom Shop '57 Custom Deluxe, a kit or a
   // boutique copy ("Amp-N Custom 5E3"), nor the Deluxe Reverb.
   'fender-5e3-tweed-deluxe': {
@@ -2959,6 +3004,10 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   // sibling may only compete for a shared term if the title actually supports
   // that sibling on its own evidence.
   const modelSupported = new Set<string>()
+  /** Products the title supports only in the code form (PAN-266), for the audit payload. */
+  const codeFormOnly = new Set<string>()
+  const normJunior = expandJunior(norm)
+  const codeNorm = modelCodeForm(normJunior)
   for (const product of index.products) {
     if (!product.model_name) continue
     const mOrig = product.model_name.toLowerCase().trim()
@@ -2966,7 +3015,21 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
     if (
       (mOrig.length >= 3 && containsToken(norm, mOrig)) ||
       (mSpace !== mOrig && mSpace.length >= 3 && containsToken(norm, mSpace))
-    ) modelSupported.add(product.id)
+    ) { modelSupported.add(product.id); continue }
+    // PAN-266: the title's "Jr." read as "Junior", the KG's own spelling kept.
+    if (normJunior !== norm && mOrig.length >= 3 && (
+      containsToken(normJunior, mOrig) || (mSpace !== mOrig && containsToken(normJunior, mSpace))
+    )) { modelSupported.add(product.id); codeFormOnly.add(product.id); continue }
+    // PAN-266: the same comparison with both spellings reduced to one code form, so a glued
+    // "TR808", "Juno106" or "SP404 MKII" names its row as the KG's "TR-808", "Juno-106" and
+    // "SP-404MKII" do. Only a model with a digit has a code form to compare: measured on the
+    // 19,139 trusted production matches, reading word-only models in it changed 109 decisions.
+    if (!/\d/.test(mOrig)) continue
+    const mCode = modelCodeForm(mOrig)
+    if (mCode.length >= 3 && containsToken(codeNorm, mCode)) {
+      modelSupported.add(product.id)
+      codeFormOnly.add(product.id)
+    }
   }
 
   // Identifier match (SKU / MODEL) — score 95
@@ -3047,7 +3110,10 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
       product_id: productId,
       method:     'MODEL',
       score:      70,
-      explain:    { matched_model_name: index.productById.get(productId)?.model_name ?? null },
+      explain:    {
+        matched_model_name: index.productById.get(productId)?.model_name ?? null,
+        ...(codeFormOnly.has(productId) ? { code_form: true } : {}),
+      },
     })
   }
 
@@ -3220,7 +3286,15 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   const rival = lineRefused.find((c) => {
     if (c.score < best.score || lineOf(c.product_id) === lineOf(best.product_id)) return false
     const b = index.productById.get(c.product_id)?.brand_name
-    return !brandEvidence || !b || sameMaker(b, brandEvidence)
+    if (brandEvidence && b && !sameMaker(b, brandEvidence)) return false
+    // A refused member that is only REFERENCED is not a second product (PAN-266): "Warm Audio
+    // WA73-EQ … Neve 1073-Style" names the 1073 as what the WA73 copies, and the Neve row's own
+    // boundary refused it for that reason. Step 7a's reading, applied to the rival.
+    const token = String(
+      (c.explain as { matched_identifier?: string; matched_model_name?: string }).matched_identifier ??
+      (c.explain as { matched_model_name?: string }).matched_model_name ?? '',
+    ).toLowerCase()
+    return !token || !(tokenFollowedByReference(norm, token) || tokenFollowedByReference(codeNorm, modelCodeForm(token)))
   })
   if (rival) {
     return {
@@ -3243,7 +3317,14 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   // non-product intent, but it depends on which model follows "for", so it can
   // only be read once the winner is known.
   const bestBrandName = index.productById.get(best.product_id)?.brand_name ?? null
-  if (evidenceToken && tokenIsObjectOfFor(norm, evidenceToken.toLowerCase(), bestBrandName)) {
+  // PAN-266: a winner the code form found is read by the three guards below in the code form
+  // too, or a glued "for Juno106" would pass what "for Juno-106" stops.
+  const viaCode = best.explain.code_form === true
+  const codeTok = modelCodeForm(evidenceToken)
+  if (evidenceToken && (
+    tokenIsObjectOfFor(norm, evidenceToken.toLowerCase(), bestBrandName) ||
+    (viaCode && tokenIsObjectOfFor(codeNorm, codeTok, bestBrandName))
+  )) {
     return {
       kind: 'deferred',
       reason: 'non_product_intent',
@@ -3254,7 +3335,7 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   }
   // The same reading without the "for": "Prophet 5/10/T8 - panel switch",
   // "Juno-6/60/106 … Toggle Switch", "DS-1 RC-1 RC-3 TU-2" (PAN-196).
-  if (evidenceToken && tokenInModelList(norm, evidenceToken)) {
+  if (evidenceToken && (tokenInModelList(norm, evidenceToken) || (viaCode && tokenInModelList(codeNorm, codeTok)))) {
     return {
       kind: 'deferred',
       reason: 'non_product_intent',
@@ -3291,7 +3372,10 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   // (Sequential Oberheim OB-X8, Warm Audio … Neve 1073-Style).
 
   // 7a. "<model> type/style/clone/kopi/Nachbau" — adjacency only.
-  if (evidenceToken && tokenFollowedByReference(norm, evidenceToken.toLowerCase())) {
+  if (evidenceToken && (
+    tokenFollowedByReference(norm, evidenceToken.toLowerCase()) ||
+    (viaCode && tokenFollowedByReference(codeNorm, codeTok))
+  )) {
     return {
       kind: 'deferred',
       reason: 'copy_or_reference',

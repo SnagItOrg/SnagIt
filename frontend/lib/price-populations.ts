@@ -154,6 +154,28 @@ export function isConfirmedSales(key: PopulationKey): boolean {
   return POPULATIONS[key].confirmedSales
 }
 
+/**
+ * The home market leads the wall (PAN-266). The wall renders a page of
+ * `DISPLAY_LISTING_LIMIT` listings, newest `scraped_at` first — and Reverb is
+ * scraped at 02:00, DBA at 00:30, so on any product with a page's worth of
+ * Reverb rows every Danish ad fell off the page: on 2026-10-15 the Juno-106
+ * showed 0 of its 5 live DBA ads, the DS-1 0 of 7, the Les Paul Studio 0 of 9,
+ * and the "DBA · 0 annoncer" chip counted the same page. The owner's rule for
+ * the price block (PAN-119) holds for the wall: "Den lokale pris er jo den
+ * folk er mest interesserede i."
+ *
+ * Stable: Danish listings in their given order, then the rest in theirs. The
+ * population is decided by `classifyListing`, the one authority for "Danish".
+ */
+export function homeMarketFirst<T extends ListingClassificationInput>(listings: readonly T[]): T[] {
+  const home: T[] = []
+  const rest: T[] = []
+  for (const listing of listings) {
+    (classifyListing(listing).population === 'dk-asking' ? home : rest).push(listing)
+  }
+  return [...home, ...rest]
+}
+
 // ── Evidence ────────────────────────────────────────────────────────────────
 
 /**

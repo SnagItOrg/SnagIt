@@ -111,9 +111,10 @@ test('the tube U 47 refuses the fet and the Collector\'s Edition, also when its 
 })
 
 test('U 87 against U 87 Ai: the pre-Ai row refuses every Ai spelling, the Ai row the pre-Ai cues', () => {
+  // neumann-u87 refuses "Ai" however it is written. The glued "U87 Ai" named no row until PAN-266
+  // read it in the code form; now it is the Ai.
+  expectAll('neumann-u87ai', ['Neumann U87 Ai - Nickel'])
   expectAll(null, [
-    // neumann-u87 refuses "Ai" however it is written; the public row holds no "U87 Ai" alias.
-    'Neumann U87 Ai - Nickel',
     'Neumann U87 PAIR Vintage 1970-1980\'s (NOT Ai series)',
     'Neumann U 87 Rhodium Edition Set – 50th Anniversary Limited Edition (Serial No. 176/500)',
     // Frozen: "U 87 Ai (1986-) ONLY; the vintage U 87/U87i is a different circuit and price."

@@ -63,10 +63,8 @@ interface BrowseData {
   category: Category
   subcategories: Subcategory[]
   products: Product[]
-  page: number
-  page_size: number
+  /** The whole root (PAN-267): equals `products.length`. */
   total_public_products: number
-  has_more: boolean
   debug?: BrowseLeafResponse['debug']
 }
 
@@ -77,7 +75,6 @@ function BrowseCategoryPageInner() {
   const { t, locale } = useLocale()
   const [data, setData] = useState<BrowseData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const debugEnabled = searchParams.get('debug') === '1'
@@ -89,11 +86,11 @@ function BrowseCategoryPageInner() {
    * 3–4 s of a 4.8 s LCP. `preload` is hoisted into the SSR `<head>` as
    * `<link rel="preload" as="fetch">`, so the browser requests the same URL
    * while the scripts download and `fetchPage(1)` finds it in the preload
-   * cache. The URL must be byte-identical to the one `fetchPage` builds.
+   * cache. The URL must be byte-identical to the one `fetchRoot` builds.
    * Debug mode fetches a different URL and is session-gated, so no hint.
    */
   if (params.root && !debugEnabled) {
-    preload(`/api/browse/${params.root}?page=1&page_size=48`, { as: 'fetch', crossOrigin: 'anonymous' })
+    preload(`/api/browse/${params.root}`, { as: 'fetch', crossOrigin: 'anonymous' })
   }
 
   /**
@@ -167,26 +164,23 @@ function BrowseCategoryPageInner() {
       : `/browse/${params.root}?debug=1`)
   }
 
-  const fetchPage = useCallback(async (page: number, append: boolean) => {
+  /**
+   * PAN-267 — ONE REQUEST, THE WHOLE ROOT. This used to page 48 products at a
+   * time and the chips below filtered whatever pages had arrived, so a kind
+   * whose products sat on page 2 showed nothing until "Vis flere" was pressed
+   * (keyboards-and-synths grew to 128 rows; both grooveboxes were on pages 2
+   * and 3). The API now returns the root in full and the grid renders every
+   * card the filters leave — the largest root is 128 products today, the
+   * images are lazy, and "Vis flere" had nothing left to load.
+   */
+  const fetchRoot = useCallback(async () => {
     if (!params.root) return
-    const qs = new URLSearchParams({
-      page: String(page),
-      page_size: '48',
-    })
-    if (debugEnabled) qs.set('debug', '1')
-    const res = await fetch(`/api/browse/${params.root}?${qs.toString()}`)
+    const res = await fetch(`/api/browse/${params.root}${debugEnabled ? '?debug=1' : ''}`)
     const next = await res.json().catch(() => null)
     if (!res.ok) {
       throw new Error(next?.error ?? 'Failed to load browse category')
     }
-    setData((prev) => {
-      if (!append || !prev) return next
-      return {
-        ...next,
-        products: [...prev.products, ...(next.products ?? [])],
-        debug: prev.debug ?? next.debug,
-      }
-    })
+    setData(next)
   }, [debugEnabled, params.root])
 
   useEffect(() => {
@@ -196,26 +190,14 @@ function BrowseCategoryPageInner() {
     // from an effect would now mean a router write on every page load.
     setLoading(true)
     setError(null)
-    fetchPage(1, false)
+    fetchRoot()
       .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : 'Failed to load browse category'
         setError(message)
         setData(null)
       })
       .finally(() => setLoading(false))
-  }, [fetchPage, params.root, debugEnabled])
-
-  async function handleLoadMore() {
-    if (!data?.has_more || loadingMore) return
-    setLoadingMore(true)
-    try {
-      await fetchPage(data.page + 1, true)
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load more products'
-      setError(message)
-    }
-    setLoadingMore(false)
-  }
+  }, [fetchRoot, params.root, debugEnabled])
 
   /**
    * PAN-138 — the chip row is DISPLAY slugs, not leaf slugs. Grouped leaves
@@ -273,7 +255,8 @@ function BrowseCategoryPageInner() {
   /**
    * PAN-192 — one family card replaces its models, and only AFTER every filter
    * has run: a family collapses where two of its members are in the set the
-   * chips left, and nowhere else. These are the cards the grid renders.
+   * chips left, and nowhere else. These are the cards the grid renders — all
+   * of them, over the whole root (PAN-267).
    */
   const gridCards = collapseFamilies(filteredProducts)
 
@@ -301,11 +284,12 @@ function BrowseCategoryPageInner() {
    * grid agree with nothing to reconcile.
    *
    * `gridCards` and not `data.total_public_products`. The projection
-   * total counts the whole root across every page and ignores the subcategory
-   * chip entirely; `filteredProducts` is the array three lines below this one
-   * maps into cards. PAN-98 is the ticket where those two numbers were allowed
-   * to differ — 187 advertised, 75 rendered — so `buildPositionSignal` takes
-   * the rows themselves and there is no argument the total could be passed as.
+   * total counts the whole root and ignores the subcategory chip entirely;
+   * `gridCards` is what the chips and facets yield. PAN-98 is the ticket where
+   * those two numbers were allowed to differ — 187 advertised, 75 rendered —
+   * so `buildPositionSignal` takes the rows themselves and there is no
+   * argument the total could be passed as. PAN-267: `data.products` is the
+   * whole root now, so `gridCards` is every product the chips leave.
    *
    * The category name comes from the API's `kg_category.name_da` / `name_en`,
    * which is the single label authority since PAN-107.
@@ -515,19 +499,6 @@ function BrowseCategoryPageInner() {
                 priority={index < 8}
               />
             ))}
-          </div>
-        )}
-
-        {!loading && data?.has_more && (
-          <div className="pt-5">
-            <button
-              onClick={() => void handleLoadMore()}
-              disabled={loadingMore}
-              className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
-              style={{ background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)' }}
-            >
-              {loadingMore ? (locale === 'da' ? 'Henter…' : 'Loading…') : (locale === 'da' ? 'Vis flere' : 'Load more')}
-            </button>
           </div>
         )}
 

@@ -142,7 +142,8 @@ test('"Billy Strings" is an artist, not a set of strings; strings sold with it s
   expect([
     ['Martin D-28 Billy Strings', 'martin-d-28-billy-strings'],
     ['Martin D-28 Billy Strings Custom Shop Artist Edition Acoustic Guitar w/Case', 'martin-d-28-billy-strings'],
-    ['Martin - D-28 - Billy Strings', null],
+    // PAN-266: the " - " separators no longer hide the model from its row.
+    ['Martin - D-28 - Billy Strings', 'martin-d-28-billy-strings'],
   ])
   assert.equal(detectNonProductIntent('Martin D-28 Billy Strings'), null)
   assert.equal(detectNonProductIntent('Martin D-28 Billy Strings + new strings')?.token, 'strings')  // synthetic
