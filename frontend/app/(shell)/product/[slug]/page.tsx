@@ -232,10 +232,16 @@ export default function ProductPage() {
    */
   const loadProduct = useCallback(async (fresh = false) => {
     try {
-      // PAN-263: the public payload is cached for a minute. A refetch after a
-      // review decision must see the verdict just written, so it asks for an
-      // uncached read; the mount read takes the cached copy.
-      const r = await fetch(`/api/product/${slug}${fresh ? '?fresh=1' : ''}`)
+      // PAN-263: the public payload is cached for a minute. An ADMIN never
+      // reads that copy: every product fetch of theirs is `?fresh=1`, so a
+      // decision survives a reload and a return within the minute — the
+      // contract admin-review-hotfix S6/R4 guard, kept for the people it
+      // protects. `isAdmin` resolves a moment after mount; the effect below
+      // re-runs this read when it does, so the first (cached) paint is
+      // replaced by a fresh one. A visitor's refetch after a decision cannot
+      // happen (the controls need isAdmin); `fresh` stays as the explicit
+      // request the decision handlers make.
+      const r = await fetch(`/api/product/${slug}${fresh || isAdmin ? '?fresh=1' : ''}`)
       if (r.status === 404) { setNotFound(true); return }
       const data = await r.json()
       if (!data) return
@@ -254,8 +260,10 @@ export default function ProductPage() {
     } finally {
       setLoading(false)
     }
-  }, [slug])
+  }, [slug, isAdmin])
 
+  // Runs on mount and again when `isAdmin` resolves to true (PAN-263: the
+  // admin's uncached read replaces the cached first paint).
   useEffect(() => { void loadProduct() }, [loadProduct])
 
   useEffect(() => {

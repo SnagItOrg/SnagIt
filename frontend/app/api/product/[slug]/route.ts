@@ -78,8 +78,11 @@ import {
  *   - prices lag an ingestion run by at most a minute (the scrapers run
  *     nightly; a one-hour bound was accepted on PAN-263);
  *   - a rejected listing can stay on the PUBLIC wall for at most a minute.
- *     The review surface itself is unaffected: after a decision the page
- *     refetches with `?fresh=1`, which bypasses the cache (see `GET`).
+ *     An ADMIN never reads the cached copy: the page sends `?fresh=1` on
+ *     every product fetch once it knows the viewer is an admin, and on the
+ *     refetch after a decision — so a decision survives a reload and a
+ *     return within the minute, which is what admin-review-hotfix S6/R4
+ *     protect (see `GET`).
  * `fetchCache = 'force-no-store'` is gone because it bypasses `unstable_cache`
  * (see app/api/search/resolve); `force-dynamic` + `revalidate = 0` still keep
  * the route itself off the build-time and full-route caches. Admin previews
@@ -211,9 +214,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ slug: strin
       return NextResponse.redirect(new URL(`/family/${params.slug}`, req.url), 308)
     }
 
-    // `?fresh=1` is the review surface's refetch after a decision: it must
-    // see the verdict it just wrote, not the minute-old copy. Anyone may send
-    // it; all it buys is an uncached read.
+    // `?fresh=1` is what an admin viewer sends on every product fetch, and
+    // what the review surface sends after a decision: they must see the
+    // verdict just written, not the minute-old copy. Anyone may send it; all
+    // it buys is an uncached read.
     const fresh = req.nextUrl.searchParams.get('fresh') === '1'
     if (!fresh) {
       const cached = await cachedCanonicalProduct(params.slug)
