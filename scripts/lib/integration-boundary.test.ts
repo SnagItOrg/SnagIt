@@ -235,6 +235,8 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan262-matcher-misses.test.ts',
       // PAN-266: a model code in one form — glued, spaced, hyphenated, generation glued or apart.
       'scripts/lib/pan266-model-code-form.test.ts',
+      // PAN-266: the nightly recall canary's decisions — which DBA hits name the product, the class of a miss, when the run fails.
+      'scripts/lib/pan266-recall-canary.test.ts',
       // PAN-266: a query that names two or more public products never answers "not followed".
       'scripts/lib/pan266-search-family.test.ts',
       // PAN-266: the wall's page never drops a Danish ad for a foreign one.
