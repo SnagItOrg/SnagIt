@@ -93,13 +93,17 @@ test('the frozen boundaries: TR-808, TR-909, SH-101, System 100, RE-201, Jupiter
 
 test('later generations and editions are their own models', () => {
   expectAll(null, [
-    'Roland SP-404 MKII',
     'Roland V-Synth XT Rack Mount Digital Synthesizer 2005 - 2009 - Black',
     'Roland V-Synth GT 2.0',
     "80's ROLAND SPV 355 / P / V SYNTH SYNTHESIZER",
     'Roland R-8 MKII Human Rhythm Composer 1990s - Black',
   ])
-  expectAll('roland-sp-404-mkii', ['Roland SP-404MKII Creative Sampler and Effector (Open Box, Brand New)'])
+  // "SP-404 MKII" used to land nowhere: refused here, and unread by the MKII row's own "SP-404MKII"
+  // spelling. PAN-266 compares both in one code form, so it is the MKII.
+  expectAll('roland-sp-404-mkii', [
+    'Roland SP-404 MKII',
+    'Roland SP-404MKII Creative Sampler and Effector (Open Box, Brand New)',
+  ])
 })
 
 test('the Roland parts vocabulary: switches, boards, part numbers, merch, broken units, sample packs', () => {
