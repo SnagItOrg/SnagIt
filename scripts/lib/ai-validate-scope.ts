@@ -70,10 +70,14 @@ export function guardedIsValid(decided: boolean | null, guard: string | null): b
  * 2026-10-15), and many of those values were wrong: korg-minilogue-xd read 399
  * DKK, so 36 real minilogue XDs were rejected as "8–13× the Thomann price".
  * Price is never a reason for invalid. This is the same test as the
- * pan265-reset SQL, kept identical to it: Thomann, MSRP, or a price multiple
- * ("13×", "3x the"), but not a "2x12" cabinet or an "x2" quantity.
+ * pan265-reset SQL, kept identical to it: Thomann, MSRP, or a price multiple —
+ * a multiple FOLLOWED BY A PRICE WORD ("~2.5x candidate max", "~13x higher",
+ * "5.5x the retail price"). A bare "10x PANASONIC buttons", "'2x' (two units)"
+ * or "costs 3x Epiphone range" is a title or brand reason and is not one
+ * (measured on the S2 sample, 2026-10-15).
  */
-const PRICE_MULTIPLE = /[0-9]\s*(?:x|×)(?![\p{L}\p{N}])/iu
+const PRICE_MULTIPLE =
+  /[0-9]\s*(?:x|×)\s+(?:the\s+)?(?:higher|lower|more|less|above|below|over|under|candidate|price|listed|list|retail|reference|thomann|msrp|max|min|upper|new|recorded|expected|typical)/iu
 
 export function citesPriceComparison(reason: string | null | undefined): boolean {
   if (typeof reason !== 'string') return false
