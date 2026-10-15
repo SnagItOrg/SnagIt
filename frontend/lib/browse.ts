@@ -176,10 +176,8 @@ export type BrowseLeafResponse = {
     /** PAN-192 — the navigation family, so the grid can collapse members. */
     family: ProductFamilyRef | null
   }>
-  page: number
-  page_size: number
+  /** Equals `products.length`: the response carries the whole root (PAN-267). */
   total_public_products: number
-  has_more: boolean
   debug?: {
     counts: CountSummary
     subcategories: Array<{
@@ -829,11 +827,9 @@ export async function buildCatalogueTreeResponse(
 export async function buildBrowseLeafResponse(args: {
   admin: SupabaseClient
   rootSlug: string
-  page: number
-  pageSize: number
   includeDebug: boolean
 }): Promise<BrowseLeafResponse | null> {
-  const { admin, rootSlug, page, pageSize, includeDebug } = args
+  const { admin, rootSlug, includeDebug } = args
 
   const { data: rootCat, error: rootErr } = await admin
     .from('kg_category')
@@ -868,13 +864,19 @@ export async function buildBrowseLeafResponse(args: {
   const subcategories = (subcatsRaw ?? []) as SubcategoryRow[]
 
   // `compareProducts` is (tier_rank DESC, active_listing_count DESC,
-  // canonical_name ASC). The set is bounded at 48 rows and every row is
-  // present, so slicing it is exact — this is a page over a complete ordered
-  // set, not a page over an arbitrary prefix.
+  // canonical_name ASC).
+  //
+  // THE WHOLE ROOT, NOT A PAGE (PAN-267). This used to slice 48 rows per
+  // request and the page filtered `?sub=` and the attribute facets over the
+  // pages it had loaded — correct only while no root exceeded one page, which
+  // stopped being true with PAN-230/249/261 (keyboards-and-synths: 128 public
+  // rows; both grooveboxes on pages 2 and 3, so `?sub=grooveboxes` rendered
+  // nothing until "Vis flere" was pressed twice). Every chip, facet and count
+  // is a statement about the root, so the root is what the page receives;
+  // "Vis flere" is a client-side reveal over this complete set. Roots are
+  // ~200 rows at most: measured 128 rows = 56 kB raw, 9 kB gzipped.
   const publicRows = (await fetchPublicBrowseRows(admin, rootCat.id)).sort(compareProducts)
-  const start = (page - 1) * pageSize
-  const pagedRows = publicRows.slice(start, start + pageSize)
-  const facetsBySlug = await fetchLeafFacets(admin, pagedRows)
+  const facetsBySlug = await fetchLeafFacets(admin, publicRows)
 
   const response: BrowseLeafResponse = {
     category: rootCat,
@@ -887,11 +889,8 @@ export async function buildBrowseLeafResponse(args: {
         name_da: sub.name_da,
         name_en: sub.name_en,
       })),
-    products: pagedRows.map((row) => shapeLeafProduct(row, facetsBySlug.get(row.slug) ?? {})),
-    page,
-    page_size: pageSize,
+    products: publicRows.map((row) => shapeLeafProduct(row, facetsBySlug.get(row.slug) ?? {})),
     total_public_products: publicRows.length,
-    has_more: start + pageSize < publicRows.length,
   }
 
   if (!includeDebug) {
