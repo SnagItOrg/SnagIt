@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { preload } from 'react-dom'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
@@ -190,6 +191,14 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
    * errored has answered, and the answer is "no tree".
    */
   const [answered, setAnswered] = useState(false)
+
+  // PAN-263: the tree is still fetched here, not passed from the layout (the
+  // paragraph above holds: a prop would make every shell page's HTML wait on
+  // the read, and a cold cache miss is seconds). What changes is WHEN the
+  // request leaves: `preload` puts `<link rel="preload" as="fetch">` into the
+  // SSR head, so the browser asks for the tree while the scripts download and
+  // the effect's `fetch` below finds the answer already in flight.
+  preload('/api/catalogue-tree', { as: 'fetch', crossOrigin: 'anonymous' })
 
   /**
    * PAN-131 — ONE FETCH PER SESSION, and the empty dependency array is now
