@@ -14,7 +14,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { CATALOGUE_CACHE_CONTROL, CATALOGUE_REVALIDATE_SECONDS } from '@/lib/browse-cache'
 import { isCanonical } from '@/lib/catalogue'
 import { familyForChild } from '@/lib/families'
 import { median } from '@/lib/statistics'
@@ -27,9 +29,16 @@ import {
   type SimilarReason,
 } from '@/lib/similar-gear'
 
+/**
+ * PAN-263: six serial reads measured at 0.83–1.41 s per product view, so the
+ * result is built once a minute per slug through `unstable_cache` (the
+ * catalogue's window, lib/browse-cache.ts) and sent with the CDN
+ * `Cache-Control`. A 404 is cached for the same minute, so a product published
+ * a moment ago gets its "Lignende udstyr" within one. No
+ * `fetchCache = 'force-no-store'`: it bypasses `unstable_cache`.
+ */
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
-export const fetchCache = 'force-no-store'
 
 /** How many same-type rows are priced before the cut. Keeps the price read bounded. */
 const SAME_TYPE_POOL = 16
@@ -76,6 +85,17 @@ function toRow(r: Record<string, unknown>): Row | null {
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params
+  const similar = await cachedSimilar(slug)
+  if (!similar) return NextResponse.json({ error: 'not_found' }, { status: 404, ...NO_STORE })
+  return NextResponse.json({ similar }, { headers: { 'Cache-Control': CATALOGUE_CACHE_CONTROL } })
+}
+
+const cachedSimilar = unstable_cache(buildSimilar, ['product-similar'], {
+  revalidate: CATALOGUE_REVALIDATE_SECONDS,
+})
+
+/** The ranked cards for one canonical slug; `null` when the slug is not canonical. */
+async function buildSimilar(slug: string): Promise<SimilarProduct[] | null> {
   const admin = getSupabaseAdmin()
 
   const { data: selfRaw } = await admin
@@ -84,11 +104,11 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: stri
     .eq('slug', slug)
     .maybeSingle()
   const self = selfRaw as Record<string, unknown> | null
-  if (!self) return NextResponse.json({ error: 'not_found' }, { status: 404, ...NO_STORE })
+  if (!self) return null
   const selfId = self.id as string
   const { data: selfProj } = await admin.from('browse_product_projection').select('browse_domain').eq('id', selfId).maybeSingle()
   if (!isCanonical({ ...self, browse_domain: (selfProj?.browse_domain as string | null) ?? null })) {
-    return NextResponse.json({ error: 'not_found' }, { status: 404, ...NO_STORE })
+    return null
   }
   const subcategoryId = (self.subcategory_id as string | null) ?? null
 
@@ -187,5 +207,5 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: stri
     active_listing_count: c.active_listing_count,
     reason,
   }))
-  return NextResponse.json({ similar }, NO_STORE)
+  return similar
 }

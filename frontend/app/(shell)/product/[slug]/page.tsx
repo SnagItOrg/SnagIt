@@ -230,9 +230,12 @@ export default function ProductPage() {
    * `priceRange`, so a decision refreshes the price evidence too — rejecting a
    * listing changes the population it was counted in.
    */
-  const loadProduct = useCallback(async () => {
+  const loadProduct = useCallback(async (fresh = false) => {
     try {
-      const r = await fetch(`/api/product/${slug}`)
+      // PAN-263: the public payload is cached for a minute. A refetch after a
+      // review decision must see the verdict just written, so it asks for an
+      // uncached read; the mount read takes the cached copy.
+      const r = await fetch(`/api/product/${slug}${fresh ? '?fresh=1' : ''}`)
       if (r.status === 404) { setNotFound(true); return }
       const data = await r.json()
       if (!data) return
@@ -1037,7 +1040,7 @@ export default function ProductPage() {
                       defaultQuery={product.canonical_name}
                       productId={product.id}
                       onSaved={() => {
-                        void loadProduct()
+                        void loadProduct(true)
                         void loadMatchStatuses()
                       }}
                       onMoved={(productName) =>
@@ -1153,7 +1156,7 @@ export default function ProductPage() {
                                 if (next === 'rejected') {
                                   setListings((prev) => prev.filter((l) => l.id !== id))
                                 }
-                                void loadProduct()
+                                void loadProduct(true)
                                 void loadMatchStatuses()
                               }}
                               onReassigned={(id, productName) => {
@@ -1166,7 +1169,7 @@ export default function ProductPage() {
                                 // A moved listing belongs to another product now,
                                 // so it leaves this wall for the same reason.
                                 setListings((prev) => prev.filter((l) => l.id !== id))
-                                void loadProduct()
+                                void loadProduct(true)
                                 void loadMatchStatuses()
                               }}
                               onFailed={(message) => showToast(message, { type: 'error' })}
