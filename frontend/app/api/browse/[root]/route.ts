@@ -3,8 +3,16 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { isCurrentUserAdmin } from '@/lib/admin-auth'
 import { isCatalogueUnavailable } from '@/lib/catalogue'
 import { buildBrowseLeafResponse } from '@/lib/browse'
+import { CATALOGUE_CACHE_CONTROL, cachedBrowseLeaf } from '@/lib/browse-cache'
 
-/** Never prerendered — see app/api/discover/route.ts. */
+/**
+ * Never prerendered — see app/api/discover/route.ts.
+ *
+ * PAN-263: the public page is served from the one-minute catalogue cache
+ * (lib/browse-cache.ts, keyed by root, page and page size) and carries a CDN
+ * `Cache-Control`; the admin audit payload is still built per request and
+ * stays `private, no-store`.
+ */
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -30,13 +38,9 @@ export async function GET(
     : 48
 
   try {
-    const response = await buildBrowseLeafResponse({
-      admin,
-      rootSlug,
-      page,
-      pageSize,
-      includeDebug,
-    })
+    const response = includeDebug
+      ? await buildBrowseLeafResponse({ admin, rootSlug, page, pageSize, includeDebug })
+      : await cachedBrowseLeaf(rootSlug, page, pageSize)
 
     if (!response) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 })
@@ -45,7 +49,7 @@ export async function GET(
     return NextResponse.json(response, {
       headers: includeDebug
         ? { 'Cache-Control': 'private, no-store' }
-        : { 'Cache-Control': 'no-store' },
+        : { 'Cache-Control': CATALOGUE_CACHE_CONTROL },
     })
   } catch (error) {
     // Absence is not unavailability, and a public body never carries the

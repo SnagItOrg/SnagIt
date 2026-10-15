@@ -483,7 +483,7 @@ function BrowseCategoryPageInner() {
           <EmptyState kind="blank" title={t.noResults} className="py-16" />
         ) : (
           <div className="grid-wall grid-wall-pair">
-            {gridCards.map((card) => card.kind === 'family' ? (
+            {gridCards.map((card, index) => card.kind === 'family' ? (
               <FamilyCard key={`family:${card.slug}`} card={card} />
             ) : (
               <ProductCard
@@ -495,6 +495,9 @@ function BrowseCategoryPageInner() {
                 activeListingCount={card.product.active_listing_count}
                 imageUrl={card.product.image_url}
                 tier={showTierBadges ? card.product.tier : undefined}
+                // PAN-263: the first row(s) hold the LCP image. The wall is 2-up
+                // on phones and at most 4-up on desktop, so eight covers the fold.
+                priority={index < 8}
               />
             ))}
           </div>

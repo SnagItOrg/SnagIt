@@ -528,19 +528,43 @@ async function fetchPublicBrowseRows(
   // is read for the WHOLE supported cohort first, unfiltered, and asserted.
   // 48 rows on an indexed predicate; the build plan is explicit that
   // performance is not a concern at this size.
-  const domainRes = await admin
+  //
+  // PAN-263: the probe and the row read both depend only on `slugs`, so they
+  // run side by side — one PostgREST round trip (measured ≈120–180 ms) saved
+  // on every browse, tree and discover read. The assertion still runs before
+  // any row is returned, so a non-music supported row still fails the whole
+  // read rather than riding into a public list.
+  const domainProbe = admin
     .from('browse_product_projection')
     .select('slug, browse_domain')
     .in('slug', slugs)
     .then((r) => r, () => {
       throw new CatalogueUnavailableError('supported_domain_transport')
     })
+  const [domainRes, rows] = await Promise.all([
+    domainProbe,
+    fetchPublicProjectionRows(admin, slugs, rootCategoryId),
+  ])
   if (domainRes.error) throw new CatalogueUnavailableError('supported_domain_probe')
   assertSupportedCohortIsMusic(
     supported,
     (domainRes.data ?? []) as Array<{ slug?: string | null; browse_domain?: string | null }>,
   )
 
+  return rows
+}
+
+/**
+ * The projection rows for the public catalogue: music, `is_public`, in the
+ * supported cohort, optionally under one root. The row query the probe above
+ * runs alongside — kept as its own function so the probe stays visibly
+ * unfiltered on the axis it asserts (the contract test reads this file).
+ */
+function fetchPublicProjectionRows(
+  admin: SupabaseClient,
+  slugs: string[],
+  rootCategoryId?: string,
+): Promise<BrowseProjectionRow[]> {
   return fetchProjectionPages(admin, (q) => {
     let query = q
       .eq('browse_domain', 'music')
