@@ -373,8 +373,12 @@ test('S6: the product API declares the freshness contract the reload depends on'
   const code = codeOf('app', 'api', 'product', '[slug]', 'route.ts')
   assert.ok(/export const dynamic = 'force-dynamic'/.test(code))
   assert.ok(/export const revalidate = 0/.test(code))
-  assert.ok(/export const fetchCache = 'force-no-store'/.test(code),
+  // PAN-263 (owner, 2026-10-15): the Data Cache now holds the PUBLIC payload for a minute.
+  // An operator never reads it: every admin fetch is `?fresh=1`, which bypasses the cache.
+  assert.ok(code.includes("searchParams.get('fresh') === '1'") && /if \(!fresh\)/.test(code),
     'without this the Data Cache re-serves a listing the operator just rejected')
+  const page = codeOf('app', '(shell)', 'product', '[slug]', 'page.tsx')
+  assert.ok(page.includes("fresh || isAdmin ? '?fresh=1' : ''"), 'every admin product fetch is fresh')
 })
 
 
@@ -470,7 +474,10 @@ test('R4: a reload cannot bring a rejected card back', () => {
     assert.deepEqual(visibleListings(rows, P106), ['L2'])
   }
   const route = codeOf('app', 'api', 'product', '[slug]', 'route.ts')
-  assert.ok(/export const fetchCache = 'force-no-store'/.test(route))
+  // PAN-263 (owner, 2026-10-15): the reload an admin makes is a fresh read, never the cached copy.
+  assert.ok(route.includes("searchParams.get('fresh') === '1'") && /if \(!fresh\)/.test(route))
+  const page = codeOf('app', '(shell)', 'product', '[slug]', 'page.tsx')
+  assert.ok(page.includes("fresh || isAdmin ? '?fresh=1' : ''"))
 })
 
 test('R5: is_valid=NULL still renders, and multiple rows create no duplicates', () => {
