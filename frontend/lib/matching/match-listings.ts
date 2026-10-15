@@ -1020,6 +1020,8 @@ const AMP_ACCESSORIES: readonly string[] = [
   'flightcase', 'flight case', 'road case', 'safe case', 'gig bag', 'gigbag', 'clamshell', 'slip cover', 'stand', 'manual', 'schematic',
   'sticker', 'pedal', 'overdrive pedal', 'di box', 'plugin', 'plug-in', 'cabinet', 'ata', 'anvil', 'poster', 'jewel', 'pilot light', 'lens',
   'transformator', 'udgangstransformator', 'udgangs transformator', 'harmonica', 'harmonicas', 'mundharmonika', 'lanyard',
+  // A collectible lapel pin of an amp ("Marshall 1959 SLP Plexi Amplifier Head Collectible Lapel Pin", PAN-261 I2).
+  'lapel', 'lapel pin',
   // A cover maker's tagline on a Tone Master listing (panter's I1, 2026-10-15): "… | Ultimate Amp Protection Made in the U.S.A."
   'amp protection',
 ]
