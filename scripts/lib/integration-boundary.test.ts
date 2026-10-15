@@ -261,6 +261,10 @@ test('integration: every package suite is registered exactly once', () => {
       // restated whole, so the next redefinition could copy the old
       // unfiltered count back in; this suite pins the two to one rule.
       'scripts/lib/projection-listing-count.test.ts',
+      // PAN-264: the retention rules of the nightly purge-stale job. Its own
+      // suite because a wrong boundary deletes listings, and the export and
+      // restore are rehearsed outside the repository.
+      'scripts/lib/purge-stale.test.ts',
       // The brand re-match scripts' unmatched-cohort scan: a keyset read of
       // active titles plus an in-memory ILIKE. Its own suite because the
       // in-memory filter must select exactly what SQL ILIKE selected, and a
