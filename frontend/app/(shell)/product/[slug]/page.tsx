@@ -34,6 +34,7 @@ import { FeedbackLink, PriceTipLink } from '@/components/FeedbackSheet'
 type ListingWithVerdict = {
   marketVerdict?: 'under' | 'typical' | 'over' | null
   marketVerdictBasisLabel?: string | null
+  marketVerdictFewN?: number | null
 }
 import { ChartFrame, DataLegend } from '@/components/data-display'
 import { formatDateRange, formatDkkAmount } from '@/lib/chart-format'
@@ -1104,6 +1105,7 @@ export default function ProductPage() {
                             listing={{ ...listing, title: stripDecorativeEmoji(listing.title) }}
                             marketVerdict={(listing as ListingWithVerdict).marketVerdict}
                             marketVerdictBasisLabel={(listing as ListingWithVerdict).marketVerdictBasisLabel}
+                            marketVerdictFewN={(listing as ListingWithVerdict).marketVerdictFewN}
                             onCreateWatchlist={handleCreateWatchlist}
                             creating={creating}
                             variant="list"

@@ -274,6 +274,7 @@ import {
 import {
   MAX_BAND_WIDTH_RATIO,
   MIN_BAND_N,
+  FEW_BAND_PERCENT,
   buildPopulationStats,
   classifyListing,
   firstSeenTimestamp,
@@ -449,10 +450,20 @@ test('C2 ladder: Danish n=8 unlocks the band', () => {
   assert.notEqual(s.q3, null)
 })
 
-test('C2 ladder: a reference population is a band or nothing — no descriptive middle', () => {
-  assert.equal(buildPopulationStats('reverb-asking', dkSeries(5)).tier, 'none')
+test('C2 ladder: Reverb sold is a band or nothing — no descriptive middle', () => {
   assert.equal(buildPopulationStats('reverb-sold', dkSeries(5)).tier, 'none')
+  assert.equal(buildPopulationStats('reverb-sold', dkSeries(5)).median, null)
   assert.equal(buildPopulationStats('reverb-asking', dkSeries(8)).tier, 'band')
+})
+
+test('PAN-265 ladder: every asking population carries a median from 3, for its own verdict', () => {
+  // The reference BLOCK still renders only at 'band'; the median is what a
+  // Reverb, Finn, Blocket or Kleinanzeigen card is measured against.
+  for (const key of ['reverb-asking', 'de-asking', 'se-asking', 'no-asking'] as const) {
+    assert.equal(buildPopulationStats(key, dkSeries(5)).tier, 'median-only', key)
+    assert.notEqual(buildPopulationStats(key, dkSeries(5)).median, null, key)
+    assert.equal(buildPopulationStats(key, dkSeries(2)).tier, 'none', `${key}: listings-only is the Danish block's step`)
+  }
 })
 
 // ── width guard ─────────────────────────────────────────────────────────────
@@ -535,8 +546,8 @@ test('verdict boundaries are inclusive at exactly Q1 and Q3', () => {
   assert.equal(verdictFor(q3 + 1, 'dk-asking', s).verdict, 'over')
 })
 
-test('no verdict below n=8', () => {
-  const s = buildPopulationStats('dk-asking', dkSeries(7))
+test('no verdict below n=3', () => {
+  const s = buildPopulationStats('dk-asking', dkSeries(2))
   const r = verdictFor(20000, 'dk-asking', s)
   assert.equal(r.verdict, null)
   assert.equal(r.reason, 'insufficient_n')
@@ -704,8 +715,9 @@ test('eligibility: two non-eligible rows drop a Danish band to median-only', () 
   assert.notEqual(stats.median, null)
   assert.equal(stats.q1, null, 'no Q1-Q3 below n=8')
   assert.equal(stats.q3, null)
-  assert.equal(verdictFor(15000, 'dk-asking', stats).verdict, null, 'no verdict below n=8')
-  assert.equal(verdictFor(15000, 'dk-asking', stats).reason, 'insufficient_n')
+  // PAN-265: six is enough for a verdict, flagged as resting on few prices.
+  assert.equal(verdictFor(15000, 'dk-asking', stats).verdict, 'typical')
+  assert.equal(verdictFor(15000, 'dk-asking', stats).fewN, 6)
 })
 
 /* ── P2 review: chart semantics ──────────────────────────────────────────────
@@ -871,7 +883,9 @@ test('eligibility: unreviewed matches are excluded from statistics but stay on t
   assert.equal(wallN, 10, 'the wall still shows all ten')
   assert.equal(stats.tier, 'median-only')
   assert.equal(stats.q1, null)
-  assert.equal(verdictFor(12500, 'dk-asking', stats).verdict, null)
+  // PAN-265: the verdict's n is the five verified rows, never the wall's ten.
+  assert.equal(verdictFor(12500, 'dk-asking', stats).fewN, 5)
+  assert.equal(verdictFor(12500, 'dk-asking', stats).verdict, 'under', 'below 15000 × 0.85')
 })
 
 /* ── P2 final: the deal signal on the card ───────────────────────────────────
@@ -949,11 +963,38 @@ test('verdict 10: a missing price_dkk gets no verdict', () => {
   assert.equal(verdictFor(undefined, 'dk-asking', dkBand).reason, 'no_comparable_price')
 })
 
-test('verdict 11: a median-only population gives no verdict', () => {
+test('verdict 11 (PAN-265): 3–7 prices give a verdict on the median ± 15%, inclusive, flagged with n', () => {
   const thin = buildPopulationStats('dk-asking', [10000, 11000, 12000, 13000, 14000]
     .map((p) => ({ price: p, price_dkk: p, source: 'dba.dk', country: 'DK', condition: null })))
   assert.equal(thin.tier, 'median-only')
-  assert.equal(verdictFor(11000, 'dk-asking', thin).reason, 'insufficient_n')
+  assert.equal(FEW_BAND_PERCENT, 15)
+  // Median 12,000: typisk is 10,200–13,800.
+  assert.deepEqual(verdictFor(11000, 'dk-asking', thin), { verdict: 'typical', against: 'dk-asking', reason: 'ok', fewN: 5 })
+  assert.equal(verdictFor(10200, 'dk-asking', thin).verdict, 'typical', 'exactly median × 0.85 is typical')
+  assert.equal(verdictFor(13800, 'dk-asking', thin).verdict, 'typical', 'exactly median × 1.15 is typical')
+  assert.equal(verdictFor(10199, 'dk-asking', thin).verdict, 'under')
+  assert.equal(verdictFor(13801, 'dk-asking', thin).verdict, 'over')
+})
+
+test('verdict 11b (PAN-265): three tight prices are all typical — Q1/Q3 would call one under and one over', () => {
+  const three = buildPopulationStats('dk-asking', [10000, 10100, 10200]
+    .map((p) => ({ price: p, price_dkk: p, source: 'dba.dk', country: 'DK', condition: null })))
+  for (const p of [10000, 10100, 10200]) {
+    assert.equal(verdictFor(p, 'dk-asking', three).verdict, 'typical', String(p))
+    assert.equal(verdictFor(p, 'dk-asking', three).fewN, 3)
+  }
+})
+
+test('verdict 11c (PAN-265): from n = 8 the verdict is Q1–Q3 as before and carries no small-sample flag', () => {
+  assert.equal(verdictFor(dkBand.q1! - 1, 'dk-asking', dkBand).verdict, 'under')
+  assert.equal(verdictFor(dkBand.q1! - 1, 'dk-asking', dkBand).fewN, null)
+})
+
+test('verdict 11d (PAN-265): the width guard still refuses a small population that spans 10x', () => {
+  const wide = buildPopulationStats('dk-asking', [100, 200, 30000]
+    .map((p) => ({ price: p, price_dkk: p, source: 'dba.dk', country: 'DK', condition: null })))
+  assert.equal(wide.widthOk, false)
+  assert.equal(verdictFor(200, 'dk-asking', wide).reason, 'width_guard_failed')
 })
 
 test('verdict 12: a too-wide population gives no verdict', () => {
@@ -1036,6 +1077,23 @@ test('verdict labels are never rebranded as a buy recommendation', async () => {
         `${loc}.${key} must describe position, not a recommendation`)
     }
   }
+})
+
+test('PAN-265: a verdict on 3–7 prices shows its n under the badge on both card variants', () => {
+  const code = codeOf(CARD)
+  const badge = code.slice(code.indexOf('function MarketVerdictBadge'), code.indexOf('export function SearchResultCard'))
+  assert.ok(badge.includes('fill(t.verdictFewData, { n: fewN })'), 'the disclaimer is rendered text from i18n, not a tooltip')
+  assert.equal((code.match(/fewN=\{marketVerdictFewN\}/g) ?? []).length, 2, 'both variants pass it')
+  const route = codeOf(join(__dirname, '..', '..', 'frontend', 'app', 'api', 'product', '[slug]', 'route.ts'))
+  assert.ok(route.includes('marketVerdictFewN: outcome.fewN'), 'the route serialises it onto the listing')
+})
+
+test('PAN-265: the small-sample disclaimer names asking prices, never sales', async () => {
+  const { translations } = await import('../../frontend/lib/i18n')
+  assert.equal(translations.da.verdictFewData, 'Baseret på få annoncer (n={n})')
+  assert.equal(translations.en.verdictFewData, 'Based on few listings (n={n})')
+  // The verdict is measured on asking prices; "salg" / "sales" would pass them off as sold.
+  assert.equal(/salg|solgt|sale|sold/i.test(translations.da.verdictFewData + translations.en.verdictFewData), false)
 })
 
 test('value ordering ranks verdicts and is stable within a rank', () => {

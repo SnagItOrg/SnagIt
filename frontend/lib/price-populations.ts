@@ -228,8 +228,25 @@ export function isPartOrAccessoryListing(categories: unknown): boolean {
 
 /** V1 §9.2 / decision 13. A band — median + Q1–Q3 — needs eight observations. */
 export const MIN_BAND_N = 8
-/** Below this a median is not shown at all, even descriptively. */
+/**
+ * Below this a median is not shown at all, even descriptively. Since PAN-265
+ * it is also the floor for a verdict: 3–7 observations give one, with a
+ * visible small-sample disclaimer (owner decision 2026-10-15, replacing
+ * decision 13's verdict gate of n >= 8).
+ */
 export const MIN_DESCRIPTIVE_MEDIAN_N = 3
+/**
+ * PAN-265. The "typisk" span below MIN_BAND_N: the median ± this percent.
+ * A whole percent, so the inclusive edges are exact (12,000 × 115 / 100 is
+ * 13,800; 12,000 × 1.15 is 13,799.999…).
+ *
+ * Q1/Q3 on three to seven points is not a band. At n = 3 the Type 7 quartiles
+ * sit halfway between neighbours, so the cheapest of three is always "under"
+ * and the dearest always "over", however tight the prices. A fixed fraction
+ * of the median does not move with one listing, and a tight market reads as
+ * typical, which it is.
+ */
+export const FEW_BAND_PERCENT = 15
 /** Measurement G3, promoted to a render gate by V1 D7. */
 export const MAX_BAND_WIDTH_RATIO = 10
 
@@ -295,14 +312,18 @@ function emptyExclusions(): Record<ExclusionReason, number> {
   return { price_not_listed: 0, no_comparable_dkk: 0, unresolved_population: 0, iqr_outlier: 0 }
 }
 
-function tierFor(role: PopulationRole, n: number): DisplayTier {
+function tierFor(descriptor: PopulationDescriptor, n: number): DisplayTier {
   if (n >= MIN_BAND_N) return 'band'
-  // A reference population is either a band or it is not shown. Only the
-  // primary population earns the descriptive middle steps, because a thin
-  // Danish market is information the user needs, while a thin Reverb sample
-  // is just a worse version of a number we already have.
-  if (role !== 'primary') return 'none'
+  // Sold history is a reference block and never a verdict basis, so it stays
+  // a band or nothing.
+  if (descriptor.kind === 'sold') return 'none'
+  // PAN-265: every asking population carries a median from 3, because that
+  // median is what a listing's small-sample verdict is measured against. A
+  // reference block still renders only at 'band' (ReferencePopulationBlock).
   if (n >= MIN_DESCRIPTIVE_MEDIAN_N) return 'median-only'
+  // Listings-only is the Danish block's step: a thin Danish market is
+  // information the user needs, while a thin Reverb sample is not.
+  if (descriptor.role !== 'primary') return 'none'
   if (n >= 1) return 'listings-only'
   return 'none'
 }
@@ -371,7 +392,7 @@ export function buildPopulationStats(
   const widthOk = widthRatio != null && widthRatio <= MAX_BAND_WIDTH_RATIO
   const tier: DisplayTier = options.incomplete
     ? 'unavailable'
-    : tierFor(descriptor.role, kept.length)
+    : tierFor(descriptor, kept.length)
 
   /**
    * REDACTION, not a rendering convention.
@@ -455,6 +476,12 @@ export interface VerdictResult {
     | 'insufficient_n'
     | 'width_guard_failed'
     | 'population_mismatch'
+  /**
+   * PAN-265: the population's n when the verdict rests on fewer than
+   * MIN_BAND_N observations, so the surface can say so. Null at n >= 8 and
+   * whenever there is no verdict.
+   */
+  fewN: number | null
 }
 
 /**
@@ -465,6 +492,10 @@ export interface VerdictResult {
  *   price <  q1            under typisk
  *   q1 <= price <= q3      typisk
  *   price >  q3            over typisk
+ *
+ * PAN-265: at 3–7 observations (tier 'median-only') the span is the median
+ * ± FEW_BAND_PERCENT instead of Q1–Q3, inclusive at both ends, and the result
+ * carries `fewN` so the surface shows a small-sample disclaimer.
  *
  * There is no fourth "above every recorded sale" state in P2. That would mean
  * measuring an asking price against the sold population, which decision C2
@@ -479,25 +510,31 @@ export function verdictFor(
   listingPopulation: PopulationKey | null,
   stats: PopulationStats,
 ): VerdictResult {
+  const none = (reason: VerdictResult['reason']): VerdictResult =>
+    ({ verdict: null, against: null, reason, fewN: null })
   if (listingPopulation == null || listingPopulation !== stats.key) {
-    return { verdict: null, against: null, reason: 'population_mismatch' }
+    return none('population_mismatch')
   }
   const price = priceDkk == null ? null : Number(priceDkk)
   if (price == null || !Number.isFinite(price) || price <= 0) {
-    return { verdict: null, against: null, reason: 'no_comparable_price' }
+    return none('no_comparable_price')
   }
-  if (stats.tier !== 'band') {
-    return { verdict: null, against: null, reason: 'insufficient_n' }
+  if (stats.tier !== 'band' && stats.tier !== 'median-only') {
+    return none('insufficient_n')
   }
   if (!stats.widthOk) {
-    return { verdict: null, against: null, reason: 'width_guard_failed' }
+    return none('width_guard_failed')
   }
-  if (stats.q1 == null || stats.q3 == null) {
-    return { verdict: null, against: null, reason: 'insufficient_n' }
+  const few = stats.tier === 'median-only'
+  const low = few ? (stats.median == null ? null : stats.median * (100 - FEW_BAND_PERCENT) / 100) : stats.q1
+  const high = few ? (stats.median == null ? null : stats.median * (100 + FEW_BAND_PERCENT) / 100) : stats.q3
+  if (low == null || high == null) {
+    return none('insufficient_n')
   }
-  if (price < stats.q1) return { verdict: 'under', against: stats.key, reason: 'ok' }
-  if (price > stats.q3) return { verdict: 'over', against: stats.key, reason: 'ok' }
-  return { verdict: 'typical', against: stats.key, reason: 'ok' }
+  const fewN = few ? stats.nFiltered : null
+  if (price < low) return { verdict: 'under', against: stats.key, reason: 'ok', fewN }
+  if (price > high) return { verdict: 'over', against: stats.key, reason: 'ok', fewN }
+  return { verdict: 'typical', against: stats.key, reason: 'ok', fewN }
 }
 
 // ── Presentation helpers ────────────────────────────────────────────────────

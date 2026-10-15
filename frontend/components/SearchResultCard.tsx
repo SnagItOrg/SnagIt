@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import type { Listing } from '@/lib/supabase'
 import { useLocale } from '@/components/LocaleProvider'
+import { fill } from '@/lib/i18n'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { priceDkkBucket, track } from '@/lib/analytics'
 import { formatOriginalPrice } from '@/lib/currency'
@@ -101,6 +102,8 @@ interface Props {
   marketVerdictPopulation?:  string | null
   /** i18n key naming the population the verdict was measured against. */
   marketVerdictBasisLabel?:  string | null
+  /** PAN-265: the population's n when the verdict rests on 3–7 observations. */
+  marketVerdictFewN?:        number | null
 }
 
 /**
@@ -153,10 +156,13 @@ const VERDICT_TONE: Readonly<Record<'under' | 'typical' | 'over', {
 export function MarketVerdictBadge({
   verdict,
   basisLabelKey,
+  fewN,
   t,
 }: {
   verdict?: 'under' | 'typical' | 'over' | null
   basisLabelKey?: string | null
+  /** PAN-265: set below n = 8. The disclaimer sits directly under the badge, never only in a tooltip. */
+  fewN?: number | null
   t: Record<string, string>
 }) {
   if (!verdict) return null
@@ -164,7 +170,7 @@ export function MarketVerdictBadge({
     verdict === 'under' ? t.verdictUnder : verdict === 'over' ? t.verdictOver : t.verdictTypical
   const basis = basisLabelKey ? t[basisLabelKey] : null
   const tone = VERDICT_TONE[verdict]
-  return (
+  const badge = (
     <span
       className="inline-flex w-fit items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-semibold"
       style={{ backgroundColor: tone.bg, border: `1px solid ${tone.border}`, color: tone.fg }}
@@ -176,9 +182,16 @@ export function MarketVerdictBadge({
       {label}
     </span>
   )
+  if (fewN == null) return badge
+  return (
+    <span className="flex flex-col gap-0.5">
+      {badge}
+      <span className="text-xs text-muted-foreground">{fill(t.verdictFewData, { n: fewN })}</span>
+    </span>
+  )
 }
 
-export function SearchResultCard({ listing, onCreateWatchlist, creating = false, variant = 'list', isSaved = false, onToggleSave, thomannPriceDkk, thomannUrl, productSlug, trackedProductSlug, thomannImageUrl, marketVerdict, marketVerdictBasisLabel }: Props) {
+export function SearchResultCard({ listing, onCreateWatchlist, creating = false, variant = 'list', isSaved = false, onToggleSave, thomannPriceDkk, thomannUrl, productSlug, trackedProductSlug, thomannImageUrl, marketVerdict, marketVerdictBasisLabel, marketVerdictFewN }: Props) {
   const { locale, t } = useLocale()
 
   function trackOutbound() {
@@ -365,6 +378,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating = false,
           <MarketVerdictBadge
             verdict={marketVerdict}
             basisLabelKey={marketVerdictBasisLabel}
+            fewN={marketVerdictFewN}
             t={t as unknown as Record<string, string>}
           />
           <div className="flex justify-between items-start gap-2">
@@ -477,6 +491,7 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating = false,
             <MarketVerdictBadge
               verdict={marketVerdict}
               basisLabelKey={marketVerdictBasisLabel}
+              fewN={marketVerdictFewN}
               t={t as unknown as Record<string, string>}
             />
           )}

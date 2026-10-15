@@ -20,7 +20,7 @@ export type PriceCheckCause =
   | 'unreachable'
 
 /** A listing as /api/product/[slug] returns it: the row plus the verdict it computed. */
-export type PriceCheckListing = Listing & { marketVerdict?: Verdict | null; marketVerdictBasisLabel?: string | null }
+export type PriceCheckListing = Listing & { marketVerdict?: Verdict | null; marketVerdictBasisLabel?: string | null; marketVerdictFewN?: number | null }
 
 /** What the answer offers as a guess: a public product, or a navigation family (PAN-244 part 2, PAN-245 stage 1). */
 export interface PriceCheckGuess { slug: string; name: string; kind: 'product' | 'family'; href: string }
@@ -40,7 +40,8 @@ export interface PriceCheckResult {
   ranges: Array<{ market: 'dk-asking' | 'reverb-sold'; low: number; high: number }>
   /**
    * 1–7 Danish asking prices: too few for a band, shown as they are with a
-   * small-sample caveat (PAN-109). Never a verdict.
+   * small-sample caveat (PAN-109). From 3 they also carry a verdict (PAN-265),
+   * and this block is then its disclaimer.
    */
   dkFew: { n: number; low: number; high: number; median: number | null } | null
   guide: { href: string; label: string } | null
@@ -350,7 +351,8 @@ export function classify(facts: {
 
   if (facts.source === 'dba') {
     const verdict = dk ? verdictFor(facts.priceDkk, 'dk-asking', dk).verdict : null
-    if (verdict) return { state: 'verdict', verdict, ranges: band('dk-asking'), dkFew: null }
+    // PAN-265: a verdict from 3–7 prices keeps the few prices and their caveat beside it.
+    if (verdict) return { state: 'verdict', verdict, ranges: band('dk-asking'), dkFew }
     // Reverb sold rides along as a labelled reference, never as a verdict.
     return { state: 'not_enough_data', verdict: null, ranges: dkFew ? band('reverb-sold') : [], dkFew }
   }
