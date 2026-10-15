@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
+import { preload } from 'react-dom'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
@@ -80,6 +81,20 @@ function BrowseCategoryPageInner() {
   const [error, setError] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const debugEnabled = searchParams.get('debug') === '1'
+
+  /**
+   * PAN-263 — start the grid's data request from the HTML, not from the
+   * effect below. This page is a client shell: measured on mobile the first
+   * `fetch` left only after ~2.4 s of JS boot, and the grid waited on it for
+   * 3–4 s of a 4.8 s LCP. `preload` is hoisted into the SSR `<head>` as
+   * `<link rel="preload" as="fetch">`, so the browser requests the same URL
+   * while the scripts download and `fetchPage(1)` finds it in the preload
+   * cache. The URL must be byte-identical to the one `fetchPage` builds.
+   * Debug mode fetches a different URL and is session-gated, so no hint.
+   */
+  if (params.root && !debugEnabled) {
+    preload(`/api/browse/${params.root}?page=1&page_size=48`, { as: 'fetch', crossOrigin: 'anonymous' })
+  }
 
   /**
    * PAN-121 — the subcategory filter lives in the URL now, as `?sub=<slug>`.

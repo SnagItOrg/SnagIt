@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { preload } from 'react-dom'
 import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
@@ -122,6 +123,14 @@ export default function ProductPage() {
   const params = useParams()
   const slug = params.slug as string
   const { t, locale } = useLocale()
+
+  // PAN-263: the two data requests this page waits on leave with the HTML
+  // (`<link rel="preload" as="fetch">` in the SSR head) instead of after
+  // hydration; the `fetch` calls below then join the in-flight requests. Same
+  // URLs as the mount effects build. Measured on mobile: 2.8 s of a 5.6 s LCP
+  // was this wait.
+  preload(`/api/product/${slug}`, { as: 'fetch', crossOrigin: 'anonymous' })
+  preload(`/api/product/${slug}/similar`, { as: 'fetch', crossOrigin: 'anonymous' })
 
   const [product, setProduct]           = useState<Product | null>(null)
   const [listings, setListings]         = useState<Listing[]>([])

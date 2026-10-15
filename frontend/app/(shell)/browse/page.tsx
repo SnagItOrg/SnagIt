@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
+import { preload } from 'react-dom'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -33,6 +34,11 @@ function BrowsePageInner() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+
+  // PAN-263: request the tiles' data from the HTML, in parallel with the
+  // scripts, rather than from the effect after hydration — see the note on
+  // the same hint in browse/[root]/page.tsx. Same URL as the effect's.
+  if (!debugEnabled) preload('/api/browse', { as: 'fetch', crossOrigin: 'anonymous' })
 
   useEffect(() => {
     fetch('/api/admin/me')
