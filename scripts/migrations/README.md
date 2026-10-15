@@ -580,9 +580,12 @@ listing ingested before it. `listings` itself is not touched.
 match; unique on `product_id`), and replaces the projection's body with the
 061 body joining it. Every other column stays live from the base tables. A
 pg_cron job, `refresh_active_listing_counts`, runs
-`REFRESH MATERIALIZED VIEW CONCURRENTLY` every 15 minutes where the extension
-is installed; where it is not, the migration applies, says so, and the
-schedule is the operator's next step.
+`REFRESH MATERIALIZED VIEW CONCURRENTLY` every 15 minutes. **pg_cron is
+available but not enabled on the project (2026-10-15)**; enabling it is the
+owner's step and must precede this file: without it the migration raises and
+changes nothing (a matview that never refreshes is a silently stale count).
+Only a disposable rehearsal sets `klup.allow_no_cron = 'on'` to skip the
+schedule step.
 
 | Property | |
 |---|---|
@@ -590,7 +593,7 @@ schedule is the operator's next step.
 | Freshness | `active_listing_count` / `supply_state` at most 15 minutes old (the owner's PAN-263 bound is ~1 h). `is_public`, visibility, status, taxonomy and image stay live. |
 | Cost | The 2.5 s aggregate once per 15 min on a background worker (≈0.3 % CPU); CONCURRENTLY never blocks a reader. Expected read: ~77 ms + 1 index probe per row — O(10 ms) against 2.7 s. |
 | P0 | Not a table, but the same posture: `anon` / `authenticated` revoked on the matview, `service_role` granted SELECT (every reader is the service role under 062's `security_invoker`, which the new view body restates). |
-| PRE / POST / DRIFT | PRE (061 + 062 applied, matview absent) creates, replaces and proves in the transaction that the matview equals the live aggregate row-for-row and the projection's totals are unchanged; POST (matview present and joined) is a no-op; half-states raise before any change. |
+| PRE / POST / DRIFT | POST (matview present and joined) is checked first — `pg_get_viewdef` keeps no comments, so the replaced body no longer carries the 061 phrase — and sets a transaction flag every later block reads, so the no-op is real; PRE (058 + 061 + 062 applied, matview absent, pg_cron installed) creates, replaces and proves in the transaction that the matview equals the live aggregate row-for-row and the projection's totals are unchanged; half-states, and a missing pg_cron, raise before any change. |
 | Rollback | `067_rollback.sql`: restores the 061 body with `security_invoker`, unschedules the job, drops the matview; asserts the restored body. Absent is a no-op. |
-| Rehearsal | **Not run**: the authoring machine has no local PostgreSQL and no PGlite; `verify-migrations-isolated.sh` is for the manager's machine (pg_cron will be absent there — expected, the NOTICE path). |
+| Rehearsal | PGlite 0.2.17 (PostgreSQL 16.4), `rehearse067.mjs` in the fable14 session scratchpad, output on PAN-263: pg_cron absent without the flag → abort and nothing changed; apply; POST re-run is a real no-op (view and matview oids, definition and relfilenode unchanged); projection rows byte-identical before and after; a new match is invisible until `REFRESH … CONCURRENTLY`, then counted; grants; DRIFT (matview dropped by hand); rollback; rollback re-run no-op. `verify-migrations-isolated.sh` runs only 053/054 and no machine here has PostgreSQL. |
 | Writers | None change. The nightly matcher and the review routes keep writing `listing_product_match`; the job picks the changes up within 15 minutes. |

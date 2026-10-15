@@ -30,10 +30,18 @@
 --   REVOKE ALL on the matview from anon/authenticated; GRANT SELECT to
 --     service_role (every reader, under invoker, is the service role — 062).
 --   cron.schedule('refresh_active_listing_counts', every 15 minutes,
---     REFRESH MATERIALIZED VIEW CONCURRENTLY) — only where pg_cron is
---     installed. Where it is not (the isolated verifier; a project with the
---     extension off), the migration says so and still applies: the matview is
---     correct at apply time, and the schedule is the operator's next step.
+--     REFRESH MATERIALIZED VIEW CONCURRENTLY).
+--
+-- ── PG_CRON IS REQUIRED, AND ITS ABSENCE FAILS CLOSED ─────────────────────
+--   A matview that never refreshes is a silently stale count. pg_cron is
+--   AVAILABLE on the project but NOT ENABLED (checked 2026-10-15:
+--   pg_available_extensions lists it, pg_extension does not). Enabling it is
+--   the owner's step (Supabase dashboard → Database → Extensions → pg_cron)
+--   and must happen BEFORE this file runs; without it the migration raises
+--   and changes nothing. The one exception is a disposable rehearsal (the
+--   isolated verifier's cluster or the PGlite harness), which has no
+--   extensions: it sets `klup.allow_no_cron = 'on'` for its session, and the
+--   schedule step is then skipped with a NOTICE.
 --
 -- ── WHAT IT COSTS, AND THE FRESHNESS IT BUYS ──────────────────────────────
 --   The refresh IS the 2.5 s aggregate, once per 15 minutes on a background
@@ -55,19 +63,23 @@
 --   seconds, so the first visitor after each minute no longer pays 1–6 s.
 --
 -- ── FAIL CLOSED ───────────────────────────────────────────────────────────
---   PRE   061 and 062 applied (the view filters `is_valid IS NOT FALSE`,
---         resolves `hero_image_url`, is security_invoker, and has the 036/058
---         column list); the matview is absent. Apply, then prove in the same
---         transaction that the matview's totals equal the live aggregate and
+--   POST  the matview exists AND the view joins it: every later block reads
+--         the `klup.m067_state` flag the guard sets and does nothing. This is
+--         checked FIRST, because pg_get_viewdef() keeps no comments and the
+--         replaced body no longer contains the 061 phrase the PRE check reads.
+--   PRE   058, 061 and 062 applied (the view resolves `hero_image_url`,
+--         filters `is_valid IS NOT FALSE`, is security_invoker, and has the
+--         036/058 column list); the matview is absent; pg_cron is installed
+--         (or the verifier's `klup.allow_no_cron` is on). Apply, then prove in
+--         the same transaction that the matview equals the live aggregate and
 --         the projection's totals are unchanged.
---   POST  the matview exists and the view already joins it: a successful no-op.
 --   DRIFT anything else raises before any change.
 -- Rollback: 067_rollback.sql — restores the 061 body, drops the schedule and
 -- the matview. The projection is correct again on the next read.
 
 BEGIN;
 
--- ── Guards ──────────────────────────────────────────────────────────────────
+-- ── Guard: decide the state once, for every block below ────────────────────
 DO $$
 DECLARE
   v_expected text[] := ARRAY[
@@ -83,6 +95,8 @@ DECLARE
   v_def      text;
   v_invoker  boolean;
   v_mv       boolean;
+  v_joins    boolean;
+  v_cron     boolean;
 BEGIN
   IF to_regclass('public.browse_product_projection') IS NULL THEN
     RAISE EXCEPTION '067 ABORT: view browse_product_projection does not exist. Apply migrations 036, 058, 061 and 062 first.';
@@ -97,14 +111,28 @@ BEGIN
       array_to_string(v_expected, ', '), array_to_string(coalesce(v_actual, '{}'::text[]), ', ');
   END IF;
 
-  v_def := pg_get_viewdef('public.browse_product_projection'::regclass, true);
+  v_def   := pg_get_viewdef('public.browse_product_projection'::regclass, true);
+  v_mv    := to_regclass('public.active_listing_counts_mv') IS NOT NULL;
+  v_joins := position('active_listing_counts_mv' in v_def) > 0;
+
+  -- POST first: the replaced body carries neither the CTE nor the 061 phrase.
+  IF v_mv AND v_joins THEN
+    PERFORM set_config('klup.m067_state', 'post', true);
+    RAISE NOTICE '067: state=POST — the projection already joins active_listing_counts_mv. No-op.';
+    RETURN;
+  END IF;
+  IF v_mv OR v_joins THEN
+    RAISE EXCEPTION E'067 ABORT: drifted state. matview present: %; view joins it: %.\n'
+      '  Expected neither (PRE) or both (POST). Reconcile by hand.', v_mv, v_joins;
+  END IF;
+
+  -- PRE: the predecessors, read from the view text (SQL, not comments).
   IF position('hero_image_url' in v_def) = 0 THEN
     RAISE EXCEPTION '067 ABORT: the projection does not resolve hero_image_url, so migration 058 is not applied.';
   END IF;
   IF position('is_valid IS NOT FALSE' in v_def) = 0 THEN
     RAISE EXCEPTION '067 ABORT: the projection does not filter is_valid IS NOT FALSE, so migration 061 is not applied.';
   END IF;
-
   SELECT EXISTS (
     SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace,
            LATERAL pg_options_to_table(c.reloptions) o
@@ -115,150 +143,164 @@ BEGIN
     RAISE EXCEPTION '067 ABORT: browse_product_projection is not security_invoker, so migration 062 is not applied.';
   END IF;
 
-  v_mv := to_regclass('public.active_listing_counts_mv') IS NOT NULL;
-
-  IF v_mv AND position('active_listing_counts_mv' in v_def) > 0 THEN
-    RAISE NOTICE '067: state=POST — the projection already joins active_listing_counts_mv. No-op.';
-    RETURN;
-  END IF;
-  IF v_mv OR position('active_listing_counts_mv' in v_def) > 0 THEN
-    RAISE EXCEPTION E'067 ABORT: drifted state. matview present: %; view joins it: %.\n'
-      '  Expected neither (PRE) or both (POST). Reconcile by hand.',
-      v_mv, position('active_listing_counts_mv' in v_def) > 0;
+  -- The schedule is part of the contract: no cron, no migration.
+  v_cron := EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron');
+  IF NOT v_cron AND coalesce(current_setting('klup.allow_no_cron', true), '') <> 'on' THEN
+    RAISE EXCEPTION E'067 ABORT: pg_cron is not installed, so active_listing_counts_mv would never refresh.\n'
+      '  Enable it first (Supabase dashboard → Database → Extensions → pg_cron) and re-run.\n'
+      '  Only the disposable verifier may set klup.allow_no_cron = ''on'' to skip the schedule.';
   END IF;
 
+  PERFORM set_config('klup.m067_state', 'pre', true);
   RAISE NOTICE '067: state=PRE — applying; active_listing_count is aggregated on every read.';
 END $$;
 
 -- ── The matview: the 061 CTE, verbatim ─────────────────────────────────────
-CREATE MATERIALIZED VIEW IF NOT EXISTS public.active_listing_counts_mv AS
-SELECT
-  lpm.product_id,
-  COUNT(*)::integer AS active_listing_count
-FROM public.listing_product_match lpm
-JOIN public.listings l
-  ON l.id = lpm.listing_id
-WHERE l.is_active = true
-  -- PAN-197: a rejected match is not "til salg". NULL and TRUE stay.
-  AND lpm.is_valid IS NOT FALSE
-GROUP BY lpm.product_id
-WITH DATA;
+DO $$
+BEGIN
+  IF current_setting('klup.m067_state', true) <> 'pre' THEN RETURN; END IF;
 
--- REFRESH ... CONCURRENTLY requires a unique index; it is also the join key.
-CREATE UNIQUE INDEX IF NOT EXISTS active_listing_counts_mv_product_id
-  ON public.active_listing_counts_mv (product_id);
+  EXECUTE $mv$
+    CREATE MATERIALIZED VIEW public.active_listing_counts_mv AS
+    SELECT
+      lpm.product_id,
+      COUNT(*)::integer AS active_listing_count
+    FROM public.listing_product_match lpm
+    JOIN public.listings l
+      ON l.id = lpm.listing_id
+    WHERE l.is_active = true
+      AND lpm.is_valid IS NOT FALSE
+    GROUP BY lpm.product_id
+    WITH DATA
+  $mv$;
 
-COMMENT ON MATERIALIZED VIEW public.active_listing_counts_mv IS
-  'Active, not-rejected matches per product (migration 067, PAN-263): the aggregate browse_product_projection used to compute on every read. Refreshed CONCURRENTLY every 15 minutes by pg_cron job refresh_active_listing_counts; at most 15 minutes stale. Same rule as .not(''is_valid'', ''is'', false) on the product and family pages.';
+  -- REFRESH ... CONCURRENTLY requires a unique index; it is also the join key.
+  EXECUTE 'CREATE UNIQUE INDEX active_listing_counts_mv_product_id ON public.active_listing_counts_mv (product_id)';
 
--- Readers under security_invoker are the service role (062); nobody else.
-REVOKE ALL ON public.active_listing_counts_mv FROM anon, authenticated;
-GRANT SELECT ON public.active_listing_counts_mv TO service_role;
+  EXECUTE $c$
+    COMMENT ON MATERIALIZED VIEW public.active_listing_counts_mv IS
+      'Active, not-rejected matches per product (migration 067, PAN-263): the aggregate browse_product_projection used to compute on every read. Refreshed CONCURRENTLY every 15 minutes by pg_cron job refresh_active_listing_counts; at most 15 minutes stale. Same rule as .not(''is_valid'', ''is'', false) on the product and family pages.'
+  $c$;
+
+  -- Readers under security_invoker are the service role (062); nobody else.
+  EXECUTE 'REVOKE ALL ON public.active_listing_counts_mv FROM anon, authenticated';
+  EXECUTE 'GRANT SELECT ON public.active_listing_counts_mv TO service_role';
+END $$;
 
 -- ── The projection: 061's body, the CTE replaced by the matview ────────────
 -- `CREATE OR REPLACE VIEW` keeps the oid and the GRANTs (062's REVOKEs hold);
 -- WITH (security_invoker = on) is restated because a replaced body does not
 -- carry the option by itself (062's own note).
-CREATE OR REPLACE VIEW public.browse_product_projection WITH (security_invoker = on) AS
-SELECT
-  p.id,
-  p.slug,
-  p.canonical_name,
-  p.brand_id,
-  b.slug AS brand_slug,
-  b.name AS brand_name,
-  p.category_id,
-  legacy_cat.slug AS legacy_category_slug,
-  p.subcategory_id,
-  sub.slug AS subcategory_slug,
-  sub.name_da AS subcategory_name_da,
-  sub.name_en AS subcategory_name_en,
-  root.id AS root_category_id,
-  root.slug AS root_category_slug,
-  root.name_da AS root_category_name_da,
-  root.name_en AS root_category_name_en,
-  COALESCE(root.domain, sub.domain, legacy_cat.domain) AS browse_domain,
-  p.status,
-  p.tier,
-  CASE p.tier
-    WHEN 'legendary' THEN 2
-    WHEN 'classic' THEN 1
-    ELSE 0
-  END AS tier_rank,
-  -- PAN-133: one resolved value, so the URL and the flag can never disagree.
-  image_resolved.url AS image_url,
-  (image_resolved.url IS NOT NULL) AS has_image,
-  COALESCE(alc.active_listing_count, 0) AS active_listing_count,
-  p.browse_visibility,
-  CASE
-    WHEN p.subcategory_id IS NULL THEN 'missing_subcategory'
-    WHEN sub.id IS NOT NULL
-      AND sub.domain = 'music'
-      AND root.id IS NOT NULL
-      AND root.parent_id IS NULL
-      AND root.domain = 'music'
-      THEN 'classified'
-    ELSE 'missing_root_mapping'
-  END AS taxonomy_state,
-  CASE
-    WHEN COALESCE(alc.active_listing_count, 0) >= 1 THEN 'live'
-    ELSE 'no_live_listings'
-  END AS supply_state,
-  (
-    p.status = 'active'
-    AND p.browse_visibility = 'public'
-    AND CASE
-      WHEN p.subcategory_id IS NULL THEN 'missing_subcategory'
-      WHEN sub.id IS NOT NULL
-        AND sub.domain = 'music'
-        AND root.id IS NOT NULL
-        AND root.parent_id IS NULL
-        AND root.domain = 'music'
-        THEN 'classified'
-      ELSE 'missing_root_mapping'
-    END = 'classified'
-  ) AS is_public
-FROM public.kg_product p
-LEFT JOIN public.kg_brand b
-  ON b.id = p.brand_id
-LEFT JOIN public.kg_category legacy_cat
-  ON legacy_cat.id = p.category_id
-LEFT JOIN public.kg_category sub
-  ON sub.id = p.subcategory_id
-LEFT JOIN public.kg_category root
-  ON root.id = sub.parent_id
--- PAN-263: the precomputed count. `is_valid IS NOT FALSE` lives in the
--- matview's definition now; the 061 guard phrase is kept in this comment so a
--- reader of pg_get_viewdef still finds the rule stated: is_valid IS NOT FALSE.
-LEFT JOIN public.active_listing_counts_mv alc
-  ON alc.product_id = p.id
--- PAN-133: THE PRECEDENCE. Curated first, ingested second, blank is neither.
--- Unchanged from 058. Its twin is `resolveProductImage()` in
--- frontend/lib/product-image-source.ts.
-LEFT JOIN LATERAL (
-  SELECT COALESCE(
-    NULLIF(btrim(COALESCE(p.hero_image_url, '')), ''),
-    NULLIF(btrim(COALESCE(p.image_url, '')), '')
-  ) AS url
-) image_resolved ON true;
-
-COMMENT ON VIEW public.browse_product_projection IS
-  'Canonical browse projection (migration 036). image_url and has_image both read one resolved value: hero_image_url (curated) wins, image_url (ingested) is the fallback, blank counts as absent — migration 058, PAN-133. The same sentence in TypeScript is resolveProductImage() in frontend/lib/product-image-source.ts. active_listing_count and supply_state count active listings whose match is not rejected (is_valid IS NOT FALSE) — migration 061, PAN-197 — read from active_listing_counts_mv, refreshed every 15 minutes — migration 067, PAN-263.';
-
--- ── The schedule, where pg_cron exists ─────────────────────────────────────
 DO $$
 BEGIN
+  IF current_setting('klup.m067_state', true) <> 'pre' THEN RETURN; END IF;
+
+  EXECUTE $v$
+    CREATE OR REPLACE VIEW public.browse_product_projection WITH (security_invoker = on) AS
+    SELECT
+      p.id,
+      p.slug,
+      p.canonical_name,
+      p.brand_id,
+      b.slug AS brand_slug,
+      b.name AS brand_name,
+      p.category_id,
+      legacy_cat.slug AS legacy_category_slug,
+      p.subcategory_id,
+      sub.slug AS subcategory_slug,
+      sub.name_da AS subcategory_name_da,
+      sub.name_en AS subcategory_name_en,
+      root.id AS root_category_id,
+      root.slug AS root_category_slug,
+      root.name_da AS root_category_name_da,
+      root.name_en AS root_category_name_en,
+      COALESCE(root.domain, sub.domain, legacy_cat.domain) AS browse_domain,
+      p.status,
+      p.tier,
+      CASE p.tier
+        WHEN 'legendary' THEN 2
+        WHEN 'classic' THEN 1
+        ELSE 0
+      END AS tier_rank,
+      image_resolved.url AS image_url,
+      (image_resolved.url IS NOT NULL) AS has_image,
+      COALESCE(alc.active_listing_count, 0) AS active_listing_count,
+      p.browse_visibility,
+      CASE
+        WHEN p.subcategory_id IS NULL THEN 'missing_subcategory'
+        WHEN sub.id IS NOT NULL
+          AND sub.domain = 'music'
+          AND root.id IS NOT NULL
+          AND root.parent_id IS NULL
+          AND root.domain = 'music'
+          THEN 'classified'
+        ELSE 'missing_root_mapping'
+      END AS taxonomy_state,
+      CASE
+        WHEN COALESCE(alc.active_listing_count, 0) >= 1 THEN 'live'
+        ELSE 'no_live_listings'
+      END AS supply_state,
+      (
+        p.status = 'active'
+        AND p.browse_visibility = 'public'
+        AND CASE
+          WHEN p.subcategory_id IS NULL THEN 'missing_subcategory'
+          WHEN sub.id IS NOT NULL
+            AND sub.domain = 'music'
+            AND root.id IS NOT NULL
+            AND root.parent_id IS NULL
+            AND root.domain = 'music'
+            THEN 'classified'
+          ELSE 'missing_root_mapping'
+        END = 'classified'
+      ) AS is_public
+    FROM public.kg_product p
+    LEFT JOIN public.kg_brand b
+      ON b.id = p.brand_id
+    LEFT JOIN public.kg_category legacy_cat
+      ON legacy_cat.id = p.category_id
+    LEFT JOIN public.kg_category sub
+      ON sub.id = p.subcategory_id
+    LEFT JOIN public.kg_category root
+      ON root.id = sub.parent_id
+    LEFT JOIN public.active_listing_counts_mv alc
+      ON alc.product_id = p.id
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(
+        NULLIF(btrim(COALESCE(p.hero_image_url, '')), ''),
+        NULLIF(btrim(COALESCE(p.image_url, '')), '')
+      ) AS url
+    ) image_resolved ON true
+  $v$;
+
+  EXECUTE $c$
+    COMMENT ON VIEW public.browse_product_projection IS
+      'Canonical browse projection (migration 036). image_url and has_image both read one resolved value: hero_image_url (curated) wins, image_url (ingested) is the fallback, blank counts as absent — migration 058, PAN-133. The same sentence in TypeScript is resolveProductImage() in frontend/lib/product-image-source.ts. active_listing_count and supply_state count active listings whose match is not rejected (is_valid IS NOT FALSE) — migration 061, PAN-197 — read from active_listing_counts_mv, refreshed every 15 minutes — migration 067, PAN-263.'
+  $c$;
+END $$;
+
+-- ── The schedule ───────────────────────────────────────────────────────────
+DO $$
+DECLARE
+  v_jobs bigint;
+BEGIN
+  IF current_setting('klup.m067_state', true) <> 'pre' THEN RETURN; END IF;
+
+  -- `cron.*` only through EXECUTE, inside the pg_cron branch: a static
+  -- reference is resolved when the statement is planned and would fail where
+  -- the extension is absent (the rollback's rehearsal caught exactly that).
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
-    IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'refresh_active_listing_counts') THEN
-      PERFORM cron.schedule(
-        'refresh_active_listing_counts',
-        '*/15 * * * *',
-        'REFRESH MATERIALIZED VIEW CONCURRENTLY public.active_listing_counts_mv'
-      );
+    EXECUTE 'SELECT count(*) FROM cron.job WHERE jobname = $1' INTO v_jobs USING 'refresh_active_listing_counts';
+    IF v_jobs = 0 THEN
+      EXECUTE 'SELECT cron.schedule($1, $2, $3)'
+        USING 'refresh_active_listing_counts',
+              '*/15 * * * *',
+              'REFRESH MATERIALIZED VIEW CONCURRENTLY public.active_listing_counts_mv';
     END IF;
     RAISE NOTICE '067: pg_cron job refresh_active_listing_counts scheduled every 15 minutes.';
   ELSE
-    RAISE NOTICE '067: pg_cron is NOT installed — the matview is correct now but will not refresh. Enable pg_cron (Supabase dashboard → Database → Extensions) and re-run this migration, or schedule the REFRESH from the nightly PM2 job.';
+    -- Reachable only under klup.allow_no_cron = 'on' (the guard raised otherwise).
+    RAISE NOTICE '067: klup.allow_no_cron is on — no pg_cron here, the schedule step is skipped. This is the disposable verifier, never production.';
   END IF;
 END $$;
 
@@ -273,6 +315,8 @@ DECLARE
   v_mv_n      bigint;
   v_proj_sum  bigint;
 BEGIN
+  IF current_setting('klup.m067_state', true) <> 'pre' THEN RETURN; END IF;
+
   v_def := pg_get_viewdef('public.browse_product_projection'::regclass, true);
   IF position('active_listing_counts_mv' in v_def) = 0 THEN
     RAISE EXCEPTION '067 ABORT: the replacement does not join active_listing_counts_mv.';
