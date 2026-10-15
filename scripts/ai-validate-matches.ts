@@ -31,6 +31,12 @@
  *   npx tsx scripts/ai-validate-matches.ts              # full run, writes is_valid/rejected_reason/explain
  *   npx tsx scripts/ai-validate-matches.ts --limit=500  # cap rows processed
  *   npx tsx scripts/ai-validate-matches.ts --force      # reprocess rows already carrying explain.ai_pass1
+ *   npx tsx scripts/ai-validate-matches.ts --public-only --limit=500
+ *                                                       # PAN-265: only matches a public page counts —
+ *                                                       # isCanonical product, active listing; every tier unless --tier
+ *
+ * Never decides a verdict: rows with is_valid true/false or explain.admin_decision
+ * are skipped, and each write lands only while the row is still is_valid IS NULL.
  *
  * Env (loaded from frontend/.env.local or .env.local at repo root):
  *   NEXT_PUBLIC_SUPABASE_URL
@@ -43,6 +49,7 @@ import * as path from 'path'
 import dotenv from 'dotenv'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
+import { inPublicScope, isAiReviewable } from './lib/ai-validate-scope'
 
 // ── Env ───────────────────────────────────────────────────────────────────────
 for (const p of [
@@ -95,8 +102,11 @@ const LIMIT    = limitArg ? parseInt(limitArg.split('=')[1], 10) : (DRY_RUN ? 50
 const BATCH_SIZE = 25
 const DELAY_MS   = 300
 
+const PUBLIC_ONLY = process.argv.includes('--public-only')
 const tierArg = process.argv.find(a => a.startsWith('--tier='))
-const TIERS_IN_SCOPE = tierArg ? tierArg.split('=')[1].split(',') : ['legendary', 'classic']
+// --public-only scopes by publication, so it takes every tier unless --tier narrows it.
+const TIERS_IN_SCOPE: string[] | null = tierArg ? tierArg.split('=')[1].split(',') : PUBLIC_ONLY ? null : ['legendary', 'classic']
+const SCOPE_LABEL = [PUBLIC_ONLY ? 'public' : null, TIERS_IN_SCOPE?.join('/')].filter(Boolean).join(' ')
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface CandidateRow {
@@ -223,14 +233,15 @@ async function fetchCandidates(): Promise<CandidateRow[]> {
   // tier alone is ~3,800+ products — well over the PostgREST 1000-row cap —
   // so this must paginate too (legendary/classic was small enough to hide
   // this bug entirely).
-  const products: { id: string; canonical_name: string; model_name: string | null; tier: string; price_min_dkk: number | null; price_max_dkk: number | null; msrp_dkk: number | null; thomann_price_dkk: number | null }[] = []
+  const products: { id: string; slug: string | null; status: string | null; support_state: string | null; browse_visibility: string | null; canonical_name: string; model_name: string | null; tier: string; price_min_dkk: number | null; price_max_dkk: number | null; msrp_dkk: number | null; thomann_price_dkk: number | null }[] = []
   const PROD_PAGE = 1000
   let prodOffset = 0
   while (true) {
-    const { data, error: prodErr } = await supabase
+    let query = supabase
       .from('kg_product')
-      .select('id, canonical_name, model_name, tier, price_min_dkk, price_max_dkk, msrp_dkk, thomann_price_dkk')
-      .in('tier', TIERS_IN_SCOPE)
+      .select('id, slug, status, support_state, browse_visibility, canonical_name, model_name, tier, price_min_dkk, price_max_dkk, msrp_dkk, thomann_price_dkk')
+    if (TIERS_IN_SCOPE) query = query.in('tier', TIERS_IN_SCOPE)
+    const { data, error: prodErr } = await query
       .order('id')
       .range(prodOffset, prodOffset + PROD_PAGE - 1)
 
@@ -244,19 +255,46 @@ async function fetchCandidates(): Promise<CandidateRow[]> {
     prodOffset += PROD_PAGE
   }
 
-  const productById = new Map(products.map(p => [p.id, p]))
+  // --public-only: the fourth eligibility axis, browse_domain, lives on the
+  // projection (as /api/product/[slug] reads it). Products without it fail
+  // closed in isCanonical.
+  const domainBySlug = new Map<string, string | null>()
+  if (PUBLIC_ONLY) {
+    let projOffset = 0
+    while (true) {
+      const { data, error: projErr } = await supabase
+        .from('browse_product_projection')
+        .select('slug, browse_domain')
+        .order('slug')
+        .range(projOffset, projOffset + PROD_PAGE - 1)
+      if (projErr) {
+        console.error('Failed to load browse_product_projection:', projErr.message)
+        process.exit(1)
+      }
+      if (!data || data.length === 0) break
+      for (const r of data) domainBySlug.set(r.slug as string, (r.browse_domain as string | null) ?? null)
+      if (data.length < PROD_PAGE) break
+      projOffset += PROD_PAGE
+    }
+  }
+  const productState = (p: typeof products[number]) => ({ ...p, browse_domain: p.slug ? domainBySlug.get(p.slug) ?? null : null })
+  // Narrow to public products before the match and listing reads, so the
+  // listing fetch below covers only rows that can be in scope.
+  const productById = new Map(
+    products.filter(p => !PUBLIC_ONLY || inPublicScope(productState(p), { is_active: true })).map(p => [p.id, p]),
+  )
 
   // Filter by is_valid alone (no .in('product_id', ...) — with thousands of
   // standard-tier products that list blows the URL length limit the same
   // way the listings .in() did). Filter to in-scope products in-memory
   // instead; PostgREST still caps at 1000 rows/request, so paginate.
-  const matches: { id: string; listing_id: string; product_id: string; method: string; score: number; explain: unknown }[] = []
+  const matches: { id: string; listing_id: string; product_id: string; method: string; score: number; explain: unknown; is_valid: boolean | null }[] = []
   const MATCH_PAGE = 1000
   let matchOffset = 0
   while (true) {
     const { data, error: matchErr } = await supabase
       .from('listing_product_match')
-      .select('id, listing_id, product_id, method, score, explain')
+      .select('id, listing_id, product_id, method, score, explain, is_valid')
       .is('is_valid', null)
       .order('id')
       .range(matchOffset, matchOffset + MATCH_PAGE - 1)
@@ -266,7 +304,8 @@ async function fetchCandidates(): Promise<CandidateRow[]> {
       process.exit(1)
     }
     if (!data || data.length === 0) break
-    matches.push(...data.filter(m => productById.has(m.product_id)))
+    // A person's decision (explain.admin_decision) is a verdict even while is_valid is NULL.
+    matches.push(...data.filter(m => productById.has(m.product_id) && isAiReviewable(m)))
     if (data.length < MATCH_PAGE) break
     matchOffset += MATCH_PAGE
   }
@@ -289,13 +328,13 @@ async function fetchCandidates(): Promise<CandidateRow[]> {
   // Small chunk size — a large .in() ID list blows the URL length limit
   // (same reason /intel joins on product IDs, not listing IDs; see CLAUDE.md).
   const PAGE = 50
-  const listingById = new Map<string, { title: string; price: number | null; price_dkk: number | null; currency: string | null; source: string; country: string | null; condition: string | null }>()
+  const listingById = new Map<string, { title: string; price: number | null; price_dkk: number | null; currency: string | null; source: string; country: string | null; condition: string | null; is_active: boolean | null }>()
 
   for (let i = 0; i < listingIds.length; i += PAGE) {
     const chunk = listingIds.slice(i, i + PAGE)
     const { data: listings, error: listErr } = await supabase
       .from('listings')
-      .select('id, title, price, price_dkk, currency, source, country, condition')
+      .select('id, title, price, price_dkk, currency, source, country, condition, is_active')
       .in('id', chunk)
 
     if (listErr) {
@@ -311,6 +350,7 @@ async function fetchCandidates(): Promise<CandidateRow[]> {
     const listing = listingById.get(m.listing_id)
     const product = productById.get(m.product_id)
     if (!listing || !product) continue
+    if (PUBLIC_ONLY && !inPublicScope(productState(product), listing)) continue
 
     rows.push({
       matchId: m.id,
@@ -477,11 +517,11 @@ async function runDryRun() {
   const sample = all.slice(0, LIMIT)
 
   if (sample.length === 0) {
-    console.log(`No unreviewed ${TIERS_IN_SCOPE.join('/')} rows found — nothing to sample.`)
+    console.log(`No unreviewed ${SCOPE_LABEL} rows found — nothing to sample.`)
     return
   }
 
-  console.log(`Total unreviewed ${TIERS_IN_SCOPE.join('/')} rows in scope: ${totalInScope}`)
+  console.log(`Total unreviewed ${SCOPE_LABEL} rows in scope: ${totalInScope}`)
   console.log(`Sampling ${sample.length} rows across ${Math.ceil(sample.length / BATCH_SIZE)} batch(es)...\n`)
 
   let totalInputTokens = 0
@@ -510,7 +550,7 @@ async function runDryRun() {
   console.log(`Sample: ${sample.length} rows, ${totalInputTokens} input tokens, ${totalOutputTokens} output tokens`)
   console.log(`Sample cost (Sonnet 5 intro pricing $${PRICE_INPUT_PER_MTOK}/$${PRICE_OUTPUT_PER_MTOK} per MTok): $${sampleCost.toFixed(4)}`)
   console.log(`Cost per row: $${costPerRow.toFixed(5)}`)
-  console.log(`\nExtrapolated cost for full ${TIERS_IN_SCOPE.join('+')} backlog (${totalInScope} rows): $${extrapolatedFullCost.toFixed(2)}`)
+  console.log(`\nExtrapolated cost for full ${SCOPE_LABEL} backlog (${totalInScope} rows): $${extrapolatedFullCost.toFixed(2)}`)
   console.log('\nRun without --dry-run to process for real, or --eval to check accuracy against the 228 already-labeled rows first.')
 }
 
@@ -591,12 +631,12 @@ async function runEval() {
 async function runLive() {
   const modeLabel = FORCE ? '[live, --force] Reprocessing including already-AI-reviewed rows.'
     : PASS2 ? `[live, --pass2] Second opinion (${MODEL}) on rows Pass 1 left uncertain.`
-    : `[live] Processing unreviewed ${TIERS_IN_SCOPE.join('/')} matches.`
+    : `[live] Processing unreviewed ${SCOPE_LABEL} matches.`
   console.log(modeLabel + '\n')
 
   const rows = (await fetchCandidates()).slice(0, LIMIT)
   if (rows.length === 0) {
-    console.log(PASS2 ? 'Nothing to process — no uncertain rows found in scope.' : `Nothing to process — no unreviewed ${TIERS_IN_SCOPE.join('/')} rows found.`)
+    console.log(PASS2 ? 'Nothing to process — no uncertain rows found in scope.' : `Nothing to process — no unreviewed ${SCOPE_LABEL} rows found.`)
     return
   }
   console.log(`Processing ${rows.length} rows in ${Math.ceil(rows.length / BATCH_SIZE)} batch(es).\n`)
@@ -657,7 +697,9 @@ async function runLive() {
 
       if (DRY_RUN) continue
 
-      const { error: updateErr } = await supabase
+      // Lands only while the row is still unreviewed: a person who decided it
+      // since it was fetched keeps their verdict.
+      const { data: updated, error: updateErr } = await supabase
         .from('listing_product_match')
         .update({
           is_valid: isValid,
@@ -665,11 +707,16 @@ async function runLive() {
           explain: mergedExplain,
         })
         .eq('id', row.matchId)
+        .is('is_valid', null)
+        .select('id')
 
       if (updateErr) {
         console.warn(`  [skip] ${row.matchId} — update failed: ${updateErr.message}`)
         skipped++
         skippedIds.push(row.matchId)
+      } else if (!updated || updated.length === 0) {
+        console.warn(`  [skip] ${row.matchId} — decided by someone else since it was fetched`)
+        skipped++
       }
     }
 

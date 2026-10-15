@@ -65,6 +65,9 @@ test('integration: every package suite is registered exactly once', () => {
       // the unique index) and the review state machine had to become
       // explicit, so both carry their own suite.
       'scripts/lib/admin-review-hotfix.test.ts',
+      // PAN-265: the AI validation pass never decides a verdict, and
+      // --public-only scopes it to what a public page counts.
+      'scripts/lib/ai-validate-scope.test.ts',
       'scripts/lib/baseline.test.ts',
       'scripts/lib/data-presentation.test.ts',
       // PAN-262: the historical backfill's cohort must be a total order, or
