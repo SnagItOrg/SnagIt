@@ -571,3 +571,26 @@ listing ingested before it. `listings` itself is not touched.
 | Rollback | `066_rollback.sql`. Refuses while the table holds any row other than the 324 `seen` pairs (a delivery row is the only record of a mail); drops it otherwise; absent is a no-op. |
 | Rehearsal | PGlite, 16 checks (`rehearse066.mjs`, kept in `~/klup-rollbacks/opus1-2026-10-08/pan12/` on the MacBook): PRE, listings untouched, closed despite the open default privilege, POST, the runner's claim once per pair, the CHECK, rollback refusing with a delivery row, rollback to byte-identical `listings`, absent no-op, re-apply, and DRIFT on a changed legacy set, an open grant and a missing seen row. `verify-migrations-isolated.sh` was not run: the authoring machine has no local PostgreSQL. |
 | Writer | `scripts/notify-watchlists.ts` (PM2 on panter). It refuses to run until 066 is applied. |
+
+## 067 — `active_listing_counts_mv`, the browse count precomputed. **NOT APPLIED — proposal (PAN-263).**
+
+`067_active_listing_counts_materialized.sql` moves `browse_product_projection`'s
+`active_listing_count` out of the per-read CTE into a materialized view,
+`active_listing_counts_mv` (one row per product with an active, not-rejected
+match; unique on `product_id`), and replaces the projection's body with the
+061 body joining it. Every other column stays live from the base tables. A
+pg_cron job, `refresh_active_listing_counts`, runs
+`REFRESH MATERIALIZED VIEW CONCURRENTLY` every 15 minutes where the extension
+is installed; where it is not, the migration applies, says so, and the
+schedule is the operator's next step.
+
+| Property | |
+|---|---|
+| Why | Measured on production 2026-10-15 (manager, read-only): the browse read runs 2,712 ms with every buffer a cache hit, 2.5 s of it the count CTE — a seq scan of 87,724 active `listings` hash-joined to 53,813 `listing_product_match` rows and aggregated for all 1,161 products before the root filter; the 91 pro-audio rows cost 77 ms. Micro compute, 99.95 % heap hit: CPU, not disk. Every reader of the projection paid it on every request. |
+| Freshness | `active_listing_count` / `supply_state` at most 15 minutes old (the owner's PAN-263 bound is ~1 h). `is_public`, visibility, status, taxonomy and image stay live. |
+| Cost | The 2.5 s aggregate once per 15 min on a background worker (≈0.3 % CPU); CONCURRENTLY never blocks a reader. Expected read: ~77 ms + 1 index probe per row — O(10 ms) against 2.7 s. |
+| P0 | Not a table, but the same posture: `anon` / `authenticated` revoked on the matview, `service_role` granted SELECT (every reader is the service role under 062's `security_invoker`, which the new view body restates). |
+| PRE / POST / DRIFT | PRE (061 + 062 applied, matview absent) creates, replaces and proves in the transaction that the matview equals the live aggregate row-for-row and the projection's totals are unchanged; POST (matview present and joined) is a no-op; half-states raise before any change. |
+| Rollback | `067_rollback.sql`: restores the 061 body with `security_invoker`, unschedules the job, drops the matview; asserts the restored body. Absent is a no-op. |
+| Rehearsal | **Not run**: the authoring machine has no local PostgreSQL and no PGlite; `verify-migrations-isolated.sh` is for the manager's machine (pg_cron will be absent there — expected, the NOTICE path). |
+| Writers | None change. The nightly matcher and the review routes keep writing `listing_product_match`; the job picks the changes up within 15 minutes. |
