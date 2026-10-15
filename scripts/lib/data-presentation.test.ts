@@ -277,6 +277,7 @@ import {
   FEW_BAND_PERCENT,
   buildPopulationStats,
   classifyListing,
+  FIRST_SEEN_TRUSTED_SOURCES,
   firstSeenTimestamp,
   longOnMarketDays,
   groupByPopulation,
@@ -531,7 +532,17 @@ test('null first_seen_at yields no age copy and never falls back to scraped_at',
   assert.equal(firstSeenTimestamp({ first_seen_at: null, scraped_at: '2026-09-01T00:00:00Z' }), null)
   assert.equal(firstSeenTimestamp({ first_seen_at: '  ', scraped_at: '2026-09-01T00:00:00Z' }), null)
   assert.equal(firstSeenTimestamp({ first_seen_at: 'not-a-date' }), null)
-  assert.equal(firstSeenTimestamp({ first_seen_at: '2026-07-01T10:00:00Z' }), '2026-07-01T10:00:00Z')
+  assert.equal(firstSeenTimestamp({ source: 'dba.dk', first_seen_at: '2026-07-01T10:00:00Z' }), '2026-07-01T10:00:00Z')
+})
+
+test('PAN-265: only dba.dk has a real first_seen_at, so no other source shows an age', () => {
+  assert.deepEqual([...FIRST_SEEN_TRUSTED_SOURCES], ['dba.dk'])
+  const first_seen_at = '2026-08-06T10:00:00Z'
+  // Finn / Blocket / Kleinanzeigen / Reverb carry the migration-040 seed date, not a first sighting.
+  for (const source of ['finn', 'blocket', 'kleinanzeigen', 'reverb', 'thomann'])
+    assert.equal(firstSeenTimestamp({ source, first_seen_at }), null, source)
+  assert.equal(firstSeenTimestamp({ first_seen_at }), null, 'no source: no age')
+  assert.equal(firstSeenTimestamp({ source: 'dba.dk', first_seen_at }), first_seen_at)
 })
 
 test('PAN-265: a DBA ad says how long it has been for sale from 60 days, and nothing else does', () => {

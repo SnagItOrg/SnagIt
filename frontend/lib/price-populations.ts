@@ -563,6 +563,17 @@ export function hasUsableConditionData(stats: PopulationStats): boolean {
 }
 
 /**
+ * The sources whose `first_seen_at` is a real first sighting of the ad.
+ *
+ * Only scripts/scrape-dba.ts records it per ad (through promote_scrape_run).
+ * On Finn, Blocket, Kleinanzeigen and Reverb the column is the migration-040
+ * seed date — a bulk backfill — or missing, so an age read from it ("70d
+ * siden") is false. Add a source here only once its scraper records a real
+ * first sighting.
+ */
+export const FIRST_SEEN_TRUSTED_SOURCES: ReadonlySet<string> = new Set(['dba.dk'])
+
+/**
  * The only timestamp allowed to describe how long a listing has been for sale.
  *
  * `scraped_at` is when Klup last looked, not when the seller posted. The page
@@ -570,14 +581,15 @@ export function hasUsableConditionData(stats: PopulationStats): boolean {
  * claim about Klup's cron schedule wearing the clothes of a listing age. There
  * is no fallback: when `first_seen_at` is null the caller renders nothing.
  *
- * Measured on the ACTIVE population 2026-09-01 — the rows the UI actually
- * shows — coverage is dba.dk 100%, reverb 72.5%, finn 62.7%, blocket 60.0%,
- * kleinanzeigen 27.2%. The null branch is the common case, not an edge case.
+ * Only sources in FIRST_SEEN_TRUSTED_SOURCES have an age at all; every other
+ * source returns null, so the card shows no age.
  */
 export function firstSeenTimestamp(listing: {
+  source?: string | null
   first_seen_at?: string | null
   scraped_at?: string | null
 }): string | null {
+  if (listing.source == null || !FIRST_SEEN_TRUSTED_SOURCES.has(listing.source)) return null
   const value = listing.first_seen_at
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
