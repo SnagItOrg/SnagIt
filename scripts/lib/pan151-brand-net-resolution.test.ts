@@ -78,13 +78,13 @@ test('collision: G-1000 survives — a one-letter code is not a stop word', () =
 test('kg_product: by the matcher, and by a designator the KG holds under another spelling', () => {
   const byMatcher = resolve('Roland Juno-60 synthesizer', 'roland')
   assert.equal(byMatcher.kind === 'kg_product' && byMatcher.via, 'matcher')
-  // "JV1080" is not the token "JV-1080", and MC-505's row has no model_name,
-  // so the live matcher misses both; the KG still holds them.
-  for (const [title, slug] of [['Roland XV3080 modul', null], ['Roland JV1080', 'roland-jv-1080'], ['Roland MC-505 groovebox', 'roland-mc-505']] as const) {
+  // MC-505's row has no model_name, so the live matcher misses it; the KG still holds it. "JV1080"
+  // was the same case until PAN-266 read the glued code; the matcher reaches it now.
+  for (const [title, slug, via] of [['Roland XV3080 modul', null, null], ['Roland JV1080', 'roland-jv-1080', 'matcher'], ['Roland MC-505 groovebox', 'roland-mc-505', 'spelling']] as const) {
     const r = resolve(title, 'roland')
     if (slug === null) { assert.equal(r.kind, 'candidate', title); continue }
     assert.equal(r.kind, 'kg_product', title)
-    assert.deepEqual(r.kind === 'kg_product' && [r.via, r.productIds], ['spelling', [slug]], title)
+    assert.deepEqual(r.kind === 'kg_product' && [r.via, r.productIds], [via, [slug]], title)
   }
 })
 
@@ -235,8 +235,9 @@ test('r2: a code written in capitals is a model; a roman numeral is not a code',
   assert.equal(reading(resolve2('Roland Paraphonic RS 505 synthesizer keyboard', 'roland')), 'candidate rs-505')
   assert.equal(reading(resolve2('Roland MM-4 MIDI Thru Box', 'roland')), 'candidate mm-4')
   assert.equal(reading(resolve2('Fender Champion II 50 guitarforstærker', 'fender')), 'candidate champion ii')
-  // A generation after the code is part of it: the MKII, not both rows.
-  assert.equal(reading(resolve2('Roland SP404 MKII', 'roland')), 'kg_product spelling roland-sp-404-mkii')
+  // The matcher reads the glued code since PAN-266, so the title resolves through it. This fixture's
+  // plain SP-404 row has no line boundary (production's does, keyed 'roland-SP-404'), so both rows tie.
+  assert.equal(reading(resolve2('Roland SP404 MKII', 'roland')), 'kg_product matcher roland-sp-404|roland-sp-404-mkii')
   assert.equal(reading(resolve2('Roland JUNO-Gi Synthesizer', 'roland')), 'candidate juno-gi')
   // `Cube` is a line the KG numbers, so a short code after it is the model.
   assert.equal(reading(resolve('Roland Cube xl forstærker med subzero mikrofon og stativ', 'roland')), 'candidate cube-xl')

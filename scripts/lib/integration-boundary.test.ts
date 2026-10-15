@@ -235,10 +235,14 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan262-matcher-misses.test.ts',
       // PAN-266: the wall's page never drops a Danish ad for a foreign one.
       'scripts/lib/pan266-wall-home-market.test.ts',
+      // PAN-266: a model code in one form — glued, spaced, hyphenated, generation glued or apart.
+      'scripts/lib/pan266-model-code-form.test.ts',
       // PAN-86: the homepage category shelf is the first surface to render the
       // taxonomy itself rather than products, so domain scope and the "never
       // print a count the destination cannot honour" rule are both exercised
       // here, against an import-free module.
+      // PAN-267: the browse leaf response is the whole root, not a page of 48.
+      'scripts/lib/pan267-browse-whole-root.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite

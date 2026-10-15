@@ -50,14 +50,8 @@ export const cachedBrowseRoot = unstable_cache(
 )
 
 export const cachedBrowseLeaf = unstable_cache(
-  (rootSlug: string, page: number, pageSize: number) =>
-    buildBrowseLeafResponse({
-      admin: getSupabaseAdmin(),
-      rootSlug,
-      page,
-      pageSize,
-      includeDebug: false,
-    }),
+  (rootSlug: string) =>
+    buildBrowseLeafResponse({ admin: getSupabaseAdmin(), rootSlug, includeDebug: false }),
   ['browse-leaf'],
   { revalidate: CATALOGUE_REVALIDATE_SECONDS },
 )

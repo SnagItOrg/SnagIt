@@ -8,8 +8,8 @@ import { CATALOGUE_CACHE_CONTROL, cachedBrowseLeaf } from '@/lib/browse-cache'
 /**
  * Never prerendered — see app/api/discover/route.ts.
  *
- * PAN-263: the public page is served from the one-minute catalogue cache
- * (lib/browse-cache.ts, keyed by root, page and page size) and carries a CDN
+ * PAN-263: the public payload is served from the one-minute catalogue cache
+ * (lib/browse-cache.ts, keyed by root) and carries a CDN
  * `Cache-Control`; the admin audit payload is still built per request and
  * stays `private, no-store`.
  */
@@ -30,17 +30,13 @@ export async function GET(
     if (!adminOk) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     includeDebug = true
   }
-  const rawPage = parseInt(req.nextUrl.searchParams.get('page') ?? '1', 10)
-  const rawPageSize = parseInt(req.nextUrl.searchParams.get('page_size') ?? '48', 10)
-  const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1
-  const pageSize = Number.isFinite(rawPageSize)
-    ? Math.min(Math.max(rawPageSize, 1), 100)
-    : 48
-
+  // PAN-267: no `page` / `page_size` any more — the response is the whole
+  // root, and the page reveals it in steps. The parameters are ignored if an
+  // old client still sends them.
   try {
     const response = includeDebug
-      ? await buildBrowseLeafResponse({ admin, rootSlug, page, pageSize, includeDebug })
-      : await cachedBrowseLeaf(rootSlug, page, pageSize)
+      ? await buildBrowseLeafResponse({ admin, rootSlug, includeDebug })
+      : await cachedBrowseLeaf(rootSlug)
 
     if (!response) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 })
