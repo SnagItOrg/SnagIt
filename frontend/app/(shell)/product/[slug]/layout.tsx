@@ -1,7 +1,9 @@
 import { cache } from 'react'
 import type { Metadata } from 'next'
+import { unstable_cache } from 'next/cache'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { CATALOGUE_REVALIDATE_SECONDS } from '@/lib/browse-cache'
 import { isCurrentUserAdmin } from '@/lib/admin-auth'
 import { isFamilySlug } from '@/lib/families'
 import {
@@ -60,7 +62,7 @@ type ProductState = { canonical_name: string | null; state: CatalogueStateRow }
  * Throwing instead routes into the Next.js server error path — a 5xx, which
  * is the honest answer and the one nothing will cache.
  */
-const loadProductState = cache(async (slug: string): Promise<ProductState | null> => {
+async function readProductState(slug: string): Promise<ProductState | null> {
   const admin = getSupabaseAdmin()
 
   const [productRes, projectionRes] = await Promise.all([
@@ -101,7 +103,21 @@ const loadProductState = cache(async (slug: string): Promise<ProductState | null
         (projectionRes.data as { browse_domain?: string | null } | null)?.browse_domain ?? null,
     },
   }
+}
+
+/**
+ * PAN-263: the gate's two reads ran on every product request — 0.25–0.66 s of
+ * the page's HTML TTFB on production — and decide nothing the catalogue cache
+ * does not already hold for a minute. Same window, same trade (a depublish or
+ * a publish reaches this gate within `CATALOGUE_REVALIDATE_SECONDS`), recorded
+ * in lib/browse-cache.ts. `cache()` still dedupes generateMetadata and the
+ * layout within one request. The admin session lookup below stays outside the
+ * cache: it is per visitor.
+ */
+const cachedProductState = unstable_cache(readProductState, ['product-state'], {
+  revalidate: CATALOGUE_REVALIDATE_SECONDS,
 })
+const loadProductState = cache(cachedProductState)
 
 /**
  * PAN-246. A canonical product names itself in the `<title>` and carries its

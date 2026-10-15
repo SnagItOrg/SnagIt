@@ -1,8 +1,10 @@
 import { cache } from 'react'
 import type { Metadata } from 'next'
+import { unstable_cache } from 'next/cache'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { CATALOGUE_REVALIDATE_SECONDS } from '@/lib/browse-cache'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
 import { PositionSignal } from '@/components/PositionSignal'
@@ -60,7 +62,8 @@ import { Button } from '@/components/Button'
  * of the document a crawler receives, and the indexability rule below is data,
  * not configuration — it has to be resolved per request. `force-dynamic` plus
  * `revalidate = 0` is what makes §4.2 rule 4 true: publishing a child lifts
- * `noindex` on the next request, with no code change and no deploy.
+ * `noindex` with no code change and no deploy — within a minute since PAN-263
+ * (the reads below sit on the catalogue cache), on the next request before.
  *
  * WHY IT RENDERS DANISH FROM `translations.da` RATHER THAN `useLocale()`.
  * useLocale() is a client hook backed by localStorage; using it would make this
@@ -86,7 +89,7 @@ const t = translations.da
  * must not render "this family has no public variants" — that sentence would be
  * a lie a crawler could cache. The throw reaches app/family/[slug]/error.tsx.
  */
-const loadFamilyView = cache(async (slug: string): Promise<FamilyView | null> => {
+async function readFamilyView(slug: string): Promise<FamilyView | null> {
   const family = getFamily(slug)
   if (!family) return null
 
@@ -190,7 +193,19 @@ const loadFamilyView = cache(async (slug: string): Promise<FamilyView | null> =>
   // Re-derived from the SAME rows, so the children cannot differ between the two
   // calls; the second call only adds the listings those children own.
   return buildFamilyView(family, rows, listingRows.rows)
+}
+
+/**
+ * PAN-263: four serial reads per request measured at 0.52–1.42 s of HTML TTFB
+ * on production (`/family/roland-juno`), now one minute apart per slug on the
+ * catalogue's window (lib/browse-cache.ts records the trade: publishing a
+ * child lifts `noindex` within a minute rather than on the next request).
+ * `cache()` still dedupes generateMetadata and the page within one request.
+ */
+const cachedFamilyView = unstable_cache(readFamilyView, ['family-view'], {
+  revalidate: CATALOGUE_REVALIDATE_SECONDS,
 })
+const loadFamilyView = cache(cachedFamilyView)
 
 /**
  * PAN-130 — the browse root `family.categoryRoot` names, for the middle crumb.
@@ -204,7 +219,11 @@ const loadFamilyView = cache(async (slug: string): Promise<FamilyView | null> =>
  * invented, and the trail falls back to the two crumbs PAN-124 shipped);
  * unavailability is a throw, never a silently shorter trail.
  */
-async function loadCategoryCrumb(rootSlug: string): Promise<{ slug: string; name: string } | null> {
+const loadCategoryCrumb = unstable_cache(readCategoryCrumb, ['family-category-crumb'], {
+  revalidate: CATALOGUE_REVALIDATE_SECONDS,
+})
+
+async function readCategoryCrumb(rootSlug: string): Promise<{ slug: string; name: string } | null> {
   const res = await getSupabaseAdmin()
     .from('kg_category')
     .select('slug, name_da')
