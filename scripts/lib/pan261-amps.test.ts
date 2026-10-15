@@ -276,6 +276,8 @@ test("round 2: the reissues with their own page take their titles and leave the 
   // Marshall: the SLP and the HW each by its cue; a reissue with a 1990-on year is the SLP; the 35th Anniversary and a stack stay out.
   matches('Marshall 1959SLP Super Lead reissue', 'marshall-1959slp')
   matches('Marshall 1959 SLP 100W plexi', 'marshall-1959slp')
+  // PAN-261 I2: a collectible lapel pin of the amp is not the amp.
+  notMatched('Future Primitive Marshall 1959 SLP Plexi Amplifier Head Collectible Lapel Pin w/ Original Card')
   matches('Marshall 1959 Super Lead plexi reissue 2008', 'marshall-1959slp')
   matches('Marshall 1959HW Handwired JMP Reissue 2-Channel 100-Watt Guitar Amp Head', 'marshall-1959hw')
   matches('Marshall 1959 HW hand wired plexi', 'marshall-1959hw')

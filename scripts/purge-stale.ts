@@ -129,7 +129,9 @@ async function listingsRule(db: SupabaseClient, cutoff: string, dir: string, app
   const refExternal = new Set<string>()
   for (const source of [...new Set(pool.map((r) => String(r.source)))]) {
     const ext = text(pool.filter((r) => String(r.source) === source), 'external_id')
-    for (const e of await present(db, 'market_price_observations', 'external_id', ext, 200, ['source', source])) {
+    // 25, not 200: most sources' external_id is a full URL (55–106 chars), and 200 of them overflow the
+    // gateway's request URL ("fetch failed", panter's dry run 2026-10-15). The url checks use 50 for the same reason.
+    for (const e of await present(db, 'market_price_observations', 'external_id', ext, 25, ['source', source])) {
       refExternal.add(externalKey(source, e))
     }
   }
