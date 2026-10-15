@@ -977,7 +977,11 @@ const AMP_ACCESSORIES: readonly string[] = [
   'flightcase', 'flight case', 'road case', 'safe case', 'gig bag', 'gigbag', 'clamshell', 'slip cover', 'stand', 'manual', 'schematic',
   'sticker', 'pedal', 'overdrive pedal', 'di box', 'plugin', 'plug-in', 'cabinet', 'ata', 'anvil', 'poster', 'jewel', 'pilot light', 'lens',
   'transformator', 'udgangstransformator', 'udgangs transformator', 'harmonica', 'harmonicas', 'mundharmonika', 'lanyard',
+  // A cover maker's tagline on a Tone Master listing (panter's I1, 2026-10-15): "… | Ultimate Amp Protection Made in the U.S.A."
+  'amp protection',
 ]
+/** A replacement speaker for the JC-120 / JC-120H, sold by its spec: "Roland 12\" 16 ohm 30-105A JC-120H" (panter's I1). */
+const JC_SPEAKER: readonly string[] = ['ohm', 'ohms', 'højttaler', 'højtaler']
 /** A two-digit year as the reissues write it: "'65 Twin Reverb", "65 Twin Reverb", "’68 Custom"; "1965" is not one. */
 const YY = (yy: string): RegExp => new RegExp(`(?<![\\w-])['’‘]?${yy}(?![\\w-])`)
 const REISSUE: readonly RegExp[] = cues('reissue', 're-issue', 'ri', 'avri')
@@ -1254,7 +1258,8 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'roland-fantom-s': roland('roland-fantom-s'),
   'roland-gr-300': roland('roland-gr-300'),
   'roland-gr-700': roland('roland-gr-700'),
-  'roland-jc-120h': roland('roland-jc-120h'),
+  // The JC-120H head is an amp: its parts are the amp trade's, and a speaker sold by its spec is not it (PAN-261).
+  'roland-jc-120h': { ...roland('roland-jc-120h'), accessories: [...ROLAND_PARTS, ...AMP_ACCESSORIES, ...JC_SPEAKER] },
   'roland-jc-22': roland('roland-jc-22'),
   'roland-jc-85': roland('roland-jc-85'),
   'roland-jd-990': roland('roland-jd-990'),
@@ -2491,7 +2496,7 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'roland-jc-120': {
     line: 'jc',
     otherMembers: [...PAIR_OR_LOT, ...AMP_COPY, ...cues('jc-120h', 'jc120h', 'jc-160', 'jc160', 'jc-40', 'jc-22', 'jc-85', 'jc-77', 'jc-50', 'jc-20', 'jc-01', 'jc-10', 'anniversary', '50th', 'studio slips', 'clamshell')],
-    accessories: AMP_ACCESSORIES,
+    accessories: [...AMP_ACCESSORIES, ...JC_SPEAKER],
   },
   // The Hiwatt DR103 Custom 100 head (CSP 25625): never the DR504 / DR201, the Custom 50 / 20, an SE4123
   // cabinet, a Maxwatt, nor a Hi-Tone or Reeves built like it.
@@ -2660,7 +2665,14 @@ export function lineBoundaryRefusal(title: string, slug: string): string | null 
     const m = re.exec(title)
     if (m) return `other_member:${m[0].toLowerCase()}`
   }
-  const markerAt = earliestInclusionMarker(title.toLowerCase())
+  // A cue the row requires is its model's own word, never an inclusion marker (PAN-261): "Peavey 6505 plus Amp
+  // Cover" and "6505+ 3-Button Footswitch" are a cover and a footswitch, not a head sold with one. The cue is
+  // blanked (same length) before the marker search; "6505+ … W/ New Footswitch" keeps its real marker.
+  const markerTitle = (boundary.requires ?? []).reduce(
+    (t, re) => t.replace(new RegExp(re.source, re.flags.includes('g') ? re.flags : `${re.flags}g`), (m) => ' '.repeat(m.length)),
+    title.toLowerCase(),
+  )
+  const markerAt = earliestInclusionMarker(markerTitle)
   const bundle = boundary.bundles?.some((re) => re.test(title)) ?? false
   // "i god stand" / "flot stand" is the condition, not a stand sold alone.
   const accessoryTitle = title.replace(CONDITION_STAND, (m) => ' '.repeat(m.length))

@@ -53,7 +53,9 @@ const config: RematchConfig = {
     { line: 'bassman', names: /bassman/i, ilike: ['%bassman%'] },
     { line: 'blues-junior', names: /blues\s+j(?:unio)?r/i, ilike: ['%blues junior%', '%blues jr%'] },
     { line: 'tweed-deluxe', names: /tweed\s+deluxe|(?<![\w-])5e3(?![\w-])/i, ilike: ['%tweed deluxe%', '%5e3%'] },
-    { line: 'ac30', names: /(?<![\w-])ac[\s-]?30(?![\w-]|\d)/i, ilike: ['%ac30%', '%ac-30%', '%ac 30%'] },
+    // A glued suffix stays in the cohort ("AC30C2", "AC30CC2", "AC30HW2"): panter's I1 of 2026-10-15 found 0 of 53 AC30
+    // titles reaching the C2 / CC2 rows because the old pattern admitted only a bare "AC30". The boundaries decide.
+    { line: 'ac30', names: /(?<![\w-])ac[\s-]?30(?!\d)/i, ilike: ['%ac30%', '%ac-30%', '%ac 30%'] },
     { line: 'plexi', names: /plexi|super\s?lead|(?<![\w-])1959(?![\w-])/i, ilike: ['%plexi%', '%super lead%', '%superlead%', '%1959%'] },
     { line: 'jcm800', names: /(?<![\w-])220[34](?![\w-])/i, ilike: ['%2203%', '%2204%'] },
     { line: 'rectifier', names: /dual\s+rectifier/i, ilike: ['%dual rectifier%'] },

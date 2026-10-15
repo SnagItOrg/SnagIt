@@ -245,6 +245,9 @@ test('the config names every promoted row and a line for each', () => {
   assert.ok(!config.promoted.includes('roland-jc-120'), 'the JC-120 was supported by the owner, not by a PAN-261 promote file')
   assert.deepEqual(config.supportedToday, ['peavey-5150', 'roland-jc-120'])
   assert.ok(config.lines.some((l) => l.line === 'jc-120' && l.names.test('Roland JC-120 Jazz Chorus') && l.names.test('Roland JC120')), 'the JC-120 line')
+  const ac30 = config.lines.find((l) => l.line === 'ac30')!
+  for (const t of ['Vox AC30C2 guitarforstærker', 'Vox AC30CC2 Custom Classic', 'Vox AC-30C2X', 'Vox AC30 Top Boost 1967']) assert.ok(ac30.names.test(t), `${t} is in the ac30 cohort`)
+  assert.ok(!ac30.names.test('Vox AC300 bass'), 'an AC300 is not')
   for (const l of config.lines) assert.ok(l.ilike.length > 0 && l.names instanceof RegExp)
 })
 
@@ -328,4 +331,22 @@ test('Danish "m" / "m." is "med": an inclusion marker, except after a number (ow
   // An accessory with no marker is still refused.
   notMatched('Vox Vintage Voltage selector 1960-64 AC30')
   notMatched('Udgangs transformator 125A29AX til FENDER TWIN REVERB (radiorør)')
+})
+
+test("panter's I1 (2026-10-15): accessories named after the model's own cue, a part sold for a reissue, a speaker by its spec", () => {
+  // The 6505+'s "plus" / "+" is its name, not an inclusion marker: covers and a footswitch are refused, the heads stay.
+  notMatched('Peavey 6505 plus  Amp Cover - Black leatherette - 2010s')
+  notMatched('Peavey 03582650 6505+ 3-Button Footswitch 2010s - Black')
+  matches('Peavey 6505+ 120-Watt 2-Channel Guitar Amp Head', 'peavey-6505-plus')
+  matches('Peavey 6505+ 2-Channel 120-Watt Guitar Amp Head 2005 - 2022', 'peavey-6505-plus')
+  matches('Peavey 6505+ USA Head W/ New Footswitch!', 'peavey-6505-plus')
+  notMatched('Peavey 6505 Amp Cover')
+  notMatched('Peavey 6505 II amp cover black')
+  // "for Fender '68 Custom …": the reissue year's apostrophe no longer hides the model from the "for" rule.
+  notMatched('"Always On" Plug (TM) for Fender \'68 Custom Vibrolux Reverb Reissue')
+  notMatched("Footswitch for Fender '65 Deluxe Reverb Reissue")
+  // A replacement speaker sold by its spec, and a cover maker's tagline.
+  notMatched('Roland 12" 16 ohm 30-105A JC-120H')
+  matches('Roland JC-120H Jazz Chorus 120-Watt Guitar Head 1984 - 1990', 'roland-jc-120h')
+  notMatched('Fender Tone Master Super Reverb Guitar Amplifiers | Ultimate Amp Protection Made in the U.S.A.')
 })
