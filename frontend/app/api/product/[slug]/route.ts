@@ -8,13 +8,11 @@ import { median as t7Median, partitionByIqr } from '@/lib/statistics'
 import { fetchAllPages } from '@/lib/exhaustive-fetch'
 import {
   buildPopulationStats,
-  classifyListing,
   groupByPopulation,
   homeMarketFirst,
   isPartOrAccessoryListing,
   isPriceEvidence,
-  verdictBasisLabelKey,
-  verdictFor,
+  listingVerdict,
   type PopulationKey,
   type PopulationStats,
 } from '@/lib/price-populations'
@@ -488,7 +486,7 @@ async function buildProductPayload(
   }>
 
   const allMatched = matchRows
-    .map((m) => ({ score: m.score ?? 0, isVerified: isPriceEvidence(m.is_valid), listing: m.listings }))
+    .map((m) => ({ score: m.score ?? 0, isValid: m.is_valid, isVerified: isPriceEvidence(m.is_valid), listing: m.listings }))
     .filter(({ listing }) => listing != null && listing.is_active !== false)
     // Normalise a legacy Kleinanzeigen discount pair before anything renders
     // it. 235240 is 235 EUR now, down from 240 — two real prices welded by an
@@ -509,8 +507,8 @@ async function buildProductPayload(
       const tb = new Date((b.listing?.scraped_at as string) ?? 0).getTime()
       return tb - ta
     })
-    .map(({ isVerified, listing }) => ({ isVerified, listing: toPublicListing(listing) }))
-    .filter((m): m is { isVerified: boolean; listing: NonNullable<typeof m.listing> } => m.listing !== null)
+    .map(({ isValid, isVerified, listing }) => ({ isValid, isVerified, listing: toPublicListing(listing) }))
+    .filter((m): m is { isValid: boolean | null; isVerified: boolean; listing: NonNullable<typeof m.listing> } => m.listing !== null)
 
   /**
    * TWO ELIGIBILITY CONTRACTS, deliberately different. Owner decision,
@@ -692,33 +690,28 @@ async function buildProductPayload(
   }
 
   /**
-   * The deal signal, computed SERVER-SIDE against the listing's OWN population.
+   * The deal signal, computed SERVER-SIDE by `listingVerdict` (PAN-268), the
+   * same function tjek-prisen calls.
    *
    * The client never re-derives quartiles or boundaries — it renders a label.
-   * `verdictFor` refuses anything that is not a complete, width-passing
-   * population of n >= 3 whose key equals the listing's own, so every gate (unreviewed,
-   * missing price_dkk, unknown population, n < 3, listings-only, none,
-   * truncated, too wide, population mismatch) resolves to null here
-   * rather than in a template.
+   * Every wall listing is measured, reviewed or not (A); the bands it is
+   * measured against are still the verified-only `populations` above. A local
+   * listing whose own market has no band is measured against the Reverb asking
+   * band and labelled so (C). Every gate (missing price_dkk, unknown
+   * population, n < 3, truncated, too wide, below the price floor, rejected)
+   * resolves to null there rather than in a template.
    *
-   * Only asking populations can ever produce one: `reverb-sold` is not a
-   * classification any listing receives, so a card verdict can never be
-   * measured against sold prices.
+   * `reverb-sold` is not a classification any listing receives and is never a
+   * fallback, so a card verdict can never be measured against sold prices.
    */
-  const verifiedIds = new Set(verifiedListings.map((l) => l.id))
+  const isValidById = new Map(allMatched.map((m) => [m.listing.id, m.isValid]))
   const listingsWithVerdict = listings.map((listing) => {
-    const population = verifiedIds.has(listing.id)
-      ? classifyListing(listing).population
-      : null
-    const stats = population ? populations[population] : null
-    const outcome = stats
-      ? verdictFor(listing.price_dkk, population, stats)
-      : { verdict: null, against: null, fewN: null }
+    const outcome = listingVerdict(listing, isValidById.get(listing.id), populations)
     return {
       ...listing,
       marketVerdict: outcome.verdict,
       marketVerdictPopulation: outcome.against,
-      marketVerdictBasisLabel: verdictBasisLabelKey(outcome.against),
+      marketVerdictBasisLabel: outcome.basisLabelKey,
       // PAN-265: set when the verdict rests on 3–7 observations; the card shows it.
       marketVerdictFewN: outcome.fewN,
     }

@@ -373,6 +373,7 @@ export const translations = {
     verdictBasisSe: 'I forhold til svenske udbudspriser',
     verdictBasisNo: 'I forhold til norske udbudspriser',
     verdictBasisReverbAsking: 'I forhold til Reverb-udbud',
+    verdictBasisReverbFallback: 'målt mod Reverb',
     priceDataUnavailable: 'Vi kunne ikke hente hele prisgrundlaget for dette produkt lige nu, så vi viser ingen priser her. Annoncerne herunder er upåvirkede.',
     fullRange: 'Hele spændet {low} – {high} kr',
 
@@ -1136,6 +1137,7 @@ export const translations = {
     verdictBasisSe: 'Compared with Swedish asking prices',
     verdictBasisNo: 'Compared with Norwegian asking prices',
     verdictBasisReverbAsking: 'Compared with Reverb asking prices',
+    verdictBasisReverbFallback: 'measured against Reverb',
     priceDataUnavailable: 'We could not read the full price basis for this product right now, so no prices are shown here. The listings below are unaffected.',
     fullRange: 'Full range {low} – {high} kr',
 

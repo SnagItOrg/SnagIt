@@ -5,7 +5,7 @@
  * fetching and the reads; everything it learns is classified here.
  */
 import { detectListingUrl } from './scrapers/listing-url'
-import { classifyListing, verdictFor, type PopulationStats, type Verdict } from './price-populations'
+import { classifyListing, listingVerdict, VERDICT_BASIS_REVERB_FALLBACK, type PopulationStats, type Verdict } from './price-populations'
 import { partitionByIqr } from './statistics'
 import type { Listing } from './supabase'
 
@@ -36,6 +36,13 @@ export interface PriceCheckResult {
   /** Set for a public product only. A private one is never named or linked. */
   product: { slug: string; name: string } | null
   verdict: Verdict | null
+  /** i18n key naming what the verdict was measured against (PAN-268: Danish, or "målt mod Reverb"). */
+  verdictBasis: string | null
+  /**
+   * PAN-265 n of a borrowed Reverb verdict (PAN-268 C) resting on 3–7 prices.
+   * A Danish one leaves it null: `dkFew` is its disclaimer.
+   */
+  verdictFewN: number | null
   /** Each range belongs to one market and is labelled by it. Never blended. */
   ranges: Array<{ market: 'dk-asking' | 'reverb-sold'; low: number; high: number }>
   /**
@@ -315,14 +322,16 @@ export function readLink(
   return { cause: 'unsupported_site', query: null }
 }
 
-type Populations = Partial<Record<'dk-asking' | 'reverb-sold', PopulationStats>>
+type Populations = Partial<Record<'dk-asking' | 'reverb-asking' | 'reverb-sold', PopulationStats>>
 
 /**
  * One of four states.
  *
- * A DBA ad is judged against Danish asking prices or not at all: `verdictFor`
- * refuses any other population. A Thomann product is not an ad, so it never
- * gets a verdict; its answer is that a used-price band exists.
+ * A DBA ad is judged by `listingVerdict`, as its card on the product page is
+ * (PAN-268): against Danish asking prices, or, while Denmark has no band of
+ * its own, against the Reverb asking band and labelled so. Never against sold
+ * prices. A Thomann product is not an ad, so it never gets a verdict; its
+ * answer is that a used-price band exists.
  */
 export function classify(facts: {
   source: PriceCheckSource | null
@@ -332,9 +341,10 @@ export function classify(facts: {
   populations: Populations | null
   /** The product's adjudicated Danish asking prices, as /api/product returns them. */
   dkAskingPrices: readonly number[]
-}): Pick<PriceCheckResult, 'state' | 'verdict' | 'ranges' | 'dkFew'> {
-  if (facts.cause) return { state: 'cant_read', verdict: null, ranges: [], dkFew: null }
-  if (!facts.matched) return { state: 'not_recognised', verdict: null, ranges: [], dkFew: null }
+}): Pick<PriceCheckResult, 'state' | 'verdict' | 'verdictBasis' | 'verdictFewN' | 'ranges' | 'dkFew'> {
+  const noVerdict = { verdict: null, verdictBasis: null, verdictFewN: null }
+  if (facts.cause) return { state: 'cant_read', ...noVerdict, ranges: [], dkFew: null }
+  if (!facts.matched) return { state: 'not_recognised', ...noVerdict, ranges: [], dkFew: null }
 
   const band = (market: 'dk-asking' | 'reverb-sold') => {
     const p = facts.populations?.[market]
@@ -350,13 +360,22 @@ export function classify(facts: {
     : null
 
   if (facts.source === 'dba') {
-    const verdict = dk ? verdictFor(facts.priceDkk, 'dk-asking', dk).verdict : null
-    // PAN-265: a verdict from 3–7 prices keeps the few prices and their caveat beside it.
-    if (verdict) return { state: 'verdict', verdict, ranges: band('dk-asking'), dkFew }
+    // The pasted ad is not a match row, so it has no review state of its own.
+    const outcome = facts.populations
+      ? listingVerdict({ source: 'dba.dk', country: 'DK', price_dkk: facts.priceDkk }, null, facts.populations)
+      : null
+    if (outcome?.verdict) {
+      const borrowed = outcome.basisLabelKey === VERDICT_BASIS_REVERB_FALLBACK
+      // PAN-265: a verdict from 3–7 prices keeps the few prices and their caveat beside it.
+      return {
+        state: 'verdict', verdict: outcome.verdict, verdictBasis: outcome.basisLabelKey,
+        verdictFewN: borrowed ? outcome.fewN : null, ranges: band('dk-asking'), dkFew,
+      }
+    }
     // Reverb sold rides along as a labelled reference, never as a verdict.
-    return { state: 'not_enough_data', verdict: null, ranges: dkFew ? band('reverb-sold') : [], dkFew }
+    return { state: 'not_enough_data', ...noVerdict, ranges: dkFew ? band('reverb-sold') : [], dkFew }
   }
 
   const ranges = [...band('dk-asking'), ...band('reverb-sold')]
-  return { state: ranges.length > 0 ? 'verdict' : 'not_enough_data', verdict: null, ranges, dkFew }
+  return { state: ranges.length > 0 ? 'verdict' : 'not_enough_data', ...noVerdict, ranges, dkFew }
 }

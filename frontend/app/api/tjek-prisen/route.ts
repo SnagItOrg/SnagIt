@@ -6,7 +6,7 @@ import { classify, listingsUnderAnswer, parseLot, readLink, type PriceCheckCause
 import { adStateFrom, canonicalSlugs, guessesFor, recordDemand } from '@/lib/price-check-demand'
 import { reverbSoldGuide } from '@/lib/reverb-sold'
 import { detectNonProductIntent } from '@/lib/matching/listing-intent'
-import type { PopulationKey, PopulationStats } from '@/lib/price-populations'
+import { VERDICT_BASIS_REVERB_FALLBACK, type PopulationKey, type PopulationStats } from '@/lib/price-populations'
 import type { SearchOutcome } from '@/lib/search-contract'
 import { GET as getProduct } from '@/app/api/product/[slug]/route'
 import { GET as resolveSearch } from '@/app/api/search/resolve/route'
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
   const pick = typeof body?.pick === 'string' ? body.pick : null
   const empty: PriceCheckResult = {
     state: 'cant_read', source: null, cause: null, title: null, priceDkk: null,
-    product: null, verdict: null, ranges: [], dkFew: null, guide: null, listings: [], guesses: [], fromPick: false, reverbSold: null, lot: null,
+    product: null, verdict: null, verdictBasis: null, verdictFewN: null, ranges: [], dkFew: null, guide: null, listings: [], guesses: [], fromPick: false, reverbSold: null, lot: null,
   }
   if ('cause' in link) {
     return NextResponse.json({ ...empty, cause: link.cause, guide: await guideFor(req, link.query) })
@@ -145,7 +145,8 @@ export async function POST(req: NextRequest) {
     dkAskingPrices: page?.dkAskingPrices ?? [],
   })
 
-  if (outcome.state === 'not_enough_data' && product) {
+  // A verdict borrowed from Reverb (PAN-268 C) still leaves Denmark without a band of its own.
+  if ((outcome.state === 'not_enough_data' || outcome.verdictBasis === VERDICT_BASIS_REVERB_FALLBACK) && product) {
     // Watch it. A plain insert: the unique index on pending slugs makes a
     // repeat a no-op (23505), which is the idempotence wanted here.
     const { error } = await admin.from('price_fetch_queue').insert({ product_slug: product.slug, status: 'pending' })

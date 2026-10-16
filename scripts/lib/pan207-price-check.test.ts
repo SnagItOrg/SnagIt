@@ -28,13 +28,13 @@ test('verdict: a DBA ad is placed in the Danish band, and only the Danish band',
   assert.deepEqual(thomann.ranges.map((r) => r.market), ['reverb-sold'])
 })
 
-test('not enough data: a Reverb band never judges a DBA ad', () => {
+test('not enough data: Reverb SOLD never judges a DBA ad', () => {
   const thinDk = buildPopulationStats('dk-asking', rows([4000, 5000], 'dba.dk'))
   const result = classify({
     source: 'dba', cause: null, matched: true, priceDkk: 3500,
     populations: { 'dk-asking': thinDk, 'reverb-sold': soldBand }, dkAskingPrices: [],
   })
-  assert.deepEqual(result, { state: 'not_enough_data', verdict: null, ranges: [], dkFew: null })
+  assert.deepEqual(result, { state: 'not_enough_data', verdict: null, verdictBasis: null, verdictFewN: null, ranges: [], dkFew: null })
   // A matched product that is not public arrives with no populations at all.
   assert.equal(classify({ source: 'thomann', cause: null, matched: true, priceDkk: null, populations: null, dkAskingPrices: [] }).state, 'not_enough_data')
 })

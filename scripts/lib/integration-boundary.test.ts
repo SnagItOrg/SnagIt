@@ -247,6 +247,8 @@ test('integration: every package suite is registered exactly once', () => {
       // here, against an import-free module.
       // PAN-267: the browse leaf response is the whole root, not a page of 48.
       'scripts/lib/pan267-browse-whole-root.test.ts',
+      // PAN-268: unreviewed listings are badged (A); a local market with no band borrows Reverb's, labelled (C).
+      'scripts/lib/pan268-badges.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite

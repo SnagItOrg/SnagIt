@@ -271,6 +271,19 @@ export const MIN_DESCRIPTIVE_MEDIAN_N = 3
 export const FEW_BAND_PERCENT = 15
 /** Measurement G3, promoted to a render gate by V1 D7. */
 export const MAX_BAND_WIDTH_RATIO = 10
+/**
+ * PAN-268. Below this percent of the band's median a price gets no verdict.
+ *
+ * Since PAN-268 an unreviewed wall listing is badged too, and the unreviewed
+ * matches are where the parts live: a ROM cartridge, a manual or a side panel
+ * matched to the DX7 (PAN-93's measurement). Such a row would read "under
+ * typisk" in brand green, the strongest claim the wall makes, about something
+ * that is not the product. A fifth of the median is far below any real ask for
+ * the instrument and far above what a knob, a manual or a cable costs, so the
+ * listing shows with no badge rather than a false one. A whole percent, like
+ * FEW_BAND_PERCENT, so the edge is exact.
+ */
+export const MIN_VERDICT_PRICE_PERCENT = 20
 
 export type DisplayTier =
   /**
@@ -498,6 +511,8 @@ export interface VerdictResult {
     | 'insufficient_n'
     | 'width_guard_failed'
     | 'population_mismatch'
+    | 'below_price_floor'
+    | 'rejected_match'
   /**
    * PAN-265: the population's n when the verdict rests on fewer than
    * MIN_BAND_N observations, so the surface can say so. Null at n >= 8 and
@@ -523,9 +538,13 @@ export interface VerdictResult {
  * measuring an asking price against the sold population, which decision C2
  * defers as a separate product decision.
  *
+ * PAN-268: a price below MIN_VERDICT_PRICE_PERCENT of the median gets none.
+ *
  * `listingPopulation` must equal `stats.key`. A verdict measured against
  * another market's band is the blending this module exists to prevent, so it
- * is refused rather than silently computed.
+ * is refused rather than silently computed. The one sanctioned exception is
+ * `listingVerdict`'s labelled Reverb fallback (PAN-268 C), which names the
+ * Reverb population here on purpose.
  */
 export function verdictFor(
   priceDkk: number | null | undefined,
@@ -553,10 +572,77 @@ export function verdictFor(
   if (low == null || high == null) {
     return none('insufficient_n')
   }
+  if (stats.median != null && price * 100 < stats.median * MIN_VERDICT_PRICE_PERCENT) {
+    return none('below_price_floor')
+  }
   const fewN = few ? stats.nFiltered : null
   if (price < low) return { verdict: 'under', against: stats.key, reason: 'ok', fewN }
   if (price > high) return { verdict: 'over', against: stats.key, reason: 'ok', fewN }
   return { verdict: 'typical', against: stats.key, reason: 'ok', fewN }
+}
+
+/**
+ * PAN-268 C: the local markets that, with no band of their own, are measured
+ * against the Reverb asking band. Reverb is not one of them; it has nothing
+ * further to fall back to.
+ */
+const BORROWS_REVERB_BAND: ReadonlySet<PopulationKey> = new Set(['dk-asking', 'de-asking', 'se-asking', 'no-asking'])
+
+/** PAN-268 C: the i18n key a borrowed Reverb verdict carries. The badge shows it in words. */
+export const VERDICT_BASIS_REVERB_FALLBACK = 'verdictBasisReverbFallback'
+
+export interface ListingVerdict extends VerdictResult {
+  /** i18n key naming what the verdict was measured against. Null with no verdict. */
+  basisLabelKey: string | null
+}
+
+/**
+ * THE BADGE ON ONE WALL LISTING — PAN-268, owner decision 2026-10-16 ("Ja, a+c").
+ * The product route and tjek-prisen both call this, so the two surfaces cannot
+ * badge the same listing differently.
+ *
+ * A. Every listing on the wall can carry a badge, reviewed or not. The bands in
+ *    `populations` are still built from verified rows only (PAN-93); only the
+ *    badge reaches the unreviewed row, and MIN_VERDICT_PRICE_PERCENT keeps a
+ *    part off "under typisk". A rejected match (`isValid === false`) is never
+ *    on the wall, and is refused here as well.
+ *
+ * C. A local listing whose own market has no band (tier 'none' or
+ *    'listings-only') is measured against the Reverb ASKING band: both are
+ *    asking prices in DKK (`price_dkk`; Reverb's is converted at scrape time,
+ *    see the file header), and every gate in `verdictFor` (n, width guard, the
+ *    price floor) applies to it unchanged. Reverb SOLD is never a basis (C2).
+ *    The verdict carries VERDICT_BASIS_REVERB_FALLBACK, so the card says
+ *    "målt mod Reverb" and never reads as a Danish verdict. Nothing is pooled:
+ *    the band is Reverb's own, whole. As soon as the own market has a band it
+ *    takes over, including when its width guard then withholds the verdict.
+ */
+export function listingVerdict(
+  listing: ListingClassificationInput & { price_dkk?: number | null },
+  isValid: boolean | null | undefined,
+  populations: Partial<Record<PopulationKey, PopulationStats>>,
+): ListingVerdict {
+  const none = (reason: VerdictResult['reason']): ListingVerdict =>
+    ({ verdict: null, against: null, reason, fewN: null, basisLabelKey: null })
+  if (isValid === false) return none('rejected_match')
+
+  const own = classifyListing(listing).population
+  if (own == null) return none('population_mismatch')
+  const ownStats = populations[own]
+  const ownHasBand = ownStats != null && ownStats.tier !== 'none' && ownStats.tier !== 'listings-only'
+
+  if (ownHasBand || !BORROWS_REVERB_BAND.has(own)) {
+    if (ownStats == null) return none('insufficient_n')
+    const result = verdictFor(listing.price_dkk, own, ownStats)
+    return { ...result, basisLabelKey: verdictBasisLabelKey(result.against) }
+  }
+
+  const reverb = populations['reverb-asking']
+  if (reverb == null) return none('insufficient_n')
+  // The one place a listing is measured against a market not its own: named
+  // here, labelled below.
+  const result = verdictFor(listing.price_dkk, 'reverb-asking', reverb)
+  return { ...result, basisLabelKey: result.verdict ? VERDICT_BASIS_REVERB_FALLBACK : null }
 }
 
 // ── Presentation helpers ────────────────────────────────────────────────────

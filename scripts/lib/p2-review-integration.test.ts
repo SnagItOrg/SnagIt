@@ -92,17 +92,18 @@ test('I3: the wall filter and the freshness contract both survived P2', () => {
 
 test('I4: the deal verdict is computed server-side from the filtered population', () => {
   const route = strip(codeOf(...ROUTE))
-  assert.ok(route.includes('verdictFor('), 'the server computes it')
+  assert.ok(route.includes('listingVerdict('), 'the server computes it')
   assert.ok(route.includes('marketVerdict:'), 'and serialises it onto the listing')
   const page = strip(codeOf(...PAGE))
   assert.equal(page.includes('verdictFor('), false, 'the client never recomputes a verdict')
-  // Only verified listings are eligible; the gate is the verified id set.
-  assert.ok(route.includes('verifiedIds.has(listing.id)'))
+  // PAN-268 A: every wall listing is measured, against bands built from verified rows only.
+  assert.ok(route.includes('listingVerdict(listing, isValidById.get(listing.id), populations)'))
+  assert.ok(route.includes('groupByPopulation(verifiedListings)'))
 })
 
 test('I5: a rejected listing can never receive a verdict', () => {
-  // Rejected rows are absent from `verifiedIds`, so the route passes a null
-  // population — and a null population is refused outright.
+  // Rejected rows never reach the wall (I3); `listingVerdict` refuses them too
+  // (pan268-badges.test.ts). And a null population is refused outright.
   const stats = buildPopulationStats('dk-asking', obs([9000, 10000, 11000, 12000, 13000, 14000, 15000, 16000]))
   assert.equal(stats.tier, 'band', 'a band-tier population, so nothing else is masking the result')
   assert.equal(verdictFor(12000, null, stats).verdict, null)
