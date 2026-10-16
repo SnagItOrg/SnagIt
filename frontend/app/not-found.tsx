@@ -26,12 +26,10 @@ export default function NotFound() {
       className="min-h-screen flex flex-col items-center justify-center px-6 text-center"
       style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
     >
-      <h1
-        className="text-3xl md:text-4xl"
-        style={{ fontFamily: 'var(--font-dm-serif), "DM Serif Display", serif' }}
-      >
-        {t.notFoundHeading}
-      </h1>
+      {/* The role class owns family, size, weight and tracking. The inline
+          font-family this replaced named a face directly, which is exactly
+          what made the refresh a grep instead of a one-line change. */}
+      <h1 className="type-title">{t.notFoundHeading}</h1>
 
       <p className="mt-4 max-w-md text-base" style={{ color: 'var(--muted-foreground)' }}>
         {t.notFoundBody}

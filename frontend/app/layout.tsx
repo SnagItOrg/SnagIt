@@ -1,4 +1,8 @@
-import { Inter, DM_Serif_Display } from "next/font/google";
+import {
+  Bricolage_Grotesque,
+  Instrument_Sans,
+  JetBrains_Mono,
+} from "next/font/google";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ConsentProvider } from "@/components/ConsentProvider";
@@ -58,12 +62,44 @@ import "./globals.css";
  * read, so those two warnings no longer appear.
  */
 
-const inter = Inter({ subsets: ["latin"], display: "swap" });
-const dmSerifDisplay = DM_Serif_Display({
+/**
+ * Three families, one job each (PAN-DESIGN-REFRESH).
+ *
+ * Astryx keeps body, heading and display as SEPARATE family tokens and happens
+ * to point all three at one face in its neutral theme
+ * (packages/themes/neutral/src/neutralTheme.ts:80-90, clone 86e8392). Display
+ * sizes inherit `heading.family` there, so a two-face split is inside their
+ * model rather than a departure from it: Bricolage carries heading AND
+ * display, Instrument Sans carries body.
+ *
+ * `axes: ["opsz"]` is the reason Bricolage is worth loading. Its optical-size
+ * axis runs 12..96, so the display cut is drawn for display sizes instead of a
+ * text cut stretched to 67px. That is what replaces the negative tracking the
+ * old serif roles needed — see the type scale in globals.css.
+ *
+ * All three are variable, so `weight: "variable"` ships one file per family
+ * and the whole 200..800 range, not six static cuts. JetBrains Mono replaces
+ * the `ui-monospace` stack for prices and IDs: digits must be tabular and the
+ * platform default is not, across Mac and Windows.
+ */
+const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
-  weight: "400",
+  weight: "variable",
+  axes: ["opsz"],
   display: "swap",
-  variable: "--font-dm-serif",
+  variable: "--font-display",
+});
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  weight: "variable",
+  display: "swap",
+  variable: "--font-body",
+});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: "variable",
+  display: "swap",
+  variable: "--font-mono",
 });
 
 /**
@@ -124,7 +160,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} ${dmSerifDisplay.variable}`}>
+      <body
+        className={`${bricolage.variable} ${instrumentSans.variable} ${jetbrainsMono.variable}`}
+      >
         <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
           <LocaleProvider>
             <ConsentProvider>

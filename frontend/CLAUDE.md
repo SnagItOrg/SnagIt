@@ -144,7 +144,25 @@ Finn, orange is Reverb. Nearest neighbour is the DBA badge at CIEDE2000 ΔE 17
 (a solid navy pill with white text, never a tint), so the two do not read as
 one sign.
 
-**Typography:** DM Serif Display for headlines, Inter for body.
+**Typography:** two families, one tier each. **Bricolage Grotesque** carries the
+heading tier — `.type-display`, `.type-title`, `.type-heading`,
+`.type-card-title`. **Instrument Sans** carries the body tier — `.type-body`,
+`.type-label`, `.type-meta`. **JetBrains Mono** is `.type-mono`, for prices,
+deltas, counts and IDs; never prose. Apply the role class; never name a face in
+a component, and never set a size with a Tailwind `text-*` utility on a role
+the scale already owns.
+
+Sizes come from one ladder: **base 16px, ratio 1.333** (owner input
+2026-10-16), re-derived to **1.176** for the narrow end so the top step lands
+on 36px instead of 67px — Astryx's own method for the same problem
+(`neutralTheme.ts:98-106`, clone `86e8392`). The steps live in `:root` as
+`--type-s-1` … `--type-s5`.
+
+**Weight is not a size ramp.** 700 on `.type-heading` and `.type-card-title`,
+600 on `.type-display` and `.type-title` — bigger is lighter. This is Astryx's
+`weights: {3: 'bold', 4: 'bold'}` rule (`neutralTheme.ts:77,89`): a subsection
+has no size to spend, so it spends weight. This replaced an earlier rule here
+that nothing may exceed 600.
 
 **Price history / prishistorik:**
 - ONLY on `/saved` and product pages
