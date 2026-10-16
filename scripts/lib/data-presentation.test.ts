@@ -564,8 +564,8 @@ test('PAN-265: the card puts "Til salg i N dage" in the age\'s own place, in bot
   assert.equal((code.match(/\{age\}/g) ?? []).length, 2, 'both variants render the one age string')
   assert.equal(code.includes('{timeSince(firstSeen, locale)}'), false, 'no second, plain age beside it')
   const { translations } = await import('../../frontend/lib/i18n')
-  assert.equal(translations.da.onMarketDays, 'Til salg i {n} dage')
-  assert.equal(translations.en.onMarketDays, 'For sale for {n} days')
+  assert.equal(translations.da.onMarketDays, 'Til salg i mindst {n} dage')
+  assert.equal(translations.en.onMarketDays, 'For sale for at least {n} days')
 })
 
 // ── verdict boundaries ──────────────────────────────────────────────────────

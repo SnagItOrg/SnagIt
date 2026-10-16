@@ -263,7 +263,7 @@ export const translations = {
     // PAN-265: under a verdict that rests on 3–7 asking prices. Asking, never "salg".
     verdictFewData: 'Baseret på få annoncer (n={n})',
     // PAN-265: a DBA ad up for 60 days or more, in place of "64d siden".
-    onMarketDays: 'Til salg i {n} dage',
+    onMarketDays: 'Til salg i mindst {n} dage',
     // Tjek prisen (PAN-207)
     priceCheckHeading: 'Tjek prisen',
     priceCheckIntro: 'Indsæt et link til en DBA-annonce eller et Thomann-produkt, og se hvor prisen ligger.',
@@ -1032,7 +1032,7 @@ export const translations = {
     verdictTypical: 'Typical',
     verdictOver: 'Above typical',
     verdictFewData: 'Based on few listings (n={n})',
-    onMarketDays: 'For sale for {n} days',
+    onMarketDays: 'For sale for at least {n} days',
     // Tjek prisen (PAN-207)
     priceCheckHeading: 'Check the price',
     priceCheckIntro: 'Paste a link to a DBA ad or a Thomann product and see where the price sits.',
