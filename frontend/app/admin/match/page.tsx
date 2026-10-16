@@ -25,6 +25,7 @@ import {
 import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
 import { isApproval, isRejection, type Disposition } from './dispositions'
+import { Icon, type IconName } from '@/components/Icon'
 
 /**
  * Operator-facing labels for each disposition.
@@ -278,7 +279,7 @@ function AdminMatchPageInner() {
     }
   }
 
-  const scoreLabel: Record<Candidate['score'], { label: string; color: string; icon: string }> = {
+  const scoreLabel: Record<Candidate['score'], { label: string; color: string; icon: IconName }> = {
     yes:   { label: 'Relevant',      color: '#16a34a', icon: 'check_circle' },
     maybe: { label: 'Måske',         color: '#d97706', icon: 'help' },
     no:    { label: 'Ikke relevant', color: '#dc2626', icon: 'cancel' },
@@ -432,13 +433,7 @@ function AdminMatchPageInner() {
           className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm outline-none focus:ring-2 focus:ring-primary/30"
         />
         {state.searching && (
-          <span
-            className="material-symbols-outlined absolute right-3 top-2.5 animate-spin text-muted-foreground"
-            style={{ fontSize: 20 }}
-            aria-hidden="true"
-          >
-            progress_activity
-          </span>
+          <Icon name="progress_activity" className="absolute right-3 top-2.5 animate-spin text-muted-foreground" style={{ fontSize: 20 }} />
         )}
         {state.searchResults.length > 0 && (
           <div
@@ -600,16 +595,12 @@ function AdminMatchPageInner() {
                     />
                   ) : (
                     <div className="w-12 h-12 rounded-lg flex-shrink-0 bg-muted flex items-center justify-center">
-                      <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--muted-foreground)' }}>
-                        image_not_supported
-                      </span>
+                      <Icon name="image_not_supported" style={{ fontSize: 16, color: 'var(--muted-foreground)' }} />
                     </div>
                   )}
                   {/* Haiku score */}
                   <div className="flex flex-col items-center gap-0.5 pt-0.5 min-w-[52px]">
-                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: s.color }}>
-                      {s.icon}
-                    </span>
+                    <Icon name={s.icon} style={{ fontSize: 18, color: s.color }} />
                     <span className="text-[10px] font-medium" style={{ color: s.color }}>{s.label}</span>
                   </div>
 
@@ -676,9 +667,7 @@ function AdminMatchPageInner() {
                       className="p-1.5 rounded-lg transition-colors hover:bg-secondary"
                       title="Godkend som præcist match (A)"
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: 18, color: isApproved ? '#16a34a' : 'var(--muted-foreground)' }}>
-                        check
-                      </span>
+                      <Icon name="check" style={{ fontSize: 18, color: isApproved ? '#16a34a' : 'var(--muted-foreground)' }} />
                     </button>
                     <button
                       onClick={() => setDisposition(c.id, 'wrong')}
@@ -687,9 +676,7 @@ function AdminMatchPageInner() {
                       className="p-1.5 rounded-lg transition-colors hover:bg-secondary"
                       title="Afvis — gemmes som varigt nej (R)"
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: 18, color: isRejected ? '#dc2626' : 'var(--muted-foreground)' }}>
-                        close
-                      </span>
+                      <Icon name="close" style={{ fontSize: 18, color: isRejected ? '#dc2626' : 'var(--muted-foreground)' }} />
                     </button>
                   </div>
                 </div>

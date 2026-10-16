@@ -778,7 +778,7 @@
     color: var(--text-primary);
   }
 
-  .toast__dismiss .material-symbols-outlined {
+  .toast__dismiss .icon {
     font-size: 18px;
   }
 
@@ -1294,47 +1294,18 @@
   }
 }
 
-/* Material Symbols Outlined */
-.material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  font-weight: normal;
-  font-style: normal;
+/* Icon — an inline Heroicons SVG (components/Icon.tsx). The box is the one
+   PAN-71 reserved for the font glyph, 1em square at a 24px default, so call
+   sites size an icon with `fontSize` exactly as before and nothing shifts.
+   It stays after the utility layer, as the font rule did, so the cascade
+   every call site was tuned against is unchanged. */
+.icon {
   font-size: 24px;
   line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
   display: inline-block;
-  white-space: nowrap;
-  direction: ltr;
-  -webkit-font-smoothing: antialiased;
   vertical-align: middle;
-  /* PAN-71: reserve the glyph's own box. Every Material Symbols glyph is drawn
-     to a 1em advance, so this is the loaded geometry — stated up front instead
-     of inherited from whatever the fallback font makes of the ligature word.
-     Before this, an icon box was 41px wide while the font loaded and 20px
-     after it landed. `overflow` bounds the fallback to that same box in the
-     one case it can still be painted (see below). */
   width: 1em;
   height: 1em;
-  overflow: hidden;
-}
-
-/* PAN-71: `display=swap` paints a fallback as soon as it can, and for an icon
-   font the fallback is the ligature itself — the literal word "notifications"
-   where an icon belongs. The glyph stays invisible until the font can draw it;
-   layout.tsx adds `icon-font-ready` at that moment. Because the box above is
-   already reserved, revealing changes ink only and shifts nothing.
-
-   `visibility`, not `color: transparent`: call sites set `color` inline
-   (`style={{ color: ... }}`), which would beat a declaration here. None sets
-   `visibility`. */
-html:not(.icon-font-ready) .material-symbols-outlined {
-  visibility: hidden;
-}
-
-.material-symbols-outlined.filled {
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
 /* Price range slider thumb — neutral */

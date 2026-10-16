@@ -18,6 +18,7 @@ import {
   subcategoryLabel,
   type SubcategoryOption,
 } from '@/lib/subcategory-filter'
+import { Icon } from '@/components/Icon'
 
 /**
  * Mirrors `ExposureState` / `SupportState` in `lib/catalogue.ts` as TYPES only.
@@ -392,7 +393,7 @@ export default function AdminProductsPage() {
                 title="Klik for at skifte tier (redaktionelt — ændrer ikke overvågning)"
               >
                 {p.tier === 'legendary' && (
-                  <span className="material-symbols-outlined" style={{ fontSize: 11 }}>workspace_premium</span>
+                  <Icon name="workspace_premium" style={{ fontSize: 11 }} />
                 )}
                 {TIER_LABEL[p.tier]}
               </button>

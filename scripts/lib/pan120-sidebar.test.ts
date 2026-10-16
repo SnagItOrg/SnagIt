@@ -190,7 +190,7 @@ test('the selected nav item is weight and fill, never the accent', () => {
   // state, so the current item is marked by form rather than by hue.
   assert.match(SIDENAV_CODE, /icon: \(selected/)
   assert.match(SIDENAV_CODE, /icon\(isActive\)/)
-  assert.match(SIDENAV_CODE, /'FILL' 1/)
+  assert.match(SIDENAV_CODE, /filled=\{selected\}/)
   assert.match(SIDENAV_CODE, /isActive \? 'font-semibold' : 'font-medium'/)
 
   // Green is exhaustive — Kup-rating, "Aktiv", `under typisk`. Navigation is

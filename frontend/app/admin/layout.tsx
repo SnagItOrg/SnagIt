@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { SkipLink } from '@/components/SkipLink'
-import { Icon } from '@/components/Icon'
+import { Icon, type IconName } from '@/components/Icon'
 import { useLocale } from '@/components/LocaleProvider'
 import type { translations } from '@/lib/i18n'
 
@@ -13,7 +13,7 @@ type AdminNavKey = keyof (typeof translations)['da']['adminNav']
 type AdminNavItem = {
   href: string
   label: AdminNavKey
-  icon: string
+  icon: IconName
   /** A further path prefix this tool owns, e.g. the per-product pages. */
   also?: string
 }
@@ -131,7 +131,8 @@ function AdminNavBody({
                   <Icon
                     name={item.icon}
                     className="flex-shrink-0"
-                    style={{ fontSize: '20px', fontVariationSettings: isCurrent ? "'FILL' 1" : "'FILL' 0" }}
+                    filled={isCurrent}
+                    style={{ fontSize: '20px' }}
                   />
                   {t.adminNav[item.label]}
                 </Link>
