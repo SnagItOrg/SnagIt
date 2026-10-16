@@ -8,7 +8,36 @@
 ## Design system
 - Never use hardcoded color values — always use CSS custom properties (`var(--token)`)
 - Follow the sparse accent rule: green only for Klup's own judgements — Kup-rating, Aktiv badge, `under typisk` verdict. See "Design rules — non-negotiable" for the exhaustive list
-- Reference design.panter.media for component patterns
+- Component patterns come from Astryx (below)
+
+### Astryx governs design — read, not imported
+
+[facebook/astryx](https://github.com/facebook/astryx) (MIT) is Klup's **design
+authority**: component anatomy and states, interaction and ARIA contracts,
+colour, typography and spacing conventions. Owner decision 2026-10-16: "lad
+Astryx styre og ikke mig" — when a design question is open, the answer is what
+Astryx does, not a taste call. Where a rule in this file contradicts Astryx,
+raise it on the ticket; the design refresh replaces the rule rather than
+working around Astryx.
+
+**Never install it** (PAN-111, option B). No `@astryxdesign/*`, no
+`@stylexjs/stylex`, nothing vendored, no component source copied. Astryx
+authors with StyleX; Klup is Tailwind plus CSS custom properties. Read how they
+did it and write ours, in our tokens.
+
+**When you borrow, record it at the site:** what you took, the Astryx
+`file:line` you measured it at, and the clone SHA. A value with no provenance
+cannot be re-checked when they change it.
+
+**Three things stay Klup's own:**
+- **Copy.** Astryx hardcodes English strings, some of them spoken
+  (`aria-roledescription`). Every string goes through `t.key` in `da` and `en`.
+- **What a colour means.** Green says "Klup's judgement" (Kup-rating, Aktiv,
+  under typisk) and violet `--here` says "you are here". The hue values may
+  change with the design refresh; the meanings do not move without the owner.
+- **The platform first.** Do not re-implement what the browser gives you
+  (Carousel has no keydown handler because scroll-snap provides the keyboard
+  story; Astryx has none either).
 
 ### Tokens — `app/globals.css`
 
