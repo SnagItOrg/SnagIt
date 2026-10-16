@@ -8,7 +8,7 @@ import { fill } from '@/lib/i18n'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { priceDkkBucket, track } from '@/lib/analytics'
 import { formatOriginalPrice } from '@/lib/currency'
-import { classifyListing, firstSeenTimestamp, isApproximateDkk, longOnMarketDays } from '@/lib/price-populations'
+import { classifyListing, firstSeenTimestamp, isApproximateDkk, longOnMarketDays, VERDICT_BASIS_REVERB_FALLBACK } from '@/lib/price-populations'
 import { classifyOtpError, type OtpErrorKey } from '@/lib/otp-error'
 import { TextField } from '@/components/TextField'
 import { SourceBadge } from '@/components/SourceBadge'
@@ -144,6 +144,11 @@ interface Props {
  * the only cautionary state; `typical` stays muted because it IS the neutral
  * reading. Both ramps are already defined for light and dark. No new token is
  * introduced, and P2's own PriceAnswer surface remains untinted.
+ *
+ * A VERDICT BORROWED FROM REVERB SAYS SO IN WORDS (PAN-268 C): "Typisk · målt
+ * mod Reverb". Every other basis lives in the tooltip, because it is the
+ * listing's own market; this one is not, and a card must never let it pass as
+ * a Danish verdict.
  */
 const VERDICT_TONE: Readonly<Record<'under' | 'typical' | 'over', {
   bg: string; border: string; fg: string; glyph: string
@@ -180,6 +185,9 @@ export function MarketVerdictBadge({
       {/* Direction as a shape, so the three states differ without colour. */}
       <Icon name={tone.glyph} style={{ fontSize: '16px' }} />
       {label}
+      {basisLabelKey === VERDICT_BASIS_REVERB_FALLBACK && basis && (
+        <span className="font-normal">· {basis}</span>
+      )}
     </span>
   )
   if (fewN == null) return badge

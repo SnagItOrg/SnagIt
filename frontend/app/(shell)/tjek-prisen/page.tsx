@@ -199,7 +199,8 @@ export default function TjekPrisenPage() {
               )}
               <MarketVerdictBadge
                 verdict={result.verdict}
-                basisLabelKey="verdictBasisDk"
+                basisLabelKey={result.verdictBasis}
+                fewN={result.verdictFewN}
                 t={t as unknown as Record<string, string>}
               />
               {result.dkFew && (
