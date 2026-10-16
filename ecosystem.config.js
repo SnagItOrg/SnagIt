@@ -136,6 +136,41 @@ module.exports = {
       },
     },
     {
+      // PAN-264 (owner decision 2026-10-15, 6a; "kør på" 2026-10-16): nightly retention. Deletes
+      // listings inactive for 30 days that nothing references and
+      // listing_staging rows 14 days old whose run was promoted. Exports every
+      // row it deletes to ~/klup-purge-exports/<run>/ first, and refuses a night
+      // above --max (3,000 listings, 10,000 staged rows). The one-time PAN-264
+      // purge ran 2026-10-16.
+      name: 'purge-stale',
+      script: 'npx',
+      args: 'tsx scripts/purge-stale.ts --apply',
+      cron_restart: '30 4 * * *', // daily at 04:30, after the scrapers and fetch-reverb-prices
+      autorestart: false,
+      max_restarts: 0,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
+      // PAN-266 (owner "kør på" 2026-10-16): the nightly recall canary. Read-only: DBA's own search for 38
+      // public products against what the product page shows, with the class of
+      // every miss. Exit 1 and a "[recall-canary] FAIL" line below 80 % recall or
+      // when a product with real supply shows nothing. After scrape-reverb (02:00)
+      // and its matcher, and after process-price-queue has had its hour.
+      name: 'recall-canary',
+      script: 'npx',
+      args: 'tsx scripts/recall-canary.ts --json=/Users/panter/klup-rollbacks/recall-canary-latest.json',
+      cron_restart: '0 5 * * *', // daily at 05:00
+      autorestart: false,
+      max_restarts: 0,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
       name: 'process-price-queue',
       script: 'npx',
       args: 'tsx scripts/process-price-queue.ts',
