@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
+import { Icon } from '@/components/Icon'
 
 type Brand = {
   id: string
@@ -283,12 +284,7 @@ export default function BulkReviewPage() {
       {grouping && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span
-              className="material-symbols-outlined animate-spin"
-              style={{ fontSize: '16px', color: 'var(--primary)' }}
-            >
-              progress_activity
-            </span>
+            <Icon name="progress_activity" className="animate-spin" style={{ fontSize: '16px', color: 'var(--primary)' }} />
             AI grupperer forslag for {selectedBrand?.name}…
           </div>
           {[...Array(3)].map((_, i) => (

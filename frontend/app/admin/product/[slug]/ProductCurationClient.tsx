@@ -34,6 +34,7 @@ import {
   type FacetKey,
   type StoredFacets,
 } from '@/lib/product-facets'
+import { Icon } from '@/components/Icon'
 
 export type ProductHeaderData = {
   id: string
@@ -313,9 +314,7 @@ function ProductHeader({
               className="w-full h-full flex items-center justify-center"
               style={{ color: 'var(--muted-foreground)' }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>
-                image
-              </span>
+              <Icon name="image" style={{ fontSize: '32px' }} />
             </div>
           )}
         </div>

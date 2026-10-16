@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
+import { Icon } from '@/components/Icon'
 
 type User = {
   id: string
@@ -101,12 +102,7 @@ export default function AdminUsersPage() {
                   <span>{u.watchlist_count} overvågninger</span>
                   <span>{u.saved_count} gemte</span>
                 </div>
-                <span
-                  className="material-symbols-outlined text-muted-foreground transition-transform"
-                  style={{ fontSize: '18px', transform: selectedId === u.id ? 'rotate(180deg)' : 'none' }}
-                >
-                  expand_more
-                </span>
+                <Icon name="expand_more" className="text-muted-foreground transition-transform" style={{ fontSize: '18px', transform: selectedId === u.id ? 'rotate(180deg)' : 'none' }} />
               </button>
 
               {selectedId === u.id && (

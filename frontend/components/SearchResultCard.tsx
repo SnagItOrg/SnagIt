@@ -12,7 +12,7 @@ import { classifyListing, firstSeenTimestamp, isApproximateDkk, longOnMarketDays
 import { classifyOtpError, type OtpErrorKey } from '@/lib/otp-error'
 import { TextField } from '@/components/TextField'
 import { SourceBadge } from '@/components/SourceBadge'
-import { Icon } from '@/components/Icon'
+import { Icon, type IconName } from '@/components/Icon'
 import { Button } from '@/components/Button'
 
 // Country name → ISO code for flag emoji lookup
@@ -151,7 +151,7 @@ interface Props {
  * a Danish verdict.
  */
 const VERDICT_TONE: Readonly<Record<'under' | 'typical' | 'over', {
-  bg: string; border: string; fg: string; glyph: string
+  bg: string; border: string; fg: string; glyph: IconName
 }>> = {
   under:   { bg: 'var(--accent-subtle)',      border: 'var(--accent-border)',      fg: 'var(--accent-text)',      glyph: 'south_east' },
   typical: { bg: 'var(--secondary)',          border: 'var(--border)',             fg: 'var(--muted-foreground)', glyph: 'drag_handle' },

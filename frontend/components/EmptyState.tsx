@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Icon } from '@/components/Icon'
+import { Icon, type IconName } from '@/components/Icon'
 import { Button } from '@/components/Button'
 
 /* ==========================================================================
@@ -96,7 +96,7 @@ type Props =
   // quiet line, not a 48px glyph, and `blank` is the kind whose whole character
   // is that it does not assert itself. The other two own their glyph, because
   // the glyph is how they stay legible as something other than failure.
-  | (Common & { kind: 'blank'; icon?: string })
+  | (Common & { kind: 'blank'; icon?: IconName })
   | (Common & { kind: 'monitoring'; icon?: never })
   | (Common & { kind: 'unfollowed'; icon?: never })
 

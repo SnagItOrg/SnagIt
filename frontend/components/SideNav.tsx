@@ -804,7 +804,8 @@ export function SideNav() {
           icon: (selected) => (
             <Icon
               name="grid_view"
-              style={{ fontSize: '20px', fontVariationSettings: selected ? "'FILL' 1" : "'FILL' 0" }}
+              filled={selected}
+              style={{ fontSize: '20px' }}
             />
           ),
         },
@@ -829,7 +830,8 @@ export function SideNav() {
           icon: (selected) => (
             <Icon
               name="notifications"
-              style={{ fontSize: '20px', fontVariationSettings: selected ? "'FILL' 1" : "'FILL' 0" }}
+              filled={selected}
+              style={{ fontSize: '20px' }}
             />
           ),
         },

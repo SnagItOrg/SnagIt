@@ -7,7 +7,6 @@ import { ConsentFooterControl } from "@/components/ConsentFooterControl";
 import { AnalyticsRoot } from "@/components/AnalyticsRoot";
 import { logPostHogMisconfigurationOnce } from "@/lib/analytics";
 import { siteMetadata } from "@/lib/site-metadata";
-import { ICON_FONT_HREF } from "@/lib/icon-font";
 import "./globals.css";
 
 /**
@@ -36,26 +35,12 @@ import "./globals.css";
  * than operational and is consent-gated too — which is why guardrail G8 is
  * measured on the consenting population only.
  *
- * THE ICON FONT <link> TAGS WERE CHANGED BY PAN-71, and nothing else here was.
- * They used to request every axis range of Material Symbols with
- * `display=block` — a 3.98 MB download that painted nothing for its first
- * three seconds and then the literal ligature text ("notifications") until it
- * landed, 22 s under the throttled profile. The URL now pins the three axes
- * the design never varies (GRAD 0, opsz 24, wght 400) and keeps only
- * FILL 0..1, which `.filled` in globals.css uses: 460 KB, 8.7x smaller.
- * `display=swap` replaces `block`, and globals.css keeps the glyph invisible
- * with its box reserved until the font is usable, so no ligature is ever
- * painted and the swap changes ink only, never geometry.
- *
- * The two `no-page-custom-font` warnings remain and are expected. The two
- * `google-font-display` warnings are gone — that rule was reporting exactly
- * this bug — so the tracked lint baseline for this file is now two, not four.
- *
- * PAN-167 CHANGED ONLY THE URL: it now carries `icon_names`, built from the
- * glyph list in lib/icon-font.ts, so the font is 7.5 KB instead of 452 KB.
- * Everything above about axes, `swap` and the reveal script still holds. The
- * href is now an expression, which the `no-page-custom-font` rule does not
- * read, so those two warnings no longer appear.
+ * THERE IS NO ICON FONT. PAN-71 and PAN-167 shrank the Material Symbols
+ * request (3.98 MB, then 460 KB, then a 7.5 KB subset) and hid the ligature
+ * text behind a reveal script until it loaded. Icons are now inline Heroicons
+ * SVGs (components/Icon.tsx), so the third-party stylesheet, its preload, the
+ * font file and the reveal script are all gone, and an icon paints with the
+ * HTML that carries it.
  */
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
@@ -89,41 +74,6 @@ export default function RootLayout({
 
   return (
     <html lang="da" suppressHydrationWarning>
-      <head>
-        <link
-          rel="preload"
-          href={ICON_FONT_HREF}
-          as="style"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="stylesheet"
-          href={ICON_FONT_HREF}
-          crossOrigin="anonymous"
-        />
-        {/*
-          Reveals the icons once the font can actually paint a glyph; until
-          then globals.css holds them invisible in a reserved box, so the
-          ligature text never reaches the screen.
-
-          THIS MUST STAY AFTER THE STYLESHEET <link> ABOVE. A classic script is
-          blocked until every stylesheet declared before it has loaded, and
-          that is what guarantees the @font-face exists by the time
-          `fonts.load()` is asked for it — asked any earlier it resolves
-          immediately against nothing and would reveal the ligature.
-
-          A font that fails outright still reveals, because a clipped 1em box
-          beats navigation with no icons in it at all.
-        */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              '(function(){var e=document.documentElement,r=function(){e.classList.add("icon-font-ready")};' +
-              'if(!document.fonts||!document.fonts.load){r();return}' +
-              'document.fonts.load(\'20px "Material Symbols Outlined"\').then(r,r)})();',
-          }}
-        />
-      </head>
       <body className={`${inter.className} ${dmSerifDisplay.variable}`}>
         <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
           <LocaleProvider>

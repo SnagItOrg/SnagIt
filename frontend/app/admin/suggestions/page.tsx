@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
+import { Icon } from '@/components/Icon'
 
 type Suggestion = {
   id: string
@@ -295,7 +296,7 @@ export default function AdminSuggestionsPage() {
                             className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
                             title="Rediger navn"
                           >
-                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit</span>
+                            <Icon name="edit" style={{ fontSize: '14px' }} />
                           </button>
                         </div>
                       )}

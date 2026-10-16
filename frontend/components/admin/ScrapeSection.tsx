@@ -24,6 +24,7 @@
 import { useState } from 'react'
 import { ReassignPanel } from '@/components/admin/ReassignPanel'
 import { StatusChip, type MatchReviewStatus } from '@/components/admin/ProductReviewControls'
+import { Icon } from '@/components/Icon'
 
 export type MatchedListing = {
   id: string
@@ -414,9 +415,7 @@ export function ScrapeSection({
                           className="w-full h-full flex items-center justify-center"
                           style={{ color: 'var(--muted-foreground)' }}
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
-                            image
-                          </span>
+                          <Icon name="image" style={{ fontSize: '24px' }} />
                         </div>
                       )}
                     </div>
