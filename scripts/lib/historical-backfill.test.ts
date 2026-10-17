@@ -27,3 +27,25 @@ test('PAN-262: the cohort is active, titled, row-less listings, oldest first, ti
   // --ids narrows the cohort but never admits a listing that holds a match row.
   assert.deepEqual(ids(backfillCohort(rows, withRow, 10, new Set(['c', 'matched']))), ['c'])
 })
+
+test('PAN-266 G4: --from excludes rows scraped before the cursor, inclusive, and the md5 covers it', () => {
+  const rows = [
+    row('old', { scraped_at: '2026-09-01T10:00:00+00:00' }),
+    row('cursor', { scraped_at: '2026-09-23T00:04:20.064+00:00' }),
+    row('later', { scraped_at: '2026-10-01T00:00:00+00:00' }),
+    row('matched', { scraped_at: '2026-10-02T00:00:00+00:00' }),
+  ]
+  const ids = (xs: BackfillRow[]) => xs.map((r) => r.id)
+  const withRow = new Set(['matched'])
+  const from = '2026-09-23T00:04:20.064+00:00'
+
+  // The previous round's printed "last" is this round's --from, and is selected again (its ties too); a
+  // row it decided wrote nothing, so re-deciding it is harmless, and a row that holds a match row stays out.
+  assert.deepEqual(ids(backfillCohort(rows, withRow, 10, undefined, from)), ['cursor', 'later'])
+  assert.deepEqual(ids(backfillCohort(rows, withRow, 1, undefined, from)), ['cursor'])
+  assert.deepEqual(ids(backfillCohort(rows, withRow, 10)), ['old', 'cursor', 'later'])
+  // The digest names the cursor, so an --apply given a cursorless md5 is refused; without one it is the PAN-262 digest.
+  const cohort = backfillCohort(rows, withRow, 10, undefined, from)
+  assert.notEqual(selectionDigest(cohort, from), selectionDigest(cohort))
+  assert.equal(selectionDigest(cohort, undefined), selectionDigest(cohort))
+})

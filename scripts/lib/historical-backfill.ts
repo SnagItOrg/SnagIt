@@ -21,20 +21,27 @@ export interface BackfillRow {
 /**
  * The backfill cohort, in its stable order, capped at `max`. `ids`, when given, narrows it to
  * those listings (the fixture run); a named listing that holds a match row is still left out.
+ * `from` (PAN-266, G4) is a `scraped_at` lower bound, inclusive: a `none` or `deferred` decision
+ * writes no row, so without it every round re-selects the oldest `max` rows and a cohort larger
+ * than the cap is never covered. Each round's `--from` is the previous round's printed "last".
  */
 export function backfillCohort(
   rows: readonly BackfillRow[],
   withMatchRow: ReadonlySet<string>,
   max: number,
   ids?: ReadonlySet<string>,
+  from?: string,
 ): BackfillRow[] {
   return rows
-    .filter((r) => r.is_active && r.title !== null && !withMatchRow.has(r.id) && (!ids || ids.has(r.id)))
+    .filter((r) => r.is_active && r.title !== null && !withMatchRow.has(r.id) && (!ids || ids.has(r.id)) && (!from || r.scraped_at >= from))
     .sort((a, b) => (a.scraped_at < b.scraped_at ? -1 : a.scraped_at > b.scraped_at ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .slice(0, max)
 }
 
-/** md5 of the selected ids in cohort order: the dry run prints it, and --apply must be given it. */
-export function selectionDigest(cohort: readonly BackfillRow[]): string {
-  return createHash('md5').update(cohort.map((r) => r.id).join('\n')).digest('hex')
+/**
+ * md5 of the selected ids in cohort order, prefixed by the cursor when one is set: the dry run
+ * prints it, and --apply must be given it. Without a cursor the digest is the PAN-262 one.
+ */
+export function selectionDigest(cohort: readonly BackfillRow[], from?: string): string {
+  return createHash('md5').update(from ? `from=${from}\n` : '').update(cohort.map((r) => r.id).join('\n')).digest('hex')
 }
