@@ -7,8 +7,8 @@
  * for the rows that predate those batches (PAN-262).
  *
  * Usage (from the repository root):
- *   npx tsx scripts/match-listings.ts --historical-backfill --sources=dba.dk --max=N [--ids=a,b] [--show=N]
- *   npx tsx scripts/match-listings.ts --historical-backfill --sources=dba.dk --max=N --apply \
+ *   npx tsx scripts/match-listings.ts --historical-backfill --sources=dba.dk --max=N [--ids=a,b] [--from=<scraped_at>] [--show=N]
+ *   npx tsx scripts/match-listings.ts --historical-backfill --sources=dba.dk --max=N [--from=<scraped_at>] --apply \
  *     --expect-selection=<md5 printed by the dry run> [--out-dir=DIR]
  *   npx tsx scripts/match-listings.ts --rollback=DIR/backfill-rollback-<ts>.json [--apply]
  *
@@ -70,7 +70,9 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 // The cohort (scripts/lib/historical-backfill.ts): active listings from
 // --sources with NO listing_product_match row, oldest scraped_at first, ties
 // broken by id. A listing with any row, so any verdict, is never selected, and
-// is re-checked just before its batch is written. PM2 must never invoke this
+// is re-checked just before its batch is written. --from=<scraped_at> (PAN-266,
+// G4) excludes rows scraped before the cursor, so a cohort larger than --max is
+// covered round by round; the md5 covers the cursor. PM2 must never invoke this
 // command — see ecosystem.config.js.
 const argv = process.argv.slice(2)
 const flag = (name: string) => argv.find(a => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=')
@@ -82,6 +84,7 @@ const SOURCES_ARG = flag('sources') ?? null
 const MAX_ARG     = flag('max') ?? null
 const IDS         = flag('ids') ? new Set(flag('ids')!.split(',').map(s => s.trim()).filter(Boolean)) : undefined
 const EXPECT      = flag('expect-selection')
+const FROM        = flag('from')
 const SHOW        = Number(flag('show') ?? 3)
 const OUT_DIR     = flag('out-dir') ?? path.join(os.tmpdir(), 'backfill')
 
@@ -159,17 +162,19 @@ function forecast(cohort: BackfillRow[], index: MatchIndex, show: number): Recor
   return totals
 }
 
-async function backfill(db: SupabaseClient, sources: string[], max: number): Promise<void> {
+async function backfill(db: SupabaseClient, sources: string[], max: number, from?: string): Promise<void> {
   const [rows, index] = await Promise.all([readSourceListings(db, sources), loadMatchIndex(db)])
   const active = rows.filter(r => r.is_active)
   const matched = await withMatchRow(db, active.map(r => r.id))
-  const cohort = backfillCohort(rows, matched, max, IDS)
-  const digest = selectionDigest(cohort)
+  const cohort = backfillCohort(rows, matched, max, IDS, from)
+  const digest = selectionDigest(cohort, from)
   const pool = backfillCohort(rows, matched, Number.MAX_SAFE_INTEGER).length
+  const atOrAfter = from ? backfillCohort(rows, matched, Number.MAX_SAFE_INTEGER, undefined, from).length : pool
 
   console.log(`${rows.length} listings from ${sources.join(',')}: ${active.length} active, ${matched.size} of them hold a match row`)
   console.log(`${rows.length - active.length} inactive listings are not selected`)
-  console.log(`cohort: ${pool} active listings with no match row, ordered scraped_at, id; selected ${cohort.length}` +
+  console.log(`cohort: ${pool} active listings with no match row, ordered scraped_at, id` +
+    (from ? `; ${atOrAfter} at or after --from=${from}` : '') + `; selected ${cohort.length}` +
     (IDS ? ` of ${IDS.size} named by --ids` : ` (--max=${max})`))
   if (IDS) for (const id of Array.from(IDS)) if (!cohort.some(r => r.id === id)) {
     const r = rows.find(x => x.id === id)
@@ -188,6 +193,7 @@ async function backfill(db: SupabaseClient, sources: string[], max: number): Pro
   fs.writeSync(fd, JSON.stringify({
     started_at: new Date().toISOString(),
     selection_md5: digest,
+    from: from ?? null,
     forecast: totals,
     listing_ids: cohort.map(r => r.id),
     held_rows: [],
@@ -227,12 +233,13 @@ async function main() {
   if (!Number.isInteger(max) || max <= 0) refuse(`--max must be a positive integer, got ${MAX_ARG}`)
   if (max > MAX_HISTORICAL_APPLY) refuse(`--max=${max} exceeds the ${MAX_HISTORICAL_APPLY} ceiling`)
   if (APPLY && !EXPECT) refuse('--apply requires --expect-selection=<the md5 the dry run printed>')
+  if (FROM !== undefined && Number.isNaN(Date.parse(FROM))) refuse(`--from must be a scraped_at timestamp as the dry run prints it, got ${FROM}`)
 
   console.log(
     `[match-listings] HISTORICAL BACKLOG MODE — sources=${sources.join(',')} ` +
-    `max=${max} ${DRY_RUN ? '(DRY RUN — no rows will be written)' : '(APPLY — rows WILL be written)'}`,
+    `max=${max}${FROM ? ` from=${FROM}` : ''} ${DRY_RUN ? '(DRY RUN — no rows will be written)' : '(APPLY — rows WILL be written)'}`,
   )
-  await backfill(supabase, sources, max)
+  await backfill(supabase, sources, max, FROM)
 }
 
 main().then(() => process.exit(0), err => {
