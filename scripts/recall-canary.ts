@@ -110,9 +110,16 @@ async function main(): Promise<void> {
   const config = loadConfig()
   const db = client()
   const index = await loadMatchIndex(db)
-  // Every supported product, for the slug of a match row that points elsewhere.
-  const { data: allProducts } = await db.from('kg_product').select('id, slug')
-  const slugById = new Map<string, string>((allProducts ?? []).map((p) => [String(p.id), String(p.slug)]))
+  // Every product, for the slug of a match row that points elsewhere. Paged: PostgREST returns at most
+  // 1,000 rows per request, and the KG holds about 4,500, so an unpaged read left most slugs unknown and
+  // the 2026-10-16 run reported the U87 Ai's own row as `matched_other a7e63634…:true`.
+  const slugById = new Map<string, string>()
+  for (let from = 0; ; from += 1000) {
+    const { data: page, error } = await db.from('kg_product').select('id, slug').order('id').range(from, from + 999)
+    if (error) throw new Error(`kg_product: ${error.message}`)
+    for (const p of page ?? []) slugById.set(String(p.id), String(p.slug))
+    if (!page || page.length < 1000) break
+  }
   const pageCache = new Map<string, Set<string>>()
   const results: ProductResult[] = []
 

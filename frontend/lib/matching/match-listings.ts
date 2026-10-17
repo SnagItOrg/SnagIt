@@ -241,7 +241,8 @@ interface LineBoundary {
   /** Members of one line share this name; see decideMatch step 5b. */
   line: string
   otherMembers: readonly RegExp[]
-  accessories?: readonly string[]
+  /** A noun as a whole word or phrase, or a RegExp where the noun is a code with a number (ROLAND_CARD_CODE). */
+  accessories?: readonly (string | RegExp)[]
   requires?: readonly RegExp[]
   /**
    * A title naming one of these is a bundle OF the product, so its accessory nouns are the
@@ -328,7 +329,7 @@ const moog = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
  *   `switches`, `motor`, `boards`             "NEW SWITCHES", "Re-Capped, Motor", "Expansion Boards"
  *   `programmer`                              "D-50 and PG-1000 programmer"
  */
-const ROLAND_PARTS: readonly string[] = [
+const ROLAND_PARTS: readonly (string | RegExp)[] = [
   'board', 'key contact', 'mainboard', 'motherboard', 'pcb', 'pwb',
   'knob', 'knobs', 'button', 'buttons', 'switch', 'caps', 'springs', 'screws', 'spacers',
   'bracket', 'inlet', 'escutcheon', 'battery holder', 'battery door', 'rubber foot', 'feet', 'backlight', 'sensor',
@@ -345,6 +346,15 @@ const ROLAND_PARTS: readonly string[] = [
   'ks-j8', 'rack ears', 'rack ear', 'pad mount', 'mounting plate',
   'service kit', 'rebuild kit', 'repair kit', 'tape loops', 'tape echo loops', 'pinch roller', 'roller', 'solenoid', 'bearing',
   'latches', 'thumb nuts', 'vu meter', 'felts', 'sticker', 'magnets', 'catalog', 'poster',
+  // PAN-266. A wave-expansion card for the host module, in Danish and as Reverb writes it: "Roland SN‑U110‑08 –
+  // PCM expansionskort" (DBA 12816052, matched to roland-u-110 on 2026-10-16 and rejected by the manager),
+  // "Roland SR-JV80-02 Orchestral ekspansionsboard til synth", "SN-U110-11 Sound Effects PCM Data Card for U-110".
+  'expansionskort', 'ekspansionsboard', 'pcm card', 'pcm data card', 'pcm kort', 'wave expansion',
+  // The card named by its own code with its number: SN-U110-01…12 (U-110 / U-220 / D-70), SR-JV80-01…99 (JV / XP / XV),
+  // SRX-01…12 (XV / Fantom). A code alone can no longer reach the host (its hyphens keep "U110" glued, see
+  // foldHyphens), so this refuses the title that names both, "Roland U-110 - SN-U110-07 Expansion Card", while a
+  // module sold with a card keeps its marker: "ROLAND JV-1080 w/SR-JV80-06" is the JV-1080 (trusted production match).
+  /(?<![\w-])(?:sn-u110|sr-jv80|srx)-\d{2}(?![\w-])/i,
 ]
 
 /**
@@ -690,8 +700,19 @@ export function expandJunior(text: string): string {
   return text.replace(JUNIOR_ABBREVIATION, 'junior')
 }
 
+/**
+ * PAN-266. A seller's hyphen may be U+2010 (HYPHEN) or U+2011 (NON-BREAKING HYPHEN), which no `-` test
+ * reads: "Roland SN‑U110‑08 – PCM expansionskort" (DBA 12816052) was the only SN-U110 card title in
+ * production to reach roland-u-110, because its "U110" stood free between two characters that were
+ * neither word nor hyphen. Folded to `-` before anything reads the title; an en or em dash is a
+ * separator ("SN-U110-08 – PCM") and stays.
+ */
+export function foldHyphens(text: string): string {
+  return text.replace(/[‐‑]/g, '-')
+}
+
 export function modelCodeForm(text: string): string {
-  return text
+  return foldHyphens(text)
     .toLowerCase()
     .replace(/(?<![a-z])mk[\s-]?(?:2|ii|ⅱ)(?![a-z0-9])/g, ' ii')
     .replace(/(?<![a-z])mk[\s-]?(?:3|iii)(?![a-z0-9])/g, ' iii')
@@ -2724,8 +2745,8 @@ export function lineBoundaryRefusal(title: string, slug: string): string | null 
   // "i god stand" / "flot stand" is the condition, not a stand sold alone.
   const accessoryTitle = title.replace(CONDITION_STAND, (m) => ' '.repeat(m.length))
   for (const noun of bundle ? [] : boundary.accessories ?? []) {
-    const m = cue(noun).exec(accessoryTitle)
-    if (m && !(markerAt !== -1 && markerAt < m.index)) return `accessory:${noun}`
+    const m = (typeof noun === 'string' ? cue(noun) : noun).exec(accessoryTitle)
+    if (m && !(markerAt !== -1 && markerAt < m.index)) return `accessory:${typeof noun === 'string' ? noun : m[0].toLowerCase()}`
   }
   if (boundary.requires && !boundary.requires.some((re) => re.test(title))) {
     return 'no_member_cue'
@@ -2984,7 +3005,7 @@ function strongest(candidates: MatchCandidate[]): MatchCandidate {
  * broken by explicit evidence or fails closed.
  */
 export function decideMatch(title: string, index: MatchIndex): MatchDecision {
-  const norm = hyphenateMartinCodes(title.toLowerCase().trim())
+  const norm = hyphenateMartinCodes(foldHyphens(title.toLowerCase().trim()))
 
   // Best candidate per product, so one product cannot appear twice and inflate
   // or mask a tie.
