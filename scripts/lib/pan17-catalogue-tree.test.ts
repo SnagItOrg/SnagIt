@@ -48,7 +48,6 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import {
-  FACET_SUBCATEGORIES,
   buildCatalogueTree,
   compareRootsByCountThenName,
   sortKindsByLabel,
@@ -169,9 +168,9 @@ test('PAN-17: an unpopulated branch cannot render, and depth stops at two', () =
   }
 
   // Counts reconcile to the rows served, per node and in total — so two
-  // branches cannot cancel each other's error out. Since PAN-121 round 2 a
-  // root's products are its kinds' plus its facets'; since round 3 a node's
-  // count and its membership list are the same set.
+  // branches cannot cancel each other's error out. A root's products are its
+  // kinds' (PAN-269: every populated leaf is a kind); since PAN-121 round 3 a
+  // node's count and its membership list are the same set.
   assert.equal(tree.reduce((n, c) => n + c.product_count, 0), 49)
   for (const category of tree) {
     assert.equal(category.product_slugs.length, category.product_count)
@@ -183,13 +182,16 @@ test('PAN-17: an unpopulated branch cannot render, and depth stops at two', () =
     }
   }
 
-  // PAN-121 round 2 — ONLY A KIND IS A NODE. A facet leaf never becomes a
-  // subcategory; its products belong to the root alone. An unlisted leaf is a
-  // kind, so nothing leaves the navigation without being listed.
+  // PAN-269 — EVERY POPULATED LEAF IS A NODE. PAN-121 round 2 had parked
+  // five guitar leaves (solid body, semi-hollow, dreadnought, jumbo,
+  // 4-string) on their roots as "facets", so El-guitarer showed two kinds in
+  // the sidebar beside a chip row of five. The owner reversed it: the sidebar
+  // mirrors the chip row, and a leaf never leaves the navigation by being
+  // listed somewhere.
   //
-  // PAN-138: analog and digital synths are no longer facets but ONE kind, a
-  // group node whose label is the copy handed in (no kg_category row exists)
-  // and whose membership is both leaves. Every keyboards product is in a kind.
+  // PAN-138: analog and digital synths are ONE kind, a group node whose label
+  // is the copy handed in (no kg_category row exists) and whose membership is
+  // both leaves. Every keyboards product is in a kind.
   const keys = tree.find((c) => c.slug === 'keyboards-and-synths')
   assert.deepEqual(
     keys?.subcategories.map((s) => s.slug),
@@ -202,15 +204,15 @@ test('PAN-17: an unpopulated branch cannot render, and depth stops at two', () =
   assert.equal(synths?.product_count, 15)
   assert.ok(synths?.product_slugs.includes('analog-synths-0'))
   assert.ok(synths?.product_slugs.includes('digital-synths-0'))
-  assert.deepEqual(tree.find((c) => c.slug === 'electric-guitars')?.subcategories, [])
+  const guitars = tree.find((c) => c.slug === 'electric-guitars')
+  assert.deepEqual(guitars?.subcategories.map((s) => s.slug), ['solid-body', 'semi-hollow'])
+  assert.equal(guitars?.product_count, 11)
   for (const category of tree) {
-    for (const sub of category.subcategories) {
-      assert.equal(
-        FACET_SUBCATEGORIES.has(`${category.slug}/${sub.slug}`),
-        false,
-        `${category.slug}/${sub.slug} is a facet and must not be a node`,
-      )
-    }
+    assert.equal(
+      category.subcategories.reduce((n, s) => n + s.product_count, 0),
+      category.product_count,
+      `${category.slug} holds a product outside its kinds`,
+    )
   }
   const unlisted = buildCatalogueTree([row('new-0', 'keyboards-and-synths', 'modular-synths')], NAMES)
   assert.deepEqual(unlisted[0].subcategories.map((s) => s.slug), ['modular-synths'])
