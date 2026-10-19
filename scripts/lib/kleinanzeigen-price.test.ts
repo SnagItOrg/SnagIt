@@ -788,16 +788,20 @@ test('an admin writer cannot copy an implausible price onto a product', () => {
 test('the price band and Intel still drop the row entirely', () => {
   // These readers legitimately exclude, rather than sanitise: a band computed
   // from a false price is worse than a band with one fewer observation.
-  const product = readFileSync(
-    join(ROOT, 'frontend', 'app', 'api', 'product', '[slug]', 'route.ts'), 'utf8')
+  // PAN-272: the product route's wall split lives in lib/listing-verdicts.ts,
+  // which the family page shares, so the exclusion is asserted there.
+  const product = readFileSync(join(ROOT, 'frontend', 'lib', 'listing-verdicts.ts'), 'utf8')
   assert.ok(/hasPlausibleListingPrice\(\{/.test(product), 'the price band must exclude')
+  const route = readFileSync(
+    join(ROOT, 'frontend', 'app', 'api', 'product', '[slug]', 'route.ts'), 'utf8')
+  assert.ok(route.includes('wallMatches(matchRows)'), 'the route builds its wall through the shared split')
   const intel = readFileSync(join(ROOT, 'frontend', 'app', 'intel', 'page.tsx'), 'utf8')
   assert.ok(/if \(!hasPlausibleListingPrice\(l\)\) continue/.test(intel), 'Intel must exclude')
 })
 
 test('every listings reader either excludes or sanitises — none renders raw', () => {
   const readers = [
-    ['frontend/app/api/product/[slug]/route.ts', 'excludes'],
+    ['frontend/lib/listing-verdicts.ts', 'excludes'],
     ['frontend/app/intel/page.tsx', 'excludes'],
     ['frontend/app/api/admin/match/candidates/route.ts', 'sanitises'],
     ['frontend/app/api/admin/product/[slug]/save-listing/route.ts', 'sanitises'],

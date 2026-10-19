@@ -1,14 +1,13 @@
 import { cache } from 'react'
 import type { Metadata } from 'next'
 import { unstable_cache } from 'next/cache'
-import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CATALOGUE_REVALIDATE_SECONDS } from '@/lib/browse-cache'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
+import { FamilyListingCard } from '@/components/FamilyListingCard'
 import { PositionSignal } from '@/components/PositionSignal'
-import { SourceBadge } from '@/components/SourceBadge'
 import { TrackView } from '@/components/TrackView'
 import { buildPositionSignal } from '@/lib/position-signal'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
@@ -22,6 +21,7 @@ import {
   type FamilyView,
 } from '@/lib/families'
 import { translations, fill } from '@/lib/i18n'
+import { loadChildVerdicts } from '@/lib/listing-verdicts'
 import { SITE_URL } from '@/lib/site-metadata'
 import { Icon } from '@/components/Icon'
 import { Button } from '@/components/Button'
@@ -45,6 +45,14 @@ import { Button } from '@/components/Button'
  * into. `image_url` is the seller's photo: it is provenance, like `source`,
  * and states no price. `url` is deliberately absent too — a row here links to
  * the MODEL, never off-site to a price with no verdict attached.
+ *
+ * PAN-272 (owner decision 2026-10-19): each listing's card now carries ITS
+ * OWN CHILD'S VERDICT — the word, computed in lib/listing-verdicts.ts against
+ * the band of the model the listing is matched to, the way that model's own
+ * page computes it. That module reads the prices, builds each child's bands
+ * from that child's rows alone and hands back verdicts; this file still
+ * selects no price column and holds no band. The family has no band and no
+ * median, before or after.
  *
  * IT DOES NOT READ THE BROWSE PROJECTION'S PRE-AGGREGATED ACTIVE-LISTING COUNT
  * — the column is named in the test that forbids it, not here, so the guard
@@ -166,6 +174,12 @@ async function readFamilyView(slug: string): Promise<FamilyView | null> {
     explicit rejection, exactly as /api/product does — so a match adjudicated
     wrong cannot be counted here while the product page declines to render it.
   */
+  // PAN-272: the verdicts are a second read of the same match rows, with the
+  // prices this read deliberately lacks. The two run together so the page
+  // waits for the slower of them, not for both in turn; the read lives in
+  // lib/listing-verdicts.ts, so this route still names no price column.
+  const verdictsPromise = loadChildVerdicts(admin, childIds)
+
   const listingRows = await fetchAllPages(
     async (from, to) => {
       // A transport-level rejection never reaches the `{ data, error }` shape,
@@ -191,8 +205,9 @@ async function readFamilyView(slug: string): Promise<FamilyView | null> {
   )
 
   // Re-derived from the SAME rows, so the children cannot differ between the two
-  // calls; the second call only adds the listings those children own.
-  return buildFamilyView(family, rows, listingRows.rows)
+  // calls; the second call only adds the listings those children own, each
+  // with the verdict of the child it is attributed to.
+  return buildFamilyView(family, rows, listingRows.rows, await verdictsPromise)
 }
 
 /**
@@ -473,55 +488,14 @@ export default async function FamilyPage(ctx: { params: Promise<{ slug: string }
               system, and `SourceBadge` is the shared chip /product/[slug]
               renders through SearchResultCard.
 
-              WHAT THE ROW CARRIES: a photo, the seller's title, the model it
-              is matched to, and the marketplace it came from. No price, no
-              band, no median, no verdict, and no link that leaves Klup.
+              The row itself is `FamilyListingCard` (PAN-272), shared with
+              brand browsing. What it carries — and what it never may — is
+              documented there.
             */}
             <ul className="grid-family-listings">
               {listings.map((listing) => (
                 <li key={listing.id} className="flex">
-                  <Link
-                    href={`/product/${listing.childSlug}`}
-                    className="surface-card flex w-full gap-3 rounded-2xl p-3 transition-colors hover:border-line-strong"
-                  >
-                    <div className="size-16 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
-                      {listing.imageUrl ? (
-                        <Image
-                          src={listing.imageUrl}
-                          /* The title is read out on the next line, so the
-                             photo is decorative and an alt would repeat it. */
-                          alt=""
-                          width={128}
-                          height={128}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <Icon
-                            name="image"
-                            style={{ fontSize: '20px', color: 'var(--text-muted)' }}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-                      <span className="line-clamp-2 text-sm font-medium leading-snug wrap-anywhere">
-                        {listing.title}
-                      </span>
-                      {/* One line, never two. The model name truncates and the
-                          chip keeps its width, so a long child label cannot
-                          silently add a 24px line to a row — measured on
-                          fender-telecaster, 22 of 71 rows were doing exactly
-                          that at 390px. */}
-                      <span className="flex min-w-0 items-center gap-1.5">
-                        <span className="type-meta truncate">{listing.childLabel}</span>
-                        <span className="flex-shrink-0">
-                          <SourceBadge source={listing.source} />
-                        </span>
-                      </span>
-                    </div>
-                  </Link>
+                  <FamilyListingCard listing={listing} t={t as unknown as Record<string, string>} />
                 </li>
               ))}
             </ul>

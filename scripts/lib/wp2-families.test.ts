@@ -40,6 +40,8 @@ import {
 
 import { ROUTE_ACCESS, requiresAuth } from '../../frontend/lib/route-access'
 import { FAMILY_CARD_MIN_CHILDREN } from '../../frontend/lib/family-cards'
+import { cardVerdictsByProduct, type MatchWithListing } from '../../frontend/lib/listing-verdicts'
+import { MIN_BAND_N } from '../../frontend/lib/price-populations'
 
 const FRONTEND = join(__dirname, '..', '..', 'frontend')
 
@@ -736,10 +738,10 @@ test('listings: a family aggregates its children’s listings, de-duplicated and
   assert.equal(view.listings.find((l) => l.id === 'L1')!.imageUrl, null)
 
   // PRICE ISOLATION, STRUCTURALLY — the PAN-56 assertion, extended to listings.
-  // No asking price, band, median, verdict or sold population may cross the
-  // family boundary inside a listing. Widening this shape is the way the rule
-  // is lost, so the shape is pinned exactly and every key must also be
-  // checked for MEANING: this assertion used to be a count ("five keys and no
+  // No asking price, band, median or sold population may cross the family
+  // boundary inside a listing. Widening this shape is the way the rule is
+  // lost, so the shape is pinned exactly and every key must also be checked
+  // for MEANING: this assertion used to be a count ("five keys and no
   // sixth"), and a count cannot tell a price from a photo.
   //
   // `imageUrl` is the sixth key. It carries the seller's photo, which is
@@ -747,15 +749,23 @@ test('listings: a family aggregates its children’s listings, de-duplicated and
   // band and settles no verdict, and /product/[slug] and /search already
   // publish it for these same rows. The two assertions below are what the
   // count was standing in for, now stated directly.
-  const priceShaped = /price|band|median|verdict|aggregate|count|currency|msrp/i
+  //
+  // `verdict` is the seventh (PAN-272, owner decision 2026-10-19): the word
+  // the listing's OWN CHILD's page would show for it, or null. It is checked
+  // for meaning below the key scan — a word, a basis label key and a small
+  // sample count, never a number a price could hide in — and the PAN-272 test
+  // further down pins that it is never built from two children's rows.
+  const priceShaped = /price|band|median|aggregate|count|currency|msrp/i
   for (const listing of view.listings) {
     assert.deepEqual(
       Object.keys(listing).sort(),
-      ['childLabel', 'childSlug', 'id', 'imageUrl', 'source', 'title'],
+      ['childLabel', 'childSlug', 'id', 'imageUrl', 'source', 'title', 'verdict'],
     )
     for (const key of Object.keys(listing)) {
       assert.equal(priceShaped.test(key), false, key)
     }
+    // No verdicts were passed in, so none is attached.
+    assert.equal(listing.verdict, null)
     // Not price-shaped, and still forbidden: an off-site link is how a
     // navigation row would become an exit to an unverdicted marketplace price.
     assert.equal(Object.prototype.hasOwnProperty.call(listing, 'url'), false)
@@ -772,6 +782,99 @@ test('listings: a family aggregates its children’s listings, de-duplicated and
   const empty = buildFamilyView(jazzBass, [], listingRows)
   assert.deepEqual(empty.children, [])
   assert.deepEqual(empty.listings, [])
+})
+
+/**
+ * PAN-272 (owner decision 2026-10-19). A family page's card may say "under /
+ * typisk / over" — measured against the band of the CHILD the listing is
+ * attributed to, the way that child's product page measures it. The family
+ * itself still has no band. Pinned four ways on one fixture:
+ *
+ *   1. the verdict is a word plus how to qualify it, and nothing numeric a
+ *      price could travel in;
+ *   2. two children's prices never meet: a child with too few rows yields
+ *      null even when the other child's rows would make a band for it;
+ *   3. a listing matched to two children takes the verdict of the child it is
+ *      SHOWN under (first in reviewed order), never the other's;
+ *   4. a truncated read builds no band, so every card is unbadged rather
+ *      than badged from a fragment.
+ */
+test('PAN-272: a listing’s verdict is its own child’s, and no family band exists', () => {
+  const family = getFamily('rhodes')!
+  const [first, second] = family.children
+  const rows: FamilyChildRow[] = [
+    { ...canonicalRow(first, 'Rhodes Mark I Stage 73'), id: 'id-1' },
+    { ...canonicalRow(second, 'Rhodes Mark I Suitcase 73'), id: 'id-2' },
+  ]
+  const dk = (id: string, price: number, extra: Partial<MatchWithListing['listings'] & object> = {}) => ({
+    id, title: `Rhodes ${id}`, url: `https://dba.dk/${id}`, source: 'dba.dk', country: 'DK',
+    price, price_dkk: price, is_active: true, scraped_at: '2026-10-19T00:00:00Z', ...extra,
+  })
+  // The first child: eight reviewed Danish prices, 10,000–10,700 — a band.
+  const evidence = Array.from({ length: MIN_BAND_N }, (_, i) => ({
+    product_id: 'id-1', is_valid: true, listings: dk(`E${i}`, 10000 + i * 100),
+  }))
+  const matches = [
+    ...evidence,
+    // Unreviewed rows on the first child's wall: badged (PAN-268 A), not counted.
+    { product_id: 'id-1', is_valid: null, listings: dk('L-under', 8000) },
+    { product_id: 'id-1', is_valid: null, listings: dk('L-typical', 10300) },
+    { product_id: 'id-1', is_valid: null, listings: dk('L-over', 20000) },
+    // The second child: two reviewed rows, no band of its own.
+    { product_id: 'id-2', is_valid: true, listings: dk('S1', 10100) },
+    { product_id: 'id-2', is_valid: true, listings: dk('S2', 10200) },
+    { product_id: 'id-2', is_valid: null, listings: dk('L-second', 8000) },
+    // One listing matched to BOTH children.
+    { product_id: 'id-1', is_valid: null, listings: dk('L-both', 8000) },
+    { product_id: 'id-2', is_valid: null, listings: dk('L-both', 8000) },
+    // A rejection: never on the wall, never judged.
+    { product_id: 'id-1', is_valid: false, listings: dk('L-rejected', 8000) },
+  ]
+
+  const verdicts = cardVerdictsByProduct(matches)
+  const firstChild = verdicts.get('id-1')!
+  assert.equal(firstChild.get('L-under')?.verdict, 'under')
+  assert.equal(firstChild.get('L-typical')?.verdict, 'typical')
+  assert.equal(firstChild.get('L-over')?.verdict, 'over')
+  assert.equal(firstChild.has('L-rejected'), false)
+  // (1) A word, how to qualify it, and nothing else.
+  for (const v of firstChild.values()) {
+    assert.deepEqual(Object.keys(v).sort(), ['basisLabelKey', 'fewN', 'verdict'])
+    assert.ok(['under', 'typical', 'over'].includes(v.verdict))
+    assert.equal(v.fewN, null, 'eight observations is a band, not a small sample')
+  }
+  // (2) Never pooled. Ten Danish prices sit across the two children; the
+  // second has two, so its listing gets no verdict — a family band would have
+  // called 8,000 "under".
+  assert.equal(verdicts.get('id-2')!.has('L-second'), false)
+  assert.equal(verdicts.get('id-2')!.has('L-both'), false)
+
+  // (3) Through buildFamilyView the shared listing is attributed to the first
+  // child and judged by it; the second child's listing carries null.
+  const listingRows: FamilyListingRow[] = matches
+    .filter((m) => m.is_valid !== false)
+    .map((m) => ({ product_id: m.product_id, is_valid: m.is_valid, listings: { id: m.listings.id, title: m.listings.title, source: 'dba.dk', is_active: true } }))
+  const view = buildFamilyView(family, rows, listingRows, verdicts)
+  const byId = new Map(view.listings.map((l) => [l.id, l]))
+  assert.equal(byId.get('L-both')!.childSlug, first)
+  // The basis key names the listing's OWN market (the badge's tooltip); only a
+  // borrowed Reverb basis is spelled out on the badge (PAN-268 C).
+  assert.deepEqual(byId.get('L-both')!.verdict, { verdict: 'under', basisLabelKey: 'verdictBasisDk', fewN: null })
+  assert.deepEqual(byId.get('L-under')!.verdict, { verdict: 'under', basisLabelKey: 'verdictBasisDk', fewN: null })
+  assert.equal(byId.get('L-second')!.childSlug, second)
+  assert.equal(byId.get('L-second')!.verdict, null)
+  // The evidence rows are listings too, and are judged like any other.
+  assert.equal(byId.get('E0')!.verdict?.verdict, 'under')
+  // The reverse attribution never happens: a listing shown under the second
+  // child is not judged by the first child's band.
+  const reversed = buildFamilyView({ ...family, children: [second, first] }, rows, listingRows, verdicts)
+  const both = reversed.listings.find((l) => l.id === 'L-both')!
+  assert.equal(both.childSlug, second)
+  assert.equal(both.verdict, null)
+
+  // (4) An incomplete read builds nothing.
+  const truncated = cardVerdictsByProduct(matches, { incomplete: true })
+  assert.equal(truncated.get('id-1')!.size, 0)
 })
 
 test('rhodes: the family slug is a navigation label, never a product (PAN-84)', () => {
@@ -1079,7 +1182,8 @@ test('hierarchy: familyForChild resolves a product to its family, and nothing el
 })
 
 test('navigation: the family route links only to /browse, its browse root and canonical children', () => {
-  const page = readRepoFile('app/(shell)/family/[slug]/page.tsx')
+  // PAN-272: the listing row is `FamilyListingCard`, so its link is read there.
+  const page = readRepoFile('app/(shell)/family/[slug]/page.tsx') + readRepoFile('components/FamilyListingCard.tsx')
   const hrefs = [...page.matchAll(/href=(?:\{`|["'])([^"'`]+)/g)].map((m) => m[1])
   assert.equal(hrefs.length > 0, true, 'expected at least one link')
   for (const href of hrefs) {

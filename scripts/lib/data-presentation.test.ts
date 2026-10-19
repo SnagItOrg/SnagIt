@@ -1069,13 +1069,16 @@ test('verdict 18: the basis label names the correct asking population', () => {
 /* ── card rendering + public copy ─────────────────────────────────────────── */
 
 const CARD = join(__dirname, '..', '..', 'frontend', 'components', 'SearchResultCard.tsx')
+/** PAN-272: the badge lives in its own file, so a server component can render it. */
+const BADGE = join(__dirname, '..', '..', 'frontend', 'components', 'MarketVerdictBadge.tsx')
 
 test('verdict 15/16: the card renders a badge for each verdict and nothing for null', () => {
   const code = codeOf(CARD)
+  const badge = codeOf(BADGE)
   assert.ok(code.includes('MarketVerdictBadge'), 'the badge component exists')
-  assert.ok(code.includes('t.verdictUnder') && code.includes('t.verdictTypical') && code.includes('t.verdictOver'),
+  assert.ok(badge.includes('t.verdictUnder') && badge.includes('t.verdictTypical') && badge.includes('t.verdictOver'),
     'all three labels are rendered from i18n')
-  assert.ok(/if \(!verdict\) return null/.test(code), 'no badge, and no placeholder gap, without a verdict')
+  assert.ok(/if \(!verdict\) return null/.test(badge), 'no badge, and no placeholder gap, without a verdict')
   // Rendered in both card variants.
   assert.equal((code.match(/<MarketVerdictBadge/g) ?? []).length, 2)
   assert.equal(code.includes('KUP-RATING'), false, 'the dead placeholder is gone')
@@ -1087,13 +1090,13 @@ test('verdict 15c: the badge itself introduces no transition-all', () => {
   // belonged to P3. P3 has since replaced all four with named transition
   // properties, so the expected count is now zero rather than four.
   const code = codeOf(CARD)
-  const badge = code.slice(code.indexOf('function MarketVerdictBadge'), code.indexOf('export function SearchResultCard'))
+  const badge = codeOf(BADGE)
   assert.equal(badge.includes('transition-all'), false)
   assert.equal((code.match(/transition-all/g) ?? []).length, 0, 'P3 removed the last four')
 })
 
 test('verdict 15b: the badge is never colour alone and carries its basis', () => {
-  const code = codeOf(CARD)
+  const code = codeOf(BADGE)
   assert.ok(code.includes('aria-label'), 'accessible label')
   assert.ok(code.includes('title={basis'), 'basis is reachable on hover')
 })
@@ -1121,7 +1124,7 @@ test('verdict labels are never rebranded as a buy recommendation', async () => {
 
 test('PAN-265: a verdict on 3–7 prices shows its n under the badge on both card variants', () => {
   const code = codeOf(CARD)
-  const badge = code.slice(code.indexOf('function MarketVerdictBadge'), code.indexOf('export function SearchResultCard'))
+  const badge = codeOf(BADGE)
   assert.ok(badge.includes('fill(t.verdictFewData, { n: fewN })'), 'the disclaimer is rendered text from i18n, not a tooltip')
   assert.equal((code.match(/fewN=\{marketVerdictFewN\}/g) ?? []).length, 2, 'both variants pass it')
   const route = codeOf(join(__dirname, '..', '..', 'frontend', 'app', 'api', 'product', '[slug]', 'route.ts'))
