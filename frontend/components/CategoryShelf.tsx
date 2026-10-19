@@ -12,16 +12,18 @@ import type { HomeCategory } from '@/lib/home-categories'
  *
  * WHY EVERY ROOT IS HERE, INCLUDING THE TEN EMPTY ONES. PAN-86 offered three
  * models; this is option 3, and it is a product decision rather than a layout
- * one. Four of the fourteen renderable music roots have public products today,
+ * one. Four of the twelve renderable music roots have public products today,
  * so showing only those would render a four-card homepage that quietly implies
- * Klup's taxonomy IS those four. Showing all fourteen with an honest count
+ * Klup's taxonomy IS those four. Showing all twelve with an honest count
  * makes coverage legible before the click — and the click still lands
  * somewhere that explains itself.
  *
- * Fourteen and not fifteen: `isRenderableRoot()` drops `music-gear`, the
- * legacy coarse root, which `/browse` has always hidden. Rendering it here
- * would have made the two surfaces disagree about whether a category exists —
- * the same class of defect as a count in front of nothing.
+ * Twelve and not fifteen: `isRenderableRoot()` drops `music-gear`, the
+ * legacy coarse root, which `/browse` has always hidden, and (PAN-270) the
+ * two roots the owner keeps out of the experience, `accessories` and
+ * `parts`. Rendering any of them here would make the surfaces disagree about
+ * whether a category exists — the same class of defect as a count in front
+ * of nothing.
  *
  * THE COUNT IS PRODUCTS, AND IT IS THE DESTINATION'S OWN NUMBER. `/browse/
  * <slug>` reports the same figure as `total_public_products`, from the same

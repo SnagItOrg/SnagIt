@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { preload } from 'react-dom'
-import { useParams, useSearchParams, useRouter } from 'next/navigation'
+import { notFound, useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { ProductCard } from '@/components/ProductCard'
@@ -76,6 +76,16 @@ function BrowseCategoryPageInner() {
   const [data, setData] = useState<BrowseData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  /**
+   * PAN-270 — the API said this root does not exist (a slug that never was
+   * one, or a root the owner keeps out of the experience: `accessories`,
+   * `parts`). That is a 404, not an error line in a page that otherwise
+   * renders as a category, so it is raised from render, where `notFound()`
+   * reaches the not-found boundary — thrown from inside the fetch it would
+   * only land in the effect's catch.
+   */
+  const [missing, setMissing] = useState(false)
+  if (missing) notFound()
   const [isAdmin, setIsAdmin] = useState(false)
   const debugEnabled = searchParams.get('debug') === '1'
 
@@ -177,6 +187,10 @@ function BrowseCategoryPageInner() {
     if (!params.root) return
     const res = await fetch(`/api/browse/${params.root}${debugEnabled ? '?debug=1' : ''}`)
     const next = await res.json().catch(() => null)
+    if (res.status === 404) {
+      setMissing(true)
+      return
+    }
     if (!res.ok) {
       throw new Error(next?.error ?? 'Failed to load browse category')
     }

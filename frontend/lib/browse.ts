@@ -8,6 +8,7 @@ import {
   loadSupportedSlugs,
 } from '@/lib/catalogue'
 import {
+  EXCLUDED_ROOT_SLUGS,
   HOME_CATEGORY_DOMAIN,
   LEGACY_COARSE_ROOT_SLUG,
   buildHomeCategories,
@@ -391,7 +392,11 @@ async function fetchMusicTaxonomy(admin: SupabaseClient) {
   }
 
   return {
-    roots: (rootsRes.data ?? []) as RootCategoryRow[],
+    // PAN-270: the roots the owner keeps out of the experience leave here, so
+    // the tiles and the debug nodes never name them.
+    roots: ((rootsRes.data ?? []) as RootCategoryRow[]).filter(
+      (root) => !EXCLUDED_ROOT_SLUGS.has(root.slug),
+    ),
     subcategories: (subcategoriesRes.data ?? []) as SubcategoryRow[],
   }
 }
@@ -820,7 +825,11 @@ export async function buildBrowseRootResponse(args: {
 export async function buildCatalogueTreeResponse(
   admin: SupabaseClient,
 ): Promise<{ categories: CatalogueTreeCategory[] }> {
-  const rows = await fetchPublicBrowseRows(admin)
+  // PAN-270: a product under an excluded root (none today) would otherwise
+  // open a branch the tiles and the homepage do not show.
+  const rows = (await fetchPublicBrowseRows(admin)).filter(
+    (row) => !EXCLUDED_ROOT_SLUGS.has(row.root_category_slug ?? ''),
+  )
   return { categories: buildCatalogueTree(rows, subcategoryGroupNames(translations)) }
 }
 
@@ -849,6 +858,9 @@ export async function buildBrowseLeafResponse(args: {
   // now raises.
   if (rootErr) throw new CatalogueUnavailableError('root_category_lookup')
   if (!rootCat) return null
+  // PAN-270: a root kept out of the experience has no page either — the same
+  // 404 as a slug that was never a root, so the URL is not a dead end.
+  if (EXCLUDED_ROOT_SLUGS.has(rootCat.slug)) return null
 
   const { data: subcatsRaw, error: subErr } = await admin
     .from('kg_category')
