@@ -841,6 +841,21 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: ['fender-blues-junior', 'fender-blues-junior-iii', 'fender-blues-junior-iv'],
     aliases: [],
   },
+  /**
+   * PAN-271 (trumpets first). One name, three bells whose markets differ: the
+   * 37 is the orchestral standard, the 43 brighter, the 72 darker and rarer.
+   * Each bell is its own priced row (`bach-stradivarius-<bell>`, created by
+   * the PAN-271 files); the family never aggregates them. Inert until the
+   * owner's public step makes a child canonical. The aliases are how Nordic
+   * sellers write the line; a bare bell number is never an alias (§4.3).
+   */
+  'bach-stradivarius': {
+    label: 'Bach Stradivarius',
+    brand: 'Bach',
+    categoryRoot: 'band-and-orchestra',
+    children: ['bach-stradivarius-37', 'bach-stradivarius-43', 'bach-stradivarius-72'],
+    aliases: ['stradivarius', 'strad', 'bach strad', 'bach stradivarius'],
+  },
 }
 
 /** Every family, in `FAMILY_SLUGS` order. */

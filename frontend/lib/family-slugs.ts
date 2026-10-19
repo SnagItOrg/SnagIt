@@ -66,6 +66,8 @@ export const FAMILY_SLUGS = [
   'universal-audio-1176',
   // PAN-261 (owner, 2026-10-14). Not `fender-blues-junior`: that is the original's own priced page.
   'fender-blues-junior-amp',
+  // PAN-271. The `rhodes` case: no row today. The bells (37, 43, 72) are the priced pages.
+  'bach-stradivarius',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]

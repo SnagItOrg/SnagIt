@@ -1138,6 +1138,40 @@ const marshallJcm800 = (own: string, ...others: string[]): LineBoundary => ({
   ],
   accessories: [...AMP_ACCESSORIES, 'tb'],
 })
+// ── PAN-271: the brass section, trumpets first ────────────────────────────
+/**
+ * What the trumpet trade sells beside the horn, measured on the 96 DBA, 789 Finn and 99 Blocket titles
+ * that name a trumpet (read-only, 2026-10-19): 30 of DBA's 74 unique titles were mouthpieces, mutes,
+ * method books and sheet music. A case, a bag or a stand is NOT here: "Trompet i etui" sells the horn and
+ * "i" is no inclusion marker, and the Norwegian "topp stand" is a condition; a case sold alone names its
+ * model after "til" or "for", which the matcher already reads. Marker-aware, as every accessory list is:
+ * "YTR-2330 trompet med mundstykke" keeps the trumpet.
+ */
+const BRASS_ACCESSORIES: readonly string[] = [
+  'mouthpiece', 'mouthpieces', 'mundstykke', 'mundstykker', 'munnstykke', 'munnstykker', 'munstycke', 'munstycken', 'mundstück',
+  'mute', 'mutes', 'sordin', 'dæmper', 'silent brass', 'leadpipe', 'lead pipe', 'ventilolie', 'valve oil', 'slide grease',
+  'cleaning rod', 'cleaning snake', 'bore brush', 'maintenance kit', 'trim kit', 'lyre',
+  'noder', 'nodehæfte', 'nodebog', 'noter', 'nothäfte', 'notenheft', 'bog', 'book', 'bok', 'method', 'skole', 'cd', 'lp', 'dvd', 'vinyl',
+]
+/** A Yamaha YTR row: the model number is the whole identity, so only the trade's extras and a lot refuse. */
+const ytr = (): LineBoundary => ({ line: 'ytr', otherMembers: PAIR_OR_LOT, accessories: BRASS_ACCESSORIES })
+/**
+ * A Bach Stradivarius bell (37, 43, 72) is a Bb trumpet row: the Stradivarius trombones (36, 42, 50), cornets (181,
+ * 184), C trumpets (C180 / 229) and flugelhorns are other products; the Mt. Vernon and New York eras and a
+ * Corporation bell are collector pieces priced apart from the row (a row for them is an owner decision); and
+ * "Bach" is also the composer, so a recording, a score or an organ is refused by name. Measured on the 18 DBA
+ * "stradivarius" titles (12 of them violins) and the Finn / Blocket Bach titles of 2026-10-19.
+ */
+const BACH_NOT_THIS_TRUMPET: readonly RegExp[] = [
+  ...PAIR_OR_LOT,
+  ...cues('basun', 'trækbasun', 'trombone', 'tenortrombone', 'tenor trombone', 'bastrombone', 'bass trombone',
+    'kornet', 'kornett', 'cornet', 'flugelhorn', 'flygelhorn', 'piccolo', 'piccolotrompet', 'sousafon', 'sousaphone', 'tuba', 'euphonium',
+    'c-trompet', 'c trompet', 'c trumpet', 'c-trumpet', '229', 'c180', 'c190',
+    'mt vernon', 'mt. vernon', 'mount vernon', 'new york', 'corporation', 'mercedes',
+    'violin', 'fiol', 'viola', 'cello', 'orgel', 'organ', 'kantate', 'cantata', 'brandenburg', 'j.s.', 'js bach', 'johann sebastian'),
+]
+const stradivarius = (): LineBoundary => ({ line: 'stradivarius', otherMembers: BACH_NOT_THIS_TRUMPET, accessories: BRASS_ACCESSORIES })
+
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
   'moog-minimoog': {
@@ -2715,6 +2749,21 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'dave-smith-instruments-tempest': { line: 'tempest', otherMembers: [], accessories: SEQ_PARTS },
   'dave-smith-instruments-tetra': { line: 'tetra', otherMembers: [], accessories: SEQ_PARTS },
   'davesmithinstruments-pro2': { line: 'pro-2', otherMembers: [], accessories: SEQ_PARTS },
+  // PAN-271: the trumpet rows. A Yamaha model number carries its own boundary ("YTR-2330" never reads as "YTR-2335",
+  // and the finish suffix glues to the number, so "YTR-2330S" reaches the row only through its identifier); the row
+  // is the model, not the finish (owner, 2026-10-03). A brandless or modelless "trompet" names no row at all.
+  'yamaha-ytr-232': ytr(),
+  'yamaha-ytr-1335': ytr(),
+  'yamaha-ytr-2320': ytr(),
+  'yamaha-ytr-2330': ytr(),
+  'yamaha-ytr-2335': ytr(),
+  'yamaha-ytr-4335gii': ytr(),
+  'yamaha-ytr-8310z': ytr(),
+  'yamaha-ytr-8335': ytr(),
+  'yamaha-ytr-8345': ytr(),
+  'bach-stradivarius-37': stradivarius(),
+  'bach-stradivarius-43': stradivarius(),
+  'bach-stradivarius-72': stradivarius(),
 }
 
 /**
