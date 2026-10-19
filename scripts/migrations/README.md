@@ -570,7 +570,7 @@ listing ingested before it. `listings` itself is not touched.
 | PRE / POST / DRIFT | PRE (table absent, legacy set exactly 324 pairs with md5 `0a6c0a9a…c324`, measured on production 2026-10-08) creates and inserts, then a postflight in the transaction; POST (this shape, closed, those 324 seen pairs) is a no-op; anything else raises before any change. |
 | Rollback | `066_rollback.sql`. Refuses while the table holds any row other than the 324 `seen` pairs (a delivery row is the only record of a mail); drops it otherwise; absent is a no-op. |
 | Rehearsal | PGlite, 16 checks (`rehearse066.mjs`, kept in `~/klup-rollbacks/opus1-2026-10-08/pan12/` on the MacBook): PRE, listings untouched, closed despite the open default privilege, POST, the runner's claim once per pair, the CHECK, rollback refusing with a delivery row, rollback to byte-identical `listings`, absent no-op, re-apply, and DRIFT on a changed legacy set, an open grant and a missing seen row. `verify-migrations-isolated.sh` was not run: the authoring machine has no local PostgreSQL. |
-| Writer | `scripts/notify-watchlists.ts` (PM2 on panter). It refuses to run until 066 is applied. |
+| Writer | `scripts/notify-watchlists.ts` (PM2 on panter). `--apply` refuses until 066 is applied; the dry run previews the last 24 h without it. |
 
 ## 067 — `active_listing_counts_mv`, the browse count precomputed. **NOT APPLIED — proposal (PAN-263).**
 
