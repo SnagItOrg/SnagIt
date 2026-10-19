@@ -234,6 +234,8 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan266-expansion-cards.test.ts',
       // PAN-266: a model code in one form — glued, spaced, hyphenated, generation glued or apart.
       'scripts/lib/pan266-model-code-form.test.ts',
+      // PAN-266: a power cable, a stand, amplifier boards or a plug-in that names a product is not the product.
+      'scripts/lib/pan266-parts-plugins.test.ts',
       // PAN-266: the nightly recall canary's decisions — which DBA hits name the product, the class of a miss, when the run fails.
       'scripts/lib/pan266-recall-canary.test.ts',
       // PAN-266: a query that names two or more public products never answers "not followed".
@@ -248,11 +250,11 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan267-browse-whole-root.test.ts',
       // PAN-268: unreviewed listings are badged (A); a local market with no band borrows Reverb's, labelled (C).
       'scripts/lib/pan268-badges.test.ts',
-      // PAN-271: the trumpet rows' line boundaries — a model number is its own identity, a finish is the same
-      // row, an accessory or another Bach horn is refused, and a brandless "trompet" names nothing.
       // PAN-271: the brand wall's membership rule — matched through the product, unmatched through the brand
       // net or the brand word plus a kind word, a model named only when canonical, no brand-level price.
       'scripts/lib/pan271-brand-wall.test.ts',
+      // PAN-271: the trumpet rows' line boundaries — a model number is its own identity, a finish is the same
+      // row, an accessory or another Bach horn is refused, and a brandless "trompet" names nothing.
       'scripts/lib/pan271-brass.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
