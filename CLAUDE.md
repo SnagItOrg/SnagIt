@@ -241,7 +241,13 @@ structural, not a flag — `FamilyListing` has no field a price could travel in
 and the family route selects no price column. Concrete variants
 (`Fender American Professional II Stratocaster`) remain the terminal
 price/monitoring identities, and a family's listings are attributed to the child
-they are matched to, never pooled. Evocative labels (`The Time Machines`)
+they are matched to, never pooled. **A listing on a family page may carry a
+verdict** (PAN-272, product-owner decision 2026-10-19) — the `under / typisk /
+over` word its own child's product page shows for it, computed by
+[`frontend/lib/listing-verdicts.ts`](frontend/lib/listing-verdicts.ts) against
+that child's band alone and typed as a word (`CardVerdict`), never a price. A
+child with no band gives no verdict; nothing builds a band from two children's
+rows. Evocative labels (`The Time Machines`)
 are editorial facets — never taxonomy replacements, never matcher aliases.
 
 ---

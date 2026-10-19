@@ -21,6 +21,14 @@
  *              price, `FamilyListing` has no field that could carry one either,
  *              and the family route selects no price column from any table.
  *
+ * PAN-272 (owner decision 2026-10-19) adds the one thing a listing may say
+ * about its price on a family page: ITS OWN CHILD'S VERDICT. `FamilyListing`
+ * carries a `CardVerdict` — the word, not a number — computed by
+ * lib/listing-verdicts.ts against the band of the child the listing is
+ * attributed to, exactly as that child's product page computes it. The family
+ * still has no band: nothing here or there pools two children's prices, and a
+ * listing whose child has no band carries `verdict: null`.
+ *
  * Price stays out because a family's children are not one market. Measured on
  * `fender-telecaster`: 74 Reverb observations spanning 3,874–188,885 DKK, a 48x
  * band against MAX_BAND_WIDTH_RATIO = 10. The guard would reject that band
@@ -35,6 +43,8 @@
 
 import { isCanonical, type CatalogueStateRow } from './catalogue'
 import { FAMILY_SLUGS, type FamilySlug } from './family-slugs'
+// A type only, so this module still loads in plain Node with no Supabase client.
+import type { CardVerdict } from './listing-verdicts'
 
 export interface NavigationFamily {
   /** Route segment for /family/<slug>, and the legacy kg_product slug it supersedes. */
@@ -977,9 +987,16 @@ export interface FamilyListingRow {
  * asserts no key is price-shaped, so the count can move for a legible reason
  * while the rule it was standing in for is checked directly.
  *
+ * `verdict` IS THE SEVENTH KEY (PAN-272), AND IT IS A WORD ABOUT ONE CHILD'S
+ * MARKET. It is the listing's position inside the band of the child it is
+ * attributed to — the same `CardVerdict` that child's product page shows —
+ * and it is typed so that no price, band edge or median can ride in it. It is
+ * computed per child in lib/listing-verdicts.ts and never from the family's
+ * rows together; `null` when that child has no band.
+ *
  * What still may NEVER appear: price, price_dkk, currency, msrp, a band, a
- * median, a verdict, a sold population — or `url`, which would turn a
- * navigation row into an exit to a marketplace price with no verdict attached.
+ * median, a sold population — or `url`, which would turn a navigation row
+ * into an exit to a marketplace price with no verdict attached.
  */
 export interface FamilyListing {
   id: string
@@ -990,6 +1007,8 @@ export interface FamilyListing {
   /** The canonical child this listing is attributed to. */
   childSlug: string
   childLabel: string
+  /** PAN-272: this listing's verdict against `childSlug`'s own band, or null. */
+  verdict: CardVerdict | null
 }
 
 export interface FamilyView {
@@ -1041,11 +1060,18 @@ export const FAMILY_MIN_CANONICAL_CHILDREN = 1
  * `listingRows` defaults to empty so the callers that want eligibility only —
  * `generateMetadata`, and the family-sibling block in /api/product — keep
  * calling with two arguments and keep getting no listings.
+ *
+ * `verdictsByProduct` (PAN-272) is `kg_product.id` -> listing id -> that
+ * listing's verdict against THAT product's band, as lib/listing-verdicts.ts
+ * builds it. A listing takes the verdict of the child it is attributed to and
+ * no other, so a listing matched to two children is judged by the one it is
+ * shown under.
  */
 export function buildFamilyView(
   family: NavigationFamily,
   rows: readonly FamilyChildRow[],
   listingRows: readonly FamilyListingRow[] = [],
+  verdictsByProduct: ReadonlyMap<string, ReadonlyMap<string, CardVerdict>> = new Map(),
 ): FamilyView {
   const bySlug = new Map<string, FamilyChildRow>()
   for (const row of rows) {
@@ -1071,7 +1097,7 @@ export function buildFamilyView(
   return {
     family,
     children,
-    listings: collectFamilyListings(listingRows, childByProductId),
+    listings: collectFamilyListings(listingRows, childByProductId, verdictsByProduct),
     published: children.length >= FAMILY_MIN_CANONICAL_CHILDREN,
   }
 }
@@ -1097,6 +1123,7 @@ export function buildFamilyView(
 function collectFamilyListings(
   listingRows: readonly FamilyListingRow[],
   childByProductId: ReadonlyMap<string, { child: RenderableChild; order: number }>,
+  verdictsByProduct: ReadonlyMap<string, ReadonlyMap<string, CardVerdict>>,
 ): FamilyListing[] {
   const attributed: Array<{ order: number; listing: FamilyListing }> = []
 
@@ -1129,6 +1156,9 @@ function collectFamilyListings(
         imageUrl: imageUrl.length > 0 ? imageUrl : null,
         childSlug: owner.child.slug,
         childLabel: owner.child.label,
+        // The owning child's verdict for this listing, keyed by the same
+        // product_id the attribution used — never another child's.
+        verdict: verdictsByProduct.get(productId)?.get(id) ?? null,
       },
     })
   }

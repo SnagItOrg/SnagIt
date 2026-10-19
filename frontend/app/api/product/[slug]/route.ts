@@ -3,7 +3,6 @@ import { unstable_cache } from 'next/cache'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { isCurrentUserAdmin } from '@/lib/admin-auth'
 import { CATALOGUE_CACHE_CONTROL, CATALOGUE_REVALIDATE_SECONDS } from '@/lib/browse-cache'
-import { hasPlausibleListingPrice, sanitizeListingPrice } from '@/lib/listing-price-integrity'
 import { median as t7Median, partitionByIqr } from '@/lib/statistics'
 import { fetchAllPages } from '@/lib/exhaustive-fetch'
 import {
@@ -11,11 +10,11 @@ import {
   groupByPopulation,
   homeMarketFirst,
   isPartOrAccessoryListing,
-  isPriceEvidence,
   listingVerdict,
   type PopulationKey,
   type PopulationStats,
 } from '@/lib/price-populations'
+import { ASKING_KEYS, askingPopulations, wallMatches } from '@/lib/listing-verdicts'
 import {
   buildFamilyView,
   familyForChild,
@@ -43,7 +42,6 @@ import {
   PUBLIC_LISTING_SELECT,
   PUBLIC_PRODUCT_SELECT,
   PUBLIC_RELATED_SELECT,
-  toPublicListing,
   toPublicProduct,
   toPublicRelatedProduct,
   type PublicProduct,
@@ -485,30 +483,10 @@ async function buildProductPayload(
     listings: ListingRow | null
   }>
 
-  const allMatched = matchRows
-    .map((m) => ({ score: m.score ?? 0, isValid: m.is_valid, isVerified: isPriceEvidence(m.is_valid), listing: m.listings }))
-    .filter(({ listing }) => listing != null && listing.is_active !== false)
-    // Normalise a legacy Kleinanzeigen discount pair before anything renders
-    // it. 235240 is 235 EUR now, down from 240 — two real prices welded by an
-    // old parser, not a corrupt number — so the current price is recovered and
-    // its DKK figure rescaled to match. See lib/listing-price-integrity.ts.
-    // Only a value that is still beyond belief AFTER recovery is dropped; the
-    // recovery itself happens in `toPublicListing`, the one place the public
-    // price is built.
-    .filter(({ listing }) => hasPlausibleListingPrice({
-      source: (listing as { source?: string | null } | null)?.source ?? null,
-      price:  sanitizeListingPrice({
-        source: (listing as { source?: string | null } | null)?.source ?? null,
-        price:  (listing as { price?: number | string | null } | null)?.price ?? null,
-      }).price,
-    }))
-    .sort((a, b) => {
-      const ta = new Date((a.listing?.scraped_at as string) ?? 0).getTime()
-      const tb = new Date((b.listing?.scraped_at as string) ?? 0).getTime()
-      return tb - ta
-    })
-    .map(({ isValid, isVerified, listing }) => ({ isValid, isVerified, listing: toPublicListing(listing) }))
-    .filter((m): m is { isValid: boolean | null; isVerified: boolean; listing: NonNullable<typeof m.listing> } => m.listing !== null)
+  // PAN-272: the wall filter (active, plausible price, newest first) lives in
+  // lib/listing-verdicts.ts, so the family page builds a child's bands from the
+  // same rows this route does. `hasPlausibleListingPrice` excludes there.
+  const allMatched = wallMatches(matchRows)
 
   /**
    * TWO ELIGIBILITY CONTRACTS, deliberately different. Owner decision,
@@ -614,11 +592,7 @@ async function buildProductPayload(
   const askingIncomplete = { incomplete: matchesAll.truncated }
   const soldIncomplete = { incomplete: reverbAll.truncated }
   const populations = {
-    'dk-asking':     buildPopulationStats('dk-asking',     grouped.byPopulation['dk-asking'], askingIncomplete),
-    'de-asking':     buildPopulationStats('de-asking',     grouped.byPopulation['de-asking'], askingIncomplete),
-    'se-asking':     buildPopulationStats('se-asking',     grouped.byPopulation['se-asking'], askingIncomplete),
-    'no-asking':     buildPopulationStats('no-asking',     grouped.byPopulation['no-asking'], askingIncomplete),
-    'reverb-asking': buildPopulationStats('reverb-asking', grouped.byPopulation['reverb-asking'], askingIncomplete),
+    ...askingPopulations(grouped, askingIncomplete),
     'reverb-sold':   buildPopulationStats('reverb-sold', priceHistory.map((p) => ({
       price: p.price,
       price_dkk: p.price,
@@ -674,7 +648,6 @@ async function buildProductPayload(
    *     − excludedOutlierN      (Tukey fences)
    *   = filteredN               (what every published statistic is built on)
    */
-  const ASKING_KEYS = ['dk-asking', 'de-asking', 'se-asking', 'no-asking', 'reverb-asking'] as const
   const sumOver = (pick: (p: PopulationStats) => number) =>
     ASKING_KEYS.reduce((total, key) => total + pick(populations[key]), 0)
 

@@ -124,10 +124,17 @@ test('PAN-93/2: a rejected match reaches neither the wall nor the evidence', () 
   assert.ok(stats.high != null && stats.high <= 20700)
 
   // Both surfaces must reach the shared predicate rather than restate it.
+  // PAN-272 moved the wall split out of the route into lib/listing-verdicts.ts
+  // (`wallMatches`), so the family page builds a child's bands by the same
+  // rule; the route reads it from there and keeps the SQL-side rejection filter.
   const route = strip(codeOf('app', 'api', 'product', '[slug]', 'route.ts'))
   assert.ok(route.includes("not('is_valid', 'is', false)"), 'rejections stay off the wall')
-  assert.ok(route.includes('isPriceEvidence(m.is_valid)'), 'statistics use the predicate')
+  assert.ok(route.includes('wallMatches(matchRows)'), 'the route takes the wall from the shared split')
   assert.equal(/is_valid\s*===\s*true/.test(route), false, 'no inline copy of the predicate')
+  const verdicts = strip(codeOf('lib', 'listing-verdicts.ts'))
+  assert.ok(verdicts.includes('isPriceEvidence(m.is_valid)'), 'statistics use the predicate')
+  assert.ok(verdicts.includes("not('is_valid', 'is', false)"), 'the family read filters rejections too')
+  assert.equal(/is_valid\s*===\s*true/.test(verdicts), false, 'no inline copy of the predicate')
 
   const intel = strip(codeOf('app', 'intel', 'page.tsx'))
   assert.ok(intel.includes('isPriceEvidence(m.is_valid)'), '/intel uses the same predicate')
