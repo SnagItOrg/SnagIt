@@ -249,6 +249,17 @@ export const translations = {
     familyCardModels: '{count} modeller',
     familyCardLabel: '{label}, familie med {count} modeller',
 
+    // PAN-271: a brand wall — one brand's listings in one kind, model or no
+    // model. The count names ANNONCER and splits them by whether Klup knows
+    // the model; every number is the length of the rendered list. {kind} is
+    // the kind's own Danish label, lower-cased.
+    brandWallThesis: 'Mange {kind} sælges uden modelnummer. Klup viser dem her alligevel — uden vurdering, for uden model er der intet marked at måle mod. Kender Klup modellen, står den på kortet.',
+    brandWallCount: '{count} aktive annoncer · {matched} med genkendt model · {unmatched} uden',
+    brandWallNewestFirst: 'nyeste først',
+    brandWallNoModel: 'Model ikke genkendt',
+    brandWallEmpty: 'Ingen aktive annoncer lige nu.',
+    brandWallLegend: 'Et kort med model fører til modellens side. Et kort uden model fører til annoncen.',
+
     // Price evidence (WP-3)
     priceBandMedian: 'median udbudspris',
     priceBandRange: 'typisk spænd (p25–p75)',
@@ -1025,6 +1036,13 @@ export const translations = {
     familyNoListings: 'No active listings on this family’s models right now.',
     familyCardModels: '{count} models',
     familyCardLabel: '{label}, family of {count} models',
+
+    brandWallThesis: 'Many {kind} are sold without a model number. Klup shows them here anyway — without a verdict, because without a model there is no market to measure against. When Klup knows the model, it is on the card.',
+    brandWallCount: '{count} active listings · {matched} with a recognised model · {unmatched} without',
+    brandWallNewestFirst: 'newest first',
+    brandWallNoModel: 'Model not recognised',
+    brandWallEmpty: 'No active listings right now.',
+    brandWallLegend: 'A card with a model leads to the model’s page. A card without one leads to the listing.',
 
     priceBandMedian: 'median asking price',
     priceBandRange: 'typical range (p25–p75)',

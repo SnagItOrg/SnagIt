@@ -250,6 +250,9 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan268-badges.test.ts',
       // PAN-271: the trumpet rows' line boundaries — a model number is its own identity, a finish is the same
       // row, an accessory or another Bach horn is refused, and a brandless "trompet" names nothing.
+      // PAN-271: the brand wall's membership rule — matched through the product, unmatched through the brand
+      // net or the brand word plus a kind word, a model named only when canonical, no brand-level price.
+      'scripts/lib/pan271-brand-wall.test.ts',
       'scripts/lib/pan271-brass.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
