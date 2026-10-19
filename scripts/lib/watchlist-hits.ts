@@ -6,11 +6,16 @@
  *
  * ── A HIT ───────────────────────────────────────────────────────────────
  * Every word of the watchlist's query is a whole word of the listing's title
- * ("Juno 60" hits "Roland Juno-60", "ph 5" does not hit "phaser 50"), and the
- * DKK price sits inside the watchlist's min/max. Words split on anything that
- * is not a letter or a digit, so the rule is the same for every marketplace.
+ * ("Juno 60" hits "Roland Juno-60", "ph 5" does not hit "phaser 50"), the
+ * DKK price sits inside the watchlist's min/max, and the title offers the
+ * product itself — not a part of it, and not a wanted ad. The last test is
+ * the matcher's own `detectNonProductIntent`: measured 2026-10-19 the
+ * cheapest word-hits for "Roland Juno-106" were voice chips and the cheapest
+ * for "fender telecaster" a pickguard, and a mail that leads with those is a
+ * mail nobody opens. Words split on anything that is not a letter or a
+ * digit, so the rule is the same for every marketplace.
  *
- * ── EXACTLY ONCE ────────────────────────────────────────────────────────
+ * ── AT MOST ONCE ────────────────────────────────────────────────────────
  * `watchlist_notification` (migration 066) is unique on (watchlist, listing).
  * The claim is an INSERT ... ON CONFLICT DO NOTHING that returns only the rows
  * it inserted, so a pair already claimed — by an earlier run, or by a run
@@ -24,6 +29,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { detectNonProductIntent } from '../../frontend/lib/matching/listing-intent'
 
 export type HitListing = {
   id: string
@@ -52,7 +58,8 @@ export function words(text: string): string[] {
   return text.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean)
 }
 
-export function isHit(w: HitWatchlist, l: HitListing): boolean {
+/** The query's words are all in the title, the price is in range, and the listing is newer than the watchlist. */
+export function matchesWatchlist(w: HitWatchlist, l: HitListing): boolean {
   const query = words(w.query)
   if (query.length === 0) return false
   if (Date.parse(l.ingested_at) <= Date.parse(w.created_at)) return false
@@ -60,6 +67,16 @@ export function isHit(w: HitWatchlist, l: HitListing): boolean {
   if (w.min_price != null && (l.price_dkk == null || l.price_dkk < w.min_price)) return false
   const title = new Set(words(l.title))
   return query.every((q) => title.has(q))
+}
+
+/** A part, an accessory or a wanted ad: never worth a mail. */
+export function isNonProduct(l: HitListing): boolean {
+  const intent = detectNonProductIntent(l.title)?.intent
+  return intent === 'part_or_accessory' || intent === 'wanted_or_non_sale'
+}
+
+export function isHit(w: HitWatchlist, l: HitListing): boolean {
+  return matchesWatchlist(w, l) && !isNonProduct(l)
 }
 
 export async function notifyHits(

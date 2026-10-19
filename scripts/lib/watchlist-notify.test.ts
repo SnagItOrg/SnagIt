@@ -250,6 +250,8 @@ test('PAN-12: a pair already handled is never mailed again, and only whole-word 
   assert.equal(isHit(WATCHLIST, HIT), true)
   assert.equal(isHit({ ...WATCHLIST, query: 'ph 5' }, { ...HIT, title: 'MXR Phase 90' }), false)
   assert.equal(isHit(WATCHLIST, { ...HIT, price_dkk: 25000 }), false, 'over max_price')
+  assert.equal(isHit(WATCHLIST, { ...HIT, title: 'Original Roland Juno-6 & Juno-60 Key Assigner CPU Chip' }), false, 'a part')
+  assert.equal(isHit(WATCHLIST, { ...HIT, title: 'Søges: Roland Juno-60' }), false, 'a wanted ad')
 
   const { db, rows } = notificationTable()
   let sends = 0

@@ -25,27 +25,37 @@ export async function sendNewListingsEmail({
   query: string
   listings: ListingSnippet[]
 }) {
+  // PAN-12: Danish, like the site. One mail per watchlist per night, the five
+  // cheapest-first lines the runner hands over, and the rest as a count.
   const preview = listings.slice(0, 5)
+  const n = listings.length
 
   const listingLines = preview
     .map((l) => {
-      const price = l.price != null ? `${l.price.toLocaleString('da-DK')} ${l.currency}` : 'Price not listed'
+      const price = l.price != null
+        ? `${l.price.toLocaleString('da-DK')} ${l.currency === 'DKK' ? 'kr' : l.currency}`
+        : 'Pris ikke oplyst'
       const source = l.source ? ` (${sourceForStored(l.source)?.label ?? l.source})` : ''
       return `• ${l.title} — ${price}${source}\n  ${l.url}`
     })
     .join('\n\n')
 
-  const overflow = listings.length > 5 ? `\n…and ${listings.length - 5} more.` : ''
+  const overflow = n > 5 ? `\n…og ${n - 5} ${n - 5 === 1 ? 'annonce' : 'annoncer'} mere.` : ''
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.klup.dk'
 
   const text = [
-    `${listings.length} new listing${listings.length === 1 ? '' : 's'} for "${query}":`,
+    n === 1
+      ? `Der er 1 ny annonce, der matcher din overvågning "${query}":`
+      : `Der er ${n} nye annoncer, der matcher din overvågning "${query}":`,
     '',
     listingLines,
     overflow,
     '',
-    `View all: ${appUrl}`,
+    `Se alle: ${appUrl}/search?q=${encodeURIComponent(query)}`,
+    '',
+    `Du får denne mail, fordi du overvåger "${query}" på Klup.`,
+    `Slå mails fra under din profil: ${appUrl}/profile`,
   ].join('\n')
 
   // PAN-72. The Resend client RESOLVES with `{ data, error }` on a rejected
@@ -59,7 +69,7 @@ export async function sendNewListingsEmail({
   const { error } = await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to,
-    subject: `${listings.length} new${listings.length === 1 ? '' : ' listings'}: "${query}"`,
+    subject: n === 1 ? `1 ny annonce: "${query}"` : `${n} nye annoncer: "${query}"`,
     text,
   })
 
