@@ -2,7 +2,7 @@
  * PAN-251: what a feedback form may send, read fail-closed.
  *
  * Pure, so the route's validation is testable from plain Node. The route
- * sends one email and stores nothing; this module decides what reaches it.
+ * stores a row and sends one email; this module decides what reaches them.
  * The visitor's IP is never part of the shape.
  */
 

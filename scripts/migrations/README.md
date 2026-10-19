@@ -597,3 +597,23 @@ schedule step.
 | Rollback | `067_rollback.sql`: restores the 061 body with `security_invoker`, unschedules the job, drops the matview; asserts the restored body. Absent is a no-op. |
 | Rehearsal | PGlite 0.2.17 (PostgreSQL 16.4), `rehearse067.mjs` in the fable14 session scratchpad, output on PAN-263: pg_cron absent without the flag → abort and nothing changed; apply; POST re-run is a real no-op (view and matview oids, definition and relfilenode unchanged); projection rows byte-identical before and after; a new match is invisible until `REFRESH … CONCURRENTLY`, then counted; grants; DRIFT (matview dropped by hand); rollback; rollback re-run no-op. `verify-migrations-isolated.sh` runs only 053/054 and no machine here has PostgreSQL. |
 | Writers | None change. The nightly matcher and the review routes keep writing `listing_product_match`; the job picks the changes up within 15 minutes. |
+
+## 068 — `user_feedback`, what visitors said. **NOT APPLIED.**
+
+`068_user_feedback.sql` (PAN-251 / PAN-256) creates `user_feedback`: one row
+per piece of feedback `/api/feedback` accepted — the feedback sheet's four
+kinds and "Giv os et tip" — with the kind, the surface, the page path, the
+text, the tip fields (`tip_price_dkk`, `tip_name`, `listing_url`), the
+visitor's address only when they typed it, and `linear_issue_id`, which the
+manager fills when it files the row in the Linear Feedback project through its
+own connector (the route never writes it). Never the IP. It moves no row: the
+mails already sent are not rows.
+
+| Property | |
+|---|---|
+| Why | The route only emailed the owner and stored nothing, so the manager could not read user feedback. The owner, 2026-10-19: feedback must land where the manager can read it — a table and a Linear project. |
+| P0 | A new `public` table: RLS is enabled with no policy and every `anon` / `authenticated` privilege revoked in the same transaction ([`../CLAUDE.md`](../CLAUDE.md) P0). The route writes through the service role; the manager reads through it. |
+| PRE / POST / DRIFT | PRE creates; POST is a no-op; a table in another shape, or one `anon` or `authenticated` can reach, raises before any change. |
+| Rollback | `068_rollback.sql`. Refuses while the table holds a row (a feedback row is the only copy the manager can read); drops it when empty; absent is a no-op. |
+| Rehearsal | PGlite 0.2.17, `rehearse068.mjs` in the session scratchpad, output on the PR: apply, POST no-op, closed to `anon` / `authenticated` despite the open default privilege, the route's insert and the manager's `linear_issue_id` update, rollback refusing with a row and dropping without, absent no-op, re-apply, DRIFT on an extra column and on an open grant. `verify-migrations-isolated.sh` was not run: the authoring machine has no local PostgreSQL. |
+| Writer | `/api/feedback`. It fails soft while the table is absent: the row is skipped, the email still goes, and the answer is still ok. |
