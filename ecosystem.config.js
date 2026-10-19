@@ -171,6 +171,23 @@ module.exports = {
       },
     },
     {
+      // PAN-12 (owner "Live nu" 2026-10-19; 066 applied the same day): one email
+      // per active watchlist with the night's new hits, each (watchlist, listing)
+      // pair at most once (migration 066). Reads listings only. After the whole
+      // nightly chain: scrape-reverb (02:00) has ended as late as 04:37,
+      // purge-stale is 04:30, recall-canary 05:00.
+      name: 'notify-watchlists',
+      script: 'npx',
+      args: 'tsx scripts/notify-watchlists.ts --apply',
+      cron_restart: '0 6 * * *', // daily at 06:00
+      autorestart: false,
+      max_restarts: 0,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
       name: 'process-price-queue',
       script: 'npx',
       args: 'tsx scripts/process-price-queue.ts',
