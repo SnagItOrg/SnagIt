@@ -100,8 +100,10 @@ test('otp: the demand signal survives a failed send', () => {
     'the demand signal must still be recorded',
   )
 
-  const emitAt = SEARCH_CODE.indexOf("emit('demand_signal_submitted'")
+  // PAN-257 added a second emit on the signed-in path, above `submitDemand`;
+  // the one this test is about is the anonymous path's, after the send guard.
   const guardAt = SEARCH_CODE.indexOf('if (address.length > 0)')
+  const emitAt = SEARCH_CODE.indexOf("emit('demand_signal_submitted'", guardAt)
   const closesAt = SEARCH_CODE.indexOf('\n    }', guardAt)
   assert.ok(guardAt > 0 && closesAt > guardAt, 'the send guard moved; re-read this test')
   assert.ok(

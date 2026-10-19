@@ -404,9 +404,12 @@ test('the new contract module invokes no scraper and writes nothing', () => {
 test('/api/search/resolve remains the only runtime crossing', () => {
   const page = readFileSync(join(FRONTEND, 'app', '(shell)', 'search', 'page.tsx'), 'utf8')
   const fetched = [...page.matchAll(/fetch\(\s*[`'"]([^`'"$]*)/g)].map((m) => m[1])
+  // PAN-257: the unsupported panel also posts a signed-in visitor's request to
+  // /api/feedback. That is a crossing into the feedback route, not the
+  // resolver — the resolver is still reached through its endpoint alone.
   assert.deepEqual(
     [...new Set(fetched)],
-    ['/api/search/resolve?q='],
+    ['/api/search/resolve?q=', '/api/feedback'],
     'the client may reach the resolver only through its endpoint',
   )
   const route = readFileSync(join(FRONTEND, 'app', 'api', 'search', 'resolve', 'route.ts'), 'utf8')

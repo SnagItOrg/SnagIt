@@ -400,6 +400,11 @@ export const translations = {
     searchKindFamily: 'Alle modeller',
     demandCta: 'Giv besked når Klup følger dette',
     demandThanks: 'Tak — vi har noteret det.',
+    // PAN-257 — a signed-in visitor: the request is recorded with their
+    // account email on the click, so no address is asked for and no login
+    // link is offered.
+    demandSignedInBody: 'Vi skriver til dig på din e-mail, når Klup følger det.',
+    demandRecordFailed: 'Vi kunne ikke gemme det lige nu. Prøv igen om lidt.',
 
     // A magic-link send that FAILED. Each one has to tell the reader what to
     // do next, because "Noget gik galt" tells them nothing: rate-limited means
@@ -1159,6 +1164,8 @@ export const translations = {
     searchKindFamily: 'All models',
     demandCta: 'Tell me when Klup follows this',
     demandThanks: 'Thanks — we have noted it.',
+    demandSignedInBody: 'We will email you when Klup follows it.',
+    demandRecordFailed: 'We could not save that just now. Try again in a moment.',
 
     otpErrorRateLimited: 'We just sent a link to that address. Check your inbox and your spam folder — and try again in a couple of minutes.',
     otpErrorInvalidAddress: 'We cannot send to that address. Check that it is spelled correctly.',

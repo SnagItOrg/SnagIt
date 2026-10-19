@@ -9,7 +9,14 @@
 export const FEEDBACK_KINDS = ['wrong_product', 'wrong_price', 'missing', 'other'] as const
 /** PAN-256: "Giv os et tip" rides the same route with its own sheet, so it is not one of the sheet's four choices. */
 export type FeedbackKind = (typeof FEEDBACK_KINDS)[number] | 'price_tip'
-export type FeedbackSurface = 'product' | 'tjek-prisen'
+/** Where the two sheets (feedback, price tip) mount. */
+export type FeedbackSheetSurface = 'product' | 'tjek-prisen'
+/**
+ * Where a row may come from. PAN-257: `search` is the unsupported-search
+ * panel, which posts `missing` with the query for a signed-in visitor — the
+ * one place a "tell me when Klup follows this" lands somewhere a person reads.
+ */
+export type FeedbackSurface = FeedbackSheetSurface | 'search'
 
 export interface Feedback {
   kind: FeedbackKind
@@ -52,7 +59,7 @@ export function readFeedback(body: unknown): FeedbackRead {
   const isTip = kind === 'price_tip'
   if (!isTip && !(FEEDBACK_KINDS as readonly string[]).includes(kind)) return { ok: false, reason: 'kind' }
   const surface = str(b.surface)
-  if (surface !== 'product' && surface !== 'tjek-prisen') return { ok: false, reason: 'surface' }
+  if (surface !== 'product' && surface !== 'tjek-prisen' && surface !== 'search') return { ok: false, reason: 'surface' }
   const path = str(b.path)
   if (!path.startsWith('/') || path.length > MAX_PATH || /[\s<>]/.test(path)) return { ok: false, reason: 'path' }
   const text = str(b.text)

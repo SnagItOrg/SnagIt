@@ -7,7 +7,7 @@ import { Button } from '@/components/Button'
 import { TextField } from '@/components/TextField'
 import { useLocale } from '@/components/LocaleProvider'
 import { track } from '@/lib/analytics'
-import { FEEDBACK_KINDS, type FeedbackSurface } from '@/lib/feedback'
+import { FEEDBACK_KINDS, type FeedbackSheetSurface } from '@/lib/feedback'
 
 /**
  * PAN-251: "Giv feedback" — one link, one small sheet.
@@ -32,7 +32,7 @@ export function FeedbackLink({
   state,
   className = '',
 }: {
-  surface: FeedbackSurface
+  surface: FeedbackSheetSurface
   productSlug?: string | null
   state?: string | null
   className?: string
@@ -174,7 +174,7 @@ export function PriceTipLink({
   listingUrl,
   className = '',
 }: {
-  surface: FeedbackSurface
+  surface: FeedbackSheetSurface
   productSlug?: string | null
   state?: string | null
   /** Klup's own guess at what it is, prefilled in "Hvad er det?". */
