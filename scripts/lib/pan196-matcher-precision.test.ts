@@ -160,7 +160,6 @@ test('rule 2: `&` no longer hides a cartridge set; `with` still keeps an instrum
     'Fender Custom Shop 1962 Jaguar Journeyman Relic Painted Head Cap Surf Green (683)',
     'Warm Audio WA-47 M7 Capsule ZenPro Mod Edition',
     'Solid State Logic UC1 Hardware Plug-In Control Surface',
-    'Arturia CS-80 V Synthesizer Virtual Instrument Software',
     'BOSS DS-2 Turbo Distortion Pedal with Twin Modes and Built-In Remote Jack',
     'Wurlitzer 200A 64-Key Electric Piano with legs and sustain pedal',   // constructed: marker first
     'Korg Mono/Poly Analog Synthesizer serviced !',
@@ -168,6 +167,12 @@ test('rule 2: `&` no longer hides a cartridge set; `with` still keeps an instrum
     assert.equal(detectNonProductIntent(title), null, title)
   }
   assert.equal(matchedSlug('Boss AB-2 Foot Switch'), 'boss-ab-2')
+  // PAN-266 reversed this file's refusal of `virtual instrument`: the Arturia rows are `known`, not
+  // supported, and the supported cohort holds no software (scripts/lib/pan266-parts-plugins.test.ts).
+  assert.deepEqual(
+    detectNonProductIntent('Arturia CS-80 V Synthesizer Virtual Instrument Software'),
+    { intent: 'part_or_accessory', token: 'virtual instrument' },
+  )
 })
 
 test('rule 2: a `w/` glued to the next word is an inclusion marker', () => {

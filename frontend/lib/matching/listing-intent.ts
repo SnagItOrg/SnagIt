@@ -250,7 +250,9 @@ const ACCESSORY_TOKENS: readonly string[] = [
   //   virtual     (20), "Arturia CS-80 V Synthesizer Virtual Instrument
   //   instrument  Software", two Akai MPCs. The two pool titles they would have
   //               caught, "GForce Oberheim OB-X Virtual Instrument" and "UAD
-  //               Manley VOXBOX … Plug-In", are left.
+  //               Manley VOXBOX … Plug-In", are left. PAN-266 takes `virtual
+  //               instrument` after all (the software block below): the Arturia
+  //               rows are `known`, not supported. `plug-in` stays refused.
   //   windscreen  its one pool part is caught by the model-list rule anyway, and
   //               it would defer an unreviewed U 87 Ai bundle.
   //   switch, pot "Boss AB-2 Foot Switch" is a product. Compound switch names
@@ -291,6 +293,43 @@ const ACCESSORY_TOKENS: readonly string[] = [
   // or an adjective are the instrument's ("61 tangenter", "hvide tangenter": KEY_SPEC_TANGENTER),
   // and an inclusion marker before the noun keeps "… med tangenter".
   'tangenter',
+  // PAN-266, measured 2026-10-19 on every listing_product_match row (the G4 Reverb dry run
+  // matched a power cable, a stand, amplifier boards and a plug-in to the products they fit).
+  // Counts are rows whose title names the token: is_valid false / true.
+  //
+  //   power cable, power cord  27 / 0, 33 / 1   "ARP 2600 POWER CABLE 1970s cord new nos …"
+  //   cord                     59 / 2           the one unmarked true row lists "POWER CORD, SHIPPING"
+  //                                             among an MPC2000XL's extras; it defers, writing no row
+  //   board, boards, pcb      118 / 9, 4 / 0, 21 / 0   "Wurlitzer 200A amplifier boards", "Korg
+  //                                             PolySix main board KLM-367A". The true rows are a
+  //                                             fingerboard wood ("Rosewood Board", "Pau Ferro board":
+  //                                             FRETBOARD_WOOD_BOARD keeps them) or an expansion board
+  //                                             after a marker ("+ … Expansion Board")
+  //   stand for, stands for    95 / 0, 58 / 0   "3DWaves Stands For The Roland SP-404 MKII Sampler",
+  //                                             "Moog Cheeks … Rack Stand for Semi-Modular Synths"
+  //
+  // REFUSED: `cable` / `cables` (132 / 94 and 18 / 48 — the kept rows are "+ Gator Patch Cable 3
+  // Pack" and the Sweetwater bundles), the bare `stands` (63 / 10: "with Cables and Stands", and the
+  // bundle "Sequential Prophet X … Neewer Collapsible Stands, Presonus HD7" is a trusted PAN-221
+  // row), `stand` (Danish "flot stand" is a condition), `for parts` ("… BAD SHAPE For Parts /
+  // Repair" is a whole unit, as above), `controller` (545 true rows: the UC1, every MIDI keyboard).
+  'power cable', 'power cord', 'cord',
+  'board', 'boards', 'pcb',
+  'stand for', 'stands for',
+  // Software and plug-ins, the same measurement. Klup's supported cohort holds no software row
+  // (the 101 `software` rows of the KG are all `known`), so a plug-in that names a hardware product
+  // is never that product: "UAD Manley VOXBOX Channel Strip (Download)" is not a VOXBOX.
+  //
+  //   (download)            8 / 2    the true rows are the Arturia V plug-ins on their own KG rows
+  //   virtual instrument    7 / 2    "GForce Oberheim OB-X Virtual Instrument"
+  //   license               5 / 3    "Arturia CS-80 V License"; "Waldorf Blofeld … +SL License" has a marker
+  //
+  // REFUSED: `software` (19 / 23 — it changes no decision on the 31,256-row Reverb cohort and would
+  // defer the trusted "SSL 18 … Interface & Software", `&` being no marker), `plug-in` / `plugin`
+  // (28 true rows: "SSL UC1 Plug-In Controller" is hardware), `uad` (the UAD-2 Satellite and the
+  // PCIe cards are hardware), `vst`, `ilok`, `activation` and `licence` (no false row names them —
+  // unexercised tokens are latent false rejections).
+  '(download)', 'virtual instrument', 'license',
 ]
 
 /**
@@ -496,6 +535,14 @@ function isColourSpecPickguard(text: string): boolean {
 const HEAD_CAP_FINISH = /(?<![\w-])head\s+cap(?![\w-])/i
 
 /**
+ * "Board" after a fingerboard wood is the guitar's fretboard, not a circuit board (PAN-266): the
+ * nine true rows that name `board` are "Rosewood Board", "Maple Board", "Brazilian Board", "ebony
+ * board" and "Pau Ferro board". "Expansion Board" and "main board" are not woods.
+ */
+const FRETBOARD_WOOD_BOARD =
+  /(?<![\w-])(?:rosewood|maple|ebony|pau\s+ferro|brazilian|laurel|indian|walnut|richlite|rw|mn)\s+board(?![\w-])/i
+
+/**
  * "Dual Manual" is a keyboard count, not a manual (PAN-196): a synth or organ
  * with two keyboards. "SERVICED & RESTORED Dual Manual PROPHET 10 Rev3
  * w/ORIGINAL OWNERS MANUAL, …" is a complete Prophet-10, deferred only because
@@ -694,6 +741,7 @@ export function detectNonProductIntent(title: string): IntentFinding | null {
     // rather than by weakening the token, exactly as `isShippingPickup` is.
     if (token === 'pickguard' && isColourSpecPickguard(text)) continue
     if (token === 'cap' && HEAD_CAP_FINISH.test(text)) continue
+    if (token === 'board' && FRETBOARD_WOOD_BOARD.test(text)) continue
     if (token === 'manual' && KEYBOARD_COUNT_MANUAL.test(text)) continue
     if (token === 'tangenter' && KEY_SPEC_TANGENTER.test(text)) continue
     return { intent: 'part_or_accessory', token }
