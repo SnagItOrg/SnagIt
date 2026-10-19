@@ -20,10 +20,13 @@ export async function sendNewListingsEmail({
   to,
   query,
   listings,
+  seeAllUrl,
 }: {
   to: string
   query: string
   listings: ListingSnippet[]
+  /** PAN-273: a product watchlist's "Se alle" is its product page, not a search. */
+  seeAllUrl?: string
 }) {
   // PAN-12: Danish, like the site. One mail per watchlist per night, the five
   // cheapest-first lines the runner hands over, and the rest as a count.
@@ -52,7 +55,7 @@ export async function sendNewListingsEmail({
     listingLines,
     overflow,
     '',
-    `Se alle: ${appUrl}/search?q=${encodeURIComponent(query)}`,
+    `Se alle: ${seeAllUrl ?? `${appUrl}/search?q=${encodeURIComponent(query)}`}`,
     '',
     `Du får denne mail, fordi du overvåger "${query}" på Klup.`,
     `Slå mails fra under din profil: ${appUrl}/profile`,

@@ -7,7 +7,7 @@ import Image from 'next/image'
 import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
 import { SearchResultCard } from '@/components/SearchResultCard'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
-import { CreateWatchlistModal } from '@/components/CreateWatchlistModal'
+import { WatchProductForm } from '@/components/WatchProductForm'
 import { ListingErrorBoundary } from '@/components/ListingErrorBoundary'
 import { MonitoredPlatforms } from '@/components/MonitoredPlatforms'
 // Recharts: P2 replaced the area chart with a scatter of individual sold
@@ -62,7 +62,6 @@ const SIMILAR_REASON_KEY = {
 } as const
 import type { ProductPlacement } from '@/lib/catalogue-tree'
 import { Icon } from '@/components/Icon'
-import { Button } from '@/components/Button'
 
 /**
  * PAN-168. Reverb's condition vocabulary → the label a visitor reads. The raw
@@ -188,10 +187,6 @@ export default function ProductPage() {
   /** The product's own category and kind (PAN-121), for the breadcrumb's
    *  catalogue crumbs. Null when it cannot be placed. */
   const [catalogueContext, setCatalogueContext] = useState<ProductPlacement | null>(null)
-
-  const [showModal,  setShowModal]  = useState(false)
-  const [modalQuery, setModalQuery] = useState('')
-  const [creating,   setCreating]   = useState(false)
 
   const [savedListingIds, setSavedListingIds] = useState<Set<string>>(new Set())
 
@@ -330,31 +325,22 @@ export default function ProductPage() {
     }
   }
 
-  function handleCreateWatchlist(listingTitle?: string) {
-    const q = listingTitle
-      ? (listingTitle.length > 60
-          ? listingTitle.slice(0, listingTitle.lastIndexOf(' ', 60) || 60)
-          : listingTitle)
-      : product?.canonical_name ?? ''
-    setModalQuery(q)
-    setShowModal(true)
-  }
-
-  const handleModalConfirm = useCallback(async (query: string, maxPrice?: number) => {
-    setCreating(true)
-    const body: Record<string, unknown> = { query }
-    if (maxPrice != null && maxPrice > 0) body.max_price = maxPrice
-    const res = await fetch('/api/watchlists', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    if (res.ok) {
-      track('watchlist_created', { origin: 'product', product_slug: slug, has_max_price: 'max_price' in body })
+  /**
+   * PAN-273. The max price the watch form opens with: the lower boundary of
+   * the asking band the page itself shows — Danish first, Reverb as the
+   * fallback — rounded to 100 kr. A listing under it is what the page calls
+   * `under typisk`, so the prefill and the badge agree. Null without a band;
+   * the field is then empty and the visitor names the price.
+   */
+  const suggestedMaxPrice = useMemo(() => {
+    for (const key of ['dk-asking', 'reverb-asking'] as const) {
+      const stats = populations?.[key]
+      if (stats?.tier === 'band' && stats.widthOk && stats.q1 != null && stats.q1 > 0) {
+        return Math.max(100, Math.round(stats.q1 / 100) * 100)
+      }
     }
-    setShowModal(false)
-    setCreating(false)
-  }, [slug])
+    return null
+  }, [populations])
 
   // PAN-133: the precedence is not decided here. `hero_image_url ?? image_url`
   // used to be written inline twice in the hero below — correct, but a third
@@ -571,29 +557,19 @@ export default function ProductPage() {
                       </a>
                     )}
 
-                    {/* Listing count + watchlist CTA */}
-                    <div className="flex flex-col gap-2 pt-4 border-t border-border">
-                      <p className="text-sm text-muted-foreground">
-                        {listings.length === 0
-                          ? t.productActiveListingsNone
-                          : listings.length === 1
-                            ? t.productActiveListingsOne
-                            : fill(t.productActiveListings, { count: listings.length })}
-                      </p>
-                      {/* PAN-168. The shared primary Button, which is the same
-                          ink in both themes; the opacity hover it replaces is an
-                          opacity state the design rules exclude. */}
-                      <Button
-                        variant="primary"
-                        onClick={() => handleCreateWatchlist()}
-                        className="w-full px-5 py-3 rounded-xl font-semibold text-sm"
-                      >
-                        + {t.addWatchlist}
-                      </Button>
-                      <p className="text-xs text-muted-foreground text-center">
-                        {t.productWatchlistHint}
-                      </p>
-                    </div>
+                    {/* Listing count + the model watch (PAN-273) */}
+                    <p className="text-sm text-muted-foreground pt-4 border-t border-border">
+                      {listings.length === 0
+                        ? t.productActiveListingsNone
+                        : listings.length === 1
+                          ? t.productActiveListingsOne
+                          : fill(t.productActiveListings, { count: listings.length })}
+                    </p>
+                    <WatchProductForm
+                      productSlug={product.slug}
+                      productName={product.canonical_name}
+                      suggestedMaxPrice={suggestedMaxPrice}
+                    />
                   </div>
                 </div>
 
@@ -1082,8 +1058,6 @@ export default function ProductPage() {
                             marketVerdict={(listing as ListingWithVerdict).marketVerdict}
                             marketVerdictBasisLabel={(listing as ListingWithVerdict).marketVerdictBasisLabel}
                             marketVerdictFewN={(listing as ListingWithVerdict).marketVerdictFewN}
-                            onCreateWatchlist={handleCreateWatchlist}
-                            creating={creating}
                             variant="list"
                             thomannImageUrl={product.image_url}
                             trackedProductSlug={product.slug}
@@ -1171,13 +1145,6 @@ export default function ProductPage() {
       </main>
 
 
-      <CreateWatchlistModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        onConfirm={handleModalConfirm}
-        initialQuery={modalQuery}
-        creating={creating}
-      />
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </>
   )
