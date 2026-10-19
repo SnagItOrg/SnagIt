@@ -131,9 +131,10 @@ function CatalogueTreeSkeleton() {
  * The tree is built from the product rows themselves (`buildCatalogueTree`),
  * which makes "populated branches only" structural rather than a filter — an
  * empty music root contributes no row and so cannot render (D-IA-1). Roots,
- * then kinds — no facets and no products (catalogue-tree.ts rules 2 and 3,
- * PAN-121 rounds 2 and 3); products live on the page grid. `Accessories` and
- * `Parts` hold nothing and are therefore absent by construction (D-IA-3).
+ * then kinds — every populated leaf, and no products (catalogue-tree.ts rules
+ * 2 and 3; PAN-269 retired the facet split); products live on the page grid.
+ * `Accessories` and `Parts` hold nothing and are therefore absent by
+ * construction (D-IA-3).
  *
  * The homepage shelf (PAN-86) shows all fourteen roots INCLUDING the empty
  * ones. That is not a contradiction: it answers "what does Klup cover", and
@@ -266,12 +267,12 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
         const label = locale === 'da' ? category.name_da : category.name_en
 
         /**
-         * PAN-121 — is this the branch the visitor is standing in?
-         *
-         * True on `/browse/<root>`, on a facet `?sub=` (a facet has no node),
-         * and on a product page whose product has no kind. False when a KIND
-         * is narrowing it, so the kind is marked instead and exactly one
-         * `aria-current="page"` stays in the tree.
+         * PAN-121 — is this the branch the visitor is standing in with no kind
+         * narrowing it? True on `/browse/<root>` with no recognised `?sub=`.
+         * PAN-269: that is the "Alle" row beneath the root that carries the
+         * mark — the same row the chip row on the page marks — so the root row
+         * itself never does, and exactly one `aria-current="page"` stays in
+         * the tree.
          */
         const isCurrentBranch =
           current?.kind === 'branch' && current.categorySlug === category.slug
@@ -290,16 +291,15 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
          *
          * It was a native `<details>` whose body was mostly products. With
          * products gone from the tree (catalogue-tree.ts rule 3), three of the
-         * six roots — El-guitarer, Western- & akustiske guitarer, Basguitarer —
-         * hold no kind at all, so their disclosure would have opened onto
-         * nothing: a click that does nothing. So every root now does the same
-         * thing, which is go to its page, and the kinds of the branch the
-         * visitor is in are listed beneath it. PAN-132's rule survives
-         * unchanged: only the current branch is open. The chevron is a state
-         * indicator on roots that have kinds, not a control.
+         * six roots held no kind at all under the facet split, so their
+         * disclosure would have opened onto nothing: a click that does
+         * nothing. So every root now does the same thing, which is go to its
+         * page, and the kinds of the branch the visitor is in are listed
+         * beneath it. PAN-132's rule survives unchanged: only the current
+         * branch is open. The chevron is a state indicator, not a control.
+         * PAN-269: every populated root has at least one kind, and "Alle"
+         * heads the list, so an open branch is never empty.
          */
-        const hasKinds = category.subcategories.length > 0
-
         return (
           <div key={category.slug}>
             <Link
@@ -310,39 +310,20 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                  label that cannot be read is worse navigation than one sitting
                  10px left of the item above it. `SIDEBAR_MIN_WIDTH` is the
                  measured floor (PAN-120). */
-              /* PAN-121 — the current branch: a rail, a fill and a weight
-                 step, all in `--here`, the one "you are here" colour (see
-                 frontend/CLAUDE.md for where else it may appear). Not green —
-                 the sparse-accent rule is exhaustive — and not opacity:
-                 PAN-113 measured an opacity state at 2.61:1. The weight step
-                 is what survives grayscale. */
               /* ROUND 3 — NO FILL AT REST. The owner: the round-2 greys "look
                  like they have been clicked". Fill means selected (Apple,
                  Material, Astryx's SideNav), so in this tree fill belongs to
                  `--here` alone. A root is told apart from its kinds by weight
                  and ink — semibold `--text-primary` — plus the chevron, and
                  hover is an underline rather than a grey that would read as a
-                 second selection. */
-              aria-current={isCurrentBranch ? 'page' : undefined}
-              className={`flex items-center gap-1.5 pr-2 py-2 rounded-xl text-[13px] font-semibold transition-colors ${
-                isCurrentBranch
-                  ? 'pl-2 border-l-2'
-                  : 'pl-3 text-ink hover:underline underline-offset-2'
-              }`}
-              style={
-                isCurrentBranch
-                  ? {
-                      color: 'var(--here)',
-                      backgroundColor: 'var(--here-subtle)',
-                      borderLeftColor: 'var(--here)',
-                    }
-                  : undefined
-              }
+                 second selection. PAN-269: the root row is never the marked
+                 node — "Alle" beneath it is (see `isCurrentBranch`). */
+              className="flex items-center gap-1.5 pl-3 pr-2 py-2 rounded-xl text-[13px] font-semibold text-ink hover:underline underline-offset-2 transition-colors"
             >
               <Icon
                 name="chevron_right"
                 aria-hidden="true"
-                className={`flex-shrink-0 transition-transform ${holdsCurrentNode ? 'rotate-90' : ''} ${hasKinds ? '' : 'invisible'}`}
+                className={`flex-shrink-0 transition-transform ${holdsCurrentNode ? 'rotate-90' : ''}`}
                 style={{ fontSize: '16px' }}
               />
               <span className="truncate" title={label}>{label}</span>
@@ -352,8 +333,15 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                 border tone, under the root's chevron (VS Code / Notion /
                 Linear): the line, not a fill, says "these belong to that".
                 A current kind lays its 2px `--here` rail over the guide. */}
-            {holdsCurrentNode && hasKinds && (
+            {holdsCurrentNode && (
               <ul className="ml-[19px] mt-0.5 mb-1 flex flex-col border-l border-line">
+                {/* PAN-269 — "Alle" first, as on the chip row: the whole root,
+                    and the row that is marked when no kind narrows it. */}
+                <KindRow
+                  href={`/browse/${category.slug}`}
+                  current={isCurrentBranch}
+                  label={t.facetAll}
+                />
                 {/* PAN-141 — the same order as the chip row on the page. */}
                 {sortKindsByLabel(
                   category.subcategories,
@@ -370,29 +358,12 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                     current.categorySlug === category.slug &&
                     current.subcategorySlug === sub.slug
                   return (
-                    <li key={sub.slug}>
-                      <Link
-                        href={`/browse/${category.slug}?sub=${encodeURIComponent(sub.slug)}`}
-                        aria-current={isCurrentSub ? 'page' : undefined}
-                        className={`-ml-px block pl-3 pr-3 py-1.5 text-[13px] truncate rounded-r-lg border-l-2 transition-colors ${
-                          isCurrentSub
-                            ? 'font-semibold'
-                            : 'border-transparent text-ink-secondary hover:underline underline-offset-2'
-                        }`}
-                        style={
-                          isCurrentSub
-                            ? {
-                                color: 'var(--here)',
-                                backgroundColor: 'var(--here-subtle)',
-                                borderLeftColor: 'var(--here)',
-                              }
-                            : undefined
-                        }
-                        title={subLabel}
-                      >
-                        {subLabel}
-                      </Link>
-                    </li>
+                    <KindRow
+                      key={sub.slug}
+                      href={`/browse/${category.slug}?sub=${encodeURIComponent(sub.slug)}`}
+                      current={isCurrentSub}
+                      label={subLabel}
+                    />
                   )
                 })}
               </ul>
@@ -401,6 +372,42 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
         )
       })}
     </div>
+  )
+}
+
+/**
+ * One row under an open root: a kind, or "Alle" (PAN-269). The current one
+ * takes `--here` — text, fill, a 2px rail over the guide line and a weight
+ * step, the one "you are here" colour (frontend/CLAUDE.md lists where else it
+ * may appear). Not green — the sparse-accent rule is exhaustive — and not
+ * opacity: PAN-113 measured an opacity state at 2.61:1. The weight step is
+ * what survives grayscale.
+ */
+function KindRow({ href, current, label }: { href: string; current: boolean; label: string }) {
+  return (
+    <li>
+      <Link
+        href={href}
+        aria-current={current ? 'page' : undefined}
+        className={`-ml-px block pl-3 pr-3 py-1.5 text-[13px] truncate rounded-r-lg border-l-2 transition-colors ${
+          current
+            ? 'font-semibold'
+            : 'border-transparent text-ink-secondary hover:underline underline-offset-2'
+        }`}
+        style={
+          current
+            ? {
+                color: 'var(--here)',
+                backgroundColor: 'var(--here-subtle)',
+                borderLeftColor: 'var(--here)',
+              }
+            : undefined
+        }
+        title={label}
+      >
+        {label}
+      </Link>
+    </li>
   )
 }
 

@@ -43,9 +43,11 @@ const TREE: CatalogueTreeCategory[] = [
     name_da: 'Synthesizere & keyboards',
     name_en: 'Keyboards and Synths',
     product_count: 27,
-    // PAN-121 round 2: a KIND is a node; a FACET's products hang directly
-    // under the root and have no node of their own (`facet-only` stands for
-    // one). PAN-138: analog + digital synths are one grouped kind.
+    // `facet-only` is a product the root holds but no kind does. The builder
+    // has not produced one since PAN-269 (every populated leaf is a kind); it
+    // stays here because the function must still answer for it, and the
+    // answer is the root. PAN-138: analog + digital synths are one grouped
+    // kind.
     subcategories: [
       {
         slug: 'synthesizers',
@@ -88,7 +90,8 @@ test('one function decides the current node, and it picks exactly one', () => {
     currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'synthesizers'),
     { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'synthesizers' },
   )
-  // A FACET has no node (round 2), so the root is where the visitor stands.
+  // A `?sub=` naming no node under this root: the root is where the visitor
+  // stands (PAN-269 — `solid-body` is a node under electric-guitars, not here).
   assert.deepEqual(
     currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'solid-body'),
     { kind: 'branch', categorySlug: 'keyboards-and-synths' },
@@ -100,7 +103,7 @@ test('one function decides the current node, and it picks exactly one', () => {
   // this function exists to prevent.
   //
   // PAN-121 round 3: a product is no longer a node. A product page marks the
-  // node that holds it — the root when its leaf is a facet…
+  // node that holds it — the root when no kind does…
   assert.deepEqual(currentCatalogueNode(TREE, '/product/facet-only', null), {
     kind: 'branch',
     categorySlug: 'keyboards-and-synths',
@@ -282,15 +285,16 @@ test('a branch opens when it CONTAINS the current node, not when it IS it', () =
 
   // The branch's kinds show on containment, and no branch is open
   // unconditionally. Round 3 replaced the `<details>` (its body was mostly
-  // products, and three roots have no kind at all), so the same two rules are
-  // asserted on the list that replaced it.
+  // products), so the same two rules are asserted on the list that replaced
+  // it. PAN-269: the list always holds at least "Alle", so there is no
+  // `hasKinds` gate any more.
   assert.match(
     SIDENAV_CODE,
     /const holdsCurrentNode = current !== null && current\.categorySlug === category\.slug/,
   )
-  assert.match(SIDENAV_CODE, /\{holdsCurrentNode && hasKinds && \(/)
+  assert.match(SIDENAV_CODE, /\{holdsCurrentNode && \(/)
   assert.equal(
-    /\{isCurrentBranch && hasKinds/.test(SIDENAV_CODE),
+    /\{isCurrentBranch && \(/.test(SIDENAV_CODE),
     false,
     'the marking predicate is not the containment predicate',
   )

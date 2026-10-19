@@ -6,12 +6,11 @@
  * to be exercisable from plain Node, and the browse page (a client component)
  * reads them.
  *
- * TWO FACET MECHANISMS, ONE VISITOR CONCEPT. `FACET_SUBCATEGORIES` in
- * `catalogue-tree.ts` turns a Reverb LEAF into a filter (body shape has
- * leaves). This module is for axes Reverb has no leaf for — a microphone's
- * capsule, electronics and polar pattern live under the single
- * `pro-audio/microphones` leaf. Named differently on purpose so the two are
- * never confused.
+ * NOT THE SUBCATEGORY CHIPS. A Reverb LEAF (body shape has leaves) is a
+ * catalogue node and a `?sub=` chip, built by `catalogue-tree.ts`. This module
+ * is for axes Reverb has no leaf for — a microphone's capsule, electronics and
+ * polar pattern live under the single `pro-audio/microphones` leaf. Named
+ * differently on purpose so the two are never confused.
  *
  * WHERE THE VALUES LIVE (owner decision, 2026-09-24, option A). Under
  * `attributes.facets`, one entry per axis:

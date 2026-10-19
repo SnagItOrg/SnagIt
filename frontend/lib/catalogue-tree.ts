@@ -33,24 +33,20 @@
  *    cover", the sidebar answers "where can I go", and an empty branch is a
  *    dead end in a navigation tree.
  *
- * 2. TWO LEVELS AT MOST, AND ONLY A KIND IS A LEVEL. Category and immediate
- *    subcategory, and nothing finer — and no products (rule 3). Generation, year
- *    and colour are filters; a family is a navigation concept owned by
- *    `lib/families.ts` and is not a taxonomy level.
- *    PAN-121 round 2 SUPERSEDES the old D-IA-2, which made form factor a
- *    filter but kept technology (`analog`/`digital`) as a level. Reverb's
- *    taxonomy mixes two kinds of leaf at one level, and they are different
- *    things to a visitor:
- *      - a KIND is what a thing is — drum machines, microphones, reverb. A
- *        visitor navigates BY it ("I want a drum machine"), so it stays a
- *        node in the tree.
- *      - a FACET is an attribute of a thing — body shape, string count,
- *        construction. A visitor filters by it, so it is not a node: it lives
- *        only as a chip on `/browse/<root>` (`?sub=` unchanged), and its
- *        products belong to the root.
- *    `FACET_SUBCATEGORIES` below is the hand-maintained list. An unlisted
- *    leaf is a KIND, so a newly published leaf behaves exactly as before and
- *    nothing disappears from the navigation silently.
+ * 2. TWO LEVELS AT MOST, AND EVERY POPULATED LEAF IS A LEVEL. Category and
+ *    immediate subcategory, and nothing finer — and no products (rule 3).
+ *    Generation, year and colour are filters; a family is a navigation
+ *    concept owned by `lib/families.ts` and is not a taxonomy level.
+ *    PAN-269 SUPERSEDES PAN-121 round 2, which split Reverb's leaves into
+ *    KINDS (drum machines, microphones — nodes) and FACETS (solid body,
+ *    semi-hollow, dreadnought, 4-string — chips only, products parked on the
+ *    root). The hand-maintained facet list was an editorial judgement, and
+ *    the owner reversed it: browsing El-guitarer showed "12-String" and
+ *    "Hollow Body" in the sidebar while the chip row on the same page offered
+ *    five, and nothing explained the difference. So the sidebar now mirrors
+ *    the chip row: every leaf with a public product is a node, and `?sub=`
+ *    carries the same slug either way. A newly published leaf is a node by
+ *    construction, so nothing disappears from the navigation silently.
  *    PAN-138: some kinds are two leaves shown as one (`SUBCATEGORY_GROUPS`) —
  *    analog and digital synths are one "Synthesizere" node, because the
  *    technology split is not a line a visitor can use.
@@ -75,31 +71,6 @@
  * `lib/browse.ts` — the same call `/browse` and `/browse/<root>` make. One
  * predicate, so the tree and the browse pages cannot drift about what exists.
  */
-
-/**
- * PAN-121 round 2 — the subcategories that are FACETS, not kinds (rule 2).
- *
- * Full `<root>/<leaf>` slugs, as the projection stores them, so a leaf slug
- * reused under another root cannot be caught by accident. Hand-maintained on
- * purpose: whether a leaf is something you navigate to or something you
- * filter by is an editorial judgement, and there are 14 live leaves — a
- * database column would be machinery for a list a person reads in one glance.
- *
- * `analog-synths` / `digital-synths` used to be here. PAN-138 took them out:
- * the owner decided analog/digital is not a clear axis (modern synths are
- * hybrids, and the Juno-106 is DCO), so they are not a filter either — they
- * are one kind, displayed through `SUBCATEGORY_GROUPS` below.
- *
- * DEFAULT IS KIND. Adding a leaf here removes it from the sidebar; forgetting
- * to add one leaves it where it always was.
- */
-export const FACET_SUBCATEGORIES: ReadonlySet<string> = new Set([
-  'acoustic-guitars/dreadnought',
-  'acoustic-guitars/jumbo',
-  'bass-guitars/4-string',
-  'electric-guitars/solid-body',
-  'electric-guitars/semi-hollow',
-])
 
 /**
  * PAN-138 — leaves DISPLAYED as one kind.
@@ -220,9 +191,9 @@ export type CatalogueTreeCategory = {
   slug: string
   name_da: string
   name_en: string
-  /** Every product under the root, in its kinds and its facets alike. */
+  /** Every product under the root — the sum of its kinds' (rule 2). */
   product_count: number
-  /** KINDS only (rule 2). A facet leaf never appears here. */
+  /** One node per populated leaf, or per group of leaves (rule 2). */
   subcategories: CatalogueTreeSubcategory[]
   /** Membership only — every product under the root (rule 3). Never rendered. */
   product_slugs: string[]
@@ -236,12 +207,12 @@ function bareLeafSlug(slug: string): string {
 type CatalogueNodeLabel = { slug: string; name_da: string; name_en: string }
 
 /**
- * Where one product stands in the catalogue: its category, and its kind when
- * it has one — `null` for a facet leaf (rule 2), the group for a grouped leaf
- * (PAN-138). Derived from the product's OWN subcategory and nothing else;
- * PAN-52 §6 forbids reaching a category through a family.
+ * Where one product stands in the catalogue: its category and its kind — the
+ * group for a grouped leaf (PAN-138), otherwise its own leaf. Derived from the
+ * product's OWN subcategory and nothing else; PAN-52 §6 forbids reaching a
+ * category through a family.
  */
-export type ProductPlacement = { category: CatalogueNodeLabel; kind: CatalogueNodeLabel | null }
+export type ProductPlacement = { category: CatalogueNodeLabel; kind: CatalogueNodeLabel }
 
 /**
  * The one placement rule, shared by the sidebar tree and the product-page
@@ -262,7 +233,6 @@ export function placeInCatalogue(
     name_da: row.root_category_name_da ?? rootSlug,
     name_en: row.root_category_name_en ?? rootSlug,
   }
-  if (FACET_SUBCATEGORIES.has(subSlug)) return { category, kind: null }
 
   // PAN-138: a grouped leaf stands in its group, so two leaves are one kind.
   const group = GROUP_OF_LEAF.get(subSlug)
@@ -315,9 +285,6 @@ export function buildCatalogueTree(
 
     root.product_count += 1
     root.product_slugs.push(row.slug)
-
-    // Rule 2: a facet is not a node, so its product belongs to the root alone.
-    if (!place.kind) continue
 
     const leafKey = `${root.slug}/${place.kind.slug}`
     let leaf = leaves.get(leafKey)
@@ -438,8 +405,8 @@ export function currentCatalogueNode(
     return { kind: 'subcategory', categorySlug, subcategorySlug: sub }
   }
 
-  // A FACET `?sub=` (rule 2) has no node, so the root is where the visitor
-  // stands — the facet chip on the page says what is narrowing it. An
-  // unrecognised `?sub=` falls back the same way rather than marking nothing.
+  // No kind in force — "Alle" on the page — or a `?sub=` naming no node: the
+  // branch is where the visitor stands, rather than marking nothing on a page
+  // that clearly has one.
   return { kind: 'branch', categorySlug }
 }

@@ -408,7 +408,7 @@ export default function ProductPage() {
                 properties={{
                   product_slug: product.slug,
                   category_root: catalogueContext?.category.slug ?? null,
-                  kind: catalogueContext?.kind?.slug ?? null,
+                  kind: catalogueContext?.kind.slug ?? null,
                   has_price_band: populations != null &&
                     Object.values(populations).some((p) => p.tier === 'band'),
                 }}
@@ -421,8 +421,8 @@ export default function ProductPage() {
                   product. The catalogue crumbs come from the product's OWN
                   subcategory (`catalogueContext`, the sidebar tree's placement
                   rule), never from its family: PAN-52 §6, taxonomy is not
-                  ancestry. A facet leaf adds no kind crumb; a grouped leaf
-                  crumbs as its group ("Synthesizere"). The family crumb is
+                  ancestry. A grouped leaf crumbs as its group
+                  ("Synthesizere"). The family crumb is
                   gated on `familyContext`, which the API emits only for a
                   published family. The product is the last crumb and not a
                   link. Each crumb is a direct child: `Breadcrumb` places its
@@ -438,7 +438,7 @@ export default function ProductPage() {
                         {locale === 'da' ? catalogueContext.category.name_da : catalogueContext.category.name_en}
                       </BreadcrumbItem>
                     )}
-                    {catalogueContext?.kind && (
+                    {catalogueContext && (
                       <BreadcrumbItem
                         href={`/browse/${catalogueContext.category.slug}?sub=${encodeURIComponent(catalogueContext.kind.slug)}`}
                       >

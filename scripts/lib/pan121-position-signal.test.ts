@@ -295,11 +295,13 @@ const SIDENAV_CODE = stripComments(read('components', 'SideNav.tsx'))
 
 test('the sidebar marks where you are, with aria-current="page"', () => {
   // There was not one occurrence anywhere in this file before this ticket.
-  // Three levels carry it since round 3 removed product rows: the top-level
-  // item, the root and the kind.
+  // Two levels carry it: the top-level item, and the row under an open root
+  // (`KindRow` — a kind, or "Alle"). PAN-269 took it off the root row: the
+  // "Alle" row beneath is the node a visitor stands on with no kind in force,
+  // the same row the chip row on the page marks.
   const occurrences = SIDENAV_CODE.match(/aria-current=/g) ?? []
   assert.ok(
-    occurrences.length >= 3,
+    occurrences.length >= 2,
     `expected aria-current at every level of the tree, found ${occurrences.length}`,
   )
 
@@ -349,9 +351,10 @@ test('the sidebar and the filter chips read the same facet', () => {
     currentCatalogueNode(cats, '/browse/keyboards-and-synths', 'drum-machines'),
     { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'drum-machines' },
   )
-  // Round 2: a facet `?sub=` still filters the page, but the sidebar marks the
-  // root — the facet is not a node. Still exactly one mark. (PAN-138 made
-  // `analog-synths` a grouped kind, so a guitar facet stands in for it here.)
+  // A `?sub=` the tree has no node for under this root still filters the
+  // page, and the sidebar marks the root. Still exactly one mark. (PAN-269
+  // made `solid-body` a kind under electric-guitars; under keyboards it is
+  // simply unknown.)
   assert.deepEqual(
     currentCatalogueNode(cats, '/browse/keyboards-and-synths', 'solid-body'),
     { kind: 'branch', categorySlug: 'keyboards-and-synths' },
@@ -372,7 +375,7 @@ test('the sidebar indicator is weight, fill and a rail — never green', () => {
   assert.match(SIDENAV_CODE, /font-(semibold|bold)/)
   // Round 3: the fill exists ONLY in the current state's style — fill means
   // selected, so a row at rest has none (the owner: greys "look clicked").
-  assert.match(SIDENAV_CODE, /isCurrent(Branch|Sub)\s*\?\s*\{[^}]*backgroundColor: 'var\(--here-subtle\)'/)
+  assert.match(SIDENAV_CODE, /\bcurrent\s*\?\s*\{[^}]*backgroundColor: 'var\(--here-subtle\)'/)
   assert.equal(/zone-group/.test(SIDENAV_CODE), false, 'a catalogue row must not carry a rest fill')
 
   for (const token of ['--accent', '#13ec6d', '#16d96b']) {
