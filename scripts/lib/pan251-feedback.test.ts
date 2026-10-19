@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 
 import { readFeedback } from '../../frontend/lib/feedback'
 
-test('PAN-251: the feedback read — the four kinds, the two surfaces, bounded fields, the honeypot', () => {
+test('PAN-251: the feedback read — the four kinds, the three surfaces, bounded fields, the honeypot', () => {
   const ok = readFeedback({ kind: 'wrong_price', surface: 'tjek-prisen', path: '/tjek-prisen', text: '  Prisen er for lav  ', email: ' mig@example.com ', productSlug: 'roland-juno-60', state: 'verdict', website: '' })
   assert.ok(ok.ok)
   if (ok.ok) {
@@ -23,6 +23,8 @@ test('PAN-251: the feedback read — the four kinds, the two surfaces, bounded f
     assert.deepEqual([bare.feedback.text, bare.feedback.email, bare.feedback.productSlug, bare.feedback.state], [null, null, null, null])
   }
   const reason = (body: unknown) => { const r = readFeedback(body); return r.ok ? 'ok' : r.reason }
+  // PAN-257: the unsupported-search panel posts `missing` from `search` for a signed-in visitor.
+  assert.equal(reason({ kind: 'missing', surface: 'search', path: '/search?q=akg%20c414', text: 'akg c414', email: 'mig@example.com' }), 'ok')
   assert.equal(reason({ kind: 'praise', surface: 'product', path: '/x' }), 'kind')
   assert.equal(reason({ kind: 'other', surface: 'admin', path: '/x' }), 'surface')
   assert.equal(reason({ kind: 'other', surface: 'product', path: 'product/x' }), 'path')

@@ -599,6 +599,20 @@ function CandidateMedia({ option }: { option: SearchCandidate }) {
  * Three things, in order: an honest statement that Klup does not follow this,
  * the nearest products it does follow, and a single control to register that
  * someone wanted it. No empty SERP and no generic listing list, ever.
+ *
+ * PAN-257 — TWO VISITORS, TWO PATHS BEHIND THE ONE CONTROL. The panel used to
+ * open the e-mail field and offer a login link to everyone, so the owner,
+ * signed in, was asked to send himself a magic link. Now the click resolves
+ * the session first:
+ *
+ *   - signed in: the request is recorded at once — a `missing` row in
+ *     `user_feedback` through `/api/feedback`, carrying the query and the
+ *     account's address so someone can actually write back — and the thanks
+ *     says so. No field, no link.
+ *   - anonymous: the existing path, unchanged — an address, a magic link that
+ *     creates the account, and the demand event.
+ *
+ * Both emit `demand_signal_submitted`; the address never reaches PostHog.
  */
 function UnsupportedPanel({
   outcome,
@@ -616,6 +630,54 @@ function UnsupportedPanel({
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [otpError, setOtpError] = useState<OtpErrorKey | null>(null)
+  /** PAN-257 — the signed-in path's answer: recorded, or not (so the control stays). */
+  const [recorded, setRecorded] = useState<'ok' | 'failed' | null>(null)
+
+  /**
+   * The one control. A session decides which path it opens — resolved on the
+   * click, the way `SearchResultCard` does for save and watch, so an anonymous
+   * visitor sees no flash of a state that is then withdrawn.
+   */
+  async function handleCta() {
+    setBusy(true)
+    const supabase = createSupabaseBrowserClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setBusy(false)
+      setOpen(true)
+      return
+    }
+
+    // The query and the account address go to /api/feedback — the row the
+    // manager reads and the owner's inbox — and nowhere else. `path` is the
+    // page as the visitor saw it, query included, like the sheets send it.
+    let ok = false
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'missing',
+          surface: 'search',
+          path: window.location.pathname + window.location.search,
+          text: outcome.queryNorm,
+          email: user.email ?? '',
+          website: '',
+        }),
+      })
+      ok = res.ok
+    } catch {
+      ok = false
+    }
+
+    // The same intensity signal the anonymous path sends. `has_email` is the
+    // truth that matters for it — there is an address to write to — and the
+    // builder puts only the boolean on the wire.
+    if (ok) emit('demand_signal_submitted', demandSignalPayload(outcome, user.email ?? ''))
+
+    setBusy(false)
+    setRecorded(ok ? 'ok' : 'failed')
+  }
 
   async function submitDemand(e: React.FormEvent) {
     e.preventDefault()
@@ -680,7 +742,14 @@ function UnsupportedPanel({
       <div
         className="surface-card rounded-2xl p-4"
       >
-        {sent ? (
+        {recorded === 'ok' ? (
+          // PAN-257 — signed in and recorded: the thanks, and what happens
+          // next. No address was asked for, so none is shown back.
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">{t.demandThanks}</p>
+            <p className="text-sm text-muted-foreground">{t.demandSignedInBody}</p>
+          </div>
+        ) : sent ? (
           // The thanks is still true — the signal was recorded either way.
           // What is added on failure is the part that was being claimed
           // falsely: that a login link went out.
@@ -718,14 +787,24 @@ function UnsupportedPanel({
             <p className="text-[11px] text-center text-muted-foreground">{t.noPasswordNeeded}</p>
           </form>
         ) : (
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="flex items-center gap-2 min-h-[44px] text-sm font-semibold text-foreground"
-          >
-            <Icon name="notifications" style={{ fontSize: 18 }} />
-            {t.demandCta}
-          </button>
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={handleCta}
+              disabled={busy}
+              className="flex items-center gap-2 min-h-[44px] text-sm font-semibold text-foreground disabled:opacity-50"
+            >
+              <Icon name="notifications" style={{ fontSize: 18 }} />
+              {t.demandCta}
+            </button>
+            {/* PAN-257 — the signed-in record did not land: say so, and
+                leave the control, so nothing is claimed that did not happen. */}
+            {recorded === 'failed' && (
+              <p role="alert" className="text-sm" style={{ color: 'var(--destructive-text)' }}>
+                {t.demandRecordFailed}
+              </p>
+            )}
+          </div>
         )}
       </div>
     </section>
