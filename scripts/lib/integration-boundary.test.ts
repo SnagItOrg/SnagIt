@@ -248,6 +248,9 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan267-browse-whole-root.test.ts',
       // PAN-268: unreviewed listings are badged (A); a local market with no band borrows Reverb's, labelled (C).
       'scripts/lib/pan268-badges.test.ts',
+      // PAN-271: the trumpet rows' line boundaries — a model number is its own identity, a finish is the same
+      // row, an accessory or another Bach horn is refused, and a brandless "trompet" names nothing.
+      'scripts/lib/pan271-brass.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
