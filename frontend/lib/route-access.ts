@@ -155,7 +155,7 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   {
     route: '/api/feedback',
     access: 'public_api',
-    note: 'PAN-251; rate-limited per IP in middleware; honeypot; a user_feedback row, one email to the owner, a Linear issue when configured; never the IP',
+    note: 'PAN-251; rate-limited per IP in middleware; honeypot; a user_feedback row and one email to the owner; never the IP',
   },
   {
     route: '/api/health/freshness',

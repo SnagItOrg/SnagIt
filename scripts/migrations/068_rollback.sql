@@ -3,8 +3,8 @@
 -- Reverses 068_user_feedback.sql: drops the table.
 --
 -- It REFUSES while the table holds a row. A feedback row is the only copy of
--- what a visitor wrote that the manager can read (the email went to the owner,
--- the Linear issue is a summary without the address), so empty the table on
+-- what a visitor wrote that the manager can read (the email went to the
+-- owner), so empty the table on
 -- purpose first (TRUNCATE public.user_feedback) if the rows are to go with it.
 --
 -- Idempotent: an absent table is an explicit no-op.

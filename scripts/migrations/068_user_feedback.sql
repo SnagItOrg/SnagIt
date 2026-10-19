@@ -9,8 +9,8 @@
 --   CREATE TABLE user_feedback. What the form sent, as frontend/lib/feedback.ts
 --   read it: the kind, the surface, the page, the text, the tip fields, and
 --   the visitor's address only when they typed it. Never the IP.
---   `linear_issue_id` is the Linear issue the route opened for the row, when
---   LINEAR_API_KEY and LINEAR_FEEDBACK_PROJECT_ID are set in Vercel.
+--   `linear_issue_id` is the issue the manager files in the Linear Feedback
+--   project for the row, through its own connector; the route never writes it.
 --   RLS enabled with no policy, and every privilege revoked from `anon` and
 --   `authenticated` in this transaction (scripts/CLAUDE.md P0: a new `public`
 --   table is otherwise born world-readable and world-writable). The route
@@ -54,7 +54,7 @@ BEGIN
       tip_price_dkk   integer,
       tip_name        text,
       listing_url     text,
-      -- The Linear issue the route opened in the Feedback project, when configured.
+      -- The issue the manager filed in the Linear Feedback project; null until it has.
       linear_issue_id text
     );
     ALTER TABLE public.user_feedback ENABLE ROW LEVEL SECURITY;

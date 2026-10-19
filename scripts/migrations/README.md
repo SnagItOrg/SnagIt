@@ -604,9 +604,10 @@ schedule step.
 per piece of feedback `/api/feedback` accepted — the feedback sheet's four
 kinds and "Giv os et tip" — with the kind, the surface, the page path, the
 text, the tip fields (`tip_price_dkk`, `tip_name`, `listing_url`), the
-visitor's address only when they typed it, and `linear_issue_id`, the Linear
-issue the route opened in the Feedback project when Linear is configured.
-Never the IP. It moves no row: the mails already sent are not rows.
+visitor's address only when they typed it, and `linear_issue_id`, which the
+manager fills when it files the row in the Linear Feedback project through its
+own connector (the route never writes it). Never the IP. It moves no row: the
+mails already sent are not rows.
 
 | Property | |
 |---|---|
@@ -614,5 +615,5 @@ Never the IP. It moves no row: the mails already sent are not rows.
 | P0 | A new `public` table: RLS is enabled with no policy and every `anon` / `authenticated` privilege revoked in the same transaction ([`../CLAUDE.md`](../CLAUDE.md) P0). The route writes through the service role; the manager reads through it. |
 | PRE / POST / DRIFT | PRE creates; POST is a no-op; a table in another shape, or one `anon` or `authenticated` can reach, raises before any change. |
 | Rollback | `068_rollback.sql`. Refuses while the table holds a row (a feedback row is the only copy the manager can read); drops it when empty; absent is a no-op. |
-| Rehearsal | PGlite 0.2.17, `rehearse068.mjs` in the session scratchpad, output on the PR: apply, POST no-op, closed to `anon` / `authenticated` despite the open default privilege, the route's insert and the `linear_issue_id` update, rollback refusing with a row and dropping without, absent no-op, re-apply, DRIFT on an extra column and on an open grant. `verify-migrations-isolated.sh` was not run: the authoring machine has no local PostgreSQL. |
+| Rehearsal | PGlite 0.2.17, `rehearse068.mjs` in the session scratchpad, output on the PR: apply, POST no-op, closed to `anon` / `authenticated` despite the open default privilege, the route's insert and the manager's `linear_issue_id` update, rollback refusing with a row and dropping without, absent no-op, re-apply, DRIFT on an extra column and on an open grant. `verify-migrations-isolated.sh` was not run: the authoring machine has no local PostgreSQL. |
 | Writer | `/api/feedback`. It fails soft while the table is absent: the row is skipped, the email still goes, and the answer is still ok. |
