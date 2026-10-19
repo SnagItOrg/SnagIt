@@ -7,7 +7,7 @@
  * for the rows that predate those batches (PAN-262).
  *
  * Usage (from the repository root):
- *   npx tsx scripts/match-listings.ts --historical-backfill --sources=dba.dk --max=N [--ids=a,b] [--from=<scraped_at>] [--show=N]
+ *   npx tsx scripts/match-listings.ts --historical-backfill --sources=dba.dk --max=N [--ids=a,b] [--from=<scraped_at>] [--show=N|all]
  *   npx tsx scripts/match-listings.ts --historical-backfill --sources=dba.dk --max=N [--from=<scraped_at>] --apply \
  *     --expect-selection=<md5 printed by the dry run> [--out-dir=DIR]
  *   npx tsx scripts/match-listings.ts --rollback=DIR/backfill-rollback-<ts>.json [--apply]
@@ -85,7 +85,8 @@ const MAX_ARG     = flag('max') ?? null
 const IDS         = flag('ids') ? new Set(flag('ids')!.split(',').map(s => s.trim()).filter(Boolean)) : undefined
 const EXPECT      = flag('expect-selection')
 const FROM        = flag('from')
-const SHOW        = Number(flag('show') ?? 3)
+// PAN-266 G4: `--show=all` prints every title of every group, so a 13-row group can be read whole.
+const SHOW        = flag('show') === 'all' ? Infinity : Number(flag('show') ?? 3)
 const OUT_DIR     = flag('out-dir') ?? path.join(os.tmpdir(), 'backfill')
 
 /** Ceiling for any apply run; a larger --max is refused outright. */

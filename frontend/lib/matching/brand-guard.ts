@@ -217,7 +217,11 @@ export function tokenIsObjectOfFor(title: string, token: string, brand: string |
   const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const model = esc(token).replace(/-/g, '[-\\s]')
   const brandPart = brand ? `(?:${esc(brand).replace(/ /g, '\\s+')}\\s+)?` : ''
-  return new RegExp(`(?<![\\w-])(?:for|til)\\s+${brandPart}['’‘]?${model}(?![\\w-])`, 'i').test(title)
+  // PAN-266: an article between the "for" and the model is the same reading — "3DWaves Stands For The
+  // Roland SP-404 MKII Sampler", "Rackmount Ears for the SSL UC1". Measured on every match row: of the
+  // 47 titles with "for the", 43 are rejected accessories; the kept ones ("Portico 511 Preamp for the
+  // 500 Series", "untouched for the past 25 years") name no model after the article.
+  return new RegExp(`(?<![\\w-])(?:for|til)\\s+(?:the\\s+)?${brandPart}['’‘]?${model}(?![\\w-])`, 'i').test(title)
 }
 
 /**
