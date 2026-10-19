@@ -24,6 +24,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  EXCLUDED_ROOT_SLUGS,
   LEGACY_COARSE_ROOT_SLUG,
   buildHomeCategories,
   isRenderableRoot,
@@ -95,7 +96,16 @@ test('PAN-86: the shelf is scoped by domain, and scope fails closed', () => {
   // category the other hides.
   assert.equal(slugs.includes(LEGACY_COARSE_ROOT_SLUG), false)
   assert.equal(isRenderableRoot(root('music-gear', 'music')), false)
-  assert.equal(shelf.length, 14)
+
+  // PAN-270 (owner, 2026-10-19): accessories and parts are deliberately out
+  // of the experience. One list, read by the same predicate /browse and the
+  // sidebar tree defer to, so no surface can show a card the others hide.
+  assert.deepEqual([...EXCLUDED_ROOT_SLUGS].sort(), ['accessories', 'parts'])
+  for (const excluded of EXCLUDED_ROOT_SLUGS) {
+    assert.equal(slugs.includes(excluded), false, `${excluded} reached the homepage`)
+    assert.equal(isRenderableRoot(root(excluded, 'music')), false)
+  }
+  assert.equal(shelf.length, 12)
 
   // FAIL-CLOSED, not deny-listed. A root whose domain cannot be read, or whose
   // domain is one nobody has taught this function about, is dropped rather
@@ -105,14 +115,14 @@ test('PAN-86: the shelf is scoped by domain, and scope fails closed', () => {
     [...ROOTS, root('watches', 'horology'), root('unreadable', null)],
     PUBLIC_ROOT_IDS,
   )
-  assert.equal(withUnknowns.length, 14)
+  assert.equal(withUnknowns.length, 12)
 
   // A child category is not a root, however right its domain looks.
   const withChild = buildHomeCategories(
     [...ROOTS, root('solid-body', 'music', { parent_id: 'id:electric-guitars' })],
     PUBLIC_ROOT_IDS,
   )
-  assert.equal(withChild.length, 14)
+  assert.equal(withChild.length, 12)
 })
 
 test('PAN-86: a card never prints a number its destination cannot honour', () => {
@@ -150,10 +160,11 @@ test('PAN-86: empty roots reach the shelf, and the useful ones lead', () => {
 
   // Option 3, the product decision: emptiness is visible BEFORE the click.
   // Filtering these out is what /browse does, and it is the behaviour this
-  // shelf deliberately does not copy — ten roots with nothing behind them
-  // still render, each able to say so.
+  // shelf deliberately does not copy — eight roots with nothing behind them
+  // still render, each able to say so. (Ten until PAN-270 took accessories
+  // and parts out of the experience altogether.)
   const empty = shelf.filter((c) => c.product_count === 0)
-  assert.equal(empty.length, 10)
+  assert.equal(empty.length, 8)
 
   // Order is total and locale-independent — populated first by count, then by
   // name_en — so the server and the client cannot disagree about it.
@@ -164,7 +175,6 @@ test('PAN-86: empty roots reach the shelf, and the useful ones lead', () => {
   assert.deepEqual(
     shelf.slice(4).map((c) => c.slug),
     [
-      'accessories',
       'acoustic-guitars',
       'amps',
       'band-and-orchestra',
@@ -173,7 +183,6 @@ test('PAN-86: empty roots reach the shelf, and the useful ones lead', () => {
       'drums-and-percussion',
       'folk-instruments',
       'home-audio',
-      'parts',
     ],
   )
 })

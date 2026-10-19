@@ -17,7 +17,7 @@
  * `images.unsplash.com` was already declared in `next.config.mjs`
  * remotePatterns; this adds no CDN.
  *
- * TWELVE ENTRIES FOR FOURTEEN ROOTS, and that is deliberate.
+ * TEN ENTRIES FOR TWELVE ROOTS, and that is deliberate.
  * `acoustic-guitars` and `electric-guitars` already hold correct Unsplash
  * hotlinks in the column (72.5 KB and 39.1 KB delivered at w=1200), so they
  * are absent here and resolve through the fallback. The map supersedes the
@@ -25,7 +25,9 @@
  * two where it points at a borrowed multi-megabyte product photograph.
  *
  * `music-gear` has no entry because it is not a card — `isRenderableRoot()`
- * excludes the legacy coarse root. Its 3.9 MB `categories/music-gear.webp` is
+ * excludes the legacy coarse root — and since PAN-270 neither do
+ * `accessories` and `parts`, which the owner keeps out of the experience.
+ * Its 3.9 MB `categories/music-gear.webp` is
  * still what `/browse` lends `keyboards-and-synths`, which this shelf does not
  * do and which is not this ticket's to fix.
  *
@@ -42,11 +44,6 @@ const TRANSFORM = 'auto=format&fit=crop&w=1200&q=80'
 const photo = (id: string) => `https://images.unsplash.com/${id}?${TRANSFORM}`
 
 export const CATEGORY_IMAGES: Readonly<Record<string, string>> = {
-  // unsplash.com/photos/a-close-up-of-a-guitar-pick-and-a-guitar-case--XFV7J2uao0
-  // Guitar strap and pick on a guitar body. Not owner-selected — this root has
-  // no supported products, so the card is empty either way.
-  accessories: photo('photo-1643386156518-9efc679d9e57'),
-
   // Owner-selected 2026-09-22, supplied as a CDN URL.
   // Both hands on a dreadnought, warm amber, shallow focus. Supersedes the
   // column's own Unsplash hotlink, which is a wider studio shot with no hands.
@@ -94,11 +91,6 @@ export const CATEGORY_IMAGES: Readonly<Record<string, string>> = {
   // The column is null here and lib/browse.ts lends /browse the 3.9 MB
   // music-gear.webp instead.
   'keyboards-and-synths': photo('photo-1600148272607-7bbf03a40d3b'),
-
-  // unsplash.com/photos/close-up-of-a-guitar-headstock-with-tuners-WKBQrLwfi6Y
-  // Guitar headstock and machine heads. Not owner-selected — this root has no
-  // supported products, so the card is empty either way.
-  parts: photo('photo-1744654296952-cf5b6b47556f'),
 
   // Owner-selected 2026-09-22, supplied as a CDN URL.
   // Mixing console, shallow focus across the faders. Supersedes the borrowed

@@ -48,9 +48,24 @@ export const HOME_CATEGORY_DOMAIN = 'music'
  * The legacy coarse root. Owned here so `/browse` and the homepage share one
  * definition — see rule 1. Not a general deny-list and must not become one:
  * any second entry would mean the taxonomy has a shape this predicate no
- * longer describes, and that is a data question, not a rendering one.
+ * longer describes, and that is a data question, not a rendering one. A root
+ * the owner keeps OUT of the experience is a different thing, and has its own
+ * list below.
  */
 export const LEGACY_COARSE_ROOT_SLUG = 'music-gear'
+
+/**
+ * PAN-270 — roots deliberately out of the experience (owner, 2026-10-19):
+ * accessories and spare parts are not things Klup follows, and the matcher
+ * already treats them as non-products (PAN-266). The two `kg_category` rows
+ * stay — this is presentation, and the KG is a broad identity universe.
+ *
+ * THE ONE LIST. Every surface that names a root reads it through
+ * `isRenderableRoot()` or directly: the homepage shelf, the `/browse` tiles
+ * and the root page (which answers 404 for one of these), and the sidebar
+ * tree. Add a slug here, and it leaves all of them at once.
+ */
+export const EXCLUDED_ROOT_SLUGS: ReadonlySet<string> = new Set(['accessories', 'parts'])
 
 /**
  * May this `kg_category` row be rendered as a taxonomy root?
@@ -68,7 +83,8 @@ export function isRenderableRoot(row: {
   return (
     row.domain === HOME_CATEGORY_DOMAIN &&
     row.parent_id === null &&
-    row.slug !== LEGACY_COARSE_ROOT_SLUG
+    row.slug !== LEGACY_COARSE_ROOT_SLUG &&
+    !EXCLUDED_ROOT_SLUGS.has(row.slug)
   )
 }
 
