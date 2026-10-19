@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import type { FamilyListing } from '@/lib/families'
+import type { CardVerdict } from '@/lib/listing-verdicts'
 import { Icon } from '@/components/Icon'
 import { MarketVerdictBadge } from '@/components/MarketVerdictBadge'
 import { SourceBadge } from '@/components/SourceBadge'
@@ -30,6 +31,11 @@ import { SourceBadge } from '@/components/SourceBadge'
  * PAN-94 shipped. `size="sm"` steps the badge down to the card's scale; the
  * direction glyph and the word still tell the three states apart without
  * colour, and the small-sample disclaimer (PAN-265) still sits under it.
+ *
+ * PAN-271: the body is `ListingCardBody`, shared with the brand wall's card.
+ * The family card is that body inside a link to the model and nothing more;
+ * the brand card adds the seller's price and, for a listing with no model, a
+ * link to the listing itself. The body never decides where a card leads.
  */
 export function FamilyListingCard({ listing, t }: { listing: FamilyListing; t: Record<string, string> }) {
   return (
@@ -37,10 +43,47 @@ export function FamilyListingCard({ listing, t }: { listing: FamilyListing; t: R
       href={`/product/${listing.childSlug}`}
       className="surface-card flex w-full gap-3 rounded-2xl p-3 transition-colors hover:border-line-strong"
     >
+      <ListingCardBody
+        imageUrl={listing.imageUrl}
+        title={listing.title}
+        verdict={listing.verdict}
+        meta={listing.childLabel}
+        source={listing.source}
+        t={t}
+      />
+    </Link>
+  )
+}
+
+/**
+ * The card's content: photo, title, optional price line, optional verdict,
+ * and the one meta line. `price` is the SELLER'S number as the brand wall
+ * shows it (PAN-271), neutral weight and never green — it is not Klup's
+ * judgement; the family page never passes it.
+ */
+export function ListingCardBody({
+  imageUrl,
+  title,
+  price,
+  verdict,
+  meta,
+  source,
+  t,
+}: {
+  imageUrl: string | null
+  title: string
+  price?: string | null
+  verdict: CardVerdict | null
+  meta: string
+  source: string | null
+  t: Record<string, string>
+}) {
+  return (
+    <>
       <div className="size-16 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
-        {listing.imageUrl ? (
+        {imageUrl ? (
           <Image
-            src={listing.imageUrl}
+            src={imageUrl}
             /* The title is read out on the next line, so the photo is
                decorative and an alt would repeat it. */
             alt=""
@@ -60,13 +103,18 @@ export function FamilyListingCard({ listing, t }: { listing: FamilyListing; t: R
 
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
         <span className="line-clamp-2 text-sm font-medium leading-snug wrap-anywhere">
-          {listing.title}
+          {title}
         </span>
-        {listing.verdict && (
+        {price !== undefined && (
+          <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+            {price ?? t.priceNotListed}
+          </span>
+        )}
+        {verdict && (
           <MarketVerdictBadge
-            verdict={listing.verdict.verdict}
-            basisLabelKey={listing.verdict.basisLabelKey}
-            fewN={listing.verdict.fewN}
+            verdict={verdict.verdict}
+            basisLabelKey={verdict.basisLabelKey}
+            fewN={verdict.fewN}
             size="sm"
             t={t}
           />
@@ -76,12 +124,12 @@ export function FamilyListingCard({ listing, t }: { listing: FamilyListing; t: R
             to a row — measured on fender-telecaster, 22 of 71 rows were doing
             exactly that at 390px. */}
         <span className="flex min-w-0 items-center gap-1.5">
-          <span className="type-meta truncate">{listing.childLabel}</span>
+          <span className="type-meta truncate">{meta}</span>
           <span className="flex-shrink-0">
-            <SourceBadge source={listing.source} />
+            <SourceBadge source={source} />
           </span>
         </span>
       </div>
-    </Link>
+    </>
   )
 }

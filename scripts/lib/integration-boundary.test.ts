@@ -250,6 +250,9 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan267-browse-whole-root.test.ts',
       // PAN-268: unreviewed listings are badged (A); a local market with no band borrows Reverb's, labelled (C).
       'scripts/lib/pan268-badges.test.ts',
+      // PAN-271: the brand wall's membership rule — matched through the product, unmatched through the brand
+      // net or the brand word plus a kind word, a model named only when canonical, no brand-level price.
+      'scripts/lib/pan271-brand-wall.test.ts',
       // PAN-271: the trumpet rows' line boundaries — a model number is its own identity, a finish is the same
       // row, an accessory or another Bach horn is refused, and a brandless "trompet" names nothing.
       'scripts/lib/pan271-brass.test.ts',

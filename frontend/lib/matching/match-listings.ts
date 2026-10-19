@@ -193,8 +193,8 @@ function containsToken(text: string, token: string): boolean {
   })
 }
 
-/** A whole word or phrase, on the same boundary rule as `tokenRegex`. */
-function cue(phrase: string): RegExp {
+/** A whole word or phrase, on the same boundary rule as `tokenRegex`. Exported for the brand wall (PAN-271). */
+export function cue(phrase: string): RegExp {
   const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+')
   return new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`, 'i')
 }
@@ -1145,9 +1145,10 @@ const marshallJcm800 = (own: string, ...others: string[]): LineBoundary => ({
  * method books and sheet music. A case, a bag or a stand is NOT here: "Trompet i etui" sells the horn and
  * "i" is no inclusion marker, and the Norwegian "topp stand" is a condition; a case sold alone names its
  * model after "til" or "for", which the matcher already reads. Marker-aware, as every accessory list is:
- * "YTR-2330 trompet med mundstykke" keeps the trumpet.
+ * "YTR-2330 trompet med mundstykke" keeps the trumpet. Exported so the brand wall (lib/brand-wall.ts) refuses
+ * exactly what the rows refuse.
  */
-const BRASS_ACCESSORIES: readonly string[] = [
+export const BRASS_ACCESSORIES: readonly string[] = [
   'mouthpiece', 'mouthpieces', 'mundstykke', 'mundstykker', 'munnstykke', 'munnstykker', 'munstycke', 'munstycken', 'mundstück',
   'mute', 'mutes', 'sordin', 'dæmper', 'silent brass', 'leadpipe', 'lead pipe', 'ventilolie', 'valve oil', 'slide grease',
   'cleaning rod', 'cleaning snake', 'bore brush', 'maintenance kit', 'trim kit', 'lyre',
