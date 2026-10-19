@@ -1,5 +1,5 @@
 /**
- * Feedback (PAN-251): one test on the route's validation. No email is sent here — the
+ * Feedback (PAN-251): the route's validation and the Linear issue text. No email is sent and no row is written here — the
  * route sends, and the route is not under test.
  */
 
@@ -7,6 +7,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { readFeedback } from '../../frontend/lib/feedback'
+import { linearIssueText } from '../../frontend/lib/linear-feedback'
 
 test('PAN-251: the feedback read — the four kinds, the two surfaces, bounded fields, the honeypot', () => {
   const ok = readFeedback({ kind: 'wrong_price', surface: 'tjek-prisen', path: '/tjek-prisen', text: '  Prisen er for lav  ', email: ' mig@example.com ', productSlug: 'roland-juno-60', state: 'verdict', website: '' })
@@ -45,4 +46,24 @@ test('PAN-256: a price tip needs a whole-kroner price; name and ad link are opti
   // Another kind never carries tip fields, whatever the body says.
   const other = readFeedback({ kind: 'other', surface: 'product', path: '/x', tipPriceDkk: 4500 })
   assert.ok(other.ok && other.feedback.tipPriceDkk === null)
+})
+
+test('PAN-251: the Linear issue names kind and product or page, and never carries the address', () => {
+  const read = readFeedback({ kind: 'wrong_price', surface: 'product', path: '/product/roland-juno-60', text: 'For lav', email: 'mig@example.com', productSlug: 'roland-juno-60' })
+  assert.ok(read.ok)
+  if (!read.ok) return
+  const issue = linearIssueText(read.feedback, 'https://www.klup.dk')
+  assert.equal(issue.title, '[feedback] wrong_price — roland-juno-60')
+  assert.ok(issue.description.includes('https://www.klup.dk/product/roland-juno-60'))
+  assert.ok(issue.description.includes('**Svar ønsket:** ja'))
+  assert.equal(issue.description.includes('mig@example.com'), false)
+  // No slug: the page path names the issue; no address: "nej".
+  const tip = readFeedback({ kind: 'price_tip', surface: 'tjek-prisen', path: '/tjek-prisen', tipPriceDkk: 4500, tipName: 'Roland Juno-106' })
+  assert.ok(tip.ok)
+  if (tip.ok) {
+    const t = linearIssueText(tip.feedback, 'https://www.klup.dk')
+    assert.equal(t.title, '[feedback] price_tip — /tjek-prisen')
+    assert.ok(t.description.includes('**Svar ønsket:** nej'))
+    assert.ok(t.description.includes('4.500 kr used'))
+  }
 })

@@ -38,4 +38,6 @@ npm run dev
 | `CRON_SECRET` | Hemmeligt token til cron job |
 | `RESEND_API_KEY` | Resend API nøgle |
 | `RESEND_FROM_EMAIL` | Afsender-email (f.eks. `hej@ditdomæne.dk`) |
+| `LINEAR_API_KEY` | Linear API-nøgle (valgfri; `/api/feedback` opretter en issue, når begge Linear-variabler er sat) |
+| `LINEAR_FEEDBACK_PROJECT_ID` | Id på Linear-projektet "Feedback" i team PAN (valgfri, sammen med nøglen) |
 | `NEXT_PUBLIC_APP_URL` | Produktions-URL (f.eks. `https://klup.vercel.app`) |
