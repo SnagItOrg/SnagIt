@@ -310,6 +310,10 @@ test('integration: every package suite is registered exactly once', () => {
       // may be stamped at all, and its provider-failure path is what used to
       // produce a marker for a mail that never went out.
       'scripts/lib/watchlist-notify.test.ts',
+      // PAN-273: a product watchlist hits on the matcher's say-so, not on the
+      // title. Its own suite because the rule has no words to test against,
+      // so the query suite's cases cannot cover it.
+      'scripts/lib/watchlist-product-hits.test.ts',
       'scripts/lib/wp1-catalogue.test.ts',
       'scripts/lib/wp1-public-contract.test.ts',
       'scripts/lib/wp1-route-access.test.ts',

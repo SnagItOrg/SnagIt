@@ -69,7 +69,12 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
   function handleCardClick() {
     if (confirming) { setConfirming(false); return }
     if (menuOpen)   { setMenuOpen(false);   return }
-    router.push(`/search?q=${encodeURIComponent(watchlist.query)}`)
+    // PAN-273: a model watch opens its product page; a search watch, the search.
+    router.push(
+      watchlist.product_slug
+        ? `/product/${watchlist.product_slug}`
+        : `/search?q=${encodeURIComponent(watchlist.query)}`,
+    )
   }
 
   return (
@@ -143,7 +148,7 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
                   Max {watchlist.max_price.toLocaleString('da-DK')} kr
                 </span>
               )}
-              <span className="text-xs text-muted-foreground">dba.dk</span>
+              <span className="text-xs text-muted-foreground">{watchlist.product_slug ? t.watchlistModel : 'dba.dk'}</span>
             </div>
           </>
         )}

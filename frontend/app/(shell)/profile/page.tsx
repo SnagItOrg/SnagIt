@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
@@ -18,6 +19,8 @@ type Watchlist = {
   id:        string
   query:     string
   max_price: number | null
+  /** PAN-273: set on a model watch; the name then links to the product page. */
+  product_slug?: string | null
 }
 
 function Toggle({ on, onToggle, disabled }: { on: boolean; onToggle: () => void; disabled?: boolean }) {
@@ -248,7 +251,14 @@ export default function ProfilePage() {
                   style={{ backgroundColor: 'var(--secondary)', border: '1px solid var(--border)' }}
                 >
                   <div className="flex flex-col gap-0.5 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{w.query}</p>
+                    {/* PAN-273: a model watch names the model and opens its page. */}
+                    {w.product_slug ? (
+                      <Link href={`/product/${w.product_slug}`} className="text-sm font-medium text-foreground truncate hover:underline underline-offset-4">
+                        {w.query}
+                      </Link>
+                    ) : (
+                      <p className="text-sm font-medium text-foreground truncate">{w.query}</p>
+                    )}
                     {w.max_price != null && (
                       <p className="text-xs text-muted-foreground">
                         maks {w.max_price.toLocaleString('da-DK')} kr

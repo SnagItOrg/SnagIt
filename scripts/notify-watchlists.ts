@@ -18,6 +18,12 @@
  * Honours `notification_preferences` (email_enabled, new_listings; no row
  * means the defaults, both on).
  *
+ * PAN-273: a product watchlist (`product_id`, migration 069) hits what the
+ * matcher tied to its model — `listing_product_match` rows for the watched
+ * products, created inside the window and not rejected. A watch whose product
+ * is no longer canonical is skipped, fail-closed. Until 069 is applied the
+ * column does not exist, and the run falls back to query watchlists only.
+ *
  * Dry run by default: prints the would-send list — watchlist id, query, the
  * hits — and writes nothing. It skips pairs the table already holds, so it
  * shows what tonight's --apply would do. Before 066 is applied it has no
@@ -30,7 +36,10 @@ import * as path from 'path'
 import * as fs from 'fs'
 import { createClient } from '@supabase/supabase-js'
 import { sendNewListingsEmail } from '../frontend/lib/email'
-import { isNonProduct, matchesWatchlist, notifyHits, type HitListing, type HitWatchlist } from './lib/watchlist-hits'
+import { isCanonical } from '../frontend/lib/catalogue'
+import {
+  isNonProduct, matchesProductWatchlist, matchesWatchlist, notifyHits, type HitListing, type HitWatchlist,
+} from './lib/watchlist-hits'
 
 const envPaths = [
   path.resolve(__dirname, '../frontend/.env.local'),
@@ -62,6 +71,7 @@ if (APPLY && (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL)) {
 const WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 const DAY_MS = 24 * 60 * 60 * 1000
 const PAGE = 1000
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.klup.dk'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } })
 
@@ -79,12 +89,18 @@ async function main() {
   }
   const since = new Date(goLive == null ? Date.now() - DAY_MS : Math.max(goLive, Date.now() - WINDOW_MS)).toISOString()
 
-  const { data: watchlists, error: wlError } = await supabase
+  const watchlistQuery = (withProduct: boolean) => supabase
     .from('watchlists')
-    .select('id, user_id, query, min_price, max_price, created_at')
+    .select(`id, user_id, query, min_price, max_price, created_at${withProduct ? ', product_id' : ''}`)
     .eq('active', true)
-    .eq('type', 'query')
+    .in('type', withProduct ? ['query', 'product'] : ['query'])
     .not('user_id', 'is', null) // an ownerless watchlist has nobody to mail (production holds some)
+  let { data: watchlists, error: wlError } = await watchlistQuery(true)
+  if (wlError?.code === '42703') {
+    // 069 not applied: no product column, no product watchlists.
+    console.log('watchlists.product_id absent (migration 069 not applied); query watchlists only')
+    ;({ data: watchlists, error: wlError } = await watchlistQuery(false))
+  }
   if (wlError) throw new Error(`watchlists: ${wlError.message}`)
 
   // Keyset on (ingested_at, id). A promoted batch shares one ingested_at, so
@@ -95,7 +111,7 @@ async function main() {
   for (;;) {
     let q = supabase
       .from('listings')
-      .select('id, title, price, currency, price_dkk, url, source, ingested_at')
+      .select('id, title, price, currency, price_dkk, url, source, ingested_at, is_active')
       .is('watchlist_id', null)
       .gt('ingested_at', since)
       .order('ingested_at')
@@ -109,6 +125,48 @@ async function main() {
     const last = data[data.length - 1]
     cursor = { at: last.ingested_at, id: last.id }
   }
+
+  // PAN-273. The watched products that are still canonical, and what the
+  // matcher tied to them inside the window. `isCanonical()` is the one
+  // authority (frontend/lib/catalogue.ts); a model taken off public stops
+  // mailing on the next run. Match rows are read by product, not by listing:
+  // the watched set is small, the window's listing ids are not.
+  const watchedIds = [...new Set(
+    ((watchlists ?? []) as Array<{ product_id?: string | null }>).map((w) => w.product_id).filter((id): id is string => !!id),
+  )]
+  const productSlug = new Map<string, string>()
+  const matchedByListing = new Map<string, Set<string>>()
+  if (watchedIds.length > 0) {
+    const [{ data: products, error: productError }, { data: projection, error: projectionError }] = await Promise.all([
+      supabase.from('kg_product').select('id, slug, status, support_state, browse_visibility').in('id', watchedIds),
+      supabase.from('browse_product_projection').select('id, browse_domain').in('id', watchedIds),
+    ])
+    if (productError) throw new Error(`kg_product: ${productError.message}`)
+    if (projectionError) throw new Error(`browse_product_projection: ${projectionError.message}`)
+    const domain = new Map((projection ?? []).map((p) => [p.id as string, p.browse_domain as string | null]))
+    for (const p of products ?? []) {
+      if (isCanonical({ ...p, browse_domain: domain.get(p.id as string) ?? null })) productSlug.set(p.id as string, p.slug as string)
+    }
+
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from('listing_product_match')
+        .select('listing_id, product_id')
+        .in('product_id', [...productSlug.keys()])
+        .not('is_valid', 'is', false)
+        .gte('created_at', since)
+        .order('id')
+        .range(from, from + PAGE - 1)
+      if (error) throw new Error(`listing_product_match: ${error.message}`)
+      for (const m of data ?? []) {
+        let set = matchedByListing.get(m.listing_id as string)
+        if (!set) matchedByListing.set(m.listing_id as string, (set = new Set()))
+        set.add(m.product_id as string)
+      }
+      if (!data || data.length < PAGE) break
+    }
+  }
+  const notCanonical = watchedIds.length - productSlug.size
 
   const userIds = [...new Set((watchlists ?? []).map((w) => w.user_id as string))]
   const { data: prefs, error: prefError } = await supabase
@@ -134,7 +192,9 @@ async function main() {
 
   console.log(
     `${APPLY ? 'apply' : 'dry run'}: since ${since}${goLive == null ? ' (no go-live: 066 not applied, last 24 h shown)' : ''}, `
-    + `${listings.length} new listings, ${watchlists?.length ?? 0} active watchlists, ${optedOut.size} user(s) opted out`,
+    + `${listings.length} new listings, ${watchlists?.length ?? 0} active watchlists`
+    + ` (${watchedIds.length} model(s) watched${notCanonical ? `, ${notCanonical} no longer canonical and skipped` : ''}), `
+    + `${optedOut.size} user(s) opted out`,
   )
 
   const tally: Record<string, number> = {}
@@ -142,8 +202,14 @@ async function main() {
   let wouldSendListings = 0
   const wouldSendUsers = new Set<string>()
   for (const w of (watchlists ?? []) as Array<HitWatchlist & { user_id: string }>) {
-    const matched = listings.filter((l) => matchesWatchlist(w, l))
-    const hits = matched.filter((l) => !isNonProduct(l)).sort((a, b) => (a.price_dkk ?? Infinity) - (b.price_dkk ?? Infinity))
+    const slug = w.product_id ? productSlug.get(w.product_id) : undefined
+    if (w.product_id && !slug) continue // no longer canonical
+    // The product rule has no part/wanted guard: the matcher already decided.
+    const matched = w.product_id
+      ? listings.filter((l) => matchesProductWatchlist(w, l, matchedByListing.get(l.id)))
+      : listings.filter((l) => matchesWatchlist(w, l))
+    const hits = (w.product_id ? matched : matched.filter((l) => !isNonProduct(l)))
+      .sort((a, b) => (a.price_dkk ?? Infinity) - (b.price_dkk ?? Infinity))
     if (hits.length === 0) continue
 
     if (!APPLY) {
@@ -154,7 +220,7 @@ async function main() {
         skipped ? `${skipped} part/wanted skipped` : '',
         optedOut.has(w.user_id) ? 'opted out' : '',
       ].filter(Boolean).join(', ')
-      console.log(`  ${w.id}  "${w.query}"  ${fresh.length} hit(s)${note ? ` (${note})` : ''}`)
+      console.log(`  ${w.id}  ${slug ? `[model ${slug}]` : `"${w.query}"`}  ${fresh.length} hit(s)${note ? ` (${note})` : ''}`)
       for (const l of fresh.slice(0, 5)) {
         console.log(`    • ${l.title} — ${l.price_dkk != null ? `${l.price_dkk.toLocaleString('da-DK')} kr` : 'no price'} (${l.source})`)
       }
@@ -170,7 +236,13 @@ async function main() {
     const { data: user } = await supabase.auth.admin.getUserById(w.user_id)
     const result = await notifyHits(
       supabase,
-      { watchlist: w, hits, email: user?.user?.email ?? null, optedOut: optedOut.has(w.user_id) },
+      {
+        watchlist: w,
+        hits,
+        email: user?.user?.email ?? null,
+        optedOut: optedOut.has(w.user_id),
+        seeAllUrl: slug ? `${APP_URL}/product/${slug}` : undefined,
+      },
       sendNewListingsEmail,
     )
     if (result.outcome) tally[result.outcome] = (tally[result.outcome] ?? 0) + 1

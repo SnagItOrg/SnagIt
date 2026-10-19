@@ -15,6 +15,15 @@
  * mail nobody opens. Words split on anything that is not a letter or a
  * digit, so the rule is the same for every marketplace.
  *
+ * ── A PRODUCT HIT (PAN-273) ─────────────────────────────────────────────
+ * A product watchlist (`product_id` set) has no words. It hits a listing the
+ * MATCHER tied to that product — a `listing_product_match` row that is not
+ * rejected (`is_valid IS NOT FALSE`, the price-evidence rule) — when the
+ * listing is active and the price and age pass the same window as above.
+ * No title test and no part/wanted guard here: the matcher's own gates
+ * already decided what the listing is. The runner loads the matches and
+ * drops watchlists whose product is no longer canonical before it gets here.
+ *
  * ── AT MOST ONCE ────────────────────────────────────────────────────────
  * `watchlist_notification` (migration 066) is unique on (watchlist, listing).
  * The claim is an INSERT ... ON CONFLICT DO NOTHING that returns only the rows
@@ -40,6 +49,8 @@ export type HitListing = {
   url: string
   source: string
   ingested_at: string
+  /** PAN-273: read by the product rule only; the query rule never asked. */
+  is_active?: boolean | null
 }
 
 export type HitWatchlist = {
@@ -48,6 +59,8 @@ export type HitWatchlist = {
   min_price: number | null
   max_price: number | null
   created_at: string
+  /** PAN-273: the watched kg_product; null on a query watchlist. */
+  product_id?: string | null
 }
 
 export type HitOutcome = 'sent' | 'failed' | 'no_recipient' | 'opted_out' | 'claim_failed'
@@ -58,15 +71,36 @@ export function words(text: string): string[] {
   return text.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean)
 }
 
+/** The listing is newer than the watchlist and its DKK price sits inside min/max. */
+function inWindow(w: HitWatchlist, l: HitListing): boolean {
+  if (Date.parse(l.ingested_at) <= Date.parse(w.created_at)) return false
+  if (w.max_price != null && (l.price_dkk == null || l.price_dkk > w.max_price)) return false
+  if (w.min_price != null && (l.price_dkk == null || l.price_dkk < w.min_price)) return false
+  return true
+}
+
 /** The query's words are all in the title, the price is in range, and the listing is newer than the watchlist. */
 export function matchesWatchlist(w: HitWatchlist, l: HitListing): boolean {
   const query = words(w.query)
   if (query.length === 0) return false
-  if (Date.parse(l.ingested_at) <= Date.parse(w.created_at)) return false
-  if (w.max_price != null && (l.price_dkk == null || l.price_dkk > w.max_price)) return false
-  if (w.min_price != null && (l.price_dkk == null || l.price_dkk < w.min_price)) return false
+  if (!inWindow(w, l)) return false
   const title = new Set(words(l.title))
   return query.every((q) => title.has(q))
+}
+
+/**
+ * PAN-273. `matched` is the set of product ids the matcher tied this listing
+ * to, rejected rows left out; absent means no match row at all.
+ */
+export function matchesProductWatchlist(
+  w: HitWatchlist,
+  l: HitListing,
+  matched: ReadonlySet<string> | undefined,
+): boolean {
+  if (!w.product_id) return false
+  if (l.is_active === false) return false
+  if (!inWindow(w, l)) return false
+  return matched?.has(w.product_id) ?? false
 }
 
 /** A part, an accessory or a wanted ad: never worth a mail. */
@@ -88,14 +122,17 @@ export async function notifyHits(
     email: string | null
     /** notification_preferences says no new-listing mail. */
     optedOut: boolean
+    /** PAN-273: where the mail's "Se alle" goes; the mail defaults to the search. */
+    seeAllUrl?: string
   },
   send: (input: {
     to: string
     query: string
     listings: Array<Pick<HitListing, 'title' | 'price' | 'currency' | 'url' | 'source'>>
+    seeAllUrl?: string
   }) => Promise<void>,
 ): Promise<{ outcome: HitOutcome | null; listings: number }> {
-  const { watchlist, hits, email, optedOut } = args
+  const { watchlist, hits, email, optedOut, seeAllUrl } = args
   if (hits.length === 0) return { outcome: null, listings: 0 }
 
   const { data: claimed, error: claimError } = await db
@@ -117,7 +154,7 @@ export async function notifyHits(
   else if (!email) outcome = 'no_recipient'
   else {
     try {
-      await send({ to: email, query: watchlist.query, listings: fresh })
+      await send({ to: email, query: watchlist.query, listings: fresh, seeAllUrl })
     } catch (err) {
       const message = err instanceof Error ? err.message : ''
       outcome = 'failed'

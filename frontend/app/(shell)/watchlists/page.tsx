@@ -111,9 +111,14 @@ export default function WatchlistsPage() {
     const raw = localStorage.getItem('pending_watchlist')
     if (!raw) return
     try {
-      const { query, max_price } = JSON.parse(raw) as { query: string; max_price: number | null }
-      if (!query) return
-      const body: Record<string, unknown> = { query }
+      const { query, product_slug, max_price } = JSON.parse(raw) as {
+        query?: string
+        /** PAN-273: a model watch parked by the product page's email step. */
+        product_slug?: string
+        max_price: number | null
+      }
+      if (!query && !product_slug) return
+      const body: Record<string, unknown> = product_slug ? { product_slug } : { query }
       if (max_price != null && max_price > 0) body.max_price = max_price
       const res = await fetch('/api/watchlists', {
         method: 'POST',
@@ -123,7 +128,7 @@ export default function WatchlistsPage() {
       if (res.ok) {
         track('watchlist_created', {
           origin: 'signup_pending',
-          product_slug: null,
+          product_slug: product_slug ?? null,
           has_max_price: 'max_price' in body,
         })
         const created = await res.json()

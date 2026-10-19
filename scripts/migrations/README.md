@@ -617,3 +617,23 @@ mails already sent are not rows.
 | Rollback | `068_rollback.sql`. Refuses while the table holds a row (a feedback row is the only copy the manager can read); drops it when empty; absent is a no-op. |
 | Rehearsal | PGlite 0.2.17, `rehearse068.mjs` in the session scratchpad, output on the PR: apply, POST no-op, closed to `anon` / `authenticated` despite the open default privilege, the route's insert and the manager's `linear_issue_id` update, rollback refusing with a row and dropping without, absent no-op, re-apply, DRIFT on an extra column and on an open grant. `verify-migrations-isolated.sh` was not run: the authoring machine has no local PostgreSQL. |
 | Writer | `/api/feedback`. It fails soft while the table is absent: the row is skipped, the email still goes, and the answer is still ok. |
+
+## 069 — `watchlists.product_id`, a watch on one model under a price. **NOT APPLIED.**
+
+`069_watchlist_product.sql` (PAN-273) adds `watchlists.product_id uuid NULL
+REFERENCES kg_product(id)`, lets `type` be `product` (CHECK `query | listing |
+product`), ties the two with a second CHECK (`product_id` set exactly when
+`type = 'product'`), and makes `(product_id, user_id)` unique — one watch per
+model per user; NULL product_ids never collide, so query and listing rows are
+untouched. No row moves, no grant changes. Deleting a watched product fails
+on the FK on purpose: a KG cleanup that hits a watch has to decide what
+happens to the watcher.
+
+| Property | |
+|---|---|
+| Why | Owner, 2026-10-19: a free-text watchlist is confusing for users — pasted ad titles and typos never hit, and non-music queries exist. V2 watches a canonical model; the hit is the matcher's `listing_product_match` row (`is_valid IS NOT FALSE`) under `max_price`, in `scripts/lib/watchlist-hits.ts`. |
+| P0 | Not a new table. `watchlists` keeps its RLS policy (users manage their own rows); whether a watched product is canonical is decided by `isCanonical()` in the route and again at send time, never by the schema. |
+| PRE / POST / DRIFT | PRE (column absent, the two-value type CHECK from 005) adds and verifies in the transaction; POST (column, both CHECKs, FK and unique index in this shape) is a no-op; a foreign type CHECK or a bare `product_id` column raises before any change. |
+| Rollback | `069_rollback.sql`. Refuses while any product watchlist exists (the column is a user's watch); otherwise drops the index, the pair CHECK and the column and restores the two-value CHECK; absent is a no-op. |
+| Rehearsal | PGlite 0.2.17, `rehearse069.mjs`, 25 checks, output on the PR: PRE with the shape and rows byte-identical apart from the column, POST no-op, the route's upsert keeping `created_at` and updating the price, a second user on the same model, both CHECKs, the FK both ways, rollback refusing and then restoring the exact shape, absent no-op, re-apply, DRIFT on a foreign CHECK and on a half-applied column. `verify-migrations-isolated.sh` was not run: the authoring machine has no local PostgreSQL. |
+| Writers | `/api/watchlists` POST with `product_slug` (answers 503 `watchlists_unavailable` until applied). Reader: `scripts/notify-watchlists.ts`, which falls back to query watchlists only while the column is absent. |

@@ -3,6 +3,14 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { scrapeDba } from '@/lib/scrapers/dba'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { detectListingUrl, fetchListingFromUrl } from '@/lib/scrapers/listing-url'
+import { isCanonical } from '@/lib/catalogue'
+
+/**
+ * PAN-273. The PostgREST codes a product write gets before migration 069 is
+ * applied: no `product_id` column, the two-value type CHECK, no unique pair
+ * for the upsert to name. The action is unavailable, not broken.
+ */
+const SCHEMA_NOT_READY = new Set(['42703', '23514', '42P10'])
 
 // Runs in the background after the 201 response is sent.
 // Scrapes up to 3 pages so the user sees results immediately.
@@ -67,9 +75,18 @@ export async function GET() {
 
   const ids = data.map((w) => w.id)
 
+  // PAN-273: a model watch knows its product; its image and its link come
+  // from the row, not from a name guess.
+  const productIds = data.map((w) => w.product_id as string | null | undefined).filter((id): id is string => !!id)
+  const { data: products } = productIds.length > 0
+    ? await supabase.from('kg_product').select('id, slug, image_url').in('id', productIds)
+    : { data: [] as Array<{ id: string; slug: string; image_url: string | null }> }
+  const productById = new Map((products ?? []).map((p) => [p.id as string, p]))
+
   // Priority 0: canonical product image from kg_product — mirrors what appears
   // as the Thomann top-card on the search page. Runs per-watchlist in parallel.
   const kgImagePromises = data.map(async (w) => {
+    if (w.product_id) return [w.id, productById.get(w.product_id)?.image_url ?? null] as const
     if (w.query.startsWith('http')) return [w.id, null] as const
     const words = w.query.split(/\s+/).filter((word: string) => word.length > 1)
     if (words.length === 0) return [w.id, null] as const
@@ -145,6 +162,7 @@ export async function GET() {
 
   const result = data.map((w) => ({
     ...w,
+    product_slug: w.product_id ? productById.get(w.product_id)?.slug ?? null : null,
     new_count: countMap.get(w.id) ?? 0,
     preview_image_url: imageMap.get(w.id) ?? null,
   }))
@@ -160,16 +178,61 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { query, min_price, max_price } = body
-
-  if (!query || typeof query !== 'string') {
-    return NextResponse.json({ error: 'Missing query' }, { status: 400 })
-  }
+  const { query, min_price, max_price, product_slug } = body
 
   const minPrice: number | undefined =
     typeof min_price === 'number' && min_price > 0 ? min_price : undefined
   const maxPrice: number | undefined =
     typeof max_price === 'number' && max_price > 0 ? max_price : undefined
+
+  // PAN-273: one model under a price. Only a canonical product can be
+  // watched — `isCanonical()` is the one authority — and one row per
+  // (product, user): saving again updates the price and keeps `created_at`,
+  // so nothing already seen is mailed twice. Nothing is scraped for it; the
+  // nightly matcher is the feed.
+  if (typeof product_slug === 'string') {
+    if (maxPrice === undefined) return NextResponse.json({ error: 'Missing max_price' }, { status: 400 })
+    const admin = getSupabaseAdmin()
+    const { data: product } = await admin
+      .from('kg_product')
+      .select('id, slug, canonical_name, image_url, status, support_state, browse_visibility')
+      .eq('slug', product_slug)
+      .maybeSingle()
+    const { data: projection } = product
+      ? await admin.from('browse_product_projection').select('browse_domain').eq('id', product.id).maybeSingle()
+      : { data: null }
+    if (!product || !isCanonical({ ...product, browse_domain: (projection?.browse_domain as string | null) ?? null })) {
+      return NextResponse.json({ error: 'not_canonical' }, { status: 404 })
+    }
+    const { data, error } = await supabase
+      .from('watchlists')
+      .upsert(
+        {
+          user_id: user.id,
+          query: product.canonical_name,
+          type: 'product',
+          product_id: product.id,
+          max_price: maxPrice,
+          min_price: minPrice ?? null,
+          active: true,
+        },
+        { onConflict: 'product_id,user_id' },
+      )
+      .select()
+      .single()
+    if (error) {
+      if (SCHEMA_NOT_READY.has(error.code)) return NextResponse.json({ error: 'watchlists_unavailable' }, { status: 503 })
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json(
+      { ...data, product_slug: product.slug, new_count: 0, preview_image_url: product.image_url ?? null },
+      { status: 201 },
+    )
+  }
+
+  if (!query || typeof query !== 'string') {
+    return NextResponse.json({ error: 'Missing query' }, { status: 400 })
+  }
 
   let insertData: {
     user_id: string

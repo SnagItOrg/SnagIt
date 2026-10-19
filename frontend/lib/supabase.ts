@@ -17,9 +17,13 @@ export type Watchlist = {
   query: string
   created_at: string
   active: boolean
-  type: 'query' | 'listing'
+  type: 'query' | 'listing' | 'product'
   source_url: string | null
   max_price: number | null
+  /** PAN-273: the watched kg_product on a `product` watchlist; absent until migration 069. */
+  product_id?: string | null
+  /** PAN-273: resolved by /api/watchlists for the link to the product page. */
+  product_slug?: string | null
   new_count: number
   preview_image_url: string | null
 }
