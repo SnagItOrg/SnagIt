@@ -495,7 +495,13 @@ test('listing DTO: the route uses an explicit embed, not listings(*)', () => {
   const src = readCode('app', 'api', 'product', '[slug]', 'route.ts')
   assert.equal(src.includes('listings(*)'), false, 'listings(*) shipped 28 columns publicly')
   assert.ok(src.includes('PUBLIC_LISTING_SELECT'))
-  assert.ok(src.includes('toPublicListing'))
+  // PAN-272: the row is built in lib/listing-verdicts.ts (`wallMatches`),
+  // which the route and the family page share; both reads use the embed.
+  assert.ok(src.includes('wallMatches(matchRows)'))
+  const shared = readCode('lib', 'listing-verdicts.ts')
+  assert.ok(shared.includes('toPublicListing'))
+  assert.ok(shared.includes('listings(${PUBLIC_LISTING_SELECT})'))
+  assert.equal(shared.includes('listings(*)'), false)
 })
 
 test('listing DTO: a row without identity is dropped, not half-built', () => {
