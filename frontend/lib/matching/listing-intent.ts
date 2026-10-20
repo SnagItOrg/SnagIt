@@ -252,7 +252,8 @@ const ACCESSORY_TOKENS: readonly string[] = [
   //               caught, "GForce Oberheim OB-X Virtual Instrument" and "UAD
   //               Manley VOXBOX … Plug-In", are left. PAN-266 takes `virtual
   //               instrument` after all (the software block below): the Arturia
-  //               rows are `known`, not supported. `plug-in` stays refused.
+  //               rows are `known`, not supported. `plug-in` stays refused on its
+  //               own; PAN-266 takes it beside UAD or `virtual` (PLUGIN below).
   //   windscreen  its one pool part is caught by the model-list rule anyway, and
   //               it would defer an unreviewed U 87 Ai bundle.
   //   switch, pot "Boss AB-2 Foot Switch" is a product. Compound switch names
@@ -260,7 +261,8 @@ const ACCESSORY_TOKENS: readonly string[] = [
   //               switch"), which does not need the word.
   //   rom         "Yamaha DX7 Vintage, 2 ROM, BC2, FC, Top Zustand" and "Yamaha
   //               DX7 … Sakamoto ROM loaded w/Hardcase" are complete DX7s, so
-  //               only `voice rom` and `data rom` are taken.
+  //               only `voice rom` and `data rom` are taken (PAN-266 adds `rom
+  //               card` and the VRC code).
   //   jack        confirmed Boss DS-2 titles name a "Built-In Remote Jack" as a
   //               feature; only the observed `phone jack` is taken.
   //   Forms the report listed with no hit in the pool (caps, output/input jack,
@@ -330,7 +332,77 @@ const ACCESSORY_TOKENS: readonly string[] = [
   // PCIe cards are hardware), `vst`, `ilok`, `activation` and `licence` (no false row names them —
   // unexercised tokens are latent false rejections).
   '(download)', 'virtual instrument', 'license',
+  // PAN-266 follow-up, measured 2026-10-20 on every listing_product_match row (55,877) and the
+  // active listings with no row; counts are false / true rows the guard did not already flag (no
+  // `is_valid = true` row gains a finding; unreviewed rows are named where there are any). G4
+  // stopped on a wiring harness, a UAD plug-in, a ROM cartridge and a leading AC adapter, and the
+  // watchlist mails (PAN-275) on "speaker harness" and "choke transformer". `harness` is a pattern below.
+  //
+  //   power transformer           11 / 0   "Roland TR-808 220V/240V Power Transformer 245-219D"
+  //   output transformer           0 / 0   no unmarked row ("dbx 160XT … with Jensen output
+  //                                         transformer" keeps its marker); the pool's four titles are
+  //                                         parts ("… Deluxe Reverb Output Transformer - 022640")
+  //   choke                        0 / 0   no row; the pool's two titles are parts ("Fender Deluxe
+  //                                         Reverb Choke Transformer - 022707"). These two are taken
+  //                                         for the watchlist mail, which reads the pool
+  //   rom card                     8 / 0   "Yamaha TG55 | ROM Card | Sound Source Unlimited"; 1 unreviewed,
+  //                                         "Yamaha YS100 / … / V50 ROM Card // RCD103"
+  //
+  // REFUSED: a bare `transformer` (25 / 49 rows name it — "Rupert Neve Designs RNDI Active Transformer Direct
+  // Box", "MBT Master Bus Transformer" and the Boss VT-1 "Voice Transformer" are products), a bare
+  // `rom` / `roms` (40 / 3 unflagged — "Kurzweil K2000 v2 Orchestral Rom", "Yamaha DX7 - 2 ROMs + Manual"),
+  // `dust cover` (`cover` already fires on every one; the "2600 M" title escaped through the marker,
+  // fixed in earliestInclusionMarker), a bare `decksaver` (6 trusted units list one with no marker:
+  // "Akai MPC Live II – Mint – Decksaver + Magma CTRL Case") and `decksaver kit` (a Sweetwater bundle:
+  // "Moog Muse … DECKSAVER KIT" is 23,242 DKK, the synth). Those two and the rest are patterns below.
+  'power transformer', 'output transformer', 'choke',
+  'rom card',
 ]
+
+/**
+ * Accessory PATTERNS (PAN-266, 2026-10-20): the head noun is an accessory only in one position or
+ * one company, so a word alone would defer a product. Marker-suppressible like ACCESSORY_TOKENS, and
+ * the finding reports the text that fired. Counts as above: false / true rows the guard did not
+ * already flag.
+ *
+ *   harness                            24 / 0   "Gibson Les Paul Jr./SG Junior premium wiring harness-
+ *                                               50s style …": a pattern because the seller glues the
+ *                                               dash ("harness- 50s"), which the word rule reads as a
+ *                                               compound. Covers `wiring harness` and `speaker harness`
+ *   leading power supply / AC adapter  33 / 0   "Power Supply/AC Adapter BOSS: VE-8 Acoustic Singer
+ *                                               ES-5 …" (unreviewed, one of 4), "9V Power Supply
+ *                                               Adapter for Boss …". An optional voltage may lead. Only
+ *                                               at the head: "Moog Grandmother … w/ Power Supply"
+ *                                               is the synth, and "PSU" mid-title is excluded above
+ *   leading decksaver                   8 / 0   "Decksaver Moog Grandmother Staubschutzcover"
+ *   a Yamaha VRC cartridge code         1 / 0   "Yamaha DX7 ROM VRC-110 Special Selection" (the other
+ *                                               19 rows already defer on `cartridge` or `voice rom`)
+ *   <model> stand(s)                    7 / 0   "RESTAND Roland SP-404 MKII Stand", "Restand … Novation
+ *                                               Launchpad Pro Mk3 Stand". The word before `stand` holds
+ *                                               a digit or is a Mk: a bare `stand` is Danish "flot
+ *                                               stand" (CONDITION_STAND), and "Microphone Stand and
+ *                                               Cable Bundle" names no model before it. 1 unreviewed:
+ *                                               "Elektron Digitone 1 & 2 stand (100% walnut)", 508 DKK.
+ *                                               Never after a comma, which lists a bundle's items
+ *                                               ("Sequential Prophet-10 61-key Analog Synthesizer,
+ *                                               Ultimate Support AX-48 Stand, …", 29,300 DKK), and
+ *                                               never a `stand mount` ("Coles 4038 Studio Ribbon
+ *                                               Microphone Inc. 4071 Stand mount", 9,164 DKK)
+ *
+ * `plug-in` / `plugin` is a token only beside a software cue (SOFTWARE_PLUGIN_CUE): 5 / 0 with `uad`
+ * or `virtual` ("Universal Audio UAD Manley VOXBOX Channel Strip Plug-In", "Waldorf PPG Wave 3.0
+ * Virtual Synthesizer Plug-In"); without one, 29 trusted rows name it, every one the SSL UC1 "Hardware
+ * Plug-In Controller". `uad` is a word: "UAD-2 Satellite" (hardware) is not it.
+ */
+const ACCESSORY_PATTERNS: readonly RegExp[] = [
+  /(?<![\w-])harness(?:es)?(?!\w|-\w)/,
+  /^[^\w]*(?:\d+(?:[.,]\d+)?\s?v(?:dc|ac)?\s+)?(?:power\s+supply|ac\s?\/?\s?(?:dc\s+)?adapter|power\s+adapter|psu)(?![\w-])/,
+  /^[^\w]*decksaver(?![\w-])/,
+  /(?<![\w-])vrc[\s-]?\d{3,4}(?![\w-])/,
+  /(?<!,.*)(?<![\w-])(?:[\w-]*\d[\w-]*|mk\s?(?:i{1,3}|\d))\s+stands?(?![\w-])(?!\s+mounts?(?![\w-]))/,
+]
+const PLUGIN = /(?<![\w-])plug-?ins?(?![\w-])/
+const SOFTWARE_PLUGIN_CUE = /(?<![\w-])(?:uad|virtual)(?![\w-])/
 
 /**
  * Inclusion markers — the vocabulary that turns "an accessory" into "a product
@@ -375,7 +447,23 @@ const INCLUSION_MARKERS: readonly string[] = [
   // "m." ("." is not a word character), so "4 m. kabel" takes the same metre guard.
   'm',
 ]
-const BARE_M = /(?<![\w-])(?<!(?<![\w×.,])\d{1,3}(?:[.,]\d+)?\s?)m(?![\w-])/i
+const BARE_M = /(?<![\w-])(?<!(?<![\w×.,])\d{1,3}(?:[.,]\d+)?\s?)m(?![\w-])/gi
+/**
+ * After a number of four or more digits that is not a year, "m" is a model suffix, not "med" (PAN-266):
+ * "Korg Other ARP 2600 M … Keyboard Dust Cover by DCFY!®" kept its match because the "M" of the
+ * model read as a marker before `cover`. Measured 2026-10-20 over every listing title: 24 carry a
+ * bare m after such a number, 21 of them "ARP 2600 M" and one "Tama model 3556 M"; the other two
+ * are furniture ("3107 m. sort stel"). After a year ("1966 m cover") it stays "med".
+ */
+const MODEL_NUMBER_BEFORE = /(?<![\w×.,])(\d{4,})\s?$/
+const YEAR = /^(?:19[3-9]\d|20[0-3]\d)$/
+function bareMarkerM(text: string): number {
+  for (const m of text.matchAll(BARE_M)) {
+    const n = MODEL_NUMBER_BEFORE.exec(text.slice(0, m.index))
+    if (!n || YEAR.test(n[1])) return m.index
+  }
+  return -1
+}
 
 /**
  * Index of the earliest inclusion marker, or -1.
@@ -416,7 +504,7 @@ export function earliestInclusionMarker(text: string): number {
     if (marker === '+' || marker === 'w/') {
       idx = text.indexOf(marker)
     } else if (marker === 'm') {
-      idx = BARE_M.exec(text)?.index ?? -1
+      idx = bareMarkerM(text)
     } else {
       const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       const m = new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`, 'i').exec(text)
@@ -745,6 +833,11 @@ export function detectNonProductIntent(title: string): IntentFinding | null {
     if (token === 'manual' && KEYBOARD_COUNT_MANUAL.test(text)) continue
     if (token === 'tangenter' && KEY_SPEC_TANGENTER.test(text)) continue
     return { intent: 'part_or_accessory', token }
+  }
+  for (const re of SOFTWARE_PLUGIN_CUE.test(text) ? [...ACCESSORY_PATTERNS, PLUGIN] : ACCESSORY_PATTERNS) {
+    const m = re.exec(text)
+    if (!m || (markerAt !== -1 && markerAt < m.index)) continue
+    return { intent: 'part_or_accessory', token: m[0].replace(/^[^\w]+/, '').trim() }
   }
 
   // A quantity after an inclusion marker counts the extras, not the product:

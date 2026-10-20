@@ -230,6 +230,8 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan261-amps.test.ts',
       // PAN-262: Danish "til", glued Martin codes, Shenandoah and "tangenter", on the brand net's titles.
       'scripts/lib/pan262-matcher-misses.test.ts',
+      // PAN-266: a harness, a power/output transformer, a ROM card, a leading PSU or Decksaver, a "<model> stand", a UAD plug-in, and "2600 M".
+      'scripts/lib/pan266-accessory-classes.test.ts',
       // PAN-266: a Roland wave-expansion card (SN-U110, SR-JV80, SRX) is a part, and a seller's U+2011 is a hyphen.
       'scripts/lib/pan266-expansion-cards.test.ts',
       // PAN-266: a model code in one form — glued, spaced, hyphenated, generation glued or apart.
