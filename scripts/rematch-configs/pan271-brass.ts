@@ -23,6 +23,9 @@ const config: RematchConfig = {
     'yamaha-ytr-232', 'yamaha-ytr-1335', 'yamaha-ytr-2320', 'yamaha-ytr-2330', 'yamaha-ytr-2335',
     'yamaha-ytr-4335gii', 'yamaha-ytr-8310z', 'yamaha-ytr-8335', 'yamaha-ytr-8345',
     'bach-stradivarius-37', 'bach-stradivarius-43', 'bach-stradivarius-72',
+    // The high-end round (owner, 2026-10-20): Xeno Artist, Xeno C, Custom LA, 8340EM, 850, 6810 piccolo.
+    'yamaha-ytr-9335chs', 'yamaha-ytr-9335nys', 'yamaha-ytr-8445', 'yamaha-ytr-9445chs', 'yamaha-ytr-9445nys',
+    'yamaha-ytr-8335la', 'yamaha-ytr-8340em', 'yamaha-ytr-850', 'yamaha-ytr-6810',
   ],
 
   /** No trumpet row was supported before the ticket. */

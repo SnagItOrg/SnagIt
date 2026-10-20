@@ -2773,6 +2773,18 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'yamaha-ytr-8310z': ytr(),
   'yamaha-ytr-8335': ytr(),
   'yamaha-ytr-8345': ytr(),
+  // The high-end rows (owner, 2026-10-20): the Xeno Artist Chicago and New York, the Xeno C and its Artist
+  // siblings, the Custom LA, the lightweight 8340EM, the 850 Custom and the 6810 piccolo. "YTR-8335LA" never
+  // reads as the 8335: the suffix glues to the number, and the LA row's own model name takes it.
+  'yamaha-ytr-9335chs': ytr(),
+  'yamaha-ytr-9335nys': ytr(),
+  'yamaha-ytr-8445': ytr(),
+  'yamaha-ytr-9445chs': ytr(),
+  'yamaha-ytr-9445nys': ytr(),
+  'yamaha-ytr-8335la': ytr(),
+  'yamaha-ytr-8340em': ytr(),
+  'yamaha-ytr-850': ytr(),
+  'yamaha-ytr-6810': ytr(),
   'bach-stradivarius-37': stradivarius(),
   'bach-stradivarius-43': stradivarius(),
   'bach-stradivarius-72': stradivarius(),
