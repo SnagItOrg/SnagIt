@@ -1173,6 +1173,13 @@ const BACH_NOT_THIS_TRUMPET: readonly RegExp[] = [
 ]
 const stradivarius = (): LineBoundary => ({ line: 'stradivarius', otherMembers: BACH_NOT_THIS_TRUMPET, accessories: BRASS_ACCESSORIES })
 
+/**
+ * Korg's ARP 2600 reissue (PAN-266, G4 round 4): the 2600 FS (2020) and the 2600 M (2021), sold as "Korg ARP 2600 FS".
+ * Its row `arp-korg-arp-2600` carries the ARP brand like the 1971 original, and a Korg title names two catalogue brands,
+ * so the brand elimination cannot separate the two; this cue does. "_" ends the code ("ARP 2600 M_Analog Synthesizer").
+ */
+const KORG_ARP_2600: readonly RegExp[] = [cue('korg'), /(?<![\w-])2600\s?-?(?:fs|m)(?![a-z\d-])/i]
+
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
   'moog-minimoog': {
@@ -2684,6 +2691,10 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
       'key', 'keys', 'replacement keys', 'transformer', 'power transformer', 'manual', 'service manual', 'documentation',
     ],
   },
+  // The ARP 2600 (1971–81) is never Korg's FS / M reissue, which has its own row and needs the cue (PAN-266), nor
+  // Behringer's clone ("Behringer ARP 2600 Grey Meanie"), which names ARP the same way.
+  'arp-2600': { line: 'arp-2600', otherMembers: [...KORG_ARP_2600, cue('behringer')] },
+  'arp-korg-arp-2600': { line: 'arp-2600', otherMembers: [], requires: KORG_ARP_2600 },
   // The Clariphonic Dual-Channel (CSP 45994): the 500-series module and the MS version are other models with their own
   // pages; a UBK-branded unit is the original.
   'kush-clariphonic': member('kush-clariphonic', ...UAD_SOFTWARE, ...PAIR_OR_LOT, /(?<![\w-])500(?![\w-])/i, /(?<![\w-])ms(?![\w-])/i, ...cues('500 series', 'bundle')),

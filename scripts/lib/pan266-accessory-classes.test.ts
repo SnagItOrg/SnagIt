@@ -134,6 +134,32 @@ test('"2600 M" is a model, not "med"; a year or a metre keeps its own reading', 
   assert.equal(earliestInclusionMarker('korg arp 2600 m m cover'), 'korg arp 2600 m '.length)
   // A metre is never a marker (unchanged).
   assert.equal(earliestInclusionMarker('4 m kabel'), -1)
-  matches('Korg ARP 2600 M (w/Korg SQ-1)', 'arp-2600')
+  silentOn('Korg ARP 2600 M (w/Korg SQ-1)')
   notMatched('Korg Other ARP 2600 M Digital Piano Keyboard Dust Cover by DCFY!® | Customize Color, Fabric & Padding Options - Made in U.S.A.')
+})
+
+test('the ARP 2600 is never Korg\'s FS / M reissue or Behringer\'s clone; the reissue row needs the cue', () => {
+  // Production today: the Korg row has no model_name, so a Korg title is refused on the vintage row and writes nothing.
+  const korgRow = (model_name: string | null): Product => ({ ...product('arp-korg-arp-2600', 'ARP', 'x'), canonical_name: 'Korg ARP 2600', model_name })
+  const today = buildMatchIndex([product('arp-2600', 'ARP', 'ARP 2600'), korgRow(null)], [], [], ['arp', 'korg', 'behringer'])
+  const at = (ix: typeof today, title: string) => {
+    const d = decideMatch(title, ix)
+    return d.kind === 'matched' ? ix.productById.get(d.best.product_id)?.slug : d.kind
+  }
+  for (const title of [
+    'Korg ARP 2600 FS Semi-Modular Synthesizer 2020 - Present - Black',
+    'Korg ARP 2600 M Semi-Modular Synthesizer Module 2021 - Present - Black',
+    'Arp 2600 FS (2023)',
+    'ARP 2600 M_Analog Synthesizer Modul_ semi Modular_USB_NEU sofort!',
+    'Behringer ARP 2600 Grey Meanie Semi Modular Synthesizer',
+  ]) assert.notEqual(at(today, title), 'arp-2600', title)
+  assert.equal(at(today, 'ARP 2600 Tonus 1971-72'), 'arp-2600')
+  assert.equal(at(today, 'Vintage "Tonus" ARP 2600 w/ 3604P Keyboard - 110 Volt Unit'), 'arp-2600')
+  // Once the KG row carries a model_name, the reissue lands on it and the vintage titles stay home (no tie).
+  const fixed = buildMatchIndex([product('arp-2600', 'ARP', 'ARP 2600'), korgRow('ARP 2600')], [], [], ['arp', 'korg', 'behringer'])
+  assert.equal(at(fixed, 'Korg ARP 2600 FS Semi-Modular Synthesizer 2020 - Present - Black'), 'arp-korg-arp-2600')
+  assert.equal(at(fixed, 'Korg ARP 2600 M (w/Korg SQ-1)'), 'arp-korg-arp-2600')
+  assert.equal(at(fixed, 'Arp 2600 FS (2023)'), 'arp-korg-arp-2600')
+  assert.equal(at(fixed, 'ARP 2600 Tonus 1971-72'), 'arp-2600')
+  assert.equal(at(fixed, 'ARP 2600 with 3620 Keyboard.  Orange/Black'), 'arp-2600')
 })
