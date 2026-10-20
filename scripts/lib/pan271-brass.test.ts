@@ -33,6 +33,16 @@ const PRODUCTS: Product[] = [
   row('yamaha-ytr-8310z', 'yamaha', 'Yamaha YTR-8310Z', 'YTR-8310Z'),
   row('yamaha-ytr-8335', 'yamaha', 'Yamaha YTR-8335 Xeno', 'YTR-8335'),
   row('yamaha-ytr-8345', 'yamaha', 'Yamaha YTR-8345 Xeno', 'YTR-8345'),
+  // The high-end round (owner, 2026-10-20).
+  row('yamaha-ytr-9335chs', 'yamaha', 'Yamaha YTR-9335CHS Xeno Artist Chicago', 'YTR-9335CHS'),
+  row('yamaha-ytr-9335nys', 'yamaha', 'Yamaha YTR-9335NYS Xeno Artist New York', 'YTR-9335NYS'),
+  row('yamaha-ytr-8445', 'yamaha', 'Yamaha YTR-8445 Xeno C', 'YTR-8445'),
+  row('yamaha-ytr-9445chs', 'yamaha', 'Yamaha YTR-9445CHS Xeno Artist Chicago C', 'YTR-9445CHS'),
+  row('yamaha-ytr-9445nys', 'yamaha', 'Yamaha YTR-9445NYS Xeno Artist New York C', 'YTR-9445NYS'),
+  row('yamaha-ytr-8335la', 'yamaha', 'Yamaha YTR-8335LA Custom LA', 'YTR-8335LA'),
+  row('yamaha-ytr-8340em', 'yamaha', 'Yamaha YTR-8340EM', 'YTR-8340EM'),
+  row('yamaha-ytr-850', 'yamaha', 'Yamaha YTR-850 Custom', 'YTR-850'),
+  row('yamaha-ytr-6810', 'yamaha', 'Yamaha YTR-6810 Piccolo', 'YTR-6810'),
   row('bach-stradivarius-37', 'bach', 'Bach Stradivarius 37', 'Stradivarius 37'),
   row('bach-stradivarius-43', 'bach', 'Bach Stradivarius 43', 'Stradivarius 43'),
   row('bach-stradivarius-72', 'bach', 'Bach Stradivarius 72', 'Stradivarius 72'),
@@ -51,12 +61,24 @@ const VARIANTS: Record<string, string[]> = {
   'yamaha-ytr-8310z': ['YTR-8310ZII', 'YTR-8310ZS'],
   'yamaha-ytr-8335': ['YTR-8335II', 'YTR-8335IIS', 'YTR-8335S', 'YTR-8335G', 'YTR-8335GS', 'YTR-8335RS', 'YTR-8335RGS', 'YTR-8335R'],
   'yamaha-ytr-8345': ['YTR-8345II', 'YTR-8345S', 'YTR-8345G', 'YTR-8345GS', 'YTR-8345RS'],
+  'yamaha-ytr-9335chs': ['YTR-9335CHSII', 'YTR-9335CHSIII'],
+  'yamaha-ytr-9335nys': ['YTR-9335NYSII', 'YTR-9335NYSIII'],
+  'yamaha-ytr-8445': ['YTR-8445II', 'YTR-8445S', 'YTR-8445G', 'YTR-8445GS'],
+  'yamaha-ytr-9445chs': ['YTR-9445CHSII'],
+  'yamaha-ytr-9445nys': ['YTR-9445NYSII'],
+  'yamaha-ytr-8335la': ['YTR-8335LAII', 'YTR-8335LAS', 'YTR-8335LAIIS'],
+  'yamaha-ytr-850': ['YTR-850G', 'YTR-850GS', 'YTR-850S'],
+  'yamaha-ytr-6810': ['YTR-6810S'],
   'bach-stradivarius-37': ['180S37', '18037', '180ML37', 'LR180S37', 'LR18037', 'LT180S37', '190S37', '19037', 'Strad 37', 'Stradivarius Model 37', 'Stradivarius Modell 37', 'Bach 37'],
   'bach-stradivarius-43': ['180S43', '18043', '180ML43', 'LR180S43', 'LR18043', '170S43', '170S43GYR', '190S43', 'LR190S43B', 'Strad 43', 'Stradivarius Model 43', 'Stradivarius Modell 43', 'Bach 43'],
   'bach-stradivarius-72': ['180S72', '18072', '180ML72', 'LR180S72', 'LR18072', 'Strad 72', 'Stradivarius Model 72', 'Stradivarius Modell 72', 'Bach 72'],
 }
+/** Round 2 (2026-10-20) writes a third, SPACED spelling too: Finn's "ytr 6810s" reads neither form round 1 wrote. */
+const SPACED_TOO = new Set(['yamaha-ytr-9335chs', 'yamaha-ytr-9335nys', 'yamaha-ytr-8445', 'yamaha-ytr-9445chs', 'yamaha-ytr-9445nys', 'yamaha-ytr-8335la', 'yamaha-ytr-850', 'yamaha-ytr-6810'])
 const IDENTS = Object.entries(VARIANTS).flatMap(([slug, values]) =>
-  values.flatMap((value) => (value.includes('-') ? [value, value.replace(/-/g, '')] : [value]))
+  values.flatMap((value) => (value.includes('-')
+    ? [value, value.replace(/-/g, ''), ...(SPACED_TOO.has(slug) ? [value.replace(/-/g, ' ')] : [])]
+    : [value]))
     .map((value) => ({ product_id: `p-${slug}`, type: 'MODEL', value })),
 )
 
@@ -71,9 +93,9 @@ const notMatched = (title: string) => {
   assert.ok(d === 'none' || d === 'rejected' || String(d).startsWith('deferred:'), `${title} → ${d}`)
 }
 
-test('every promoted row has a boundary, and the identity file writes 80 identifiers', () => {
+test('every promoted row has a boundary, and the identity files write 80 + 51 identifiers', () => {
   for (const slug of config.promoted) assert.ok(LINE_BOUNDARIES[slug], `${slug} has no LINE_BOUNDARIES entry`)
-  assert.equal(IDENTS.length, 80)
+  assert.equal(IDENTS.length, 131)
 })
 
 test('a Yamaha model number is its own identity, in every spelling the market writes', () => {
@@ -102,11 +124,26 @@ test('the Xeno and Custom rows take every finish and leadpipe spelling, and noth
   matches('Yamaha YTR-8345II Xeno Trumpet', 'yamaha-ytr-8345')
   matches('Yamaha YTR-8310Z Bobby Shew Custom Z Trumpet', 'yamaha-ytr-8310z')
   matches('Yamaha YTR-8310ZII Custom Z Trumpet', 'yamaha-ytr-8310z')
-  // The line name alone, a row Klup does not hold (6335, 9335 Chicago) and the C trumpet are not the Xeno Bb.
+  // The line name alone, a row Klup does not hold (6335) and a bare "Chicago C" are not a row.
   notMatched('XENO trompet')
   notMatched('Yamaha trompet YTR6335S sølvfarget')
   notMatched('Yamaha Chicago C trompet')
-  notMatched('Yamaha YTR-9335CHSIII Xeno Artist Custom "Chicago" Bb Trumpet')
+})
+
+test('the high-end rows (owner, 2026-10-20): Xeno Artist, Xeno C, Custom LA, 850, 6810 — each its own row', () => {
+  matches('Yamaha YTR-9335CHSIII Xeno Artist Custom "Chicago" Bb Trumpet', 'yamaha-ytr-9335chs')
+  matches('Yamaha YTR-9335NYSII Xeno New York Artist Model Trumpet', 'yamaha-ytr-9335nys')
+  matches('Yamaha YTR-9335CHS Xeno Artist Chicago trompet', 'yamaha-ytr-9335chs')
+  matches('Yamaha YTR-8445II Xeno C Trumpet', 'yamaha-ytr-8445')
+  matches('Yamaha YTR-9445CHS Xeno Chicago Series C Trumpet', 'yamaha-ytr-9445chs')
+  matches('Yamaha YTR-9445NYSII Xeno New York Artist Model C Trumpet', 'yamaha-ytr-9445nys')
+  matches('Yamaha YTR-8335LAIIS Custom Bb Trumpet', 'yamaha-ytr-8335la')
+  matches('Yamaha YTR-8340EM Lightweight Bb Trumpet', 'yamaha-ytr-8340em')
+  matches('Yamaha YTR-850GS Custom Bb Trumpet', 'yamaha-ytr-850')
+  matches('Strøken/ubrukt Yamaha piccolo trompet ytr 6810s sølv med koffert selges!', 'yamaha-ytr-6810')
+  // The LA and the Artist rows never fall back onto the 8335: the suffix glues to the number.
+  matches('Yamaha YTR-8335LA Custom LA Trumpet', 'yamaha-ytr-8335la')
+  matches('Yamaha YTR-8335II Xeno Trumpet', 'yamaha-ytr-8335')
 })
 
 test('a trumpet with no model, or no brand, names no row — the brand page carries it', () => {
