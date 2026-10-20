@@ -1205,7 +1205,8 @@ const pedal = (line: string, ...more: RegExp[]): LineBoundary => ({ line, otherM
  * refuses "MX" and the MX row requires it, so a title naming both resolves to the MX (step 5b). A V1 / V2 refresh of
  * the other Strymon pedals is the same row (owner, 2026-10-03: the row is the model), so no V cue is read there.
  */
-const STRYMON_MX: readonly RegExp[] = cues('mx')
+// A trailing dash is part of the seller's punctuation, not of the word: "Strymon Big Sky MX- New!" (Reverb, 2026-10-20).
+const STRYMON_MX: readonly RegExp[] = [/(?<![\w-])mx(?![\w]|-\w)/i]
 const strymonMx = (line: string): LineBoundary => ({ line, requires: STRYMON_MX, otherMembers: PEDAL_NEVER, accessories: PEDAL_EXTRAS })
 
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {

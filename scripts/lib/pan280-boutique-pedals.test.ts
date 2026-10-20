@@ -127,6 +127,9 @@ test('the MX generation is its own Strymon row, a V1 / V2 refresh is the same ro
   matches('STRYMON BIGSKY MX : BRAND NEW :  [DETROIT MODULAR]', 'strymon-bigsky-mx')
   matches('Strymon   Big Sky Mx Reverb', 'strymon-bigsky-mx')
   matches('Strymon Big Sky MX Reverb Workstation', 'strymon-bigsky-mx')
+  // A dash glued to "MX" hides the model word from the MX row, but it must not make the title the original (forecast
+  // 2026-10-20): recall cost accepted, no row is wrong.
+  assert.notEqual(decide('Strymon Big Sky MX- New!'), 'strymon-big-sky')
   matches('Strymon TimeLine MX Delay 2026 - Present - Grey', 'strymon-timeline-mx')
   matches('Used Strymon Timeline MX Delay', 'strymon-timeline-mx')
   matches('Strymon Time Line MX', 'strymon-timeline-mx')
