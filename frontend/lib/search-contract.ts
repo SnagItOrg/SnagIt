@@ -85,6 +85,27 @@ export interface SearchCandidate {
   activeListingCount?: number
 }
 
+/**
+ * PAN-275 — a catalogue kind the query NAMES ("reverb" is the Reverb kind
+ * under Effekter & pedaler), with the public products of that kind the result
+ * list is not already showing. The second group on the SERP: the name matches
+ * are what the query says, this is what the query is.
+ *
+ * Built on the server from the same public catalogue rows `/browse` serves, so
+ * a product here is a product a visitor can stand on; `href` is the kind's own
+ * `/browse/<category>?sub=<kind>` page, never anything else.
+ */
+export interface SearchKindGroup {
+  category: { slug: string; name_da: string; name_en: string }
+  kind: { slug: string; name_da: string; name_en: string }
+  /** `/browse/<category>?sub=<kind>` — the whole kind, for the "see all" row. */
+  href: string
+  /** Capped; most listings first. Never a product already in `candidates`. */
+  products: SearchCandidate[]
+  /** Every eligible product of the kind not already listed above — the header's count. */
+  total: number
+}
+
 export interface SearchOutcome {
   outcome: SearchOutcomeKind
   /** The contract vocabulary, for `search_resolved`. */
@@ -114,6 +135,8 @@ export interface SearchOutcome {
   suggestions: SearchCandidate[]
   /** True when a reviewed synonym rewrote the term. */
   viaSynonym: boolean
+  /** PAN-275: the kinds the query names. Empty on every navigating outcome. */
+  kindGroups: SearchKindGroup[]
 }
 
 /* ------------------------------------------------------------------ *

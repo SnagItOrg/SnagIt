@@ -24,6 +24,7 @@ import {
 } from '@/lib/search-contract'
 import { Icon } from '@/components/Icon'
 import { Button } from '@/components/Button'
+import { ListSection } from '@/components/ListSection'
 
 /**
  * Restricted catalogue search.
@@ -105,6 +106,7 @@ function familyDemandOutcome(familySlug: string, displayTerm: string): SearchOut
     candidates: [],
     suggestions: [],
     viaSynonym: false,
+    kindGroups: [],
   }
 }
 
@@ -136,7 +138,7 @@ function useEmit() {
 function SearchPageInner() {
   const router = useRouter()
   const params = useSearchParams()
-  const { t } = useLocale()
+  const { locale, t } = useLocale()
   const emit = useEmit()
 
   const initialQuery = params.get('q') ?? ''
@@ -175,7 +177,12 @@ function SearchPageInner() {
    */
   const options: SearchCandidate[] = useMemo(() => {
     if (!outcome) return []
-    return outcome.candidates.length > 0 ? outcome.candidates : outcome.suggestions
+    // PAN-275: the kind groups follow the name matches, in the order they are
+    // rendered, so ArrowDown walks from the last name match into the first
+    // "Samme type" row. Suggestions render only when there is nothing else.
+    const kindRows = outcome.kindGroups.flatMap((g) => g.products)
+    if (outcome.candidates.length > 0 || kindRows.length > 0) return [...outcome.candidates, ...kindRows]
+    return outcome.suggestions
   }, [outcome])
 
   const runSearch = useCallback(
@@ -314,14 +321,23 @@ function SearchPageInner() {
   }
 
   useEffect(() => {
-    if (activeIndex < 0 || !listRef.current) return
-    const el = listRef.current.children[activeIndex] as HTMLElement | undefined
-    el?.scrollIntoView({ block: 'nearest' })
+    if (activeIndex < 0) return
+    // By id, not by child index: the options span several lists (PAN-275).
+    document.getElementById(`klup-search-option-${activeIndex}`)?.scrollIntoView({ block: 'nearest' })
   }, [activeIndex])
 
   const showCandidates = outcome !== null && outcome.candidates.length > 0
+  /**
+   * PAN-275. A query that names a kind Klup follows ("chorus", with no product
+   * called Chorus) is answered by that kind's products, not by "Klup følger
+   * ikke dette endnu" and a demand button — the demand it names is met. The
+   * resolver's outcome and its analytics are unchanged; only the panel yields.
+   */
+  const showKinds = outcome !== null && outcome.kindGroups.length > 0
   const showUnsupported =
-    outcome !== null && (outcome.outcome === 'unsupported' || outcome.outcome === 'no_result')
+    outcome !== null &&
+    !showKinds &&
+    (outcome.outcome === 'unsupported' || outcome.outcome === 'no_result')
 
   return (
     <div className="flex-1 min-w-0 flex flex-col shell-offset">
@@ -432,17 +448,61 @@ function SearchPageInner() {
             >
               {error}
             </div>
-          ) : showCandidates ? (
-            <section className="max-w-2xl">
-              <h2 className="text-base font-semibold text-foreground mb-3">
-                {t.searchAmbiguousHeading}
-              </h2>
-              <CandidateList
-                id="klup-search-options"
-                listRef={listRef}
-                options={outcome!.candidates}
-                activeIndex={activeIndex}
-              />
+          ) : showCandidates || showKinds ? (
+            <section className="max-w-2xl flex flex-col gap-3">
+              {/*
+                PAN-275 — one list, two kinds of result, each named once. The
+                name matches come first and carry no header: they are what the
+                query SAYS, the default group (Mobbin's "top results"). Each
+                kind the query NAMES follows under a ListSection header — the
+                same component as the product wall's seam — with the kind's
+                place in the catalogue as its one-line note, so "Samme type"
+                never has to be guessed at. Rows are the same candidate rows;
+                keyboard indices run on across the lists.
+              */}
+              {showCandidates && (
+                <div>
+                  <h2 className="text-base font-semibold text-foreground mb-3">
+                    {t.searchAmbiguousHeading}
+                  </h2>
+                  <CandidateList
+                    id="klup-search-options"
+                    listRef={listRef}
+                    options={outcome!.candidates}
+                    activeIndex={activeIndex}
+                  />
+                </div>
+              )}
+              {outcome!.kindGroups.map((group, gi) => {
+                const name = (node: { name_da: string; name_en: string }) =>
+                  locale === 'da' ? node.name_da : node.name_en
+                const offset =
+                  outcome!.candidates.length +
+                  outcome!.kindGroups.slice(0, gi).reduce((n, g) => n + g.products.length, 0)
+                return (
+                  <ListSection
+                    key={group.href}
+                    label={t.searchGroupSameType}
+                    count={group.total}
+                    note={`${name(group.category)} › ${name(group.kind)}`}
+                  >
+                    <CandidateList
+                      id={`klup-search-kind-${gi}`}
+                      options={group.products}
+                      activeIndex={activeIndex}
+                      indexOffset={offset}
+                    />
+                    {group.total > group.products.length && (
+                      <Link
+                        href={group.href}
+                        className="mt-2 inline-block text-sm font-medium text-ink-secondary underline-offset-4 hover:underline"
+                      >
+                        {fill(t.searchGroupSeeAll, { kind: name(group.kind) })}
+                      </Link>
+                    )}
+                  </ListSection>
+                )
+              })}
             </section>
           ) : showUnsupported ? (
             <UnsupportedPanel outcome={outcome!} listRef={listRef} activeIndex={activeIndex} />
@@ -481,16 +541,21 @@ function CandidateList({
   options,
   activeIndex,
   listRef,
+  indexOffset = 0,
 }: {
   id: string
   options: SearchCandidate[]
   activeIndex: number
-  listRef: React.RefObject<HTMLUListElement | null>
+  listRef?: React.RefObject<HTMLUListElement | null>
+  /** PAN-275: this list's place in the page-wide option order, so ids and the active row line up across lists. */
+  indexOffset?: number
 }) {
   const { t } = useLocale()
   return (
     <ul id={id} ref={listRef} role="listbox" className="flex flex-col gap-2">
-      {options.map((option, i) => (
+      {options.map((option, j) => {
+        const i = indexOffset + j
+        return (
         <li
           key={option.href}
           id={`klup-search-option-${i}`}
@@ -554,7 +619,8 @@ function CandidateList({
             />
           </Link>
         </li>
-      ))}
+        )
+      })}
     </ul>
   )
 }

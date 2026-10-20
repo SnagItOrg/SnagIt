@@ -23,8 +23,11 @@ import {
   type SearchOutcome,
 } from '@/lib/search-resolver'
 import type { SearchCandidate } from '@/lib/search-contract'
+import { buildKindGroups, kindsNamedBy, type KindMatch, type KindProductRow } from '@/lib/search-kinds'
+import { cachedCatalogueTree } from '@/lib/browse-cache'
 
-type CardRow = { slug: string; image_url: string | null; active_listing_count: number | null }
+/** PAN-275: `canonical_name` and `brand_name` are what a kind-group row renders with. */
+type CardRow = KindProductRow
 
 /**
  * The restricted-catalogue resolver endpoint.
@@ -141,7 +144,7 @@ export async function GET(req: NextRequest) {
   try {
     const index = buildSearchIndex(await productEntities(), NAVIGATION_FAMILIES)
     const resolved = resolveQuery(raw, index)
-    const settled = await revalidate_(resolved)
+    const settled = await revalidate_(resolved, await kindsNamed(raw))
     return noStore(settled, 200)
   } catch (error) {
     if (isCatalogueUnavailable(error)) {
@@ -157,6 +160,25 @@ export async function GET(req: NextRequest) {
 }
 
 /**
+ * PAN-275 — the catalogue kinds the query names, from the same cached tree the
+ * sidebar renders. The kind group is an addition to the answer, not the
+ * answer: if the tree cannot be read the search still resolves, without the
+ * group, and the failure is logged rather than turned into a 503. The slugs it
+ * returns are claims like every other, re-decided in `revalidate_` below.
+ */
+async function kindsNamed(raw: string): Promise<KindMatch[]> {
+  try {
+    return kindsNamedBy(raw, (await cachedCatalogueTree()).categories)
+  } catch (error) {
+    console.error('[operational] search kind groups unavailable', {
+      route: '/api/search/resolve',
+      stage: isCatalogueUnavailable(error) ? error.stage : 'unknown',
+    })
+    return []
+  }
+}
+
+/**
  * Re-decide every claimed slug against live state before it reaches a visitor.
  *
  * THE INDEX IS A CLAIM, NOT AN AUTHORITY. It is cached for up to a minute, so
@@ -165,10 +187,12 @@ export async function GET(req: NextRequest) {
  * links to a 404" true: a withdrawn product stops being a navigation target and
  * stops being a candidate on the same request that withdrew it.
  */
-async function revalidate_(outcome: SearchOutcome): Promise<SearchOutcome> {
+async function revalidate_(outcome: SearchOutcome, kinds: readonly KindMatch[]): Promise<SearchOutcome> {
   const productSlugs = [
     ...outcome.candidates.filter((c) => c.kind === 'product').map((c) => c.slug),
     ...outcome.suggestions.filter((c) => c.kind === 'product').map((c) => c.slug),
+    // PAN-275: a kind's products go through the same gate as every candidate.
+    ...kinds.flatMap((k) => k.productSlugs),
   ]
   if (outcome.navigateTo?.startsWith('/product/')) {
     productSlugs.push(outcome.navigateTo.slice('/product/'.length))
@@ -196,7 +220,7 @@ async function revalidate_(outcome: SearchOutcome): Promise<SearchOutcome> {
       domainRows: async () => {
         const res = await admin
           .from('browse_product_projection')
-          .select('slug, browse_domain, image_url, active_listing_count')
+          .select('slug, browse_domain, image_url, active_listing_count, canonical_name, brand_name')
           .in('slug', unique)
           .then(
             (r) => r,
@@ -217,7 +241,21 @@ async function revalidate_(outcome: SearchOutcome): Promise<SearchOutcome> {
   // every family result rather than linking to a route that does not exist.
   const eligibleFamilies = new Set(NAVIGATION_FAMILIES.map((f) => f.slug))
 
-  return withCardFields(applyEligibility(outcome, eligibleProducts, eligibleFamilies), cardRows)
+  const settled = applyEligibility(outcome, eligibleProducts, eligibleFamilies)
+
+  // PAN-275: the kind groups, built only from slugs the gate above kept, and
+  // never on a navigation — the page is leaving. Disjoint from the candidates
+  // by construction: a product the name matches show is not shown again.
+  const kindGroups = settled.navigateTo
+    ? []
+    : buildKindGroups(
+        kinds,
+        new Set(settled.candidates.map((c) => c.slug)),
+        eligibleProducts,
+        new Map(cardRows.map((r) => [r.slug, r])),
+      )
+
+  return withCardFields({ ...settled, kindGroups }, cardRows)
 }
 
 /**

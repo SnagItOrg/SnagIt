@@ -1926,3 +1926,84 @@ test('no cast or suppression is used in the analytics builders', () => {
     assert.equal(src.includes(escape), false, `"${escape}" is not permitted`)
   }
 })
+
+/* ── PAN-275: the kinds a query names, as the SERP's second group ─────────── */
+
+import { MAX_KIND_PRODUCTS, buildKindGroups, kindsNamedBy } from '../../frontend/lib/search-kinds'
+import { translations } from '../../frontend/lib/i18n'
+
+const KIND_TREE = [
+  {
+    slug: 'effects-and-pedals', name_da: 'Effekter & pedaler', name_en: 'Effects & Pedals', product_count: 3,
+    product_slugs: ['fender-6g15-reverb-unit', 'roland-re-201', 'boss-ds-2'],
+    subcategories: [
+      { slug: 'reverb', name_da: 'Reverb', name_en: 'Reverb', product_count: 2, product_slugs: ['fender-6g15-reverb-unit', 'roland-re-201'] },
+      { slug: 'distortion', name_da: 'Distortion', name_en: 'Distortion', product_count: 1, product_slugs: ['boss-ds-2'] },
+    ],
+  },
+  {
+    slug: 'pro-audio', name_da: 'Pro audio', name_en: 'Pro Audio', product_count: 1, product_slugs: ['lexicon-200'],
+    subcategories: [
+      { slug: 'reverb', name_da: 'Reverb', name_en: 'Reverb', product_count: 1, product_slugs: ['lexicon-200'] },
+    ],
+  },
+]
+
+test('PAN-275: a query names a kind by equality with its name, in either locale, never by substring', () => {
+  const hits = kindsNamedBy('reverb', KIND_TREE)
+  assert.deepEqual(hits.map((h) => h.href), ['/browse/effects-and-pedals?sub=reverb', '/browse/pro-audio?sub=reverb'])
+  assert.deepEqual(hits[0].productSlugs, ['fender-6g15-reverb-unit', 'roland-re-201'])
+  assert.equal(kindsNamedBy('Effects & Pedals', KIND_TREE).length, 0, 'a category is not a kind')
+  assert.equal(kindsNamedBy('reverb pedal', KIND_TREE).length, 0, 'no sub-phrase match')
+  assert.equal(kindsNamedBy('rev', KIND_TREE).length, 0, 'no prefix match')
+  assert.equal(kindsNamedBy('re', KIND_TREE).length, 0, 'too short to name anything')
+  assert.equal(kindsNamedBy('DISTORTION', KIND_TREE).length, 1, 'case is not identity')
+})
+
+test('PAN-275: a kind group holds only eligible slugs not already shown, most listings first, capped, with the honest total', () => {
+  const rows = new Map(
+    ['a', 'b', 'c', 'd', 'e', 'f'].map((s, i) => [s, { slug: s, canonical_name: `Name ${s}`, brand_name: 'Brand', image_url: null, active_listing_count: i }]),
+  )
+  const match = { ...kindsNamedBy('reverb', KIND_TREE)[0], productSlugs: ['a', 'b', 'c', 'd', 'e', 'f', 'private', 'shown'] }
+  const [group, ...rest] = buildKindGroups([match], new Set(['shown']), new Set(['a', 'b', 'c', 'd', 'e', 'f', 'shown']), rows)
+  assert.equal(rest.length, 0)
+  assert.equal(group.total, 6, 'the total counts what is eligible and not shown — not the private slug, not the shown one')
+  assert.equal(group.products.length, MAX_KIND_PRODUCTS)
+  assert.deepEqual(group.products.map((p) => p.slug), ['f', 'e', 'd', 'c'], 'most listings first')
+  assert.equal(group.products[0].href, '/product/f')
+  assert.equal(group.products[0].kind, 'product')
+  // Nothing left to show is no group at all.
+  assert.deepEqual(buildKindGroups([match], new Set(match.productSlugs), new Set(match.productSlugs), rows), [])
+  // The fuller kind leads, whatever the tree order.
+  const [small, large] = kindsNamedBy('reverb', KIND_TREE)
+  const all = new Set(['a', 'b', 'c', 'lexicon-200', 'fender-6g15-reverb-unit', 'roland-re-201'])
+  const rows2 = new Map([...rows, ...['lexicon-200', 'fender-6g15-reverb-unit', 'roland-re-201'].map((s) => [s, { slug: s, canonical_name: s, brand_name: null, image_url: null, active_listing_count: 1 }] as const)])
+  const ordered = buildKindGroups([{ ...small, productSlugs: ['lexicon-200'] }, { ...large, productSlugs: ['a', 'b', 'c'] }], new Set(), all, rows2)
+  assert.deepEqual(ordered.map((g) => g.total), [3, 1])
+})
+
+test('PAN-275: the resolver never decides a kind group, and the route attaches it only after the gate and never on a navigation', () => {
+  const outcome = resolveQuery('reverb', INDEX)
+  assert.deepEqual(outcome.kindGroups, [], 'resolveQuery leaves kindGroups empty')
+  const route = readSource('app', 'api', 'search', 'resolve', 'route.ts')
+  assert.match(route, /\.\.\.kinds\.flatMap\(\(k\) => k\.productSlugs\)/, 'kind slugs go through filterEligibleSlugs')
+  assert.match(route, /const kindGroups = settled\.navigateTo\s*\? \[\]\s*: buildKindGroups\(/)
+  assert.match(route, /new Set\(settled\.candidates\.map\(\(c\) => c\.slug\)\)/, 'disjoint from the candidates')
+  // The kind read is an addition to the answer: its failure is logged, not a 503.
+  assert.match(route, /async function kindsNamed\(raw: string\)[\s\S]*?catch \(error\) \{[\s\S]*?return \[\]/)
+})
+
+test('PAN-275: the page renders every kind group through ListSection, keeps one keyboard order, and yields the demand panel to a kind', () => {
+  const page = readSource('app', '(shell)', 'search', 'page.tsx')
+  assert.match(page, /import \{ ListSection \} from '@\/components\/ListSection'/)
+  assert.match(page, /<ListSection\s+key=\{group\.href\}\s+label=\{t\.searchGroupSameType\}\s+count=\{group\.total\}/)
+  assert.equal((page.match(/<ListSection\b/g) ?? []).length, 1, 'one grouping component, used once per group')
+  assert.match(page, /return \[\.\.\.outcome\.candidates, \.\.\.kindRows\]/, 'the options run on from the name matches into the kind rows')
+  assert.match(page, /indexOffset=\{offset\}/)
+  assert.match(page, /!showKinds &&\s*\(outcome\.outcome === 'unsupported'/)
+  for (const locale of ['da', 'en'] as const) {
+    const t = translations[locale] as Record<string, string>
+    assert.ok(t.searchGroupSameType.split(' ').length <= 2, 'one or two words')
+    assert.match(t.searchGroupSeeAll, /\{kind\}/)
+  }
+})
