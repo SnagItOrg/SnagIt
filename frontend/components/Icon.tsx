@@ -30,6 +30,7 @@ import {
   LockClosedIcon,
   MagnifyingGlassIcon,
   MapPinIcon,
+  MicrophoneIcon,
   PaperAirplaneIcon,
   PencilIcon,
   PhotoIcon,
@@ -94,6 +95,25 @@ const PianoIcon = materialGlyph(
   'M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h130v-180h-10q-17 0-28.5-11.5T280-420v-340h-80v560Zm430 0h130v-560h-80v340q0 17-11.5 28.5T640-380h-10v180Zm-240 0h180v-180h-10q-17 0-28.5-11.5T520-420v-340h-80v340q0 17-11.5 28.5T400-380h-10v180Z',
 )
 
+/*
+ * One glyph is Klup's own: `brass`, the image placeholder for the trumpet
+ * leaf (PAN-281). Heroicons has no brass instrument, so it is drawn to the
+ * set's outline contract — 24×24, `fill="none"`, stroke 1.5, round caps and
+ * joins, `currentColor` — which is how Astryx adds a glyph it cannot source:
+ * facebook/astryx packages/core/src/Icon/defaultIcons.tsx:29-40 declares that
+ * exact svg contract for its hand-drawn fallbacks (read at 22c592a7,
+ * 2026-10-20). Outline only, as the table rule below requires.
+ */
+const BrassIcon: Glyph = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} {...props}>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M2.25 12h12M2.25 10.5v3M8.25 7.5v8.25M11.25 7.5v8.25M14.25 7.5v8.25M5.25 12v2.25a1.5 1.5 0 0 0 1.5 1.5h8.25a1.5 1.5 0 0 0 1.5-1.5v-1.5M14.25 12c2.75 0 5-1.5 7.5-4.5v9c-2.5-3-4.75-4.5-7.5-4.5"
+    />
+  </svg>
+)
+
 /**
  * THE ONE TABLE: icon name -> [outline, solid].
  *
@@ -119,6 +139,7 @@ const ICONS = {
   arrow_forward: [ArrowRightIcon],
   auto_awesome: [SparklesIcon, SparklesSolid],
   bookmark: [BookmarkIcon],
+  brass: [BrassIcon], // Klup's own, above: the trumpet placeholder
   cancel: [XCircleIcon],
   check: [CheckIcon],
   check_circle: [CheckCircleIcon],
@@ -144,6 +165,7 @@ const ICONS = {
   manage_search: [DocumentMagnifyingGlassIcon, DocumentMagnifyingGlassSolid], // ≈ lines + magnifier
   mark_email_read: [EnvelopeOpenIcon], // ≈ no envelope with a check
   menu: [Bars3Icon],
+  microphone: [MicrophoneIcon], // the microphones placeholder (PAN-281)
   monitoring: [PresentationChartLineIcon, PresentationChartLineSolid], // ≈ line chart
   mop: [ArchiveBoxXMarkIcon, ArchiveBoxXMarkSolid], // ≈ no mop; "clear out"
   more_vert: [EllipsisVerticalIcon],

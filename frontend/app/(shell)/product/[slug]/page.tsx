@@ -50,6 +50,7 @@ import type { Listing } from '@/lib/supabase'
 import type { FamilyContext, PricePoint } from '@/app/api/product/[slug]/route'
 import type { SimilarProduct } from '@/app/api/product/[slug]/similar/route'
 import { facetLine } from '@/lib/product-facet-line'
+import { placeholderIcon } from '@/lib/placeholder-icon'
 
 /** Reason chip copy per `lib/similar-gear.ts` reason (PAN-235). */
 const SIMILAR_REASON_KEY = {
@@ -558,7 +559,7 @@ export default function ProductPage() {
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Icon
-                          name="piano"
+                          name={placeholderIcon(catalogueContext?.kind.slug)}
                           style={{ fontSize: 72, color: 'var(--muted-foreground)' }}
                         />
                       </div>
@@ -989,8 +990,11 @@ export default function ProductPage() {
                         >
                           <div className="aspect-square bg-muted relative">
                             <div className="absolute inset-0 flex items-center justify-center">
+                              {/* The page's own kind stands in for the card's: the
+                                  similar route carries no leaf, and its rows are
+                                  the same type bar the named few (PAN-281). */}
                               <Icon
-                                name="piano"
+                                name={placeholderIcon(catalogueContext?.kind.slug)}
                                 style={{ fontSize: 32, color: 'var(--muted-foreground)' }}
                               />
                             </div>

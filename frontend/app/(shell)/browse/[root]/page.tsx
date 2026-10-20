@@ -505,6 +505,7 @@ function BrowseCategoryPageInner() {
                 canonicalName={card.product.canonical_name}
                 brandName={card.product.brand_name}
                 subcategoryName={displaySubcategoryLabel(card.product.subcategory_slug, card.product.subcategory_name_da, card.product.subcategory_name_en)}
+                subcategorySlug={card.product.subcategory_slug}
                 activeListingCount={card.product.active_listing_count}
                 imageUrl={card.product.image_url}
                 tier={showTierBadges ? card.product.tier : undefined}

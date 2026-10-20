@@ -6,12 +6,16 @@ import { useState } from 'react'
 
 import { useLocale } from '@/components/LocaleProvider'
 import { Icon } from '@/components/Icon'
+import { placeholderIcon } from '@/lib/placeholder-icon'
 
 interface Props {
   slug: string
   canonicalName: string
   brandName: string
   subcategoryName: string
+  /** The leaf the product sits in (`trumpets`); picks the placeholder glyph
+   *  when there is no image (PAN-281). Absent, the placeholder is `piano`. */
+  subcategorySlug?: string | null
   activeListingCount: number
   imageUrl?: string | null
   tier?: 'standard' | 'classic' | 'legendary'
@@ -26,6 +30,7 @@ export function ProductCard({
   canonicalName,
   brandName,
   subcategoryName,
+  subcategorySlug,
   activeListingCount,
   imageUrl,
   tier,
@@ -84,7 +89,7 @@ export function ProductCard({
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Icon
-              name="piano"
+              name={placeholderIcon(subcategorySlug)}
               style={{ fontSize: 36, color: 'var(--muted-foreground)', opacity: 0.4 }}
             />
           </div>
