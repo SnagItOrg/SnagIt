@@ -20,7 +20,7 @@ import { useToast } from '@/lib/use-toast'
 import { DanishMarketBlock, ReferencePopulationBlock } from '@/components/PriceAnswer'
 import { isHomeMarket, REVERB_SOURCE, type PopulationKey, type PopulationStats } from '@/lib/price-populations'
 import { orderByVerdictRank } from '@/lib/listing-value-order'
-import { WallSeam } from '@/components/WallSeam'
+import { ListSection } from '@/components/ListSection'
 import { stripDecorativeEmoji } from '@/lib/listing-title'
 import { resolveProductImage } from '@/lib/product-image-source'
 import {
@@ -360,6 +360,90 @@ export default function ProductPage() {
   // copy of a sentence that had already forked once (PAN-110) and once more in
   // the browse projection.
   const productImage = product ? resolveProductImage(product).url : null
+
+  /**
+   * One wall card, with its review controls. A function rather than inline
+   * JSX because the wall renders it from two groups (PAN-274) and the card
+   * block must stay one block. `product` is non-null wherever the wall
+   * renders (the `notFound || !product` branch above returns first); the
+   * guard here only satisfies the narrowing a closure cannot see.
+   */
+  const renderListing = (listing: Listing) => {
+    if (!product) return null
+    return (
+      <ListingErrorBoundary key={listing.id} listingId={listing.id}>
+        <div className="flex flex-col">
+          <SearchResultCard
+            listing={{ ...listing, title: stripDecorativeEmoji(listing.title) }}
+            marketVerdict={(listing as ListingWithVerdict).marketVerdict}
+            marketVerdictBasisLabel={(listing as ListingWithVerdict).marketVerdictBasisLabel}
+            marketVerdictFewN={(listing as ListingWithVerdict).marketVerdictFewN}
+            variant="list"
+            thomannImageUrl={product.image_url}
+            trackedProductSlug={product.slug}
+            isSaved={savedListingIds.has(listing.id)}
+            onToggleSave={handleToggleSave}
+          />
+          {reviewMode && (
+            <ProductReviewControls
+              slug={slug}
+              listingId={listing.id}
+              status={matchStatuses[listing.id] ?? 'unresolved'}
+              onDecided={(id, next) => {
+                setMatchStatuses((prev) => ({ ...prev, [id]: next }))
+                const title = listings.find((l) => l.id === id)?.title ?? ''
+                showToast(
+                  (next === 'rejected'
+                    ? t.adminReview.successRejected
+                    : t.adminReview.successApproved)
+                    .replace('{listing}', title)
+                    .replace('{product}', product.canonical_name),
+                )
+                /**
+                 * A REJECTED CARD LEAVES THE WALL NOW.
+                 *
+                 * This used to rely on `loadProduct()` alone, so
+                 * the rejected listing sat there — unchanged and
+                 * still offering the same buttons — until a
+                 * refetch the Data Cache was answering from cache
+                 * anyway. The operator's most common reading was
+                 * "it didn't work", and the usual response was to
+                 * click reject again.
+                 *
+                 * Nielsen #1: the response to a decision has to be
+                 * immediate and visible. Both listing counts on
+                 * this page derive from `listings.length`, so
+                 * removing the row updates them without a second
+                 * source of truth. The refetch below still runs
+                 * and remains authoritative; this removes the wait,
+                 * not the verification.
+                 */
+                if (next === 'rejected') {
+                  setListings((prev) => prev.filter((l) => l.id !== id))
+                }
+                void loadProduct(true)
+                void loadMatchStatuses()
+              }}
+              onReassigned={(id, productName) => {
+                const title = listings.find((l) => l.id === id)?.title ?? ''
+                showToast(
+                  t.adminReview.successMoved
+                    .replace('{listing}', title)
+                    .replace('{product}', productName),
+                )
+                // A moved listing belongs to another product now,
+                // so it leaves this wall for the same reason.
+                setListings((prev) => prev.filter((l) => l.id !== id))
+                void loadProduct(true)
+                void loadMatchStatuses()
+              }}
+              onFailed={(message) => showToast(message, { type: 'error' })}
+            />
+          )}
+        </div>
+      </ListingErrorBoundary>
+    )
+  }
 
   return (
     <>
@@ -1067,89 +1151,29 @@ export default function ProductPage() {
                         {/*
                           PAN-274: the market changes here, and the page says
                           so once — in words, with the tint as a second cue.
+                          The note names Reverb only when every listing below
+                          is Reverb; a Kleinanzeigen row is measured against
+                          German asking prices, and the line must not say
+                          Reverb then.
                         */}
-                        {group.seam && (
-                          <WallSeam
+                        {group.seam ? (
+                          <ListSection
+                            label={t.wallSeamLabel}
                             count={group.listings.length}
-                            allReverb={group.listings.every((l) => l.source === REVERB_SOURCE)}
-                            t={t as unknown as Record<string, string>}
-                          />
+                            note={group.listings.every((l) => l.source === REVERB_SOURCE)
+                              ? t.wallSeamReverb
+                              : t.wallSeamOwnMarket}
+                            muted
+                          >
+                            <div className="grid-wall grid-wall-lg">
+                              {group.listings.map(renderListing)}
+                            </div>
+                          </ListSection>
+                        ) : (
+                          <div className="grid-wall grid-wall-lg">
+                              {group.listings.map(renderListing)}
+                          </div>
                         )}
-                        <div className={group.seam ? 'grid-wall grid-wall-lg wall-away' : 'grid-wall grid-wall-lg'}>
-                    {group.listings.map((listing) => (
-                      <ListingErrorBoundary key={listing.id} listingId={listing.id}>
-                        <div className="flex flex-col">
-                          <SearchResultCard
-                            listing={{ ...listing, title: stripDecorativeEmoji(listing.title) }}
-                            marketVerdict={(listing as ListingWithVerdict).marketVerdict}
-                            marketVerdictBasisLabel={(listing as ListingWithVerdict).marketVerdictBasisLabel}
-                            marketVerdictFewN={(listing as ListingWithVerdict).marketVerdictFewN}
-                            variant="list"
-                            thomannImageUrl={product.image_url}
-                            trackedProductSlug={product.slug}
-                            isSaved={savedListingIds.has(listing.id)}
-                            onToggleSave={handleToggleSave}
-                          />
-                          {reviewMode && (
-                            <ProductReviewControls
-                              slug={slug}
-                              listingId={listing.id}
-                              status={matchStatuses[listing.id] ?? 'unresolved'}
-                              onDecided={(id, next) => {
-                                setMatchStatuses((prev) => ({ ...prev, [id]: next }))
-                                const title = listings.find((l) => l.id === id)?.title ?? ''
-                                showToast(
-                                  (next === 'rejected'
-                                    ? t.adminReview.successRejected
-                                    : t.adminReview.successApproved)
-                                    .replace('{listing}', title)
-                                    .replace('{product}', product.canonical_name),
-                                )
-                                /**
-                                 * A REJECTED CARD LEAVES THE WALL NOW.
-                                 *
-                                 * This used to rely on `loadProduct()` alone, so
-                                 * the rejected listing sat there — unchanged and
-                                 * still offering the same buttons — until a
-                                 * refetch the Data Cache was answering from cache
-                                 * anyway. The operator's most common reading was
-                                 * "it didn't work", and the usual response was to
-                                 * click reject again.
-                                 *
-                                 * Nielsen #1: the response to a decision has to be
-                                 * immediate and visible. Both listing counts on
-                                 * this page derive from `listings.length`, so
-                                 * removing the row updates them without a second
-                                 * source of truth. The refetch below still runs
-                                 * and remains authoritative; this removes the wait,
-                                 * not the verification.
-                                 */
-                                if (next === 'rejected') {
-                                  setListings((prev) => prev.filter((l) => l.id !== id))
-                                }
-                                void loadProduct(true)
-                                void loadMatchStatuses()
-                              }}
-                              onReassigned={(id, productName) => {
-                                const title = listings.find((l) => l.id === id)?.title ?? ''
-                                showToast(
-                                  t.adminReview.successMoved
-                                    .replace('{listing}', title)
-                                    .replace('{product}', productName),
-                                )
-                                // A moved listing belongs to another product now,
-                                // so it leaves this wall for the same reason.
-                                setListings((prev) => prev.filter((l) => l.id !== id))
-                                void loadProduct(true)
-                                void loadMatchStatuses()
-                              }}
-                              onFailed={(message) => showToast(message, { type: 'error' })}
-                            />
-                          )}
-                        </div>
-                      </ListingErrorBoundary>
-                    ))}
-                        </div>
                       </Fragment>
                     ))}
                   </div>

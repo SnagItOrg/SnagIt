@@ -49,12 +49,17 @@ test('I1: the price answer and the review controls coexist on one page', () => {
   assert.ok(page.includes('setListings((prev) => prev.filter((l) => l.id !== id))'),
     'a decided card still leaves the wall immediately')
   // The price answer is NOT inside the review-mode branch: it renders for
-  // everyone, and switching review on must not be what reveals it.
+  // everyone, and switching review on must not be what reveals it. (PAN-274
+  // hoisted the wall card into `renderListing`, above the JSX, so source
+  // order no longer stands in for render order; the guard check is the test.)
   const answer = page.indexOf('<DanishMarketBlock')
   const controls = page.indexOf('<ProductReviewControls')
-  assert.ok(answer !== -1 && controls !== -1 && answer < controls)
-  assert.equal(page.slice(0, answer).includes('reviewMode && ('), false,
+  const jsx = page.indexOf('\n  return (')
+  assert.ok(answer !== -1 && controls !== -1 && jsx !== -1 && answer > jsx)
+  assert.equal(page.slice(jsx, answer).includes('reviewMode && ('), false,
     'the price answer must not sit behind the review-mode guard')
+  assert.ok(page.lastIndexOf('reviewMode && (', controls) !== -1,
+    'the review controls sit behind the review-mode guard')
 })
 
 /* ── 2. a decision refreshes the price basis, not only the card list ───────── */

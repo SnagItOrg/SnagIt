@@ -62,7 +62,9 @@ test('the page splits the wall with isHomeMarket and draws the seam only between
   const page = readFileSync(join(FRONTEND, 'app', '(shell)', 'product', '[slug]', 'page.tsx'), 'utf8')
   assert.match(page, /\(isHomeMarket\(listing\) \? home : away\)\.push\(listing\)/)
   assert.match(page, /seam: home\.length > 0 && away\.length > 0/)
-  assert.match(page, /\{group\.seam && \(\s*<WallSeam/)
+  assert.match(page, /\{group\.seam \? \(\s*<ListSection/)
+  // The note names Reverb only when every listing in the group is Reverb.
+  assert.match(page, /every\(\(l\) => l\.source === REVERB_SOURCE\)\s*\? t\.wallSeamReverb\s*: t\.wallSeamOwnMarket/)
   // The sort runs inside each group: a Reverb "under" never outranks a Danish "typisk".
   assert.match(page, /orderByVerdictRank\(group,/)
   assert.doesNotMatch(page, /orderByVerdictRank\(listings,/)
@@ -71,11 +73,16 @@ test('the page splits the wall with isHomeMarket and draws the seam only between
 test('the seam names its basis in words, in both locales, and the badge copy is untouched', () => {
   for (const locale of ['da', 'en'] as const) {
     const t = translations[locale] as Record<string, string>
-    assert.match(t.wallSeamLabel, /\{count\}/)
+    assert.doesNotMatch(t.wallSeamLabel, /\{count\}/, 'ListSection appends the count itself')
     assert.ok(/Reverb/.test(t.wallSeamReverb) && !/Reverb/.test(t.wallSeamOwnMarket))
     assert.equal(t.verdictBasisReverbFallback, locale === 'da' ? 'målt mod Reverb' : 'measured against Reverb')
   }
-  const seam = readFileSync(join(FRONTEND, 'components', 'WallSeam.tsx'), 'utf8')
-  assert.match(seam, /role="separator" aria-labelledby=\{labelId\}/)
-  assert.match(seam, /allReverb \? t\.wallSeamReverb : t\.wallSeamOwnMarket/)
+  // ListSection: Astryx's labelled Divider — a named separator, the count after
+  // the label, the note optional, the muted region optional. No copy of its own.
+  const section = readFileSync(join(FRONTEND, 'components', 'ListSection.tsx'), 'utf8')
+  assert.match(section, /role="separator" aria-labelledby=\{labelId\}/)
+  assert.match(section, /\{label\} · \{count\}/)
+  assert.match(section, /\{note && <p/)
+  assert.match(section, /muted \? <div className="list-section-muted">\{children\}<\/div> : children/)
+  assert.doesNotMatch(section, /from '@\/lib\/i18n'/)
 })
