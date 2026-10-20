@@ -251,7 +251,7 @@ function FakeWatchlistCard() {
       {/* Image area */}
       <div className="relative flex-1 overflow-hidden rounded-t-2xl" style={{ backgroundColor: 'var(--card)' }}>
         <div className="w-full h-full flex items-center justify-center">
-          <Icon name="piano" style={{ fontSize: '56px', color: 'var(--muted-foreground)' }} />
+          <Icon name="keyboard_music" style={{ fontSize: '56px', color: 'var(--muted-foreground)' }} />
         </div>
       </div>
 

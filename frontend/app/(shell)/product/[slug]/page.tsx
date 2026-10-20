@@ -559,7 +559,7 @@ export default function ProductPage() {
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Icon
-                          name={placeholderIcon(catalogueContext?.kind.slug)}
+                          name={placeholderIcon(catalogueContext?.category.slug, catalogueContext?.kind.slug)}
                           style={{ fontSize: 72, color: 'var(--muted-foreground)' }}
                         />
                       </div>
@@ -994,7 +994,7 @@ export default function ProductPage() {
                                   similar route carries no leaf, and its rows are
                                   the same type bar the named few (PAN-281). */}
                               <Icon
-                                name={placeholderIcon(catalogueContext?.kind.slug)}
+                                name={placeholderIcon(catalogueContext?.category.slug, catalogueContext?.kind.slug)}
                                 style={{ fontSize: 32, color: 'var(--muted-foreground)' }}
                               />
                             </div>
