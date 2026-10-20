@@ -250,6 +250,17 @@ child with no band gives no verdict; nothing builds a band from two children's
 rows. Evocative labels (`The Time Machines`)
 are editorial facets — never taxonomy replacements, never matcher aliases.
 
+**Local first.** Reverb is Klup's deepest data and its best reference, but the
+visitor buys in Denmark, so international evidence never stands in for the
+local answer. The Danish asking population is primary and leads every surface
+— the price block, the wall, the sort — and international evidence comes
+*after* it, labelled as a different market: never pooled with it, never
+re-grading a Danish listing that has a Danish band. Where Denmark is thin, a
+listing may borrow the Reverb band only when the card says so in words
+(PAN-268 C), and where the wall changes market it says so once, at the seam
+(PAN-274). Owner, PAN-119 and PAN-274: "Den lokale pris er jo den folk er mest
+interesserede i" — local is king.
+
 ---
 
 ## 8. Stack

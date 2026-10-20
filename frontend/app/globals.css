@@ -1043,6 +1043,21 @@
     min-width: 0;
   }
 
+  /* PAN-274. The international half of the listing wall sits on a tinted
+     region, so the market change the WallSeam names is also visible at a
+     glance. Astryx `Section variant="muted"`, read not imported
+     (packages/core/src/Section/Section.tsx, clone caf5673d): a muted fill,
+     no border, escaping the container's inline padding so the fill runs
+     gutter to gutter — the same "a tinted region reads as a place" the
+     sidebar zones use. Supportive only: the seam's text carries the meaning,
+     and nothing here is a colour the reader must decode. */
+  .wall-away {
+    background-color: var(--surface-2);
+    border-radius: 1rem;
+    margin-inline: calc(-1 * var(--shell-gutter));
+    padding: var(--wall-gap) var(--shell-gutter);
+  }
+
   .grid-fluid-sm {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(9.5rem, 100%), 1fr));

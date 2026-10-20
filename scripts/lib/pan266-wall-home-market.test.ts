@@ -14,7 +14,8 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { homeMarketFirst } from '../../frontend/lib/price-populations'
+import { homeMarketFirst, isHomeMarket } from '../../frontend/lib/price-populations'
+import { translations } from '../../frontend/lib/i18n'
 
 const FRONTEND = join(__dirname, '..', '..', 'frontend')
 
@@ -44,4 +45,37 @@ test('"Danish" is decided by classifyListing: by country, or by source when the 
 test('the route builds the page from homeMarketFirst, before the display limit', () => {
   const route = readFileSync(join(FRONTEND, 'app', 'api', 'product', '[slug]', 'route.ts'), 'utf8')
   assert.match(route, /const listings = homeMarketFirst\(allListings\)\.slice\(0, DISPLAY_LISTING_LIMIT\)/)
+})
+
+// PAN-274: the seam the page draws is the seam the ordering already has.
+
+test('isHomeMarket is the predicate homeMarketFirst orders by', () => {
+  const rows: Row[] = [reverb(0), dba(0), { id: 'finn', source: 'finn', country: 'NO' }, { id: 'legacy', source: 'dba.dk', country: null }]
+  const ordered = homeMarketFirst(rows)
+  const home = rows.filter(isHomeMarket).map((l) => l.id)
+  assert.deepEqual(ordered.slice(0, home.length).map((l) => l.id), home)
+  assert.ok(ordered.slice(home.length).every((l) => !isHomeMarket(l)))
+  assert.equal(isHomeMarket({ source: 'reverb', country: 'DK' }), false, 'Reverb is never the home market, whatever its country')
+})
+
+test('the page splits the wall with isHomeMarket and draws the seam only between two non-empty groups', () => {
+  const page = readFileSync(join(FRONTEND, 'app', '(shell)', 'product', '[slug]', 'page.tsx'), 'utf8')
+  assert.match(page, /\(isHomeMarket\(listing\) \? home : away\)\.push\(listing\)/)
+  assert.match(page, /seam: home\.length > 0 && away\.length > 0/)
+  assert.match(page, /\{group\.seam && \(\s*<WallSeam/)
+  // The sort runs inside each group: a Reverb "under" never outranks a Danish "typisk".
+  assert.match(page, /orderByVerdictRank\(group,/)
+  assert.doesNotMatch(page, /orderByVerdictRank\(listings,/)
+})
+
+test('the seam names its basis in words, in both locales, and the badge copy is untouched', () => {
+  for (const locale of ['da', 'en'] as const) {
+    const t = translations[locale] as Record<string, string>
+    assert.match(t.wallSeamLabel, /\{count\}/)
+    assert.ok(/Reverb/.test(t.wallSeamReverb) && !/Reverb/.test(t.wallSeamOwnMarket))
+    assert.equal(t.verdictBasisReverbFallback, locale === 'da' ? 'målt mod Reverb' : 'measured against Reverb')
+  }
+  const seam = readFileSync(join(FRONTEND, 'components', 'WallSeam.tsx'), 'utf8')
+  assert.match(seam, /role="separator" aria-labelledby=\{labelId\}/)
+  assert.match(seam, /allReverb \? t\.wallSeamReverb : t\.wallSeamOwnMarket/)
 })

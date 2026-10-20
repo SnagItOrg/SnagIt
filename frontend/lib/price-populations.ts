@@ -171,9 +171,18 @@ export function homeMarketFirst<T extends ListingClassificationInput>(listings: 
   const home: T[] = []
   const rest: T[] = []
   for (const listing of listings) {
-    (classifyListing(listing).population === 'dk-asking' ? home : rest).push(listing)
+    (isHomeMarket(listing) ? home : rest).push(listing)
   }
   return [...home, ...rest]
+}
+
+/**
+ * "Danish", for the wall (PAN-274). The route orders by it; the page splits
+ * by it, so the seam the page draws is the seam the ordering already has —
+ * one predicate, read twice, never two.
+ */
+export function isHomeMarket(listing: ListingClassificationInput): boolean {
+  return classifyListing(listing).population === 'dk-asking'
 }
 
 // ── Evidence ────────────────────────────────────────────────────────────────

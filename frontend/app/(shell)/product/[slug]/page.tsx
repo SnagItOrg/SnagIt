@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Fragment, useState, useEffect, useCallback, useMemo } from 'react'
 import { preload } from 'react-dom'
 import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
@@ -18,8 +18,9 @@ import { fill } from '@/lib/i18n'
 import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
 import { DanishMarketBlock, ReferencePopulationBlock } from '@/components/PriceAnswer'
-import type { PopulationKey, PopulationStats } from '@/lib/price-populations'
+import { isHomeMarket, REVERB_SOURCE, type PopulationKey, type PopulationStats } from '@/lib/price-populations'
 import { orderByVerdictRank } from '@/lib/listing-value-order'
+import { WallSeam } from '@/components/WallSeam'
 import { stripDecorativeEmoji } from '@/lib/listing-title'
 import { resolveProductImage } from '@/lib/product-image-source'
 import {
@@ -151,17 +152,29 @@ export default function ProductPage() {
    */
   const [valueOrder, setValueOrder]     = useState(false)
   /**
-   * The wall's render order. `orderByVerdictRank` reads only the verdict the
-   * API already computed — no price is compared, and a listing's population is
+   * The wall's render order, in two groups (PAN-274): the home market, then
+   * everything else. `isHomeMarket` is the predicate the API already ordered
+   * by (`homeMarketFirst`), so the seam the page draws between the groups is
+   * the seam the data already has — nothing is reordered across it, and the
+   * seam is drawn only when both groups exist. `orderByVerdictRank` then runs
+   * INSIDE each group, so the seam survives the sort and a Reverb "under"
+   * never outranks a Danish "typisk". It reads only the verdict the API
+   * already computed — no price is compared, and a listing's population is
    * never crossed. See ./lib/listing-value-order for why that makes this a
    * presentation state rather than a price claim.
    */
-  const orderedListings = useMemo(
-    () => (valueOrder
-      ? orderByVerdictRank(listings, (l) => (l as Listing & ListingWithVerdict).marketVerdict)
-      : listings),
-    [listings, valueOrder],
-  )
+  const wallGroups = useMemo(() => {
+    const home: Listing[] = []
+    const away: Listing[] = []
+    for (const listing of listings) (isHomeMarket(listing) ? home : away).push(listing)
+    const order = (group: Listing[]) => (valueOrder
+      ? orderByVerdictRank(group, (l) => (l as Listing & ListingWithVerdict).marketVerdict)
+      : group)
+    return [
+      { key: 'home' as const, listings: order(home), seam: false },
+      { key: 'away' as const, listings: order(away), seam: home.length > 0 && away.length > 0 },
+    ].filter((group) => group.listings.length > 0)
+  }, [listings, valueOrder])
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([])
   const [populations, setPopulations]   = useState<Record<PopulationKey, PopulationStats> | null>(null)
   /** Danish wall listings still awaiting adjudication — see DanishMarketBlock. */
@@ -1049,8 +1062,21 @@ export default function ProductPage() {
                         {t.sortByValueHint}
                       </p>
                     )}
-                    <div className="grid-wall grid-wall-lg">
-                    {orderedListings.map((listing) => (
+                    {wallGroups.map((group) => (
+                      <Fragment key={group.key}>
+                        {/*
+                          PAN-274: the market changes here, and the page says
+                          so once — in words, with the tint as a second cue.
+                        */}
+                        {group.seam && (
+                          <WallSeam
+                            count={group.listings.length}
+                            allReverb={group.listings.every((l) => l.source === REVERB_SOURCE)}
+                            t={t as unknown as Record<string, string>}
+                          />
+                        )}
+                        <div className={group.seam ? 'grid-wall grid-wall-lg wall-away' : 'grid-wall grid-wall-lg'}>
+                    {group.listings.map((listing) => (
                       <ListingErrorBoundary key={listing.id} listingId={listing.id}>
                         <div className="flex flex-col">
                           <SearchResultCard
@@ -1123,7 +1149,9 @@ export default function ProductPage() {
                         </div>
                       </ListingErrorBoundary>
                     ))}
-                    </div>
+                        </div>
+                      </Fragment>
+                    ))}
                   </div>
                 )}
 
