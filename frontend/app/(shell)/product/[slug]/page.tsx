@@ -1159,7 +1159,6 @@ export default function ProductPage() {
                         {group.seam ? (
                           <ListSection
                             label={t.wallSeamLabel}
-                            count={group.listings.length}
                             note={group.listings.every((l) => l.source === REVERB_SOURCE)
                               ? t.wallSeamReverb
                               : t.wallSeamOwnMarket}

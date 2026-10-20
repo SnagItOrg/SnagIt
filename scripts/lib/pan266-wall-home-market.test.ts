@@ -73,15 +73,17 @@ test('the page splits the wall with isHomeMarket and draws the seam only between
 test('the seam names its basis in words, in both locales, and the badge copy is untouched', () => {
   for (const locale of ['da', 'en'] as const) {
     const t = translations[locale] as Record<string, string>
-    assert.doesNotMatch(t.wallSeamLabel, /\{count\}/, 'ListSection appends the count itself')
+    assert.doesNotMatch(t.wallSeamLabel, /\{count\}/, 'PAN-279: no count in a group header')
     assert.ok(/Reverb/.test(t.wallSeamReverb) && !/Reverb/.test(t.wallSeamOwnMarket))
     assert.equal(t.verdictBasisReverbFallback, locale === 'da' ? 'målt mod Reverb' : 'measured against Reverb')
   }
-  // ListSection: Astryx's labelled Divider — a named separator, the count after
-  // the label, the note optional, the muted region optional. No copy of its own.
+  // ListSection (PAN-279): Astryx's CommandPaletteGroup heading — a named group,
+  // a left-aligned 12px secondary heading, no rules, no count; the note and the
+  // muted region optional. No copy of its own.
   const section = readFileSync(join(FRONTEND, 'components', 'ListSection.tsx'), 'utf8')
-  assert.match(section, /role="separator" aria-labelledby=\{labelId\}/)
-  assert.match(section, /\{label\} · \{count\}/)
+  assert.match(section, /role="group" aria-labelledby=\{headingId\}/)
+  assert.match(section, /<p id=\{headingId\} className="text-xs font-medium text-ink-secondary">/)
+  assert.doesNotMatch(section, /role="separator"|border-t|text-center|\{count\}/)
   assert.match(section, /\{note && <p/)
   assert.match(section, /muted \? <div className="list-section-muted">\{children\}<\/div> : children/)
   assert.doesNotMatch(section, /from '@\/lib\/i18n'/)
