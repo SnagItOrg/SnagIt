@@ -1180,6 +1180,34 @@ const stradivarius = (): LineBoundary => ({ line: 'stradivarius', otherMembers: 
  */
 const KORG_ARP_2600: readonly RegExp[] = [cue('korg'), /(?<![\w-])2600\s?-?(?:fs|m)(?![a-z\d-])/i]
 
+// ── PAN-280: boutique pedals — Strymon, EarthQuaker Devices, Hologram Electronics ───────────
+/**
+ * What the pedal trade sells beside the pedal, measured on the 33 DBA, 50 Finn, 30 Blocket and 333 Reverb titles that
+ * name Strymon and the 27 DBA titles that name EarthQuaker (read-only, 2026-10-20): a power supply in three languages
+ * ("Strymon strømforsyning - 9V DC center negativ"), a Decksaver after the model (a leading one is refused by the
+ * intent layer already), a key chain, the Zuma / Ojai mounting and expansion kits and Strymon's own footswitches.
+ * Marker-aware like every accessory list: "TimeLine Delay With Multi Switch" and "El Capistan V1 + Favorite Switch"
+ * keep the pedal.
+ */
+const PEDAL_EXTRAS: readonly string[] = [
+  ...PEDAL_PARTS, 'psu', 'strømforsyning', 'strömförsörjning', 'strømforsyning', 'netzteil', 'decksaver', 'key chain', 'keychain',
+  'mounting kit', 'mounting brackets', 'expansion kit', 'multiswitch', 'multi switch', 'miniswitch', 'mini switch', 'favorite switch',
+]
+/**
+ * Never the pedal: a lot, the maker's plug-in of it ("Strymon BigSky Plugin", UAD_SOFTWARE), a Eurorack module of it
+ * (EarthQuaker's Afterneath module, Strymon's Magneto and StarLab) and another maker's copy.
+ */
+const PEDAL_NEVER: readonly RegExp[] = [...PAIR_OR_LOT, ...UAD_SOFTWARE, ...cues('eurorack', 'module', 'clone', 'kopi')]
+/** A pedal row whose model word is its whole identity: the trade's extras and PEDAL_NEVER refuse, nothing else. */
+const pedal = (line: string, ...more: RegExp[]): LineBoundary => ({ line, otherMembers: [...PEDAL_NEVER, ...more], accessories: PEDAL_EXTRAS })
+/**
+ * Strymon's MX generation (BigSky MX 2024, TimeLine MX 2026) is its own row with its own Reverb page: the original
+ * refuses "MX" and the MX row requires it, so a title naming both resolves to the MX (step 5b). A V1 / V2 refresh of
+ * the other Strymon pedals is the same row (owner, 2026-10-03: the row is the model), so no V cue is read there.
+ */
+const STRYMON_MX: readonly RegExp[] = cues('mx')
+const strymonMx = (line: string): LineBoundary => ({ line, requires: STRYMON_MX, otherMembers: PEDAL_NEVER, accessories: PEDAL_EXTRAS })
+
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
   'moog-minimoog': {
@@ -2776,6 +2804,80 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'bach-stradivarius-37': stradivarius(),
   'bach-stradivarius-43': stradivarius(),
   'bach-stradivarius-72': stradivarius(),
+  // ── PAN-280: boutique pedals (Strymon, EarthQuaker Devices, Hologram Electronics) ──
+  // Strymon. The TimeLine never had a second version: a "TimeLine II" / "V2" title names a generation Klup holds no
+  // row for and stays unmatched; a "Big Sky Mk1" is the original.
+  'strymon-big-sky': pedal('bigsky', ...STRYMON_MX),
+  'strymon-bigsky-mx': strymonMx('bigsky'),
+  'strymon-timeline': pedal('timeline', ...STRYMON_MX, ...MK_II, ...cues('ii', 'v2')),
+  'strymon-timeline-mx': strymonMx('timeline'),
+  'strymon-nightsky': pedal('nightsky'),
+  'strymon-volante': pedal('volante'),
+  'strymon-iridium': pedal('iridium'),
+  'strymon-mobius': pedal('mobius'),
+  'strymon-el-capistan': pedal('el-capistan'),
+  'strymon-flint': pedal('flint'),
+  'strymon-deco': pedal('deco'),
+  'strymon-dig': pedal('dig'),
+  'strymon-bluesky': pedal('bluesky'),
+  'strymon-lex': pedal('lex'),
+  'strymon-ola': pedal('ola'),
+  'strymon-brigadier': pedal('brigadier'),
+  'strymon-orbit': pedal('orbit'),
+  'strymon-riverside': pedal('riverside'),
+  'strymon-sunset': pedal('sunset'),
+  'strymon-compadre': pedal('compadre'),
+  'strymon-cloudburst': pedal('cloudburst'),
+  'strymon-zelzah': pedal('zelzah'),
+  'strymon-ultraviolet': pedal('ultraviolet'),
+  'strymon-ob-1': pedal('ob-1'),
+  'strymon-fairfax': pedal('fairfax'),
+  // EarthQuaker Devices. A V1 / V2 / V3 is the same row. The Hoof line: the Hoof refuses its Reaper and the Cloven
+  // Hoof (no row), the Hoof Reaper requires "Reaper".
+  'earthquaker-devices-plumes': pedal('plumes'),
+  'earthquaker-devices-life-pedal': pedal('life-pedal'),
+  'earthquaker-devices-avalanche-run': pedal('avalanche-run'),
+  'earthquaker-devices-rainbow-machine': pedal('rainbow-machine'),
+  'earthquaker-devices-afterneath': pedal('afterneath'),
+  'earthquaker-devices-dispatch-master': pedal('dispatch-master'),
+  'earthquaker-devices-hoof': pedal('hoof', ...cues('reaper', 'cloven')),
+  'earthquaker-devices-hoof-reaper': { line: 'hoof', requires: cues('reaper'), otherMembers: PEDAL_NEVER, accessories: PEDAL_EXTRAS },
+  'earthquaker-devices-hizumitas': pedal('hizumitas'),
+  'earthquaker-devices-pyramids': pedal('pyramids'),
+  'earthquaker-devices-westwood': pedal('westwood'),
+  'earthquaker-devices-palisades': pedal('palisades'),
+  'earthquaker-devices-ghost-echo': pedal('ghost-echo'),
+  'earthquaker-devices-spatial-delivery': pedal('spatial-delivery'),
+  'earthquaker-devices-bit-commander': pedal('bit-commander'),
+  'earthquaker-devices-data-corrupter': pedal('data-corrupter'),
+  'earthquaker-devices-sea-machine': pedal('sea-machine'),
+  'earthquaker-devices-grand-orbiter': pedal('grand-orbiter'),
+  'earthquaker-devices-arpanoid': pedal('arpanoid'),
+  'earthquaker-devices-organizer': pedal('organizer'),
+  'earthquaker-devices-special-cranker': pedal('special-cranker'),
+  'earthquaker-devices-arrows': pedal('arrows'),
+  'earthquaker-devices-astral-destiny': pedal('astral-destiny'),
+  'earthquaker-devices-silos': pedal('silos'),
+  'earthquaker-devices-aurelius': pedal('aurelius'),
+  'earthquaker-devices-the-warden': pedal('warden'),
+  'earthquaker-devices-zoar': pedal('zoar'),
+  'earthquaker-devices-blumes': pedal('blumes'),
+  'earthquaker-devices-park-fuzz': pedal('park-fuzz'),
+  'earthquaker-devices-erupter': pedal('erupter'),
+  'earthquaker-devices-acapulco-gold': pedal('acapulco-gold'),
+  'earthquaker-devices-tone-job': pedal('tone-job'),
+  'earthquaker-devices-hummingbird': pedal('hummingbird'),
+  'earthquaker-devices-swiss-things': pedal('swiss-things'),
+  'earthquaker-devices-talons': pedal('talons'),
+  'earthquaker-devices-aqueduct': pedal('aqueduct'),
+  'earthquaker-devices-bellows': pedal('bellows'),
+  'earthquaker-devices-dirt-transmitter': pedal('dirt-transmitter'),
+  'earthquaker-devices-the-depths': pedal('depths'),
+  'earthquaker-devices-fuzz-master-general': pedal('fuzz-master-general'),
+  'earthquaker-devices-levitation': pedal('levitation'),
+  // Hologram Electronics.
+  'hologram-electronics-microcosm': pedal('microcosm'),
+  'hologram-electronics-chroma-console': pedal('chroma-console'),
 }
 
 /**
