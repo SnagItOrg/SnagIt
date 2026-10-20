@@ -275,6 +275,8 @@ function base(raw: string): Omit<SearchOutcome, 'outcome' | 'resolution' | 'reso
     candidates: [],
     suggestions: [],
     viaSynonym: false,
+    // PAN-275: attached by the route after eligibility, never decided here.
+    kindGroups: [],
   }
 }
 

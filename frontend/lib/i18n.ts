@@ -424,6 +424,9 @@ export const translations = {
     // model, so "Rhodes Electric Piano" is not read as a fifth Rhodes model
     // sitting beside the four real ones (PAN-55).
     searchKindFamily: 'Alle modeller',
+    // PAN-275: the second group on the SERP — the catalogue kind the query names.
+    searchGroupSameType: 'Samme type',
+    searchGroupSeeAll: 'Se alle i {kind} →',
     demandCta: 'Giv besked når Klup følger dette',
     demandThanks: 'Tak — vi har noteret det.',
     // PAN-257 — a signed-in visitor: the request is recorded with their
@@ -1210,6 +1213,8 @@ export const translations = {
     searchAmbiguousHeading: 'Which one do you mean?',
     searchNearestHeading: 'The closest Klup follows',
     searchKindFamily: 'All models',
+    searchGroupSameType: 'Same type',
+    searchGroupSeeAll: 'See all in {kind} →',
     demandCta: 'Tell me when Klup follows this',
     demandThanks: 'Thanks — we have noted it.',
     demandSignedInBody: 'We will email you when Klup follows it.',
