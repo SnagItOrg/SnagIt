@@ -455,10 +455,10 @@ function SearchPageInner() {
                 name matches come first and carry no header: they are what the
                 query SAYS, the default group (Mobbin's "top results"). Each
                 kind the query NAMES follows under a ListSection header — the
-                same component as the product wall's seam — with the kind's
-                place in the catalogue as its one-line note, so "Samme type"
-                never has to be guessed at. Rows are the same candidate rows;
-                keyboard indices run on across the lists.
+                same component as the product wall's seam. The header IS the
+                kind's place in the catalogue ("Effekter & pedaler › Reverb"):
+                no label to decode, no count (PAN-279). Rows are the same
+                candidate rows; keyboard indices run on across the lists.
               */}
               {showCandidates && (
                 <div>
@@ -482,9 +482,7 @@ function SearchPageInner() {
                 return (
                   <ListSection
                     key={group.href}
-                    label={t.searchGroupSameType}
-                    count={group.total}
-                    note={`${name(group.category)} › ${name(group.kind)}`}
+                    label={`${name(group.category)} › ${name(group.kind)}`}
                   >
                     <CandidateList
                       id={`klup-search-kind-${gi}`}

@@ -1996,14 +1996,16 @@ test('PAN-275: the resolver never decides a kind group, and the route attaches i
 test('PAN-275: the page renders every kind group through ListSection, keeps one keyboard order, and yields the demand panel to a kind', () => {
   const page = readSource('app', '(shell)', 'search', 'page.tsx')
   assert.match(page, /import \{ ListSection \} from '@\/components\/ListSection'/)
-  assert.match(page, /<ListSection\s+key=\{group\.href\}\s+label=\{t\.searchGroupSameType\}\s+count=\{group\.total\}/)
+  // PAN-279: the header IS the breadcrumb — no label copy, no count.
+  assert.match(page, /<ListSection\s+key=\{group\.href\}\s+label=\{`\$\{name\(group\.category\)\} › \$\{name\(group\.kind\)\}`\}\s*>/)
+  assert.doesNotMatch(page, /count=\{group\.total\}/)
   assert.equal((page.match(/<ListSection\b/g) ?? []).length, 1, 'one grouping component, used once per group')
   assert.match(page, /return \[\.\.\.outcome\.candidates, \.\.\.kindRows\]/, 'the options run on from the name matches into the kind rows')
   assert.match(page, /indexOffset=\{offset\}/)
   assert.match(page, /!showKinds &&\s*\(outcome\.outcome === 'unsupported'/)
   for (const locale of ['da', 'en'] as const) {
     const t = translations[locale] as Record<string, string>
-    assert.ok(t.searchGroupSameType.split(' ').length <= 2, 'one or two words')
+    assert.equal('searchGroupSameType' in t, false, 'PAN-279: no group label copy — the breadcrumb is the header')
     assert.match(t.searchGroupSeeAll, /\{kind\}/)
   }
 })
