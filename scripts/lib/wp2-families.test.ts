@@ -84,8 +84,11 @@ const PAN261_FAMILIES = ['fender-blues-junior-amp']
 /** PAN-271. The `rhodes` case: no row. The three bells are the priced pages. */
 const PAN271_FAMILIES = ['bach-stradivarius']
 
+/** PAN-282. The `rhodes` case: no row. Not `ehx-memory-man`, which is the original non-deluxe's own priced page. */
+const PAN282_FAMILIES = ['memory-man']
+
 /** The six, plus `rhodes` (PAN-85) — the first family with canonical children — the Boss lines and `minimoog` (PAN-154). */
-const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES, ...PAN230_FAMILIES, ...PAN261_FAMILIES, ...PAN271_FAMILIES]
+const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES, ...PAN230_FAMILIES, ...PAN261_FAMILIES, ...PAN271_FAMILIES, ...PAN282_FAMILIES]
 
 /**
  * Production state of every configured child, SELECT-verified 2026-08-28:
@@ -449,6 +452,12 @@ test('families: children match the reviewed §6.3 map', () => {
     'fender-blues-junior-amp': ['fender-blues-junior', 'fender-blues-junior-iii', 'fender-blues-junior-iv'],
     // PAN-271 (2026-10-19). The 37, 43 and 72 bells: three priced models, one navigation concept.
     'bach-stradivarius': ['bach-stradivarius-37', 'bach-stradivarius-43', 'bach-stradivarius-72'],
+    // PAN-282 (2026-10-21). Nine priced models, one navigation concept; the Memory Boy and Toy are outside it.
+    'memory-man': [
+      'ehx-deluxe-memory-man-vintage', 'ehx-memory-man', 'ehx-deluxe-memory-man-reissue', 'ehx-deluxe-memory-man-tap-tempo',
+      'ehx-memory-man-stereo-hazarai', 'ehx-deluxe-memory-man-xo', 'ehx-deluxe-memory-man-1100-tt', 'ehx-deluxe-memory-man-550-tt',
+      'ehx-memory-man-nano',
+    ],
   }
   for (const family of NAVIGATION_FAMILIES) {
     assert.deepEqual([...family.children].sort(), [...expected[family.slug]].sort(), family.slug)
@@ -496,8 +505,9 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   assert.equal(GUITAR_FAMILIES.length, 6)
   // `gibson-sg` (PAN-198) is the Jazzmaster case: a `known` + `qa_only` row.
   // `moogerfooger` (PAN-199), `neumann-u87-condenser` and `universal-audio-1176`
-  // (PAN-230), `fender-blues-junior-amp` (PAN-261) and `bach-stradivarius` (PAN-271) are the `rhodes` case: no row.
-  assert.equal(EXPECTED_FAMILIES.length, 24)
+  // (PAN-230), `fender-blues-junior-amp` (PAN-261), `bach-stradivarius` (PAN-271) and `memory-man` (PAN-282) are the
+  // `rhodes` case: no row.
+  assert.equal(EXPECTED_FAMILIES.length, 25)
 })
 
 test('redirects: nothing else is redirected', () => {

@@ -99,6 +99,9 @@ export const SAME_MAKER: readonly (readonly string[])[] = [
   ['earthquaker devices', 'earthquaker', 'eqd'],
   // PAN-280: "Chroma Console - Hologram Electronics" and "Hologram Microcosm" are one maker.
   ['hologram electronics', 'hologram'],
+  // PAN-282: the brand is "Electro-Harmonix" (the PAN-282 identity file spells the kg_brand row so; it was "Electro
+  // Harmonix"), sellers write both and "EHX" ("EHX Nano Deluxe Memory Man", Reverb 2026-10-21).
+  ['electro-harmonix', 'electro harmonix', 'ehx'],
 ]
 const MAKER_OF = new Map<string, string>()
 SAME_MAKER.forEach((group) => group.forEach((name) => MAKER_OF.set(name, group[0])))

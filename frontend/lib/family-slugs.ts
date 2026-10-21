@@ -68,6 +68,9 @@ export const FAMILY_SLUGS = [
   'fender-blues-junior-amp',
   // PAN-271. The `rhodes` case: no row today. The bells (37, 43, 72) are the priced pages.
   'bach-stradivarius',
+  // PAN-282 (owner, 2026-10-21). The `rhodes` case: no row today. Not `ehx-memory-man`: that is the original
+  // non-deluxe Memory Man's own priced page, a member.
+  'memory-man',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]
