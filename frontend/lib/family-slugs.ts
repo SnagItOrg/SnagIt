@@ -71,6 +71,11 @@ export const FAMILY_SLUGS = [
   // PAN-282 (owner, 2026-10-21). The `rhodes` case: no row today. Not `ehx-memory-man`: that is the original
   // non-deluxe Memory Man's own priced page, a member.
   'memory-man',
+  // PAN-286 (owner, 2026-10-21). The `rhodes` case, three times: no row. Sellers write the line word ("Fuzz-Tone",
+  // "Echoplex", "Ventilator"); the lettered / numbered rows are the priced pages.
+  'fuzz-tone',
+  'echoplex',
+  'ventilator',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]
