@@ -1073,6 +1073,13 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
    */
   const FAMILY_CARD_LINKER = join('components', 'FamilyCard.tsx')
 
+  /**
+   * PAN-288 admits the THIRD: /sitemap.xml lists a family only when
+   * `buildFamilyView` over the canonical rows says `published` — the one
+   * threshold `noindex` turns on (see "indexability" above). Pinned below.
+   */
+  const SITEMAP_LINKER = join('app', 'sitemap.ts')
+
   for (const file of [...walk(join(FRONTEND, 'app')), ...walk(join(FRONTEND, 'components'))]) {
     if (file.includes(join('app', '(shell)', 'family'))) continue          // the route itself
     const rel = file.replace(FRONTEND, 'frontend')
@@ -1085,7 +1092,12 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
       const isPathTest = /\bpathname\.startsWith\('\/family\/'\)/.test(line)
       if (isPathTest) continue
       if (isRedirect) redirectors.push(rel)
-      else if (!isComment && !file.endsWith(GATED_LINKER) && !file.endsWith(FAMILY_CARD_LINKER)) {
+      else if (
+        !isComment &&
+        !file.endsWith(GATED_LINKER) &&
+        !file.endsWith(FAMILY_CARD_LINKER) &&
+        !file.endsWith(SITEMAP_LINKER)
+      ) {
         linkers.push(`${rel}: ${line.trim()}`)
       }
     }
@@ -1109,6 +1121,13 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
     productApi,
     /familyView\.published/,
     'familyContext must be emitted only for a published family, so an empty one is never linked',
+  )
+  // PAN-288's linker, pinned: the sitemap's family entries are filtered on the
+  // view's own `published`, never on a count of their own.
+  assert.match(
+    readRepoFile('app/sitemap.ts'),
+    /\.filter\(\(family\) => buildFamilyView\(family, rows\)\.published\)/,
+    'the sitemap must list a family only when buildFamilyView publishes it',
   )
   // PAN-192's linker, pinned: a card needs more members than a family needs
   // canonical children to publish, and it is mounted only from the collapse,

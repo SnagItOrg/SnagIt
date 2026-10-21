@@ -22,7 +22,7 @@ import {
 } from '@/lib/families'
 import { translations, fill } from '@/lib/i18n'
 import { loadChildVerdicts } from '@/lib/listing-verdicts'
-import { SITE_URL } from '@/lib/site-metadata'
+import { SITE_URL, siteMetadata } from '@/lib/site-metadata'
 import { Icon } from '@/components/Icon'
 import { Button } from '@/components/Button'
 
@@ -273,11 +273,22 @@ export async function generateMetadata(
   const view = await loadFamilyView(params.slug)
   if (!view) return { title: t.notFoundHeading, robots: { index: false, follow: false } }
 
+  const { family, children, listings } = view
+  // PAN-288: a published family names its models and its listing count — the
+  // two numbers the page prints — and never a price (CLAUDE.md §7).
+  const title = view.published ? fill(t.metaFamilyTitle, { label: family.label }) : family.label
+  const description = view.published
+    ? fill(t.metaFamilyDescription, { label: family.label, models: children.length, count: listings.length })
+    : `${family.label} — ${t.familyWhyNotOnePrice}`
+  const url = `${SITE_URL}/family/${family.slug}`
+
   return {
-    title: view.family.label,
-    description: `${view.family.label} — ${t.familyWhyNotOnePrice}`,
-    alternates: { canonical: `${SITE_URL}/family/${view.family.slug}` },
+    title,
+    description,
+    alternates: { canonical: url },
     robots: { index: view.published, follow: true },
+    openGraph: { ...siteMetadata.openGraph, title, description, url },
+    twitter: { ...siteMetadata.twitter, title, description },
   }
 }
 
