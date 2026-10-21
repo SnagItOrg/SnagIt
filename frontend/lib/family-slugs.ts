@@ -107,6 +107,14 @@ export const FAMILY_SLUGS = [
   'fuzz-tone',
   'echoplex',
   'ventilator',
+  // PAN-290 (owner, 2026-10-21). The `rhodes` case, five times: no row. Sellers write the line word ("Lexicon PCM",
+  // "Prime Time", "LXP", "MX", "Korg SDD"); the numbered rows are the priced pages. Not `lexicon-prime-time`: that is
+  // the Model 93's own priced page, a member.
+  'lexicon-pcm',
+  'prime-time',
+  'lexicon-lxp',
+  'lexicon-mx',
+  'korg-sdd',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]

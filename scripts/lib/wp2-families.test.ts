@@ -90,6 +90,9 @@ const PAN282_FAMILIES = ['memory-man']
 /** PAN-286. The `rhodes` case, three times: no row. The lettered / numbered rows are the priced pages. */
 const PAN286_FAMILIES = ['fuzz-tone', 'echoplex', 'ventilator']
 
+/** PAN-290. The `rhodes` case, five times: no row. Not `lexicon-prime-time`, which is the Model 93's own priced page. */
+const PAN290_FAMILIES = ['lexicon-pcm', 'prime-time', 'lexicon-lxp', 'lexicon-mx', 'korg-sdd']
+
 /** The six, plus `rhodes` (PAN-85) — the first family with canonical children — the Boss lines and `minimoog` (PAN-154). */
 /** PAN-284 (owner, 2026-10-21). The `rhodes` case, all 27: eleven Roland lines, thirteen guitar models, three synths. */
 const PAN284_FAMILIES = [
@@ -101,7 +104,7 @@ const PAN284_FAMILIES = [
   'sequential-ob-6-synth', 'sequential-trigon-6-synth', 'oberheim-ob-x-synth',
 ]
 
-const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES, ...PAN230_FAMILIES, ...PAN261_FAMILIES, ...PAN271_FAMILIES, ...PAN282_FAMILIES, ...PAN284_FAMILIES, ...PAN286_FAMILIES]
+const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES, ...PAN230_FAMILIES, ...PAN261_FAMILIES, ...PAN271_FAMILIES, ...PAN282_FAMILIES, ...PAN284_FAMILIES, ...PAN286_FAMILIES, ...PAN290_FAMILIES]
 
 /**
  * Production state of every configured child, SELECT-verified 2026-08-28:
@@ -521,6 +524,15 @@ test('families: children match the reviewed §6.3 map', () => {
     'fuzz-tone': ['maestro-fuzz-tone-fz-1', 'maestro-fuzz-tone-fz-1a-fz-1b', 'maestro-fuzz-tone-fz-1s'],
     'echoplex': ['maestro-echoplex-ep-1', 'maestro-echoplex-ep-2', 'maestro-echoplex-ep-3', 'maestro-echoplex-ep-4'],
     'ventilator': ['neo-instruments-ventilator', 'neo-instruments-ventilator-ii', 'neo-instruments-mini-vent', 'neo-instruments-micro-vent'],
+    // PAN-290 (2026-10-21). Five lines whose word sellers write; the numbered rows are the priced pages.
+    'lexicon-pcm': [
+      'lexicon-pcm-41', 'lexicon-pcm-42', 'lexicon-pcm-60', 'lexicon-pcm-70', 'lexicon-pcm-80', 'lexicon-pcm-81',
+      'lexicon-pcm-90', 'lexicon-pcm-91', 'lexicon-pcm-92', 'lexicon-pcm-96', 'lexicon-pcm-96-surround',
+    ],
+    'prime-time': ['lexicon-prime-time', 'lexicon-prime-time-ii', 'lexicon-super-prime-time'],
+    'lexicon-lxp': ['lexicon-lxp-1', 'lexicon-lxp-5', 'lexicon-lxp-15', 'lexicon-lxp-15-ii'],
+    'lexicon-mx': ['lexicon-mx200', 'lexicon-mx300', 'lexicon-mx400', 'lexicon-mx400xl'],
+    'korg-sdd': ['korg-sdd-1000', 'korg-sdd-2000', 'korg-sdd-3000-rackmount', 'korg-sdd-3000-pedal'],
   }
   for (const family of NAVIGATION_FAMILIES) {
     assert.deepEqual([...family.children].sort(), [...expected[family.slug]].sort(), family.slug)
@@ -569,9 +581,9 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   // `gibson-sg` (PAN-198) is the Jazzmaster case: a `known` + `qa_only` row.
   // `moogerfooger` (PAN-199), `neumann-u87-condenser` and `universal-audio-1176`
   // (PAN-230), `fender-blues-junior-amp` (PAN-261), `bach-stradivarius` (PAN-271), `memory-man` (PAN-282) and
-  // `fuzz-tone` / `echoplex` / `ventilator` (PAN-286) are the `rhodes` case: no row. So are `boss-ds-distortion`
-  // and the 27 prefix families (PAN-284).
-  assert.equal(EXPECTED_FAMILIES.length, 56)
+  // `fuzz-tone` / `echoplex` / `ventilator` (PAN-286) are the `rhodes` case: no row. So are `boss-ds-distortion`,
+  // the 27 prefix families (PAN-284) and the five Lexicon / Korg SDD lines (PAN-290).
+  assert.equal(EXPECTED_FAMILIES.length, 61)
 })
 
 test('redirects: nothing else is redirected', () => {

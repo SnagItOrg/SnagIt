@@ -281,6 +281,10 @@ test('integration: every package suite is registered exactly once', () => {
       // the Formanta synths, Dunlop's Echoplex and the Echoplex preamp copies and parts name no pedal; "Neo" names
       // Neo Instruments; a bare Ventilator is the original and the Mini / Micro Vent are one row each.
       'scripts/lib/pan286-maestro-neo.test.ts',
+      // PAN-290: the Lexicon classics and the Korg SDD delay family — one `lexicon` line whose rows refuse every other
+      // unit's code (a LARC "for 224XL/480L/300L" names no row), the 224 / 224X / 224XL one row, the plug-ins and the
+      // parts trade never; the SDD-3000 rack takes a bare "SDD-3000", the pedal its word; "SDD" is not "SD" or "SDE".
+      'scripts/lib/pan290-lexicon-korg-sdd.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
