@@ -1196,6 +1196,81 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     aliases: ['neo ventilator', 'neo vent'],
   },
   /**
+   * PAN-290, owner decision 2026-10-21. Lexicon's PCM processors, 1980–2009:
+   * the PCM 41 / 42 delays, the PCM 60 / 70 / 80 / 81 / 90 / 91 / 92 and the
+   * PCM96 — eleven priced rows. The PCM96 and the PCM96 Surround price 32 %
+   * apart on Reverb's sold population and are two. The PCM Native plug-ins
+   * are software and never a child. Navigation only; the family never
+   * aggregates their prices. Inert until the owner's public step makes a
+   * child canonical. A bare "pcm" is not an alias: Sony's PCM recorders.
+   */
+  'lexicon-pcm': {
+    label: 'Lexicon PCM',
+    brand: 'Lexicon',
+    categoryRoot: 'pro-audio',
+    children: [
+      'lexicon-pcm-41', 'lexicon-pcm-42', 'lexicon-pcm-60', 'lexicon-pcm-70', 'lexicon-pcm-80', 'lexicon-pcm-81',
+      'lexicon-pcm-90', 'lexicon-pcm-91', 'lexicon-pcm-92', 'lexicon-pcm-96', 'lexicon-pcm-96-surround',
+    ],
+    aliases: ['lexicon pcm'],
+  },
+  /**
+   * PAN-290, owner decision 2026-10-21. Lexicon's Prime Time delays: the
+   * Model 93 (1979), the Prime Time II (Model 95) and the Super Prime Time
+   * (Model 97) — three priced rows ($2,300 / $1,500 / $1,768 on Reverb's sold
+   * population). Navigation only; the family never aggregates their prices.
+   * Inert until the owner's public step makes a child canonical.
+   */
+  'prime-time': {
+    label: 'Lexicon Prime Time',
+    brand: 'Lexicon',
+    categoryRoot: 'pro-audio',
+    children: ['lexicon-prime-time', 'lexicon-prime-time-ii', 'lexicon-super-prime-time'],
+    aliases: ['lexicon prime time', 'primetime'],
+  },
+  /**
+   * PAN-290, owner decision 2026-10-21. Lexicon's 1990s LXP modules: the
+   * LXP-1, LXP-5, LXP-15 and the LXP-15 II (27 % over the LXP-15 on Reverb's
+   * sold population, its own row). The LXP Native plug-ins are software and
+   * never a child. Navigation only; inert until a child is canonical.
+   */
+  'lexicon-lxp': {
+    label: 'Lexicon LXP',
+    brand: 'Lexicon',
+    categoryRoot: 'pro-audio',
+    children: ['lexicon-lxp-1', 'lexicon-lxp-5', 'lexicon-lxp-15', 'lexicon-lxp-15-ii'],
+    aliases: ['lexicon lxp'],
+  },
+  /**
+   * PAN-290, owner decision 2026-10-21. Lexicon's MX reverbs (2005–): the
+   * MX200, MX300 and MX400 — the MX400XL is the MX400's row (21 % over it,
+   * below the ~25 % a row of its own takes; manager, 2026-10-21). Navigation
+   * only; the family never aggregates their prices. Inert until a child is
+   * canonical. A bare "mx" is not an alias.
+   */
+  'lexicon-mx': {
+    label: 'Lexicon MX',
+    brand: 'Lexicon',
+    categoryRoot: 'pro-audio',
+    children: ['lexicon-mx200', 'lexicon-mx300', 'lexicon-mx400'],
+    aliases: ['lexicon mx'],
+  },
+  /**
+   * PAN-290, owner decision 2026-10-21. Korg's SDD digital delays: the
+   * SDD-1000, SDD-2000 and SDD-3000 racks of the 1980s and the 2014
+   * SDD-3000 pedal, its reissue — four priced rows (the SDD-3000 rack sells
+   * at $1,000, the pedal at $300). The DL8000R is not an SDD and not a child.
+   * Navigation only; the family never aggregates their prices. Inert until
+   * the owner's public step makes a child canonical.
+   */
+  'korg-sdd': {
+    label: 'Korg SDD',
+    brand: 'Korg',
+    categoryRoot: 'pro-audio',
+    children: ['korg-sdd-1000', 'korg-sdd-2000', 'korg-sdd-3000-rackmount', 'korg-sdd-3000-pedal'],
+    aliases: ['korg sdd'],
+  },
+  /**
    * PAN-291, owner request 2026-10-21. Ensoniq's ASR samplers: the ASR-10
    * (1992, keyboard and rack one row — they sell within 18 % on Reverb), the
    * ASR-X (1997) and the ASR-X Pro (1998), three priced rows. The ASR-88 has

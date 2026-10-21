@@ -1338,6 +1338,104 @@ const neoVent = (requires: readonly RegExp[] | undefined, ...others: RegExp[]): 
   line: 'ventilator', otherMembers: [...PEDAL_NEVER, ...others], accessories: VENT_PARTS, ...(requires ? { requires } : {}),
 })
 
+// ── PAN-290: the Lexicon classics and the Korg SDD delay family ─────
+/**
+ * Lexicon names its units by bare numbers and short codes ("224", "480L", "300", "PCM 70", "LXP-15", "MX200"), and
+ * sellers write several in one title: a LARC remote "for 224XL/480L/300L/M300", a "Model 200 Reverberator (Like 224
+ * 480L)", a "PCM 60 Reverb With 224 Sound". A row therefore refuses every OTHER line's code: a title that names two
+ * Lexicon units names no row (fail-closed; the reference titles are the recall cost). Each line's code, measured on
+ * the 105 production titles that say "lexicon", the 9 Lexicon ads live on DBA and the Reverb sold titles behind each
+ * row (2026-10-21). A bare number never reads inside another code: "MX200", "MPX 200", "MS 200" and "PCM 70" are not
+ * the 200 or the 70; "M300" is the 300 (sellers write both for the one unit, at one price).
+ */
+const NOT_LEX_PREFIX = '(?<![\\w-])(?<!(?:mx|mpx|ms|pcm|lxp|io)[\\s-])'
+const LEX_LINE_CODES: Readonly<Record<string, RegExp>> = {
+  '200': new RegExp(`${NOT_LEX_PREFIX}(?:model[\\s-])?200(?![\\w-])`, 'i'),
+  '224': /(?<![\w-])224(?:[\s-]?xl?)?(?![\w-])/i,
+  '300': new RegExp(`${NOT_LEX_PREFIX}(?:m[\\s-]?)?300(?:[\\s-]?l)?(?![\\w-])`, 'i'),
+  '480l': /(?<![\w-])480(?:[\s-]?l)?(?![\w-])/i,
+  '960l': /(?<![\w-])960(?:[\s-]?l)?(?![\w-])/i,
+  'pcm': /(?<![\w-])pcm[\s-]?\d{2}(?![\w-])/i,
+  'prime-time': /prime[\s-]?(?:ii[\s-]?)?time|(?<![\w-])model[\s-]?9[357](?![\w-])/i,
+  'lxp': /(?<![\w-])lxp[\s-]?\d/i,
+  'mx': /(?<![\w-])mx[\s-]?\d{3}/i,
+}
+/**
+ * Never a Lexicon unit: a lot, the software (the UAD "Lexicon 224 Digital Reverb Plug-In", Lexicon's own "PCM Native
+ * Reverb Plug-In Bundle" and "LXP Native Reverb", a UAD-2 card "with 23 plug ins … Lexicon 224"), and the Lexicon units
+ * Klup holds no row for — the MPX processors (DBA's two live "Lexicon MPX 100"), the Reflex sold "with 224XL Sound",
+ * the Alex, the Vortex, the JamMan.
+ */
+const LEX_NEVER: readonly RegExp[] = [
+  ...PAIR_OR_LOT, ...UAD_SOFTWARE, /(?<![\w-])mpx/i, /(?<![\w-])uad-2(?![\w])/i,
+  // A Lexicon sold beside another maker's unit: "Kemper Profiler rack guitar preamp / effektprocessor + Lexicon PCM 90
+  // effekt" (DBA, 3,000 kr for both).
+  /(?:\+|&|(?<![\w-])(?:og|and|plus))\s*lexicon(?![\w-])/i,
+  ...cues('plugins', 'plug-ins', 'plug ins', 'software', 'ilok', 'reflex', 'alex', 'vortex', 'jamman'),
+]
+/**
+ * The Lexicon parts trade (production Reverb titles, 2026-10-21): a LARC sold alone ("Lexicon LARC Remote for
+ * 224XL/480L/300L/M300", "224x REMOTE ONLY"), the 480L's cartridges and memory cards, NVS and extender cards, EPROMs
+ * and firmware, PCM 41 / 42 knob caps and jacks, the Prime Time's panel, memory PCB and transformer, batteries,
+ * manuals, power supplies. Marker-aware: "224X Digital Reverberator with LARC" and "480L … with LARC Remote" keep the
+ * unit, so a LARC is refused only where it leads the title or is sold "only". Not a bare `card`: "Lexicon 480 m. Larc,
+ * Classic Card" (DBA, 31,000 kr) is the unit with its card.
+ */
+const LEX_PARTS: readonly (string | RegExp)[] = [
+  /^\W*(?:lexicon\s+)?larc(?![\w-])/i, 'remote only', 'larc only', 'remote control', 'larc cable', 'cable', 'card for',
+  'cartridge', 'cart', 'memory card', 'nvs card', 'extender card', 'hsp card', 'eprom', 'eproms', 'firmware', 'rom chip',
+  'battery', 'manual', 'service manual', 'knob', 'knobs', 'knob cap', 'encoder', 'pcb', 'front panel', 'panel',
+  'transformer', 'power transformer', 'power supply', 'adapter', 'psu', 'switch', 'phone jack', 'brochure',
+  'product guide', 'faceplate', 'rack ears',
+]
+/**
+ * A Lexicon row: the codes of every other group and LEX_NEVER refuse, as do `siblings` within its own group. Every
+ * Lexicon row is ONE line, `lexicon`, the 200 included: the code form reads "MX200" as "mx 200" and "M300" as "m 300",
+ * so the 200 and the MX200 are both candidates on an MX200 title, and only a refusal within one line separates them
+ * (step 5b) instead of deferring the title as a two-product tie.
+ */
+const lexicon = (group: string, requires: readonly RegExp[] | undefined, ...siblings: RegExp[]): LineBoundary => ({
+  line: 'lexicon',
+  otherMembers: [...LEX_NEVER, ...Object.entries(LEX_LINE_CODES).filter(([g]) => g !== group).map(([, re]) => re), ...siblings],
+  accessories: LEX_PARTS,
+  ...(requires ? { requires } : {}),
+})
+const PCM = (n: number): RegExp => new RegExp(`(?<![\\w-])pcm[\\s-]?${n}(?![\\w-])`, 'i')
+const PCM_OTHERS = (n: number): RegExp[] => [41, 42, 60, 70, 80, 81, 90, 91, 92, 96].filter((m) => m !== n).map(PCM)
+/** "Prime Time II", "Prime Time 2", "Prime II Time Model 95" (a Reverb sold title), "Model 95". */
+const PRIME_TIME_II = /prime[\s-]?time[\s-]?(?:ii|2)(?![\w-])|prime[\s-]ii[\s-]time|(?<![\w-])model[\s-]?95(?![\w-])/i
+const SUPER_PRIME_TIME = /(?<![\w-])super[\s-]?prime|(?<![\w-])model[\s-]?97(?![\w-])/i
+const LXP = (n: number): RegExp => new RegExp(`(?<![\\w-])lxp[\\s-]?${n}(?![\\w-])`, 'i')
+/** "LXP-15 II", "LXP-15 Version II" (Reverb's own page title), "LXP 15 MkII". */
+const LXP_15_II = /(?<![\w-])lxp[\s-]?15[\s-]?(?:ii|2|mk[\s-]?(?:ii|2)|v(?:ersion)?[\s-]?(?:ii|2))(?![\w-])/i
+const MX = (n: number): RegExp => new RegExp(`(?<![\\w-])mx[\\s-]?${n}(?![\\w-])`, 'i')
+const MX_400XL = /(?<![\w-])mx[\s-]?400[\s-]?xl(?![\w-])/i
+
+/**
+ * Korg's SDD delays: the SDD-1000 (1983), SDD-2000 (1985) and SDD-3000 (1982) racks and the 2014 SDD-3000 pedal
+ * ("SDD-3000-PDL"). The rack and the pedal share the model name sellers write, "SDD-3000", and price apart ($1,000 vs
+ * $300 on Reverb's sold population, 2026-10-21): the pedal requires its word, its code or a year from 2014; a bare
+ * "Korg SDD-3000" is the rack — DBA's bare "SDD 3000 Korg Delay," asks 7,000 kr, the rack's price, and the pedal's
+ * sellers name it a pedal. "SDD" is never "SD": Korg's analog SD-200 / SD-400 and Roland's SDE-3000 share no token.
+ * A copy names the rack it copies ("DTS SDD-3KP Pre-Amplifier (based on the Korg SDD-3000)", "Korg SDD-1200 Vintage
+ * Digital Delay Rack (Sdd-3000's Hot Cousin)") and is no row.
+ */
+const SDD = (n: number): RegExp => new RegExp(`(?<![\\w-])sdd[\\s-]?${n}(?![\\w-])`, 'i')
+const SDD_OTHERS = (n: number): RegExp[] => [1000, 1200, 2000, 3000, 3300].filter((m) => m !== n).map(SDD)
+const SDD_PEDAL: readonly RegExp[] = [/pedal|(?<![a-z])pdl(?![a-z])|(?<![\w-])stomp/i, yearCue(2014, 2039)]
+const SDD_NEVER: readonly RegExp[] = [
+  ...PAIR_OR_LOT, ...UAD_SOFTWARE,
+  ...cues('dts', '3kp', 'sdd-3kp', 'preamp', 'pre-amp', 'pre-amplifier', 'based on', 'cousin', 'clone', 'kopi'),
+]
+/** The SDD parts trade: tactile and power switches, batteries, service manuals on DVD, power supplies. Marker-aware. */
+const SDD_PARTS: readonly string[] = [
+  ...PEDAL_EXTRAS, 'switch', 'switches', 'tactile switch', 'power switch', 'battery', 'manuals', 'service manual',
+  'service manuals', 'brochure', 'brochures', 'dvd',
+]
+const sdd = (line: string, requires: readonly RegExp[] | undefined, ...others: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...SDD_NEVER, ...others], accessories: SDD_PARTS, ...(requires ? { requires } : {}),
+})
+
 // ── PAN-291: Oto Machines and the Ensoniq samplers and outboard ─────────────
 /**
  * `code` as a whole word, only in a title that also names `maker` (before or after it). Every PAN-291 row requires
@@ -2954,7 +3052,9 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
       'style', 'type', 'clone', 'copy', 'like', 'ala', 'inspired', 'kit', '660', 'bundle')),
   // The Lexicon 200 (CSP 14065), a bare-number model: never the MX200 / MPX 200 / PCM / LXP units or the 224 / 480L
   // that share the brand, nor a plug-in or a bundle. No live title names it today; the boundary guards the number.
-  'lexicon-200': member('lexicon-200', ...UAD_SOFTWARE, ...PAIR_OR_LOT, ...cues('mx200', 'mx-200', 'mpx', 'mpx200', 'mpx-200', 'pcm', 'lxp', '224', '224x', '224xl', '480', '480l', 'bundle')),
+  // PAN-290: a spaced "MX 200" or "MS 200" is not the number either, now that the MX200 is a row of its own, and the 200
+  // joins the one `lexicon` line every PAN-290 Lexicon row is on (see `lexicon` above).
+  'lexicon-200': member('lexicon', ...UAD_SOFTWARE, ...PAIR_OR_LOT, ...cues('mx200', 'mx-200', 'mpx', 'mpx200', 'mpx-200', 'pcm', 'lxp', '224', '224x', '224xl', '480', '480l', 'bundle'), /(?<![\w-])m[sx][\s-]?200(?![\w-])/i),
   // The LA-610 MkII (2008–, CSP 1969) shares the classic's line, so the classic's MkII refusal separates them instead
   // of deferring a two-line tie (step 5b). Without a Mark II cue a title is the classic; a listing that bundles
   // headphones, monitors or cables (measured: Audio-Technica, KRK, Mackie, Mogami) is not the unit.
@@ -3181,6 +3281,56 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'neo-instruments-ventilator-ii': neoVent(VENT_II, ...VENT_SMALL),
   'neo-instruments-mini-vent': neoVent(undefined, cue('micro'), cue('microvent'), cue('drive in')),
   'neo-instruments-micro-vent': neoVent(undefined, cue('mini'), cue('minivent'), cue('drive in')),
+  // ── PAN-290: the Lexicon classics ──
+  // The 224, 224X and 224XL are ONE row (price decides identity: $2,800 / $3,267 / $3,499 on Reverb's sold
+  // population, 2026-10-21 — one chassis with another remote and firmware): model_name "224", the codes "224X" and
+  // "224XL" its identifiers, so "Lexicon 224 XL" and "Lexicon 224X mit LARC" both name it.
+  'lexicon-224': lexicon('224', undefined),
+  // The 480L takes "Lexicon 480" as an identifier as well: DBA's "Lexicon 480 m. Larc, Classic Card" (31,000 kr).
+  'lexicon-480l': lexicon('480l', undefined),
+  'lexicon-960l': lexicon('960l', undefined),
+  // The 300 (sellers also write "M300") and the 300L — the 300 with its LARC — price apart ($1,500 vs $2,490): the 300
+  // refuses the L and any LARC ("Lexicon M300 LARC Remote"), the 300L is its own model name.
+  'lexicon-300': lexicon('300', undefined, /(?<![\w-])(?:m[\s-]?)?300[\s-]?l(?![\w-])/i, cue('larc')),
+  'lexicon-300l': lexicon('300', undefined),
+  // The PCM line, one row per number. The PCM96 and the PCM96 Surround share the model name "PCM 96" and price apart
+  // ($1,700 vs $2,250): the Surround requires its word, the stereo unit refuses it.
+  'lexicon-pcm-41': lexicon('pcm', undefined, ...PCM_OTHERS(41)),
+  'lexicon-pcm-42': lexicon('pcm', undefined, ...PCM_OTHERS(42)),
+  'lexicon-pcm-60': lexicon('pcm', undefined, ...PCM_OTHERS(60)),
+  'lexicon-pcm-70': lexicon('pcm', undefined, ...PCM_OTHERS(70)),
+  'lexicon-pcm-80': lexicon('pcm', undefined, ...PCM_OTHERS(80)),
+  'lexicon-pcm-81': lexicon('pcm', undefined, ...PCM_OTHERS(81)),
+  'lexicon-pcm-90': lexicon('pcm', undefined, ...PCM_OTHERS(90)),
+  'lexicon-pcm-91': lexicon('pcm', undefined, ...PCM_OTHERS(91)),
+  'lexicon-pcm-92': lexicon('pcm', undefined, ...PCM_OTHERS(92)),
+  'lexicon-pcm-96': lexicon('pcm', undefined, ...PCM_OTHERS(96), cue('surround')),
+  'lexicon-pcm-96-surround': lexicon('pcm', [cue('surround')], ...PCM_OTHERS(96)),
+  // The Prime Time line: the Model 93 and the Prime Time II (Model 95) share the model name "Prime Time" — the II
+  // requires its numeral or its model number; the Super Prime Time (Model 97) is its own model name, and both others
+  // refuse it.
+  'lexicon-prime-time': lexicon('prime-time', undefined, PRIME_TIME_II, SUPER_PRIME_TIME),
+  'lexicon-prime-time-ii': lexicon('prime-time', [PRIME_TIME_II], SUPER_PRIME_TIME, /(?<![\w-])model[\s-]?93(?![\w-])/i),
+  'lexicon-super-prime-time': lexicon('prime-time', undefined, PRIME_TIME_II, /(?<![\w-])model[\s-]?93(?![\w-])/i),
+  // The LXP line. The LXP-15 and the LXP-15 II share "LXP-15" and price apart ($149 vs $190): the II requires its mark.
+  'lexicon-lxp-1': lexicon('lxp', undefined, LXP(5), LXP(15)),
+  'lexicon-lxp-5': lexicon('lxp', undefined, LXP(1), LXP(15)),
+  'lexicon-lxp-15': lexicon('lxp', undefined, LXP(1), LXP(5), LXP_15_II),
+  'lexicon-lxp-15-ii': lexicon('lxp', [LXP_15_II], LXP(1), LXP(5)),
+  // The MX line. The MX400 and the MX400XL (XLR I/O, 21 % over it — below the ~25 % a row of its own takes; manager,
+  // 2026-10-21) are ONE row: its model name "MX400" reads a spaced "MX400 XL", its identifier the glued "MX400XL".
+  'lexicon-mx200': lexicon('mx', undefined, MX(300), MX(400), MX_400XL),
+  'lexicon-mx300': lexicon('mx', undefined, MX(200), MX(400), MX_400XL),
+  'lexicon-mx400': lexicon('mx', undefined, MX(200), MX(300)),
+  // ── PAN-290: the Korg SDD delay family ──
+  'korg-sdd-1000': sdd('sdd', undefined, ...SDD_OTHERS(1000)),
+  'korg-sdd-2000': sdd('sdd', undefined, ...SDD_OTHERS(2000)),
+  // The 1982 rack takes a bare "SDD-3000"; the 2014 pedal requires its word or code ("SDD-3000-PDL" is also its
+  // identifier, because the code form keeps "3000-pdl" whole) and refuses the rack's words and the 1980s.
+  'korg-sdd-3000-rackmount': sdd('sdd', undefined, ...SDD_OTHERS(3000), ...SDD_PEDAL),
+  'korg-sdd-3000-pedal': sdd('sdd', SDD_PEDAL, ...SDD_OTHERS(3000), ...cues('rack', 'rackmount', 'rack-mount', 'rack mount', 'rackeffekt', '1980s', '80s'), yearCue(1980, 1999)),
+  // The DL8000R (1990s multi-tap rack delay): no Reverb page, created on its sold evidence; not an SDD.
+  'korg-dl8000r': sdd('dl8000r', undefined),
   // ── PAN-291: Oto Machines ──
   'oto-machines-biscuit': oto('biscuit', 'biscuit'),
   'oto-machines-bim': oto('bim', 'bim'),
