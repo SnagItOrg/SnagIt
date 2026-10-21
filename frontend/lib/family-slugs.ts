@@ -115,6 +115,12 @@ export const FAMILY_SLUGS = [
   'lexicon-lxp',
   'lexicon-mx',
   'korg-sdd',
+  // PAN-291 (owner, 2026-10-21). The `rhodes` case, four times: no row. Not `ensoniq-asr-10` / `ensoniq-eps` (priced
+  // pages) or `ensoniq-mirage` (the duplicate the PAN-291 identity file folds).
+  'ensoniq-asr-sampler',
+  'ensoniq-eps-sampler',
+  'ensoniq-mirage-sampler',
+  'ensoniq-dp-effects',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]

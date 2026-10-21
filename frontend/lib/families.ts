@@ -1270,6 +1270,66 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: ['korg-sdd-1000', 'korg-sdd-2000', 'korg-sdd-3000-rackmount', 'korg-sdd-3000-pedal'],
     aliases: ['korg sdd'],
   },
+  /**
+   * PAN-291, owner request 2026-10-21. Ensoniq's ASR samplers: the ASR-10
+   * (1992, keyboard and rack one row — they sell within 18 % on Reverb), the
+   * ASR-X (1997) and the ASR-X Pro (1998), three priced rows. The ASR-88 has
+   * no row. Not `ensoniq-asr-10`: that is the ASR-10's own priced page.
+   * Navigation only; the family never aggregates their prices. Inert until
+   * the owner's public step makes a child canonical.
+   */
+  'ensoniq-asr-sampler': {
+    label: 'Ensoniq ASR',
+    brand: 'Ensoniq',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['ensoniq-asr-10', 'ensoniq-asr-x', 'ensoniq-asr-x-pro'],
+    aliases: ['ensoniq asr'],
+  },
+  /**
+   * PAN-291, owner request 2026-10-21. The EPS samplers: the classic EPS
+   * (1988) and the EPS-16 Plus keyboard and rack (1990), three priced rows by
+   * price ($335 / $595 / $850 on Reverb's sold population). The EPS-M rack
+   * sold three times and has no row. Not `ensoniq-eps`: that is the classic
+   * EPS's own priced page. Navigation only; the family never aggregates their
+   * prices. Inert until the owner's public step makes a child canonical.
+   */
+  'ensoniq-eps-sampler': {
+    label: 'Ensoniq EPS',
+    brand: 'Ensoniq',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['ensoniq-eps', 'ensoniq-eps-16-plus', 'ensoniq-eps-16-plus-rack'],
+    aliases: ['ensoniq eps'],
+  },
+  /**
+   * PAN-291, owner request 2026-10-21. The Mirage, Ensoniq's first sampler:
+   * the DSK-8 (1984) and DSK-1 (1986) keyboards and the DMS-8 / DMS-1 rack,
+   * three priced rows. Not `ensoniq-mirage`: that slug is a duplicate of the
+   * DSK-8 the PAN-291 identity file folds. Navigation only; the family never
+   * aggregates their prices. Inert until the owner's public step makes a
+   * child canonical. A bare "Mirage" is also an ESP guitar, so the alias
+   * keeps the brand.
+   */
+  'ensoniq-mirage-sampler': {
+    label: 'Ensoniq Mirage',
+    brand: 'Ensoniq',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['ensoniq-mirage-dsk-8', 'ensoniq-mirage-dsk-1', 'ensoniq-mirage-dms-8'],
+    aliases: ['ensoniq mirage'],
+  },
+  /**
+   * PAN-291, owner request 2026-10-21. The DP parallel effects processors:
+   * the DP/4 (1992), the DP/4+ (1995) and the DP/2, three priced rows ($700 /
+   * $885 / $400). The DP/Pro sold once and has no row. Navigation only; the
+   * family never aggregates their prices. Inert until the owner's public step
+   * makes a child canonical.
+   */
+  'ensoniq-dp-effects': {
+    label: 'Ensoniq DP',
+    brand: 'Ensoniq',
+    categoryRoot: 'pro-audio',
+    children: ['ensoniq-dp-4', 'ensoniq-dp-4-plus', 'ensoniq-dp-2'],
+    aliases: ['ensoniq dp'],
+  },
 }
 
 /** Every family, in `FAMILY_SLUGS` order. */
