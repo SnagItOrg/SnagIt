@@ -87,6 +87,9 @@ const PAN271_FAMILIES = ['bach-stradivarius']
 /** PAN-282. The `rhodes` case: no row. Not `ehx-memory-man`, which is the original non-deluxe's own priced page. */
 const PAN282_FAMILIES = ['memory-man']
 
+/** PAN-286. The `rhodes` case, three times: no row. The lettered / numbered rows are the priced pages. */
+const PAN286_FAMILIES = ['fuzz-tone', 'echoplex', 'ventilator']
+
 /** The six, plus `rhodes` (PAN-85) — the first family with canonical children — the Boss lines and `minimoog` (PAN-154). */
 /** PAN-284 (owner, 2026-10-21). The `rhodes` case, all 27: eleven Roland lines, thirteen guitar models, three synths. */
 const PAN284_FAMILIES = [
@@ -98,7 +101,7 @@ const PAN284_FAMILIES = [
   'sequential-ob-6-synth', 'sequential-trigon-6-synth', 'oberheim-ob-x-synth',
 ]
 
-const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES, ...PAN230_FAMILIES, ...PAN261_FAMILIES, ...PAN271_FAMILIES, ...PAN282_FAMILIES, ...PAN284_FAMILIES]
+const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES, ...PAN230_FAMILIES, ...PAN261_FAMILIES, ...PAN271_FAMILIES, ...PAN282_FAMILIES, ...PAN284_FAMILIES, ...PAN286_FAMILIES]
 
 /**
  * Production state of every configured child, SELECT-verified 2026-08-28:
@@ -514,6 +517,10 @@ test('families: children match the reviewed §6.3 map', () => {
       'ehx-memory-man-stereo-hazarai', 'ehx-deluxe-memory-man-xo', 'ehx-deluxe-memory-man-1100-tt', 'ehx-deluxe-memory-man-550-tt',
       'ehx-memory-man-nano',
     ],
+    // PAN-286 (2026-10-21). Three lines whose word sellers write; the lettered / numbered rows are the priced pages.
+    'fuzz-tone': ['maestro-fuzz-tone-fz-1', 'maestro-fuzz-tone-fz-1a-fz-1b', 'maestro-fuzz-tone-fz-1s'],
+    'echoplex': ['maestro-echoplex-ep-1', 'maestro-echoplex-ep-2', 'maestro-echoplex-ep-3', 'maestro-echoplex-ep-4'],
+    'ventilator': ['neo-instruments-ventilator', 'neo-instruments-ventilator-ii', 'neo-instruments-mini-vent', 'neo-instruments-micro-vent'],
   }
   for (const family of NAVIGATION_FAMILIES) {
     assert.deepEqual([...family.children].sort(), [...expected[family.slug]].sort(), family.slug)
@@ -561,9 +568,10 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   assert.equal(GUITAR_FAMILIES.length, 6)
   // `gibson-sg` (PAN-198) is the Jazzmaster case: a `known` + `qa_only` row.
   // `moogerfooger` (PAN-199), `neumann-u87-condenser` and `universal-audio-1176`
-  // (PAN-230), `fender-blues-junior-amp` (PAN-261), `bach-stradivarius` (PAN-271) and `memory-man` (PAN-282) are the
-  // `rhodes` case: no row. So are `boss-ds-distortion` and the 27 prefix families (PAN-284).
-  assert.equal(EXPECTED_FAMILIES.length, 53)
+  // (PAN-230), `fender-blues-junior-amp` (PAN-261), `bach-stradivarius` (PAN-271), `memory-man` (PAN-282) and
+  // `fuzz-tone` / `echoplex` / `ventilator` (PAN-286) are the `rhodes` case: no row. So are `boss-ds-distortion`
+  // and the 27 prefix families (PAN-284).
+  assert.equal(EXPECTED_FAMILIES.length, 56)
 })
 
 test('redirects: nothing else is redirected', () => {
@@ -1120,6 +1128,13 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
    */
   const FAMILY_CARD_LINKER = join('components', 'FamilyCard.tsx')
 
+  /**
+   * PAN-288 admits the THIRD: /sitemap.xml lists a family only when
+   * `buildFamilyView` over the canonical rows says `published` — the one
+   * threshold `noindex` turns on (see "indexability" above). Pinned below.
+   */
+  const SITEMAP_LINKER = join('app', 'sitemap.ts')
+
   for (const file of [...walk(join(FRONTEND, 'app')), ...walk(join(FRONTEND, 'components'))]) {
     if (file.includes(join('app', '(shell)', 'family'))) continue          // the route itself
     const rel = file.replace(FRONTEND, 'frontend')
@@ -1132,7 +1147,12 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
       const isPathTest = /\bpathname\.startsWith\('\/family\/'\)/.test(line)
       if (isPathTest) continue
       if (isRedirect) redirectors.push(rel)
-      else if (!isComment && !file.endsWith(GATED_LINKER) && !file.endsWith(FAMILY_CARD_LINKER)) {
+      else if (
+        !isComment &&
+        !file.endsWith(GATED_LINKER) &&
+        !file.endsWith(FAMILY_CARD_LINKER) &&
+        !file.endsWith(SITEMAP_LINKER)
+      ) {
         linkers.push(`${rel}: ${line.trim()}`)
       }
     }
@@ -1156,6 +1176,13 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
     productApi,
     /familyView\.published/,
     'familyContext must be emitted only for a published family, so an empty one is never linked',
+  )
+  // PAN-288's linker, pinned: the sitemap's family entries are filtered on the
+  // view's own `published`, never on a count of their own.
+  assert.match(
+    readRepoFile('app/sitemap.ts'),
+    /\.filter\(\(family\) => buildFamilyView\(family, rows\)\.published\)/,
+    'the sitemap must list a family only when buildFamilyView publishes it',
   )
   // PAN-192's linker, pinned: a card needs more members than a family needs
   // canonical children to publish, and it is mounted only from the collapse,

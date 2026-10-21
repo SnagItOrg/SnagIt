@@ -102,6 +102,10 @@ export const SAME_MAKER: readonly (readonly string[])[] = [
   // PAN-282: the brand is "Electro-Harmonix" (the PAN-282 identity file spells the kg_brand row so; it was "Electro
   // Harmonix"), sellers write both and "EHX" ("EHX Nano Deluxe Memory Man", Reverb 2026-10-21).
   ['electro-harmonix', 'electro harmonix', 'ehx'],
+  // PAN-286: the pedals carry "Neo Instruments" and "NEO"; sellers write "Neo Ventilator", "NEO MINI VENT II", "Neo
+  // Micro Vent 16" (Reverb sold titles, 2026-10-21). Only a Neo Instruments row reads "neo" — detectCatalogueBrands
+  // reads kg_brand names, so "Holy Grail Neo" and "Rega Neo PSU" (DBA, 2026-10-21) name no brand.
+  ['neo instruments', 'neo'],
 ]
 const MAKER_OF = new Map<string, string>()
 SAME_MAKER.forEach((group) => group.forEach((name) => MAKER_OF.set(name, group[0])))

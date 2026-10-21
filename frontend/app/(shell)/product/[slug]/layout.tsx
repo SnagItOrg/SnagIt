@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import type { Metadata } from 'next'
 import { unstable_cache } from 'next/cache'
+import { NextRequest } from 'next/server'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { CATALOGUE_REVALIDATE_SECONDS } from '@/lib/browse-cache'
@@ -12,8 +13,10 @@ import {
   isCanonical,
   type CatalogueStateRow,
 } from '@/lib/catalogue'
-import { translations } from '@/lib/i18n'
-import { SITE_URL } from '@/lib/site-metadata'
+import { fill, translations } from '@/lib/i18n'
+import { isHomeMarket, type PopulationStats } from '@/lib/price-populations'
+import { SITE_URL, siteMetadata } from '@/lib/site-metadata'
+import { GET as getProduct } from '@/app/api/product/[slug]/route'
 
 /**
  * Server-side eligibility gate for the canonical product segment.
@@ -134,11 +137,79 @@ export async function generateMetadata(
   const product = await loadProductState(slug)
   if (!product || !isCanonical(product.state) || !product.canonical_name) return {}
 
+  const title = fill(t.metaProductTitle, { name: product.canonical_name })
+  const description =
+    (await priceDescription(slug)) ?? `${product.canonical_name} — ${t.headline}`
+  const url = `${SITE_URL}/product/${slug}`
+
   return {
-    title: product.canonical_name,
-    description: `${product.canonical_name} — ${t.headline}`,
-    alternates: { canonical: `${SITE_URL}/product/${slug}` },
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { ...siteMetadata.openGraph, title, description, url },
+    twitter: { ...siteMetadata.twitter, title, description },
   }
+}
+
+/** The price block's own number format (components/PriceAnswer.tsx `kr`). */
+function kr(value: number): string {
+  return `${Math.round(value).toLocaleString('da-DK')} kr`
+}
+
+/**
+ * PAN-288. The description states what the page's price block states, in the
+ * page's own words, or null for the old text.
+ *
+ * Read from the product route's own payload — the in-process call tjek-prisen
+ * makes, served from the same one-minute `cachedCanonicalProduct` entry the
+ * page's fetch fills — so the snippet can never state a number the page does
+ * not. Local first (CLAUDE.md §7): a Danish number always wins, tier by tier
+ * as `DanishMarketBlock` renders it:
+ *
+ *   band           "Typisk 12.500 kr brugt · 3 annoncer i Danmark nu" — the one
+ *                  tier the page calls "typisk"; {count} is the page's own
+ *                  Danish split of the wall (`isHomeMarket`)
+ *   median-only    the median under the block's heading and its PAN-265 line
+ *   listings-only  the observed Danish asking prices under "Udbudt i Danmark nu"
+ *
+ * Only with no Danish number at all does a Reverb band speak, under the heading
+ * its `ReferencePopulationBlock` carries — which names it international — and
+ * in the page's order, sold before asking. It can never read as a Danish price.
+ */
+async function priceDescription(slug: string): Promise<string | null> {
+  const res = await getProduct(new NextRequest(new URL(`/api/product/${slug}`, SITE_URL)), {
+    params: Promise.resolve({ slug }),
+  })
+  if (!res.ok) return null
+  const page = (await res.json()) as {
+    listings: Array<{ source?: string | null; country?: string | null }>
+    populations: Record<'dk-asking' | 'reverb-sold' | 'reverb-asking', PopulationStats>
+    dkAskingPrices: number[]
+  }
+
+  const dk = page.populations['dk-asking']
+  if (dk.tier === 'band' && dk.median != null) {
+    const typical = fill(t.metaProductTypical, { price: kr(dk.median) })
+    const count = page.listings.filter(isHomeMarket).length
+    if (count === 0) return typical
+    return `${typical} · ${count === 1 ? t.metaProductListingsOne : fill(t.metaProductListings, { count })}`
+  }
+  if (dk.tier === 'median-only' && dk.median != null) {
+    return `${t.dkMarketHeading}: ${kr(dk.median)} · ${fill(t.dkMarketMedianDescriptive, { count: dk.nFiltered })}`
+  }
+  const observed = (page.dkAskingPrices ?? []).filter((p) => Number.isFinite(p) && p > 0)
+  if (dk.tier === 'listings-only' && observed.length > 0) {
+    return `${t.dkMarketAskingNow}: ${observed.map(kr).join(' · ')}`
+  }
+
+  for (const [key, heading] of [
+    ['reverb-sold', t.reverbSoldHeading],
+    ['reverb-asking', t.reverbAskingHeading],
+  ] as const) {
+    const stats = page.populations[key]
+    if (stats.tier === 'band' && stats.median != null) return `${heading}: ${kr(stats.median)}`
+  }
+  return null
 }
 
 export default async function ProductSegmentLayout({

@@ -249,6 +249,18 @@ export const translations = {
     familyCardModels: '{count} modeller',
     familyCardLabel: '{label}, familie med {count} modeller',
 
+    // PAN-288: the `<title>` and meta description a search result shows. The
+    // product description states the Danish band's median only at tier
+    // 'band' — the one tier the page itself calls "typisk" — and {count} is
+    // the Danish listings on the wall. A family states models and listings,
+    // never a price (CLAUDE.md §7).
+    metaProductTitle: '{name} brugt – pris i Danmark',
+    metaProductTypical: 'Typisk {price} brugt',
+    metaProductListingsOne: '1 annonce i Danmark nu',
+    metaProductListings: '{count} annoncer i Danmark nu',
+    metaFamilyTitle: '{label} brugt – alle modeller',
+    metaFamilyDescription: '{label} – modeller i familien: {models} · aktive annoncer nu: {count}. Vælg den præcise model og se, hvad den koster brugt.',
+
     // PAN-271: a brand wall — one brand's listings in one kind, model or no
     // model. The count names ANNONCER and splits them by whether Klup knows
     // the model; every number is the length of the rendered list. {kind} is
@@ -1053,6 +1065,13 @@ export const translations = {
     familyNoListings: 'No active listings on this family’s models right now.',
     familyCardModels: '{count} models',
     familyCardLabel: '{label}, family of {count} models',
+
+    metaProductTitle: '{name} used – price in Denmark',
+    metaProductTypical: 'Typically {price} used',
+    metaProductListingsOne: '1 listing in Denmark now',
+    metaProductListings: '{count} listings in Denmark now',
+    metaFamilyTitle: '{label} used – every model',
+    metaFamilyDescription: '{label} – models in the family: {models} · active listings now: {count}. Pick the exact model and see what it costs used.',
 
     brandWallThesis: 'Many {kind} are sold without a model number. Klup shows them here anyway — without a verdict, because without a model there is no market to measure against. When Klup knows the model, it is on the card.',
     brandWallCount: '{count} active listings · {matched} with a recognised model · {unmatched} without',

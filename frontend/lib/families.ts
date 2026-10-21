@@ -1144,6 +1144,56 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: ['oberheim-ob-x', 'oberheim-ob-xa'],
     aliases: [],
   },
+  /**
+   * PAN-286, owner decision 2026-10-21. Gibson's Maestro Fuzz-Tone of 1962,
+   * the first fuzz pedal sold; three priced rows, by price (manager,
+   * 2026-10-21): the 1962 FZ-1 (its own price class, no Reverb page — a row
+   * without a CSP, like the vintage Rhodes once), the FZ-1A / FZ-1B
+   * (1965–70, one row: germanium and Moog's silicon circuit sell within 12 %)
+   * and the FZ-1S Super-Fuzz ('70s). The 2022 FZ-M relaunch is out of
+   * scope. Navigation only, like `minimoog`: the family never aggregates
+   * their prices. Inert until the owner's public step makes a child
+   * canonical. "fuzztone" is how sellers run the word together.
+   */
+  'fuzz-tone': {
+    label: 'Maestro Fuzz-Tone',
+    brand: 'Maestro',
+    categoryRoot: 'effects-and-pedals',
+    children: ['maestro-fuzz-tone-fz-1', 'maestro-fuzz-tone-fz-1a-fz-1b', 'maestro-fuzz-tone-fz-1s'],
+    aliases: ['fuzztone'],
+  },
+  /**
+   * PAN-286, owner decision 2026-10-21. The Echoplex tape echo, 1959–91: the
+   * tube EP-1 and EP-2, the solid-state EP-3 and EP-4 — four priced rows
+   * (EP-1, EP-3 and EP-4 exist since PAN-230, the EP-2 is created by the
+   * PAN-286 files). Dunlop's EP103 "Echoplex Delay" is another brand's pedal
+   * and never a child. Navigation only; the family never aggregates their
+   * prices. Inert until the owner's public step makes a child canonical.
+   */
+  'echoplex': {
+    label: 'Maestro Echoplex',
+    brand: 'Maestro',
+    categoryRoot: 'effects-and-pedals',
+    children: ['maestro-echoplex-ep-1', 'maestro-echoplex-ep-2', 'maestro-echoplex-ep-3', 'maestro-echoplex-ep-4'],
+    aliases: ['echo plex'],
+  },
+  /**
+   * PAN-286, owner decision 2026-10-21. Neo Instruments' rotary-speaker
+   * simulators: the Ventilator (2009–13) and the Ventilator II (2014–) are
+   * two priced rows (37 % apart on Reverb's sold population), the Mini Vent
+   * and the Micro Vent one row each across their generations (the Strymon
+   * V1 / V2 rule). The Ventilator Remote is a footswitch, never a child.
+   * Navigation only; the family never aggregates their prices. Inert until
+   * the owner's public step makes a child canonical. "Neo Vent" is how
+   * sellers shorten the line; a bare "vent" is not an alias.
+   */
+  'ventilator': {
+    label: 'Neo Instruments Ventilator',
+    brand: 'Neo Instruments',
+    categoryRoot: 'effects-and-pedals',
+    children: ['neo-instruments-ventilator', 'neo-instruments-ventilator-ii', 'neo-instruments-mini-vent', 'neo-instruments-micro-vent'],
+    aliases: ['neo ventilator', 'neo vent'],
+  },
 }
 
 /** Every family, in `FAMILY_SLUGS` order. */

@@ -102,6 +102,11 @@ export const FAMILY_SLUGS = [
   'sequential-ob-6-synth',
   'sequential-trigon-6-synth',
   'oberheim-ob-x-synth',
+  // PAN-286 (owner, 2026-10-21). The `rhodes` case, three times: no row. Sellers write the line word ("Fuzz-Tone",
+  // "Echoplex", "Ventilator"); the lettered / numbered rows are the priced pages.
+  'fuzz-tone',
+  'echoplex',
+  'ventilator',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]
