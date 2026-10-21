@@ -121,6 +121,10 @@ export const FAMILY_SLUGS = [
   'ensoniq-eps-sampler',
   'ensoniq-mirage-sampler',
   'ensoniq-dp-effects',
+  // PAN-293 (owner, 2026-10-21). The `rhodes` case, twice: no row. Sellers write the line ("Eventide Factor series",
+  // "Eventide H9"); the named pedals are the priced pages. Not `eventide-h9-max` / `eventide-h9-core` (priced pages).
+  'eventide-factor-pedals',
+  'eventide-h9-pedals',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]

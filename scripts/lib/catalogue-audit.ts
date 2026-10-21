@@ -306,6 +306,10 @@ export const CHECKS: readonly Check[] = [
       // (arp-korg-arp-2600 took "ARP 2600" in PAN-266 to avoid a tie). Owner, 2026-10-21.
       ...['arp-2600', 'arp-korg-arp-2600', 'ssl-12', 'ssl-18', 'ssl-2', 'ssl-2-mkii', 'ssl-2-plus', 'ssl-2-plus-mkii']
         .map((key) => ({ key, by: 'PAN-284' })),
+      // The bare word is another maker's product: "Space" (Roland Space Echo, 465 live matches), "Rose" (Floyd Rose) and
+      // "Eclipse" (a guitar model and finish). The model tier would offer the Eventide row on every such title, and a
+      // line-refused rival at the winner's score defers it as a tie (step 5b). PAN-293; the owner's word is pending.
+      ...['eventide-space', 'eventide-rose', 'eventide-eclipse'].map((key) => ({ key, by: 'PAN-293' })),
     ],
     run: (s) => s.products.filter(modelStartsWithBrand).map((p) => ({ key: p.slug, detail: `"${p.model_name}" under brand "${p.brand_name}"` })),
   },

@@ -1330,6 +1330,35 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: ['ensoniq-dp-4', 'ensoniq-dp-4-plus', 'ensoniq-dp-2'],
     aliases: ['ensoniq dp'],
   },
+  /**
+   * PAN-293, owner request 2026-10-21. Eventide's Factor pedals (2007–09): the
+   * TimeFactor, the PitchFactor, the ModFactor and the Space, four priced rows
+   * ($243 / $325 / $214 / $365 on Reverb's sold population). Navigation only;
+   * the family never aggregates their prices. Inert until the owner's public
+   * step makes a child canonical.
+   */
+  'eventide-factor-pedals': {
+    label: 'Eventide Factor',
+    brand: 'Eventide',
+    categoryRoot: 'effects-and-pedals',
+    children: ['eventide-timefactor', 'eventide-pitchfactor', 'eventide-modfactor', 'eventide-space'],
+    aliases: ['eventide factor'],
+  },
+  /**
+   * PAN-293, owner request 2026-10-21. The H9 (2013–): the H9 Max (with the
+   * Standard, the Gen 2 and a bare "H9", which sell within 25 % of it) and the
+   * H9 Core, two priced rows ($560 / $320). The H90 is its own unit, not of
+   * the family. Not `eventide-h9-max`: that is the Max's own priced page.
+   * Navigation only; the family never aggregates their prices. Inert until the
+   * owner's public step makes a child canonical.
+   */
+  'eventide-h9-pedals': {
+    label: 'Eventide H9',
+    brand: 'Eventide',
+    categoryRoot: 'effects-and-pedals',
+    children: ['eventide-h9-max', 'eventide-h9-core'],
+    aliases: ['eventide h9'],
+  },
 }
 
 /** Every family, in `FAMILY_SLUGS` order. */

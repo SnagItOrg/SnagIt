@@ -289,6 +289,10 @@ test('integration: every package suite is registered exactly once', () => {
       // ("EPS Cement", "ESP Mirage", "Epiphone Biscuit", a Roland DP-2); price decides the ASR-10, EPS-16 Plus, DP/4 and
       // Mirage splits; the disks, OS EPROMs, emulators, expanders and parts name no unit, and "Plus" is never "sold with".
       'scripts/lib/pan291-oto-ensoniq.test.ts',
+      // PAN-293: the modern classics — Eventide, FMR Audio, TC Electronic and Tube-Tech. Every row requires its word beside
+      // its maker ("Space" Echo, Floyd "Rose", Shure "H9", Rupert Neve "RNP", Technics "1210"); price decides the H9, H3500
+      // and Tube-Tech predecessor rows; plug-ins, parts, the 2290 P pedal, pairs, rack bundles and modified units name none.
+      'scripts/lib/pan293-modern-classics.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
