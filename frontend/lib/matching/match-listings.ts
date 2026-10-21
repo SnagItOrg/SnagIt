@@ -1260,6 +1260,83 @@ const memoryMan = (requires: readonly RegExp[] | undefined, ...others: (readonly
   line: 'memory-man', otherMembers: [...PEDAL_NEVER, ...others.flat()], accessories: MM_EXTRAS, ...(requires ? { requires } : {}),
 })
 
+// ── PAN-286: Maestro vintage pedals (1962–79) and the Neo Instruments Ventilator family ─────
+/**
+ * Maestro was Gibson's effects brand from the 1962 Fuzz-Tone to Norlin's end in 1979, then nothing until the 2022
+ * relaunch (Ranger, Comet, Orbit …), which Klup holds no row for. Every vintage row's model_name IS the code the
+ * seller writes ("FZ-1A", "PS-1B", "EP-3" — the `boss-dm-2` form, because the model tier reads model_name as one
+ * phrase and sellers put the code before or after the line word: "Maestro PS-1 Phase Shifter", "Maestro EP-4 Echo
+ * Plex"), with the brand word required for the 70 floor; a row `requires` its code where the bare line word also
+ * names a sibling or a relaunch pedal (a bare "Maestro Fuzz" or "Maestro Phaser" — DBA, 2026-10-21 — names no row).
+ * Measured on the 174
+ * production titles that say "maestro" (2026-10-21: ~110 Gibson / Epiphone guitars with a Maestro Vibrola, which
+ * name no pedal model and stay with their guitar rows; 3 Formanta Maestro synths; ~45 Echoplex units and ~10
+ * Echoplex parts and preamp copies) and on the Reverb sold titles behind each row.
+ *
+ * A year from 2000 on a vintage Maestro title is a copy or the relaunch ("Loophole Pedals Maestro Parametric Filter
+ * MPF1 2026", "The Latent Audio Lemon Maestro Bass Brassmaster Octave Fuzz 2019"): the brand made nothing between
+ * 1979 and 2022. Reverb's own "1970 - 1991" run on the EP-3 ends before that.
+ */
+const MAESTRO_MODERN: readonly RegExp[] = [yearCue(2000, 2039)]
+/**
+ * Never a vintage Maestro unit: a lot ("3 Maestro pedals : Fuzz Phazzer + Wha Wha + Volume", "Gibson ES-335 60s +
+ * 2 Maestro Pedals & Case"), another maker's copy in the words sellers use ("Catalinbread Epoch Boost … Reproduction
+ * of the famous Maestro Echoplex EP-3 Tape Echo Preamp Circuit", "DCW Pedals Exoplex … Maestro EP-3 Echoplex Style
+ * Preamp", "Canterbury Audio Apollo Fuzz-Tone (Maestro fz-1 REPLICA)", "KVFX KVFZ-1 Skuzz-Tone (Maestro FZ-1
+ * Fuzz-Tone) Handmade"), the plug-in of it. Not PEDAL_NEVER's "module": a seller calls an Echoplex a "Delay Module"
+ * (Reverb, 2026-10-21) and the tape echo is one.
+ */
+const MAESTRO_NEVER: readonly RegExp[] = [
+  ...PAIR_OR_LOT, ...UAD_SOFTWARE, ...MAESTRO_MODERN,
+  ...cues('clone', 'kopi', 'replica', 'reproduction', 'preamp', 'style', 'circuit', 'variant', 'pedals', 'eurorack', 'handmade', 'hand-made', 'hand built', 'handbuilt'),
+]
+/**
+ * What the Maestro trade sells beside the unit (production Reverb titles, 2026-10-21): the Echoplex's thumb screws,
+ * lid decal, bumper sticker, knobs, Tuki cover and footswitch ("PEDAL ONLY for Maestro Echoplex EP-3"), the PS-1's
+ * PSFS footswitch, a dealer sheet, paperwork, an empty shell. Marker-aware: "… EP-3 Solid State w/Footswitch" and
+ * "Fully working Maestro Echoplex EP-1 … with Original footswitch" keep the unit.
+ */
+const MAESTRO_PARTS: readonly string[] = [
+  ...PEDAL_EXTRAS, 'thumb screws', 'thumb screw', 'screws', 'decal', 'decals', 'sticker', 'bumper sticker', 'lid',
+  'cartridge', 'cartridges', 'dealer sheet', 'paperwork', 'shell', 'shell only', 'enclosure', 'pedal only',
+  'foot switch', 'stand', 'parts',
+]
+/** A vintage Maestro row: the unit's code or line word is its identity; copies, lots, a modern year and the parts refuse. */
+const maestro = (line: string, requires?: readonly RegExp[], ...others: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...MAESTRO_NEVER, ...others], accessories: MAESTRO_PARTS, ...(requires ? { requires } : {}),
+})
+/**
+ * A sibling's code names the sibling unless the seller negates it: "Maestro Fuzz Tone FZ-1 NOT FZ-1A Real Deal
+ * Original" (Reverb sold title, 2026-10-21) is the 1962 FZ-1. A negated code neither refuses the row it is NOT nor
+ * satisfies the row it names: `code` carries the lookbehind.
+ */
+const NOT_NEGATED = '(?<!not\\s)(?<!not\\sthe\\s)(?<!not\\san\\s)(?<!not\\sa\\s)'
+const code = (pattern: string): RegExp => new RegExp(`(?<![\\w-])${NOT_NEGATED}${pattern}(?![a-z0-9])`, 'i')
+/** "FZ-1A", "FZ 1A", "FZ1-A", "FZ-1 A" — never "FZ-1AB"; the letter tells the three Fuzz-Tone rows apart. */
+const FZ = (letter: string): RegExp => code(`fz[-\\s]?1[-\\s]?${letter}`)
+/** The 2022 Fuzz-Tone FZ-M and the 1960s Canadian FZ-2: no row. */
+const FZ_OTHERS: readonly RegExp[] = [/(?<![\w-])fz[-\s]?(?:m|2)(?![a-z0-9])/i, cue('mfz')]
+/** "PS-1A" / "PS1-A" / "PS-1 B", or with `[ab]?` any of the three PS-1 codes — the one Phase Shifter row. */
+const PS = (letter: string): RegExp => code(`ps[-\\s]?1[-\\s]?${letter}`)
+/** "EP-3", "EP3", "EP 3" — never "EP-103" (Dunlop's Echoplex Delay, its own brand) or "EP-6T". */
+const EP = (n: number): RegExp => new RegExp(`(?<![\\w-])ep[-\\s]?${n}(?![a-z0-9])`, 'i')
+const EP_OTHERS = (n: number): RegExp[] => [1, 2, 3, 4].filter((m) => m !== n).map(EP).concat(cues('ep-6t', 'ep6t', 'em-1', 'groupmaster', 'ep-101', 'ep101', 'ep-103', 'ep103'))
+
+/**
+ * Neo Instruments' rotary-speaker simulators: the Ventilator (2009–13) and the Ventilator II (2014–) price 37 % apart
+ * on Reverb's sold population (2026-10-21) and are two rows; the Mini Vent / Mini Vent II and the Micro Vent 16 /
+ * 122 price within 15 % and are one row each (the Strymon V1 / V2 rule, owner 2026-10-03). The original takes a bare
+ * "Ventilator" — Reverb's own page title is bare and every bare sold title was a V1 — and refuses "II" / "2"; the II
+ * requires it. "Remote" is the footswitch sold for either ("Ventilator Remote II Footswitch for Ventilator II") and a
+ * bundle marker keeps the unit ("Ventilator II with Ventilator Remote & Remote II").
+ */
+const VENT_II: readonly RegExp[] = [/(?<![\w-])(?:ii|2|mk\s?(?:2|ii))(?![\w-])/i]
+const VENT_SMALL: readonly RegExp[] = cues('mini', 'micro', 'minivent', 'microvent', 'drive in')
+const VENT_PARTS: readonly string[] = [...PEDAL_EXTRAS, 'remote', 'remote ii', 'venrem', 'halfmoon', 'half moon', 'fs-6']
+const neoVent = (requires: readonly RegExp[] | undefined, ...others: RegExp[]): LineBoundary => ({
+  line: 'ventilator', otherMembers: [...PEDAL_NEVER, ...others], accessories: VENT_PARTS, ...(requires ? { requires } : {}),
+})
+
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
   'moog-minimoog': {
@@ -2968,6 +3045,50 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'ehx-memory-boy': pedal('memory-boy', cue('deluxe')),
   'ehx-deluxe-memory-boy': pedal('memory-boy'),
   'ehx-memory-toy': pedal('memory-toy'),
+  // ── PAN-286: Maestro vintage pedals ──
+  // The Fuzz-Tone line, three rows (manager, 2026-10-21 — price decides identity): the 1962 FZ-1 ($1,150 on Reverb's
+  // sold population, no Reverb page) is its own row whose model_name is its bare code, so "FZ-1A" is never a
+  // candidate for it and it refuses every lettered sibling; the FZ-1A and FZ-1B ($400 / $354, the Memory Man faces'
+  // closeness) are ONE row whose model_name is the line word and whose identifiers are the two codes — it requires
+  // one of its letters, so the 1962 unit, the FZ-1S and the 2022 FZ-M stay out; the FZ-1S is its code or "Super Fuzz".
+  'maestro-fuzz-tone-fz-1': maestro('fuzz-tone', undefined, FZ('a'), FZ('b'), FZ('s'), ...FZ_OTHERS),
+  'maestro-fuzz-tone-fz-1a-fz-1b': maestro('fuzz-tone', [FZ('a'), FZ('b')], FZ('s'), ...FZ_OTHERS),
+  // "Super Electric Suzztone - Maestro Fuzz-Tone FZ-1S Super-Fuzz" (three Reverb sold titles) is a copy that names
+  // the original in full and never says so; its own name is the cue.
+  'maestro-fuzz-tone-fz-1s': maestro('fuzz-tone', [FZ('s'), cue('super fuzz'), cue('super-fuzz'), cue('superfuzz')], FZ('a'), FZ('b'), ...FZ_OTHERS, cue('suzztone'), cue('super electric')),
+  // The MFZ-1 (1976–79): its code, or "MFZ" alone ("Maestro MFZ Model 271A Fuzz"); a bare "Maestro Fuzz" names no row.
+  'maestro-fuzz-mfz-1': maestro('mfz-1', [/(?<![\w-])mfz(?:[-\s]?1)?(?![a-z0-9])/i], cue('fuzztain'), cue('mfzt')),
+  'maestro-fuzz-phazzer': maestro('fuzz-phazzer'),
+  'maestro-bass-brassmaster': maestro('bass-brassmaster'),
+  // The Phase Shifter PS-1 / PS-1A / PS-1B are ONE row (manager, 2026-10-21: $392 / $392 / $354 — price decides
+  // identity): model_name is the line word, the lettered codes are identifiers (the bare "PS-1" is not — "Rega PS1
+  // 350mA strømforsyning" is live on DBA and an identifier needs no brand word), and the row requires a PS-1 code in
+  // any letter so that the MP-1, the Stage Phaser and a bare "Maestro Phaser" (DBA, 2026-10-21) stay out. The MP-1
+  // (Moog, 1976–78) requires its code; the Stage Phaser (MSP, no Reverb page) is its word, and the MP-1 refuses it.
+  'maestro-phase-shifter': maestro('phase-shifter', [PS('[ab]?')], cue('psfs')),
+  'maestro-phaser-mp-1': maestro('mp-1', [/(?<![\w-])mp[-\s]?1(?![a-z0-9])/i], cue('stage'), cue('orbit'), cue('msp')),
+  'maestro-stage-phaser': maestro('stage-phaser', undefined, cue('orbit')),
+  'maestro-mini-phase-mps-2': maestro('mps-2', [/(?<![\w-])mps[-\s]?2(?![a-z0-9])/i, cue('mini phase'), cue('mini-phase'), cue('miniphase')]),
+  // The RM-1 and its RM-1A / RM-1B revisions are one page; the MP-2 is the expression pedal sold for it.
+  'maestro-ring-modulator-rm-1': maestro('rm-1', undefined, /(?<![\w-])mp[-\s]?2(?![a-z0-9])/i, cue('expression')),
+  'maestro-filter-sample-hold-fsh-1': maestro('fsh-1'),
+  'maestro-parametric-filter-mpf-1': maestro('mpf-1'),
+  // The OB-1 and OB-2 Octave Box are one page and one price; the Boomerang BG-1 / BG-2 wah likewise.
+  'maestro-octave-box': maestro('octave-box'),
+  'maestro-boomerang-bg-2': maestro('boomerang'),
+  'maestro-full-range-booster-frb-1': maestro('frb-1', [/(?<![\w-])frb[-\s]?1(?![a-z0-9])/i, cue('full range')], cue('titan')),
+  // The Echoplex line (the EP-1, EP-3 and EP-4 rows exist since PAN-230): each requires its number and refuses the
+  // others, so "Transitional … Maestro EP-2 / EP-3 Echoplex" names no row; Dunlop's EP103 / EP101 are their own brand
+  // and the brand guard's, named here only so a title that quotes both sides stays out.
+  'maestro-echoplex-ep-1': maestro('echoplex', [EP(1)], ...EP_OTHERS(1)),
+  'maestro-echoplex-ep-2': maestro('echoplex', [EP(2)], ...EP_OTHERS(2)),
+  'maestro-echoplex-ep-3': maestro('echoplex', [EP(3)], ...EP_OTHERS(3)),
+  'maestro-echoplex-ep-4': maestro('echoplex', [EP(4)], ...EP_OTHERS(4)),
+  // ── PAN-286: the Neo Instruments Ventilator family ──
+  'neo-instruments-ventilator': neoVent(undefined, ...VENT_II, ...VENT_SMALL),
+  'neo-instruments-ventilator-ii': neoVent(VENT_II, ...VENT_SMALL),
+  'neo-instruments-mini-vent': neoVent(undefined, cue('micro'), cue('microvent'), cue('drive in')),
+  'neo-instruments-micro-vent': neoVent(undefined, cue('mini'), cue('minivent'), cue('drive in')),
 }
 
 /**

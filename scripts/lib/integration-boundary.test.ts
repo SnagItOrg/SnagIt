@@ -273,6 +273,11 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-283: a Reverb "Non Functioning" listing is shown, with its condition, and never counted — in no
       // band, span, median, sold population or card verdict, borrowed Reverb band included. Real rows as fixtures.
       'scripts/lib/pan283-non-functioning.test.ts',
+      // PAN-286: Maestro vintage pedals and the Neo Instruments Ventilator family — a row requires its model code where
+      // the bare line word names a sibling, the 1962 FZ-1 or the 2022 relaunch; the Gibson "Maestro Vibrola" guitars,
+      // the Formanta synths, Dunlop's Echoplex and the Echoplex preamp copies and parts name no pedal; "Neo" names
+      // Neo Instruments; a bare Ventilator is the original and the Mini / Micro Vent are one row each.
+      'scripts/lib/pan286-maestro-neo.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
