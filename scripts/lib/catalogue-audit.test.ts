@@ -262,6 +262,27 @@ test('family_candidate_shared_prefix: Martin D-18 / D-28 share "D" with no famil
   assert.ok(check.allow.some((a) => a.key === 'roland:SH/roland-sh-01-gaia'), 'the owner\'s SH exception')
 })
 
+test('family_candidate_shared_prefix: after the PAN-289 rename the two Gibson rows are in the J-45 / L-00 families, so gibson:J and gibson:L close', () => {
+  const gibson = (slug: string, model: string) =>
+    product({ slug, model_name: model, brand_id: 'brand-gibson', brand_slug: 'gibson', brand_name: 'Gibson', root_category_slug: 'acoustic-guitars' })
+  const OLD_J = 'gibson-gibson-j-45-standard-12-string'
+  const OLD_L = 'gibson-gibson-l-00-original'
+  const rows = (rename: boolean) => snapshot({ products: [
+    gibson('gibson-j-45', 'J-45'), gibson('gibson-j-45-special', 'J-45 Special'),
+    gibson(rename ? SLUG_RENAMES[OLD_J] : OLD_J, 'J-45 Standard 12-String'),
+    gibson('gibson-l-00-standard', 'L-00 Standard'), gibson('gibson-l-00-century-12-fret', 'L-00 Century 12-Fret'),
+    gibson(rename ? SLUG_RENAMES[OLD_L] : OLD_L, 'L-00 Original'),
+  ] })
+  // Production today: each renamed row is the one member outside its family.
+  assert.deepEqual(findings(rows(false), 'family_candidate_shared_prefix').findings, [
+    { key: 'gibson:J', detail: `3 public rows, 1 outside a family: ${OLD_J}` },
+    { key: 'gibson:L', detail: `3 public rows, 1 outside a family: ${OLD_L}` },
+  ])
+  // After the rename SQL: nothing left, and no slug repeats its brand.
+  assert.deepEqual(findings(rows(true), 'family_candidate_shared_prefix').findings, [])
+  assert.deepEqual(keys(rows(true), 'slug_repeats_brand'), [])
+})
+
 /* ── Matches ───────────────────────────────────────────────────────────── */
 
 test('matched_listing_brand_mismatch: an active match whose listing brand differs is an error; same brand, no brand, or a non-matchable product is silent', () => {
