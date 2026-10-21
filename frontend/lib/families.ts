@@ -856,6 +856,36 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: ['bach-stradivarius-37', 'bach-stradivarius-43', 'bach-stradivarius-72'],
     aliases: ['stradivarius', 'strad', 'bach strad', 'bach stradivarius'],
   },
+  /**
+   * PAN-282, owner decision 2026-10-21. One name since 1976, nine priced
+   * models that follow Reverb's pages: the vintage '70s Deluxe (its own
+   * legendary row, like `moog-minimoog`), the original non-deluxe Memory Man,
+   * the 1996–2007 Reissue, the Tap Tempo, the Stereo with Hazarai, the 2008–
+   * XO, the 1100-TT, the 550-TT and the Nano. Navigation only, like
+   * `minimoog`: `memory-man` is not a `kg_product` row and must never become
+   * one; the family never aggregates their prices. Inert until the owner's
+   * public step makes a child canonical. The Memory Boy, Deluxe Memory Boy
+   * and Memory Toy are their own products outside the family (a different
+   * name and price class, like the Boss CEB-3). No aliases: the slug gives
+   * the key, and "deluxe memory man" is four of the children's own name.
+   */
+  'memory-man': {
+    label: 'Electro-Harmonix Memory Man',
+    brand: 'Electro-Harmonix',
+    categoryRoot: 'effects-and-pedals',
+    children: [
+      'ehx-deluxe-memory-man-vintage',
+      'ehx-memory-man',
+      'ehx-deluxe-memory-man-reissue',
+      'ehx-deluxe-memory-man-tap-tempo',
+      'ehx-memory-man-stereo-hazarai',
+      'ehx-deluxe-memory-man-xo',
+      'ehx-deluxe-memory-man-1100-tt',
+      'ehx-deluxe-memory-man-550-tt',
+      'ehx-memory-man-nano',
+    ],
+    aliases: [],
+  },
 }
 
 /** Every family, in `FAMILY_SLUGS` order. */

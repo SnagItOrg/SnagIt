@@ -261,6 +261,10 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-280: the boutique pedal rows' line boundaries — a model word plus its brand is the identity, the Strymon MX
       // generation is its own row, a power supply or a plug-in is not the pedal, "EQD" and "Hologram" name their makers.
       'scripts/lib/pan280-boutique-pedals.test.ts',
+      // PAN-282: the Memory Man line — four rows share the model name "Deluxe Memory Man" and the era is read by the
+      // boundary (a bare one names no row), the Nano, Hazarai and TT models carry their names, the Memory Boy and Toy
+      // are outside the family, and "EHX" / "Electro Harmonix" name Electro-Harmonix.
+      'scripts/lib/pan282-memory-man.test.ts',
       // PAN-283: a Reverb "Non Functioning" listing is shown, with its condition, and never counted — in no
       // band, span, median, sold population or card verdict, borrowed Reverb band included. Real rows as fixtures.
       'scripts/lib/pan283-non-functioning.test.ts',

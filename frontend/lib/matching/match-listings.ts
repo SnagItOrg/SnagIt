@@ -1209,6 +1209,57 @@ const pedal = (line: string, ...more: RegExp[]): LineBoundary => ({ line, otherM
 const STRYMON_MX: readonly RegExp[] = [/(?<![\w-])mx(?![\w]|-\w)/i]
 const strymonMx = (line: string): LineBoundary => ({ line, requires: STRYMON_MX, otherMembers: PEDAL_NEVER, accessories: PEDAL_EXTRAS })
 
+// ── PAN-282: the Electro-Harmonix Memory Man line ───────────────────────────────────────────
+/**
+ * Nine rows share one line and four of them share the model name "Deluxe Memory Man", the way `moog-model-d` and
+ * `moog-minimoog-model-d-2022` share "Model D": the pedal has carried that name since 1976, so the era is read here,
+ * not from the model name. Each cue is measured on the 136 Reverb titles that name a Memory Man, Memory Boy or
+ * Memory Toy (production SELECT, 2026-10-21; DBA holds none today) and on the Reverb page of each row.
+ *
+ * The vintage unit (owner, 2026-10-21): a bare "Deluxe Memory Man" never goes to it — it needs a year of its run
+ * (1976–84: the Reticon SAD1024 four-knob EH 7550 / EH 1307 of 1976–78 and the Panasonic MN3005 five-knob EH 7850 /
+ * EH 1343 of 1978–84 are one row), "vintage", a face colour or an EH model number. The Reissue (1996–2007, the "big
+ * box", EC 2000 / EC 2002) needs one of its years or words; the 2008– XO needs "XO" or a year from 2008; the Tap Tempo
+ * (Panasonic MN3005) needs "tap tempo" or a bare "TT", and the 1100-TT and 550-TT are their own model names. A bare
+ * "Deluxe Memory Man" with no era word therefore names no row: recall cost accepted, no era is wrong.
+ */
+const MM_VINTAGE: readonly RegExp[] = [
+  yearCue(1970, 1989), DECADE_70S_80S,
+  ...cues('vintage', 'blue face', 'blueface', 'silver face', 'silverface', 'black face', 'blackface', 'sad1024', 'sad 1024', 'reticon', 'squelch'),
+  // Reverb's finish for the '70s unit: "1977 - Silver / Blue" (owner's screenshot, 2026-10-21).
+  /(?<![\w-])(?:silver\s*\/\s*blue|blue\s*\/\s*silver)(?![\w-])/i,
+  /(?<![\w-])eh[-\s]?(?:7500|7550|7810|7850|1307|1309|1338|1343)[a-c]?(?![\w-])/i,
+  /(?<![\w-])(?:7550|7850)[a-c]?(?![\w-])/i,
+]
+/**
+ * The pedal trade's extras, except that a knob COUNT is how a seller tells the four-knob SAD1024 unit from the
+ * five-knob MN3005 one ("deluxe memory man vintage 4 knobs", Reverb 2026-10-21): a knob not preceded by a count
+ * is still a knob for sale ("Black Knob for Hot Tubes, Hot Wax, MEL9, Deluxe Memory Man XO").
+ */
+const MM_EXTRAS: readonly (string | RegExp)[] = [
+  ...PEDAL_EXTRAS.filter((noun) => noun !== 'knob' && noun !== 'knobs'), /(?<![\w-])(?<!\d[\s-])knobs?(?![\w-])/i,
+]
+/** The 1996–2007 reissue: its years, "reissue", the "big box" collectors call it, and the EC 2000 / EC 2002 boards. */
+const MM_REISSUE: readonly RegExp[] = [
+  yearCue(1996, 2007), /(?<![\w'’])['’]?90['’]?s(?![\w-])/i,
+  ...cues('reissue', 'big box', 'bigbox', '1990s', 'ec2000', 'ec-2000', 'ec 2000', 'ec2002', 'ec-2002', 'ec 2002'),
+]
+/** The 2008– Deluxe Memory Man in the XO chassis: "XO" (sellers' word; EHX's own page calls it the Deluxe Memory Man) or a year of its run. */
+const MM_XO: readonly RegExp[] = [cue('xo'), yearCue(2008, 2039)]
+/** The Tap Tempo model: "tap tempo" or a bare "TT"; "1100-TT" and "550-TT" are the two later models (MM_TT_CODES). */
+const MM_TAP_TEMPO: readonly RegExp[] = cues('tap tempo', 'tap-tempo', 'taptempo', 'tt')
+/** "1100-TT", "1100 TT", "1100TT", a bare "1100" or "550" — never "550ms". */
+const MM_TT_CODES: readonly RegExp[] = [/(?<![\w-])(?:1100|550)(?:[-\s]?tt)?(?![\w-])/i]
+const MM_NANO: readonly RegExp[] = cues('nano')
+/** The Stereo Memory Man with Hazarai (2007–); "stereo" alone also names the vintage EH 7811 Stereo Memory Man, which Klup holds no row for. */
+const MM_HAZARAI: readonly RegExp[] = cues('hazarai', 'smmh', 'stereo')
+/** The Memory Boy, Deluxe Memory Boy and Memory Toy: their own rows outside the line (owner: a different name and price class). */
+const MM_SMALL: readonly RegExp[] = cues('boy', 'toy')
+/** A Memory Man row: the line's other members and the pedal trade's extras refuse; `requires` is the row's era cue. */
+const memoryMan = (requires: readonly RegExp[] | undefined, ...others: (readonly RegExp[])[]): LineBoundary => ({
+  line: 'memory-man', otherMembers: [...PEDAL_NEVER, ...others.flat()], accessories: MM_EXTRAS, ...(requires ? { requires } : {}),
+})
+
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
   'moog-minimoog': {
@@ -2891,6 +2942,32 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // Hologram Electronics.
   'hologram-electronics-microcosm': pedal('microcosm'),
   'hologram-electronics-chroma-console': pedal('chroma-console'),
+  // ── PAN-282: Electro-Harmonix Memory Man ──
+  // The four "Deluxe Memory Man" rows: each requires its own era and refuses the others'. The Reissue does not refuse
+  // the vintage words — a 1997 big box is "vintage" to its seller — and the XO does not either: "XO" is explicit.
+  'ehx-deluxe-memory-man-vintage': memoryMan(MM_VINTAGE, MM_REISSUE, MM_XO, MM_TAP_TEMPO, MM_TT_CODES, MM_NANO, MM_HAZARAI, MM_SMALL),
+  'ehx-deluxe-memory-man-reissue': memoryMan(MM_REISSUE, MM_XO, MM_TAP_TEMPO, MM_TT_CODES, MM_NANO, MM_HAZARAI, MM_SMALL),
+  'ehx-deluxe-memory-man-xo': memoryMan(MM_XO, MM_REISSUE, MM_TAP_TEMPO, MM_TT_CODES, MM_NANO, MM_HAZARAI, MM_SMALL),
+  'ehx-deluxe-memory-man-tap-tempo': memoryMan(MM_TAP_TEMPO, MM_TT_CODES, MM_REISSUE, [cue('xo')], MM_NANO, MM_HAZARAI, MM_SMALL),
+  // The 1100-TT and 550-TT are their own model names (and identifiers, for "… Tap Tempo Delay Pedal | 1100-TT");
+  // each refuses the other's number.
+  'ehx-deluxe-memory-man-1100-tt': memoryMan(undefined, [/(?<![\w-])550(?:[-\s]?tt)?(?![\w-])/i], MM_NANO, MM_HAZARAI, MM_SMALL),
+  'ehx-deluxe-memory-man-550-tt': memoryMan(undefined, [/(?<![\w-])1100(?:[-\s]?tt)?(?![\w-])/i], MM_NANO, MM_HAZARAI, MM_SMALL),
+  // The Nano (2021–) and the Stereo with Hazarai (2007–) carry their names; the identity file adds the spellings
+  // "Nano Memory Man", "Nano Dlx Memory Man", "Memory Man Nano", "Hazarai" and "SMMH" as identifiers.
+  'ehx-memory-man-nano': memoryMan(undefined, MM_TT_CODES, MM_HAZARAI, MM_SMALL),
+  'ehx-memory-man-stereo-hazarai': memoryMan(undefined, MM_NANO, MM_SMALL),
+  // The original non-deluxe Memory Man (EH 7500 / EH 1309 Solid State Echo of 1976–78, EH 7810 / EH 1338 with the
+  // chorus switch of 1978–84): its model name is inside every other member's, so it refuses them all and, like the
+  // vintage Deluxe, needs a vintage signal or Reverb's "Solid State Echo" / "Analog Delay Line".
+  'ehx-memory-man': memoryMan(
+    [...MM_VINTAGE, ...cues('solid state', 'analog delay line')],
+    cues('deluxe', 'dlx'), MM_REISSUE, [cue('xo')], MM_TAP_TEMPO, MM_TT_CODES, MM_NANO, MM_HAZARAI, MM_SMALL,
+  ),
+  // Outside the line: the Memory Boy refuses its Deluxe, the Deluxe Memory Boy and the Memory Toy carry their names.
+  'ehx-memory-boy': pedal('memory-boy', cue('deluxe')),
+  'ehx-deluxe-memory-boy': pedal('memory-boy'),
+  'ehx-memory-toy': pedal('memory-toy'),
 }
 
 /**
