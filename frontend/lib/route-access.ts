@@ -84,6 +84,16 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   { route: '/onboarding/step2', access: 'public_page', note: 'retired; 308 to /' },
   { route: '/onboarding/step3', access: 'public_page', note: 'retired; 308 to /' },
   { route: '/onboarding/step4', access: 'public_page', note: 'pre-existing redirect stub' },
+  {
+    route: '/w/[token]',
+    access: 'public_page',
+    note: 'PAN-276; one watchlist mail. The random token is the credential (a capability URL, like a magic link); noindex, no referrer',
+  },
+  {
+    route: '/w/[token]/[n]',
+    access: 'public_page',
+    note: "PAN-278; records the mail's click and redirects to its n-th listing's stored URL",
+  },
 
   /* ---------------- data-gated public surfaces ---------------- */
   {
@@ -161,6 +171,11 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
     route: '/api/feedback',
     access: 'public_api',
     note: 'PAN-251; rate-limited per IP in middleware; honeypot; a user_feedback row and one email to the owner; never the IP',
+  },
+  {
+    route: '/api/watchlist-mail/[token]',
+    access: 'public_api',
+    note: "PAN-278; POST stop/resume for that mail's one watchlist. The mail's token is the credential; GET changes nothing",
   },
   {
     route: '/api/health/freshness',

@@ -24,6 +24,12 @@
  * is no longer canonical is skipped, fail-closed. Until 069 is applied the
  * column does not exist, and the run falls back to query watchlists only.
  *
+ * PAN-276/278: once migration 070 is applied every mail gets a
+ * `watchlist_mail` row and links through `/w/<token>`; a watchlist's earlier
+ * rows decide whether the mail asks "Skal vi stoppe?" or pauses it
+ * (`mailPrompt()` in frontend/lib/watchlist-mail.ts). Until then the mail
+ * keeps the PAN-273 links and carries no prompt.
+ *
  * Dry run by default: prints the would-send list — watchlist id, query, the
  * hits — and writes nothing. It skips pairs the table already holds, so it
  * shows what tonight's --apply would do. Before 066 is applied it has no
@@ -37,6 +43,7 @@ import * as fs from 'fs'
 import { createClient } from '@supabase/supabase-js'
 import { sendNewListingsEmail } from '../frontend/lib/email'
 import { isCanonical } from '../frontend/lib/catalogue'
+import { mailPrompt, type MailEngagement, type MailPrompt } from '../frontend/lib/watchlist-mail'
 import {
   isNonProduct, matchesProductWatchlist, matchesWatchlist, notifyHits, type HitListing, type HitWatchlist,
 } from './lib/watchlist-hits'
@@ -178,6 +185,22 @@ async function main() {
     (prefs ?? []).filter((p) => p.email_enabled === false || p.new_listings === false).map((p) => p.user_id as string),
   )
 
+  // PAN-276. 070 applied or not: the probe's error is the answer, as 069's is.
+  const { error: mailProbeError } = await supabase.from('watchlist_mail').select('token').limit(1)
+  const mailRows = !mailProbeError
+  /** PAN-278: what this watchlist's next mail carries, from its earlier mails. */
+  const promptFor = async (watchlistId: string): Promise<MailPrompt | null> => {
+    if (!mailRows) return null
+    const { data, error } = await supabase
+      .from('watchlist_mail')
+      .select('sent_at, clicked_at, prompt')
+      .eq('watchlist_id', watchlistId)
+      .order('sent_at', { ascending: false })
+      .limit(200)
+    if (error) throw new Error(`watchlist_mail: ${error.message}`)
+    return mailPrompt((data ?? []) as MailEngagement[])
+  }
+
   // The dry run honours the claim table too: every pair claimed for a listing
   // in the window was claimed after `since`, so this read is bounded.
   const handled = new Set<string>()
@@ -194,7 +217,8 @@ async function main() {
     `${APPLY ? 'apply' : 'dry run'}: since ${since}${goLive == null ? ' (no go-live: 066 not applied, last 24 h shown)' : ''}, `
     + `${listings.length} new listings, ${watchlists?.length ?? 0} active watchlists`
     + ` (${watchedIds.length} model(s) watched${notCanonical ? `, ${notCanonical} no longer canonical and skipped` : ''}), `
-    + `${optedOut.size} user(s) opted out`,
+    + `${optedOut.size} user(s) opted out`
+    + `${mailRows ? '' : '; watchlist_mail absent (migration 070 not applied): no /w links, no prompts'}`,
   )
 
   const tally: Record<string, number> = {}
@@ -216,9 +240,11 @@ async function main() {
       const fresh = hits.filter((l) => !handled.has(`${w.id}:${l.id}`))
       if (fresh.length === 0) continue
       const skipped = matched.length - hits.length
+      const prompt = await promptFor(w.id)
       const note = [
         skipped ? `${skipped} part/wanted skipped` : '',
         optedOut.has(w.user_id) ? 'opted out' : '',
+        prompt ? `prompt ${prompt}` : '',
       ].filter(Boolean).join(', ')
       console.log(`  ${w.id}  ${slug ? `[model ${slug}]` : `"${w.query}"`}  ${fresh.length} hit(s)${note ? ` (${note})` : ''}`)
       for (const l of fresh.slice(0, 5)) {
@@ -242,10 +268,13 @@ async function main() {
         email: user?.user?.email ?? null,
         optedOut: optedOut.has(w.user_id),
         seeAllUrl: slug ? `${APP_URL}/product/${slug}` : undefined,
+        mailRows,
+        prompt: await promptFor(w.id),
       },
       sendNewListingsEmail,
     )
     if (result.outcome) tally[result.outcome] = (tally[result.outcome] ?? 0) + 1
+    if (result.prompt) tally[`prompt_${result.prompt}`] = (tally[`prompt_${result.prompt}`] ?? 0) + 1
   }
 
   if (APPLY) console.log(`done: ${JSON.stringify(tally)} (watchlists by outcome)`)

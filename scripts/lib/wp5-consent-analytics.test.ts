@@ -398,6 +398,21 @@ test('url: a path with no allowed parameters transmits no query string at all', 
   )
 })
 
+test('url: PAN-276 a watchlist mail token never reaches analytics, in the URL or the pathname', () => {
+  const token = 'Ab3dE5fG7hJ9'
+  assert.equal(
+    buildAnalyticsUrl('https://www.klup.dk', `/w/${token}`, '?utm_source=klup&svar=stop'),
+    'https://www.klup.dk/w/[token]',
+  )
+  const out = sanitiseOutgoingProperties({
+    $current_url: `https://www.klup.dk/w/${token}/2`,
+    $pathname: `/w/${token}`,
+  })
+  assert.equal(JSON.stringify(out).includes(token), false)
+  assert.equal(out.$pathname, '/w/[token]')
+  assert.equal(buildAnalyticsUrl('https://www.klup.dk', '/product/roland-juno-106', ''), 'https://www.klup.dk/product/roland-juno-106')
+})
+
 test('url: an unparseable query copies nothing rather than falling back to the raw string', () => {
   const built = buildAnalyticsUrl('https://www.klup.dk', '/search', `?=${CANARY}&&&%%%`)
   assert.equal(built.includes(CANARY), false)

@@ -174,6 +174,18 @@ export function resetMisconfigurationLatchForTests(): void {
  */
 export const ANALYTICS_URL_PARAM_ALLOWLIST: readonly string[] = ['page', 'sub']
 
+/**
+ * PAN-276: routes whose dynamic segment is a credential. Analytics sees their
+ * template, never the token — a token in PostHog would open the page.
+ */
+const CAPABILITY_ROUTES: ReadonlySet<string> = new Set(['/w/[token]', '/w/[token]/[n]'])
+
+/** The pathname analytics may see: a capability route collapses to its template. */
+export function analyticsPathname(pathname: string): string {
+  const rule = classifyPath(pathname)
+  return rule && CAPABILITY_ROUTES.has(rule.route) ? rule.route : pathname
+}
+
 /** Returned when a pathname matches no route in the shared authority. */
 export const UNMATCHED_PATH_TEMPLATE = '/(unmatched)'
 
@@ -271,7 +283,7 @@ export function buildAnalyticsUrl(origin: string, pathname: string, search: stri
     /* unparseable query: nothing is copied, which is the safe outcome */
   }
   const query = allowed.toString()
-  return `${origin}${pathname}${query ? `?${query}` : ''}`
+  return `${origin}${analyticsPathname(pathname)}${query ? `?${query}` : ''}`
 }
 
 /** The referring origin only. A full referrer URL can carry another site's query. */
@@ -343,7 +355,7 @@ export function sanitiseOutgoingProperties(
         continue
       }
       out[key] = key.includes('pathname')
-        ? parsed.pathname
+        ? analyticsPathname(parsed.pathname)
         : buildAnalyticsUrl(
             parsed.origin === 'https://placeholder.invalid' ? '' : parsed.origin,
             parsed.pathname,

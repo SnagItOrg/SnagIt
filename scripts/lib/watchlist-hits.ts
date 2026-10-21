@@ -32,6 +32,15 @@
  * outcome. A send that fails is recorded and NOT retried: one missed mail is
  * better than a repeated one, and the row says it happened.
  *
+ * ── THE MAIL ROW (PAN-276/278) ──────────────────────────────────────────
+ * With `mailRows` (migration 070 applied) a send first writes a
+ * `watchlist_mail` row: a fresh token, the fresh listings in the mail's
+ * order, and the runner's `prompt`. Every link in the mail then goes through
+ * `/w/<token>`. A send that fails deletes its row, so an undelivered mail
+ * never counts as an ignored one. A row that cannot be written does not stop
+ * the mail: it goes out with the PAN-273 links and no prompt. After a sent
+ * 'pause' mail the watchlist is paused (`active = false`) — the mail said so.
+ *
  * ── LOGGING ─────────────────────────────────────────────────────────────
  * Static outcome codes only. `detail` keeps the provider's bounded reason code
  * and nothing else; never the address, the titles or a provider message.
@@ -39,6 +48,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { detectNonProductIntent } from '../../frontend/lib/matching/listing-intent'
+import { newMailToken, type MailPrompt } from '../../frontend/lib/watchlist-mail'
 
 export type HitListing = {
   id: string
@@ -124,15 +134,20 @@ export async function notifyHits(
     optedOut: boolean
     /** PAN-273: where the mail's "Se alle" goes; the mail defaults to the search. */
     seeAllUrl?: string
+    /** PAN-276: migration 070 is applied, so the send writes a `watchlist_mail` row. */
+    mailRows?: boolean
+    /** PAN-278: what this mail carries besides the listings (`mailPrompt()`). */
+    prompt?: MailPrompt | null
   },
   send: (input: {
     to: string
     query: string
     listings: Array<Pick<HitListing, 'title' | 'price' | 'currency' | 'url' | 'source'>>
     seeAllUrl?: string
+    mail?: { token: string; prompt: MailPrompt | null }
   }) => Promise<void>,
-): Promise<{ outcome: HitOutcome | null; listings: number }> {
-  const { watchlist, hits, email, optedOut, seeAllUrl } = args
+): Promise<{ outcome: HitOutcome | null; listings: number; prompt?: MailPrompt | null }> {
+  const { watchlist, hits, email, optedOut, seeAllUrl, mailRows = false, prompt = null } = args
   if (hits.length === 0) return { outcome: null, listings: 0 }
 
   const { data: claimed, error: claimError } = await db
@@ -150,16 +165,33 @@ export async function notifyHits(
 
   let outcome: HitOutcome = 'sent'
   let detail: string | null = null
+  let sentPrompt: MailPrompt | null = null
   if (optedOut) outcome = 'opted_out'
   else if (!email) outcome = 'no_recipient'
   else {
+    let mail: { token: string; prompt: MailPrompt | null } | undefined
+    if (mailRows) {
+      const row = { token: newMailToken(), watchlist_id: watchlist.id, listing_ids: fresh.map((l) => l.id), prompt }
+      const { error } = await db.from('watchlist_mail').insert(row)
+      if (!error) mail = { token: row.token, prompt }
+    }
     try {
-      await send({ to: email, query: watchlist.query, listings: fresh, seeAllUrl })
+      await send({ to: email, query: watchlist.query, listings: fresh, seeAllUrl, mail })
     } catch (err) {
       const message = err instanceof Error ? err.message : ''
       outcome = 'failed'
       detail = PROVIDER_CODE.test(message) ? message : null
+      if (mail) await db.from('watchlist_mail').delete().eq('token', mail.token)
     }
+    if (outcome === 'sent' && mail?.prompt === 'pause') {
+      const { error } = await db.from('watchlists').update({ active: false }).eq('id', watchlist.id)
+      if (error) {
+        console.error(JSON.stringify({
+          channel: 'operational', component: 'notify-watchlists', event: 'watchlist_pause_failed', watchlist_id: watchlist.id,
+        }))
+      }
+    }
+    sentPrompt = mail?.prompt ?? null
   }
 
   // A failed record leaves the rows 'pending': visible, and still never re-sent.
@@ -170,7 +202,7 @@ export async function notifyHits(
     .in('listing_id', fresh.map((l) => l.id))
 
   if (outcome === 'failed' || outcome === 'no_recipient') return log(watchlist.id, outcome, detail, fresh.length)
-  return { outcome, listings: fresh.length }
+  return outcome === 'sent' && sentPrompt ? { outcome, listings: fresh.length, prompt: sentPrompt } : { outcome, listings: fresh.length }
 }
 
 function log(watchlistId: string, outcome: HitOutcome, detail: string | null, listings: number) {
