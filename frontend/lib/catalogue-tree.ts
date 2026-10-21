@@ -83,9 +83,10 @@
  * `/browse/<root>` both go through `displaySubcategorySlug`, so the sidebar
  * and the chips cannot drift about which leaves are one place.
  *
- * The group slug is what `?sub=` carries (`?sub=synthesizers`). A member's own
- * slug resolves to its group, so an old `?sub=analog-synths` link lands on the
- * group rather than on an empty grid.
+ * The group slug is what the kind's path carries (`/browse/keyboards-and-synths/
+ * synthesizers`, PAN-289; `?sub=` before it). A member's own slug resolves to
+ * its group, so an old `?sub=analog-synths` link lands on the group rather than
+ * on an empty grid.
  *
  * `labelKey` names the copy in `lib/i18n.ts`: no `kg_category` row exists for
  * a group, so this is the one deliberate exception to PAN-107's single label
@@ -93,8 +94,8 @@
  * import-free; tsc still rejects a key `i18n.ts` does not have, wherever `t` is
  * indexed with it.
  *
- * A group slug must not equal a real leaf slug under the same root, or `?sub=`
- * could not tell them apart. `synthesizers` is not a Reverb leaf.
+ * A group slug must not equal a real leaf slug under the same root, or the
+ * kind's path could not tell them apart. `synthesizers` is not a Reverb leaf.
  *
  * `synthesizers` holds every Reverb leaf that is a whole synthesizer, whatever
  * its form factor: desktop, keyboard, rack, or a complete modular system. A
@@ -140,6 +141,27 @@ export function isSubcategoryGroup(slug: string): slug is SubcategoryGroupSlug {
  */
 export function displaySubcategorySlug(rootSlug: string, bareLeaf: string): string {
   return GROUP_OF_LEAF.get(`${rootSlug}/${bareLeaf}`) ?? bareLeaf
+}
+
+/**
+ * PAN-289 — a kind's own page: `/browse/<root>/<kind>`, with `kind` the display
+ * slug (a group's for a grouped leaf). It used to be `/browse/<root>?sub=<kind>`,
+ * a filter that shared the root's canonical and so could not rank; the
+ * middleware 301s that form here. Every link to a kind is built by this one
+ * function, so the sidebar, the chips, the product breadcrumb and search
+ * cannot write two URLs for one place.
+ */
+export function subcategoryHref(rootSlug: string, kindSlug: string): string {
+  return `/browse/${rootSlug}/${encodeURIComponent(displaySubcategorySlug(rootSlug, kindSlug))}`
+}
+
+/**
+ * The kind a `/browse/<root>/<kind>` path names, or null on any other path —
+ * `/browse/<root>` included, which is "Alle".
+ */
+export function subcategoryFromPath(pathname: string): string | null {
+  const m = /^\/browse\/[^/]+\/([^/]+)\/?$/.exec(pathname)
+  return m ? decodeURIComponent(m[1]) : null
 }
 
 /**
@@ -374,7 +396,6 @@ export type CurrentCatalogueNode =
 export function currentCatalogueNode(
   categories: CatalogueTreeCategory[],
   pathname: string,
-  activeSub: string | null,
 ): CurrentCatalogueNode {
   // PAN-121 round 3: a product is not a node, so a product page marks the
   // node that holds it — its kind if it has one, otherwise its root. The
@@ -390,23 +411,23 @@ export function currentCatalogueNode(
       : { kind: 'branch', categorySlug: holder.slug }
   }
 
-  const browseMatch = /^\/browse\/([^/]+)\/?$/.exec(pathname)
+  const browseMatch = /^\/browse\/([^/]+)(?:\/([^/]+))?\/?$/.exec(pathname)
   if (!browseMatch) return null
 
   const categorySlug = decodeURIComponent(browseMatch[1])
   const category = categories.find((c) => c.slug === categorySlug)
   if (!category) return null
 
+  // No kind in the path — "Alle" on the page: the branch is where the visitor
+  // stands, rather than marking nothing on a page that clearly has one.
+  if (browseMatch[2] === undefined) return { kind: 'branch', categorySlug }
+
   // A KIND narrows the answer: the subcategory is where the visitor is, and
   // the branch stops claiming to be. Exactly one, never both. A grouped leaf
-  // (`?sub=analog-synths`, an old link) resolves to its group first (PAN-138).
-  const sub = activeSub ? displaySubcategorySlug(categorySlug, activeSub) : null
-  if (sub && category.subcategories.some((node) => node.slug === sub)) {
-    return { kind: 'subcategory', categorySlug, subcategorySlug: sub }
-  }
-
-  // No kind in force — "Alle" on the page — or a `?sub=` naming no node: the
-  // branch is where the visitor stands, rather than marking nothing on a page
-  // that clearly has one.
-  return { kind: 'branch', categorySlug }
+  // (`/analog-synths`, an old link) resolves to its group first (PAN-138).
+  // PAN-289: a kind path naming no node is a 404 page, so nothing is marked.
+  const sub = displaySubcategorySlug(categorySlug, decodeURIComponent(browseMatch[2]))
+  return category.subcategories.some((node) => node.slug === sub)
+    ? { kind: 'subcategory', categorySlug, subcategorySlug: sub }
+    : null
 }

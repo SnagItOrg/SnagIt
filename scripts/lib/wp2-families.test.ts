@@ -354,11 +354,11 @@ test('families: children match the reviewed §6.3 map', () => {
     'roland-xp': ['roland-xp-10', 'roland-xp-30', 'roland-xp-50', 'roland-xp-60', 'roland-xp-80'],
     'roland-jd': ['roland-jd-800', 'roland-jd-990', 'roland-jd-xa', 'roland-jd-08'],
     'roland-fantom': ['roland-fantom-s', 'roland-fantom-x6', 'roland-fantom-x8', 'roland-fantom-xa'],
-    'roland-sp-404-sampler': ['roland-SP-404', 'roland-sp-404sx', 'roland-sp-404a', 'roland-sp-404-mkii'],
+    'roland-sp-404-sampler': ['roland-sp-404', 'roland-sp-404sx', 'roland-sp-404a', 'roland-sp-404-mkii'],
     'roland-jazz-chorus': ['roland-jc-120', 'roland-jc-120h', 'roland-jc-85', 'roland-jc-22'],
     'gibson-j-45-dreadnought': [
       'gibson-j-45', 'gibson-j-45-special', 'gibson-j-45-standard-rosewood', 'gibson-j-45-studio-rosewood',
-      'gibson-j-45-studio-walnut', 'gibson-j-45-century-12-fret',
+      'gibson-j-45-studio-walnut', 'gibson-j-45-century-12-fret', 'gibson-j-45-standard-12-string',
     ],
     'gibson-j-185-jumbo': ['gibson-j-185', 'gibson-j-185-original', 'gibson-j-185-century-12-fret'],
     'gibson-j-35-acoustic': ['gibson-j-35', 'gibson-j-35-30s-faded'],
@@ -367,7 +367,7 @@ test('families: children match the reviewed §6.3 map', () => {
       'gibson-sj-200-studio-rosewood', 'gibson-sj-200-studio-walnut', 'gibson-sj-200-western-classic',
       'gibson-sj-200-orianthi-signature',
     ],
-    'gibson-l-00-parlor': ['gibson-l-00-standard', 'gibson-l-00-century-12-fret'],
+    'gibson-l-00-parlor': ['gibson-l-00-standard', 'gibson-l-00-century-12-fret', 'gibson-l-00-original'],
     'gibson-lg-2-parlor': ['gibson-lg-2', 'gibson-lg-2-3-4', 'gibson-lg-2-all-mahogany-faded', 'gibson-lg-2-american-eagle'],
     'gibson-g-45-dreadnought': ['gibson-g-45', 'gibson-g-45-studio'],
     'martin-d-18-dreadnought': ['martin-d-18', 'martin-d-18-satin', 'martin-d-18-authentic-1937', 'martin-d-18-molly-tuttle'],
@@ -1186,13 +1186,15 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
   )
   // PAN-192's linker, pinned: a card needs more members than a family needs
   // canonical children to publish, and it is mounted only from the collapse,
-  // on the two surfaces whose rows are the public catalogue.
+  // on the surfaces whose rows are the public catalogue (PAN-289 added the
+  // brand page, which serves the same browse rows).
   assert.equal(FAMILY_CARD_MIN_CHILDREN >= Math.max(2, FAMILY_MIN_CANONICAL_CHILDREN), true)
   const mounts = [...walk(join(FRONTEND, 'app')), ...walk(join(FRONTEND, 'components'))]
     .filter((file) => readFileSync(file, 'utf8').includes('<FamilyCard'))
     .map((file) => file.replace(FRONTEND, 'frontend'))
     .sort()
   assert.deepEqual(mounts, [
+    'frontend/app/(shell)/brand/[brand]/page.tsx',
     'frontend/app/(shell)/browse/[root]/page.tsx',
     'frontend/components/DiscoverShelves.tsx',
   ])

@@ -93,12 +93,12 @@ export interface SearchCandidate {
  *
  * Built on the server from the same public catalogue rows `/browse` serves, so
  * a product here is a product a visitor can stand on; `href` is the kind's own
- * `/browse/<category>?sub=<kind>` page, never anything else.
+ * `/browse/<category>/<kind>` page (PAN-289), never anything else.
  */
 export interface SearchKindGroup {
   category: { slug: string; name_da: string; name_en: string }
   kind: { slug: string; name_da: string; name_en: string }
-  /** `/browse/<category>?sub=<kind>` — the whole kind, for the "see all" row. */
+  /** `/browse/<category>/<kind>` — the whole kind, for the "see all" row. */
   href: string
   /** Capped; most listings first. Never a product already in `candidates`. */
   products: SearchCandidate[]

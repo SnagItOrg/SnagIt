@@ -23,7 +23,7 @@ const config: RematchConfig = {
   promoted: [
     'neumann-kh-120-a', 'neumann-kh-120-ii', 'neumann-kh-80',
     'neumann-km-184', 'neumann-kms-104', 'neumann-kms-104-plus',
-    'neumann-mt-48', 'neumann-ndh-20', 'neumann-neumann-u47-fet-collectors-edition',
+    'neumann-mt-48', 'neumann-ndh-20', 'neumann-u47-fet-collectors-edition',
     'neumann-tlm-102', 'neumann-tlm-103', 'neumann-tlm-49',
     'neumann-u47', 'neumann-u47-fet', 'neumann-u67',
     'neumann-u67-reissue', 'neumann-u87',

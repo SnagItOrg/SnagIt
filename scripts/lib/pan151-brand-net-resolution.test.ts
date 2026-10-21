@@ -235,9 +235,9 @@ test('r2: a code written in capitals is a model; a roman numeral is not a code',
   assert.equal(reading(resolve2('Roland Paraphonic RS 505 synthesizer keyboard', 'roland')), 'candidate rs-505')
   assert.equal(reading(resolve2('Roland MM-4 MIDI Thru Box', 'roland')), 'candidate mm-4')
   assert.equal(reading(resolve2('Fender Champion II 50 guitarforstærker', 'fender')), 'candidate champion ii')
-  // The matcher reads the glued code since PAN-266, so the title resolves through it. This fixture's
-  // plain SP-404 row has no line boundary (production's does, keyed 'roland-SP-404'), so both rows tie.
-  assert.equal(reading(resolve2('Roland SP404 MKII', 'roland')), 'kg_product matcher roland-sp-404|roland-sp-404-mkii')
+  // The matcher reads the glued code since PAN-266, so the title resolves through it. Since PAN-289 the
+  // plain SP-404 row's slug is production's own, so its line boundary applies and refuses the MKII.
+  assert.equal(reading(resolve2('Roland SP404 MKII', 'roland')), 'kg_product matcher roland-sp-404-mkii')
   assert.equal(reading(resolve2('Roland JUNO-Gi Synthesizer', 'roland')), 'candidate juno-gi')
   // `Cube` is a line the KG numbers, so a short code after it is the model.
   assert.equal(reading(resolve('Roland Cube xl forstærker med subzero mikrofon og stativ', 'roland')), 'candidate cube-xl')

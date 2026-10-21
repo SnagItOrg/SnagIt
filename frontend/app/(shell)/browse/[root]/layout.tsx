@@ -3,7 +3,8 @@ import { SITE_URL } from '@/lib/site-metadata'
 
 /**
  * PAN-288. The root's own canonical, for the same reason as browse/layout.tsx.
- * `?sub=` and the facet chips are filters of this page, so they share it.
+ * The attribute facet chips are filters of this page, so they share it; a kind
+ * is a page of its own since PAN-289 (`[sub]/layout.tsx`).
  */
 export async function generateMetadata(
   ctx: { params: Promise<{ root: string }> },

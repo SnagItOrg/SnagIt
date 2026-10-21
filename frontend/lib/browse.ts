@@ -22,6 +22,7 @@ import {
   type CatalogueTreeCategory,
 } from '@/lib/catalogue-tree'
 import { translations } from '@/lib/i18n'
+import { groupBrandRows, type BrandPageKind } from '@/lib/brand-page'
 import { categoryImage } from '@/lib/category-images'
 import { facetKeysFor, readFacets, type ProductFacetValues } from '@/lib/product-facets'
 import { familyForChild } from '@/lib/families'
@@ -940,6 +941,39 @@ export async function buildBrowseLeafResponse(args: {
   }
 
   return response
+}
+
+export type BrandPageProduct = ReturnType<typeof shapeLeafProduct>
+
+export type BrandPageResponse = {
+  brand: { slug: string; name: string }
+  kinds: BrandPageKind<BrandPageProduct>[]
+}
+
+/**
+ * PAN-289 — `/brand/<brand>`: the brand's public catalogue rows, the same rows
+ * and order `/browse/<root>` serves, grouped by kind (`lib/brand-page.ts`).
+ * `null` when the brand has no public row, which the route answers with 404:
+ * a brand page with nothing on it is not a page. No price is read.
+ */
+export async function buildBrandPageResponse(
+  admin: SupabaseClient,
+  brandSlug: string,
+): Promise<BrandPageResponse | null> {
+  const rows = (await fetchPublicBrowseRows(admin))
+    .filter((row) => row.brand_slug === brandSlug && !EXCLUDED_ROOT_SLUGS.has(row.root_category_slug ?? ''))
+    .sort(compareProducts)
+  if (rows.length === 0) return null
+
+  const facetsBySlug = await fetchLeafFacets(admin, rows)
+  return {
+    brand: { slug: brandSlug, name: rows[0].brand_name ?? brandSlug },
+    kinds: groupBrandRows(
+      brandSlug,
+      rows.map((row) => ({ placement: row, product: shapeLeafProduct(row, facetsBySlug.get(row.slug) ?? {}) })),
+      subcategoryGroupNames(translations),
+    ),
+  }
 }
 
 /**

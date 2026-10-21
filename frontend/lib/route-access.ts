@@ -72,6 +72,7 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   { route: '/', access: 'public_page' },
   { route: '/browse', access: 'public_page' },
   { route: '/browse/[root]', access: 'public_page' },
+  { route: '/browse/[root]/[sub]', access: 'public_page', note: 'PAN-289. A kind of the catalogue tree or 404' },
   { route: '/search', access: 'public_page' },
   { route: '/tjek-prisen', access: 'public_page' },
   { route: '/login', access: 'public_page' },
@@ -105,6 +106,11 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
     route: '/family/[slug]',
     access: 'public_page_data_gated',
     note: 'WP-2. noindex and unlisted while it has zero canonical children (§4.2)',
+  },
+  {
+    route: '/brand/[brand]',
+    access: 'public_page_data_gated',
+    note: 'PAN-289. 404 while the brand has zero canonical models; never a price',
   },
   {
     route: '/brand/[brand]/[kind]',

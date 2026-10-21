@@ -22,6 +22,7 @@ import { BRAND_WALLS, getBrandWall } from '../../frontend/lib/brand-walls'
 import { namesBrassAccessory, selectBrandWallRows, type BrandWallCueRow, type BrandWallMatchRow, type BrandWallProduct } from '../../frontend/lib/brand-wall'
 import type { CardVerdict } from '../../frontend/lib/listing-verdicts'
 import { ROUTE_ACCESS } from '../../frontend/lib/route-access'
+import { groupBrandRows } from '../../frontend/lib/brand-page'
 
 const FRONTEND = join(__dirname, '..', '..', 'frontend')
 
@@ -151,4 +152,38 @@ test('the page and the wall module compute no price evidence of their own', () =
   }
   // The verdict comes from the per-product pipeline and from nowhere else.
   assert.match(lib, /cardVerdictsByProduct\(/)
+})
+
+/* ── PAN-289: the brand page ───────────────────────────────────────────── */
+
+test('PAN-289: the brand page groups its rows by kind, links a kind on to its wall, and holds no price', () => {
+  const place = (root: string, leaf: string, name: string) => ({
+    root_category_slug: root, root_category_name_da: root, root_category_name_en: root,
+    subcategory_slug: `${root}/${leaf}`, subcategory_name_da: name, subcategory_name_en: name,
+  })
+  const names = { synthesizers: { name_da: 'Synthesizere', name_en: 'Synthesizers' } }
+  const kinds = groupBrandRows('yamaha', [
+    { placement: place('band-and-orchestra', 'trumpets', 'Trompeter'), product: { slug: 'yamaha-ytr-2330' } },
+    { placement: place('keyboards-and-synths', 'analog-synths', 'Analoge synths'), product: { slug: 'yamaha-cs-80' } },
+    { placement: place('keyboards-and-synths', 'digital-synths', 'Digitale synths'), product: { slug: 'yamaha-dx7' } },
+    // A row the catalogue cannot place is dropped, as the sidebar drops it.
+    { placement: { ...place('x', 'y', 'z'), subcategory_slug: null }, product: { slug: 'yamaha-unplaced' } },
+  ], names)
+  // Most models first: the two synth leaves are ONE kind, the group.
+  assert.deepEqual(kinds.map((k) => [k.kind.slug, k.href, k.wall, k.products.map((p) => p.slug)]), [
+    ['synthesizers', '/browse/keyboards-and-synths/synthesizers', null, ['yamaha-cs-80', 'yamaha-dx7']],
+    ['trumpets', '/browse/band-and-orchestra/trumpets', '/brand/yamaha/trompeter', ['yamaha-ytr-2330']],
+  ])
+  // An exact key set: nothing a price, a band or a verdict could travel in.
+  assert.deepEqual(Object.keys(kinds[0]).sort(), ['href', 'kind', 'products', 'root', 'wall'])
+  // Another brand's rows in the same leaf get no wall: walls are per brand.
+  assert.equal(groupBrandRows('roland', [{ placement: place('band-and-orchestra', 'trumpets', 'Trompeter'), product: {} }], names)[0].wall, null)
+})
+
+test('PAN-289: the brand page reads no price module, and its route is classified', () => {
+  const page = readFileSync(join(FRONTEND, 'app', '(shell)', 'brand', '[brand]', 'page.tsx'), 'utf8')
+  const imports = page.match(/from '[^']+'/g) ?? []
+  for (const mod of imports) assert.equal(/price|verdict|band|median/i.test(mod), false, mod)
+  const rule = ROUTE_ACCESS.find((r) => r.route === '/brand/[brand]')
+  assert.equal(rule?.access, 'public_page_data_gated')
 })

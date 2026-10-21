@@ -1962,7 +1962,7 @@ const KIND_TREE = [
 
 test('PAN-275: a query names a kind by equality with its name, in either locale, never by substring', () => {
   const hits = kindsNamedBy('reverb', KIND_TREE)
-  assert.deepEqual(hits.map((h) => h.href), ['/browse/effects-and-pedals?sub=reverb', '/browse/pro-audio?sub=reverb'])
+  assert.deepEqual(hits.map((h) => h.href), ['/browse/effects-and-pedals/reverb', '/browse/pro-audio/reverb'])
   assert.deepEqual(hits[0].productSlugs, ['fender-6g15-reverb-unit', 'roland-re-201'])
   assert.equal(kindsNamedBy('Effects & Pedals', KIND_TREE).length, 0, 'a category is not a kind')
   assert.equal(kindsNamedBy('reverb pedal', KIND_TREE).length, 0, 'no sub-phrase match')

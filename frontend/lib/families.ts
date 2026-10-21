@@ -918,8 +918,8 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
    * (2010) is not in it — decades from the SH-101 — and stays its own page.
    * The SH-201 and SH-32 (2000s digital) are left out on the same reasoning;
    * both are qa_only, so nothing renders either way. SP-404 is the sampler
-   * line only, not the SP-808; the original's row keeps its `roland-SP-404`
-   * slug here because that is the slug the row has.
+   * line only, not the SP-808. The original's row is `roland-sp-404` since
+   * PAN-289 renamed its uppercase `roland-SP-404`.
    */
   'roland-tr': {
     label: 'Roland TR',
@@ -994,7 +994,7 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     label: 'Roland SP-404 Sampler',
     brand: 'Roland',
     categoryRoot: 'keyboards-and-synths',
-    children: ['roland-SP-404', 'roland-sp-404sx', 'roland-sp-404a', 'roland-sp-404-mkii'],
+    children: ['roland-sp-404', 'roland-sp-404sx', 'roland-sp-404a', 'roland-sp-404-mkii'],
     aliases: [],
   },
   'roland-jazz-chorus': {
@@ -1010,10 +1010,11 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
    * taxonomy leaf, as `minimoog` carries its leaf) so it is never a child's
    * own name. Members SELECT-verified supported 2026-10-21, any visibility.
    *
-   * Left out, and named here so nobody adds them back by accident: the two
-   * rows whose slug repeats the brand, `gibson-gibson-j-45-standard-12-string`
-   * and `gibson-gibson-l-00-original` (each is the only row for its model, so
-   * it joins once renamed, not before); `gibson-j-55`, which is neither a J-35
+   * PAN-289 renamed the two rows whose slug repeated the brand, and they joined
+   * here: `gibson-j-45-standard-12-string` and `gibson-l-00-original`.
+   *
+   * Left out, and named here so nobody adds them back by accident:
+   * `gibson-j-55`, which is neither a J-35
    * nor a J-45; the archtops `gibson-l-4c` / `gibson-l-7c`, which are not
    * L-00s; `gibson-g-200-ec`, `martin-d-42-modern-deluxe` and
    * `heritage-h-150`, each its own model. `heritage-custom-shop-core-h-535`
@@ -1025,7 +1026,7 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     categoryRoot: 'acoustic-guitars',
     children: [
       'gibson-j-45', 'gibson-j-45-special', 'gibson-j-45-standard-rosewood', 'gibson-j-45-studio-rosewood',
-      'gibson-j-45-studio-walnut', 'gibson-j-45-century-12-fret',
+      'gibson-j-45-studio-walnut', 'gibson-j-45-century-12-fret', 'gibson-j-45-standard-12-string',
     ],
     aliases: [],
   },
@@ -1058,7 +1059,7 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     label: 'Gibson L-00 Parlor',
     brand: 'Gibson',
     categoryRoot: 'acoustic-guitars',
-    children: ['gibson-l-00-standard', 'gibson-l-00-century-12-fret'],
+    children: ['gibson-l-00-standard', 'gibson-l-00-century-12-fret', 'gibson-l-00-original'],
     aliases: [],
   },
   'gibson-lg-2-parlor': {

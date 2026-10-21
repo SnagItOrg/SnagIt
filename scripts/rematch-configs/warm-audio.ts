@@ -26,9 +26,9 @@ const config: RematchConfig = {
     'warm-audio-wa-87jr', 'warm-audio-wa-87jr-se', 'warm-audio-wa-cx24',
     'warm-audio-wa273', 'warm-audio-wa2a', 'warm-audio-wa47',
     'warm-audio-wa73', 'warm-audio-wa73-eq', 'warm-audio-wa76',
-    'warm-audio-wa87', 'warm-audio-warm-audio-wa-1b', 'warm-audio-warm-audio-wa-44',
-    'warm-audio-warm-audio-wa-8000', 'warm-audio-warm-audio-wa-cx12', 'warm-audio-warm-audio-wa-mpx',
-    'warm-audio-warm-audio-wa273-eq', 'warm-audio-warm-bender',
+    'warm-audio-wa87', 'warm-audio-wa-1b', 'warm-audio-wa-44',
+    'warm-audio-wa-8000', 'warm-audio-wa-cx12', 'warm-audio-wa-mpx',
+    'warm-audio-wa273-eq', 'warm-audio-warm-bender',
   ],
 
   /**

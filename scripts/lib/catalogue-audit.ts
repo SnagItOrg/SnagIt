@@ -21,6 +21,7 @@ import { publicationRefusal } from '../../frontend/lib/publication'
 import { resolveProductImage } from '../../frontend/lib/product-image-source'
 import { NAVIGATION_FAMILIES, buildFamilyView, familyForChild, type FamilyChildRow } from '../../frontend/lib/families'
 import { LINE_BOUNDARIES, isMatchableProduct } from '../../frontend/lib/matching/match-listings'
+import { currentSlug } from '../../frontend/lib/slug-renames'
 
 /** One supported + active `kg_product` row, joined with its projection row and its brand. */
 export interface AuditProduct extends CatalogueStateRow {
@@ -141,7 +142,8 @@ function sharedModelNames(products: AuditProduct[]): Finding[] {
   const out: Finding[] = []
   for (const [key, rows] of groups) {
     if (rows.length < 2) continue
-    const unbounded = rows.filter((p) => !(p.slug in LINE_BOUNDARIES)).map((p) => p.slug).sort()
+    // Through `currentSlug`: the boundaries are keyed by the renamed slugs (PAN-289).
+    const unbounded = rows.filter((p) => !(currentSlug(p.slug) in LINE_BOUNDARIES)).map((p) => p.slug).sort()
     if (unbounded.length === 0) continue
     out.push({ key, detail: `${rows.length} rows, no line boundary on ${unbounded.join(', ')}` })
   }

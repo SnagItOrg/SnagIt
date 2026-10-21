@@ -21,7 +21,7 @@ const config: RematchConfig = {
    * model name the matcher cannot use).
    */
   promoted: [
-    'roland-SP-404', 'roland-cube-lite', 'roland-d-110',
+    'roland-sp-404', 'roland-cube-lite', 'roland-d-110',
     'roland-d-20', 'roland-d-50', 'roland-d-550',
     'roland-d-70', 'roland-dj-70', 'roland-em101',
     'roland-fantom-s', 'roland-fantom-x6', 'roland-fantom-x8',

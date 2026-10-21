@@ -25,6 +25,7 @@ import {
   type AuditMatch, type AuditProduct, type AuditSnapshot, type Check,
 } from './catalogue-audit'
 import { LINE_BOUNDARIES } from '../../frontend/lib/matching/match-listings'
+import { SLUG_RENAMES } from '../../frontend/lib/slug-renames'
 
 const STORAGE = 'https://lmogfnyfpaqaxtrrcupw.supabase.co/storage/v1/object/public/product-images/products'
 
@@ -128,6 +129,19 @@ test('slug_repeats_brand: warm-audio-warm-audio-wa-1b and a "--" slug; arp-korg-
   assert.deepEqual(keys(snap, 'slug_repeats_brand'), ['roland--505', 'warm-audio-warm-audio-wa-1b'])
 })
 
+test('slug_repeats_brand: PAN-289 renames all eleven brand-repeating slugs, and no new slug repeats its brand', () => {
+  const brandOf = (slug: string) => ['warm-audio', 'gibson', 'moog', 'neumann', 'roland'].find((b) => slug.startsWith(`${b}-`))!
+  const rows = (pick: 'old' | 'new') => snapshot({ products: Object.entries(SLUG_RENAMES).map(([from, to]) => {
+    const slug = pick === 'old' ? from : to
+    return product({ slug, brand_slug: brandOf(slug) })
+  }) })
+  // Before the rename SQL: the eleven the ticket names (the SP-404's lapse is its case, not its brand).
+  assert.deepEqual(keys(rows('old'), 'slug_repeats_brand'), Object.keys(SLUG_RENAMES).filter((s) => s !== 'roland-SP-404').sort())
+  // After it: none.
+  assert.deepEqual(keys(rows('new'), 'slug_repeats_brand'), [])
+  for (const to of Object.values(SLUG_RENAMES)) assert.equal(to, to.toLowerCase(), to)
+})
+
 /* ── Publication ───────────────────────────────────────────────────────── */
 
 test('supported_blocked_from_public: gibson-es-330 (qa_only, no subcategory) is refused by publicationRefusal; a classified qa row is not', () => {
@@ -144,10 +158,11 @@ test('supported_blocked_from_public: gibson-es-330 (qa_only, no subcategory) is 
 /* ── Shared model names ────────────────────────────────────────────────── */
 
 test('shared_model_name_without_boundary: the two U 47 fet rows both carry a boundary and are silent; a pair without one is reported; Memory Man and Model D are allowed by ticket', () => {
-  assert.ok('neumann-u47-fet' in LINE_BOUNDARIES && 'neumann-neumann-u47-fet-collectors-edition' in LINE_BOUNDARIES)
+  assert.ok('neumann-u47-fet' in LINE_BOUNDARIES && 'neumann-u47-fet-collectors-edition' in LINE_BOUNDARIES)
   assert.ok(!('acme-x' in LINE_BOUNDARIES) && !('acme-x-deluxe' in LINE_BOUNDARIES))
   const snap = snapshot({ products: [
     product({ slug: 'neumann-u47-fet', brand_slug: 'neumann', brand_name: 'Neumann', model_name: 'U 47 fet' }),
+    // The pre-rename slug (PAN-289): its boundary is keyed by the new one and still found.
     product({ slug: 'neumann-neumann-u47-fet-collectors-edition', brand_slug: 'neumann', brand_name: 'Neumann', model_name: 'U 47 fet' }),
     product({ slug: 'acme-x', brand_id: 'b-acme', brand_slug: 'acme', brand_name: 'Acme', model_name: 'X' }),
     product({ slug: 'acme-x-deluxe', brand_id: 'b-acme', brand_slug: 'acme', brand_name: 'Acme', model_name: 'x' }),
@@ -245,6 +260,27 @@ test('family_candidate_shared_prefix: Martin D-18 / D-28 share "D" with no famil
     assert.ok(a.reason && a.reason.length > 5, `${a.key} says what was decided`)
   }
   assert.ok(check.allow.some((a) => a.key === 'roland:SH/roland-sh-01-gaia'), 'the owner\'s SH exception')
+})
+
+test('family_candidate_shared_prefix: after the PAN-289 rename the two Gibson rows are in the J-45 / L-00 families, so gibson:J and gibson:L close', () => {
+  const gibson = (slug: string, model: string) =>
+    product({ slug, model_name: model, brand_id: 'brand-gibson', brand_slug: 'gibson', brand_name: 'Gibson', root_category_slug: 'acoustic-guitars' })
+  const OLD_J = 'gibson-gibson-j-45-standard-12-string'
+  const OLD_L = 'gibson-gibson-l-00-original'
+  const rows = (rename: boolean) => snapshot({ products: [
+    gibson('gibson-j-45', 'J-45'), gibson('gibson-j-45-special', 'J-45 Special'),
+    gibson(rename ? SLUG_RENAMES[OLD_J] : OLD_J, 'J-45 Standard 12-String'),
+    gibson('gibson-l-00-standard', 'L-00 Standard'), gibson('gibson-l-00-century-12-fret', 'L-00 Century 12-Fret'),
+    gibson(rename ? SLUG_RENAMES[OLD_L] : OLD_L, 'L-00 Original'),
+  ] })
+  // Production today: each renamed row is the one member outside its family.
+  assert.deepEqual(findings(rows(false), 'family_candidate_shared_prefix').findings, [
+    { key: 'gibson:J', detail: `3 public rows, 1 outside a family: ${OLD_J}` },
+    { key: 'gibson:L', detail: `3 public rows, 1 outside a family: ${OLD_L}` },
+  ])
+  // After the rename SQL: nothing left, and no slug repeats its brand.
+  assert.deepEqual(findings(rows(true), 'family_candidate_shared_prefix').findings, [])
+  assert.deepEqual(keys(rows(true), 'slug_repeats_brand'), [])
 })
 
 /* ── Matches ───────────────────────────────────────────────────────────── */

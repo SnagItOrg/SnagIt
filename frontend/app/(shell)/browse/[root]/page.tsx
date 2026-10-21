@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { preload } from 'react-dom'
-import { notFound, useParams, useSearchParams, useRouter } from 'next/navigation'
+import { notFound, useParams, usePathname, useSearchParams, useRouter } from 'next/navigation'
 import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { ProductCard } from '@/components/ProductCard'
@@ -17,6 +17,8 @@ import {
   displaySubcategorySlug,
   isSubcategoryGroup,
   sortKindsByLabel,
+  subcategoryFromPath,
+  subcategoryHref,
 } from '@/lib/catalogue-tree'
 import type { BrowseLeafResponse } from '@/lib/browse'
 import {
@@ -71,6 +73,7 @@ interface BrowseData {
 
 function BrowseCategoryPageInner() {
   const params = useParams<{ root: string }>()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
   const { t, locale } = useLocale()
@@ -121,43 +124,49 @@ function BrowseCategoryPageInner() {
    * `replace`, not `push`, and `scroll: false` — toggling a facet is a
    * refinement of one view, not a new page, and it must not build a back-button
    * trail of every chip the visitor tried.
+   *
+   * PAN-289 — the kind is a PATH now, `/browse/<root>/<kind>`: its own page
+   * with its own canonical, so it can rank (`?sub=` 301s here, in the
+   * middleware). The chip still filters this page in place: the URL is
+   * rewritten with `history.replaceState`, which Next's router syncs into
+   * `usePathname` / `useSearchParams` without a navigation, so the grid is not
+   * remounted and re-fetched on every chip. A reload, a link or a crawler
+   * lands on `[root]/[sub]`, which renders this same component.
    */
-  const activeSubcat = searchParams.get('sub')
+  const activeSubcat = subcategoryFromPath(pathname)
 
   const setActiveSubcat = useCallback((slug: string | null) => {
     const next = new URLSearchParams(searchParams.toString())
-    if (slug) next.set('sub', slug)
-    else next.delete('sub')
     // PAN-140: attribute facets belong to one leaf. Changing the leaf drops
     // them, so no filter can stay in force without a chip showing it.
     for (const key of Object.keys(PRODUCT_ATTRIBUTE_FACETS)) next.delete(key)
     const qs = next.toString()
-    router.replace(`/browse/${params.root}${qs ? `?${qs}` : ''}`, { scroll: false })
+    const path = slug ? subcategoryHref(params.root, slug) : `/browse/${params.root}`
+    window.history.replaceState(null, '', `${path}${qs ? `?${qs}` : ''}`)
     if (slug) track('filter_applied', { root: params.root, sub: slug, facet_key: 'sub', facet_value: slug })
-  }, [params.root, router, searchParams])
+  }, [params.root, searchParams])
 
   /**
    * PAN-140 — attribute facets live in the URL too, one param per axis
-   * (`?sub=microphones&circuit=tube`), for the same three reasons `?sub=` does:
-   * linkable, undone by Back, kept on reload. Same `replace` + `scroll: false`.
+   * (`/pro-audio/microphones?circuit=tube`), for the same three reasons the kind is:
+   * linkable, kept on reload. Same in-place `history.replaceState`.
    */
   const setFacet = useCallback((key: FacetKey, value: string | null) => {
     const next = new URLSearchParams(searchParams.toString())
     if (value) next.set(key, value)
     else next.delete(key)
     const qs = next.toString()
-    router.replace(`/browse/${params.root}${qs ? `?${qs}` : ''}`, { scroll: false })
+    window.history.replaceState(null, '', `${pathname}${qs ? `?${qs}` : ''}`)
     if (value) {
       // Facet chips only render under a resolved kind, so `sub` is its display slug.
-      const sub = searchParams.get('sub')
       track('filter_applied', {
         root: params.root,
-        sub: sub ? displaySubcategorySlug(params.root, sub) : null,
+        sub: activeSubcat ? displaySubcategorySlug(params.root, activeSubcat) : null,
         facet_key: key,
         facet_value: value,
       })
     }
-  }, [params.root, router, searchParams])
+  }, [activeSubcat, params.root, pathname, searchParams])
 
   useEffect(() => {
     fetch('/api/admin/me')
@@ -170,9 +179,7 @@ function BrowseCategoryPageInner() {
   }, [])
 
   function toggleDebug() {
-    router.push(debugEnabled
-      ? `/browse/${params.root}`
-      : `/browse/${params.root}?debug=1`)
+    router.push(debugEnabled ? pathname : `${pathname}?debug=1`)
   }
 
   /**
@@ -201,7 +208,7 @@ function BrowseCategoryPageInner() {
   useEffect(() => {
     if (!params.root) return
     // No `setActiveSubcat(null)` here any more: the URL owns the facet, and a
-    // different root is a different URL that carries no `?sub=`. Resetting it
+    // different root is a different URL that carries no kind. Resetting it
     // from an effect would now mean a router write on every page load.
     setLoading(true)
     setError(null)
@@ -223,8 +230,8 @@ function BrowseCategoryPageInner() {
    * PAN-141 — the chips are in the sidebar's order, by `sortKindsByLabel`:
    * alphabetical by the label shown, so a group sorts under its own label.
    *
-   * `activeSub` is `?sub=` resolved the same way, so an old
-   * `?sub=analog-synths` link selects the group instead of half of it.
+   * `activeSub` is the path's kind resolved the same way, so an old
+   * `/analog-synths` link selects the group instead of half of it.
    */
   const activeSub = activeSubcat ? displaySubcategorySlug(params.root, activeSubcat) : null
 
@@ -374,7 +381,7 @@ function BrowseCategoryPageInner() {
 
         {/* Subcategory filter chips. The one in force is where the visitor IS,
             so it takes `--here` (PAN-121) — the same colour the sidebar row
-            uses for the same `?sub=`. It used to be
+            uses for the same kind. It used to be
             an inverted solid fill, the loudest thing on the page for the
             quietest fact on it.
 

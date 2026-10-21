@@ -22,7 +22,7 @@ const product = (slug: string, model_name: string): Product => ({
   id: `p-${slug}`, slug, canonical_name: `Neumann ${model_name}`, model_name, brand_name: 'neumann',
   status: 'active', support_state: 'supported',
 })
-const CE = 'neumann-neumann-u47-fet-collectors-edition'
+const CE = 'neumann-u47-fet-collectors-edition'
 
 const products = [
   product('neumann-u87ai', 'U 87 Ai'),

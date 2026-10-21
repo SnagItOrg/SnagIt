@@ -48,7 +48,7 @@ const config: RematchConfig = {
     'gibson-firebird-platypus', 'gibson-firebird-studio', 'gibson-firebird-vii', 'gibson-flying-v',
     'gibson-flying-v-67', 'gibson-flying-v-custom', 'gibson-flying-v2', 'gibson-g-200-ec',
     'gibson-g-45', 'gibson-g-45-studio', 'gibson-gary-clark-jr-es-355',
-    'gibson-gibson-j-45-standard-12-string', 'gibson-gibson-l-00-original', 'gibson-hp-665',
+    'gibson-j-45-standard-12-string', 'gibson-l-00-original', 'gibson-hp-665',
     'gibson-hummingbird-original', 'gibson-hummingbird-special',
     'gibson-hummingbird-standard-rosewood', 'gibson-hummingbird-studio-ec',
     'gibson-hummingbird-studio-rosewood', 'gibson-j-185', 'gibson-j-185-century-12-fret',

@@ -10,6 +10,9 @@ import {
 } from '@/lib/catalogue'
 import { fetchAllPages } from '@/lib/exhaustive-fetch'
 import { NAVIGATION_FAMILIES, buildFamilyView, type FamilyChildRow } from '@/lib/families'
+import { BRAND_WALLS } from '@/lib/brand-walls'
+import { subcategoryHref } from '@/lib/catalogue-tree'
+import { EXCLUDED_ROOT_SLUGS } from '@/lib/home-categories'
 import { SITE_URL } from '@/lib/site-metadata'
 
 /**
@@ -22,7 +25,11 @@ import { SITE_URL } from '@/lib/site-metadata'
  *   /browse            the catalogue index
  *   /browse/<root>     every populated root, from the catalogue tree the
  *                      sidebar is built from (`cachedCatalogueTree`)
+ *   /browse/<root>/<kind>  every kind of that tree (PAN-289)
  *   /family/<slug>     a family `buildFamilyView` publishes (≥1 canonical child)
+ *   /brand/<brand>     a brand with ≥1 canonical model (PAN-289)
+ *   /brand/<brand>/<kind>  a reviewed brand wall with ≥1 canonical model in
+ *                      its leaf — the wall's own `published` threshold
  *   /product/<slug>    a product `isCanonical()` admits
  *
  * The product rows are read the way the product layout's gate reads one slug,
@@ -37,7 +44,14 @@ import { SITE_URL } from '@/lib/site-metadata'
  */
 export const dynamic = 'force-dynamic'
 
-async function loadCatalogueRows(): Promise<FamilyChildRow[]> {
+/** A catalogue row plus the three projection slugs the brand entries are decided from. */
+type SitemapRow = FamilyChildRow & {
+  brand_slug: string | null
+  root_category_slug: string | null
+  subcategory_slug: string | null
+}
+
+async function loadCatalogueRows(): Promise<SitemapRow[]> {
   const admin = getSupabaseAdmin()
 
   // Paged to exhaustion: PostgREST caps a request at 1,000 rows without
@@ -67,7 +81,7 @@ async function loadCatalogueRows(): Promise<FamilyChildRow[]> {
     async (from, to) => {
       const res = await admin
         .from('browse_product_projection')
-        .select('slug, browse_domain')
+        .select('slug, browse_domain, brand_slug, root_category_slug, subcategory_slug')
         .in('slug', slugs)
         .order('slug', { ascending: true })
         .range(from, to)
@@ -75,25 +89,50 @@ async function loadCatalogueRows(): Promise<FamilyChildRow[]> {
           throw new CatalogueUnavailableError('sitemap_projection_transport')
         })
       if (res.error) throw new CatalogueUnavailableError('sitemap_projection_lookup')
-      return (res.data ?? []) as Array<{ slug: string; browse_domain: string | null }>
+      return (res.data ?? []) as Array<{
+        slug: string
+        browse_domain: string | null
+        brand_slug: string | null
+        root_category_slug: string | null
+        subcategory_slug: string | null
+      }>
     },
     (row) => row.slug,
   )
 
-  const domainBySlug = new Map(projection.rows.map((row) => [row.slug, row.browse_domain]))
-  return products.rows.map((p) => ({ ...p, browse_domain: domainBySlug.get(p.slug) ?? null }))
+  const projectionBySlug = new Map(projection.rows.map((row) => [row.slug, row]))
+  return products.rows.map((p) => {
+    const row = projectionBySlug.get(p.slug)
+    return {
+      ...p,
+      browse_domain: row?.browse_domain ?? null,
+      brand_slug: row?.brand_slug ?? null,
+      root_category_slug: row?.root_category_slug ?? null,
+      subcategory_slug: row?.subcategory_slug ?? null,
+    }
+  })
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [rows, tree] = await Promise.all([loadCatalogueRows(), cachedCatalogueTree()])
+  // The brand page's own rule (lib/browse.ts `buildBrandPageResponse`): an excluded root holds no page.
+  const canonical = rows.filter((row) => isCanonical(row) && !EXCLUDED_ROOT_SLUGS.has(row.root_category_slug ?? ''))
+  const brands = Array.from(new Set(canonical.flatMap((row) => (row.brand_slug ? [row.brand_slug] : [])))).sort()
 
   const paths = [
     '',
     '/browse',
-    ...tree.categories.map((root) => `/browse/${root.slug}`),
+    ...tree.categories.flatMap((root) => [
+      `/browse/${root.slug}`,
+      ...root.subcategories.map((kind) => subcategoryHref(root.slug, kind.slug)),
+    ]),
     ...NAVIGATION_FAMILIES
       .filter((family) => buildFamilyView(family, rows).published)
       .map((family) => `/family/${family.slug}`),
+    ...brands.map((brand) => `/brand/${brand}`),
+    ...BRAND_WALLS
+      .filter((wall) => canonical.some((row) => row.brand_slug === wall.brand && row.subcategory_slug === wall.leaf))
+      .map((wall) => `/brand/${wall.brand}/${wall.kind}`),
     ...rows.filter(isCanonical).map((row) => `/product/${row.slug}`),
   ]
 

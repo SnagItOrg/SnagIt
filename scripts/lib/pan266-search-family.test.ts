@@ -22,7 +22,7 @@ const row = (slug: string, canonical_name: string, model_name: string, brand: st
 
 const INDEX = buildSearchIndex(
   [
-    row('roland-SP-404', 'Roland SP-404', 'SP-404', 'Roland'),
+    row('roland-sp-404', 'Roland SP-404', 'SP-404', 'Roland'),
     row('roland-sp-404-mkii', 'Roland SP-404 MkII', 'SP-404MKII', 'Roland'),
     row('roland-sp-404sx', 'Roland SP-404SX', 'SP-404SX', 'Roland'),
     row('roland-sp-404a', 'Roland SP-404A', 'SP-404A', 'Roland'),

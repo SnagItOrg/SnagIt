@@ -212,6 +212,7 @@ export function surfaceFor(template: string): AnalyticsSurface {
     case '/browse':
       return 'browse_root'
     case '/browse/[root]':
+    case '/browse/[root]/[sub]':
       return 'browse_leaf'
     case '/product/[slug]':
       return 'product'
