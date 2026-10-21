@@ -903,6 +903,247 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     ],
     aliases: [],
   },
+  /*
+   * PAN-284 — owner decision 2026-10-21, after the audit's shared-prefix check
+   * listed 31 brand/prefix groups with no family: a Roland line prefix is a
+   * family, the way the Boss CE / DM / DS pedals are. Eleven lines. Members
+   * are the supported rows of the line at any visibility, SELECT-verified
+   * 2026-10-21; a non-canonical member simply does not render. Navigation
+   * only, like `roland-juno`: none of these slugs is a `kg_product` row and
+   * none may become one, and the family never aggregates prices. No aliases:
+   * the slug and the label give the keys, and a bare prefix would capture
+   * queries for other Roland gear.
+   *
+   * SH is the one line with an owner-named exception: `roland-sh-01-gaia`
+   * (2010) is not in it — decades from the SH-101 — and stays its own page.
+   * The SH-201 and SH-32 (2000s digital) are left out on the same reasoning;
+   * both are qa_only, so nothing renders either way. SP-404 is the sampler
+   * line only, not the SP-808; the original's row keeps its `roland-SP-404`
+   * slug here because that is the slug the row has.
+   */
+  'roland-tr': {
+    label: 'Roland TR',
+    brand: 'Roland',
+    categoryRoot: 'keyboards-and-synths',
+    children: [
+      'roland-tr-606', 'roland-tr-626', 'roland-tr-707', 'roland-tr-727', 'roland-tr-808', 'roland-tr-909',
+      'roland-tr-06', 'roland-tr-08', 'roland-tr-09', 'roland-tr-8s',
+    ],
+    aliases: [],
+  },
+  'roland-sh': {
+    label: 'Roland SH',
+    brand: 'Roland',
+    categoryRoot: 'keyboards-and-synths',
+    children: [
+      'roland-sh-1000', 'roland-sh-2000', 'roland-sh-3a', 'roland-sh-5', 'roland-sh-7', 'roland-sh-1', 'roland-sh-09',
+      'roland-sh-2', 'roland-sh-101', 'roland-sh-01a',
+    ],
+    aliases: [],
+  },
+  'roland-jx': {
+    label: 'Roland JX',
+    brand: 'Roland',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['roland-jx-3p', 'roland-jx-8p', 'roland-jx-10', 'roland-jx-1', 'roland-jx-305', 'roland-jx-03', 'roland-jx-08'],
+    aliases: [],
+  },
+  'roland-cr': {
+    label: 'Roland CR',
+    brand: 'Roland',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['roland-cr-68', 'roland-cr-78', 'roland-cr-8000'],
+    aliases: [],
+  },
+  'roland-mc': {
+    label: 'Roland MC',
+    brand: 'Roland',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['roland-mc-202', 'roland-mc-303', 'roland-mc-307', 'roland-mc-505', 'roland-mc-09', 'roland-mc-808', 'roland-mc-909'],
+    aliases: [],
+  },
+  'roland-jv': {
+    label: 'Roland JV',
+    brand: 'Roland',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['roland-jv-30', 'roland-jv-880', 'roland-jv-90', 'roland-jv-1000', 'roland-jv-1010', 'roland-jv-1080', 'roland-jv-2080'],
+    aliases: [],
+  },
+  'roland-xp': {
+    label: 'Roland XP',
+    brand: 'Roland',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['roland-xp-10', 'roland-xp-30', 'roland-xp-50', 'roland-xp-60', 'roland-xp-80'],
+    aliases: [],
+  },
+  'roland-jd': {
+    label: 'Roland JD',
+    brand: 'Roland',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['roland-jd-800', 'roland-jd-990', 'roland-jd-xa', 'roland-jd-08'],
+    aliases: [],
+  },
+  'roland-fantom': {
+    label: 'Roland Fantom',
+    brand: 'Roland',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['roland-fantom-s', 'roland-fantom-x6', 'roland-fantom-x8', 'roland-fantom-xa'],
+    aliases: [],
+  },
+  'roland-sp-404-sampler': {
+    label: 'Roland SP-404 Sampler',
+    brand: 'Roland',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['roland-SP-404', 'roland-sp-404sx', 'roland-sp-404a', 'roland-sp-404-mkii'],
+    aliases: [],
+  },
+  'roland-jazz-chorus': {
+    label: 'Roland Jazz Chorus',
+    brand: 'Roland',
+    categoryRoot: 'amps',
+    children: ['roland-jc-120', 'roland-jc-120h', 'roland-jc-85', 'roland-jc-22'],
+    aliases: [],
+  },
+  /*
+   * PAN-284 — owner decision 2026-10-21: one family per guitar model that has
+   * variants, thirteen in all. The label carries the body style (the members'
+   * taxonomy leaf, as `minimoog` carries its leaf) so it is never a child's
+   * own name. Members SELECT-verified supported 2026-10-21, any visibility.
+   *
+   * Left out, and named here so nobody adds them back by accident: the two
+   * rows whose slug repeats the brand, `gibson-gibson-j-45-standard-12-string`
+   * and `gibson-gibson-l-00-original` (each is the only row for its model, so
+   * it joins once renamed, not before); `gibson-j-55`, which is neither a J-35
+   * nor a J-45; the archtops `gibson-l-4c` / `gibson-l-7c`, which are not
+   * L-00s; `gibson-g-200-ec`, `martin-d-42-modern-deluxe` and
+   * `heritage-h-150`, each its own model. `heritage-custom-shop-core-h-535`
+   * is an H-535 and is in, prefix or not. Price never pools (CLAUDE.md §7).
+   */
+  'gibson-j-45-dreadnought': {
+    label: 'Gibson J-45 Dreadnought',
+    brand: 'Gibson',
+    categoryRoot: 'acoustic-guitars',
+    children: [
+      'gibson-j-45', 'gibson-j-45-special', 'gibson-j-45-standard-rosewood', 'gibson-j-45-studio-rosewood',
+      'gibson-j-45-studio-walnut', 'gibson-j-45-century-12-fret',
+    ],
+    aliases: [],
+  },
+  'gibson-j-185-jumbo': {
+    label: 'Gibson J-185 Jumbo',
+    brand: 'Gibson',
+    categoryRoot: 'acoustic-guitars',
+    children: ['gibson-j-185', 'gibson-j-185-original', 'gibson-j-185-century-12-fret'],
+    aliases: [],
+  },
+  'gibson-j-35-acoustic': {
+    label: 'Gibson J-35 Acoustic',
+    brand: 'Gibson',
+    categoryRoot: 'acoustic-guitars',
+    children: ['gibson-j-35', 'gibson-j-35-30s-faded'],
+    aliases: [],
+  },
+  'gibson-sj-200-jumbo': {
+    label: 'Gibson SJ-200 Jumbo',
+    brand: 'Gibson',
+    categoryRoot: 'acoustic-guitars',
+    children: [
+      'gibson-sj-200-standard', 'gibson-sj-200-standard-rosewood', 'gibson-sj-200-original', 'gibson-sj-200-60s-original',
+      'gibson-sj-200-studio-rosewood', 'gibson-sj-200-studio-walnut', 'gibson-sj-200-western-classic',
+      'gibson-sj-200-orianthi-signature',
+    ],
+    aliases: [],
+  },
+  'gibson-l-00-parlor': {
+    label: 'Gibson L-00 Parlor',
+    brand: 'Gibson',
+    categoryRoot: 'acoustic-guitars',
+    children: ['gibson-l-00-standard', 'gibson-l-00-century-12-fret'],
+    aliases: [],
+  },
+  'gibson-lg-2-parlor': {
+    label: 'Gibson LG-2 Parlor',
+    brand: 'Gibson',
+    categoryRoot: 'acoustic-guitars',
+    children: ['gibson-lg-2', 'gibson-lg-2-3-4', 'gibson-lg-2-all-mahogany-faded', 'gibson-lg-2-american-eagle'],
+    aliases: [],
+  },
+  'gibson-g-45-dreadnought': {
+    label: 'Gibson G-45 Dreadnought',
+    brand: 'Gibson',
+    categoryRoot: 'acoustic-guitars',
+    children: ['gibson-g-45', 'gibson-g-45-studio'],
+    aliases: [],
+  },
+  'martin-d-18-dreadnought': {
+    label: 'Martin D-18 Dreadnought',
+    brand: 'Martin',
+    categoryRoot: 'acoustic-guitars',
+    children: ['martin-d-18', 'martin-d-18-satin', 'martin-d-18-authentic-1937', 'martin-d-18-molly-tuttle'],
+    aliases: [],
+  },
+  'martin-d-28-dreadnought': {
+    label: 'Martin D-28 Dreadnought',
+    brand: 'Martin',
+    categoryRoot: 'acoustic-guitars',
+    children: ['martin-d-28', 'martin-d-28-satin', 'martin-d-28-modern-deluxe', 'martin-d-28-authentic-1937', 'martin-d-28-billy-strings'],
+    aliases: [],
+  },
+  'martin-om-28-auditorium': {
+    label: 'Martin OM-28 Auditorium',
+    brand: 'Martin',
+    categoryRoot: 'acoustic-guitars',
+    children: ['martin-om-28', 'martin-om-28-modern-deluxe'],
+    aliases: [],
+  },
+  'guild-d-55-dreadnought': {
+    label: 'Guild D-55 Dreadnought',
+    brand: 'Guild',
+    categoryRoot: 'acoustic-guitars',
+    children: ['guild-d-55', 'guild-d-55e'],
+    aliases: [],
+  },
+  'heritage-h-535-semi-hollow': {
+    label: 'Heritage H-535 Semi-Hollow',
+    brand: 'Heritage',
+    categoryRoot: 'electric-guitars',
+    children: ['heritage-h-535', 'heritage-h-535-artisan-aged', 'heritage-custom-shop-core-h-535'],
+    aliases: [],
+  },
+  'soldano-slo-100-amp': {
+    label: 'Soldano SLO-100 Amp',
+    brand: 'Soldano',
+    categoryRoot: 'amps',
+    children: ['soldano-slo-100', 'soldano-slo-100-custom-shop'],
+    aliases: [],
+  },
+  /*
+   * PAN-284 — owner decision 2026-10-21: the keyboard and its desktop module
+   * are one family (the `sequential-prophet` pattern), and the OB-X and OB-Xa
+   * are one line. The two Oberheim rows are the only supported OB rows
+   * (SELECT 2026-10-21). Labels carry "Synth" so none is a child's name.
+   */
+  'sequential-ob-6-synth': {
+    label: 'Sequential OB-6 Synth',
+    brand: 'Sequential',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['sequential-ob-6', 'sequential-ob-6-desktop'],
+    aliases: [],
+  },
+  'sequential-trigon-6-synth': {
+    label: 'Sequential Trigon-6 Synth',
+    brand: 'Sequential',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['sequential-trigon-6', 'sequential-trigon-6-desktop'],
+    aliases: [],
+  },
+  'oberheim-ob-x-synth': {
+    label: 'Oberheim OB-X Synth',
+    brand: 'Oberheim',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['oberheim-ob-x', 'oberheim-ob-xa'],
+    aliases: [],
+  },
   /**
    * PAN-286, owner decision 2026-10-21. Gibson's Maestro Fuzz-Tone of 1962,
    * the first fuzz pedal sold; three priced rows, by price (manager,

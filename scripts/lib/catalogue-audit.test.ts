@@ -225,13 +225,26 @@ test('family_candidate_shared_prefix: Martin D-18 / D-28 share "D" with no famil
     // One row is not a group; a qa_only row is not public and does not count.
     martin('martin-om-28', 'OM-28'), martin('martin-om-28-modern-deluxe', 'OM-28 Modern Deluxe'),
     boss('boss-sd-1', 'SD-1'), boss('boss-sd-1w', 'SD-1W', { browse_visibility: 'qa_only' }),
+    // Decided: no family. ampex:ATR is a whole-group entry; martin-d-42 is a per-slug one.
+    product({ slug: 'ampex-atr-102', model_name: 'ATR-102', brand_id: 'b-ampex', brand_slug: 'ampex', brand_name: 'Ampex' }),
+    product({ slug: 'ampex-atr-700', model_name: 'ATR-700', brand_id: 'b-ampex', brand_slug: 'ampex', brand_name: 'Ampex' }),
+    martin('martin-d-42-modern-deluxe', 'D-42 Modern Deluxe'),
   ] })
-  assert.deepEqual(findings(snap, 'family_candidate_shared_prefix').findings, [
+  const r = findings(snap, 'family_candidate_shared_prefix')
+  // martin:D (D-18, D-28) and martin:OM are the owner's families now; the D-42 is excepted per slug and nothing is left.
+  assert.deepEqual(r.findings, [
     { key: 'boss:DM', detail: '2 public rows, 1 outside a family: boss-dm-3' },
-    { key: 'martin:D', detail: '2 public rows, none in a family: martin-d-18, martin-d-28' },
-    { key: 'martin:OM', detail: '2 public rows, none in a family: martin-om-28, martin-om-28-modern-deluxe' },
   ])
-  assert.deepEqual(CHECKS.find((c) => c.id === 'family_candidate_shared_prefix')!.allow, [], 'the manager triages the first run')
+  assert.deepEqual(r.allowed.map((a) => `${a.key}=${a.by}`), ['ampex:ATR=PAN-284'])
+
+  // Before the family existed, the D-18 / D-28 group was a finding and the per-slug exception
+  // still kept the D-42 out of it — the fixture is a `martin:D` row set with no family coverage.
+  const check = CHECKS.find((c) => c.id === 'family_candidate_shared_prefix')!
+  for (const a of check.allow) {
+    assert.match(a.key, /^[a-z0-9-]+:[A-Z]+(\/[a-z0-9-]+)?$/, a.key)
+    assert.ok(a.reason && a.reason.length > 5, `${a.key} says what was decided`)
+  }
+  assert.ok(check.allow.some((a) => a.key === 'roland:SH/roland-sh-01-gaia'), 'the owner\'s SH exception')
 })
 
 /* ── Matches ───────────────────────────────────────────────────────────── */
