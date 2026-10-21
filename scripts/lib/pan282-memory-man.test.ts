@@ -106,9 +106,15 @@ test('the 1100-TT, 550-TT, XO and Nano carry their names in every spelling Rever
 })
 
 test('the four "Deluxe Memory Man" rows are told apart by their era, and a bare one names no row', () => {
-  // Vintage: a year of its run, "vintage", a face or an EH model number (owner, 2026-10-21). Synthetic: no vintage
-  // title is live today; the forms follow the Reverb page title and the model-number spellings collectors write.
-  matches("Vintage '70s Electro-Harmonix Deluxe Memory Man", 'ehx-deluxe-memory-man-vintage')
+  // Vintage: a year of its run, "vintage", a face or finish, or an EH model number (owner, 2026-10-21). The first four
+  // are Reverb titles live on 2026-10-21 (owner's screenshot; none is in `listings` yet); "4 knobs" is the unit's
+  // layout, not a knob for sale.
+  matches('Electro Harmonix deluxe memory man vintage 4 knobs', 'ehx-deluxe-memory-man-vintage')
+  matches('Electro-Harmonix Deluxe Memory Man 1977 - Silver / Blue', 'ehx-deluxe-memory-man-vintage')
+  matches('Electro-Harmonix Deluxe Memory Man 1976 - 1978 - Silver / Blue', 'ehx-deluxe-memory-man-vintage')
+  matches('Electro-Harmonix DELUXE MEMORY MAN 1977', 'ehx-deluxe-memory-man-vintage')
+  matches("Vintage '70s Electro-Harmonix Deluxe Memory Man", 'ehx-deluxe-memory-man-vintage')  // the Reverb page title
+  matches('Electro-Harmonix Deluxe Memory Man Silver / Blue', 'ehx-deluxe-memory-man-vintage')  // synthetic: the finish alone
   matches('Electro-Harmonix Deluxe Memory Man 1978 Blue Face SAD1024', 'ehx-deluxe-memory-man-vintage')
   matches('Electro-Harmonix EH-7850 Deluxe Memory Man 1981 black face', 'ehx-deluxe-memory-man-vintage')
   matches('Electro Harmonix Deluxe Memory Man EH 7550 squelch', 'ehx-deluxe-memory-man-vintage')

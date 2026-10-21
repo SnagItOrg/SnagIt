@@ -1226,8 +1226,18 @@ const strymonMx = (line: string): LineBoundary => ({ line, requires: STRYMON_MX,
 const MM_VINTAGE: readonly RegExp[] = [
   yearCue(1970, 1989), DECADE_70S_80S,
   ...cues('vintage', 'blue face', 'blueface', 'silver face', 'silverface', 'black face', 'blackface', 'sad1024', 'sad 1024', 'reticon', 'squelch'),
+  // Reverb's finish for the '70s unit: "1977 - Silver / Blue" (owner's screenshot, 2026-10-21).
+  /(?<![\w-])(?:silver\s*\/\s*blue|blue\s*\/\s*silver)(?![\w-])/i,
   /(?<![\w-])eh[-\s]?(?:7500|7550|7810|7850|1307|1309|1338|1343)[a-c]?(?![\w-])/i,
   /(?<![\w-])(?:7550|7850)[a-c]?(?![\w-])/i,
+]
+/**
+ * The pedal trade's extras, except that a knob COUNT is how a seller tells the four-knob SAD1024 unit from the
+ * five-knob MN3005 one ("deluxe memory man vintage 4 knobs", Reverb 2026-10-21): a knob not preceded by a count
+ * is still a knob for sale ("Black Knob for Hot Tubes, Hot Wax, MEL9, Deluxe Memory Man XO").
+ */
+const MM_EXTRAS: readonly (string | RegExp)[] = [
+  ...PEDAL_EXTRAS.filter((noun) => noun !== 'knob' && noun !== 'knobs'), /(?<![\w-])(?<!\d[\s-])knobs?(?![\w-])/i,
 ]
 /** The 1996–2007 reissue: its years, "reissue", the "big box" collectors call it, and the EC 2000 / EC 2002 boards. */
 const MM_REISSUE: readonly RegExp[] = [
@@ -1247,7 +1257,7 @@ const MM_HAZARAI: readonly RegExp[] = cues('hazarai', 'smmh', 'stereo')
 const MM_SMALL: readonly RegExp[] = cues('boy', 'toy')
 /** A Memory Man row: the line's other members and the pedal trade's extras refuse; `requires` is the row's era cue. */
 const memoryMan = (requires: readonly RegExp[] | undefined, ...others: (readonly RegExp[])[]): LineBoundary => ({
-  line: 'memory-man', otherMembers: [...PEDAL_NEVER, ...others.flat()], accessories: PEDAL_EXTRAS, ...(requires ? { requires } : {}),
+  line: 'memory-man', otherMembers: [...PEDAL_NEVER, ...others.flat()], accessories: MM_EXTRAS, ...(requires ? { requires } : {}),
 })
 
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
