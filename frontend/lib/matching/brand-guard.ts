@@ -95,6 +95,10 @@ const CHILD_TO_PARENTS = new Map<string, readonly string[]>(
 export const SAME_MAKER: readonly (readonly string[])[] = [
   // Sequential Circuits (1974–87), Dave Smith Instruments (2002–18), Sequential (2018–).
   ['sequential', 'sequential circuits', 'dave smith instruments', 'dave smith', 'dsi'],
+  // PAN-280: the pedals carry "EarthQuaker Devices" and "EQD"; sellers write "Earthquaker Dispatch Master" (DBA, 2026-10-20).
+  ['earthquaker devices', 'earthquaker', 'eqd'],
+  // PAN-280: "Chroma Console - Hologram Electronics" and "Hologram Microcosm" are one maker.
+  ['hologram electronics', 'hologram'],
 ]
 const MAKER_OF = new Map<string, string>()
 SAME_MAKER.forEach((group) => group.forEach((name) => MAKER_OF.set(name, group[0])))
