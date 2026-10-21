@@ -79,12 +79,21 @@ type Props = {
    * The id of the element that names this dialog. Required: see contract 2.
    */
   labelledBy: string
+  /**
+   * PAN-277. `alertdialog` for a confirmation of one consequential action:
+   * the role a screen reader announces as an interruption, and a click on the
+   * backdrop does nothing — only Escape or the dialog's own Cancel closes it.
+   * Astryx AlertDialog.spec.md FR1 and AR1 (facebook/astryx 684ca57).
+   */
+  role?: 'dialog' | 'alertdialog'
+  /** The id of the element that states the consequence; set it for `alertdialog`. */
+  describedBy?: string
   /** Classes for the panel. The caller owns its shape; this file owns its behaviour. */
   panelClassName?: string
   children: React.ReactNode
 }
 
-export function Dialog({ open, onClose, labelledBy, panelClassName = '', children }: Props) {
+export function Dialog({ open, onClose, labelledBy, role = 'dialog', describedBy, panelClassName = '', children }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
   const returnFocusTo = useRef<HTMLElement | null>(null)
   // 'entering' for one frame so the enter transition has a value to move FROM.
@@ -186,15 +195,16 @@ export function Dialog({ open, onClose, labelledBy, panelClassName = '', childre
       <div
         className="dialog-backdrop fixed inset-0 bg-black/50 z-50"
         data-state={phase}
-        onClick={onClose}
+        onClick={role === 'alertdialog' ? undefined : onClose}
         aria-hidden="true"
       />
       <div className="fixed bottom-0 left-0 right-0 md:inset-0 md:flex md:items-center md:justify-center z-50 pointer-events-none">
         <div
           ref={panelRef}
-          role="dialog"
+          role={role}
           aria-modal="true"
           aria-labelledby={labelledBy}
+          aria-describedby={describedBy}
           data-state={phase}
           tabIndex={-1}
           onKeyDown={onKeyDown}

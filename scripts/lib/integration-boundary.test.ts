@@ -50,6 +50,9 @@ test('integration: every package suite is registered exactly once', () => {
   assert.deepEqual(
     [...suites].sort(),
     [
+      // PAN-277: deleting an account. Its own suite because it guards every
+      // migration — a new user table must be named in the deletion plan.
+      'scripts/lib/account-deletion.test.ts',
       'scripts/lib/admin-grouping-model.test.ts',
       // Added by the /admin/match classifier audit: reading the relevance
       // reply is where an operational failure was being rendered as the
