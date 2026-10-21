@@ -139,7 +139,7 @@ export async function generateMetadata(
 
   const title = fill(t.metaProductTitle, { name: product.canonical_name })
   const description =
-    (await bandDescription(slug)) ?? `${product.canonical_name} — ${t.headline}`
+    (await priceDescription(slug)) ?? `${product.canonical_name} — ${t.headline}`
   const url = `${SITE_URL}/product/${slug}`
 
   return {
@@ -151,35 +151,65 @@ export async function generateMetadata(
   }
 }
 
+/** The price block's own number format (components/PriceAnswer.tsx `kr`). */
+function kr(value: number): string {
+  return `${Math.round(value).toLocaleString('da-DK')} kr`
+}
+
 /**
- * PAN-288. "Typisk 12.500 kr brugt · 3 annoncer i Danmark nu", or null.
+ * PAN-288. The description states what the page's price block states, in the
+ * page's own words, or null for the old text.
  *
  * Read from the product route's own payload — the in-process call tjek-prisen
  * makes, served from the same one-minute `cachedCanonicalProduct` entry the
  * page's fetch fills — so the snippet can never state a number the page does
- * not. The median is stated only at tier 'band', the one tier the page calls
- * "typisk"; every other tier keeps the old description. {count} is the page's
- * own Danish split of the wall (`isHomeMarket`).
+ * not. Local first (CLAUDE.md §7): a Danish number always wins, tier by tier
+ * as `DanishMarketBlock` renders it:
+ *
+ *   band           "Typisk 12.500 kr brugt · 3 annoncer i Danmark nu" — the one
+ *                  tier the page calls "typisk"; {count} is the page's own
+ *                  Danish split of the wall (`isHomeMarket`)
+ *   median-only    the median under the block's heading and its PAN-265 line
+ *   listings-only  the observed Danish asking prices under "Udbudt i Danmark nu"
+ *
+ * Only with no Danish number at all does a Reverb band speak, under the heading
+ * its `ReferencePopulationBlock` carries — which names it international — and
+ * in the page's order, sold before asking. It can never read as a Danish price.
  */
-async function bandDescription(slug: string): Promise<string | null> {
+async function priceDescription(slug: string): Promise<string | null> {
   const res = await getProduct(new NextRequest(new URL(`/api/product/${slug}`, SITE_URL)), {
     params: Promise.resolve({ slug }),
   })
   if (!res.ok) return null
   const page = (await res.json()) as {
     listings: Array<{ source?: string | null; country?: string | null }>
-    populations: { 'dk-asking': PopulationStats }
+    populations: Record<'dk-asking' | 'reverb-sold' | 'reverb-asking', PopulationStats>
+    dkAskingPrices: number[]
   }
 
   const dk = page.populations['dk-asking']
-  if (dk.tier !== 'band' || dk.median == null) return null
+  if (dk.tier === 'band' && dk.median != null) {
+    const typical = fill(t.metaProductTypical, { price: kr(dk.median) })
+    const count = page.listings.filter(isHomeMarket).length
+    if (count === 0) return typical
+    return `${typical} · ${count === 1 ? t.metaProductListingsOne : fill(t.metaProductListings, { count })}`
+  }
+  if (dk.tier === 'median-only' && dk.median != null) {
+    return `${t.dkMarketHeading}: ${kr(dk.median)} · ${fill(t.dkMarketMedianDescriptive, { count: dk.nFiltered })}`
+  }
+  const observed = (page.dkAskingPrices ?? []).filter((p) => Number.isFinite(p) && p > 0)
+  if (dk.tier === 'listings-only' && observed.length > 0) {
+    return `${t.dkMarketAskingNow}: ${observed.map(kr).join(' · ')}`
+  }
 
-  const typical = fill(t.metaProductTypical, {
-    price: `${Math.round(dk.median).toLocaleString('da-DK')} kr`,
-  })
-  const count = page.listings.filter(isHomeMarket).length
-  if (count === 0) return typical
-  return `${typical} · ${count === 1 ? t.metaProductListingsOne : fill(t.metaProductListings, { count })}`
+  for (const [key, heading] of [
+    ['reverb-sold', t.reverbSoldHeading],
+    ['reverb-asking', t.reverbAskingHeading],
+  ] as const) {
+    const stats = page.populations[key]
+    if (stats.tier === 'band' && stats.median != null) return `${heading}: ${kr(stats.median)}`
+  }
+  return null
 }
 
 export default async function ProductSegmentLayout({
