@@ -19,7 +19,7 @@
 import { isCanonical, type CatalogueStateRow } from '../../frontend/lib/catalogue'
 import { publicationRefusal } from '../../frontend/lib/publication'
 import { resolveProductImage } from '../../frontend/lib/product-image-source'
-import { NAVIGATION_FAMILIES, buildFamilyView, type FamilyChildRow } from '../../frontend/lib/families'
+import { NAVIGATION_FAMILIES, buildFamilyView, familyForChild, type FamilyChildRow } from '../../frontend/lib/families'
 import { LINE_BOUNDARIES, isMatchableProduct } from '../../frontend/lib/matching/match-listings'
 
 /** One supported + active `kg_product` row, joined with its projection row and its brand. */
@@ -77,6 +77,8 @@ export interface AllowEntry {
   key: string
   /** The ticket that decided the exception, or the reason when no ticket did. */
   by: string
+  /** What was decided, when the ticket alone does not say ("decided: no family"). */
+  reason?: string
 }
 
 export interface Check {
@@ -177,6 +179,36 @@ function familyFindings(products: AuditProduct[]): { labelEqualsChild: Finding[]
     }
   }
   return { labelEqualsChild, noCanonicalChild }
+}
+
+/** The letter run before the first hyphen of a model name: DS-1 / DS-1X / DS-2 → "DS"; "Model D" → null. */
+export function modelPrefix(modelName: string | null | undefined): string | null {
+  const m = /^([A-Za-z]+)-/.exec((modelName ?? '').trim())
+  return m ? m[1].toUpperCase() : null
+}
+
+/**
+ * Owner, 2026-10-21: "hvis de har samme model prefix, så er de nok i familie." Public rows of one
+ * brand that share a prefix and are not all in a family — a group with no family, or the members
+ * a family leaves out. Membership is `familyForChild()`, the reviewed configuration itself.
+ */
+function sharedPrefixCandidates(products: AuditProduct[]): Finding[] {
+  const groups = new Map<string, AuditProduct[]>()
+  for (const p of products) {
+    const prefix = modelPrefix(p.model_name)
+    if (!canonical(p) || !prefix) continue
+    const key = `${p.brand_slug ?? '?'}:${prefix}`
+    groups.set(key, [...(groups.get(key) ?? []), p])
+  }
+  const out: Finding[] = []
+  for (const [key, rows] of groups) {
+    if (rows.length < 2) continue
+    const uncovered = rows.filter((p) => familyForChild(p.slug) === null).map((p) => p.slug).sort()
+    if (uncovered.length === 0) continue
+    const where = uncovered.length === rows.length ? 'none in a family' : `${uncovered.length} outside a family`
+    out.push({ key, detail: `${rows.length} public rows, ${where}: ${uncovered.join(', ')}` })
+  }
+  return out
 }
 
 function brandMismatches(s: AuditSnapshot): Finding[] {
@@ -312,6 +344,15 @@ export const CHECKS: readonly Check[] = [
         .sort((a, b) => (publicN.get(b.slug) ?? 0) - (publicN.get(a.slug) ?? 0) || a.slug.localeCompare(b.slug))
         .map((c) => ({ key: c.slug, detail: `"${c.name_en}", ${publicN.get(c.slug)} public product${publicN.get(c.slug) === 1 ? '' : 's'}` }))
     },
+  },
+  {
+    id: 'family_candidate_shared_prefix',
+    title: 'Offentlige rækker af ét mærke med samme model-prefix (DS-1, DS-2 …) uden en familie',
+    severity: 'warn',
+    // An entry here is "decided: no family" — `by` the ticket, `reason` what was decided. Empty until
+    // the manager has triaged the first run (PAN-284).
+    allow: [],
+    run: (s) => sharedPrefixCandidates(s.products),
   },
   {
     id: 'family_without_canonical_child',

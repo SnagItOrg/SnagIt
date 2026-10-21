@@ -56,7 +56,7 @@ const GUITAR_FAMILIES = [
 ]
 
 /** The two Boss lines (PAN-141). Navigation-only, like `rhodes`. */
-const BOSS_FAMILIES = ['boss-ce-chorus', 'boss-dm-delay']
+const BOSS_FAMILIES = ['boss-ce-chorus', 'boss-dm-delay', 'boss-ds-distortion']
 
 /** PAN-159 Tier 1. The last two are guarded line-label rows; the rest have no row. */
 const PAN159_FAMILIES = [
@@ -320,6 +320,8 @@ test('families: children match the reviewed §6.3 map', () => {
     // `boss-boss-ceb-3-bass-chorus` are never members.
     'boss-ce-chorus': ['boss-ce-1', 'boss-ce-2', 'boss-ce-2w', 'boss-ce-3', 'boss-ce-5'],
     'boss-dm-delay': ['boss-dm-2', 'boss-dm-2w'],
+    // PAN-284. SELECT-verified active+supported+public+music on 2026-10-21.
+    'boss-ds-distortion': ['boss-ds-1', 'boss-ds-1x', 'boss-ds-2'],
     // PAN-154. The existing clean rows, SELECT-verified active on 2026-09-26;
     // only `moog-minimoog` is canonical today. The duplicates
     // `moog-minimoog-model-d` and `moog-minimoog-model-d-reissue` are never
@@ -506,8 +508,8 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   // `gibson-sg` (PAN-198) is the Jazzmaster case: a `known` + `qa_only` row.
   // `moogerfooger` (PAN-199), `neumann-u87-condenser` and `universal-audio-1176`
   // (PAN-230), `fender-blues-junior-amp` (PAN-261), `bach-stradivarius` (PAN-271) and `memory-man` (PAN-282) are the
-  // `rhodes` case: no row.
-  assert.equal(EXPECTED_FAMILIES.length, 25)
+  // `rhodes` case: no row. So is `boss-ds-distortion` (PAN-284).
+  assert.equal(EXPECTED_FAMILIES.length, 26)
 })
 
 test('redirects: nothing else is redirected', () => {
