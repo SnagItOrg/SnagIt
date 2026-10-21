@@ -118,6 +118,23 @@ export async function sendFeedbackEmail(
 }
 
 /**
+ * PAN-284: the nightly catalogue audit's report, sent only when a finding is new, changed or fixed
+ * (scripts/catalogue-audit.ts decides; silence means clean). The idempotency key names the run.
+ */
+export async function sendCatalogueAuditEmail(to: string, report: string, ranAt: string) {
+  const { error } = await getResend().emails.send(
+    {
+      from: process.env.RESEND_FROM_EMAIL!,
+      to,
+      subject: `Klup catalogue audit: ${report.split('\n')[0].replace('[catalogue-audit] ', '')}`,
+      text: report,
+    },
+    { idempotencyKey: `catalogue-audit/${ranAt}` },
+  )
+  if (error) throw new Error(`resend_rejected:${error.name}`)
+}
+
+/**
  * PAN-258: the nightly scrape did not run for these sources. Sent once per
  * incident (missedNight() in scrape-freshness.ts decides); the idempotency key
  * names the incident, so a retried request inside Resend's 24 h window cannot

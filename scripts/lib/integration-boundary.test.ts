@@ -69,6 +69,11 @@ test('integration: every package suite is registered exactly once', () => {
       // --public-only scopes it to what a public page counts.
       'scripts/lib/ai-validate-scope.test.ts',
       'scripts/lib/baseline.test.ts',
+      // PAN-284: the nightly catalogue audit. Its own suite because every
+      // check is a rule the owner used to verify by hand, and a check that
+      // silently stopped finding its lapse is the failure mode the audit
+      // exists to end.
+      'scripts/lib/catalogue-audit.test.ts',
       'scripts/lib/data-presentation.test.ts',
       // PAN-262: the historical backfill's cohort must be a total order, or
       // its --max cut and its selection md5 change between dry run and apply.
