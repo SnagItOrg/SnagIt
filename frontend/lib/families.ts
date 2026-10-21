@@ -905,19 +905,20 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
   },
   /**
    * PAN-286, owner decision 2026-10-21. Gibson's Maestro Fuzz-Tone of 1962,
-   * the first fuzz pedal sold; three priced rows follow Reverb's pages: the
-   * FZ-1A (1965–67, germanium), the FZ-1B (1968, Moog's silicon circuit)
-   * and the FZ-1S Super-Fuzz ('70s). The 1962 FZ-1 itself has no Reverb
-   * page and no row; the 2022 FZ-M relaunch is out of scope. Navigation
-   * only, like `minimoog`: the family never aggregates their prices. Inert
-   * until the owner's public step makes a child canonical. "fuzztone" is how
-   * sellers run the word together.
+   * the first fuzz pedal sold; three priced rows, by price (manager,
+   * 2026-10-21): the 1962 FZ-1 (its own price class, no Reverb page — a row
+   * without a CSP, like the vintage Rhodes once), the FZ-1A / FZ-1B
+   * (1965–70, one row: germanium and Moog's silicon circuit sell within 12 %)
+   * and the FZ-1S Super-Fuzz ('70s). The 2022 FZ-M relaunch is out of
+   * scope. Navigation only, like `minimoog`: the family never aggregates
+   * their prices. Inert until the owner's public step makes a child
+   * canonical. "fuzztone" is how sellers run the word together.
    */
   'fuzz-tone': {
     label: 'Maestro Fuzz-Tone',
     brand: 'Maestro',
     categoryRoot: 'effects-and-pedals',
-    children: ['maestro-fuzz-tone-fz-1a', 'maestro-fuzz-tone-fz-1b', 'maestro-fuzz-tone-fz-1s'],
+    children: ['maestro-fuzz-tone-fz-1', 'maestro-fuzz-tone-fz-1a-fz-1b', 'maestro-fuzz-tone-fz-1s'],
     aliases: ['fuzztone'],
   },
   /**

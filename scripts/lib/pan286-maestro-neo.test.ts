@@ -1,11 +1,12 @@
 /**
  * scripts/lib/pan286-maestro-neo.test.ts
  *
- * PAN-286: Maestro vintage pedals and the Neo Instruments Ventilator family. Twenty-five rows become match targets
- * (the Echoplex EP-1, EP-3 and EP-4 that exist as `known` since PAN-230; 18 Maestro rows and 4 Neo Instruments rows
- * created 2026-10-21 with a verified Reverb page each). Every vintage Maestro row carries the code its sellers write,
- * and a row requires its code where the bare line word also names a sibling, the 1962 FZ-1 (no page, no row) or the
- * 2022 relaunch. The Maestro collision: ~110 production titles are Gibson / Epiphone guitars with a Maestro Vibrola,
+ * PAN-286: Maestro vintage pedals and the Neo Instruments Ventilator family. Twenty-four rows become match targets
+ * (the Echoplex EP-1, EP-3 and EP-4 that exist as `known` since PAN-230; 17 Maestro rows and 4 Neo Instruments rows
+ * created 2026-10-21 — a verified Reverb page each, except the 1962 FZ-1 and the Stage Phaser, which Reverb has no
+ * page for). Price decides identity (manager, 2026-10-21): the PS-1 / PS-1A / PS-1B and the FZ-1A / FZ-1B are one row
+ * each, their codes identifiers; the 1962 FZ-1 is its own row. A row whose model_name is a code requires it where the
+ * bare line word also names a sibling or the 2022 relaunch. The Maestro collision: ~110 production titles are Gibson / Epiphone guitars with a Maestro Vibrola,
  * three are Formanta Maestro synths, and the Echoplex trade sells preamp copies and parts under the name. A bare
  * "Ventilator" is the original Neo row; "II" / "2" is the Ventilator II; the Mini Vent and Micro Vent are one row each
  * across their generations. Measured on the 174 production titles that say "maestro" (production SELECT,
@@ -37,16 +38,15 @@ const PRODUCTS: Product[] = [
   row('maestro-echoplex-ep-2', 'maestro', 'Maestro Echoplex EP-2 Tape Delay', 'EP-2'),
   row('maestro-echoplex-ep-3', 'maestro', 'Maestro Echoplex EP-3', 'EP-3'),
   row('maestro-echoplex-ep-4', 'maestro', 'Maestro Echoplex EP-4', 'EP-4'),
-  row('maestro-fuzz-tone-fz-1a', 'maestro', 'Maestro Fuzz-Tone FZ-1A', 'FZ-1A'),
-  row('maestro-fuzz-tone-fz-1b', 'maestro', 'Maestro Fuzz-Tone FZ-1B', 'FZ-1B'),
+  row('maestro-fuzz-tone-fz-1', 'maestro', 'Maestro Fuzz-Tone FZ-1 (1962)', 'FZ-1'),
+  row('maestro-fuzz-tone-fz-1a-fz-1b', 'maestro', 'Maestro Fuzz-Tone FZ-1A / FZ-1B', 'Fuzz-Tone'),
   row('maestro-fuzz-tone-fz-1s', 'maestro', 'Maestro Fuzz-Tone FZ-1S Super-Fuzz', 'FZ-1S'),
   row('maestro-fuzz-mfz-1', 'maestro', 'Maestro Fuzz MFZ-1', 'MFZ-1'),
   row('maestro-fuzz-phazzer', 'maestro', 'Maestro Fuzz Phazzer', 'Fuzz Phazzer'),
   row('maestro-bass-brassmaster', 'maestro', 'Maestro Bass Brassmaster Fuzz BB-1', 'Bass Brassmaster'),
-  row('maestro-phase-shifter-ps-1', 'maestro', 'Maestro Phase Shifter PS-1', 'PS-1'),
-  row('maestro-phase-shifter-ps-1a', 'maestro', 'Maestro Phase Shifter PS-1A', 'PS-1A'),
-  row('maestro-phase-shifter-ps-1b', 'maestro', 'Maestro Phase Shifter PS-1B', 'PS-1B'),
+  row('maestro-phase-shifter', 'maestro', 'Maestro Phase Shifter PS-1 / PS-1A / PS-1B', 'Phase Shifter'),
   row('maestro-phaser-mp-1', 'maestro', 'Maestro Phaser MP-1', 'MP-1'),
+  row('maestro-stage-phaser', 'maestro', 'Maestro Stage Phaser', 'Stage Phaser'),
   row('maestro-mini-phase-mps-2', 'maestro', 'Maestro Mini-Phase MPS-2', 'MPS-2'),
   row('maestro-ring-modulator-rm-1', 'maestro', 'Maestro Ring Modulator RM-1', 'RM-1'),
   row('maestro-filter-sample-hold-fsh-1', 'maestro', 'Maestro Filter Sample/Hold FSH-1', 'FSH-1'),
@@ -65,7 +65,17 @@ const PRODUCTS: Product[] = [
   row('moog-mf-102-ring-modulator', 'moog', 'Moog MF-102 Ring Modulator', 'MF-102 Ring Modulator'),
 ]
 
-const index = buildMatchIndex(PRODUCTS, [], [])
+/**
+ * The identifiers the PAN-286 identity file writes: the lettered codes of the two merged rows, which a title can carry
+ * without the line word ("Maestro PS-1A + PSFS2 Phase Shifter"). Not the bare "PS-1" or "FZ-1": an identifier needs no
+ * brand word, and "Rega PS1 350mA strømforsyning" is live on DBA.
+ */
+const IDENTS = [
+  ['maestro-phase-shifter', 'PS-1A'], ['maestro-phase-shifter', 'PS-1B'],
+  ['maestro-fuzz-tone-fz-1a-fz-1b', 'FZ-1A'], ['maestro-fuzz-tone-fz-1a-fz-1b', 'FZ-1B'],
+].map(([slug, value]) => ({ product_id: `p-${slug}`, type: 'MODEL', value }))
+
+const index = buildMatchIndex(PRODUCTS, IDENTS, [])
 const decide = (title: string) => {
   const d = decideMatch(title, index)
   return d.kind === 'matched' ? index.productById.get(d.best.product_id)?.slug : d.kind === 'deferred' ? `deferred:${d.reason}` : d.kind
@@ -80,12 +90,13 @@ const notMaestro = (title: string) => {
   assert.ok(!d.startsWith('maestro-') && !d.startsWith('neo-'), `${title} → ${d}`)
 }
 
-test('every promoted row has a boundary, the config lists 25 rows and the three families hold 11 of them', () => {
-  assert.equal(config.promoted.length, 25)
-  assert.equal(new Set(config.promoted).size, 25)
+test('every promoted row has a boundary, the config lists 24 rows, the identity file 4 identifiers, and the three families hold 11 rows', () => {
+  assert.equal(config.promoted.length, 24)
+  assert.equal(new Set(config.promoted).size, 24)
+  assert.equal(IDENTS.length, 4)
   for (const slug of config.promoted) assert.ok(LINE_BOUNDARIES[slug], `${slug} has no LINE_BOUNDARIES entry`)
   const fam = (slug: string) => NAVIGATION_FAMILIES.find((f) => f.slug === slug)!
-  assert.deepEqual(fam('fuzz-tone').children, ['maestro-fuzz-tone-fz-1a', 'maestro-fuzz-tone-fz-1b', 'maestro-fuzz-tone-fz-1s'])
+  assert.deepEqual(fam('fuzz-tone').children, ['maestro-fuzz-tone-fz-1', 'maestro-fuzz-tone-fz-1a-fz-1b', 'maestro-fuzz-tone-fz-1s'])
   assert.deepEqual(fam('echoplex').children, ['maestro-echoplex-ep-1', 'maestro-echoplex-ep-2', 'maestro-echoplex-ep-3', 'maestro-echoplex-ep-4'])
   assert.deepEqual(fam('ventilator').children, ['neo-instruments-ventilator', 'neo-instruments-ventilator-ii', 'neo-instruments-mini-vent', 'neo-instruments-micro-vent'])
   for (const f of ['fuzz-tone', 'echoplex', 'ventilator']) for (const c of fam(f).children) assert.ok(config.promoted.includes(c), c)
@@ -139,21 +150,24 @@ test('the Echoplex line: each row requires its number, "EP4" is "EP-4", and the 
   notMaestro('Dunlop EP103 Echoplex Digital Delay Guitar Effects Pedal')
 })
 
-test('the Fuzz-Tone line: the letter after FZ-1 is the row, the bare 1962 FZ-1 and the 2022 FZ-M name no row, the copies stay out', () => {
-  matches('Maestro Fuzz-Tone FZ-1A 1965 - 1967 - Black', 'maestro-fuzz-tone-fz-1a')
-  matches('Used Maestro Fuzz-Tone FZ-1A 1966-1967', 'maestro-fuzz-tone-fz-1a')
-  matches('Gibson Maestro Fuzz-Tone FZ-1A 1960s', 'maestro-fuzz-tone-fz-1a')
-  // Recall costs: a code split by a space or hyphenated the other way is not the code form ("FZ-1 A", "FZ1-A").
-  notMatched('1966 Maestro by Gibson Fuzz-Tone FZ-1 A w/ manual')
-  notMatched('Gibson 1966 Maestro Fuzz Tone FZ1-A 1966')
-  matches('Maestro Fuzz-Tone FZ-1B 1968 - 1970 - Black', 'maestro-fuzz-tone-fz-1b')  // synthetic, Reverb's page years
-  matches('Maestro FZ-1B Fuzz-Tone', 'maestro-fuzz-tone-fz-1b')
+test('the Fuzz-Tone line: the 1962 FZ-1 is its own row, the FZ-1A / FZ-1B one row by phrase or identifier, the FZ-1S its code; the FZ-M and the copies stay out', () => {
+  matches('Maestro Fuzz-Tone FZ-1A 1965 - 1967 - Black', 'maestro-fuzz-tone-fz-1a-fz-1b')
+  matches('Used Maestro Fuzz-Tone FZ-1A 1966-1967', 'maestro-fuzz-tone-fz-1a-fz-1b')
+  matches('Gibson Maestro Fuzz-Tone FZ-1A 1960s', 'maestro-fuzz-tone-fz-1a-fz-1b')
+  matches('1966 Maestro by Gibson Fuzz-Tone FZ-1 A w/ manual', 'maestro-fuzz-tone-fz-1a-fz-1b')
+  matches('Gibson 1966 Maestro Fuzz Tone FZ1-A 1966', 'maestro-fuzz-tone-fz-1a-fz-1b')
+  matches('Maestro Fuzz-Tone FZ-1B 1968 - 1970 - Black', 'maestro-fuzz-tone-fz-1a-fz-1b')  // synthetic, Reverb's page years
+  matches('Maestro FZ-1B Fuzz-Tone', 'maestro-fuzz-tone-fz-1a-fz-1b')
+  matches('Maestro FZ-1A converted to FZ-1 spec Vintage 1960\'s', 'maestro-fuzz-tone-fz-1a-fz-1b')  // the identifier, no line word
   matches('Maestro Fuzz-Tone FZ-1S Super Fuzz', 'maestro-fuzz-tone-fz-1s')
   matches('Maestro FZ-1S Fuzz-Tone Super Fuzz "Early 70s"', 'maestro-fuzz-tone-fz-1s')
-  // The 1962 original has no Reverb page and no row; a converted FZ-1A that names the FZ-1 spec is still an FZ-1A.
-  notMatched('Maestro Fuzz-Tone FZ-1 1962 Black')
-  notMatched('1962 Maestro Fuzz-Tone FZ-1 ~ Very Early ~ Serial Number 201 ~ Serviced and Good for 50 More Years!')
-  notMatched('Vintage Rare Collectable Maestro Fuzz Tone FZ-1 NOT FZ-1A Real Deal Original')
+  // The 1962 original: its own row, its own price, no Reverb page; the negated FZ-1A does not take it away.
+  matches('Maestro Fuzz-Tone FZ-1 1962 Black', 'maestro-fuzz-tone-fz-1')
+  matches('1962 Maestro Fuzz-Tone FZ-1 ~ Very Early ~ Serial Number 201 ~ Serviced and Good for 50 More Years!', 'maestro-fuzz-tone-fz-1')
+  matches('Maestro FZ-1 Fuzz Tone 1962 #3855', 'maestro-fuzz-tone-fz-1')
+  matches('Gibson FZ-1 Maestro Fuzz-Tone 1962', 'maestro-fuzz-tone-fz-1')
+  matches('Vintage Rare Collectable Maestro Fuzz Tone FZ-1 NOT FZ-1A Real Deal Original', 'maestro-fuzz-tone-fz-1')
+  matches('Maestro Fuzz-Tone FZ-1, Recent', 'maestro-fuzz-tone-fz-1')  // Reverb files it under the FZ-1A guide; the seller's code wins
   notMatched('Maestro Fuzz-Tone FZ-M')  // the 2022 relaunch, synthetic from Reverb's page title
   notMatched('Maestro Fuzz guitar effektpedal')  // DBA, 2026-10-21: which fuzz?
   notMatched('Gibson Maestro Fuzz-Tone FZ-1 - Shell Only')
@@ -184,30 +198,39 @@ test('the other Maestro fuzzes: the MFZ-1 is its code, the Fuzz Phazzer and the 
   notMaestro('Behringer Bass Brassmaster Fuzz Maestro 2025')
 })
 
-test('the phase shifters: PS-1 / PS-1A / PS-1B by their letter, the MP-1 and MPS-2 by their code; the Stage Phaser, the Orbit and a bare "Maestro Phaser" name no row', () => {
-  matches('Maestro Phase Shifter PS-1 1971 - Black', 'maestro-phase-shifter-ps-1')
-  matches('Maestro PS-1 Phase Shifter (Made by Oberheim) - Early 70\'s - Message Me for a Shipping Estimate', 'maestro-phase-shifter-ps-1')
-  matches('Maestro PS-1 Phaser', 'maestro-phase-shifter-ps-1')
-  matches('Vintage Maestro Phase Shifter PS-1 1971 - Black (Rare PS-1 not the PS-1A)', 'maestro-phase-shifter-ps-1')  // the negated sibling
+test('the phase shifters: PS-1 / PS-1A / PS-1B are one row by phrase or identifier, the MP-1 and MPS-2 their code, the Stage Phaser its word; the Orbit and a bare "Maestro Phaser" name no row', () => {
+  matches('Maestro Phase Shifter PS-1 1971 - Black', 'maestro-phase-shifter')
+  matches('Maestro PS-1 Phase Shifter (Made by Oberheim) - Early 70\'s - Message Me for a Shipping Estimate', 'maestro-phase-shifter')
+  matches('Vintage Maestro Phase Shifter PS-1 1971 - Black (Rare PS-1 not the PS-1A)', 'maestro-phase-shifter')
+  matches('Maestro PS-1A Phase Shifter 1976', 'maestro-phase-shifter')
+  matches('Maestro Phase Shifter PS-1A 1970s - Black with PSFS-2 Phase Shifter Footswitch', 'maestro-phase-shifter')
+  matches('Maestro PS-1A + PSFS2 Phase Shifter 1970\'s RARE!!', 'maestro-phase-shifter')
+  matches('1975 Maestro PS-1B Phase Shifter', 'maestro-phase-shifter')
+  matches('Maestro Phase Shifter PS-1B 1970s - Black', 'maestro-phase-shifter')
+  matches('Maestro PS-1B Phase Shifter', 'maestro-phase-shifter')
+  matches('Maestro PS-1A Phase Shifter 1971-72, early version,  CLEAN with case', 'maestro-phase-shifter')
+  notMatched('Maestro PS-1 Phaser')  // recall cost: no line word, and the bare "PS-1" is no identifier
   notMatched('Maestro PS-1 Phase Shifter Footswitch PSFS-1')
   notMatched('Stromer Mutroniks PSFS-2 Maestro PS-1 footswitch')
-  matches('Maestro PS-1A Phase Shifter 1976', 'maestro-phase-shifter-ps-1a')
-  matches('Maestro Phase Shifter PS-1A 1970s - Black with PSFS-2 Phase Shifter Footswitch', 'maestro-phase-shifter-ps-1a')
-  matches('Maestro PS-1A + PSFS2 Phase Shifter 1970\'s RARE!!', 'maestro-phase-shifter-ps-1a')
   notMatched('Maestro PS-1A Replica PCB')
   notMatched('Maestro PS-1A Phase Shifter Enclosure and Switches *Parts*')
-  matches('1975 Maestro PS-1B Phase Shifter', 'maestro-phase-shifter-ps-1b')
-  matches('Maestro Phase Shifter PS-1B 1970s - Black', 'maestro-phase-shifter-ps-1b')
+  notMatched('Rega PS1 350mA strømforsyning til Planar 3+6 og Neo PSU')  // DBA, 2026-10-21: why the bare PS-1 is no identifier
   matches('Maestro Phaser MP-1 1976 - 1978 - Black', 'maestro-phaser-mp-1')
   matches('Maestro MP-1 Phaser Vintage Phase Moog', 'maestro-phaser-mp-1')
   matches('Maestro Phaser - Model MP Phaser MP-1', 'maestro-phaser-mp-1')
   matches('Maestro MPS-2 Mini-Phase 1976', 'maestro-mini-phase-mps-2')
   matches('Maestro Mini-Phase MPS-2', 'maestro-mini-phase-mps-2')
-  notMatched('Maestro Stage Phaser')  // DBA, 2026-10-21: no Reverb page, no row
-  notMatched('Maestro Stage Phaser MSP 1970s - Silver/Black')
+  // The Stage Phaser (MSP, Moog era): no Reverb page, its own row on its sold evidence.
+  matches('Maestro Stage Phaser', 'maestro-stage-phaser')  // DBA, 2026-10-21
+  matches('Maestro Stage Phaser MSP 1970s - Silver/Black', 'maestro-stage-phaser')
+  matches('Vintage Maestro MSP Stage Phaser Pedal', 'maestro-stage-phaser')
+  matches('Maestro Stage Phaser 1978', 'maestro-stage-phaser')
+  matches('Maestro Stage Phaser W/ Original Power Supply Designed by Bob Moog!', 'maestro-stage-phaser')
+  notMatched('1976 Maestro MP-1 Stage Phaser Clone')
+  notMatched('Moose Electronics Maestro Stage Phaser clone')
+  notMatched('Handmade Maestro Stage Phaser clone w/ Univibe mod')
   notMatched('Maestro Phaser')  // DBA, 2026-10-21
   notMatched('Maestro Orbit Phaser')  // the 2022 relaunch, synthetic from Reverb's page title
-  notMatched('Moose Electronics Maestro Stage Phaser clone')
 })
 
 test('ring modulator, filters, octave box, Boomerang and booster: a word or a code each; the MP-2 pedal, a 2026 copy and the Titan Boost stay out', () => {
@@ -293,6 +316,11 @@ test('the Ventilator family: a bare Ventilator is the original, "II" / "2" the s
   matches('Neo Micro Vent 16 Rotary Cabinet Simulator Pedal', 'neo-instruments-micro-vent')
   matches('NEO Instruments Micro Vent 122 Rotary Speaker Effect Pedal', 'neo-instruments-micro-vent')
   matches('Neo Instruments Micro Vent 122 Rotary Cabinet 122 Simulator Pedal with Box', 'neo-instruments-micro-vent')
+  // The guard is strict (manager, 2026-10-21): an accessory or a power supply sold alone names no row.
+  notMatched('Neo Instruments Ventilator Remote, 2000\'s, Grey')
+  notMatched('Neo Instruments Remote 2 Foot Switch for Ventilator II - Foot Switch for Pianos')
+  notMatched('Neo Instruments Ventilator PSU 12V power supply')  // synthetic
+  notMatched('Neo Instruments Ventilator II Netzteil')  // synthetic
   notMatched('Neo Instruments Drive In overdrive guitarpedal')  // DBA, 2026-10-21: no row
   notMatched('Holy Grail Neo  fra Electro Harmonix Rumklang med spring, hall og plate.')  // DBA
   notMatched('Rega Neo PSU MK2 24V motorstyring med DSP')  // DBA

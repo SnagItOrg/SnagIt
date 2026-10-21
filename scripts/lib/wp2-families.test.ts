@@ -464,7 +464,7 @@ test('families: children match the reviewed §6.3 map', () => {
       'ehx-memory-man-nano',
     ],
     // PAN-286 (2026-10-21). Three lines whose word sellers write; the lettered / numbered rows are the priced pages.
-    'fuzz-tone': ['maestro-fuzz-tone-fz-1a', 'maestro-fuzz-tone-fz-1b', 'maestro-fuzz-tone-fz-1s'],
+    'fuzz-tone': ['maestro-fuzz-tone-fz-1', 'maestro-fuzz-tone-fz-1a-fz-1b', 'maestro-fuzz-tone-fz-1s'],
     'echoplex': ['maestro-echoplex-ep-1', 'maestro-echoplex-ep-2', 'maestro-echoplex-ep-3', 'maestro-echoplex-ep-4'],
     'ventilator': ['neo-instruments-ventilator', 'neo-instruments-ventilator-ii', 'neo-instruments-mini-vent', 'neo-instruments-micro-vent'],
   }
