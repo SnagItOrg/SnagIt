@@ -121,6 +121,7 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   /* ---------------- planned public pages ---------------- */
   { route: '/om-data', access: 'public_page', planned: true, note: 'WP-3' },
   { route: '/privatliv', access: 'public_page', note: 'WP-5 privacy route (§12.4.5); public in every consent state' },
+  { route: '/konto-slettet', access: 'public_page', note: 'PAN-277; the receipt after a deleted account, which has no session by then' },
   { route: '/sitemap.xml', access: 'framework_metadata', note: 'PAN-288: app/sitemap.ts' },
 
   /* ---------------- protected pages ---------------- */
@@ -193,6 +194,7 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   { route: '/api/saved-listings', access: 'protected_api' },
   { route: '/api/notification-preferences', access: 'protected_api' },
   { route: '/api/preferences', access: 'protected_api' },
+  { route: '/api/account', access: 'protected_api', note: 'PAN-277; DELETE removes the session user\'s own account, never a named one' },
   { route: '/api/price-history', access: 'protected_api', note: 'no caller today (audit F-21)' },
   { route: '/api/market-price', access: 'protected_api', note: 'no caller today (audit F-21)' },
 

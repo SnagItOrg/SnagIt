@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { deleteAccount } from '@/lib/account-deletion'
 
 async function verifyAdmin(): Promise<boolean> {
   const supabase = await createSupabaseServerClient()
@@ -45,7 +46,9 @@ export async function GET(
   })
 }
 
-// DELETE /api/admin/users/[id] — delete user
+// DELETE /api/admin/users/[id] — delete user, through the same plan as the
+// user's own "Slet konto" (PAN-277). A bare auth delete failed on the NO ACTION
+// foreign keys and cascaded the user's watchlists into shared market data.
 export async function DELETE(
   _req: NextRequest,
   ctx: { params: Promise<{ id: string }> },
@@ -54,8 +57,11 @@ export async function DELETE(
   if (!(await verifyAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const admin = getSupabaseAdmin()
-  const { error } = await admin.auth.admin.deleteUser(params.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  const { data: { user }, error: userError } = await admin.auth.admin.getUserById(params.id)
+  if (userError || !user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+  const result = await deleteAccount(admin, { id: user.id, email: user.email })
+  if (!result.ok) return NextResponse.json({ error: result.code, table: result.table }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
 

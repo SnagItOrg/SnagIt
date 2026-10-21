@@ -7,6 +7,8 @@ import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { Icon } from '@/components/Icon'
+import { DeleteAccountDialog } from '@/components/DeleteAccountDialog'
+import { DELETE_ACCOUNT_CONFIRMATION } from '@/lib/account-deletion'
 
 type NotifPrefs = {
   email_enabled: boolean
@@ -61,6 +63,9 @@ export default function ProfilePage() {
   const [deleting,      setDeleting]      = useState<string | null>(null)
   const [resetSent,     setResetSent]     = useState(false)
   const [resetLoading,  setResetLoading]  = useState(false)
+  const [deleteOpen,    setDeleteOpen]    = useState(false)
+  const [deletePending, setDeletePending] = useState(false)
+  const [deleteFailed,  setDeleteFailed]  = useState(false)
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient()
@@ -115,6 +120,25 @@ export default function ProfilePage() {
     const res = await fetch(`/api/watchlists/${id}`, { method: 'DELETE' })
     if (!res.ok) setWatchlists(prev)
     setDeleting(null)
+  }
+
+  // PAN-277. The route deletes everything and the auth user; signing out here
+  // as well fires SIGNED_OUT, which resets the PostHog identity (AnalyticsRoot).
+  async function handleDeleteAccount() {
+    setDeletePending(true)
+    setDeleteFailed(false)
+    const res = await fetch('/api/account', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: DELETE_ACCOUNT_CONFIRMATION }),
+    }).catch(() => null)
+    if (!res?.ok) {
+      setDeletePending(false)
+      setDeleteFailed(true)
+      return
+    }
+    await createSupabaseBrowserClient().auth.signOut({ scope: 'local' }).catch(() => {})
+    router.replace('/konto-slettet')
   }
 
   const cardClass = "rounded-2xl p-6 flex flex-col gap-4"
@@ -285,7 +309,31 @@ export default function ProfilePage() {
           )}
         </div>
 
+        {/* ── Section 5: Delete account (PAN-277) ─────────────────────── */}
+        <div className={cardClass} style={cardStyle}>
+          <div className="flex items-center gap-2">
+            <Icon name="delete" style={{ fontSize: '20px', color: 'var(--destructive-text)' }} />
+            <h2 className="text-base font-bold text-foreground">{t.deleteAccountHeading}</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">{t.deleteAccountBody}</p>
+          <button
+            type="button"
+            onClick={() => { setDeleteFailed(false); setDeleteOpen(true) }}
+            className="min-h-[44px] w-fit rounded-xl px-4 text-sm font-semibold border border-destructive-border text-destructive-text hover:bg-destructive-subtle transition-colors"
+          >
+            {t.deleteAccountHeading}
+          </button>
+        </div>
+
       </div>
+
+      <DeleteAccountDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={handleDeleteAccount}
+        pending={deletePending}
+        failed={deleteFailed}
+      />
     </main>
   )
 }
