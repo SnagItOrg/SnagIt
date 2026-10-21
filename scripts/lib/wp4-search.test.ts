@@ -570,8 +570,9 @@ test('shadow brands cover the KG collision set the matcher already rejects', () 
  * ------------------------------------------------------------------ */
 
 test('ambiguous input lists the candidates and never picks one', () => {
-  // A shared prefix across two Roland identities.
-  const outcome = resolvePublic('roland tr')
+  // A shared model name across two Rhodes identities. ("roland tr" stood here
+  // until PAN-284 made it the exact key of the `roland-tr` family.)
+  const outcome = resolvePublic('stage 73')
   assert.equal(outcome.outcome, 'disambiguation')
   assert.equal(outcome.navigateTo, null)
   assert.equal(outcome.autoNavigated, false)
@@ -582,9 +583,10 @@ test('ambiguous input lists the candidates and never picks one', () => {
 test('a disambiguation set actually disambiguates — it is not "every product of that brand"', () => {
   // Regression. Substring token scoring made "roland tr" list all seven Roland
   // products, because `roland` is a substring of every roland* alias. A set
-  // that wide tells the visitor nothing.
-  const tr = resolvePublic('roland tr')
-  assert.deepEqual(tr.candidates.map((c) => c.slug).sort(), ['roland-tr-808', 'roland-tr-909'])
+  // that wide tells the visitor nothing. The two-Rhodes set stands in for the
+  // two-TR set since PAN-284 (below).
+  const stage = resolvePublic('stage 73')
+  assert.deepEqual(stage.candidates.map((c) => c.slug).sort(), ['rhodes-mark-i-stage-73', 'rhodes-mark-ii-stage-73'])
 
   // PAN-159: "roland juno" used to be the two-Juno set here. It is now the
   // exact key of the `roland-juno` family, so it navigates to the directory of
@@ -592,6 +594,10 @@ test('a disambiguation set actually disambiguates — it is not "every product o
   const juno = resolvePublic('roland juno')
   assert.equal(juno.navigateTo, '/family/roland-juno')
   assert.deepEqual(juno.candidates, [])
+  // PAN-284: "roland tr" is the same case, the `roland-tr` family.
+  const tr = resolvePublic('roland tr')
+  assert.equal(tr.navigateTo, '/family/roland-tr')
+  assert.deepEqual(tr.candidates, [])
 })
 
 test('a qualifier token never drags in an unrelated product', () => {
@@ -631,9 +637,10 @@ test('brand affinity is weak enough to suggest but never to disambiguate alone',
   assert.deepEqual(cs80.suggestions.map((s) => s.slug), ['yamaha-dx7'])
   assert.equal(cs80.candidates.length, 0, 'a brand hit alone is not a disambiguation')
   // ...and an unknown generation of a known product suggests the base product.
-  const mk2 = resolvePublic('roland tr-909 mk2')
+  // (`roland tr-909 mk2` asserted this form until PAN-284; see below.)
+  const mk2 = resolvePublic('oberheim ob-x mk2')
   assert.equal(mk2.outcome, 'unsupported')
-  assert.deepEqual(mk2.suggestions.map((s) => s.slug), ['roland-tr-909'])
+  assert.deepEqual(mk2.suggestions.map((s) => s.slug), ['oberheim-ob-x'])
   // PAN-159. Inside a family whose name prefixes its members' names, the same
   // query also matches the family by prefix, so it becomes a set of the family
   // and the base product — never brand-only, and the base is still offered.
@@ -641,6 +648,10 @@ test('brand affinity is weak enough to suggest but never to disambiguate alone',
   const junoMk2 = resolvePublic('roland juno-106 mk2')
   assert.equal(junoMk2.outcome, 'disambiguation')
   assert.deepEqual(junoMk2.candidates.map((c) => c.slug), ['roland-juno', 'roland-juno-106'])
+  // PAN-284: the `roland-tr` family makes "roland tr-909 mk2" the same shape.
+  const trMk2 = resolvePublic('roland tr-909 mk2')
+  assert.equal(trMk2.outcome, 'disambiguation')
+  assert.deepEqual(trMk2.candidates.map((c) => c.slug), ['roland-tr', 'roland-tr-909'])
 })
 
 test('acceptance 5: an unsupported product is honest, offers the nearest, and is measurable', () => {
@@ -1800,7 +1811,7 @@ test('search_unsupported: every path maps to its declared class', () => {
   assert.equal(searchUnsupportedPayload(FIXTURE_UNSUPPORTED)!.resolution_class, 'unsupported')
   assert.equal(searchUnsupportedPayload(resolvePublic('zzzz'))!.resolution_class, 'zero_results_supported')
   assert.equal(searchUnsupportedPayload(FIXTURE_BLOCKED)!.resolution_class, 'dangerous_alias_blocked')
-  assert.equal(searchUnsupportedPayload(resolvePublic('roland tr'))!.resolution_class, 'ambiguous')
+  assert.equal(searchUnsupportedPayload(resolvePublic('stage 73'))!.resolution_class, 'ambiguous')
   // Family demand is an unsupported miss.
   assert.equal(searchUnsupportedPayload(FIXTURE_UNSUPPORTED)!.resolution_class, 'unsupported')
 })

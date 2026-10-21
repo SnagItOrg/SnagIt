@@ -1213,8 +1213,9 @@ test('hierarchy: familyForChild resolves a product to its family, and nothing el
   // A PRODUCT WITH NO FAMILY. `roland-tr-808` is canonical and belongs to no
   // family, and this is the case the product page must handle by rendering
   // nothing — not an empty breadcrumb and not a heading with no links.
-  // (`roland-juno-106` stood here until PAN-159 made it a `roland-juno` member.)
-  assert.equal(familyForChild('roland-tr-808'), null)
+  // (`roland-juno-106` stood here until PAN-159 made it a `roland-juno` member,
+  // and `roland-tr-808` until PAN-284 made it a `roland-tr` member.)
+  assert.equal(familyForChild('korg-ms-20'), null)
   assert.equal(familyForChild('does-not-exist'), null)
 
   // A FAMILY SLUG IS NOT ITS OWN CHILD. `rhodes` names a family, so asking for
