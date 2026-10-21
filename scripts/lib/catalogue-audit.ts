@@ -192,7 +192,10 @@ export function modelPrefix(modelName: string | null | undefined): string | null
  * brand that share a prefix and are not all in a family — a group with no family, or the members
  * a family leaves out. Membership is `familyForChild()`, the reviewed configuration itself.
  */
-function sharedPrefixCandidates(products: AuditProduct[]): Finding[] {
+function sharedPrefixCandidates(products: AuditProduct[], allow: readonly AllowEntry[]): Finding[] {
+  // A per-slug exception (`brand:PREFIX/slug`) takes that row out of its group: a single model that
+  // shares a prefix with a family without being of it. A whole-group key is matched by runAudit.
+  const excepted = new Set(allow.map((a) => a.key.split('/')[1]).filter((slug): slug is string => !!slug))
   const groups = new Map<string, AuditProduct[]>()
   for (const p of products) {
     const prefix = modelPrefix(p.model_name)
@@ -203,7 +206,7 @@ function sharedPrefixCandidates(products: AuditProduct[]): Finding[] {
   const out: Finding[] = []
   for (const [key, rows] of groups) {
     if (rows.length < 2) continue
-    const uncovered = rows.filter((p) => familyForChild(p.slug) === null).map((p) => p.slug).sort()
+    const uncovered = rows.filter((p) => familyForChild(p.slug) === null && !excepted.has(p.slug)).map((p) => p.slug).sort()
     if (uncovered.length === 0) continue
     const where = uncovered.length === rows.length ? 'none in a family' : `${uncovered.length} outside a family`
     out.push({ key, detail: `${rows.length} public rows, ${where}: ${uncovered.join(', ')}` })
@@ -238,6 +241,21 @@ function dkShareByRoot(s: AuditSnapshot): Finding[] {
     .sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0]))
     .map(([root, r]) => ({ key: root, detail: `${r.noDk}/${r.n} public products with no Danish listing (${Math.round((100 * r.noDk) / r.n)} %)` }))
 }
+
+const SHARED_PREFIX_ALLOW: readonly AllowEntry[] = [
+  { key: 'ampex:ATR', by: 'PAN-284', reason: 'the ATR-102 and ATR-700 are different machines' },
+  { key: 'ua:LA', by: 'PAN-284', reason: 'the LA-2A, LA-4 and LA-610 are different devices' },
+  { key: 'warm-audio:WA', by: 'PAN-284', reason: 'brand-wide numbering, not a line' },
+  { key: 'yamaha:YTR', by: 'PAN-285', reason: 'the Xeno family is under discussion' },
+  { key: 'gibson:ES/gibson-es-les-paul', by: 'PAN-284', reason: 'not an ES-335' },
+  { key: 'gibson:L/gibson-l-4c', by: 'PAN-284', reason: 'an archtop, not an L-00' },
+  { key: 'gibson:L/gibson-l-7c', by: 'PAN-284', reason: 'an archtop, not an L-00' },
+  { key: 'gibson:G/gibson-g-200-ec', by: 'PAN-284', reason: 'its own model beside the G-45' },
+  { key: 'martin:D/martin-d-42-modern-deluxe', by: 'PAN-284', reason: 'its own model beside the D-18 and D-28' },
+  { key: 'heritage:H/heritage-h-150', by: 'PAN-284', reason: 'a solid body, not an H-535' },
+  { key: 'roland:JP/roland-jp-8080', by: 'PAN-284', reason: 'the JP-8000 line, not a Jupiter' },
+  { key: 'roland:SH/roland-sh-01-gaia', by: 'PAN-284', reason: 'owner: decades from the SH-101, stays its own page' },
+]
 
 /**
  * The registry. Order is report order within a severity. Every allow entry names the ticket that
@@ -349,10 +367,11 @@ export const CHECKS: readonly Check[] = [
     id: 'family_candidate_shared_prefix',
     title: 'Offentlige rækker af ét mærke med samme model-prefix (DS-1, DS-2 …) uden en familie',
     severity: 'warn',
-    // An entry here is "decided: no family" — `by` the ticket, `reason` what was decided. Empty until
-    // the manager has triaged the first run (PAN-284).
-    allow: [],
-    run: (s) => sharedPrefixCandidates(s.products),
+    // An entry here is "decided: no family" — `by` the ticket, `reason` what was decided. A whole group
+    // is `brand:PREFIX`; a single row that shares a prefix with a family without being of it is
+    // `brand:PREFIX/slug`. Owner's triage of the first run, 2026-10-21.
+    allow: SHARED_PREFIX_ALLOW,
+    run: (s) => sharedPrefixCandidates(s.products, SHARED_PREFIX_ALLOW),
   },
   {
     id: 'family_without_canonical_child',

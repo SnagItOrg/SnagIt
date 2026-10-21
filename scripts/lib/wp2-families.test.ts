@@ -88,7 +88,17 @@ const PAN271_FAMILIES = ['bach-stradivarius']
 const PAN282_FAMILIES = ['memory-man']
 
 /** The six, plus `rhodes` (PAN-85) — the first family with canonical children — the Boss lines and `minimoog` (PAN-154). */
-const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES, ...PAN230_FAMILIES, ...PAN261_FAMILIES, ...PAN271_FAMILIES, ...PAN282_FAMILIES]
+/** PAN-284 (owner, 2026-10-21). The `rhodes` case, all 27: eleven Roland lines, thirteen guitar models, three synths. */
+const PAN284_FAMILIES = [
+  'roland-tr', 'roland-sh', 'roland-jx', 'roland-cr', 'roland-mc', 'roland-jv', 'roland-xp', 'roland-jd', 'roland-fantom',
+  'roland-sp-404-sampler', 'roland-jazz-chorus',
+  'gibson-j-45-dreadnought', 'gibson-j-185-jumbo', 'gibson-j-35-acoustic', 'gibson-sj-200-jumbo', 'gibson-l-00-parlor',
+  'gibson-lg-2-parlor', 'gibson-g-45-dreadnought', 'martin-d-18-dreadnought', 'martin-d-28-dreadnought',
+  'martin-om-28-auditorium', 'guild-d-55-dreadnought', 'heritage-h-535-semi-hollow', 'soldano-slo-100-amp',
+  'sequential-ob-6-synth', 'sequential-trigon-6-synth', 'oberheim-ob-x-synth',
+]
+
+const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES, ...PAN230_FAMILIES, ...PAN261_FAMILIES, ...PAN271_FAMILIES, ...PAN282_FAMILIES, ...PAN284_FAMILIES]
 
 /**
  * Production state of every configured child, SELECT-verified 2026-08-28:
@@ -322,6 +332,50 @@ test('families: children match the reviewed §6.3 map', () => {
     'boss-dm-delay': ['boss-dm-2', 'boss-dm-2w'],
     // PAN-284. SELECT-verified active+supported+public+music on 2026-10-21.
     'boss-ds-distortion': ['boss-ds-1', 'boss-ds-1x', 'boss-ds-2'],
+    // PAN-284. Supported rows of each line at any visibility, SELECT-verified
+    // 2026-10-21. Not members: roland-sh-01-gaia (owner), the SH-201 / SH-32,
+    // the SP-808, the two gibson-gibson-… slugs, gibson-j-55, the L-4C / L-7C
+    // archtops, gibson-g-200-ec, martin-d-42-modern-deluxe, heritage-h-150.
+    'roland-tr': [
+      'roland-tr-606', 'roland-tr-626', 'roland-tr-707', 'roland-tr-727', 'roland-tr-808', 'roland-tr-909',
+      'roland-tr-06', 'roland-tr-08', 'roland-tr-09', 'roland-tr-8s',
+    ],
+    'roland-sh': [
+      'roland-sh-1000', 'roland-sh-2000', 'roland-sh-3a', 'roland-sh-5', 'roland-sh-7', 'roland-sh-1', 'roland-sh-09',
+      'roland-sh-2', 'roland-sh-101', 'roland-sh-01a',
+    ],
+    'roland-jx': ['roland-jx-3p', 'roland-jx-8p', 'roland-jx-10', 'roland-jx-1', 'roland-jx-305', 'roland-jx-03', 'roland-jx-08'],
+    'roland-cr': ['roland-cr-68', 'roland-cr-78', 'roland-cr-8000'],
+    'roland-mc': ['roland-mc-202', 'roland-mc-303', 'roland-mc-307', 'roland-mc-505', 'roland-mc-09', 'roland-mc-808', 'roland-mc-909'],
+    'roland-jv': ['roland-jv-30', 'roland-jv-880', 'roland-jv-90', 'roland-jv-1000', 'roland-jv-1010', 'roland-jv-1080', 'roland-jv-2080'],
+    'roland-xp': ['roland-xp-10', 'roland-xp-30', 'roland-xp-50', 'roland-xp-60', 'roland-xp-80'],
+    'roland-jd': ['roland-jd-800', 'roland-jd-990', 'roland-jd-xa', 'roland-jd-08'],
+    'roland-fantom': ['roland-fantom-s', 'roland-fantom-x6', 'roland-fantom-x8', 'roland-fantom-xa'],
+    'roland-sp-404-sampler': ['roland-SP-404', 'roland-sp-404sx', 'roland-sp-404a', 'roland-sp-404-mkii'],
+    'roland-jazz-chorus': ['roland-jc-120', 'roland-jc-120h', 'roland-jc-85', 'roland-jc-22'],
+    'gibson-j-45-dreadnought': [
+      'gibson-j-45', 'gibson-j-45-special', 'gibson-j-45-standard-rosewood', 'gibson-j-45-studio-rosewood',
+      'gibson-j-45-studio-walnut', 'gibson-j-45-century-12-fret',
+    ],
+    'gibson-j-185-jumbo': ['gibson-j-185', 'gibson-j-185-original', 'gibson-j-185-century-12-fret'],
+    'gibson-j-35-acoustic': ['gibson-j-35', 'gibson-j-35-30s-faded'],
+    'gibson-sj-200-jumbo': [
+      'gibson-sj-200-standard', 'gibson-sj-200-standard-rosewood', 'gibson-sj-200-original', 'gibson-sj-200-60s-original',
+      'gibson-sj-200-studio-rosewood', 'gibson-sj-200-studio-walnut', 'gibson-sj-200-western-classic',
+      'gibson-sj-200-orianthi-signature',
+    ],
+    'gibson-l-00-parlor': ['gibson-l-00-standard', 'gibson-l-00-century-12-fret'],
+    'gibson-lg-2-parlor': ['gibson-lg-2', 'gibson-lg-2-3-4', 'gibson-lg-2-all-mahogany-faded', 'gibson-lg-2-american-eagle'],
+    'gibson-g-45-dreadnought': ['gibson-g-45', 'gibson-g-45-studio'],
+    'martin-d-18-dreadnought': ['martin-d-18', 'martin-d-18-satin', 'martin-d-18-authentic-1937', 'martin-d-18-molly-tuttle'],
+    'martin-d-28-dreadnought': ['martin-d-28', 'martin-d-28-satin', 'martin-d-28-modern-deluxe', 'martin-d-28-authentic-1937', 'martin-d-28-billy-strings'],
+    'martin-om-28-auditorium': ['martin-om-28', 'martin-om-28-modern-deluxe'],
+    'guild-d-55-dreadnought': ['guild-d-55', 'guild-d-55e'],
+    'heritage-h-535-semi-hollow': ['heritage-h-535', 'heritage-h-535-artisan-aged', 'heritage-custom-shop-core-h-535'],
+    'soldano-slo-100-amp': ['soldano-slo-100', 'soldano-slo-100-custom-shop'],
+    'sequential-ob-6-synth': ['sequential-ob-6', 'sequential-ob-6-desktop'],
+    'sequential-trigon-6-synth': ['sequential-trigon-6', 'sequential-trigon-6-desktop'],
+    'oberheim-ob-x-synth': ['oberheim-ob-x', 'oberheim-ob-xa'],
     // PAN-154. The existing clean rows, SELECT-verified active on 2026-09-26;
     // only `moog-minimoog` is canonical today. The duplicates
     // `moog-minimoog-model-d` and `moog-minimoog-model-d-reissue` are never
@@ -508,8 +562,8 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   // `gibson-sg` (PAN-198) is the Jazzmaster case: a `known` + `qa_only` row.
   // `moogerfooger` (PAN-199), `neumann-u87-condenser` and `universal-audio-1176`
   // (PAN-230), `fender-blues-junior-amp` (PAN-261), `bach-stradivarius` (PAN-271) and `memory-man` (PAN-282) are the
-  // `rhodes` case: no row. So is `boss-ds-distortion` (PAN-284).
-  assert.equal(EXPECTED_FAMILIES.length, 26)
+  // `rhodes` case: no row. So are `boss-ds-distortion` and the 27 prefix families (PAN-284).
+  assert.equal(EXPECTED_FAMILIES.length, 53)
 })
 
 test('redirects: nothing else is redirected', () => {
