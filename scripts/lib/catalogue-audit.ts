@@ -249,7 +249,12 @@ export const CHECKS: readonly Check[] = [
     id: 'model_name_starts_with_brand',
     title: 'model_name begynder med mærket ("EHX Deluxe Memory Man", PAN-282)',
     severity: 'warn',
-    allow: [],
+    allow: [
+      // The maker's name is part of the model as sellers and the maker write it; the matcher keys on it
+      // (arp-korg-arp-2600 took "ARP 2600" in PAN-266 to avoid a tie). Owner, 2026-10-21.
+      ...['arp-2600', 'arp-korg-arp-2600', 'ssl-12', 'ssl-18', 'ssl-2', 'ssl-2-mkii', 'ssl-2-plus', 'ssl-2-plus-mkii']
+        .map((key) => ({ key, by: 'PAN-284' })),
+    ],
     run: (s) => s.products.filter(modelStartsWithBrand).map((p) => ({ key: p.slug, detail: `"${p.model_name}" under brand "${p.brand_name}"` })),
   },
   {

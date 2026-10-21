@@ -7,7 +7,7 @@
  * and never diffed.
  *
  * Fixtures are production rows as the audit read them on 2026-10-21 (the first run): boss-bd-2
- * without an image, roland-tr-909 with a Pexels hero, ssl-2 whose model_name starts with its brand,
+ * without an image, roland-tr-909 with a Pexels hero, korg-ms-20 whose model_name starts with its brand,
  * warm-audio-warm-audio-wa-1b, gibson-es-330 without a subcategory, the two Neumann U 47 fet rows
  * (both with a line boundary), "Guitar Combos", the neumann-u87-condenser family whose label is its
  * child's name, altec-436 with no active listing.
@@ -105,16 +105,17 @@ test('public_image_off_storage: the TR-909 Pexels hero is a warning; a curated h
 
 /* ── Names and slugs ───────────────────────────────────────────────────── */
 
-test('model_name_starts_with_brand: "SSL 2" under SSL and "ARP 2600" under Arp, case-insensitively; "Juno-106" under Roland is clean', () => {
+test('model_name_starts_with_brand: "Korg MS-20" under Korg is reported; "ARP 2600" under Arp is allowed (the brand is part of the model, PAN-284); "Juno-106" under Roland is clean', () => {
   const snap = snapshot({ products: [
-    product({ slug: 'ssl-2', brand_slug: 'ssl', brand_name: 'SSL', model_name: 'SSL 2' }),
+    product({ slug: 'korg-ms-20', brand_slug: 'korg', brand_name: 'Korg', model_name: 'Korg MS-20' }),
     product({ slug: 'arp-2600', brand_slug: 'arp', brand_name: 'Arp', model_name: 'ARP 2600' }),
     product({ slug: 'roland-juno-106', model_name: 'Juno-106' }),
     // "Rolandia" is not "Roland " — a brand that is a prefix of a word does not count.
     product({ slug: 'roland-rolandia', model_name: 'Rolandia X' }),
     product({ slug: 'no-model', model_name: null }),
   ] })
-  assert.deepEqual(keys(snap, 'model_name_starts_with_brand'), ['arp-2600', 'ssl-2'])
+  assert.deepEqual(keys(snap, 'model_name_starts_with_brand'), ['korg-ms-20'])
+  assert.deepEqual(findings(snap, 'model_name_starts_with_brand').allowed.map((a) => `${a.key}=${a.by}`), ['arp-2600=PAN-284'])
 })
 
 test('slug_repeats_brand: warm-audio-warm-audio-wa-1b and a "--" slug; arp-korg-arp-2600 does not repeat its brand at the start', () => {
@@ -279,7 +280,7 @@ const night1 = snapshot({ products: [
 const night2 = snapshot({ products: [
   product({ slug: 'boss-bd-2', root_category_slug: 'effects-and-pedals' }), // image uploaded
   product({ slug: 'altec-436', root_category_slug: 'amps', active_listing_count: 0 }), // detail moved
-  product({ slug: 'ssl-2', brand_slug: 'ssl', brand_name: 'SSL', model_name: 'SSL 2' }), // new
+  product({ slug: 'korg-ms-20', brand_slug: 'korg', brand_name: 'Korg', model_name: 'Korg MS-20' }), // new
 ] })
 
 test('the state file holds the diffable findings by check and key, and never a trend', () => {
@@ -301,7 +302,7 @@ test('the first run reports everything as new; the next run reports only what ap
   const run2 = runAudit(night2, NIGHT_CHECKS, new Date('2026-10-22T04:00:00Z'))
   const second = diffRuns(toState(run1), run2)
   assert.equal(second.previous_ran_at, '2026-10-21T04:00:00.000Z')
-  assert.deepEqual(second.added.map((e) => `${e.id}:${e.key}`), ['model_name_starts_with_brand:ssl-2'])
+  assert.deepEqual(second.added.map((e) => `${e.id}:${e.key}`), ['model_name_starts_with_brand:korg-ms-20'])
   assert.deepEqual(second.changed.map((e) => `${e.id}:${e.key}:${e.was}->${e.detail}`), ['public_without_listings:altec-436:pro-audio->amps'])
   assert.deepEqual(second.fixed.map((e) => `${e.id}:${e.key}`), ['public_without_image:boss-bd-2'])
 
@@ -319,7 +320,7 @@ test('the report leads with the headline, then NEW, CHANGED and FIXED in that or
   assert.equal(lines[0], '[catalogue-audit] 1 new, 1 changed, 1 fixed — 2 open findings, since 2026-10-21 04:00 UTC')
   const at = (s: string) => lines.findIndex((l) => l === s)
   assert.ok(at('NEW') > 0 && at('CHANGED') > at('NEW') && at('FIXED') > at('CHANGED') && at('UNCHANGED') > at('FIXED') && at('TREND') > at('UNCHANGED'))
-  assert.ok(lines.includes('  warn  model_name_starts_with_brand  ssl-2 — "SSL 2" under brand "SSL"'))
+  assert.ok(lines.includes('  warn  model_name_starts_with_brand  korg-ms-20 — "Korg MS-20" under brand "Korg"'))
   assert.ok(lines.includes('  info  public_without_listings  altec-436 — amps (was: pro-audio)'))
   assert.ok(lines.includes('  error public_without_image  boss-bd-2 — no hero_image_url and no image_url'))
 
@@ -330,7 +331,7 @@ test('the report leads with the headline, then NEW, CHANGED and FIXED in that or
 
   // Errors sort before warnings inside NEW whatever order the checks ran in.
   const both = runAudit(snapshot({ products: [
-    product({ slug: 'ssl-2', brand_slug: 'ssl', brand_name: 'SSL', model_name: 'SSL 2' }),
+    product({ slug: 'korg-ms-20', brand_slug: 'korg', brand_name: 'Korg', model_name: 'Korg MS-20' }),
     product({ slug: 'boss-bd-2', image_url: null }),
   ] }), NIGHT_CHECKS)
   const fresh = formatReport(both, diffRuns(null, both)).split('\n')

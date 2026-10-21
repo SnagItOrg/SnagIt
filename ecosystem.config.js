@@ -171,6 +171,23 @@ module.exports = {
       },
     },
     {
+      // PAN-284: the nightly catalogue audit. Read-only: invariant checks over the
+      // supported cohort, diffed against ~/klup-rollbacks/catalogue-audit/state.json.
+      // "[catalogue-audit] OK" means clean; a night that moved is mailed to the
+      // owner's inbox from .env.local (bare --email). After the nightly chain
+      // (recall-canary 05:00), before notify-watchlists (06:00).
+      name: 'catalogue-audit',
+      script: 'npx',
+      args: 'tsx scripts/catalogue-audit.ts --email',
+      cron_restart: '40 5 * * *', // daily at 05:40
+      autorestart: false,
+      max_restarts: 0,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
       // PAN-12 (owner "Live nu" 2026-10-19; 066 applied the same day): one email
       // per active watchlist with the night's new hits, each (watchlist, listing)
       // pair at most once (migration 066). Reads listings only. After the whole
