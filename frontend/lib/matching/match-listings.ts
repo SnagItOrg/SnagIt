@@ -1338,6 +1338,97 @@ const neoVent = (requires: readonly RegExp[] | undefined, ...others: RegExp[]): 
   line: 'ventilator', otherMembers: [...PEDAL_NEVER, ...others], accessories: VENT_PARTS, ...(requires ? { requires } : {}),
 })
 
+// ── PAN-291: Oto Machines and the Ensoniq samplers and outboard ─────────────
+/**
+ * `code` as a whole word, only in a title that also names `maker` (before or after it). Every PAN-291 row requires
+ * its own code this way: the codes are short or common words that other things carry ("EPS Cement lättbetong 50
+ * liter", "ESP The Mirage Custom Shop", "Epiphone Biscuit-8E", "Roland DP-2" damper pedal), and an identifier needs
+ * no brand word, so the boundary supplies it. As a `requires` cue the matched code is blanked before the marker
+ * search, so the "Plus" of "EPS 16 Plus" or "DP/4 Plus" is never read as "sold with" (the PAN-261 6505+ rule).
+ */
+const withMaker = (maker: string, code: string): RegExp =>
+  new RegExp(`(?<=${maker}[\\s\\S]*)(?<![\\w-])(?:${code})(?![\\w-])|(?<![\\w-])(?:${code})(?![\\w-])(?=[\\s\\S]*${maker})`, 'i')
+/** "Ensoniq", and "Ensonic" as two DBA ads spelled it on 2026-10-21 ("Ensonic KT-76", "Ensonic SQ1 Plus"). */
+const ENSONIQ = '(?<![a-z])ensoni[qc](?![a-z])'
+const ensoniqCode = (code: string): RegExp => withMaker(ENSONIQ, code)
+/**
+ * Never an Ensoniq unit, whatever precedes it: the PAN-200 vocabulary (tact switches, "for parts", "not working",
+ * clones, lots), measured on the 668 production titles that name Ensoniq, Oto, Mirage, ASR or EPS (2026-10-21), of
+ * which about 60 % are not the unit.
+ */
+const ENSONIQ_NEVER: readonly RegExp[] = [
+  ...ROLAND_NEVER, ...cues('one sheet', 'reference cards', 'poster', 'book', 'scsi interface clone', 'needs repair', 'broken', 'partially working', 'non functioning', 'no sound'),
+  // A part sold for every model of a line ("AC Line Filter for Ensoniq ESQ-1 (both), ESQ-M, Mirage (all)") and the
+  // Transoniq Hacker, the Ensoniq users' newsletter ("Transoniq Hacker Ensoniq Mirage Operations").
+  /\(\s*(?:all|both)(?:\s+versions)?\s*\)/i, ...cues('transoniq hacker', 'line filter'),
+]
+/**
+ * What the Ensoniq trade sells beside the unit, marker-aware (production titles, 2026-10-21): the floppy sound
+ * libraries and boot disks, the OS EPROMs and upgrades, the floppy emulators, the OEX output expanders, the ME / FB
+ * memory expanders and flash banks, covers, rack ears, keys, sliders, faders, encoders, jacks, transformers, power
+ * supplies and the battery. "Ensoniq ASR-10 with SCSI and Gotek USB emulator", "… EPS-16 Plus Sampler with PREMIUM
+ * GoTek FlashFloppy Emulator + HUGE Sample Library!" and "Mirage DSK-8 … Working with Disks!" keep the unit. Taken
+ * out of ROLAND_PARTS, each measured on an Ensoniq unit it refused: `lcd` and `oled` ("Purple LCD Screen", "DP/2 OLED
+ * screen, aluminum caps, new battery"), `caps`. Deliberately not here: a bare `os` or `firmware` ("DP/4 … Latest OS +
+ * Manuals", "v1.15 Firmware Latest!"), a bare `floppy`, `gotek` or `emulator` ("Mirage DSK-8 … 1984 - Gotek floppy"),
+ * `disc` ("Waveboy Effects Disc, Purple Screen"), `display` ("Purple Display Version - 16MB") and `ram` ("ASR-X Pro
+ * 66MB RAM / 8 Outs / EXP-3"); a `key` after a key count is the keybed ("ASR 10 KEYBOARD SAMPLER 16 meg/61 key"), and
+ * a title that ends in "floppy" sells the drive ("Ensoniq ASR-10 Rackmount  floppy", 540 kr).
+ */
+const ENSONIQ_PARTS: readonly (string | RegExp)[] = [
+  ...ROLAND_PARTS.filter((p) => p !== 'lcd' && p !== 'oled' && p !== 'caps'),
+  'floppy disk', 'floppy disks', 'floppy emulator', 'floppy drive emulator', 'diskets', 'diskettes', 'discs',
+  'boot disk', 'disk drive', 'sample library', 'library', 'sound disk', 'sound disks', 'operating system', 'os upgrade',
+  'os update', 'eprom', 'cover', 'dust cover', 'output expander', 'expander', 'memory expansion', 'memory cartridge',
+  'cartridge', 'card', 'flash bank', 'flashbank', /(?<!(?:25|37|49|61|76|88)[\s-]?)(?<![\w-])keys?(?![\w-])/i, /(?<!gotek\s)(?<![\w-])floppy\s*$/i,
+  'potentiometer', 'slider', 'fader',
+  'faders', 'trafo', 'transformer', 'power supply', 'wheel assembly', 'cooling fan', 'jack', 'jack board', 'din jack',
+  'cable', 'encoder', 'data encoder', 'scsi card', 'displayboard', 'ears', 'converter', 'battery only', 'replacement battery',
+]
+/** An Ensoniq row: it requires its code in a title that names Ensoniq; the other members, parts and papers refuse. */
+const ensoniq = (line: string, code: string, ...others: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...others, ...ENSONIQ_NEVER], accessories: ENSONIQ_PARTS, requires: [ensoniqCode(code)],
+})
+/** The ASR-10 (keyboard and rack, "ASR-10R"), the ASR-X and its Pro; the ASR-88 is the 88-key ASR-10 and has no row. */
+const ASR_10 = /(?<![\w-])asr[-\s]?10(?![0-9])/i
+const ASR_X = /(?<![\w-])asr[-\s]?x(?![a-z0-9])/i
+const ASR_88 = /(?<![\w-])as[r]?[-\s]?88(?![0-9])/i
+/** "EPS-16 Plus", "EPS 16+", "EPS16+" and the bare "EPS-16" (Ensoniq made no other); and the EPS-M, the classic EPS's rack (3 sold on Reverb, no row). */
+const EPS_16 = /(?<![\w-])eps[-\s]?16(?![0-9])/i
+const EPS_16_PLUS = 'eps[-\\s]?16(?:[-\\s]?(?:\\+|plus))?'
+const EPS_M = /(?<![\w-])eps[-\s]?m(?![a-z0-9])/i
+/** "Rack", "Rackmount", "Rack-mount", "Rack Mount". */
+const RACK_WORD = '(?<![\\w-])rack(?:[-\\s]?mount)?(?![\\w-])'
+const RACK = new RegExp(RACK_WORD, 'i')
+/** The EPS-16 Plus code in a title that also says rack, on either side of it. */
+const EPS_16_PLUS_RACK = `(?:${EPS_16_PLUS})(?=[\\s\\S]*${RACK_WORD})|(?<=${RACK_WORD}[\\s\\S]*)(?:${EPS_16_PLUS})`
+/** The Mirage keyboards (DSK-8 1984, DSK-1 1986) and racks (DMS-8 1985, DMS-1 1986). */
+const DSK = (n: string): RegExp => new RegExp(`(?<![\\w-])dsk[-\\s]?${n}(?![0-9])`, 'i')
+const DMS = /(?<![\w-])dms[-\s]?[18](?![0-9])/i
+/** A DMS code, or "Mirage" with the rack word ("Ensoniq Mirage rack", "Ensoniq MIRAGE Rack W/ Gotek USB", Reverb sold). */
+const MIRAGE_RACK = `dms[-\\s]?[18]|mirage(?=[\\s\\S]*${RACK_WORD})`
+/** "DP/4", "DP-4", "DP4", "DP 4"; the DP/4+ ("DP/4+", "DP/4 Plus"). */
+const DP = (n: string): string => `dp\\s?[/-]?\\s?${n}`
+const DP_4_PLUS = new RegExp(`(?<![\\w-])${DP('4')}\\s?(?:\\+|plus)`, 'i')
+
+/**
+ * OTO Machines (Paris, 2009–): the Biscuit, the BIM / BAM / BOUM desktop trio and the Bébé Chérie mixer. Sellers write
+ * "OTO Machines", "Oto" and "OTO BAM Reverb" (DBA, 2026-10-21); every row requires its own word beside "Oto", because
+ * "Biscuit" is an Epiphone resonator on DBA and BIM / BAM are three letters. A title naming two of the trio is a
+ * bundle ("OTO Machines BIM & BAM Bundle!", Reverb sold) and names no row.
+ */
+const OTO = '(?<![a-z])oto(?![a-z])'
+const OTO_WORDS: Readonly<Record<string, RegExp>> = {
+  biscuit: cue('biscuit'), bim: cue('bim'), bam: cue('bam'), boum: cue('boum'), 'bebe-cherie': /(?<![\w-])b[eé]b[eé][-\s]?ch[eé]rie(?![\w-])/i,
+}
+const OTO_PARTS: readonly string[] = [...PEDAL_EXTRAS, 'stand', 'stands', 'deck saver', 'rack ears', 'rack kit']
+const oto = (line: keyof typeof OTO_WORDS, code: string): LineBoundary => ({
+  line: `oto-${line}`,
+  otherMembers: [...PEDAL_NEVER, ...Object.entries(OTO_WORDS).filter(([w]) => w !== line).map(([, re]) => re)],
+  accessories: OTO_PARTS,
+  requires: [withMaker(OTO, code)],
+})
+
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
   'moog-minimoog': {
@@ -3090,6 +3181,33 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'neo-instruments-ventilator-ii': neoVent(VENT_II, ...VENT_SMALL),
   'neo-instruments-mini-vent': neoVent(undefined, cue('micro'), cue('microvent'), cue('drive in')),
   'neo-instruments-micro-vent': neoVent(undefined, cue('mini'), cue('minivent'), cue('drive in')),
+  // ── PAN-291: Oto Machines ──
+  'oto-machines-biscuit': oto('biscuit', 'biscuit'),
+  'oto-machines-bim': oto('bim', 'bim'),
+  'oto-machines-bam': oto('bam', 'bam'),
+  'oto-machines-boum': oto('boum', 'boum'),
+  'oto-machines-bebe-cherie': oto('bebe-cherie', 'b[eé]b[eé][-\\s]?ch[eé]rie'),
+  // ── PAN-291: the Ensoniq samplers and outboard ──
+  // The ASR line. The ASR-10 is one row for the keyboard and the rack ($1,100 / $1,300 on Reverb's sold population,
+  // 2026-10-21: the closeness of the Memory Man faces); the ASR-X and the ASR-X Pro are two ($499 / $650).
+  'ensoniq-asr-10': ensoniq('asr', 'asr[-\\s]?10(?:\\s?r)?', ASR_X, ASR_88),
+  'ensoniq-asr-x': ensoniq('asr', 'asr[-\\s]?x', cue('pro'), cue('turbo'), ASR_10, ASR_88),
+  'ensoniq-asr-x-pro': ensoniq('asr', 'asr[-\\s]?x[-\\s]?pro', ASR_10, ASR_88),
+  // The EPS line: the classic EPS ($335) and the EPS-16 Plus keyboard ($595) and rack ($850) are three rows by price.
+  'ensoniq-eps': ensoniq('eps', 'eps', EPS_16, EPS_M, ASR_10, ASR_X),
+  'ensoniq-eps-16-plus': ensoniq('eps', EPS_16_PLUS, RACK, ASR_10, ASR_X),
+  'ensoniq-eps-16-plus-rack': ensoniq('eps', EPS_16_PLUS_RACK, cue('keyboard'), ASR_10, ASR_X),
+  // The Mirage: the DSK-8 and DSK-1 keyboards ($425 / $418) are the two rows production holds, the DSK-1 by its code; the
+  // DMS-8 and DMS-1 racks ($600 / $525) are one row. A bare "Ensoniq Mirage" keyboard is the DSK-8 (manager, 2026-10-21:
+  // the 1984 original, and the same price class as the DSK-1, which by price would merge into it once the owner moves its
+  // three verdicts); the identity file's "Mirage" identifier reaches it, and the DSK-1, the racks and the rack word refuse.
+  'ensoniq-mirage-dsk-8': ensoniq('mirage', '(?:mirage[-\\s]?)?dsk[-\\s]?8|mirage', DSK('1'), DMS, RACK),
+  'ensoniq-mirage-dsk-1': ensoniq('mirage', 'dsk[-\\s]?1', DSK('8'), DMS, RACK),
+  'ensoniq-mirage-dms-8': ensoniq('mirage', MIRAGE_RACK, DSK('[18]')),
+  // The DP parallel effects processors: the DP/2 ($400), the DP/4 ($700) and the DP/4+ ($885); the DP/Pro sold once.
+  'ensoniq-dp-2': ensoniq('dp', DP('2')),
+  'ensoniq-dp-4': ensoniq('dp', DP('4'), DP_4_PLUS),
+  'ensoniq-dp-4-plus': ensoniq('dp', `${DP('4')}\\s?(?:\\+|plus)`),
 }
 
 /**

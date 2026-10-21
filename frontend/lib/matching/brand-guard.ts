@@ -106,6 +106,11 @@ export const SAME_MAKER: readonly (readonly string[])[] = [
   // Micro Vent 16" (Reverb sold titles, 2026-10-21). Only a Neo Instruments row reads "neo" — detectCatalogueBrands
   // reads kg_brand names, so "Holy Grail Neo" and "Rega Neo PSU" (DBA, 2026-10-21) name no brand.
   ['neo instruments', 'neo'],
+  // PAN-291: the units carry "OTO Machines"; sellers write "OTO BAM Reverb" (DBA, 2026-10-21) and "Oto Biscuit". Only an
+  // OTO Machines row reads "oto", and each of them also requires "oto" beside its own word.
+  ['oto machines', 'oto'],
+  // PAN-291: "Ensonic KT-76" and "Ensonic SQ1 Plus" (DBA, 2026-10-21) are Ensoniq's units, misspelled.
+  ['ensoniq', 'ensonic'],
 ]
 const MAKER_OF = new Map<string, string>()
 SAME_MAKER.forEach((group) => group.forEach((name) => MAKER_OF.set(name, group[0])))
