@@ -8,7 +8,7 @@ import { fill } from '@/lib/i18n'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { priceDkkBucket, track } from '@/lib/analytics'
 import { formatOriginalPrice } from '@/lib/currency'
-import { classifyListing, firstSeenTimestamp, isApproximateDkk, longOnMarketDays } from '@/lib/price-populations'
+import { classifyListing, firstSeenTimestamp, isApproximateDkk, isNonFunctioning, longOnMarketDays } from '@/lib/price-populations'
 import { classifyOtpError, type OtpErrorKey } from '@/lib/otp-error'
 import { TextField } from '@/components/TextField'
 import { SourceBadge } from '@/components/SourceBadge'
@@ -176,6 +176,11 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating = false,
   const age = firstSeen
     ? onMarketDays != null ? fill(t.onMarketDays, { n: onMarketDays }) : timeSince(firstSeen, locale)
     : null
+  // PAN-283: a Reverb "Non Functioning" unit stays on the wall but carries no
+  // verdict (`listingVerdict` refuses it), so the meta row says why, in the
+  // word the sold chart already uses for that condition. Nothing else about
+  // the card changes; the condition is a fact of the ad, not a judgement.
+  const nonFunctioning = isNonFunctioning(listing.condition)
 
   async function handleWatchlistClick() {
     const supabase = createSupabaseBrowserClient()
@@ -324,6 +329,12 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating = false,
             {age && (
               <span className="flex-shrink-0">{age}</span>
             )}
+            {nonFunctioning && (
+              <>
+                {age && <span>·</span>}
+                <span className="flex-shrink-0">{t.conditionNonFunctioning}</span>
+              </>
+            )}
           </div>
         </div>
       </a>
@@ -445,6 +456,12 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating = false,
               <>
                 <span>·</span>
                 <span>{getLocationDisplay(listing)}</span>
+              </>
+            )}
+            {nonFunctioning && (
+              <>
+                <span>·</span>
+                <span>{t.conditionNonFunctioning}</span>
               </>
             )}
           </div>

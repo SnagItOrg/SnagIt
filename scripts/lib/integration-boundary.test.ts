@@ -261,6 +261,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-280: the boutique pedal rows' line boundaries — a model word plus its brand is the identity, the Strymon MX
       // generation is its own row, a power supply or a plug-in is not the pedal, "EQD" and "Hologram" name their makers.
       'scripts/lib/pan280-boutique-pedals.test.ts',
+      // PAN-283: a Reverb "Non Functioning" listing is shown, with its condition, and never counted — in no
+      // band, span, median, sold population or card verdict, borrowed Reverb band included. Real rows as fixtures.
+      'scripts/lib/pan283-non-functioning.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
