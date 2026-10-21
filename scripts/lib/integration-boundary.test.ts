@@ -265,6 +265,9 @@ test('integration: every package suite is registered exactly once', () => {
       // boundary (a bare one names no row), the Nano, Hazarai and TT models carry their names, the Memory Boy and Toy
       // are outside the family, and "EHX" / "Electro Harmonix" name Electro-Harmonix.
       'scripts/lib/pan282-memory-man.test.ts',
+      // PAN-283: a Reverb "Non Functioning" listing is shown, with its condition, and never counted — in no
+      // band, span, median, sold population or card verdict, borrowed Reverb band included. Real rows as fixtures.
+      'scripts/lib/pan283-non-functioning.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite

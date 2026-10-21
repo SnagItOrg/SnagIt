@@ -46,6 +46,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 
 import { isMatchableProduct } from '../frontend/lib/matching/match-listings'
+import { isNonFunctioning } from '../frontend/lib/price-populations'
 import {
   buildIdentityPayload,
   buildPriceContext,
@@ -279,13 +280,17 @@ async function loadRows(): Promise<QualificationRow[]> {
     const chunk = confirmed.slice(i, i + 100)
     const { data, error } = await supabase
       .from('listings')
-      .select('id, price_dkk')
+      .select('id, price_dkk, condition')
       .in('id', chunk.map((c) => c.listing_id))
     if (error) {
       console.error(`Failed reading confirmed listing prices: ${error.message}`)
       process.exit(1)
     }
-    const priceById = new Map((data ?? []).map((l) => [l.id, l.price_dkk]))
+    // A Non Functioning unit's price is not evidence for the judge's median
+    // either (PAN-283); the same predicate the product page applies.
+    const priceById = new Map(
+      (data ?? []).map((l) => [l.id, isNonFunctioning(l.condition) ? null : l.price_dkk]),
+    )
     for (const c of chunk) {
       const raw = priceById.get(c.listing_id)
       const list = confirmedPrices.get(c.product_id) ?? []
