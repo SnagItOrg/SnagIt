@@ -76,6 +76,8 @@ export const ACCOUNT_DELETION_PLAN: readonly DeletionStep[] = [
 
   { table: 'watchlist_notification', column: 'watchlist_id', action: 'cascade', key: 'none',
     reason: "Which listings a watchlist mail handled (066). ON DELETE CASCADE from the user's watchlists." },
+  { table: 'watchlist_mail', column: 'watchlist_id', action: 'cascade', key: 'none',
+    reason: "One row per watchlist mail sent and its click (070, PAN-276/278). ON DELETE CASCADE from the user's watchlists." },
   { table: 'watchlists', column: 'user_id', action: 'delete', key: 'user_id',
     reason: "The user's own searches and model watches." },
   { table: 'saved_listings', column: 'user_id', action: 'delete', key: 'user_id',
