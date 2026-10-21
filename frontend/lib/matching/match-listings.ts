@@ -3226,11 +3226,11 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'lexicon-lxp-5': lexicon('lxp', undefined, LXP(1), LXP(15)),
   'lexicon-lxp-15': lexicon('lxp', undefined, LXP(1), LXP(5), LXP_15_II),
   'lexicon-lxp-15-ii': lexicon('lxp', [LXP_15_II], LXP(1), LXP(5)),
-  // The MX line. The MX400XL (XLR I/O) prices 21 % over the MX400 and is its own model name; "MX400 XL" names neither.
+  // The MX line. The MX400 and the MX400XL (XLR I/O, 21 % over it — below the ~25 % a row of its own takes; manager,
+  // 2026-10-21) are ONE row: its model name "MX400" reads a spaced "MX400 XL", its identifier the glued "MX400XL".
   'lexicon-mx200': lexicon('mx', undefined, MX(300), MX(400), MX_400XL),
   'lexicon-mx300': lexicon('mx', undefined, MX(200), MX(400), MX_400XL),
-  'lexicon-mx400': lexicon('mx', undefined, MX(200), MX(300), MX_400XL),
-  'lexicon-mx400xl': lexicon('mx', undefined, MX(200), MX(300)),
+  'lexicon-mx400': lexicon('mx', undefined, MX(200), MX(300)),
   // ── PAN-290: the Korg SDD delay family ──
   'korg-sdd-1000': sdd('sdd', undefined, ...SDD_OTHERS(1000)),
   'korg-sdd-2000': sdd('sdd', undefined, ...SDD_OTHERS(2000)),

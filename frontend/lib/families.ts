@@ -1243,15 +1243,16 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
   },
   /**
    * PAN-290, owner decision 2026-10-21. Lexicon's MX reverbs (2005–): the
-   * MX200, MX300, MX400 and the MX400XL (21 % over the MX400, its own row).
-   * Navigation only; the family never aggregates their prices. Inert until a
-   * child is canonical. A bare "mx" is not an alias.
+   * MX200, MX300 and MX400 — the MX400XL is the MX400's row (21 % over it,
+   * below the ~25 % a row of its own takes; manager, 2026-10-21). Navigation
+   * only; the family never aggregates their prices. Inert until a child is
+   * canonical. A bare "mx" is not an alias.
    */
   'lexicon-mx': {
     label: 'Lexicon MX',
     brand: 'Lexicon',
     categoryRoot: 'pro-audio',
-    children: ['lexicon-mx200', 'lexicon-mx300', 'lexicon-mx400', 'lexicon-mx400xl'],
+    children: ['lexicon-mx200', 'lexicon-mx300', 'lexicon-mx400'],
     aliases: ['lexicon mx'],
   },
   /**

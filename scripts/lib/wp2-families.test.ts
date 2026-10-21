@@ -531,7 +531,7 @@ test('families: children match the reviewed §6.3 map', () => {
     ],
     'prime-time': ['lexicon-prime-time', 'lexicon-prime-time-ii', 'lexicon-super-prime-time'],
     'lexicon-lxp': ['lexicon-lxp-1', 'lexicon-lxp-5', 'lexicon-lxp-15', 'lexicon-lxp-15-ii'],
-    'lexicon-mx': ['lexicon-mx200', 'lexicon-mx300', 'lexicon-mx400', 'lexicon-mx400xl'],
+    'lexicon-mx': ['lexicon-mx200', 'lexicon-mx300', 'lexicon-mx400'],
     'korg-sdd': ['korg-sdd-1000', 'korg-sdd-2000', 'korg-sdd-3000-rackmount', 'korg-sdd-3000-pedal'],
   }
   for (const family of NAVIGATION_FAMILIES) {

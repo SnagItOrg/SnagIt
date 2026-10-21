@@ -1,12 +1,12 @@
 /**
  * scripts/lib/pan290-lexicon-korg-sdd.test.ts
  *
- * PAN-290: the Lexicon classics and the Korg SDD delay family. Thirty-two rows become match targets (the Lexicon 224,
+ * PAN-290: the Lexicon classics and the Korg SDD delay family. Thirty-one rows become match targets (the Lexicon 224,
  * 480L, PCM 42 and Prime Time 93 that exist as `known` since PAN-230, the Korg SDD-3000 rack and pedal that exist since
- * 2026-08-26, and 26 rows created 2026-10-21 — a verified Reverb page each, except the Super Prime Time, the PCM 92, the
- * SDD-1000 and the DL8000R, which Reverb has no page for). Price decides identity: the 224 / 224X / 224XL are one row,
- * their codes identifiers; the 300 / 300L, PCM96 / Surround, LXP-15 / II, MX400 / MX400XL and SDD-3000 rack / pedal
- * are two rows each. Lexicon names its units by bare numbers and short codes, so a row refuses every other line's
+ * 2026-08-26, and 25 rows created 2026-10-21 — a verified Reverb page each, except the Super Prime Time, the PCM 92, the
+ * SDD-1000 and the DL8000R, which Reverb has no page for). Price decides identity: the 224 / 224X / 224XL and the MX400 /
+ * MX400XL are one row each, their codes identifiers (manager, 2026-10-21: below ~25 % apart is one row); the 300 / 300L,
+ * PCM96 / Surround, LXP-15 / II and SDD-3000 rack / pedal are two rows each. Lexicon names its units by bare numbers and short codes, so a row refuses every other line's
  * code: a title naming two units (a LARC "for 224XL/480L/300L/M300") names no row. Measured on the 105 production
  * titles that say "lexicon", the production titles that say "sdd", the DBA ads live on 2026-10-21 and the Reverb sold
  * titles behind each row (read-only, 2026-10-21). Every title is a production or Reverb title unless marked synthetic.
@@ -54,7 +54,6 @@ const PRODUCTS: Product[] = [
   row('lexicon-mx200', 'lexicon', 'Lexicon MX200', 'MX200'),
   row('lexicon-mx300', 'lexicon', 'Lexicon MX300', 'MX300'),
   row('lexicon-mx400', 'lexicon', 'Lexicon MX400', 'MX400'),
-  row('lexicon-mx400xl', 'lexicon', 'Lexicon MX400XL', 'MX400XL'),
   row('korg-sdd-1000', 'korg', 'Korg SDD-1000', 'SDD-1000'),
   row('korg-sdd-2000', 'korg', 'Korg SDD-2000', 'SDD-2000'),
   row('korg-sdd-3000-rackmount', 'korg', 'Korg SDD-3000 Rack', 'SDD-3000'),
@@ -69,11 +68,12 @@ const PRODUCTS: Product[] = [
 ]
 
 /**
- * The identifiers the PAN-290 identity file writes: the 224's later codes, the form DBA's 480L ad takes, and the pedal's
- * code, which the code form keeps whole ("sdd 3000-pdl"), so the model name never reaches it.
+ * The identifiers the PAN-290 identity file writes: the 224's later codes, the glued MX400XL, the form DBA's 480L ad
+ * takes, and the pedal's code — the code form keeps "224x", "400xl" and "3000-pdl" whole, so the model name never
+ * reaches them.
  */
 const IDENTS = [
-  ['lexicon-224', '224X'], ['lexicon-224', '224XL'], ['lexicon-480l', 'Lexicon 480'], ['korg-sdd-3000-pedal', 'SDD-3000-PDL'],
+  ['lexicon-224', '224X'], ['lexicon-224', '224XL'], ['lexicon-mx400', 'MX400XL'], ['lexicon-480l', 'Lexicon 480'], ['korg-sdd-3000-pedal', 'SDD-3000-PDL'],
 ].map(([slug, value]) => ({ product_id: `p-${slug}`, type: 'MODEL', value }))
 
 const index = buildMatchIndex(PRODUCTS, IDENTS, [])
@@ -87,13 +87,13 @@ const notOurs = (title: string) => {
   assert.ok(!d.startsWith('lexicon-') && !d.startsWith('korg-'), `${title} → ${d}`)
 }
 
-test('every promoted row has a boundary, the config lists 32 rows, and the five families hold 26 rows', () => {
-  assert.equal(config.promoted.length, 32)
-  assert.equal(new Set(config.promoted).size, 32)
+test('every promoted row has a boundary, the config lists 31 rows, and the five families hold 25 rows', () => {
+  assert.equal(config.promoted.length, 31)
+  assert.equal(new Set(config.promoted).size, 31)
   for (const slug of [...config.promoted, ...config.supportedToday]) assert.ok(LINE_BOUNDARIES[slug], `${slug} has no LINE_BOUNDARIES entry`)
   const fam = (slug: string) => NAVIGATION_FAMILIES.find((f) => f.slug === slug)!
   const children = ['lexicon-pcm', 'prime-time', 'lexicon-lxp', 'lexicon-mx', 'korg-sdd'].flatMap((f) => fam(f).children)
-  assert.equal(children.length, 26)
+  assert.equal(children.length, 25)
   for (const c of children) assert.ok(config.promoted.includes(c), c)
   // Rows that share a model name share a line, so a refusal within it separates them (step 5b).
   for (const slug of [...config.promoted, ...config.supportedToday].filter((s) => s.startsWith('lexicon-'))) assert.equal(LINE_BOUNDARIES[slug].line, 'lexicon', slug)
@@ -233,7 +233,7 @@ test('the Prime Time line: the Model 93, the II and the Super Prime Time apart',
   ]) notOurs(t)
 })
 
-test('the LXP and MX lines: siblings apart, the LXP-15 II and the MX400XL by their marks, the power supplies never', () => {
+test('the LXP and MX lines: siblings apart, the LXP-15 II by its mark, the MX400XL the MX400\'s row, the power supplies never', () => {
   matches('Lexicon LXP-1 rack effektprocessor til guitar/lyd', 'lexicon-lxp-1')
   matches('Lexicon LXP-1 Multi-Effects Processing Module', 'lexicon-lxp-1')
   matches('Lexicon LXP-5 Effects Processing Module', 'lexicon-lxp-5')
@@ -245,7 +245,11 @@ test('the LXP and MX lines: siblings apart, the LXP-15 II and the MX400XL by the
   matches('Lexicon MX200 Dual Reverb Effects Processor - Everything Included', 'lexicon-mx200')
   matches('Lexicon MX300 stereo reverb effektprocessor rack', 'lexicon-mx300')
   matches('Lexicon MX400 Dual Stereo / Surround Reverb Effects Processor', 'lexicon-mx400')
-  matches('Lexicon MX400XL Dual Stereo / Surround Reverb Effects Processor 2010s - Blue', 'lexicon-mx400xl')
+  // The MX400XL is the MX400's row (manager, 2026-10-21): glued through the identifier, spaced through the model name.
+  matches('Lexicon MX400XL Dual Stereo / Surround Reverb Effects Processor 2010s - Blue', 'lexicon-mx400')
+  matches('Lexicon MX400XL Multi Effects Rack 2017', 'lexicon-mx400')
+  matches('Lexicon MX400 XL Dual Engine Reverb', 'lexicon-mx400')
+  notOurs('Lexicon MX300 and MX400XL rack')
   for (const t of [
     '9VAC 1300mA AC Adapter Charger Replacement for Lexicon MX200 MPX100 JamMan MPX110 Dual Reverb,Digitech RP100 RP150 RP200 RP300 RP350 RP3 RP250 RP200A RP250 RP255 RP350 RP300A RP355 Effects Processor',
     '9Vac Adapter For Lexicon Mx200 Mpx100,Behringer Tube Ultragain Mic200 Mic100,Psu11-Ul U090075A Psu-Mini-Ul-01,Behringer Pro Nox101 Dj Mixer Behringer Miniamp Amp800,Digitech Vocal300 Vocalist Live4,5',
