@@ -1,8 +1,8 @@
 'use client'
 
-import { Fragment, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { preload } from 'react-dom'
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { Sun, Moon } from 'lucide-react'
@@ -13,6 +13,7 @@ import { type Locale } from '@/lib/i18n'
 import {
   currentCatalogueNode,
   sortKindsByLabel,
+  subcategoryHref,
   type CatalogueTreeCategory,
 } from '@/lib/catalogue-tree'
 import { scrollFade, useScrollEdges } from '@/components/use-scroll-edges'
@@ -173,17 +174,13 @@ function CatalogueTreeSkeleton() {
  */
 function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) => void }) {
   const { t, locale } = useLocale()
-  const pathname = usePathname()
   /**
-   * PAN-121 — the sidebar reads the same facet the chips write.
-   *
-   * `/browse/[root]` now keeps its subcategory in `?sub=<slug>`, so "where you
-   * are" is a fact both surfaces can read rather than one component's private
-   * state. Reading it here is what makes the sidebar indicator and the filter
-   * chips agree instead of telling two half-stories.
+   * PAN-121 — the sidebar reads the same place the chips write. PAN-289: a
+   * kind is a path now (`/browse/<root>/<kind>`), so the pathname alone says
+   * where the visitor is, and the sidebar indicator and the filter chips agree
+   * instead of telling two half-stories.
    */
-  const searchParams = useSearchParams()
-  const activeSub = searchParams.get('sub')
+  const pathname = usePathname()
   const [categories, setCategories] = useState<CatalogueTreeCategory[]>([])
   /**
    * Has the fetch ANSWERED yet — not "did it succeed", and not "is there
@@ -238,8 +235,8 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
    * is structural rather than three booleans that happen not to overlap.
    */
   const current = useMemo(
-    () => currentCatalogueNode(categories, pathname, activeSub),
-    [categories, pathname, activeSub],
+    () => currentCatalogueNode(categories, pathname),
+    [categories, pathname],
   )
 
   /**
@@ -268,7 +265,7 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
 
         /**
          * PAN-121 — is this the branch the visitor is standing in with no kind
-         * narrowing it? True on `/browse/<root>` with no recognised `?sub=`.
+         * narrowing it? True on `/browse/<root>`, with no kind in the path.
          * PAN-269: that is the "Alle" row beneath the root that carries the
          * mark — the same row the chip row on the page marks — so the root row
          * itself never does, and exactly one `aria-current="page"` stays in
@@ -279,7 +276,7 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
 
         /**
          * PAN-132 — does this branch CONTAIN the current node? Containment,
-         * not marking: on a kind `?sub=` and on a product under a kind the
+         * not marking: on a kind page and on a product under a kind the
          * branch is not the marked node, but it still has to show the kind
          * that is.
          */
@@ -351,8 +348,8 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                   const subLabel = locale === 'da' ? sub.name_da : sub.name_en
                   /* `sub.slug` is documented in `catalogue-tree.ts` as the bare
                      leaf slug "as `/browse/<root>` reports it", which is exactly
-                     the value the filter chips write into `?sub=`. The sidebar
-                     and the chips therefore compare the same string. */
+                     the value the filter chips write into the kind's path. The
+                     sidebar and the chips therefore compare the same string. */
                   const isCurrentSub =
                     current?.kind === 'subcategory' &&
                     current.categorySlug === category.slug &&
@@ -360,7 +357,7 @@ function CatalogueTree({ onMarkedChange }: { onMarkedChange: (marked: boolean) =
                   return (
                     <KindRow
                       key={sub.slug}
-                      href={`/browse/${category.slug}?sub=${encodeURIComponent(sub.slug)}`}
+                      href={subcategoryHref(category.slug, sub.slug)}
                       current={isCurrentSub}
                       label={subLabel}
                     />
@@ -1045,18 +1042,8 @@ export function SideNav() {
 
                           Absent when collapsed: it is a tree of Danish product
                           names and there is nowhere to put them at 72px. */}
-                      {/* `CatalogueTree` reads `?sub=` to mark the current leaf,
-                          and `useSearchParams` opts a statically-rendered route
-                          into client rendering unless it sits behind a boundary.
-                          Since PAN-131 the sidebar mounts once, in
-                          `app/(shell)/layout.tsx`, which is an ancestor of all
-                          nine of those routes — so the boundary has to live here
-                          rather than leak the opt-in upwards into the layout and
-                          out across every page under it. */}
                       {href === '/browse' && !collapsed && (
-                        <Suspense fallback={<CatalogueTreeSkeleton />}>
-                          <CatalogueTree onMarkedChange={handleTreeMarked} />
-                        </Suspense>
+                        <CatalogueTree onMarkedChange={handleTreeMarked} />
                       )}
                     </Fragment>
                   )

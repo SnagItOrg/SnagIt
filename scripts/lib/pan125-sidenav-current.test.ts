@@ -26,6 +26,8 @@ import { join } from 'node:path'
 
 import {
   currentCatalogueNode,
+  subcategoryFromPath,
+  subcategoryHref,
   type CatalogueTreeCategory,
 } from '../../frontend/lib/catalogue-tree'
 
@@ -69,7 +71,7 @@ const TREE: CatalogueTreeCategory[] = [
 ]
 
 test('one function decides the current node, and it picks exactly one', () => {
-  assert.deepEqual(currentCatalogueNode(TREE, '/browse/keyboards-and-synths', null), {
+  assert.deepEqual(currentCatalogueNode(TREE, '/browse/keyboards-and-synths'), {
     kind: 'branch',
     categorySlug: 'keyboards-and-synths',
   })
@@ -77,25 +79,23 @@ test('one function decides the current node, and it picks exactly one', () => {
   // A KIND narrows it. The branch must stop claiming to be current, or a
   // screen reader hears two current pages.
   assert.deepEqual(
-    currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'drum-machines'),
+    currentCatalogueNode(TREE, '/browse/keyboards-and-synths/drum-machines'),
     { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'drum-machines' },
   )
   // PAN-138: a grouped leaf is not a node of its own — an old
   // `?sub=analog-synths` link marks the group it belongs to, not the branch.
   assert.deepEqual(
-    currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'analog-synths'),
+    currentCatalogueNode(TREE, '/browse/keyboards-and-synths/analog-synths'),
     { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'synthesizers' },
   )
   assert.deepEqual(
-    currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'synthesizers'),
+    currentCatalogueNode(TREE, '/browse/keyboards-and-synths/synthesizers'),
     { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'synthesizers' },
   )
-  // A `?sub=` naming no node under this root: the root is where the visitor
-  // stands (PAN-269 — `solid-body` is a node under electric-guitars, not here).
-  assert.deepEqual(
-    currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'solid-body'),
-    { kind: 'branch', categorySlug: 'keyboards-and-synths' },
-  )
+  // A kind path naming no node under this root is a 404 page since PAN-289,
+  // so nothing is marked (PAN-269 — `solid-body` is a node under
+  // electric-guitars, not here).
+  assert.equal(currentCatalogueNode(TREE, '/browse/keyboards-and-synths/solid-body'), null)
 
   // PAN-132 — the product node names its category too. Marking the row only
   // needs the product slug; OPENING the branch that holds it needs to know
@@ -104,19 +104,19 @@ test('one function decides the current node, and it picks exactly one', () => {
   //
   // PAN-121 round 3: a product is no longer a node. A product page marks the
   // node that holds it — the root when no kind does…
-  assert.deepEqual(currentCatalogueNode(TREE, '/product/facet-only', null), {
+  assert.deepEqual(currentCatalogueNode(TREE, '/product/facet-only'), {
     kind: 'branch',
     categorySlug: 'keyboards-and-synths',
   })
   // …the group when its leaf is grouped (PAN-138: the Juno-106 marks
   // "Synthesizere", whichever synth leaf it is filed under)…
-  assert.deepEqual(currentCatalogueNode(TREE, '/product/roland-juno-106', null), {
+  assert.deepEqual(currentCatalogueNode(TREE, '/product/roland-juno-106'), {
     kind: 'subcategory',
     categorySlug: 'keyboards-and-synths',
     subcategorySlug: 'synthesizers',
   })
   // …and its kind when it has one. Still exactly one node.
-  assert.deepEqual(currentCatalogueNode(TREE, '/product/roland-tr-808', null), {
+  assert.deepEqual(currentCatalogueNode(TREE, '/product/roland-tr-808'), {
     kind: 'subcategory',
     categorySlug: 'keyboards-and-synths',
     subcategorySlug: 'drum-machines',
@@ -127,24 +127,20 @@ test('it fails closed rather than marking a node that is not there', () => {
   // Catalogue-shaped paths naming things the tree does not carry. Each must
   // return null so the caller falls back to the section instead of inventing a
   // precise mark for a node the visitor cannot see.
-  assert.equal(currentCatalogueNode(TREE, '/browse/not-a-root', null), null)
-  assert.equal(currentCatalogueNode(TREE, '/product/not-a-product', null), null)
-  assert.equal(currentCatalogueNode([], '/browse/keyboards-and-synths', null), null)
+  assert.equal(currentCatalogueNode(TREE, '/browse/not-a-root'), null)
+  assert.equal(currentCatalogueNode(TREE, '/product/not-a-product'), null)
+  assert.equal(currentCatalogueNode([], '/browse/keyboards-and-synths'), null)
 
   // Not catalogue nodes at all.
-  assert.equal(currentCatalogueNode(TREE, '/browse', null), null)
-  assert.equal(currentCatalogueNode(TREE, '/search', null), null)
-  assert.equal(currentCatalogueNode(TREE, '/family/fender-telecaster', null), null)
+  assert.equal(currentCatalogueNode(TREE, '/browse'), null)
+  assert.equal(currentCatalogueNode(TREE, '/search'), null)
+  assert.equal(currentCatalogueNode(TREE, '/family/fender-telecaster'), null)
 
   // Deeper than the tree goes.
-  assert.equal(currentCatalogueNode(TREE, '/browse/keyboards-and-synths/extra', null), null)
+  assert.equal(currentCatalogueNode(TREE, '/browse/keyboards-and-synths/drum-machines/extra'), null)
 
-  // An unrecognised facet is not a place to stand, so it falls back to the
-  // branch rather than marking nothing on a page that clearly has a branch.
-  assert.deepEqual(currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'nope'), {
-    kind: 'branch',
-    categorySlug: 'keyboards-and-synths',
-  })
+  // PAN-289: an unrecognised kind path is a 404 page, not a place to stand.
+  assert.equal(currentCatalogueNode(TREE, '/browse/keyboards-and-synths/nope'), null)
 })
 
 test('the section carries the mark when the tree cannot', () => {
@@ -260,9 +256,9 @@ test('snapping keeps the range discontinuous, so the label floor still holds', (
  */
 test('a branch opens when it CONTAINS the current node, not when it IS it', () => {
   // All three kinds name their category, so one containment test serves them.
-  const branch = currentCatalogueNode(TREE, '/browse/keyboards-and-synths', null)
-  const sub = currentCatalogueNode(TREE, '/browse/keyboards-and-synths', 'drum-machines')
-  const product = currentCatalogueNode(TREE, '/product/roland-tr-808', null)
+  const branch = currentCatalogueNode(TREE, '/browse/keyboards-and-synths')
+  const sub = currentCatalogueNode(TREE, '/browse/keyboards-and-synths/drum-machines')
+  const product = currentCatalogueNode(TREE, '/product/roland-tr-808')
   const cases = [
     ['branch', branch],
     ['subcategory', sub],
@@ -301,8 +297,8 @@ test('a branch opens when it CONTAINS the current node, not when it IS it', () =
 
   // A route the tree has no node for opens nothing, and the Katalog item
   // carries the section mark instead through the existing onMarkedChange path.
-  assert.equal(currentCatalogueNode(TREE, '/search', null), null)
-  assert.equal(currentCatalogueNode(TREE, '/family/fender-telecaster', null), null)
+  assert.equal(currentCatalogueNode(TREE, '/search'), null)
+  assert.equal(currentCatalogueNode(TREE, '/family/fender-telecaster'), null)
 
   // What is open is DERIVED from the route, never held in component state:
   // a root row is a link, and the location decides which kinds show.
@@ -316,4 +312,15 @@ test('a branch opens when it CONTAINS the current node, not when it IS it', () =
     false,
     'what is open must follow the route, not become component state',
   )
+})
+
+test('PAN-289: a kind is a path, built and read by one pair of functions', () => {
+  assert.equal(subcategoryHref('effects-and-pedals', 'delay'), '/browse/effects-and-pedals/delay')
+  // A grouped leaf's own slug is written as its group's: one kind, one URL.
+  assert.equal(subcategoryHref('keyboards-and-synths', 'analog-synths'), '/browse/keyboards-and-synths/synthesizers')
+  assert.equal(subcategoryFromPath('/browse/effects-and-pedals/delay'), 'delay')
+  assert.equal(subcategoryFromPath('/browse/effects-and-pedals/delay/'), 'delay')
+  assert.equal(subcategoryFromPath('/browse/effects-and-pedals'), null)
+  assert.equal(subcategoryFromPath('/browse/effects-and-pedals/delay/x'), null)
+  assert.equal(subcategoryFromPath('/product/roland-juno-106'), null)
 })

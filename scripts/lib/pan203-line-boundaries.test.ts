@@ -14,7 +14,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { buildMatchIndex, decideMatch, type Product } from '../../frontend/lib/matching/match-listings'
+import { buildMatchIndex, decideMatch, lineBoundaryRefusal, type Product } from '../../frontend/lib/matching/match-listings'
+import { SLUG_RENAMES } from '../../frontend/lib/slug-renames'
 
 const wa = (slug: string, model_name: string): Product => ({
   id: `p-${slug}`, slug, canonical_name: `Warm Audio ${model_name}`, model_name, brand_name: 'warm audio',
@@ -35,18 +36,18 @@ const WARM_AUDIO = [
   wa('warm-audio-wa73', 'WA73'),
   wa('warm-audio-wa73-eq', 'WA73-EQ'),
   wa('warm-audio-wa273', 'WA273'),
-  wa('warm-audio-warm-audio-wa273-eq', 'WA273-EQ'),
+  wa('warm-audio-wa273-eq', 'WA273-EQ'),
   wa('warm-audio-wa76', 'WA76'),
-  wa('warm-audio-warm-audio-wa-mpx', 'WA-MPX'),
+  wa('warm-audio-wa-mpx', 'WA-MPX'),
   wa('warm-audio-wa-2mpx', 'WA-2MPX'),
   wa('warm-audio-wa-84', 'WA-84'),
   wa('warm-audio-wa2a', 'WA-2A'),
   wa('warm-audio-wa-19', 'WA-19'),
   wa('warm-audio-wa-67', 'WA-67'),
   wa('warm-audio-wa-cx24', 'WA-CX24'),
-  wa('warm-audio-warm-audio-wa-8000', 'WA-8000'),
-  wa('warm-audio-warm-audio-wa-44', 'WA-44'),
-  wa('warm-audio-warm-audio-wa-1b', 'WA-1B'),
+  wa('warm-audio-wa-8000', 'WA-8000'),
+  wa('warm-audio-wa-44', 'WA-44'),
+  wa('warm-audio-wa-1b', 'WA-1B'),
 ]
 const ORIGINALS = [
   orig('neumann-u87ai', 'neumann', 'Neumann U 87 Ai', 'U 87 Ai'),
@@ -124,7 +125,7 @@ test('1073 line: WA73, WA73-EQ, WA273 and WA273-EQ; an EQ title is never the pla
   expectAll('warm-audio-wa73', ['Warm Audio WA73 Single Channel Neve 1073-Style Microphone Preamp Mic Pre'])
   expectAll('warm-audio-wa73-eq', ['Warm Audio WA73-EQ Single Channel Neve 1073-Style Microphone Preamp Mic Pre w/EQ'])
   expectAll('warm-audio-wa273', ['Warm Audio WA273 Preamp - 2nd Hand'])
-  expectAll('warm-audio-warm-audio-wa273-eq', ['Warm Audio WA273-EQ Dual Channel British Mic Pre + EQ'])
+  expectAll('warm-audio-wa273-eq', ['Warm Audio WA273-EQ Dual Channel British Mic Pre + EQ'])
   // "WA73 EQ" is the WA73-EQ (its model name with a space), never the WA73 (synthetic spelling).
   expectAll('warm-audio-wa73-eq', ['Warm Audio WA73 EQ 1073 style preamp'])
   // A "WA273" that says EQ is unclear between the two: it lands on neither.
@@ -135,7 +136,7 @@ test('WA76 vs the two-channel D2 / A2; WA-MPX vs WA-2MPX', () => {
   expectAll('warm-audio-wa76', ['Warm Audio WA76 Limiting Amplifier 2014 - Present - Black'])
   expectAll(null, ['Warm Audio Wa76 D2', 'Warm Audio WA76 D2 2025', 'Warm Audio Wa76 A2'])
   expectAll('warm-audio-wa-2mpx', ['Warm Audio WA-2MPX Dual-Channel Tube Mic Preamp', 'Warm Audio WA-2 MPX  dual Tube PreAmp'])
-  expectAll('warm-audio-warm-audio-wa-mpx', ['Warm Audio WA-MPX Single Channel Tube Mic Preamp'])
+  expectAll('warm-audio-wa-mpx', ['Warm Audio WA-MPX Single Channel Tube Mic Preamp'])
 })
 
 test('pairs and packs are never the single unit; the two-channel units keep "dual" and "stereo"', () => {
@@ -220,9 +221,17 @@ test('the originals still match their own titles', () => {
 test('Warm Audio titles naming the original, bundles and features still land on their own row', () => {
   expectAll('warm-audio-wa76', ['Warm Audio WA76 1176 Compressor Rev. D', 'Warm Audio WA76 Compressor (1176 Clone)'])
   expectAll('warm-audio-wa73', ['Warm Audio WA73 Single-Channel Microphone Preamp, Presonus HD9 Headphone Bundle'])
-  expectAll('warm-audio-warm-audio-wa-1b', ['Warm Audio WA-1B All-Tube Transformer-Balanced Optical Compressor'])
-  expectAll('warm-audio-warm-audio-wa-8000', ['Warm Audio WA-8000 Large Diaphragm Tube Condenser Microphone black carrying case included'])
-  expectAll('warm-audio-warm-audio-wa-44', ['Warm Audio WA-44 Studio Ribbon Microphone Dual Capsule'])
+  expectAll('warm-audio-wa-1b', ['Warm Audio WA-1B All-Tube Transformer-Balanced Optical Compressor'])
+  expectAll('warm-audio-wa-8000', ['Warm Audio WA-8000 Large Diaphragm Tube Condenser Microphone black carrying case included'])
+  expectAll('warm-audio-wa-44', ['Warm Audio WA-44 Studio Ribbon Microphone Dual Capsule'])
   expectAll('warm-audio-wa-19', ['Warm Audio WA-19N Dynamic Cardioid Studio Microphone (Nickel)'])
   expectAll('warm-audio-wa2a', ['Warm Audio WA2A WA-2A LA-2A Style Tube Compressor w/ Cinemag I/O Transformers'])
+})
+
+test('PAN-289: until the rename SQL runs, a row on its old slug reads the boundary keyed by its new one', () => {
+  const title = 'Warm Audio WA273-EQ power supply only'
+  assert.equal(SLUG_RENAMES['warm-audio-warm-audio-wa273-eq'], 'warm-audio-wa273-eq')
+  const refusal = lineBoundaryRefusal(title, 'warm-audio-wa273-eq')
+  assert.notEqual(refusal, null)
+  assert.equal(lineBoundaryRefusal(title, 'warm-audio-warm-audio-wa273-eq'), refusal)
 })

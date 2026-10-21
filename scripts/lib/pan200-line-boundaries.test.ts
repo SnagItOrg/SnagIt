@@ -40,7 +40,7 @@ const index = buildMatchIndex([
   product('roland-re-501', 'RE-501'),
   product('roland-sre-555', 'SRE-555'),
   product('roland-system-100', 'System 100'),
-  product('roland-SP-404', 'SP-404'),
+  product('roland-sp-404', 'SP-404'),
   product('roland-sp-404-mkii', 'SP-404MKII'),
   product('roland-v-synth', 'V-Synth'),
   product('roland-r-8', 'R-8'),
@@ -145,7 +145,7 @@ test('the instrument still matches: markers, conditions and the words measured o
     ['Roland JX-8P 61-Key Polyphonic Synthesizer Keyboard & PG-800 Programmer', 'roland-jx-8p'],
     ['Roland JV-2080 64-Voice Synthesizer Module w/ Pop & Orchestral Expansion Boards Rack Mount Rackmount Synth', 'roland-jv-2080'],
     ['Roland Space Echo RE-201 Mid 1970 - Black Vinyl', 'roland-re-201'],
-    ['Roland SP-404 Sampler with 1-Spot Power Adapter', 'roland-SP-404'],
+    ['Roland SP-404 Sampler with 1-Spot Power Adapter', 'roland-sp-404'],
   ]
   for (const [title, slug] of titles) assert.equal(matchedSlug(title), slug, title)
 })

@@ -377,7 +377,9 @@ test('failure: the page gate throws instead of calling notFound()', () => {
   assert.ok(src.includes("throw new CatalogueUnavailableError('product_gate_lookup')"))
   assert.ok(src.includes("throw new CatalogueUnavailableError('projection_gate_lookup')"))
   const gateIdx = src.indexOf('productRes.error')
-  const notFoundIdx = src.indexOf('if (!product) notFound()')
+  // PAN-289: absence may first redirect a renamed slug, then 404s.
+  const notFoundIdx = src.indexOf('if (!product) {')
+  assert.ok(src.indexOf('notFound()', notFoundIdx) > notFoundIdx)
   assert.ok(gateIdx > -1 && notFoundIdx > gateIdx, 'the error check must precede the absence check')
 })
 

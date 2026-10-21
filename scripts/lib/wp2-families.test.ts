@@ -1131,13 +1131,15 @@ test('navigation: an empty family is reachable ONLY by the legacy 308s (§4.2 ru
   )
   // PAN-192's linker, pinned: a card needs more members than a family needs
   // canonical children to publish, and it is mounted only from the collapse,
-  // on the two surfaces whose rows are the public catalogue.
+  // on the surfaces whose rows are the public catalogue (PAN-289 added the
+  // brand page, which serves the same browse rows).
   assert.equal(FAMILY_CARD_MIN_CHILDREN >= Math.max(2, FAMILY_MIN_CANONICAL_CHILDREN), true)
   const mounts = [...walk(join(FRONTEND, 'app')), ...walk(join(FRONTEND, 'components'))]
     .filter((file) => readFileSync(file, 'utf8').includes('<FamilyCard'))
     .map((file) => file.replace(FRONTEND, 'frontend'))
     .sort()
   assert.deepEqual(mounts, [
+    'frontend/app/(shell)/brand/[brand]/page.tsx',
     'frontend/app/(shell)/browse/[root]/page.tsx',
     'frontend/components/DiscoverShelves.tsx',
   ])

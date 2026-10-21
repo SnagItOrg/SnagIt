@@ -315,13 +315,15 @@ test('the sidebar marks where you are, with aria-current="page"', () => {
 test('the sidebar and the filter chips read the same facet', () => {
   // The agreement is only possible because the facet is in the URL. If
   // `/browse/[root]` ever returns the subcategory to component state, the
-  // sidebar silently stops marking the current leaf.
-  assert.match(ROUTES.browseRoot, /searchParams\.get\('sub'\)/)
-  assert.match(SIDENAV_CODE, /searchParams\.get\('sub'\)/)
+  // sidebar silently stops marking the current leaf. PAN-289: the kind is the
+  // path, read on both sides from the pathname.
+  assert.match(ROUTES.browseRoot, /subcategoryFromPath\(pathname\)/)
+  assert.match(SIDENAV_CODE, /currentCatalogueNode\(categories, pathname\)/)
 
-  // Both sides compare the bare leaf slug, with no second normalisation in the
-  // sidebar that could drift from the route's.
-  assert.match(SIDENAV_CODE, /\?sub=\$\{encodeURIComponent\(sub\.slug\)\}/)
+  // Both sides build the kind's URL with the one function, with no second
+  // normalisation in the sidebar that could drift from the route's.
+  assert.match(SIDENAV_CODE, /subcategoryHref\(category\.slug, sub\.slug\)/)
+  assert.match(ROUTES.browseRoot, /subcategoryHref\(params\.root, slug\)/)
 
   // PAN-125 moved the predicate out of the renderer and into
   // `lib/catalogue-tree.ts`, so the property is asserted where it now lives —
@@ -344,21 +346,17 @@ test('the sidebar and the filter chips read the same facet', () => {
   }]
 
   assert.deepEqual(
-    currentCatalogueNode(cats, '/browse/keyboards-and-synths', null),
+    currentCatalogueNode(cats, '/browse/keyboards-and-synths'),
     { kind: 'branch', categorySlug: 'keyboards-and-synths' },
   )
   assert.deepEqual(
-    currentCatalogueNode(cats, '/browse/keyboards-and-synths', 'drum-machines'),
+    currentCatalogueNode(cats, '/browse/keyboards-and-synths/drum-machines'),
     { kind: 'subcategory', categorySlug: 'keyboards-and-synths', subcategorySlug: 'drum-machines' },
   )
-  // A `?sub=` the tree has no node for under this root still filters the
-  // page, and the sidebar marks the root. Still exactly one mark. (PAN-269
-  // made `solid-body` a kind under electric-guitars; under keyboards it is
-  // simply unknown.)
-  assert.deepEqual(
-    currentCatalogueNode(cats, '/browse/keyboards-and-synths', 'solid-body'),
-    { kind: 'branch', categorySlug: 'keyboards-and-synths' },
-  )
+  // PAN-289: a kind path the tree has no node for under this root is a 404
+  // page, so the sidebar marks nothing there. (PAN-269 made `solid-body` a
+  // kind under electric-guitars; under keyboards it is simply unknown.)
+  assert.equal(currentCatalogueNode(cats, '/browse/keyboards-and-synths/solid-body'), null)
 
   // The facet must not reappear as component state beside the URL.
   assert.equal(
@@ -388,11 +386,12 @@ test('the sidebar indicator is weight, fill and a rail — never green', () => {
 })
 
 test('the facet in the URL keeps the filtered view linkable and reversible', () => {
-  // `replace` not `push`, so toggling chips does not build a back-button trail
-  // of every facet the visitor tried; `scroll: false`, because refining a view
-  // is not arriving at a new page.
-  assert.match(ROUTES.browseRoot, /router\.replace\(/)
-  assert.match(ROUTES.browseRoot, /scroll: false/)
+  // A replace, not a push, so toggling chips does not build a back-button
+  // trail of every facet the visitor tried. PAN-289: `history.replaceState`,
+  // which rewrites the URL in place — refining a view is not arriving at a new
+  // page, so nothing remounts or scrolls.
+  assert.match(ROUTES.browseRoot, /window\.history\.replaceState\(/)
+  assert.equal(/history\.pushState\(|router\.replace\(/.test(ROUTES.browseRoot), false)
 })
 
 /**

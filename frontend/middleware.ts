@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { requiresAdmin, requiresAuth } from '@/lib/route-access'
 import { familyRedirectTarget } from '@/lib/families'
+import { subcategoryHref } from '@/lib/catalogue-tree'
 import { safeNextPath } from '@/lib/safe-next'
 
 // WHY THIS IS STILL `middleware.ts` ON NEXT 16 (PAN-167). Next 16 deprecates
@@ -98,6 +99,21 @@ export async function middleware(request: NextRequest) {
   const familyTarget = familyRedirectTarget(request.nextUrl.pathname)
   if (familyTarget) {
     return NextResponse.redirect(new URL(familyTarget, request.url), 308)
+  }
+
+  // PAN-289: a kind is a page of its own, `/browse/<root>/<kind>`. The old
+  // filter form `/browse/<root>?sub=<kind>` 301s there, keeping every other
+  // parameter (the attribute facets). Ahead of the auth client for the reason
+  // above. `subcategoryHref` maps a grouped leaf to its group, so an old
+  // `?sub=analog-synths` lands on `/synthesizers` in one hop.
+  const sub = request.nextUrl.searchParams.get('sub')
+  const browseRoot = /^\/browse\/([^/]+)\/?$/.exec(request.nextUrl.pathname)
+  if (sub && browseRoot) {
+    const target = new URL(subcategoryHref(browseRoot[1], sub), request.url)
+    request.nextUrl.searchParams.forEach((value, key) => {
+      if (key !== 'sub') target.searchParams.append(key, value)
+    })
+    return NextResponse.redirect(target, 301)
   }
 
   let supabaseResponse = NextResponse.next({ request })

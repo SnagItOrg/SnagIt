@@ -22,7 +22,7 @@ const row = (slug: string, brand_name: string, model_name: string): Product => (
 
 // The production spellings: the MKII row is "SP-404MKII" (glued), the Ai is "U 87 Ai" (spaced).
 const index = buildMatchIndex([
-  row('roland-SP-404', 'roland', 'SP-404'),
+  row('roland-sp-404', 'roland', 'SP-404'),
   row('roland-sp-404-mkii', 'roland', 'SP-404MKII'),
   row('roland-sp-404sx', 'roland', 'SP-404SX'),
   row('roland-tr-808', 'roland', 'TR-808'),
@@ -78,7 +78,7 @@ test('the three SP-404 ads: the glued "SP404 MKII" lands beside the two that alr
   assert.equal(slugOf('Roland SP-404 MK2'), 'roland-sp-404-mkii')  // synthetic
   assert.equal(slugOf('Roland SP404MK2'), 'roland-sp-404-mkii')  // synthetic
   // The plain SP-404 and the SX keep their own rows.
-  assert.equal(slugOf('Roland SP404'), 'roland-SP-404')  // synthetic
+  assert.equal(slugOf('Roland SP404'), 'roland-sp-404')  // synthetic
   assert.equal(slugOf('Roland SP-404SX'), 'roland-sp-404sx')
   assert.equal(slugOf('Roland SP404SX'), 'roland-sp-404sx')  // synthetic
 })

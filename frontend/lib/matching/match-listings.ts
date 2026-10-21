@@ -29,6 +29,7 @@ import { detectNonProductIntent, earliestInclusionMarker, type NonProductIntent 
 // owns the canonical predicate — so both gates refuse the same six slugs for
 // the same reason instead of holding two opinions (PAN-84).
 import { isFamilyLabelSlug } from '../catalogue'
+import { currentSlug } from '../slug-renames'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1397,9 +1398,9 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'moog-memorymoog': moog('memorymoog', cue('plus')),
   'moog-memory-plus': moog('memorymoog'),
   // PAN-199. The Subsequent 37 CV (Reverb CSP 48104) has no KG row: refused, not absorbed.
-  'moog-moog-subsequent-37': moog('subsequent-37', cue('cv')),
+  'moog-subsequent-37-synth': moog('subsequent-37', cue('cv')),
   // PAN-199. The Sirin is "the Analog Messenger of Joy": that title is not the 2024 Messenger.
-  'moog-moog-messenger': moog('messenger', cue('sirin'), cue('messenger of joy')),
+  'moog-messenger': moog('messenger', cue('sirin'), cue('messenger of joy')),
   'moog-sirin': moog('messenger'),
   // PAN-199. The Etherwave Plus (Reverb CSP 6630) has no KG row. A 2022 Etherwave
   // sold "like Etherwave PLUS" is this model.
@@ -1613,7 +1614,7 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'roland-xv-5080': roland('roland-xv-5080'),
   'roland-sh-01a': roland('sh-101'),
   // The 2005 SP-404 is not the SX (2011), the A (2019) or the MKII (2021): "SP-404 MK2".
-  'roland-SP-404': roland('sp-404', /(?<![\w-])sp[-\s]?404[-\s]?(?:sx|a|mk\s?(?:ii|2|Ⅱ))(?![\w-])/i, ...MK_II),
+  'roland-sp-404': roland('sp-404', /(?<![\w-])sp[-\s]?404[-\s]?(?:sx|a|mk\s?(?:ii|2|Ⅱ))(?![\w-])/i, ...MK_II),
   'roland-sp-404-mkii': roland('sp-404'),
   'roland-sp-404a': roland('sp-404'),
   'roland-sp-404sx': roland('sp-404'),
@@ -1642,7 +1643,7 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The vintage U 47 fet; the 2014 Collector's Edition is another member.
   'neumann-u47-fet': neumannSingle('u47', COLLECTOR, ...cues('bon scott')),
   // The Collector's Edition shares the fet's model name, so it fails closed without its name.
-  'neumann-neumann-u47-fet-collectors-edition': { ...neumannSingle('u47'), requires: [COLLECTOR] },
+  'neumann-u47-fet-collectors-edition': { ...neumannSingle('u47'), requires: [COLLECTOR] },
   // The original U 67 (1960–71) and the 2018 reissue, sold as the "U 67 Set". A plain
   // "U67 Set" with no vintage word is the reissue.
   'neumann-u67': neumannSingle('u67', ...U67_REISSUE, ...U67_REBUILD, unlessAlso(cue('set'), U67_VINTAGE_ANY)),
@@ -1690,10 +1691,10 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'warm-audio-wa73': warmAudioSingle('wa73', ...WA_EQ, cue('500')),
   'warm-audio-wa73-eq': warmAudioSingle('wa73'),
   'warm-audio-wa273': warmAudio('wa73', ...WA_EQ),
-  'warm-audio-warm-audio-wa273-eq': warmAudio('wa73'),
+  'warm-audio-wa273-eq': warmAudio('wa73'),
   // The single-channel WA76; the WA76-D2 / -A2 are two channels (no target row).
   'warm-audio-wa76': warmAudioSingle('wa76', ...WA76_STEREO),
-  'warm-audio-warm-audio-wa-mpx': warmAudioSingle('wa-mpx', ...WA_2MPX),
+  'warm-audio-wa-mpx': warmAudioSingle('wa-mpx', ...WA_2MPX),
   'warm-audio-wa-2mpx': warmAudio('wa-mpx'),
   'warm-audio-wa-84': warmAudioSingle('wa-84', ...WA84_PAIR),
   'warm-audio-wa2a': warmAudioSingle('wa-2a'),
@@ -1701,10 +1702,10 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'warm-audio-wa-67': warmAudioSingle('wa-67'),
   'warm-audio-wa-251': warmAudioSingle('wa-251'),
   'warm-audio-wa-cx24': warmAudioSingle('wa-cx24'),
-  'warm-audio-warm-audio-wa-cx12': warmAudioSingle('wa-cx12'),
-  'warm-audio-warm-audio-wa-8000': warmAudioSingle('wa-8000'),
-  'warm-audio-warm-audio-wa-44': warmAudioSingle('wa-44'),
-  'warm-audio-warm-audio-wa-1b': warmAudioSingle('wa-1b'),
+  'warm-audio-wa-cx12': warmAudioSingle('wa-cx12'),
+  'warm-audio-wa-8000': warmAudioSingle('wa-8000'),
+  'warm-audio-wa-44': warmAudioSingle('wa-44'),
+  'warm-audio-wa-1b': warmAudioSingle('wa-1b'),
   'warm-audio-wa-412': warmAudio('wa-412'),
   'warm-audio-warm-bender': warmAudioSingle('warm-bender'),
   // The clone guard on the originals Warm Audio copies (direction 1; the Neumann rows refuse
@@ -2457,7 +2458,7 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'gibson-j-45-standard-rosewood': member('j-45'),
   'gibson-j-45-studio-rosewood': member('j-45'),
   'gibson-j-45-studio-walnut': member('j-45'),
-  'gibson-gibson-j-45-standard-12-string': member('j-45'),
+  'gibson-j-45-standard-12-string': member('j-45'),
   'gibson-margo-price-j-45': member('j-45'),
   'gibson-slash-j-45': member('j-45'),
   'gibson-custom-shop-1960-hummingbird': member('hummingbird'),
@@ -3098,8 +3099,17 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
 /** Danish condition phrases ending in "stand" (PAN-261 review, 2026-10-14). */
 const CONDITION_STAND = /\b(?:i|god|godt|fin|fint|pæn|pænt|flot|perfekt|nydelig|super|fejlfri|velholdt|top|ok|rigtig god|meget god)\s+stand\b/gi
 
+/**
+ * A row's boundary, read through `currentSlug`: the keys are the renamed slugs
+ * (PAN-289), and production may still hold the old one until the rename SQL
+ * runs — the nightly matcher reads the same rule for the row either way.
+ */
+function lineBoundaryOf(slug: string): LineBoundary | undefined {
+  return LINE_BOUNDARIES[slug] ?? LINE_BOUNDARIES[currentSlug(slug)]
+}
+
 export function lineBoundaryRefusal(title: string, slug: string): string | null {
-  const boundary = LINE_BOUNDARIES[slug]
+  const boundary = lineBoundaryOf(slug)
   if (!boundary) return null
   // What the title names comes first, so the reason says what the title IS
   // when it says anything; `no_member_cue` is left for titles that name nothing.
@@ -3678,7 +3688,7 @@ export function decideMatch(title: string, index: MatchIndex): MatchDecision {
   // Model D Reissue" is the reissue because it is not the original.
   const lineOf = (id: string) => {
     const slug = index.productById.get(id)?.slug ?? id
-    return LINE_BOUNDARIES[slug]?.line ?? slug
+    return lineBoundaryOf(slug)?.line ?? slug
   }
   const rival = lineRefused.find((c) => {
     if (c.score < best.score || lineOf(c.product_id) === lineOf(best.product_id)) return false

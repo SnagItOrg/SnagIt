@@ -271,6 +271,10 @@ export const translations = {
     brandWallNoModel: 'Model ikke genkendt',
     brandWallEmpty: 'Ingen aktive annoncer lige nu.',
     brandWallLegend: 'Et kort med model fører til modellens side. Et kort uden model fører til annoncen.',
+    brandPageEyebrow: 'Mærke',
+    brandPageWallLink: 'Alle annoncer: {title}',
+    metaBrandTitle: '{brand} brugt – alle modeller',
+    metaBrandDescription: '{brand} på Klup: {count} modeller – {kinds}. Vælg modellen og se, hvad den koster brugt.',
 
     // Price evidence (WP-3)
     priceBandMedian: 'median udbudspris',
@@ -1079,6 +1083,10 @@ export const translations = {
     brandWallNoModel: 'Model not recognised',
     brandWallEmpty: 'No active listings right now.',
     brandWallLegend: 'A card with a model leads to the model’s page. A card without one leads to the listing.',
+    brandPageEyebrow: 'Brand',
+    brandPageWallLink: 'All listings: {title}',
+    metaBrandTitle: '{brand} used – every model',
+    metaBrandDescription: '{brand} on Klup: {count} models – {kinds}. Pick the model and see what it costs used.',
 
     priceBandMedian: 'median asking price',
     priceBandRange: 'typical range (p25–p75)',

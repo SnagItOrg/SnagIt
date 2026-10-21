@@ -21,7 +21,7 @@ const row = (slug: string, brand_name: string, model_name: string): Product => (
   status: 'active', support_state: 'supported',
 })
 const index = buildMatchIndex([
-  row('roland-SP-404', 'roland', 'SP-404'),
+  row('roland-sp-404', 'roland', 'SP-404'),
   row('roland-sp-404-mkii', 'roland', 'SP-404MKII'),
   row('roland-sp-404sx', 'roland', 'SP-404SX'),
   row('roland-juno-106', 'roland', 'Juno-106'),
@@ -71,7 +71,7 @@ test('every miss has its class: not scraped, inactive, no match row, matched els
   const noRow = decideHit('Roland SP404 MKII', SP404, index, held([]))
   assert.equal(noRow.kind === 'miss' && noRow.class, 'no_match_row')
   assert.match(noRow.kind === 'miss' ? noRow.detail : '', /matcher: matched roland-sp-404-mkii/)
-  const other = decideHit('Roland SP404 MKII', SP404, index, held([{ slug: 'roland-SP-404', is_valid: null, rejected_reason: null, admin: false }]))
+  const other = decideHit('Roland SP404 MKII', SP404, index, held([{ slug: 'roland-sp-404', is_valid: null, rejected_reason: null, admin: false }]))
   assert.equal(other.kind === 'miss' && other.class, 'matched_other')
   const hidden = decideHit('Roland SP404 MKII', SP404, index, held([{ slug: 'roland-sp-404-mkii', is_valid: null, rejected_reason: null, admin: false }]))
   assert.deepEqual(hidden, { kind: 'miss', class: 'hidden', detail: 'matched, active, not on the page' })

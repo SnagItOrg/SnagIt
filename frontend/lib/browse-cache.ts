@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import {
+  buildBrandPageResponse,
   buildBrowseLeafResponse,
   buildBrowseRootResponse,
   buildCatalogueTreeResponse,
@@ -65,5 +66,12 @@ export const cachedCatalogueTree = unstable_cache(
 export const cachedDiscover = unstable_cache(
   () => buildDiscoverResponse(getSupabaseAdmin()),
   ['discover'],
+  { revalidate: CATALOGUE_REVALIDATE_SECONDS },
+)
+
+/** PAN-289 — one brand's page, keyed by brand slug. */
+export const cachedBrandPage = unstable_cache(
+  (brandSlug: string) => buildBrandPageResponse(getSupabaseAdmin(), brandSlug),
+  ['brand-page'],
   { revalidate: CATALOGUE_REVALIDATE_SECONDS },
 )

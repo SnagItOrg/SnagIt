@@ -25,6 +25,7 @@ import {
   type AuditMatch, type AuditProduct, type AuditSnapshot, type Check,
 } from './catalogue-audit'
 import { LINE_BOUNDARIES } from '../../frontend/lib/matching/match-listings'
+import { SLUG_RENAMES } from '../../frontend/lib/slug-renames'
 
 const STORAGE = 'https://lmogfnyfpaqaxtrrcupw.supabase.co/storage/v1/object/public/product-images/products'
 
@@ -128,6 +129,19 @@ test('slug_repeats_brand: warm-audio-warm-audio-wa-1b and a "--" slug; arp-korg-
   assert.deepEqual(keys(snap, 'slug_repeats_brand'), ['roland--505', 'warm-audio-warm-audio-wa-1b'])
 })
 
+test('slug_repeats_brand: PAN-289 renames all eleven brand-repeating slugs, and no new slug repeats its brand', () => {
+  const brandOf = (slug: string) => ['warm-audio', 'gibson', 'moog', 'neumann', 'roland'].find((b) => slug.startsWith(`${b}-`))!
+  const rows = (pick: 'old' | 'new') => snapshot({ products: Object.entries(SLUG_RENAMES).map(([from, to]) => {
+    const slug = pick === 'old' ? from : to
+    return product({ slug, brand_slug: brandOf(slug) })
+  }) })
+  // Before the rename SQL: the eleven the ticket names (the SP-404's lapse is its case, not its brand).
+  assert.deepEqual(keys(rows('old'), 'slug_repeats_brand'), Object.keys(SLUG_RENAMES).filter((s) => s !== 'roland-SP-404').sort())
+  // After it: none.
+  assert.deepEqual(keys(rows('new'), 'slug_repeats_brand'), [])
+  for (const to of Object.values(SLUG_RENAMES)) assert.equal(to, to.toLowerCase(), to)
+})
+
 /* ── Publication ───────────────────────────────────────────────────────── */
 
 test('supported_blocked_from_public: gibson-es-330 (qa_only, no subcategory) is refused by publicationRefusal; a classified qa row is not', () => {
@@ -144,10 +158,11 @@ test('supported_blocked_from_public: gibson-es-330 (qa_only, no subcategory) is 
 /* ── Shared model names ────────────────────────────────────────────────── */
 
 test('shared_model_name_without_boundary: the two U 47 fet rows both carry a boundary and are silent; a pair without one is reported; Memory Man and Model D are allowed by ticket', () => {
-  assert.ok('neumann-u47-fet' in LINE_BOUNDARIES && 'neumann-neumann-u47-fet-collectors-edition' in LINE_BOUNDARIES)
+  assert.ok('neumann-u47-fet' in LINE_BOUNDARIES && 'neumann-u47-fet-collectors-edition' in LINE_BOUNDARIES)
   assert.ok(!('acme-x' in LINE_BOUNDARIES) && !('acme-x-deluxe' in LINE_BOUNDARIES))
   const snap = snapshot({ products: [
     product({ slug: 'neumann-u47-fet', brand_slug: 'neumann', brand_name: 'Neumann', model_name: 'U 47 fet' }),
+    // The pre-rename slug (PAN-289): its boundary is keyed by the new one and still found.
     product({ slug: 'neumann-neumann-u47-fet-collectors-edition', brand_slug: 'neumann', brand_name: 'Neumann', model_name: 'U 47 fet' }),
     product({ slug: 'acme-x', brand_id: 'b-acme', brand_slug: 'acme', brand_name: 'Acme', model_name: 'X' }),
     product({ slug: 'acme-x-deluxe', brand_id: 'b-acme', brand_slug: 'acme', brand_name: 'Acme', model_name: 'x' }),

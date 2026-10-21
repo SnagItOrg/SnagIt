@@ -62,7 +62,7 @@ const SIMILAR_REASON_KEY = {
   same_family: 'similarReasonSameFamily',
   same_type: 'similarReasonSameType',
 } as const
-import type { ProductPlacement } from '@/lib/catalogue-tree'
+import { subcategoryHref, type ProductPlacement } from '@/lib/catalogue-tree'
 import { Icon } from '@/components/Icon'
 
 /**
@@ -524,7 +524,7 @@ export default function ProductPage() {
                     )}
                     {catalogueContext && (
                       <BreadcrumbItem
-                        href={`/browse/${catalogueContext.category.slug}?sub=${encodeURIComponent(catalogueContext.kind.slug)}`}
+                        href={subcategoryHref(catalogueContext.category.slug, catalogueContext.kind.slug)}
                       >
                         {locale === 'da' ? catalogueContext.kind.name_da : catalogueContext.kind.name_en}
                       </BreadcrumbItem>

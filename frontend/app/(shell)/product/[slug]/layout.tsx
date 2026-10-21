@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { CATALOGUE_REVALIDATE_SECONDS } from '@/lib/browse-cache'
 import { isCurrentUserAdmin } from '@/lib/admin-auth'
 import { isFamilySlug } from '@/lib/families'
+import { renamedSlug } from '@/lib/slug-renames'
 import {
   CatalogueUnavailableError,
   isAdminOnly,
@@ -229,7 +230,14 @@ export default async function ProductSegmentLayout({
 
   const product = await loadProductState(slug)
 
-  if (!product) notFound()
+  if (!product) {
+    // PAN-289: a renamed row's old slug redirects permanently — but only once
+    // the row no longer answers to it. Before the rename SQL runs the old page
+    // still renders above, so neither slug 404s on either side of that write.
+    const target = renamedSlug(slug)
+    if (target) permanentRedirect(`/product/${target}`)
+    notFound()
+  }
 
   if (isCanonical(product.state)) return <>{children}</>
 

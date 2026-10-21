@@ -24,7 +24,7 @@
  */
 
 import { modelKey } from './model-key'
-import type { CatalogueTreeCategory } from './catalogue-tree'
+import { subcategoryHref, type CatalogueTreeCategory } from './catalogue-tree'
 import type { SearchCandidate, SearchKindGroup } from './search-contract'
 
 /** Rows shown under the header before the "see all" row takes over. */
@@ -54,7 +54,7 @@ export function kindsNamedBy(rawQuery: string, categories: readonly CatalogueTre
       out.push({
         category: { slug: category.slug, name_da: category.name_da, name_en: category.name_en },
         kind: { slug: kind.slug, name_da: kind.name_da, name_en: kind.name_en },
-        href: `/browse/${category.slug}?sub=${encodeURIComponent(kind.slug)}`,
+        href: subcategoryHref(category.slug, kind.slug),
         productSlugs: [...kind.product_slugs],
       })
     }
