@@ -281,6 +281,10 @@ test('integration: every package suite is registered exactly once', () => {
       // the Formanta synths, Dunlop's Echoplex and the Echoplex preamp copies and parts name no pedal; "Neo" names
       // Neo Instruments; a bare Ventilator is the original and the Mini / Micro Vent are one row each.
       'scripts/lib/pan286-maestro-neo.test.ts',
+      // PAN-291: OTO Machines and the Ensoniq samplers and outboard — every row requires its code beside its maker
+      // ("EPS Cement", "ESP Mirage", "Epiphone Biscuit", a Roland DP-2); price decides the ASR-10, EPS-16 Plus, DP/4 and
+      // Mirage splits; the disks, OS EPROMs, emulators, expanders and parts name no unit, and "Plus" is never "sold with".
+      'scripts/lib/pan291-oto-ensoniq.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
