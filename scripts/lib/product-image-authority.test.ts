@@ -116,6 +116,8 @@ const MAY_NAME_THE_COLUMN: Record<string, string> = {
   'scripts/set-category-images.ts': 'Ranks products by picture quality for a category tile, which legitimately distinguishes curated from ingested. Its bestImage() delegates to the resolver.',
   'scripts/set-hero-images.ts': 'A one-shot operator writer for hero_image_url.',
   'scripts/promote-csp-images.ts': 'Names the column in a comment, to record that it never touches it.',
+  'scripts/catalogue-audit.ts': 'PAN-284 nightly audit, read-only. SELECTs both columns and hands them to the resolver; decides nothing.',
+  'scripts/lib/catalogue-audit.ts': 'PAN-284 check registry. Declares the row type and names the column in a finding\'s detail; resolves through the resolver.',
 }
 
 /** Source files under frontend/ and scripts/, excluding tests and build output. */
