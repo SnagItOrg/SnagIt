@@ -6,6 +6,7 @@ import { notFound, useParams, useSearchParams, useRouter } from 'next/navigation
 import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { ProductCard } from '@/components/ProductCard'
+import { placeholderIcon } from '@/lib/placeholder-icon'
 import { FamilyCard } from '@/components/FamilyCard'
 import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
@@ -505,6 +506,7 @@ function BrowseCategoryPageInner() {
                 canonicalName={card.product.canonical_name}
                 brandName={card.product.brand_name}
                 subcategoryName={displaySubcategoryLabel(card.product.subcategory_slug, card.product.subcategory_name_da, card.product.subcategory_name_en)}
+                placeholder={placeholderIcon(params.root, card.product.subcategory_slug)}
                 activeListingCount={card.product.active_listing_count}
                 imageUrl={card.product.image_url}
                 tier={showTierBadges ? card.product.tier : undefined}

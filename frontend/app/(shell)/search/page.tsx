@@ -625,9 +625,10 @@ function CandidateList({
 
 /**
  * The row's start media: the product image on the same `--secondary` well the
- * product card uses, or a glyph when there is none — `piano` for a product
- * without an image, as on the card, and `grid_view` for a family, which is a
- * set of models rather than one. Fixed 48px square, so a row never changes
+ * product card uses, or a glyph when there is none — the neutral note for a
+ * product without an image (a candidate carries no category, so the card's
+ * category glyph is out of reach here), and `grid_view` for a family, which
+ * is a set of models rather than one. Fixed 48px square, so a row never changes
  * height when an image arrives or fails.
  */
 function CandidateMedia({ option }: { option: SearchCandidate }) {
@@ -649,7 +650,7 @@ function CandidateMedia({ option }: { option: SearchCandidate }) {
         />
       ) : (
         <Icon
-          name={option.kind === 'family' ? 'grid_view' : 'piano'}
+          name={option.kind === 'family' ? 'grid_view' : 'music_note'}
           style={{ fontSize: 22, color: 'var(--muted-foreground)' }}
         />
       )}
