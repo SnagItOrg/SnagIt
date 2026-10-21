@@ -21,7 +21,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import {
-  CHECKS, diffRuns, formatReport, runAudit, toState,
+  CHECKS, diffRuns, formatReport, modelPrefix, runAudit, toState,
   type AuditMatch, type AuditProduct, type AuditSnapshot, type Check,
 } from './catalogue-audit'
 import { LINE_BOUNDARIES } from '../../frontend/lib/matching/match-listings'
@@ -65,7 +65,7 @@ test('every check has a unique snake_case id, a title, a severity and a decided 
   for (const id of [
     'model_name_starts_with_brand', 'supported_blocked_from_public', 'slug_repeats_brand', 'public_without_image',
     'shared_model_name_without_boundary', 'public_without_listings', 'family_label_equals_child_name',
-    'family_without_canonical_child', 'category_name_da_is_english', 'matched_listing_brand_mismatch',
+    'family_without_canonical_child', 'family_candidate_shared_prefix', 'category_name_da_is_english', 'matched_listing_brand_mismatch',
     'public_without_dk_listing_by_root',
   ]) assert.ok(ids.includes(id), `seed check ${id}`)
 })
@@ -203,6 +203,35 @@ test('family_without_canonical_child: a family whose children are all qa_only is
   assert.ok(r.findings.some((f) => f.key === 'memory-man' && f.detail === '9 children configured, none canonical'))
   const one = snapshot({ products: [product({ slug: 'ehx-memory-man', canonical_name: 'Electro-Harmonix Memory Man' })] })
   assert.ok(!keys(one, 'family_without_canonical_child').includes('memory-man'))
+})
+
+test('family_candidate_shared_prefix: Martin D-18 / D-28 share "D" with no family; the Boss DS rows are the boss-ds-distortion family; a family that leaves a member out names it', () => {
+  assert.equal(modelPrefix('DS-1X'), 'DS')
+  assert.equal(modelPrefix(' ds-2 '), 'DS')
+  assert.equal(modelPrefix('Juno-106'), 'JUNO')
+  for (const none of ['Model D', 'SP404', '1176LN', '', null, undefined]) assert.equal(modelPrefix(none), null, String(none))
+
+  const boss = (slug: string, model: string, over: Partial<AuditProduct> = {}) =>
+    product({ slug, model_name: model, canonical_name: `Boss ${model}`, brand_id: 'brand-boss', brand_slug: 'boss', brand_name: 'Boss', root_category_slug: 'effects-and-pedals', ...over })
+  const martin = (slug: string, model: string) =>
+    product({ slug, model_name: model, brand_id: 'brand-martin', brand_slug: 'martin', brand_name: 'Martin', root_category_slug: 'acoustic-guitars' })
+  const snap = snapshot({ products: [
+    // The owner's case: three public DS pedals, now the family's children.
+    boss('boss-ds-1', 'DS-1'), boss('boss-ds-1x', 'DS-1X'), boss('boss-ds-2', 'DS-2'),
+    // A covered line with one row the family does not list.
+    boss('boss-dm-2', 'DM-2'), boss('boss-dm-3', 'DM-3'),
+    // No family at all.
+    martin('martin-d-18', 'D-18'), martin('martin-d-28', 'D-28'),
+    // One row is not a group; a qa_only row is not public and does not count.
+    martin('martin-om-28', 'OM-28'), martin('martin-om-28-modern-deluxe', 'OM-28 Modern Deluxe'),
+    boss('boss-sd-1', 'SD-1'), boss('boss-sd-1w', 'SD-1W', { browse_visibility: 'qa_only' }),
+  ] })
+  assert.deepEqual(findings(snap, 'family_candidate_shared_prefix').findings, [
+    { key: 'boss:DM', detail: '2 public rows, 1 outside a family: boss-dm-3' },
+    { key: 'martin:D', detail: '2 public rows, none in a family: martin-d-18, martin-d-28' },
+    { key: 'martin:OM', detail: '2 public rows, none in a family: martin-om-28, martin-om-28-modern-deluxe' },
+  ])
+  assert.deepEqual(CHECKS.find((c) => c.id === 'family_candidate_shared_prefix')!.allow, [], 'the manager triages the first run')
 })
 
 /* ── Matches ───────────────────────────────────────────────────────────── */

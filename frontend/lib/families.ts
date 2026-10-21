@@ -496,6 +496,23 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     aliases: [],
   },
   /*
+   * PAN-284 (owner decision 2026-10-21). The DS distortions are the CE / DM
+   * case: three priced pages that sat as single products until the audit's
+   * shared-prefix check named them. Grouping only; each keeps its own price
+   * evidence.
+   *
+   * Members are the three Boss DS rows in the KG, SELECT-verified active +
+   * supported + public + music on 2026-10-21; no DS-1W row exists to leave
+   * out. No aliases, for the reason the CE and DM families give none.
+   */
+  'boss-ds-distortion': {
+    label: 'Boss DS Distortion',
+    brand: 'Boss',
+    categoryRoot: 'effects-and-pedals',
+    children: ['boss-ds-1', 'boss-ds-1x', 'boss-ds-2'],
+    aliases: [],
+  },
+  /*
    * PAN-154 — owner decision 2026-09-26: "Minimoog" is the vintage original
    * only, and the name of the line becomes a family whose members are separate
    * products. Navigation only, like `rhodes`: `minimoog` is not a `kg_product`
