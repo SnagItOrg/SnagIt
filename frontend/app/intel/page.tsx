@@ -2,7 +2,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { CANONICAL_STATUS, CANONICAL_SUPPORT, CATALOGUE_STATE_SELECT } from '@/lib/catalogue'
 import { fetchAllPages } from '@/lib/exhaustive-fetch'
 import { hasPlausibleListingPrice } from '@/lib/listing-price-integrity'
-import { isPriceEvidence, REVERB_SOURCE } from '@/lib/price-populations'
+import { isNonFunctioning, isPriceEvidence, REVERB_SOURCE } from '@/lib/price-populations'
 import { IntelDashboard } from './IntelDashboard'
 import { listingMarket } from './overview'
 import { pricedIntelProducts } from './priced-products'
@@ -50,6 +50,7 @@ type MatchWithListing = {
     price_dkk: number | string | null
     location: string | null
     scraped_at: string
+    condition: string | null
   } | null
 }
 
@@ -134,7 +135,7 @@ async function loadIntelData(): Promise<IntelData> {
       const { data, error } = await admin
         .from('listing_product_match')
         .select(
-          'id, product_id, is_valid, listings!inner(id, title, url, source, country, price, price_dkk, location, scraped_at)',
+          'id, product_id, is_valid, listings!inner(id, title, url, source, country, price, price_dkk, location, scraped_at, condition)',
         )
         .in('product_id', productIds)
         .eq('listings.is_active', true)
@@ -207,6 +208,8 @@ async function loadIntelData(): Promise<IntelData> {
     // a written rejection. An arbitrage delta computed from those numbers is
     // noise wearing a monospace font.
     if (!isPriceEvidence(m.is_valid)) continue
+    // A broken unit never counts, here as on the product page (PAN-283).
+    if (isNonFunctioning(l.condition)) continue
     const market = listingMarket(l)
     if (!market) continue
     // Legacy Kleinanzeigen rows with concatenated raw prices would otherwise

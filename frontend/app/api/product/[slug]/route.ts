@@ -9,6 +9,7 @@ import {
   buildPopulationStats,
   groupByPopulation,
   homeMarketFirst,
+  isNonFunctioning,
   isPartOrAccessoryListing,
   listingVerdict,
   type PopulationKey,
@@ -547,8 +548,13 @@ async function buildProductPayload(
 
   // Legacy sold range. Retained so nothing downstream breaks, now computed
   // through the shared Type 7 contract. The page no longer renders it as the
-  // headline — see `populations` below.
-  const rawPrices = priceHistory.map((p) => p.price).filter((p) => p > 0)
+  // headline — see `populations` below. A broken unit's sale is not a sale of
+  // the product (PAN-283): it leaves here, as it leaves `reverb-sold` below,
+  // so `soldCounts` still reconciles raw = filtered + outliers.
+  const rawPrices = priceHistory
+    .filter((p) => !isNonFunctioning(p.condition))
+    .map((p) => p.price)
+    .filter((p) => p > 0)
   const filtered  = partitionByIqr(rawPrices).kept
   const filteredMedian = t7Median(filtered)
   const priceRange: PriceRange | null = filtered.length >= 3 && filteredMedian != null
@@ -643,6 +649,7 @@ async function buildProductPayload(
    *     − excludedUnverifiedN   (is_valid IS NULL — shown, never counted)
    *   = verifiedStatisticalN
    *     − unresolvedN           (no market could be established)
+   *     − excludedNonFunctioningN (Reverb "Non Functioning" — shown, never counted, PAN-283)
    *     − excludedPriceN        (no price, or no comparable DKK)
    *   = priceEligibleN
    *     − excludedOutlierN      (Tukey fences)
@@ -656,6 +663,7 @@ async function buildProductPayload(
     verifiedStatisticalN: verifiedListings.length,
     excludedUnverifiedN: allListings.length - verifiedListings.length,
     unresolvedN: grouped.unresolved.length,
+    excludedNonFunctioningN: sumOver((p) => p.excluded.non_functioning),
     priceEligibleN: sumOver((p) => p.nEligible),
     excludedPriceN: sumOver((p) => p.excluded.price_not_listed + p.excluded.no_comparable_dkk),
     filteredN: sumOver((p) => p.nFiltered),

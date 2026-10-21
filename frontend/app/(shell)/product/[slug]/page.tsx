@@ -18,7 +18,7 @@ import { fill } from '@/lib/i18n'
 import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
 import { DanishMarketBlock, ReferencePopulationBlock } from '@/components/PriceAnswer'
-import { isHomeMarket, REVERB_SOURCE, type PopulationKey, type PopulationStats } from '@/lib/price-populations'
+import { isHomeMarket, isNonFunctioning, REVERB_SOURCE, type PopulationKey, type PopulationStats } from '@/lib/price-populations'
 import { orderByVerdictRank } from '@/lib/listing-value-order'
 import { ListSection } from '@/components/ListSection'
 import { stripDecorativeEmoji } from '@/lib/listing-title'
@@ -697,13 +697,16 @@ export default function ProductPage() {
                    * `n`; drawing them anyway put 40 dots under `n = 39` and
                    * scaled the axis to the one sale the median ignores. Same
                    * function, same values as buildPopulationStats, so the
-                   * dots, the axis, the period and `n` cannot disagree.
+                   * dots, the axis, the period and `n` cannot disagree. The
+                   * same predicate drops a Non Functioning sale first, as
+                   * `reverb-sold` drops it before its fences (PAN-283).
                    */
+                  const working = priceHistory.filter((pt) => !isNonFunctioning(pt.condition))
                   const { kept } = partitionByIqr(
-                    priceHistory.map((pt) => pt.price).filter((p) => Number.isFinite(p) && p > 0),
+                    working.map((pt) => pt.price).filter((p) => Number.isFinite(p) && p > 0),
                   )
                   const keptPrices = new Set(kept)
-                  const counted = priceHistory.filter((pt) => keptPrices.has(pt.price))
+                  const counted = working.filter((pt) => keptPrices.has(pt.price))
 
                   const points = counted
                     .map((pt) => ({

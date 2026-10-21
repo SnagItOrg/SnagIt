@@ -255,6 +255,30 @@ export function isPartOrAccessoryListing(categories: unknown): boolean {
   })
 }
 
+/**
+ * A BROKEN UNIT IS NOT A PRICE OF THE PRODUCT — PAN-283, owner decision
+ * 2026-10-21: it may still be shown, with its condition, but it never counts.
+ *
+ * Reverb's `condition.display_name` "Non Functioning" is the one structured
+ * signal; `scripts/scrape-reverb.ts` stores it raw in `listings.condition`
+ * and `reverb_price_history.condition` carries the same vocabulary. The
+ * matcher rejects the phrase only when it is in the title, so a listing titled
+ * "Deluxe Memory Man 1976 - 1978" with that condition is a valid match, and
+ * on 2026-10-21 sixteen such active rows sat inside twelve products' bands
+ * (PAN-282's €265 Memory Man next to €635–1,000 working units). Every other
+ * source carries no condition at all (SELECT, 2026-10-21), so this can only
+ * ever remove Reverb rows.
+ *
+ * Exact string, case-insensitive, nothing fuzzier: Fair and Poor are working
+ * units and stay in (the ticket's scope), and a title word is the matcher's
+ * business, not this predicate's.
+ */
+export const NON_FUNCTIONING_CONDITION = 'non functioning'
+
+export function isNonFunctioning(condition: string | null | undefined): boolean {
+  return typeof condition === 'string' && condition.trim().toLowerCase() === NON_FUNCTIONING_CONDITION
+}
+
 // ── Gates ───────────────────────────────────────────────────────────────────
 
 /** V1 §9.2 / decision 13. A band — median + Q1–Q3 — needs eight observations. */
@@ -311,6 +335,7 @@ export type DisplayTier =
   | 'band'
 
 export type ExclusionReason =
+  | 'non_functioning'
   | 'price_not_listed'
   | 'no_comparable_dkk'
   | 'unresolved_population'
@@ -353,7 +378,7 @@ export interface PopulationStats {
 }
 
 function emptyExclusions(): Record<ExclusionReason, number> {
-  return { price_not_listed: 0, no_comparable_dkk: 0, unresolved_population: 0, iqr_outlier: 0 }
+  return { non_functioning: 0, price_not_listed: 0, no_comparable_dkk: 0, unresolved_population: 0, iqr_outlier: 0 }
 }
 
 function tierFor(descriptor: PopulationDescriptor, n: number): DisplayTier {
@@ -398,6 +423,12 @@ export function buildPopulationStats(
 
   const eligible: PriceObservation[] = []
   for (const row of rows) {
+    // First, before the price is even read: a broken unit's price says nothing
+    // about the product, however comparable the number is (PAN-283).
+    if (isNonFunctioning(row.condition)) {
+      excluded.non_functioning += 1
+      continue
+    }
     if (row.price == null) {
       excluded.price_not_listed += 1
       continue
@@ -522,6 +553,7 @@ export interface VerdictResult {
     | 'population_mismatch'
     | 'below_price_floor'
     | 'rejected_match'
+    | 'non_functioning'
   /**
    * PAN-265: the population's n when the verdict rests on fewer than
    * MIN_BAND_N observations, so the surface can say so. Null at n >= 8 and
@@ -625,15 +657,21 @@ export interface ListingVerdict extends VerdictResult {
  *    "målt mod Reverb" and never reads as a Danish verdict. Nothing is pooled:
  *    the band is Reverb's own, whole. As soon as the own market has a band it
  *    takes over, including when its width guard then withholds the verdict.
+ *
+ * PAN-283: a Non Functioning listing gets no verdict on either basis. A
+ * broken unit is not comparable, and "under typisk" in brand green about a
+ * unit sold for parts is the wall's strongest claim made about the wrong
+ * thing. It still shows, with its condition, and the card says why.
  */
 export function listingVerdict(
-  listing: ListingClassificationInput & { price_dkk?: number | null },
+  listing: ListingClassificationInput & { price_dkk?: number | null; condition?: string | null },
   isValid: boolean | null | undefined,
   populations: Partial<Record<PopulationKey, PopulationStats>>,
 ): ListingVerdict {
   const none = (reason: VerdictResult['reason']): ListingVerdict =>
     ({ verdict: null, against: null, reason, fewN: null, basisLabelKey: null })
   if (isValid === false) return none('rejected_match')
+  if (isNonFunctioning(listing.condition)) return none('non_functioning')
 
   const own = classifyListing(listing).population
   if (own == null) return none('population_mismatch')
