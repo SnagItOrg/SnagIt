@@ -1358,6 +1358,9 @@ const ensoniqCode = (code: string): RegExp => withMaker(ENSONIQ, code)
  */
 const ENSONIQ_NEVER: readonly RegExp[] = [
   ...ROLAND_NEVER, ...cues('one sheet', 'reference cards', 'poster', 'book', 'scsi interface clone', 'needs repair', 'broken', 'partially working', 'non functioning', 'no sound'),
+  // A part sold for every model of a line ("AC Line Filter for Ensoniq ESQ-1 (both), ESQ-M, Mirage (all)") and the
+  // Transoniq Hacker, the Ensoniq users' newsletter ("Transoniq Hacker Ensoniq Mirage Operations").
+  /\(\s*(?:all|both)(?:\s+versions)?\s*\)/i, ...cues('transoniq hacker', 'line filter'),
 ]
 /**
  * What the Ensoniq trade sells beside the unit, marker-aware (production titles, 2026-10-21): the floppy sound
@@ -3194,9 +3197,11 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'ensoniq-eps': ensoniq('eps', 'eps', EPS_16, EPS_M, ASR_10, ASR_X),
   'ensoniq-eps-16-plus': ensoniq('eps', EPS_16_PLUS, RACK, ASR_10, ASR_X),
   'ensoniq-eps-16-plus-rack': ensoniq('eps', EPS_16_PLUS_RACK, cue('keyboard'), ASR_10, ASR_X),
-  // The Mirage: the DSK-8 and DSK-1 keyboards ($425 / $418) are the two rows production holds, each its code; the DMS-8
-  // and DMS-1 racks ($600 / $525) are one row. A bare "Ensoniq Mirage" names no row: it is either keyboard.
-  'ensoniq-mirage-dsk-8': ensoniq('mirage', 'dsk[-\\s]?8', DSK('1'), DMS, RACK),
+  // The Mirage: the DSK-8 and DSK-1 keyboards ($425 / $418) are the two rows production holds, the DSK-1 by its code; the
+  // DMS-8 and DMS-1 racks ($600 / $525) are one row. A bare "Ensoniq Mirage" keyboard is the DSK-8 (manager, 2026-10-21:
+  // the 1984 original, and the same price class as the DSK-1, which by price would merge into it once the owner moves its
+  // three verdicts); the identity file's "Mirage" identifier reaches it, and the DSK-1, the racks and the rack word refuse.
+  'ensoniq-mirage-dsk-8': ensoniq('mirage', '(?:mirage[-\\s]?)?dsk[-\\s]?8|mirage', DSK('1'), DMS, RACK),
   'ensoniq-mirage-dsk-1': ensoniq('mirage', 'dsk[-\\s]?1', DSK('8'), DMS, RACK),
   'ensoniq-mirage-dms-8': ensoniq('mirage', MIRAGE_RACK, DSK('[18]')),
   // The DP parallel effects processors: the DP/2 ($400), the DP/4 ($700) and the DP/4+ ($885); the DP/Pro sold once.

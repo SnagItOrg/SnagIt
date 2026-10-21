@@ -60,7 +60,7 @@ const IDENTS = [
   ...M('ensoniq-asr-10', 'ASR-10R'),
   ...M('ensoniq-asr-x', 'ASRX'), ...M('ensoniq-asr-x-pro', 'ASRX'),
   ...M('ensoniq-eps-16-plus', 'EPS-16', 'EPS 16', 'EPS16'), ...M('ensoniq-eps-16-plus-rack', 'EPS-16', 'EPS 16', 'EPS16'),
-  ...M('ensoniq-mirage-dms-8', 'DMS-1', 'DMS-8', 'Mirage Rack'),
+  ...M('ensoniq-mirage-dsk-8', 'Mirage'), ...M('ensoniq-mirage-dms-8', 'DMS-1', 'DMS-8', 'Mirage Rack'),
   ...M('ensoniq-dp-2', 'DP-2', 'DP2', 'DP 2'),
   ...M('ensoniq-dp-4', 'DP/4', 'DP-4', 'DP4', 'DP 4'), ...M('ensoniq-dp-4-plus', 'DP/4', 'DP-4', 'DP4', 'DP 4'),
 ]
@@ -201,7 +201,7 @@ test('the EPS line: the classic, the EPS-16 Plus keyboard and its rack are three
   notOurs('EPS Cement lättbetong 50 liter vit') // Blocket
 })
 
-test('the Mirage: DSK-8 and DSK-1 by their code, the DMS racks one row; a bare Mirage, an ESP Mirage and the disks stay out', () => {
+test('the Mirage: the DSK-1 by its code, a bare Mirage keyboard the DSK-8, the DMS racks one row; an ESP Mirage and the disks stay out', () => {
   matches('Ensoniq Mirage DSK-8 Digital Sampling Keyboard 1984 - Grey', 'ensoniq-mirage-dsk-8')
   matches('1980s Ensoniq Mirage DSK-8 Sampling Keyboard . Working with Disks!', 'ensoniq-mirage-dsk-8')
   matches('Ensoniq Mirage DSK-8 Sampling Keyboard 1984 - Gotek floppy', 'ensoniq-mirage-dsk-8')
@@ -210,7 +210,17 @@ test('the Mirage: DSK-8 and DSK-1 by their code, the DMS racks one row; a bare M
   matches('Ensoniq Mirage DMS-8 Digital Multi-Sampler 1985', 'ensoniq-mirage-dms-8')
   matches('Ensoniq Mirage DMS-1 Digital Multi-Sampler with extra sound disks 1986 - Black', 'ensoniq-mirage-dms-8')
   matches('Ensoniq MIRAGE Rack W/ Gotek USB', 'ensoniq-mirage-dms-8')
-  notOurs('Ensoniq Mirage 1986 - Gray')
+  // A bare Mirage keyboard is the DSK-8 (manager, 2026-10-21).
+  matches('Ensoniq Mirage 1984 - Black', 'ensoniq-mirage-dsk-8')
+  matches('Ensoniq Mirage 1986 - Gray', 'ensoniq-mirage-dsk-8')
+  matches('Ensoniq Mirage Digital Sampling Keyboard', 'ensoniq-mirage-dsk-8')
+  notOurs('Ensoniq Mirage Parameter Reference Cards (re-creation)')
+  notOurs('Ensoniq Mirage ISF-1 Input Sampling Filter Replica')
+  notOurs('SynthArk MSP-MIRx (SoundProcess programmer for Ensoniq Mirage)')
+  notOurs('Ensoniq Hex Wrench for Mirage, ESQ-1, ESQ-M, SQ-80, ASR-X, ASR-X Pro, VFX, VFX-SD, SD-1, more!')
+  notOurs('Ensoniq Disk Formatting program for Mirage 1980s')
+  notOurs('Transoniq Hacker Ensoniq Mirage Operations')
+  notOurs('ORIGINAL Ensoniq AC Line Filter for Ensoniq ESQ-1 (both), ESQ-M, Mirage (all)')
   notOurs('ESP The Mirage Custom Shop Stratocaster HSS Purple Ash MIJ Japan Guitar') // DBA
   notOurs('ESP Custom Shop M-III Mirage Green Ash Super Stratocaster Guitar MIJ Japan') // DBA
   notOurs('Ensoniq Mirage OS Operating System Boot Disk v3.2 - US Seller, New, 720k MF-2DD.')
