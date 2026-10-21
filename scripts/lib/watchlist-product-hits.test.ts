@@ -123,3 +123,155 @@ test('PAN-273: the product watchlist mail links to the product page, the query m
   assert.equal(sent[1].seeAllUrl, undefined, 'the query mail keeps its default')
   assert.deepEqual(rows.map((r) => r.outcome), ['sent', 'sent'], 'both claims recorded')
 })
+
+/* ── PAN-276 / PAN-278: the mail row, its links, and disengagement ───────── */
+
+import { buildNewListingsEmail } from '../../frontend/lib/email'
+import { MAIL_TOKEN, mailLinks, mailPrompt, newMailToken, type MailEngagement } from '../../frontend/lib/watchlist-mail'
+
+/** Every write, by table, and the result each insert should give. */
+function mailDb(opts: { insertError?: boolean } = {}) {
+  const calls: Array<{ table: string; op: string; values?: unknown }> = []
+  const chain = (result: unknown) => {
+    const c: Record<string, unknown> = {
+      eq: () => c, in: () => c, is: () => c,
+      then: (resolve: (v: unknown) => unknown) => Promise.resolve(result).then(resolve),
+    }
+    return c
+  }
+  const db = {
+    from(table: string) {
+      return {
+        upsert(input: Array<{ listing_id: string }>) {
+          return { select: () => Promise.resolve({ data: input.map((r) => ({ listing_id: r.listing_id })), error: null }) }
+        },
+        insert(values: unknown) {
+          calls.push({ table, op: 'insert', values })
+          return Promise.resolve({ error: opts.insertError ? { code: 'PGRST205' } : null })
+        },
+        update(values: unknown) {
+          calls.push({ table, op: 'update', values })
+          return chain({ error: null })
+        },
+        delete() {
+          calls.push({ table, op: 'delete' })
+          return chain({ error: null })
+        },
+      }
+    },
+  }
+  return { db: db as unknown as Parameters<typeof notifyHits>[0], calls }
+}
+
+const TWO = [LISTING, { ...LISTING, id: 'l-2', price_dkk: 3000 }]
+
+test('PAN-276: with 070 applied the send writes one row and hands its token to the mail', async () => {
+  const { db, calls } = mailDb()
+  const sent: Array<{ mail?: { token: string; prompt: unknown } }> = []
+  const result = await notifyHits(
+    db,
+    { watchlist: WATCH, hits: TWO, email: 'owner@example.invalid', optedOut: false, mailRows: true, prompt: 'ask' },
+    async (input) => { sent.push(input) },
+  )
+  const insert = calls.find((c) => c.table === 'watchlist_mail' && c.op === 'insert')!.values as {
+    token: string; watchlist_id: string; listing_ids: string[]; prompt: string
+  }
+  assert.match(insert.token, MAIL_TOKEN)
+  assert.deepEqual(insert.listing_ids, ['l-1', 'l-2'], 'the mail\'s listings, in the mail\'s order')
+  assert.equal(insert.prompt, 'ask')
+  assert.deepEqual(sent[0].mail, { token: insert.token, prompt: 'ask' })
+  assert.equal(result.prompt, 'ask')
+  assert.equal(calls.some((c) => c.table === 'watchlists'), false, 'an ask never pauses')
+})
+
+test('PAN-278: a sent pause mail pauses the watchlist; a failed one deletes its row and pauses nothing', async () => {
+  const ok = mailDb()
+  await notifyHits(ok.db, { watchlist: WATCH, hits: TWO, email: 'o@example.invalid', optedOut: false, mailRows: true, prompt: 'pause' }, async () => {})
+  assert.deepEqual(ok.calls.find((c) => c.table === 'watchlists')?.values, { active: false })
+
+  const bad = mailDb()
+  const result = await notifyHits(
+    bad.db,
+    { watchlist: WATCH, hits: TWO, email: 'o@example.invalid', optedOut: false, mailRows: true, prompt: 'pause' },
+    async () => { throw new Error('resend_rejected:rate_limit_exceeded') },
+  )
+  assert.equal(result.outcome, 'failed')
+  assert.ok(bad.calls.some((c) => c.table === 'watchlist_mail' && c.op === 'delete'), 'an undelivered mail never counts as ignored')
+  assert.equal(bad.calls.some((c) => c.table === 'watchlists'), false)
+})
+
+test('PAN-276: no 070, or a row that will not write, still sends the PAN-273 mail without a prompt', async () => {
+  for (const [label, opts, mailRows] of [['absent', {}, false], ['insert failed', { insertError: true }, true]] as const) {
+    const { db, calls } = mailDb(opts)
+    const sent: Array<{ mail?: unknown }> = []
+    const result = await notifyHits(
+      db,
+      { watchlist: WATCH, hits: TWO, email: 'o@example.invalid', optedOut: false, mailRows, prompt: 'pause' },
+      async (input) => { sent.push(input) },
+    )
+    assert.equal(result.outcome, 'sent', label)
+    assert.equal(sent[0].mail, undefined, label)
+    assert.equal(calls.some((c) => c.table === 'watchlists'), false, `${label}: the mail did not say so, so no pause`)
+  }
+})
+
+test('PAN-276: tokens are 12 base62 characters and do not repeat', () => {
+  const seen = new Set<string>()
+  for (let i = 0; i < 2000; i++) {
+    const t = newMailToken()
+    assert.match(t, MAIL_TOKEN)
+    seen.add(t)
+  }
+  assert.equal(seen.size, 2000)
+})
+
+test('PAN-276: links are short, tagged with the role, and a listing link carries no UTM', () => {
+  const links = mailLinks('https://www.klup.dk', 'Ab3dE5fG7hJ9')
+  assert.equal(links.seeAll, 'https://www.klup.dk/w/Ab3dE5fG7hJ9?utm_source=klup&utm_medium=email&utm_campaign=watchlist&utm_content=see_all')
+  assert.equal(links.stop, 'https://www.klup.dk/w/Ab3dE5fG7hJ9?svar=stop&utm_source=klup&utm_medium=email&utm_campaign=watchlist&utm_content=stop')
+  assert.ok(links.keep.includes('svar=fortsaet') && links.keep.endsWith('utm_content=keep'))
+  assert.ok(links.resume.endsWith('utm_content=resume'))
+  assert.equal(links.listing(2), 'https://www.klup.dk/w/Ab3dE5fG7hJ9/2')
+})
+
+test('PAN-278: the 3rd and 4th unclicked mail ask, the 5th pauses, and a click or a pause starts over', () => {
+  const day = (d: number, clicked?: number, prompt: MailEngagement['prompt'] = null): MailEngagement => ({
+    sent_at: `2026-10-${String(d).padStart(2, '0')}T05:00:00.000Z`,
+    clicked_at: clicked ? `2026-10-${String(clicked).padStart(2, '0')}T12:00:00.000Z` : null,
+    prompt,
+  })
+  assert.equal(mailPrompt([]), null, 'first mail')
+  assert.equal(mailPrompt([day(1)]), null, 'second mail')
+  assert.equal(mailPrompt([day(1), day(2)]), 'ask', 'third mail')
+  assert.equal(mailPrompt([day(1), day(2), day(3, undefined, 'ask')]), 'ask', 'fourth mail asks again')
+  assert.equal(mailPrompt([day(1), day(2), day(3, undefined, 'ask'), day(4, undefined, 'ask')]), 'pause', 'fifth mail')
+  assert.equal(mailPrompt([day(1), day(2), day(3, 3)]), null, 'the latest mail was opened')
+  assert.equal(mailPrompt([day(1, 5), day(2), day(3), day(4)]), null, 'an old mail opened yesterday counts too')
+  assert.equal(mailPrompt([day(1), day(2), day(3), day(4), day(5, undefined, 'pause')]), null, 'switched back on after a pause')
+})
+
+test('PAN-276: the mail links through /w, names links in words, escapes titles, and asks in Danish', () => {
+  const listings = [
+    { title: 'Roland <Juno> & co', price: 4500, currency: 'DKK', url: 'https://dba.dk/x', source: 'dba' },
+    ...Array.from({ length: 6 }, (_, i) => ({ title: `Juno ${i}`, price: 5000, currency: 'DKK', url: 'https://dba.dk/y', source: 'dba' })),
+  ]
+  const { subject, text, html } = buildNewListingsEmail({
+    query: 'Roland Juno-106', listings, mail: { token: 'Ab3dE5fG7hJ9', prompt: 'ask' },
+  })
+  assert.equal(subject, '7 nye annoncer: "Roland Juno-106"')
+  assert.ok(text.includes('/w/Ab3dE5fG7hJ9/1'), 'a listing goes through the click route')
+  assert.ok(!text.includes('dba.dk/x'), 'not straight to the ad')
+  assert.ok(text.includes('…og 2 annoncer mere.'))
+  assert.ok(text.includes('Skal vi stoppe med at sende dig disse?'))
+  assert.ok(text.includes('svar=stop') && text.includes('svar=fortsaet'))
+  assert.ok(html.includes('Roland &lt;Juno&gt; &amp; co'))
+  assert.ok(html.includes('>Se alle på Klup</a>'), 'the link is named, not printed')
+
+  const legacy = buildNewListingsEmail({ query: 'reverb', listings: listings.slice(0, 1) })
+  assert.ok(legacy.text.includes('https://dba.dk/x'), 'without a row the mail keeps the PAN-273 links')
+  assert.ok(!legacy.text.includes('Skal vi stoppe'))
+
+  const paused = buildNewListingsEmail({ query: 'reverb', listings: listings.slice(0, 1), mail: { token: 'Ab3dE5fG7hJ9', prompt: 'pause' } })
+  assert.ok(paused.text.includes('Det her er den sidste mail om "reverb"'))
+  assert.ok(paused.text.includes('utm_content=resume'))
+})

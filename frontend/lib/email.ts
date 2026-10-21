@@ -1,5 +1,7 @@
 import { Resend } from 'resend'
 import { sourceForStored } from './admin-match-sources'
+import { fill, translations } from './i18n'
+import { mailLinks, type MailPrompt } from './watchlist-mail'
 
 function getResend(): Resend {
   const apiKey = process.env.RESEND_API_KEY
@@ -16,50 +18,119 @@ export type ListingSnippet = {
   source?: string
 }
 
-export async function sendNewListingsEmail({
-  to,
+/** PAN-276: the mail's `watchlist_mail` row, when migration 070 holds one. */
+export type MailRow = { token: string; prompt: MailPrompt | null }
+
+const esc = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+/**
+ * The watchlist mail, built and not sent: subject, text and HTML. Pure, so the
+ * PR can render it locally and a test can read it.
+ *
+ * PAN-12: one mail per watchlist per night, the five cheapest-first lines the
+ * runner hands over, and the rest as a count. PAN-276: with a `mail` row every
+ * link goes through `/w/<token>` — "Se alle" to the page of exactly these
+ * listings, each listing through `/w/<token>/<n>`, which records the click and
+ * redirects to the ad — and the HTML part names each link in words instead of
+ * printing it. Without one (070 not applied, or its row failed) the mail is
+ * the PAN-273 mail: listing links straight to the ad, "Se alle" to `seeAllUrl`
+ * or the search. PAN-278: `prompt` adds the stop question or the pause notice.
+ *
+ * Danish: there is no stored locale for a recipient, and Danish is the site's
+ * default. The copy lives in `translations` in both languages all the same.
+ */
+export function buildNewListingsEmail({
   query,
   listings,
   seeAllUrl,
+  mail,
 }: {
-  to: string
   query: string
   listings: ListingSnippet[]
   /** PAN-273: a product watchlist's "Se alle" is its product page, not a search. */
   seeAllUrl?: string
-}) {
-  // PAN-12: Danish, like the site. One mail per watchlist per night, the five
-  // cheapest-first lines the runner hands over, and the rest as a count.
+  mail?: MailRow
+}): { subject: string; text: string; html: string } {
+  const t = translations.da
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.klup.dk'
+  const links = mail ? mailLinks(appUrl, mail.token) : null
   const preview = listings.slice(0, 5)
   const n = listings.length
+  const rest = n - preview.length
 
-  const listingLines = preview
-    .map((l) => {
-      const price = l.price != null
-        ? `${l.price.toLocaleString('da-DK')} ${l.currency === 'DKK' ? 'kr' : l.currency}`
-        : 'Pris ikke oplyst'
-      const source = l.source ? ` (${sourceForStored(l.source)?.label ?? l.source})` : ''
-      return `• ${l.title} — ${price}${source}\n  ${l.url}`
-    })
-    .join('\n\n')
+  const rows = preview.map((l, i) => ({
+    title: l.title,
+    price: l.price != null ? `${l.price.toLocaleString('da-DK')} ${l.currency === 'DKK' ? 'kr' : l.currency}` : t.priceNotListed,
+    source: l.source ? (sourceForStored(l.source)?.label ?? l.source) : null,
+    href: links ? links.listing(i + 1) : l.url,
+  }))
+  const seeAll = links?.seeAll ?? seeAllUrl ?? `${appUrl}/search?q=${encodeURIComponent(query)}`
+  const settings = links?.settings ?? `${appUrl}/profile`
+  const prompt = links ? mail!.prompt : null
 
-  const overflow = n > 5 ? `\n…og ${n - 5} ${n - 5 === 1 ? 'annonce' : 'annoncer'} mere.` : ''
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.klup.dk'
+  const subject = n === 1 ? fill(t.mailSubjectOne, { query }) : fill(t.mailSubjectMany, { n, query })
+  const intro = n === 1 ? fill(t.mailIntroOne, { query }) : fill(t.mailIntroMany, { n, query })
+  const overflow = rest > 0 ? (rest === 1 ? t.mailOverflowOne : fill(t.mailOverflowMany, { n: rest })) : null
 
   const text = [
-    n === 1
-      ? `Der er 1 ny annonce, der matcher din overvågning "${query}":`
-      : `Der er ${n} nye annoncer, der matcher din overvågning "${query}":`,
+    intro,
     '',
-    listingLines,
-    overflow,
+    rows.map((r) => `• ${r.title} — ${r.price}${r.source ? ` (${r.source})` : ''}\n  ${r.href}`).join('\n\n'),
+    overflow ? `\n${overflow}` : '',
     '',
-    `Se alle: ${seeAllUrl ?? `${appUrl}/search?q=${encodeURIComponent(query)}`}`,
+    `${t.mailSeeAll}: ${seeAll}`,
+    ...(prompt === 'ask' && links
+      ? ['', t.mailAskQuestion, fill(t.mailAskWhy, { query }), `${t.mailAskYes}: ${links.stop}`, `${t.mailAskNo}: ${links.keep}`]
+      : []),
+    ...(prompt === 'pause' && links ? ['', fill(t.mailPaused, { query }), `${t.mailResume}: ${links.resume}`] : []),
     '',
-    `Du får denne mail, fordi du overvåger "${query}" på Klup.`,
-    `Slå mails fra under din profil: ${appUrl}/profile`,
+    fill(t.mailWhy, { query }),
+    `${t.mailSettings}: ${settings}`,
   ].join('\n')
+
+  // Mail clients read no CSS variables, so the few colours are literal here:
+  // the neutral ink and greys of the site, never the accent green (frontend/CLAUDE.md).
+  const a = (href: string, label: string, style = 'color:#111418') =>
+    `<a href="${esc(href)}" style="${style}">${esc(label)}</a>`
+  const button = (href: string, label: string) =>
+    a(href, label, 'display:inline-block;padding:8px 14px;margin:4px 8px 0 0;border:1px solid #c9ccd3;border-radius:8px;color:#111418;text-decoration:none;font-weight:600')
+  const html = [
+    '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Inter,Arial,sans-serif;font-size:15px;line-height:1.5;color:#111418;max-width:560px">',
+    `<p>${esc(intro)}</p>`,
+    ...rows.map((r) =>
+      `<p style="margin:0 0 12px">${a(r.href, r.title, 'color:#111418;font-weight:600')}<br>`
+      + `<span style="color:#5b616e">${esc(r.price)}${r.source ? ` · ${esc(r.source)}` : ''}</span></p>`),
+    overflow ? `<p style="color:#5b616e">${esc(overflow)}</p>` : '',
+    `<p>${button(seeAll, t.mailSeeAll)}</p>`,
+    prompt === 'ask' && links
+      ? `<div style="margin-top:24px;padding:12px 16px;border-radius:12px;background:#f1f2f4">`
+        + `<p style="margin:0;font-weight:600">${esc(t.mailAskQuestion)}</p>`
+        + `<p style="margin:0 0 4px;color:#5b616e;font-size:14px">${esc(fill(t.mailAskWhy, { query }))}</p>`
+        + `${button(links.stop, t.mailAskYes)}${button(links.keep, t.mailAskNo)}</div>`
+      : '',
+    prompt === 'pause' && links
+      ? `<div style="margin-top:24px;padding:12px 16px;border-radius:12px;background:#f1f2f4">`
+        + `<p style="margin:0 0 4px">${esc(fill(t.mailPaused, { query }))}</p>${button(links.resume, t.mailResume)}</div>`
+      : '',
+    `<p style="margin-top:24px;color:#5b616e;font-size:13px">${esc(fill(t.mailWhy, { query }))}<br>${a(settings, t.mailSettings, 'color:#5b616e')}</p>`,
+    '</div>',
+  ].join('\n')
+
+  return { subject, text, html }
+}
+
+export async function sendNewListingsEmail({
+  to,
+  ...content
+}: {
+  to: string
+  query: string
+  listings: ListingSnippet[]
+  seeAllUrl?: string
+  mail?: MailRow
+}) {
+  const { subject, text, html } = buildNewListingsEmail(content)
 
   // PAN-72. The Resend client RESOLVES with `{ data, error }` on a rejected
   // send — it does not throw. An unchecked `await` therefore returns normally
@@ -72,8 +143,9 @@ export async function sendNewListingsEmail({
   const { error } = await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to,
-    subject: n === 1 ? `1 ny annonce: "${query}"` : `${n} nye annoncer: "${query}"`,
+    subject,
     text,
+    html,
   })
 
   if (error) throw new Error(`resend_rejected:${error.name}`)

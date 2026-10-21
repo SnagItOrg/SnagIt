@@ -637,3 +637,22 @@ happens to the watcher.
 | Rollback | `069_rollback.sql`. Refuses while any product watchlist exists (the column is a user's watch); otherwise drops the index, the pair CHECK and the column and restores the two-value CHECK; absent is a no-op. |
 | Rehearsal | PGlite 0.2.17, `rehearse069.mjs`, 25 checks, output on the PR: PRE with the shape and rows byte-identical apart from the column, POST no-op, the route's upsert keeping `created_at` and updating the price, a second user on the same model, both CHECKs, the FK both ways, rollback refusing and then restoring the exact shape, absent no-op, re-apply, DRIFT on a foreign CHECK and on a half-applied column. `verify-migrations-isolated.sh` was not run: the authoring machine has no local PostgreSQL. |
 | Writers | `/api/watchlists` POST with `product_slug` (answers 503 `watchlists_unavailable` until applied). Reader: `scripts/notify-watchlists.ts`, which falls back to query watchlists only while the column is absent. |
+
+## 070 — `watchlist_mail`, one row per watchlist email sent. **NOT APPLIED.**
+
+`070_watchlist_mail.sql` (PAN-276 / PAN-278) creates `watchlist_mail`: the
+random token a mail's links carry (`klup.dk/w/<token>`, 12 base62 characters,
+~71 bits, CHECKed), the watchlist (FK, cascade on delete), the mail's listing
+ids in the mail's order, the `prompt` the mail carried (`ask` | `pause` |
+NULL), `sent_at` and `clicked_at`. Index on `(watchlist_id, sent_at)` for the
+runner's per-watchlist read. Pausing a watchlist's mails uses the existing
+`watchlists.active`; nothing else changes and no row moves.
+
+| Property | |
+|---|---|
+| Why | Owner, 2026-10-21 (PAN-276): the mail's "Se alle" led to a search that showed something else, and a family page for "Gibson Custom Shop Les Paul". The page `/w/<token>` shows exactly the mail's listings. PAN-278: a visit through any of the mail's links stamps `clicked_at`; the 3rd and 4th unclicked mail in a row ask "Skal vi stoppe?", the 5th says it is the last and pauses the watchlist (`mailPrompt()` in `frontend/lib/watchlist-mail.ts`). |
+| P0 | A new table in `public`: RLS enabled with no policy and every privilege revoked from `anon` and `authenticated` in the same transaction. No PII: a token, ids, two times, a code. The page, the click route, the stop/resume route and the runner use the service role. |
+| PRE / POST / DRIFT | PRE (table absent) creates and verifies in the transaction; POST (this shape, the index, RLS on, closed) is a no-op; a foreign shape, a missing index, RLS off or a grant to `anon`/`authenticated` raises before any change. |
+| Rollback | `070_rollback.sql`. Drops the table; absent is a no-op. A watchlist the runner paused stays paused (it is the user's setting now), and the NOTICE counts them. Every `/w/<token>` link already mailed answers 404 afterwards. |
+| Rehearsal | PGlite 0.2.17, `rehearse070.mjs`, 21 checks, output on the PR: PRE closed despite a simulated `ALTER DEFAULT PRIVILEGES … TO anon, authenticated`, POST no-op keeping rows, the token/listing/prompt/FK CHECKs, the click stamp, rollback keeping a paused watchlist paused, absent no-op, re-apply, cascade on watchlist delete, DRIFT on a foreign shape (untouched), on a grant to `anon`, on RLS off and on a missing index. `verify-migrations-isolated.sh` covers 053/054 only and needs a local PostgreSQL the authoring machine does not have. |
+| Writers | `scripts/notify-watchlists.ts` (insert per sent mail, delete on a failed send, `watchlists.active = false` after a sent pause mail); `/w/[token]` and `/w/[token]/[n]` (`clicked_at`); `POST /api/watchlist-mail/[token]` (`watchlists.active`). Until 070 is applied the runner probes, prints "watchlist_mail absent" and sends the PAN-273 mail. |
