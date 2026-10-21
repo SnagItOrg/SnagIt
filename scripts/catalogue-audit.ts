@@ -14,6 +14,8 @@
  *   npx tsx scripts/catalogue-audit.ts --json                # the run and the diff as JSON on stdout
  *   npx tsx scripts/catalogue-audit.ts --state=<path>        # another state file (a dry look: --state=/dev/null)
  *   npx tsx scripts/catalogue-audit.ts --email=<to>          # also mail the report when something moved (Resend)
+ *   npx tsx scripts/catalogue-audit.ts --email               # the same, to CATALOGUE_AUDIT_TO_EMAIL, else FEEDBACK_TO_EMAIL,
+ *                                                            # else RESEND_FROM_EMAIL (.env.local), so no address is committed
  */
 
 import * as fs from 'fs'
@@ -44,7 +46,10 @@ const args = process.argv.slice(2)
 const flag = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=')
 const JSON_OUT = args.includes('--json')
 const STATE = flag('state') ?? path.join(os.homedir(), 'klup-rollbacks', 'catalogue-audit', 'state.json')
-const EMAIL = flag('email')
+// A bare --email takes the owner's inbox from .env.local, like the feedback route, so PM2 config names no address.
+const EMAIL = flag('email') ?? (args.includes('--email')
+  ? process.env.CATALOGUE_AUDIT_TO_EMAIL ?? process.env.FEEDBACK_TO_EMAIL ?? process.env.RESEND_FROM_EMAIL
+  : undefined)
 
 const PAGE = 1000
 type Row = Record<string, unknown>
