@@ -30,6 +30,13 @@ export const SITE_DESCRIPTION_EN =
   'Klup tracks used musical instruments and studio equipment across DBA, Finn, ' +
   'Blocket, Kleinanzeigen and Reverb — and tells you what they actually cost.'
 
+/**
+ * PAN-288: the `images` below repeat app/opengraph-image.png and
+ * app/twitter-image.png as config. At the root the files win and nothing
+ * changes; a page that sets its own `openGraph` or `twitter` (product, family)
+ * replaces the whole object and loses the file-based image, so it spreads
+ * these in to keep it.
+ */
 export const siteMetadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -52,10 +59,12 @@ export const siteMetadata: Metadata = {
     url: SITE_URL,
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
+    images: [{ url: '/opengraph-image.png', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
+    images: ['/twitter-image.png'],
   },
 }

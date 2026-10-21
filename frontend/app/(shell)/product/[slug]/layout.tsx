@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import type { Metadata } from 'next'
 import { unstable_cache } from 'next/cache'
+import { NextRequest } from 'next/server'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { CATALOGUE_REVALIDATE_SECONDS } from '@/lib/browse-cache'
@@ -12,8 +13,10 @@ import {
   isCanonical,
   type CatalogueStateRow,
 } from '@/lib/catalogue'
-import { translations } from '@/lib/i18n'
-import { SITE_URL } from '@/lib/site-metadata'
+import { fill, translations } from '@/lib/i18n'
+import { isHomeMarket, type PopulationStats } from '@/lib/price-populations'
+import { SITE_URL, siteMetadata } from '@/lib/site-metadata'
+import { GET as getProduct } from '@/app/api/product/[slug]/route'
 
 /**
  * Server-side eligibility gate for the canonical product segment.
@@ -134,11 +137,49 @@ export async function generateMetadata(
   const product = await loadProductState(slug)
   if (!product || !isCanonical(product.state) || !product.canonical_name) return {}
 
+  const title = fill(t.metaProductTitle, { name: product.canonical_name })
+  const description =
+    (await bandDescription(slug)) ?? `${product.canonical_name} — ${t.headline}`
+  const url = `${SITE_URL}/product/${slug}`
+
   return {
-    title: product.canonical_name,
-    description: `${product.canonical_name} — ${t.headline}`,
-    alternates: { canonical: `${SITE_URL}/product/${slug}` },
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { ...siteMetadata.openGraph, title, description, url },
+    twitter: { ...siteMetadata.twitter, title, description },
   }
+}
+
+/**
+ * PAN-288. "Typisk 12.500 kr brugt · 3 annoncer i Danmark nu", or null.
+ *
+ * Read from the product route's own payload — the in-process call tjek-prisen
+ * makes, served from the same one-minute `cachedCanonicalProduct` entry the
+ * page's fetch fills — so the snippet can never state a number the page does
+ * not. The median is stated only at tier 'band', the one tier the page calls
+ * "typisk"; every other tier keeps the old description. {count} is the page's
+ * own Danish split of the wall (`isHomeMarket`).
+ */
+async function bandDescription(slug: string): Promise<string | null> {
+  const res = await getProduct(new NextRequest(new URL(`/api/product/${slug}`, SITE_URL)), {
+    params: Promise.resolve({ slug }),
+  })
+  if (!res.ok) return null
+  const page = (await res.json()) as {
+    listings: Array<{ source?: string | null; country?: string | null }>
+    populations: { 'dk-asking': PopulationStats }
+  }
+
+  const dk = page.populations['dk-asking']
+  if (dk.tier !== 'band' || dk.median == null) return null
+
+  const typical = fill(t.metaProductTypical, {
+    price: `${Math.round(dk.median).toLocaleString('da-DK')} kr`,
+  })
+  const count = page.listings.filter(isHomeMarket).length
+  if (count === 0) return typical
+  return `${typical} · ${count === 1 ? t.metaProductListingsOne : fill(t.metaProductListings, { count })}`
 }
 
 export default async function ProductSegmentLayout({
