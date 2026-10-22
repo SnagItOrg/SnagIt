@@ -111,6 +111,14 @@ export const SAME_MAKER: readonly (readonly string[])[] = [
   ['oto machines', 'oto'],
   // PAN-291: "Ensonic KT-76" and "Ensonic SQ1 Plus" (DBA, 2026-10-21) are Ensoniq's units, misspelled.
   ['ensoniq', 'ensonic'],
+  // PAN-293: the kg_brand row is "Tube-Tech" (Lydkraft, Denmark); sellers write "Tube Tech CL 1B", "TubeTech CL1B" and
+  // "Lydkraft" (production titles, 2026-10-21), and a hyphenated brand token reads neither spaced nor glued form.
+  ['tube-tech', 'tube tech', 'tubetech', 'lydkraft'],
+  // PAN-293: the units carry "FMR Audio"; sellers write "FMR RNC" and "FMR Really Nice Compressor" (Reverb, 2026-10-21).
+  ['fmr audio', 'fmr'],
+  // PAN-293: "TC Electronics Impact Twin", "T.C. Electronic 2290" and "T.C Electronic 1210" (DBA and Reverb, 2026-10-21)
+  // name TC Electronic.
+  ['tc electronic', 'tc electronics', 't.c. electronic', 't.c. electronics', 't.c electronic', 'tc-electronic'],
 ]
 const MAKER_OF = new Map<string, string>()
 SAME_MAKER.forEach((group) => group.forEach((name) => MAKER_OF.set(name, group[0])))

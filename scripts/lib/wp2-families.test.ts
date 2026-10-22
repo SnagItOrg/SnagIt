@@ -94,6 +94,8 @@ const PAN286_FAMILIES = ['fuzz-tone', 'echoplex', 'ventilator']
 const PAN290_FAMILIES = ['lexicon-pcm', 'prime-time', 'lexicon-lxp', 'lexicon-mx', 'korg-sdd']
 /** PAN-291. The `rhodes` case, four times: no row. The ASR, EPS, Mirage and DP rows are the priced pages. */
 const PAN291_FAMILIES = ['ensoniq-asr-sampler', 'ensoniq-eps-sampler', 'ensoniq-mirage-sampler', 'ensoniq-dp-effects']
+/** PAN-293. The `rhodes` case, twice: no row. The Factor pedals and the H9 Max / Core are the priced pages. */
+const PAN293_FAMILIES = ['eventide-factor-pedals', 'eventide-h9-pedals']
 
 /** The six, plus `rhodes` (PAN-85) — the first family with canonical children — the Boss lines and `minimoog` (PAN-154). */
 /** PAN-284 (owner, 2026-10-21). The `rhodes` case, all 27: eleven Roland lines, thirteen guitar models, three synths. */
@@ -106,7 +108,7 @@ const PAN284_FAMILIES = [
   'sequential-ob-6-synth', 'sequential-trigon-6-synth', 'oberheim-ob-x-synth',
 ]
 
-const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES, ...PAN230_FAMILIES, ...PAN261_FAMILIES, ...PAN271_FAMILIES, ...PAN282_FAMILIES, ...PAN284_FAMILIES, ...PAN286_FAMILIES, ...PAN290_FAMILIES, ...PAN291_FAMILIES]
+const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES, ...PAN230_FAMILIES, ...PAN261_FAMILIES, ...PAN271_FAMILIES, ...PAN282_FAMILIES, ...PAN284_FAMILIES, ...PAN286_FAMILIES, ...PAN290_FAMILIES, ...PAN291_FAMILIES, ...PAN293_FAMILIES]
 
 /**
  * Production state of every configured child, SELECT-verified 2026-08-28:
@@ -540,6 +542,9 @@ test('families: children match the reviewed §6.3 map', () => {
     'ensoniq-eps-sampler': ['ensoniq-eps', 'ensoniq-eps-16-plus', 'ensoniq-eps-16-plus-rack'],
     'ensoniq-mirage-sampler': ['ensoniq-mirage-dsk-8', 'ensoniq-mirage-dsk-1', 'ensoniq-mirage-dms-8'],
     'ensoniq-dp-effects': ['ensoniq-dp-4', 'ensoniq-dp-4-plus', 'ensoniq-dp-2'],
+    // PAN-293 (2026-10-21). Two Eventide lines whose word sellers write; the named pedals are the priced pages.
+    'eventide-factor-pedals': ['eventide-timefactor', 'eventide-pitchfactor', 'eventide-modfactor', 'eventide-space'],
+    'eventide-h9-pedals': ['eventide-h9-max', 'eventide-h9-core'],
   }
   for (const family of NAVIGATION_FAMILIES) {
     assert.deepEqual([...family.children].sort(), [...expected[family.slug]].sort(), family.slug)
@@ -589,8 +594,9 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   // `moogerfooger` (PAN-199), `neumann-u87-condenser` and `universal-audio-1176`
   // (PAN-230), `fender-blues-junior-amp` (PAN-261), `bach-stradivarius` (PAN-271), `memory-man` (PAN-282) and
   // `fuzz-tone` / `echoplex` / `ventilator` (PAN-286) are the `rhodes` case: no row. So are `boss-ds-distortion`,
-  // the 27 prefix families (PAN-284), the five Lexicon / Korg SDD lines (PAN-290) and the four Ensoniq lines (PAN-291).
-  assert.equal(EXPECTED_FAMILIES.length, 65)
+  // the 27 prefix families (PAN-284), the five Lexicon / Korg SDD lines (PAN-290), the four Ensoniq lines (PAN-291) and
+  // the two Eventide lines (PAN-293).
+  assert.equal(EXPECTED_FAMILIES.length, 67)
 })
 
 test('redirects: nothing else is redirected', () => {

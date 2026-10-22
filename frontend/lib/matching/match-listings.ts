@@ -1527,6 +1527,186 @@ const oto = (line: keyof typeof OTO_WORDS, code: string): LineBoundary => ({
   requires: [withMaker(OTO, code)],
 })
 
+// ── PAN-293: Eventide, FMR Audio, TC Electronic and Tube-Tech ──────────────
+/**
+ * Eventide's units, each by the word sellers write for it (Reverb sold and live titles, production titles, DBA,
+ * 2026-10-21). Every Eventide row requires its own word beside "Eventide" (`withMaker`): "Space" is a Roland Space
+ * Echo, "Rose" a Floyd Rose, "Eclipse" a guitar finish and "H9" a Shure wireless band ("Shure BLX288/SM58-H9"). All
+ * Eventide rows are ONE line, `eventide`, so a refusal inside the line separates two units a title names (step 5b)
+ * instead of deferring it as a two-product tie.
+ */
+const EVENTIDE = '(?<![a-z])eventide(?![a-z])'
+const EV: Readonly<Record<string, RegExp>> = {
+  h90: /(?<![\w-])h[\s-]?90(?![0-9])/i,
+  h9: /(?<![\w-])h[\s-]?9(?![0-9])/i,
+  h9max: /(?<![\w-])h[\s-]?9[\s-]?max(?![\w-])/i,
+  // The tier word may stand apart from the code: "Eventide H9 Harmonizer Standard Multi-Effect Pedal".
+  h9core: /(?<![\w-])core(?![\w-])/i,
+  h9standard: /(?<![\w-])standard(?![\w-])/i,
+  timefactor: /time[\s-]?factor/i,
+  pitchfactor: /pitch[\s-]?factor/i,
+  modfactor: /mod[\s-]?factor/i,
+  space: /(?<![\w-])space(?![\w-])/i,
+  blackhole: /black[\s-]?hole/i,
+  micropitch: /micro[\s-]?pitch/i,
+  ultratap: /ultra[\s-]?tap/i,
+  tricerachorus: /tricera[\s-]?chorus/i,
+  riptide: /(?<![\w-])riptide(?![\w-])/i,
+  rose: /(?<![\w-])rose(?![\w-])/i,
+  knifedrop: /knife[\s-]?drop/i,
+  eclipse: /(?<![\w-])eclipse(?![\w-])/i,
+  h8000: /(?<![\w-])h[\s-]?8000/i,
+  h7600: /(?<![\w-])h[\s-]?7600/i,
+  h3500: /(?<![\w-])h[\s-]?3500/i,
+  h3000: /(?<![\w-])h[\s-]?3000/i,
+  h949: /(?<![\w-])h[\s-]?949(?![0-9])/i,
+  h969: /(?<![\w-])h[\s-]?969(?![0-9])/i,
+  h910: /(?<![\w-])h[\s-]?910(?![0-9])/i,
+  dsp4000: /(?<![\w-])dsp[\s-]?4000/i,
+  h9000: /(?<![\w-])h[\s-]?9000/i,
+  orville: /(?<![\w-])orville(?![\w-])/i,
+  omnipressor: /omnipressor/i,
+  sp2016: /(?<![\w-])sp[\s-]?2016(?![0-9])/i,
+  instantphaser: /instant[\s-]?phaser/i,
+}
+/**
+ * Never an Eventide unit: the plug-ins of the same names (Eventide sells the H910, H949, Omnipressor, Instant Phaser,
+ * SP2016, Blackhole, MicroPitch, UltraTap and the H3000 as plug-ins: "Eventide H910 Harmonizer® Plug-In (Download)",
+ * "Clockworks Bundle H910 H949 Omnipressor SP2016 (Activation Card)", "H3000 Factory Mk II", "H3000 Band Delays"), a
+ * pair or a lot, a unit sold for parts, another maker's copy, and the expression pedals sold "for the H9" ("Mission
+ * Engineering EP1-H9").
+ */
+const EV_NEVER: readonly RegExp[] = [
+  ...PAIR_OR_LOT, ...UAD_SOFTWARE,
+  /(?<![\w-])h[\s-]?3000\s+(?:factory|band\s+delays)/i,
+  // "Clockworks" alone is Eventide's 1970s name ("Eventide Clockworks Instant Phaser PS-101"); the plug-in bundle is not.
+  /clockworks\s+(?:bundle|legacy)/i,
+  ...cues('bundle', 'ilok', 'anthology', 'parts', 'for parts', 'parts only', 'repair', 'not working', 'broken', 'for repair',
+    'needs repair', 'non functioning', 'non-functioning', 'as is', 'as-is', 'clone', 'kopi', 'replica', 'emulation', 'eurorack'),
+]
+/**
+ * The Eventide parts and papers trade (production and Reverb sold titles, 2026-10-21), marker-aware: the H3000 / H3500
+ * / H8000 front switches and caps, the battery-backed RAM and its batteries, ROM sets, EPROM and OS upgrades ("H3000 to
+ * H3500B-DFX MAXIMUM Preset OS Upgrade!"), the sampler board, the H9000's Dante card, the EVE/NET remote, service
+ * manuals and schematics, transformers, power supplies, and the pedals' footswitches, expression pedals, stands and
+ * covers. "H9 Max with Mission Expression Pedal" and "H9000 … with Dante Expansion Card" keep the unit; a bare
+ * `upgraded` is the unit ("H3000 Upgraded to H3500B-DFX").
+ */
+const EV_PARTS: readonly string[] = [
+  ...PEDAL_EXTRAS, 'switch', 'switches', 'switch cap', 'pushbutton', 'push button', 'battery', 'batteries', 'battery backed ram',
+  'nvram', 'sram', 'rom set', 'serom', 'dante card', 'expansion card', 'dante expansion card',
+  'eprom', 'eproms', 'os upgrade', 'upgrade', 'upgrade kit', 'service manual', 'schematics', 'transformer', 'sampler board',
+  'expression pedal', 'expression', 'eve/net', 'eve / net', 'eve net', 'remote control', 'cable', 'faceplate', 'rack ears',
+  'power cord', 'stand', 'lamp set', 'led display',
+]
+/**
+ * An Eventide row: its own word beside "Eventide"; EV_NEVER and the named units of the line refuse. Unlike `withMaker`,
+ * a hyphen may follow the code: "H3000-D/SE", "H3000-B" and "TimeFactor-Delay" are the unit.
+ */
+const eventide = (code: string, refuses: readonly (keyof typeof EV)[], ...more: RegExp[]): LineBoundary => ({
+  line: 'eventide',
+  otherMembers: [...EV_NEVER, ...refuses.map((k) => EV[k]), ...more],
+  accessories: EV_PARTS,
+  requires: [new RegExp(`(?<=${EVENTIDE}[\\s\\S]*)(?<![\\w-])(?:${code})(?![a-z0-9])|(?<![\\w-])(?:${code})(?![a-z0-9])(?=[\\s\\S]*${EVENTIDE})`, 'i')],
+})
+/** The Factor pedals, the dot9 pedals and the Rose name no other unit; the H9s carry their algorithms by name. */
+const EV_PEDALS: readonly (keyof typeof EV)[] = [
+  'h90', 'h9', 'timefactor', 'pitchfactor', 'modfactor', 'space', 'blackhole', 'micropitch', 'ultratap', 'tricerachorus',
+  'riptide', 'rose', 'knifedrop',
+]
+const evPedal = (self: keyof typeof EV, code: string, ...also: (keyof typeof EV)[]): LineBoundary =>
+  eventide(code, EV_PEDALS.filter((k) => k !== self && !also.includes(k)))
+/** The rack units name no other rack unit, except where the listed predecessor is a reference. */
+const EV_RACKS: readonly (keyof typeof EV)[] = [
+  'eclipse', 'h8000', 'h7600', 'h3500', 'h3000', 'h949', 'h969', 'h910', 'dsp4000', 'h9000', 'orville', 'omnipressor',
+  'sp2016', 'instantphaser',
+]
+const evRack = (self: keyof typeof EV, code: string, also: readonly (keyof typeof EV)[] = [], ...more: RegExp[]): LineBoundary =>
+  eventide(code, EV_RACKS.filter((k) => k !== self && !also.includes(k)), ...more)
+
+/**
+ * FMR Audio (Texas): the RNC1773 Really Nice Compressor, the RNP8380 Really Nice Preamp and the RNLA7239 Really Nice
+ * Leveling Amplifier. Sellers write "FMR RNC", "FMR Audio RNC 1773", "FMR Really Nice Compressor" and "Really Nice
+ * Compressor RNC1773" (Reverb sold, 2026-10-21). A row requires its code beside "FMR", or its full "Really Nice" name:
+ * "RNC" and "RNP" are three letters ("Rupert Neve Designs Rnp2 Mbc Portico II", production). The 500-series RNC500 and
+ * RNLA500 are other units; a pair is no single-unit price.
+ */
+const FMR = '(?<![a-z])fmr(?![a-z])'
+const FMR_NEVER: readonly RegExp[] = [
+  ...PAIR_OR_LOT, ...UAD_SOFTWARE, /(?<![\w-])rn(?:c|la)[\s-]?500/i, /(?<![\w-])500[\s-]?series/i,
+  ...cues('rupert neve', 'portico', 'for parts', 'not working', 'broken', 'as is', 'as-is', 'clone', 'kopi', 'kit', 'diy'),
+]
+const FMR_PARTS: readonly string[] = ['power supply', 'psu', 'adapter', 'wall wart', 'rack ears', 'rack kit', 'rack mount kit', 'manual', 'cable', 'knob', 'knobs']
+const FMR_WORDS: Readonly<Record<string, RegExp>> = {
+  rnc: /(?<![\w-])rnc(?![a-z])|really\s+nice\s+comp/i,
+  rnp: /(?<![\w-])rnp(?![a-z])|really\s+nice\s+(?:mic\s+)?pre/i,
+  rnla: /(?<![\w-])rnla(?![a-z])|really\s+nice\s+level/i,
+}
+const fmr = (self: keyof typeof FMR_WORDS, code: string, name: RegExp): LineBoundary => ({
+  line: 'fmr-audio',
+  otherMembers: [...FMR_NEVER, ...Object.entries(FMR_WORDS).filter(([k]) => k !== self).map(([, re]) => re)],
+  accessories: FMR_PARTS,
+  requires: [withMaker(FMR, code), name],
+})
+
+/**
+ * TC Electronic's classic racks: the 2290 Dynamic Digital Delay (1985) and the 1210 Spatial Expander (1980s, the
+ * stereo chorus / flanger rack). Sellers write "TC Electronic 2290", "T.C. Electronic 2290", "TC 2290" and "TC2290".
+ * Each row requires its number beside "TC": "1210" is also Technics' turntable and "2290" a stock number. The
+ * reissues that share the number are other units: the 2290 P pedal (2023, $249 on Reverb against the rack's $1,584)
+ * and the 2290-DT / 1210-DT desktop plug-in controllers; so are the 0144 controller pedal, rack stands and switches.
+ */
+const TC = '(?<![a-z])t\\.?\\s?c\\.?(?=[\\s-]*(?:electronics?(?![a-z])|\\d{4}))'
+const TC_NEVER: readonly RegExp[] = [
+  ...PAIR_OR_LOT, ...UAD_SOFTWARE, /(?:2290|1210)[\s-]?(?:p|dt)(?![a-z0-9])/i,
+  ...cues('pedal', 'stompbox', 'desktop', 'toneprint', 'for parts', 'not working', 'broken', 'clone', 'kopi', 'replica'),
+]
+const TC_PARTS: readonly string[] = [
+  'switch', 'push button', 'pushbutton', 'battery', 'battery replacement kit', 'controller', 'remote', 'power supply',
+  'manual', 'service manual', 'stand', 'rack ears', 'eprom', 'firmware', 'knob', 'knobs', 'faceplate',
+]
+const TC_RACKS: Readonly<Record<string, RegExp>> = { '2290': /(?<![0-9])2290(?![0-9])/, '1210': /(?<![0-9])1210(?![0-9])/ }
+const tcRack = (self: keyof typeof TC_RACKS): LineBoundary => ({
+  line: 'tc-electronic',
+  otherMembers: [...TC_NEVER, ...Object.entries(TC_RACKS).filter(([k]) => k !== self).map(([, re]) => re)],
+  accessories: TC_PARTS,
+  requires: [new RegExp(`${TC}[\\s\\S]*?(?<![0-9])${self}(?![0-9])|(?<![0-9])${self}(?![0-9])[\\s\\S]*${TC}`, 'i')],
+})
+
+/**
+ * Tube-Tech (Lydkraft, Copenhagen, 1985–): each model by its code as sellers write it ("CL 1B", "CL1B", "CL-1B",
+ * "CL2-A"), beside "Tube-Tech", "Tube Tech", "TubeTech" or "Lydkraft". All Tube-Tech rows are one line, `tube-tech`:
+ * a title naming two models is a rack bundle ("MEC 1A + MP 2A + LCA 2B … + Rack") and names neither, except where a
+ * title names a later model as what the unit preceded ("CL 1A … Vintage Rare Lydkraft pre CL1B", "PE 1B … PE 1C").
+ */
+const TUBE_TECH = '(?<![a-z])(?:tube[\\s-]?tech|lydkraft)(?![a-z])'
+const ttCode = (letters: string, digit: string, suffix: string): string => `${letters}[\\s-]?${digit}[\\s-]?${suffix}`
+const TT_CODES: Readonly<Record<string, string>> = {
+  cl1a: ttCode('cl', '1', 'a'), cl1b: ttCode('cl', '1', 'b'), cl2a: ttCode('cl', '2', 'a'),
+  lca2a: ttCode('lca', '2', 'a'), lca2b: ttCode('lca', '2', 'b'),
+  pe1b: ttCode('pe', '1', 'b'), pe1c: ttCode('pe', '1', 'c'), me1a: ttCode('me', '1', 'a'), me1b: ttCode('me', '1', 'b'),
+  eq1a: ttCode('eq', '1', 'a'), mp1a: ttCode('mp', '1', 'a'), mp2a: ttCode('mp', '2', 'a'), mec1a: ttCode('mec', '1', 'a'),
+  mmc1a: ttCode('mmc', '1', 'a'), smc2b: ttCode('smc', '2', 'b'), smc2bm: ttCode('smc', '2', 'bm'), hlt2a: ttCode('hlt', '2', 'a'),
+  ssa2a: ttCode('ssa', '2', 'a'),
+}
+const TT_WORD = (k: string): RegExp => new RegExp(`(?<![\\w-])${TT_CODES[k]}(?![a-z0-9])`, 'i')
+/** Never a Tube-Tech unit: a Warm Audio copy ("WA-1B Tube Tech CL1B-Style"), a plug-in, a pair, a modified unit (owner). */
+const TT_NEVER: readonly RegExp[] = [
+  ...WARM_AUDIO_COPY, ...UAD_SOFTWARE, ...PAIR_OR_LOT,
+  ...cues('modified', 'modded', 'mod', 'upgraded', 'for parts', 'not working', 'broken', 'needs repair', 'as is', 'as-is',
+    'clone', 'kopi', 'replica', 'mastering suite', 'couple of'),
+]
+const TT_PARTS: readonly string[] = [
+  'manual', 'faceplate', 'knob', 'knobs', 'power supply', 'psu', 'rack ears', 'cover', 'spare', 'tube set', 'opto cell',
+  'transformer', 'power cable',
+]
+const tubeTech = (self: keyof typeof TT_CODES, ...also: (keyof typeof TT_CODES)[]): LineBoundary => ({
+  line: 'tube-tech',
+  otherMembers: [...TT_NEVER, ...Object.keys(TT_CODES).filter((k) => k !== self && !also.includes(k)).map(TT_WORD)],
+  accessories: TT_PARTS,
+  requires: [withMaker(TUBE_TECH, [self, ...also].map((k) => TT_CODES[k]).join('|'))],
+})
+
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
   'moog-minimoog': {
@@ -1919,7 +2099,6 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
     ],
     accessories: NEVE_PARTS,
   },
-  'tube-tech-cl1b': member('tube-tech-cl1b', ...WARM_AUDIO_COPY),
 
   // ── PAN-204: Martin ──────────────────────────────────────────────────────
   // Every row the PAN-204 promote SQL makes a match target, plus the supported `martin-d-28`
@@ -3358,6 +3537,70 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'ensoniq-dp-2': ensoniq('dp', DP('2')),
   'ensoniq-dp-4': ensoniq('dp', DP('4'), DP_4_PLUS),
   'ensoniq-dp-4-plus': ensoniq('dp', `${DP('4')}\\s?(?:\\+|plus)`),
+  // ── PAN-293: Eventide ──
+  // The H9, two rows by price (Reverb's sold population, 2026-10-21): the Max, a bare "H9", the Gen 2 and the Dark
+  // ($560 / $570) are one; the Core and the Standard ($320 / $355, sold with one and nine algorithms) the other. The
+  // H90 ($725) is its own unit; an H90 title that names the H9 is the H90.
+  'eventide-h9-max': eventide('h[\\s-]?9', [...EV_PEDALS.filter((k) => k !== 'h9'), 'h9core', 'h9standard']),
+  'eventide-h9-core': eventide('h[\\s-]?9[\\s-]?(?:core|standard)', [...EV_PEDALS.filter((k) => k !== 'h9'), 'h9max']),
+  'eventide-h90': eventide('h[\\s-]?90', [...EV_PEDALS.filter((k) => k !== 'h9' && k !== 'h90'), 'h9000']),
+  // The Factor pedals and the Space: each refuses the H9s and the other pedals (a two-pedal title is a bundle); the Space
+  // names its own algorithms ("Blackhole", "Shimmer"), so it does not refuse the Blackhole.
+  'eventide-timefactor': evPedal('timefactor', 'time[\\s-]?factor'),
+  'eventide-pitchfactor': evPedal('pitchfactor', 'pitch[\\s-]?factor'),
+  'eventide-modfactor': evPedal('modfactor', 'mod[\\s-]?factor'),
+  'eventide-space': evPedal('space', 'space', 'blackhole'),
+  // The dot9 pedals, the Rose and the Knife Drop.
+  'eventide-blackhole': evPedal('blackhole', 'black[\\s-]?hole'),
+  'eventide-micropitch': evPedal('micropitch', 'micro[\\s-]?pitch'),
+  'eventide-ultratap': evPedal('ultratap', 'ultra[\\s-]?tap'),
+  'eventide-tricerachorus': evPedal('tricerachorus', 'tricera[\\s-]?chorus'),
+  'eventide-riptide': evPedal('riptide', 'riptide'),
+  'eventide-rose': evPedal('rose', 'rose'),
+  'eventide-knife-drop': evPedal('knifedrop', 'knife[\\s-]?drop'),
+  // The racks. The H3000 and H910 were supported before the ticket (PAN-230) and had no boundary.
+  // The H3500 (1990s, $2,300 against the H3000's $2,000, +15 %) is the H3000's row, "H3500" its identifier.
+  'eventide-h3000': evRack('h3000', 'h[\\s-]?3[05]00(?:se|sx|s|b|d)?', ['h3500']),
+  'eventide-h910': evRack('h910', 'h[\\s-]?910'),
+  'eventide-h949': evRack('h949', 'h[\\s-]?949', ['h910', 'h3000']),
+  'eventide-dsp4000': evRack('dsp4000', 'dsp[\\s-]?4000(?:b\\+?)?', ['h3000']),
+  'eventide-h8000': evRack('h8000', 'h[\\s-]?8000(?:fw|a|b)?'),
+  'eventide-h7600': evRack('h7600', 'h[\\s-]?7600', ['h3000', 'h8000']),
+  'eventide-eclipse': evRack('eclipse', 'eclipse'),
+  'eventide-orville': evRack('orville', 'orville', ['dsp4000']),
+  'eventide-h9000': evRack('h9000', 'h[\\s-]?9000r?'),
+  'eventide-h969': evRack('h969', 'h[\\s-]?969', ['h949']),
+  'eventide-sp2016': evRack('sp2016', 'sp[\\s-]?2016'),
+  // The 1970s Omnipressor (the 2830, $2,550); the 2021 2830*Au 50th Anniversary reissue ($1,829, 12 sold) is no row.
+  'eventide-omnipressor': evRack('omnipressor', 'omnipressor', [], /2830\s?\*?\s?au|50th|anniversary|reissue/i),
+  // The PS-101 Instant Phaser (1971): no Reverb page, created on its sold evidence.
+  'eventide-instant-phaser': evRack('instantphaser', 'instant[\\s-]?phaser|ps[\\s-]?101'),
+  // ── PAN-293: FMR Audio ──
+  'fmr-audio-rnc': fmr('rnc', 'rnc(?:[\\s-]?1773)?', /really\s+nice\s+comp/i),
+  'fmr-audio-rnp': fmr('rnp', 'rnp(?:[\\s-]?8380)?', /really\s+nice\s+(?:mic\s+)?pre/i),
+  'fmr-audio-rnla': fmr('rnla', 'rnla(?:[\\s-]?7239)?', /really\s+nice\s+level/i),
+  // ── PAN-293: TC Electronic ──
+  'tc-electronic-2290': tcRack('2290'),
+  'tc-electronic-1210': tcRack('1210'),
+  // ── PAN-293: Tube-Tech ── (the CL 1B and LCA 2B were supported before the ticket)
+  'tube-tech-cl-1a': tubeTech('cl1a', 'cl1b'),
+  'tube-tech-cl1b': tubeTech('cl1b'),
+  // "CL 2A … Stereo CL 1B" and "CL2A Dual Channel version of CL1B" name the CL 1B as what the CL 2A doubles.
+  'tube-tech-cl2a': tubeTech('cl2a', 'cl1b'),
+  // A predecessor within 25 % on Reverb's sold population is its successor's row, the code an identifier: the LCA 2A
+  // ($2,125 / $2,500), the PE 1B ($2,106 / $1,999) and the ME 1A ($1,900 / $2,000). The CL 1A sells apart in recent
+  // years ($5,999 since 2022, 9 sold, against the CL 1B's $4,700) and keeps its own row.
+  'tube-tech-lca-2b': tubeTech('lca2b', 'lca2a'),
+  'tube-tech-pe-1c': tubeTech('pe1c', 'pe1b'),
+  'tube-tech-me-1b': tubeTech('me1b', 'me1a'),
+  'tube-tech-mp-1a': tubeTech('mp1a'),
+  'tube-tech-mp-2a': tubeTech('mp2a'),
+  'tube-tech-mec-1a': tubeTech('mec1a'),
+  'tube-tech-smc-2b': tubeTech('smc2b'),
+  'tube-tech-smc-2bm': tubeTech('smc2bm'),
+  'tube-tech-hlt-2a': tubeTech('hlt2a'),
+  'tube-tech-ssa-2a': tubeTech('ssa2a'),
+  'tube-tech-eq-1a': tubeTech('eq1a'),
 }
 
 /**
