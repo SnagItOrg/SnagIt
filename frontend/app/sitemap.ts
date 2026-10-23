@@ -76,13 +76,18 @@ async function loadCatalogueRows(): Promise<SitemapRow[]> {
   )
   if (products.rows.length === 0) return []
 
-  const slugs = products.rows.map((p) => p.slug)
+  // The projection is narrowed by the same two axes it carries, never by a slug
+  // list: `.in('slug', …)` travels in the URL, and the catalogue's own list
+  // outgrew it at 820 public rows (2026-10-23, PR #279). Rows the narrowing
+  // admits beyond `products` are ignored by the lookup below; `isCanonical`
+  // still decides from the joined row.
   const projection = await fetchAllPages(
     async (from, to) => {
       const res = await admin
         .from('browse_product_projection')
         .select('slug, browse_domain, brand_slug, root_category_slug, subcategory_slug')
-        .in('slug', slugs)
+        .eq('status', CANONICAL_STATUS)
+        .eq('browse_visibility', CANONICAL_VISIBILITY)
         .order('slug', { ascending: true })
         .range(from, to)
         .then((r) => r, () => {
