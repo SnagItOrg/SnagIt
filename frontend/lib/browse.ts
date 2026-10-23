@@ -461,6 +461,19 @@ const PROJECTION_PAGE_SIZE = 1000
 const PROJECTION_MAX_PAGES = 20
 
 /**
+ * A slug list for `.in()` travels in the request URL, and past about 16 KB the
+ * request fails (2026-10-23: 700 slugs broke, 500 passed). Every list that
+ * grows with the catalogue is sent in parts of this size.
+ */
+const SLUG_CHUNK = 200
+
+export function chunkSlugs(slugs: string[], size = SLUG_CHUNK): string[][] {
+  const parts: string[][] = []
+  for (let i = 0; i < slugs.length; i += size) parts.push(slugs.slice(i, i + size))
+  return parts
+}
+
+/**
  * Fetch projection rows with an EXPLICIT bound and a total order.
  *
  * The previous implementation issued an unbounded `.select()` with no
@@ -538,13 +551,20 @@ async function fetchPublicBrowseRows(
   // on every browse, tree and discover read. The assertion still runs before
   // any row is returned, so a non-music supported row still fails the whole
   // read rather than riding into a public list.
-  const domainProbe = admin
-    .from('browse_product_projection')
-    .select('slug, browse_domain')
-    .in('slug', slugs)
-    .then((r) => r, () => {
-      throw new CatalogueUnavailableError('supported_domain_transport')
-    })
+  const domainProbe = Promise.all(
+    chunkSlugs(slugs).map((part) =>
+      admin
+        .from('browse_product_projection')
+        .select('slug, browse_domain')
+        .in('slug', part)
+        .then((r) => r, () => {
+          throw new CatalogueUnavailableError('supported_domain_transport')
+        }),
+    ),
+  ).then((results) => ({
+    error: results.find((r) => r.error)?.error ?? null,
+    data: results.flatMap((r) => r.data ?? []),
+  }))
   const [domainRes, rows] = await Promise.all([
     domainProbe,
     fetchPublicProjectionRows(admin, slugs, rootCategoryId),
@@ -564,21 +584,25 @@ async function fetchPublicBrowseRows(
  * runs alongside — kept as its own function so the probe stays visibly
  * unfiltered on the axis it asserts (the contract test reads this file).
  */
-function fetchPublicProjectionRows(
+async function fetchPublicProjectionRows(
   admin: SupabaseClient,
   slugs: string[],
   rootCategoryId?: string,
 ): Promise<BrowseProjectionRow[]> {
-  return fetchProjectionPages(admin, (q) => {
+  // The supported cohort is applied here, not as `.in('slug', slugs)`: the
+  // list travels in the URL, and at 820 public rows it outgrew the request
+  // (2026-10-23, every catalogue read 503).
+  const wanted = new Set(slugs)
+  const rows = await fetchProjectionPages(admin, (q) => {
     let query = q
       .eq('browse_domain', 'music')
       .eq('is_public', true)
-      .in('slug', slugs)
     if (rootCategoryId) {
       query = query.eq('root_category_id', rootCategoryId)
     }
     return query
   })
+  return rows.filter((row) => wanted.has(row.slug))
 }
 
 /**
@@ -656,14 +680,19 @@ async function fetchLeafFacets(
   const faceted = rows.filter((row) => facetKeysFor(row.subcategory_slug).length > 0)
   if (faceted.length === 0) return out
 
-  const { data, error } = await admin
-    .from('kg_product')
-    .select('slug, facets:attributes->facets')
-    .in('slug', faceted.map((row) => row.slug))
-    .then((r) => r, () => {
-      throw new CatalogueUnavailableError('product_facets_transport')
-    })
-  if (error) throw new CatalogueUnavailableError('product_facets')
+  const results = await Promise.all(
+    chunkSlugs(faceted.map((row) => row.slug)).map((part) =>
+      admin
+        .from('kg_product')
+        .select('slug, facets:attributes->facets')
+        .in('slug', part)
+        .then((r) => r, () => {
+          throw new CatalogueUnavailableError('product_facets_transport')
+        }),
+    ),
+  )
+  if (results.some((r) => r.error)) throw new CatalogueUnavailableError('product_facets')
+  const data = results.flatMap((r) => r.data ?? [])
 
   const bySlug = new Map(
     ((data ?? []) as Array<{ slug: string; facets: unknown }>).map((r) => [r.slug, r.facets]),
