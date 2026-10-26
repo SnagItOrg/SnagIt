@@ -33,6 +33,7 @@ import { sendNewListingsEmail } from '@/lib/email'
 import { notifyWatchlist, type NotifyOutcome } from '@/lib/watchlist-notify'
 import { newIngestionBatchId, matchRunInflow, reportBatchMatch } from '@/lib/matching/ingestion-batch'
 import { fetchListingFromUrl } from '@/lib/scrapers/listing-url'
+import { bearerMatches } from '@/lib/bearer-secret'
 
 export async function GET(req: NextRequest) {
   // S3. CONFIGURATION IS CHECKED BEFORE AUTHORISATION, AND BEFORE ANY WORK.
@@ -62,7 +63,7 @@ export async function GET(req: NextRequest) {
   }
 
   const authHeader = req.headers.get('authorization')
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  if (!bearerMatches(authHeader, cronSecret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

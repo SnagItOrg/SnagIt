@@ -34,8 +34,6 @@
     "/api/notification-preferences": "protected_api",
     "/api/preferences": "protected_api",
     "/api/account": "protected_api",
-    "/api/price-history": "protected_api",
-    "/api/market-price": "protected_api",
     "/admin": "admin_page",
     "/admin/cleanup": "admin_page",
     "/admin/demand": "admin_page",
