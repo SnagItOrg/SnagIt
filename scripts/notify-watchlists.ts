@@ -30,6 +30,13 @@
  * (`mailPrompt()` in frontend/lib/watchlist-mail.ts). Until then the mail
  * keeps the PAN-273 links and carries no prompt.
  *
+ * PAN-297: a product watchlist's hits carry the verdict word the model's own
+ * product page shows for them — `loadChildVerdicts()`, the read the family
+ * page uses, measured against that one model's bands with the Danish band
+ * first and a Reverb band only when labelled as such. A query watchlist has
+ * no model and gets no word. The word is additive: a verdict read that fails
+ * is logged and the mail goes out as before.
+ *
  * Dry run by default: prints the would-send list — watchlist id, query, the
  * hits — and writes nothing. It skips pairs the table already holds, so it
  * shows what tonight's --apply would do. Before 066 is applied it has no
@@ -43,6 +50,7 @@ import * as fs from 'fs'
 import { createClient } from '@supabase/supabase-js'
 import { sendNewListingsEmail } from '../frontend/lib/email'
 import { isCanonical } from '../frontend/lib/catalogue'
+import { loadChildVerdicts, type CardVerdict } from '../frontend/lib/listing-verdicts'
 import { mailPrompt, type MailEngagement, type MailPrompt } from '../frontend/lib/watchlist-mail'
 import {
   isNonProduct, matchesProductWatchlist, matchesWatchlist, notifyHits, type HitListing, type HitWatchlist,
@@ -143,6 +151,7 @@ async function main() {
   )]
   const productSlug = new Map<string, string>()
   const matchedByListing = new Map<string, Set<string>>()
+  let verdictsByProduct = new Map<string, Map<string, CardVerdict>>()
   if (watchedIds.length > 0) {
     const [{ data: products, error: productError }, { data: projection, error: projectionError }] = await Promise.all([
       supabase.from('kg_product').select('id, slug, status, support_state, browse_visibility').in('id', watchedIds),
@@ -171,6 +180,20 @@ async function main() {
         set.add(m.product_id as string)
       }
       if (!data || data.length < PAGE) break
+    }
+
+    // PAN-297. One read for every watched model together, as the family page
+    // does for its children; a transport failure costs the word, not the mail.
+    if (productSlug.size > 0) {
+      try {
+        // The root and frontend copies of @supabase/supabase-js are two type
+        // identities of one client (scripts/scrape-reverb.ts has the other fix).
+        verdictsByProduct = await loadChildVerdicts(
+          supabase as unknown as Parameters<typeof loadChildVerdicts>[0], [...productSlug.keys()],
+        )
+      } catch {
+        console.error(JSON.stringify({ channel: 'operational', component: 'notify-watchlists', event: 'verdicts_unavailable' }))
+      }
     }
   }
   const notCanonical = watchedIds.length - productSlug.size
@@ -232,7 +255,10 @@ async function main() {
     const matched = w.product_id
       ? listings.filter((l) => matchesProductWatchlist(w, l, matchedByListing.get(l.id)))
       : listings.filter((l) => matchesWatchlist(w, l))
-    const hits = (w.product_id ? matched : matched.filter((l) => !isNonProduct(l)))
+    const verdicts = w.product_id ? verdictsByProduct.get(w.product_id) : undefined
+    const hits = (w.product_id
+      ? matched.map((l) => ({ ...l, verdict: verdicts?.get(l.id) ?? null }))
+      : matched.filter((l) => !isNonProduct(l)))
       .sort((a, b) => (a.price_dkk ?? Infinity) - (b.price_dkk ?? Infinity))
     if (hits.length === 0) continue
 
@@ -248,7 +274,10 @@ async function main() {
       ].filter(Boolean).join(', ')
       console.log(`  ${w.id}  ${slug ? `[model ${slug}]` : `"${w.query}"`}  ${fresh.length} hit(s)${note ? ` (${note})` : ''}`)
       for (const l of fresh.slice(0, 5)) {
-        console.log(`    • ${l.title} — ${l.price_dkk != null ? `${l.price_dkk.toLocaleString('da-DK')} kr` : 'no price'} (${l.source})`)
+        console.log(
+          `    • ${l.title} — ${l.price_dkk != null ? `${l.price_dkk.toLocaleString('da-DK')} kr` : 'no price'} (${l.source})`
+          + (l.verdict ? ` · ${l.verdict.verdict}${l.verdict.basisLabelKey ? ` [${l.verdict.basisLabelKey}]` : ''}` : ''),
+        )
       }
       if (fresh.length > 5) console.log(`    …and ${fresh.length - 5} more`)
       if (!optedOut.has(w.user_id)) {

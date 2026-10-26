@@ -3,6 +3,7 @@
 import { priceDkkBucket, track } from '@/lib/analytics'
 import { Icon } from '@/components/Icon'
 import { ListingCardBody } from '@/components/FamilyListingCard'
+import type { CardVerdict } from '@/lib/listing-verdicts'
 
 /**
  * A listing on a watchlist mail's page, `/w/[token]` — PAN-276.
@@ -13,6 +14,11 @@ import { ListingCardBody } from '@/components/FamilyListingCard'
  * no model page to send it to first. `'use client'` only for the outbound
  * click: `listing_outbound_clicked`, the core value signal, with the watched
  * model's slug when the watchlist has one, and a price band, never the price.
+ *
+ * PAN-297: `verdict` is the word the watched model's own product page shows
+ * for this listing, through the same `MarketVerdictBadge` the body renders
+ * everywhere else. Null on a free-text watchlist, and when the model has no
+ * band — the body then shows no badge and reserves no gap.
  */
 export type NotificationListing = {
   id: string
@@ -23,6 +29,7 @@ export type NotificationListing = {
   imageUrl: string | null
   priceLabel: string | null
   priceDkk: number | null
+  verdict: CardVerdict | null
 }
 
 export function NotificationListingCard({
@@ -53,7 +60,7 @@ export function NotificationListingCard({
         imageUrl={listing.imageUrl}
         title={listing.title}
         price={listing.priceLabel}
-        verdict={null}
+        verdict={listing.verdict}
         meta=""
         source={listing.source}
         t={t}
