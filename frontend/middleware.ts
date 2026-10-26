@@ -75,7 +75,7 @@ function isOnboardingPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   // Rate-limit gate runs before Supabase auth so abusive callers don't load
   // the auth client. Scoped to these two routes — every other route is unaffected.
-  if (request.nextUrl.pathname === '/api/scrape' || request.nextUrl.pathname === '/api/tjek-prisen' || request.nextUrl.pathname === '/api/feedback') {
+  if (request.nextUrl.pathname === '/api/scrape' || request.nextUrl.pathname === '/api/tjek-prisen' || request.nextUrl.pathname === '/api/feedback' || request.nextUrl.pathname === '/api/csp-report') {
     if (!scrapeRateAllowed(clientIp(request))) {
       return NextResponse.json(
         { error: 'rate_limit', retry_after: 60 },

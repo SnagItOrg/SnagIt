@@ -190,6 +190,11 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
     note: 'PAN-158 scraper heartbeat for the off-box GitHub check; timestamps only',
   },
   {
+    route: '/api/csp-report',
+    access: 'public_api',
+    note: 'PAN-298; the browser posts CSP violations here (next.config.mjs report-uri); rate-limited per IP in middleware; one bounded log line, always 204',
+  },
+  {
     route: '/api/search/resolve',
     access: 'public_api_data_gated',
     note: 'reachable by anyone; returns only entities passing §3.1, re-checked live per request',
