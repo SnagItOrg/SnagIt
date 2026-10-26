@@ -1359,6 +1359,36 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: ['eventide-h9-max', 'eventide-h9-core'],
     aliases: ['eventide h9'],
   },
+  /**
+   * PAN-302, owner request 2026-10-26. The ELA M 251 is two priced models: the
+   * AKG-built original (1959–62, with the 250 / 250E / 251E, ~$20–35k on
+   * Reverb's sold population) and Telefunken Elektroakustik's ELA M 251E
+   * reissue ($10,800). "Telefunken ELA M 250/251" is the navigation concept
+   * over both, like `neumann-u87-condenser`: never a `kg_product` row, never a
+   * price. Not `telefunken-ela-m-251`: that is the original's own priced page.
+   * No aliases: "Telefunken ELA M 251" is the original's own name.
+   */
+  'telefunken-ela-m-251-condenser': {
+    label: 'Telefunken ELA M 250/251',
+    brand: 'Telefunken',
+    categoryRoot: 'pro-audio',
+    children: ['telefunken-ela-m-251', 'telefunken-ela-m-251e'],
+    aliases: [],
+  },
+  /**
+   * PAN-302, owner request 2026-10-26. Telefunken Elektroakustik's Alchemy
+   * series (Vintage King, 2026-09-13): the TF11 and TF17 FET mics and the
+   * TF29 Copperhead, TF39 Copperhead Deluxe, TF47 and TF51 tube mics, six
+   * priced rows ($600–1,500). Navigation only; the family never aggregates
+   * their prices. Inert until the owner's public step makes a child canonical.
+   */
+  'telefunken-alchemy': {
+    label: 'Telefunken Alchemy',
+    brand: 'Telefunken',
+    categoryRoot: 'pro-audio',
+    children: ['telefunken-tf11', 'telefunken-tf17', 'telefunken-tf29', 'telefunken-tf39', 'telefunken-tf47', 'telefunken-tf51'],
+    aliases: ['telefunken alchemy'],
+  },
 }
 
 /** Every family, in `FAMILY_SLUGS` order. */
