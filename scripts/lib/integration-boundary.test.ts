@@ -17,6 +17,7 @@ import { join } from 'node:path'
 import { NAVIGATION_FAMILIES } from '../../frontend/lib/families'
 import { SEARCH_PRODUCT_SELECT } from '../../frontend/lib/search-index'
 import { ROUTE_ACCESS, classifyPath } from '../../frontend/lib/route-access'
+import { bearerMatches } from '../../frontend/lib/bearer-secret'
 import { fixtureSearchIndex } from './fixtures/search-supported-products'
 
 const REPO = join(__dirname, '..', '..')
@@ -457,7 +458,7 @@ test('security: the cron secret fails closed before any work', () => {
 
   const configCheck = src.indexOf("typeof cronSecret !== 'string' || cronSecret.length === 0")
   const unavailable = src.indexOf("status: 503")
-  const compare = src.indexOf('authHeader !== `Bearer ${cronSecret}`')
+  const compare = src.indexOf('!bearerMatches(authHeader, cronSecret)')
   const firstWork = src.indexOf('getSupabaseAdmin()')
 
   assert.ok(configCheck > -1, 'the secret must be checked for presence, not just compared')
@@ -479,6 +480,51 @@ test('security: the cron secret fails closed before any work', () => {
   const logged = src.slice(configCheck, firstWork)
   assert.equal(logged.includes('cronSecret,'), false, 'the secret value must never be logged')
   assert.match(logged, /cron_secret_not_configured/)
+})
+
+test('security: PAN-298 — the dead price routes are deleted, not merely gated', () => {
+  // Finding 4. Both checked only for a session, then read any `?watchlist_id=`
+  // price rows with the service role, with no ownership test. No caller.
+  for (const [dir, route] of [['price-history', '/api/price-history'], ['market-price', '/api/market-price']]) {
+    assert.equal(existsSync(join(FRONTEND, 'app', 'api', dir)), false, `${route} must not exist`)
+    assert.equal(ROUTE_ACCESS.some((r) => r.route === route), false, `${route} must carry no classification`)
+    assert.equal(classifyPath(route), null, `${route} must classify as unknown, which is the 404`)
+    const reference = readFileSync(join(FRONTEND, 'lib', 'route-posture-reference.json'), 'utf8')
+    assert.equal(reference.includes(route), false, `stale ${route} entry in the posture reference`)
+  }
+})
+
+test('security: PAN-298 — machine secrets are compared in constant time and fail closed', () => {
+  // Finding 6.
+  assert.equal(bearerMatches('Bearer s3cret', 's3cret'), true)
+  for (const header of [null, '', 'Bearer s3cre', 'Bearer s3cret!', 'Bearer S3cret', 's3cret', 'Bearer undefined']) {
+    assert.equal(bearerMatches(header, 's3cret'), false, `${String(header)} must be refused`)
+  }
+  for (const secret of [undefined, '']) {
+    assert.equal(bearerMatches('Bearer undefined', secret), false, 'an unset secret never matches')
+    assert.equal(bearerMatches('Bearer ', secret), false, 'an empty secret never matches')
+  }
+
+  for (const parts of [['cron', 'scrape'], ['health', 'freshness', 'alert']]) {
+    const src = code(readFileSync(join(FRONTEND, 'app', 'api', ...parts, 'route.ts'), 'utf8'))
+    assert.match(src, /!bearerMatches\(/, `${parts.join('/')} must use the constant-time compare`)
+    assert.equal(/!==\s*`Bearer/.test(src), false, `${parts.join('/')} must not compare with !==`)
+    assert.ok(src.indexOf('status: 503') < src.indexOf('bearerMatches('),
+      `${parts.join('/')} must refuse an unset secret before it compares`)
+  }
+})
+
+test('security: PAN-298 — price-observations POST validates its body and returns no DB message', () => {
+  // Finding 5.
+  const src = code(readFileSync(join(FRONTEND, 'app', 'api', 'price-observations', 'route.ts'), 'utf8'))
+  const post = src.slice(src.indexOf('export async function POST'))
+  assert.match(post, /UUID_RE\.test\(listing_id\)/, 'listing_id must be a UUID')
+  for (const field of ['price_dkk', 'price_min_dkk', 'price_max_dkk']) {
+    assert.match(post, new RegExp(`isPriceDkk\\(${field}\\)`), `${field} must be a bounded integer`)
+  }
+  assert.match(src, /Number\.isInteger\(v\)/, 'a price is a whole number of kroner')
+  assert.equal(post.includes('error.message'), false, 'the raw database message must not reach the client')
+  assert.match(post, /'insert_failed'/)
 })
 
 /* ── Point 3: the index ──────────────────────────────────────────────────── */
