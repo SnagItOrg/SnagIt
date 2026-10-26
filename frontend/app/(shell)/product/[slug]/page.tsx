@@ -1,7 +1,9 @@
 'use client'
 
-import { Fragment, useState, useEffect, useCallback, useMemo } from 'react'
+import { Fragment, useState, useEffect, useCallback, useMemo, startTransition, ViewTransition } from 'react'
 import { preload } from 'react-dom'
+import { productImageTransitionName, takeHero } from '@/lib/fluid-nav'
+import type { IconName } from '@/components/Icon'
 import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
@@ -144,6 +146,14 @@ export default function ProductPage() {
   preload(`/api/product/${slug}`, { as: 'fetch', crossOrigin: 'anonymous' })
   preload(`/api/product/${slug}/similar`, { as: 'fetch', crossOrigin: 'anonymous' })
 
+  /**
+   * PAN-296 (spike): what the card that opened this page was showing, taken
+   * once on the first render so the hero exists in the navigation's commit —
+   * the moment the shared-element morph pairs old and new. Null on a direct
+   * load or a reload, which then renders the skeleton exactly as before.
+   */
+  const [handoff] = useState(() => takeHero(slug))
+
   const [product, setProduct]           = useState<Product | null>(null)
   const [listings, setListings]         = useState<Listing[]>([])
   /**
@@ -274,20 +284,27 @@ export default function ProductPage() {
       if (r.status === 404) { setNotFound(true); return }
       const data = await r.json()
       if (!data) return
-      setProduct(data.product)
-      setListings(data.listings ?? [])
-      setPriceHistory(data.priceHistory ?? [])
-      setPopulations(data.populations ?? null)
-      setAwaitingReview(data.awaitingReview ?? 0)
-      setDkAskingPrices(data.dkAskingPrices ?? [])
-      setSoldCounts(data.soldCounts ?? null)
-      setMonitoredSources(data.monitoredSources ?? [])
-      setFamilyContext(data.familyContext ?? null)
-      setCatalogueContext(data.catalogueContext ?? null)
+      // PAN-296 (spike): the skeleton-to-content swap is a React Transition,
+      // so the `<ViewTransition>` wrappers below get to animate it. A plain
+      // setState would swap it in one frame, as before.
+      startTransition(() => {
+        setProduct(data.product)
+        setListings(data.listings ?? [])
+        setPriceHistory(data.priceHistory ?? [])
+        setPopulations(data.populations ?? null)
+        setAwaitingReview(data.awaitingReview ?? 0)
+        setDkAskingPrices(data.dkAskingPrices ?? [])
+        setSoldCounts(data.soldCounts ?? null)
+        setMonitoredSources(data.monitoredSources ?? [])
+        setFamilyContext(data.familyContext ?? null)
+        setCatalogueContext(data.catalogueContext ?? null)
+      })
     } catch {
       setNotFound(true)
     } finally {
-      setLoading(false)
+      // Same lane as the content, so the two cannot commit apart and show the
+      // not-found branch for a frame in between.
+      startTransition(() => setLoading(false))
     }
   }, [slug, isAdmin])
 
@@ -463,17 +480,61 @@ export default function ProductPage() {
 
           {/* ── Loading skeleton ──────────────────────────────── */}
           {loading ? (
-            <div className="shell-reading grid-hero gap-8">
-              <div className="aspect-square rounded-2xl bg-muted animate-pulse" />
-              <div className="flex flex-col gap-4 pt-2">
-                <div className="h-3 w-24 rounded bg-muted animate-pulse" />
-                <div className="h-8 w-3/4 rounded-lg bg-muted animate-pulse" />
-                <div className="h-3 w-20 rounded bg-muted animate-pulse" />
-                <div className="h-12 w-2/3 rounded-lg bg-muted animate-pulse mt-4" />
-                <div className="h-3 w-32 rounded bg-muted animate-pulse" />
-                <div className="h-11 w-full rounded-xl bg-muted animate-pulse mt-6" />
+            <ViewTransition exit="vt-fade" default="none">
+              <div className="shell-reading grid-hero gap-8">
+                {/* PAN-296 (spike): with a handoff the hero is real from the
+                    first frame — the card's image under the shared name, the
+                    card's brand and name as text — and only the price block
+                    and the wall are skeleton. Without one, the skeleton is
+                    unchanged. */}
+                {handoff ? (
+                  <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted flex-shrink-0">
+                    <ViewTransition name={productImageTransitionName(slug)} share="morph" default="none">
+                      {handoff.imageUrl ? (
+                        <Image
+                          src={handoff.imageUrl}
+                          alt={handoff.canonicalName}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 1024px) 100vw, 50vw"
+                          priority
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Icon
+                            name={handoff.placeholder as IconName}
+                            style={{ fontSize: 72, color: 'var(--muted-foreground)' }}
+                          />
+                        </div>
+                      )}
+                    </ViewTransition>
+                  </div>
+                ) : (
+                  <div className="aspect-square rounded-2xl bg-muted animate-pulse" />
+                )}
+                <div className="flex flex-col gap-4 pt-2">
+                  {handoff ? (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                        {handoff.brandName}
+                      </p>
+                      <h1 className="type-title text-[1.75rem] md:text-[2.125rem] leading-tight">
+                        {handoff.canonicalName}
+                      </h1>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+                      <div className="h-8 w-3/4 rounded-lg bg-muted animate-pulse" />
+                    </>
+                  )}
+                  <div className="h-3 w-20 rounded bg-muted animate-pulse" />
+                  <div className="h-12 w-2/3 rounded-lg bg-muted animate-pulse mt-4" />
+                  <div className="h-3 w-32 rounded bg-muted animate-pulse" />
+                  <div className="h-11 w-full rounded-xl bg-muted animate-pulse mt-6" />
+                </div>
               </div>
-            </div>
+            </ViewTransition>
           ) : notFound || !product ? (
 
             /* ── Not found ──────────────────────────────────── */
@@ -497,6 +558,7 @@ export default function ProductPage() {
                     Object.values(populations).some((p) => p.tier === 'band'),
                 }}
               />
+              <ViewTransition enter="vt-fade" default="none">
               <div className="shell-reading flex flex-col">
 
                 {/*
@@ -543,27 +605,32 @@ export default function ProductPage() {
 
                   {/* Left — product image */}
                   <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted flex-shrink-0">
-                    {productImage && !imgError ? (
-                      <Image
-                        src={productImage}
-                        alt={product.canonical_name}
-                        fill
-                        className="object-cover"
-                        onError={() => setImgError(true)}
-                        sizes="(max-width: 1024px) 100vw, 50vw"
-                        // PAN-263: this is the page's LCP element, and it was
-                        // `loading="lazy"` (Lighthouse `lcp-lazy-loaded`, 2.3 s
-                        // of a 5.6 s mobile LCP). Eager + fetchpriority=high.
-                        priority
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Icon
-                          name={placeholderIcon(catalogueContext?.category.slug, catalogueContext?.kind.slug)}
-                          style={{ fontSize: 72, color: 'var(--muted-foreground)' }}
+                    {/* PAN-296 (spike): the other half of the card's shared
+                        element — same name, so the morph lands here on the
+                        way in and leaves from here on the way back. */}
+                    <ViewTransition name={productImageTransitionName(slug)} share="morph" default="none">
+                      {productImage && !imgError ? (
+                        <Image
+                          src={productImage}
+                          alt={product.canonical_name}
+                          fill
+                          className="object-cover"
+                          onError={() => setImgError(true)}
+                          sizes="(max-width: 1024px) 100vw, 50vw"
+                          // PAN-263: this is the page's LCP element, and it was
+                          // `loading="lazy"` (Lighthouse `lcp-lazy-loaded`, 2.3 s
+                          // of a 5.6 s mobile LCP). Eager + fetchpriority=high.
+                          priority
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Icon
+                            name={placeholderIcon(catalogueContext?.category.slug, catalogueContext?.kind.slug)}
+                            style={{ fontSize: 72, color: 'var(--muted-foreground)' }}
+                          />
+                        </div>
+                      )}
+                    </ViewTransition>
                   </div>
 
                   {/* Right — product info */}
@@ -1197,6 +1264,7 @@ export default function ProductPage() {
                 {/* PAN-251: the user loop, closed from here too. */}
                 <FeedbackLink surface="product" productSlug={product.slug} className="self-start" />
               </div>
+              </ViewTransition>
             </>
           )}
         </div>

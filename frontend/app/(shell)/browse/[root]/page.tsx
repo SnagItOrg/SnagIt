@@ -7,6 +7,7 @@ import { Breadcrumb, BreadcrumbItem } from '@/components/Breadcrumb'
 import { MobileSearchBar } from '@/components/MobileSearchBar'
 import { ProductCard } from '@/components/ProductCard'
 import { placeholderIcon } from '@/lib/placeholder-icon'
+import { browseRootCache } from '@/lib/fluid-nav'
 import { FamilyCard } from '@/components/FamilyCard'
 import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
@@ -77,8 +78,18 @@ function BrowseCategoryPageInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { t, locale } = useLocale()
-  const [data, setData] = useState<BrowseData | null>(null)
-  const [loading, setLoading] = useState(true)
+  /**
+   * PAN-296 (spike): the grid this root showed last time, so a return to the
+   * page (the back gesture from a product) renders it in the navigation's
+   * commit instead of a skeleton. That is what lets the reverse morph find
+   * its card and the router's scroll restoration land on a page with its
+   * height. The fetch below still runs and replaces it — stale while
+   * revalidating, bounded by the API's own minute.
+   */
+  const cacheKey = `${params.root}|${searchParams.get('debug') === '1' ? 'debug' : ''}`
+  const cached = browseRootCache.get(cacheKey) as BrowseData | undefined
+  const [data, setData] = useState<BrowseData | null>(cached ?? null)
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState<string | null>(null)
   /**
    * PAN-270 — the API said this root does not exist (a slug that never was
@@ -202,15 +213,16 @@ function BrowseCategoryPageInner() {
     if (!res.ok) {
       throw new Error(next?.error ?? 'Failed to load browse category')
     }
+    browseRootCache.set(cacheKey, next)
     setData(next)
-  }, [debugEnabled, params.root])
+  }, [cacheKey, debugEnabled, params.root])
 
   useEffect(() => {
     if (!params.root) return
     // No `setActiveSubcat(null)` here any more: the URL owns the facet, and a
     // different root is a different URL that carries no kind. Resetting it
     // from an effect would now mean a router write on every page load.
-    setLoading(true)
+    if (!browseRootCache.has(cacheKey)) setLoading(true)
     setError(null)
     fetchRoot()
       .catch((err: unknown) => {
@@ -219,7 +231,7 @@ function BrowseCategoryPageInner() {
         setData(null)
       })
       .finally(() => setLoading(false))
-  }, [fetchRoot, params.root, debugEnabled])
+  }, [cacheKey, fetchRoot, params.root, debugEnabled])
 
   /**
    * PAN-138 — the chip row is DISPLAY slugs, not leaf slugs. Grouped leaves

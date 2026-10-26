@@ -2,10 +2,11 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, ViewTransition } from 'react'
 
 import { useLocale } from '@/components/LocaleProvider'
 import { Icon, type IconName } from '@/components/Icon'
+import { productImageTransitionName, rememberHero } from '@/lib/fluid-nav'
 
 interface Props {
   slug: string
@@ -68,31 +69,49 @@ export function ProductCard({
     )
   }
 
+  const showImage = !!imageUrl && !imgError
+
   return (
     <Link
       href={`/product/${slug}`}
       className="surface-interactive flex flex-col rounded-xl overflow-hidden"
+      // PAN-296 (spike): hand the page what this card already shows, so it
+      // can render its hero in the navigation's commit and the morph below
+      // has somewhere to land. See lib/fluid-nav.ts.
+      onClick={() => rememberHero({
+        slug,
+        canonicalName,
+        brandName,
+        imageUrl: showImage ? imageUrl : null,
+        placeholder,
+      })}
     >
       {/* Image area */}
       <div className="relative w-full aspect-[4/3] overflow-hidden" style={{ background: 'var(--secondary)' }}>
-        {imageUrl && !imgError ? (
-          <Image
-            src={imageUrl}
-            alt={canonicalName}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 50vw, 25vw"
-            onError={() => setImgError(true)}
-            priority={priority}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Icon
-              name={placeholder}
-              style={{ fontSize: 36, color: 'var(--muted-foreground)', opacity: 0.4 }}
+        {/* PAN-296 (spike): the shared element. The same name on the product
+            page's hero makes the browser morph this image into that one on
+            the way in and back out. `default="none"` keeps it still during
+            every other transition on the page. */}
+        <ViewTransition name={productImageTransitionName(slug)} share="morph" default="none">
+          {showImage ? (
+            <Image
+              src={imageUrl}
+              alt={canonicalName}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 50vw, 25vw"
+              onError={() => setImgError(true)}
+              priority={priority}
             />
-          </div>
-        )}
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Icon
+                name={placeholder}
+                style={{ fontSize: 36, color: 'var(--muted-foreground)', opacity: 0.4 }}
+              />
+            </div>
+          )}
+        </ViewTransition>
         {/* Tier badge */}
         {tier && tier !== 'standard' && (
           <span
