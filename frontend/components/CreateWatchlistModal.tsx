@@ -6,6 +6,7 @@ import { Dialog } from '@/components/Dialog'
 import { MAX_WATCHLIST_PRICE } from '@/lib/constants'
 import { TextField } from '@/components/TextField'
 import { Button } from '@/components/Button'
+import { useLocale } from '@/components/LocaleProvider'
 
 interface Props {
   isOpen:        boolean
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function CreateWatchlistModal({ isOpen, onClose, onConfirm, initialQuery = '', creating }: Props) {
+  const { t } = useLocale()
   const [query,    setQuery]    = useState(initialQuery)
   const [maxPrice, setMaxPrice] = useState(50000)
   // The question the sheet asks is also what the sheet is FOR, so it serves as
@@ -61,7 +63,7 @@ export function CreateWatchlistModal({ isOpen, onClose, onConfirm, initialQuery 
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleConfirm()}
-          placeholder="f.eks. Mac Mini M4, Vintage Eames..."
+          placeholder={t.watchlistQueryPlaceholder}
           autoFocus
           className="w-full rounded-xl px-4 py-3 text-lg font-medium"
         />
