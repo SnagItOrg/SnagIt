@@ -1,6 +1,8 @@
 import { Resend } from 'resend'
 import { sourceForStored } from './admin-match-sources'
 import { fill, translations } from './i18n'
+import type { CardVerdict } from './listing-verdicts'
+import { VERDICT_BASIS_REVERB_FALLBACK } from './price-populations'
 import { mailLinks, type MailPrompt } from './watchlist-mail'
 
 function getResend(): Resend {
@@ -16,6 +18,38 @@ export type ListingSnippet = {
   url: string
   /** `listings.source`. PAN-12: the mail names each listing's own marketplace. */
   source?: string
+  /**
+   * PAN-297: the verdict the watched model's own product page shows for this
+   * listing (`lib/listing-verdicts.ts`, measured against that model's bands
+   * alone). Absent or null on a free-text watchlist, and on a listing whose
+   * model has no band: then the mail says nothing about the price.
+   */
+  verdict?: CardVerdict | null
+}
+
+/**
+ * The verdict as `MarketVerdictBadge` says it, in words only: the word, then
+ * "· målt mod Reverb" when the band is borrowed (PAN-268 C — a mail must not
+ * let a Reverb verdict pass as a Danish one), then the few-listings note.
+ */
+function verdictWords(v: CardVerdict, t: typeof translations.da): string {
+  const word = v.verdict === 'under' ? t.verdictUnder : v.verdict === 'over' ? t.verdictOver : t.verdictTypical
+  const basis = v.basisLabelKey === VERDICT_BASIS_REVERB_FALLBACK ? ` · ${t.verdictBasisReverbFallback}` : ''
+  const few = v.fewN != null ? ` (${fill(t.verdictFewData, { n: v.fewN })})` : ''
+  return `${word}${basis}${few}`
+}
+
+/**
+ * Mail clients read no CSS variables, so the verdict's ink is literal: the
+ * light theme's `--ramp-green-ink` and `--ramp-red-ink` (app/globals.css:44
+ * and :49). `under` is the one place the mail carries Klup's green — the
+ * same PAN-63 judgement the badge paints — `over` the cautionary ink, and
+ * `typical` the mail's own grey.
+ */
+const VERDICT_INK: Readonly<Record<CardVerdict['verdict'], string>> = {
+  under:   '#0a7c41',
+  typical: '#5b616e',
+  over:    '#c81e1e',
 }
 
 /** PAN-276: the mail's `watchlist_mail` row, when migration 070 holds one. */
@@ -63,6 +97,7 @@ export function buildNewListingsEmail({
     title: l.title,
     price: l.price != null ? `${l.price.toLocaleString('da-DK')} ${l.currency === 'DKK' ? 'kr' : l.currency}` : t.priceNotListed,
     source: l.source ? (sourceForStored(l.source)?.label ?? l.source) : null,
+    verdict: l.verdict ? { words: verdictWords(l.verdict, t), ink: VERDICT_INK[l.verdict.verdict] } : null,
     href: links ? links.listing(i + 1) : l.url,
   }))
   const seeAll = links?.seeAll ?? seeAllUrl ?? `${appUrl}/search?q=${encodeURIComponent(query)}`
@@ -76,7 +111,8 @@ export function buildNewListingsEmail({
   const text = [
     intro,
     '',
-    rows.map((r) => `• ${r.title} — ${r.price}${r.source ? ` (${r.source})` : ''}\n  ${r.href}`).join('\n\n'),
+    rows.map((r) =>
+      `• ${r.title} — ${r.price}${r.source ? ` (${r.source})` : ''}${r.verdict ? `\n  ${r.verdict.words}` : ''}\n  ${r.href}`).join('\n\n'),
     overflow ? `\n${overflow}` : '',
     '',
     `${t.mailSeeAll}: ${seeAll}`,
@@ -90,7 +126,8 @@ export function buildNewListingsEmail({
   ].join('\n')
 
   // Mail clients read no CSS variables, so the few colours are literal here:
-  // the neutral ink and greys of the site, never the accent green (frontend/CLAUDE.md).
+  // the neutral ink and greys of the site. The accent green appears only on
+  // the `under` verdict word (VERDICT_INK), nowhere else (frontend/CLAUDE.md).
   const a = (href: string, label: string, style = 'color:#111418') =>
     `<a href="${esc(href)}" style="${style}">${esc(label)}</a>`
   const button = (href: string, label: string) =>
@@ -100,7 +137,9 @@ export function buildNewListingsEmail({
     `<p>${esc(intro)}</p>`,
     ...rows.map((r) =>
       `<p style="margin:0 0 12px">${a(r.href, r.title, 'color:#111418;font-weight:600')}<br>`
-      + `<span style="color:#5b616e">${esc(r.price)}${r.source ? ` · ${esc(r.source)}` : ''}</span></p>`),
+      + `<span style="color:#5b616e">${esc(r.price)}${r.source ? ` · ${esc(r.source)}` : ''}</span>`
+      + (r.verdict ? `<br><span style="color:${r.verdict.ink};font-weight:600">${esc(r.verdict.words)}</span>` : '')
+      + '</p>'),
     overflow ? `<p style="color:#5b616e">${esc(overflow)}</p>` : '',
     `<p>${button(seeAll, t.mailSeeAll)}</p>`,
     prompt === 'ask' && links

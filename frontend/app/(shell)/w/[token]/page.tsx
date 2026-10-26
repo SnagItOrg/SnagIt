@@ -9,6 +9,7 @@ import { NotificationListingCard, type NotificationListing } from '@/components/
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { isCanonical } from '@/lib/catalogue'
 import { formatOriginalPrice } from '@/lib/currency'
+import { loadChildVerdicts, type CardVerdict } from '@/lib/listing-verdicts'
 import { translations, fill } from '@/lib/i18n'
 import { MAIL_TOKEN } from '@/lib/watchlist-mail'
 
@@ -32,6 +33,13 @@ import { MAIL_TOKEN } from '@/lib/watchlist-mail'
  *
  * A VISIT IS A CLICK (PAN-278). The first render stamps `clicked_at`, server
  * side, so the runner's unclicked count resets — whichever link was used.
+ *
+ * THE VERDICT IS THE PRODUCT PAGE'S (PAN-297). A product watchlist's listings
+ * carry the word their model's own page shows for them, from the same
+ * `loadChildVerdicts` read the family page uses: that one model's bands,
+ * local first, Reverb only when the badge says so. A free-text watchlist has
+ * no model and no word. The word is additive — a verdict read that fails
+ * leaves the mail's listings as they were, never a missing page.
  *
  * STOP AND RESUME ARE POSTS. The mail's "Ja, stop dem" lands here with
  * `?svar=stop` and asks once more with a button; only the form changes the
@@ -98,12 +106,22 @@ export default async function WatchlistMailPage(ctx: {
     if (product && isCanonical({ ...product, browse_domain: projection?.browse_domain ?? null })) productSlug = product.slug as string
   }
 
+  let verdicts: ReadonlyMap<string, CardVerdict> | undefined
+  if (productSlug && watchlist.product_id) {
+    try {
+      verdicts = (await loadChildVerdicts(db, [watchlist.product_id])).get(watchlist.product_id)
+    } catch {
+      // The page is the mail; without the word it is still the mail.
+    }
+  }
+
   const t = translations.da
   const tt = t as unknown as Record<string, string>
   const byId = new Map(((listingRows ?? []) as ListingRow[]).map((l) => [l.id, l]))
   const inMailOrder = mail.listing_ids.map((id) => byId.get(id)).filter((l): l is ListingRow => !!l)
-  const live = inMailOrder.filter((l) => l.is_active !== false).map(toCard)
-  const gone = inMailOrder.filter((l) => l.is_active === false).map(toCard)
+  const card = (l: ListingRow) => toCard(l, verdicts?.get(l.id) ?? null)
+  const live = inMailOrder.filter((l) => l.is_active !== false).map(card)
+  const gone = inMailOrder.filter((l) => l.is_active === false).map(card)
   const sentOn = new Date(mail.sent_at).toLocaleDateString('da-DK', { day: 'numeric', month: 'long', timeZone: 'Europe/Copenhagen' })
 
   return (
@@ -145,7 +163,7 @@ export default async function WatchlistMailPage(ctx: {
   )
 }
 
-function toCard(l: ListingRow): NotificationListing {
+function toCard(l: ListingRow, verdict: CardVerdict | null): NotificationListing {
   return {
     id: l.id,
     title: l.title,
@@ -155,6 +173,7 @@ function toCard(l: ListingRow): NotificationListing {
     imageUrl: l.image_url && l.image_url.trim().length > 0 ? l.image_url : null,
     priceLabel: l.price != null && l.currency ? formatOriginalPrice(l.price, l.currency) : null,
     priceDkk: l.price_dkk,
+    verdict,
   }
 }
 

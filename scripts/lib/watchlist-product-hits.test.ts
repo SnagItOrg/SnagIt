@@ -275,3 +275,47 @@ test('PAN-276: the mail links through /w, names links in words, escapes titles, 
   assert.ok(paused.text.includes('Det her er den sidste mail om "reverb"'))
   assert.ok(paused.text.includes('utm_content=resume'))
 })
+
+/* ── PAN-297: the verdict word in the mail ───────────────────────────────── */
+
+const SNIPPET = { title: 'Roland Juno-106', price: 3900, currency: 'DKK', url: 'https://dba.dk/j', source: 'dba' }
+
+test('PAN-297: the mail says the verdict word the product page shows, and nothing without one', () => {
+  const { text, html } = buildNewListingsEmail({
+    query: 'Roland Juno-106',
+    listings: [
+      { ...SNIPPET, verdict: { verdict: 'under', basisLabelKey: 'verdictBasisDk', fewN: null } },
+      { ...SNIPPET, title: 'Juno-106 i fin stand', price: 5200, verdict: { verdict: 'typical', basisLabelKey: 'verdictBasisDk', fewN: 5 } },
+      { ...SNIPPET, title: 'Juno-106 med flightcase', price: 7900, verdict: { verdict: 'over', basisLabelKey: 'verdictBasisDk', fewN: null } },
+      { ...SNIPPET, title: 'Juno-106 fra Hamburg', price: 4100, verdict: { verdict: 'typical', basisLabelKey: 'verdictBasisReverbFallback', fewN: null } },
+      { ...SNIPPET, title: 'Juno-106 uden vurdering', price: 4400, verdict: null },
+    ],
+  })
+
+  // The word, as a line of its own under the price, in both parts.
+  assert.ok(text.includes('3.900 kr (dba)\n  Under typisk\n'), 'under: the word follows the price line')
+  assert.ok(text.includes('5.200 kr (dba)\n  Typisk (Baseret på få annoncer (n=5))\n'), 'typical with the few-listings note')
+  assert.ok(text.includes('7.900 kr (dba)\n  Over typisk\n'))
+  assert.ok(text.includes('4.100 kr (dba)\n  Typisk · målt mod Reverb\n'), 'a borrowed Reverb band says so in words (PAN-268 C)')
+  assert.ok(text.includes('4.400 kr (dba)\n  https://dba.dk/j'), 'no verdict: no word, no empty line')
+
+  // Green belongs to `under` alone; `over` is the cautionary ink; `typical` the mail's grey.
+  assert.ok(html.includes('<span style="color:#0a7c41;font-weight:600">Under typisk</span>'))
+  assert.ok(html.includes('<span style="color:#5b616e;font-weight:600">Typisk (Baseret på få annoncer (n=5))</span>'))
+  assert.ok(html.includes('<span style="color:#c81e1e;font-weight:600">Over typisk</span>'))
+  assert.ok(html.includes('<span style="color:#5b616e;font-weight:600">Typisk · målt mod Reverb</span>'))
+  assert.equal(html.split('#0a7c41').length - 1, 1, 'one green word in the mail: the one under listing')
+  assert.equal(html.split('font-weight:600">').length - 1, 4 + 5 + 1, 'four verdict lines beside the five title links and the Se alle button')
+})
+
+test('PAN-297: a hit carries its verdict through the send untouched; a hit without one hands over null', async () => {
+  const { db } = mailDb()
+  const received: Array<{ verdict?: unknown }> = []
+  const verdict = { verdict: 'under' as const, basisLabelKey: 'verdictBasisDk', fewN: null }
+  await notifyHits(
+    db,
+    { watchlist: WATCH, hits: [{ ...LISTING, verdict }, { ...LISTING, id: 'l-2', verdict: null }], email: 'o@example.invalid', optedOut: false },
+    async ({ listings }) => { received.push(...listings) },
+  )
+  assert.deepEqual(received.map((l) => l.verdict), [verdict, null])
+})

@@ -47,6 +47,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { CardVerdict } from '../../frontend/lib/listing-verdicts'
 import { detectNonProductIntent } from '../../frontend/lib/matching/listing-intent'
 import { newMailToken, type MailPrompt } from '../../frontend/lib/watchlist-mail'
 
@@ -61,6 +62,12 @@ export type HitListing = {
   ingested_at: string
   /** PAN-273: read by the product rule only; the query rule never asked. */
   is_active?: boolean | null
+  /**
+   * PAN-297: the verdict the watched model's product page shows for this
+   * listing, set by the runner on a product watchlist's hits and handed to
+   * the mail as it is. A query watchlist's hits never carry one.
+   */
+  verdict?: CardVerdict | null
 }
 
 export type HitWatchlist = {
@@ -142,7 +149,7 @@ export async function notifyHits(
   send: (input: {
     to: string
     query: string
-    listings: Array<Pick<HitListing, 'title' | 'price' | 'currency' | 'url' | 'source'>>
+    listings: Array<Pick<HitListing, 'title' | 'price' | 'currency' | 'url' | 'source' | 'verdict'>>
     seeAllUrl?: string
     mail?: { token: string; prompt: MailPrompt | null }
   }) => Promise<void>,
