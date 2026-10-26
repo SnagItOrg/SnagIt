@@ -96,7 +96,7 @@ export function WatchlistCreatorPanel({ onSave, onClose }: Props) {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                    placeholder="fx Mac Mini, Eames stol, vintagesynth..."
+                    placeholder={t.watchlistQueryPlaceholder}
                     autoFocus
                     className="w-full rounded-2xl pl-14 pr-5 py-4 text-lg font-medium placeholder:text-muted-foreground"
                   />
