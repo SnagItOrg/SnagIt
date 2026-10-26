@@ -204,6 +204,11 @@ test('boundary: /search reaches only client-safe modules of our own', () => {
     // state and no service-role client. `/search` gains the edge because the
     // demand panel must stop claiming a link was sent when the send failed.
     'lib/otp-error.ts',
+    // PAN-300: the e-mail → 6-digit-code helper behind `EmailCodeSignIn`,
+    // which the demand panel renders. It imports only `otp-error.ts` and
+    // `analytics.ts` (both listed above) and is handed the Supabase auth
+    // client, so it reaches no catalogue state and no service-role client.
+    'lib/email-code.ts',
     // PAN-125: `currentCatalogueNode`, which decides which sidebar node is the
     // current page. `SideNav` used to reach this module by `import type` only,
     // so the edge was erased; taking the function makes it a real one. That is

@@ -7,8 +7,8 @@ import { fill } from '@/lib/i18n'
 import { TextField } from '@/components/TextField'
 import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
+import { EmailCodeSignIn } from '@/components/EmailCodeSignIn'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { classifyOtpError, type OtpErrorKey } from '@/lib/otp-error'
 import { track } from '@/lib/analytics'
 
 /**
@@ -17,11 +17,12 @@ import { track } from '@/lib/analytics'
  * product page, which prefilled the canonical name into a search nobody
  * could predict the hits of.
  *
- * Five states, one visible at a time. The price step is the whole decision,
+ * Four states, one visible at a time. The price step is the whole decision,
  * so it is the first thing asked; who the visitor is comes second and only
- * when the session has no user — the same magic-link path the search cards
- * use, with the intent parked in `pending_watchlist` and created on
- * `/watchlists?create_pending=1`.
+ * when the session has no user — the e-mail and 6-digit code every sign-in
+ * uses (PAN-300). The code signs the visitor in on this page and the watch is
+ * created here. The intent is still parked in `pending_watchlist` first, so
+ * the mail's fallback link creates it on `/watchlists?create_pending=1`.
  */
 type Props = {
   productSlug: string
@@ -30,16 +31,14 @@ type Props = {
   suggestedMaxPrice: number | null
 }
 
-type Step = 'idle' | 'price' | 'email' | 'sent' | 'done'
-type ErrorKey = OtpErrorKey | 'watchModelError'
+type Step = 'idle' | 'price' | 'email' | 'done'
 
 export function WatchProductForm({ productSlug, productName, suggestedMaxPrice }: Props) {
   const { t } = useLocale()
   const [step, setStep] = useState<Step>('idle')
   const [maxPrice, setMaxPrice] = useState(suggestedMaxPrice != null ? String(suggestedMaxPrice) : '')
-  const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<ErrorKey | null>(null)
+  const [error, setError] = useState<'watchModelError' | null>(null)
   const priceId = useId()
 
   const price = Number(maxPrice)
@@ -57,6 +56,10 @@ export function WatchProductForm({ productSlug, productName, suggestedMaxPrice }
       setStep('email')
       return
     }
+    await createWatch()
+  }
+
+  async function createWatch() {
     let ok = false
     try {
       const res = await fetch('/api/watchlists', {
@@ -77,32 +80,21 @@ export function WatchProductForm({ productSlug, productName, suggestedMaxPrice }
     }
   }
 
-  async function handleEmailSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    const address = email.trim()
-    if (!address || busy) return
-    setBusy(true)
-    setError(null)
+  function parkPendingWatch() {
     try {
       localStorage.setItem('pending_watchlist', JSON.stringify({ product_slug: productSlug, max_price: price }))
     } catch {
-      // No storage, no pending intent: the link still signs the visitor in.
+      // No storage, no pending intent: the code still signs the visitor in.
     }
-    // signInWithOtp RETURNS its failures (lib/otp-error.ts); the try/catch is
-    // for the residue that throws, so the button never spins for good.
-    let failure: OtpErrorKey | null
-    try {
-      const { error: otpError } = await createSupabaseBrowserClient().auth.signInWithOtp({
-        email: address,
-        options: { shouldCreateUser: true, emailRedirectTo: window.location.origin + '/auth/confirm' },
-      })
-      failure = classifyOtpError(otpError)
-    } catch {
-      failure = 'otpErrorGeneric'
-    }
-    setBusy(false)
-    if (failure) setError(failure)
-    else setStep('sent')
+  }
+
+  async function handleSignedIn() {
+    // Signed in on this page: create the watch here, not through the parked
+    // intent, which would otherwise be created a second time on /watchlists.
+    try { localStorage.removeItem('pending_watchlist') } catch { /* no storage */ }
+    setStep('price')
+    setBusy(true)
+    await createWatch()
   }
 
   const errorLine = error && (
@@ -127,42 +119,12 @@ export function WatchProductForm({ productSlug, productName, suggestedMaxPrice }
     )
   }
 
-  if (step === 'sent') {
-    return (
-      <div className="flex flex-col gap-1 pt-4 border-t border-border">
-        <div className="flex items-center gap-1.5">
-          <Icon name="mark_email_read" style={{ fontSize: '18px', color: 'var(--foreground)' }} />
-          <span className="text-sm font-semibold text-foreground">{t.checkInbox}</span>
-        </div>
-        <p className="text-xs text-muted-foreground">{t.watchModelCheckEmail}</p>
-      </div>
-    )
-  }
-
   if (step === 'email') {
     return (
-      <form onSubmit={handleEmailSubmit} className="flex flex-col gap-2 pt-4 border-t border-border">
+      <div className="flex flex-col gap-2 pt-4 border-t border-border">
         <p className="text-sm text-foreground">{t.watchModelAnonHint}</p>
-        {errorLine}
-        <TextField
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder={t.email}
-          required
-          autoFocus
-          className="w-full rounded-xl px-4 py-3 text-sm"
-        />
-        <Button
-          variant="primary"
-          type="submit"
-          disabled={busy || !email.trim()}
-          className="w-full px-5 py-3 rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {busy ? '…' : t.sendLoginLink}
-        </Button>
-        <p className="text-xs text-center text-muted-foreground">{t.noPasswordNeeded}</p>
-      </form>
+        <EmailCodeSignIn compact autoFocus onEmailSubmit={parkPendingWatch} onSignedIn={handleSignedIn} />
+      </div>
     )
   }
 

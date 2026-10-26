@@ -32,10 +32,15 @@ export default function WatchlistsPage() {
     // report the same confirmation twice.
     const url = new URL(window.location.href)
     const arrivedFromEmailLink = url.searchParams.get('create_pending') === '1'
-    if (arrivedFromEmailLink) {
+    // PAN-300: `/login` lands a new account's first code here with this marker.
+    // `signup_completed` was already sent when the code was accepted.
+    const arrivedAsNewAccount = url.searchParams.get('velkommen') === '1'
+    if (arrivedFromEmailLink || arrivedAsNewAccount) {
       url.searchParams.delete('create_pending')
+      url.searchParams.delete('velkommen')
       window.history.replaceState(window.history.state, '', url.pathname + url.search)
     }
+    if (arrivedAsNewAccount) showToast(t.welcomeNewAccount)
 
     const supabase = createSupabaseBrowserClient()
     supabase.auth.getUser().then(({ data }) => {

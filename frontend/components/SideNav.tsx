@@ -749,6 +749,12 @@ export function SideNav() {
     supabase.auth.getUser().then(({ data }) => {
       setAuthed(!!data.user)
     })
+    // PAN-300: a 6-digit code signs the visitor in on the page they are on
+    // (a card, the product page), so the nav must follow without a reload.
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthed(!!session?.user)
+    })
+    return () => subscription.subscription.unsubscribe()
   }, [])
 
   async function handleLogout() {

@@ -9,8 +9,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { priceDkkBucket, track } from '@/lib/analytics'
 import { formatOriginalPrice } from '@/lib/currency'
 import { classifyListing, firstSeenTimestamp, isApproximateDkk, isNonFunctioning, longOnMarketDays } from '@/lib/price-populations'
-import { classifyOtpError, type OtpErrorKey } from '@/lib/otp-error'
-import { TextField } from '@/components/TextField'
+import { EmailCodeSignIn } from '@/components/EmailCodeSignIn'
 import { SourceBadge } from '@/components/SourceBadge'
 import { Icon } from '@/components/Icon'
 import { MarketVerdictBadge } from '@/components/MarketVerdictBadge'
@@ -120,11 +119,8 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating = false,
   }
 
   const [imgError,       setImgError]      = useState(false)
-  const [showCapture,    setShowCapture]   = useState(false)
-  const [captureEmail,   setCaptureEmail]  = useState('')
-  const [captureLoading, setCaptureLoading] = useState(false)
-  const [captureSent,    setCaptureSent]   = useState(false)
-  const [captureError,   setCaptureError]  = useState<OtpErrorKey | null>(null)
+  /** PAN-300: which control opened the inline sign-in, so the code can finish it. */
+  const [capture,        setCapture]       = useState<'watch' | 'save' | null>(null)
 
   const priceFormatted = listing.price != null
     ? formatOriginalPrice(listing.price, listing.currency)
@@ -188,58 +184,39 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating = false,
     if (user) {
       onCreateWatchlist?.(listing.title)
     } else {
-      setShowCapture(true)
+      setCapture('watch')
     }
   }
 
   async function handleHeartClick() {
     const supabase = createSupabaseBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setShowCapture(true); return }
+    if (!user) { setCapture('save'); return }
     // `listing_saved` is emitted by the page that owns the save request, once
     // the server has accepted it — this click is only the intent.
     onToggleSave?.(listing)
   }
 
-  async function handleCaptureSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    const email = captureEmail.trim()
-    if (!email) return
-    setCaptureLoading(true)
-
-    localStorage.setItem('pending_watchlist', JSON.stringify({
-      query: listing.title,
-      max_price: null,
-    }))
-
-    // signInWithOtp RETURNS its failures — a rate limit, a rejected address
-    // and even a network error all arrive as `{ error }` rather than as a
-    // throw (see lib/otp-error.ts). Setting the sent state unconditionally,
-    // as this did, told the visitor a mail was on its way when none was.
-    // The try/catch is for the residue that genuinely throws, such as a
-    // blocked localStorage during the PKCE challenge; without it a throw
-    // would leave the button disabled and spinning for good.
-    const supabase = createSupabaseBrowserClient()
-    let failure: OtpErrorKey | null
+  // The mail's fallback link lands on /watchlists, which creates this.
+  function parkPendingWatch() {
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: window.location.origin + '/auth/confirm',
-        },
-      })
-      failure = classifyOtpError(error)
+      localStorage.setItem('pending_watchlist', JSON.stringify({
+        query: listing.title,
+        max_price: null,
+      }))
     } catch {
-      failure = 'otpErrorGeneric'
+      // No storage, no pending intent: the code still signs the visitor in.
     }
+  }
 
-    setCaptureLoading(false)
-    // On failure the form stays open with the address still in it, because
-    // the useful next action is to correct it or retry — not to stare at a
-    // dead-end confirmation.
-    setCaptureError(failure)
-    if (!failure) setCaptureSent(true)
+  // Signed in on the card: finish what was clicked, here. The parked intent
+  // is dropped so /watchlists does not create the same watch a second time.
+  function handleSignedIn() {
+    try { localStorage.removeItem('pending_watchlist') } catch { /* no storage */ }
+    const intent = capture
+    setCapture(null)
+    if (intent === 'watch') onCreateWatchlist?.(listing.title)
+    else if (intent === 'save') onToggleSave?.(listing)
   }
 
   const imgSrc = listing.image_url ?? thomannImageUrl ?? null
@@ -485,55 +462,8 @@ export function SearchResultCard({ listing, onCreateWatchlist, creating = false,
       {/* CTAs / inline login capture — outside the <a>. `pt-3` separates the
           action group from the provenance row it used to touch (4px). */}
       <div className="mt-auto px-3 pt-3 pb-3">
-        {showCapture ? (
-          captureSent ? (
-            <div className="flex flex-col gap-1 py-1">
-              <div className="flex items-center gap-1.5">
-                <Icon
-                  name="mark_email_read"
-                  style={{ fontSize: '16px', color: 'var(--foreground)' }}
-                />
-                <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
-                  {t.checkInbox}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t.checkEmailToSave}
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleCaptureSubmit} className="flex flex-col gap-1.5">
-              {captureError && (
-                <p
-                  role="alert"
-                  className="text-[11px] rounded-lg px-2 py-1.5 bg-destructive-subtle"
-                  style={{ color: 'var(--destructive-text)' }}
-                >
-                  {t[captureError]}
-                </p>
-              )}
-              <TextField
-                type="email"
-                value={captureEmail}
-                onChange={(e) => setCaptureEmail(e.target.value)}
-                placeholder={t.email}
-                required
-                autoFocus
-                className="w-full rounded-xl px-3 py-2 text-sm"
-              />
-              <Button
-                variant="primary"
-                type="submit"
-                disabled={captureLoading || !captureEmail.trim()}
-                className="w-full rounded-xl py-2 min-h-[44px] text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {captureLoading ? '...' : t.sendLoginLink}
-              </Button>
-              <p className="text-[11px] text-center text-muted-foreground">
-                {t.noPasswordNeeded}
-              </p>
-            </form>
-          )
+        {capture ? (
+          <EmailCodeSignIn compact autoFocus onEmailSubmit={parkPendingWatch} onSignedIn={handleSignedIn} />
         ) : (
           /*
             ONE PRIMARY ACTION, AND THE ROW WRAPS.

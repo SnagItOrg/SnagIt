@@ -464,9 +464,12 @@ export interface KlupEventMap {
     has_max_price: boolean
   }
 
-  /** An email link confirmed a NEW account. A returning visitor's sign-in is not one. */
+  /**
+   * An email link or a 6-digit code (PAN-300) confirmed a NEW account. A
+   * returning visitor's sign-in is not one.
+   */
   signup_completed: {
-    method: 'email_link'
+    method: 'email_link' | 'email_code'
   }
 
   /** §12.1 #6 — intent, split from outcome. */

@@ -64,30 +64,3 @@ export async function DELETE(
   if (!result.ok) return NextResponse.json({ error: result.code, table: result.table }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
-
-// POST /api/admin/users/[id] — actions (reset-password)
-export async function POST(
-  req: NextRequest,
-  ctx: { params: Promise<{ id: string }> },
-) {
-  const params = await ctx.params
-  if (!(await verifyAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-  const { action } = await req.json()
-
-  if (action === 'reset-password') {
-    const admin = getSupabaseAdmin()
-    // Get user email first
-    const { data: { user }, error: userError } = await admin.auth.admin.getUserById(params.id)
-    if (userError || !user?.email) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    const supabase = await createSupabaseServerClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(user.email)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ ok: true })
-  }
-
-  return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
-}

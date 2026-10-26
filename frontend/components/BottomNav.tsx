@@ -48,6 +48,12 @@ export function BottomNav() {
     supabase.auth.getUser().then(({ data }) => {
       setAuthed(!!data.user)
     })
+    // PAN-300: a 6-digit code signs the visitor in on the page they are on
+    // (a card, the product page), so the nav must follow without a reload.
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthed(!!session?.user)
+    })
+    return () => subscription.subscription.unsubscribe()
   }, [])
 
   const isSearch        = pathname === '/search'
@@ -93,7 +99,7 @@ export function BottomNav() {
 
         {/* Kom i gang */}
         <button
-          onClick={() => router.push('/signup')}
+          onClick={() => router.push('/login')}
           className="text-sm font-bold whitespace-nowrap min-h-[44px] flex items-center transition-opacity hover:opacity-80"
           style={{ color: 'var(--foreground)' }}
         >

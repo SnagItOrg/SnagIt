@@ -190,7 +190,7 @@ page-view event, which fires once per view even under strict mode.
 | `listing_outbound_clicked` | "Se annonce" on a listing card: **the core value signal** | `source`, `country`, `product_slug`, `price_dkk_bucket` (a band, never the price) |
 | `listing_saved` | product page, after the save is accepted | `source`, `product_slug` |
 | `watchlist_created` | every creation path, after the server accepts it | `origin`, `product_slug`, `has_max_price` (never the query) |
-| `signup_completed` | `/watchlists`, when the email link confirmed a **new** account | `method` |
+| `signup_completed` | `EmailCodeSignIn`, when a 6-digit code confirmed a **new** account (`email_code`); `/watchlists`, when an email link did (`email_link`) | `method` |
 | `price_check_result` | `/tjek-prisen`, when a pasted link is answered | `state`, `source` (never the link) |
 | `price_check_guess` | `/tjek-prisen`, when the guess row is answered | `shown`, `picked` (0, 1, 2 or `none`) |
 | `feedback_sent` | the feedback sheet, after the route accepted it | `kind`, `surface` (never the text or the email) |

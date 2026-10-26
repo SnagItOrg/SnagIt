@@ -860,7 +860,9 @@ test('demand mode: both events go through the useEmit() boundary', () => {
 })
 
 test('demand mode: the submitted/thanks state is rendered', () => {
-  assert.ok(PAGE_SRC.includes('setSent(true)'), 'submission must move to the sent state')
+  // PAN-300: the address submit records the signal and flips the thanks on,
+  // then the shared code step takes over (EmailCodeSignIn).
+  assert.ok(PAGE_SRC.includes('setSignalled(true)'), 'submission must move to the thanked state')
   assert.ok(PAGE_SRC.includes('{t.demandThanks}'), 'the thanks state must render')
   assert.ok(PAGE_SRC.includes('{t.demandCta}'), 'the control itself must render')
   // The panel is what demand mode shows, so the unsupported branch must accept

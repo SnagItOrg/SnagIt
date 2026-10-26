@@ -10,7 +10,7 @@ import { TextField } from '@/components/TextField'
 import { PositionSignal } from '@/components/PositionSignal'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { buildPositionSignal } from '@/lib/position-signal'
-import { classifyOtpError, type OtpErrorKey } from '@/lib/otp-error'
+import { EmailCodeSignIn } from '@/components/EmailCodeSignIn'
 import { fill } from '@/lib/i18n'
 import { track } from '@/lib/analytics'
 import {
@@ -674,10 +674,13 @@ function CandidateMedia({ option }: { option: SearchCandidate }) {
  *     `user_feedback` through `/api/feedback`, carrying the query and the
  *     account's address so someone can actually write back — and the thanks
  *     says so. No field, no link.
- *   - anonymous: the existing path, unchanged — an address, a magic link that
- *     creates the account, and the demand event.
+ *   - anonymous: an address and the demand event, then the 6-digit code every
+ *     sign-in uses (PAN-300). The event is emitted when the address is
+ *     submitted, before the send, so a failed send cannot cost the signal.
+ *     Once the code is accepted the visitor is signed in, and the request is
+ *     recorded exactly as on the signed-in path.
  *
- * Both emit `demand_signal_submitted`; the address never reaches PostHog.
+ * Both emit `demand_signal_submitted` once; the address never reaches PostHog.
  */
 function UnsupportedPanel({
   outcome,
@@ -691,10 +694,9 @@ function UnsupportedPanel({
   const { t } = useLocale()
   const emit = useEmit()
   const [open, setOpen] = useState(false)
-  const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
+  /** The anonymous path's demand event has gone out, so the thanks is true. */
+  const [signalled, setSignalled] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [otpError, setOtpError] = useState<OtpErrorKey | null>(null)
   /** PAN-257 — the signed-in path's answer: recorded, or not (so the control stays). */
   const [recorded, setRecorded] = useState<'ok' | 'failed' | null>(null)
 
@@ -712,7 +714,15 @@ function UnsupportedPanel({
       setOpen(true)
       return
     }
+    await recordMissing(user.email ?? '', true)
+  }
 
+  /**
+   * The signed-in record. `emitSignal` is false after a code sign-in: the
+   * anonymous path already sent the demand event when the address was given.
+   */
+  async function recordMissing(address: string, emitSignal: boolean) {
+    setBusy(true)
     // The query and the account address go to /api/feedback — the row the
     // manager reads and the owner's inbox — and nowhere else. `path` is the
     // page as the visitor saw it, query included, like the sheets send it.
@@ -726,7 +736,7 @@ function UnsupportedPanel({
           surface: 'search',
           path: window.location.pathname + window.location.search,
           text: outcome.queryNorm,
-          email: user.email ?? '',
+          email: address,
           website: '',
         }),
       })
@@ -738,51 +748,28 @@ function UnsupportedPanel({
     // The same intensity signal the anonymous path sends. `has_email` is the
     // truth that matters for it — there is an address to write to — and the
     // builder puts only the boolean on the wire.
-    if (ok) emit('demand_signal_submitted', demandSignalPayload(outcome, user.email ?? ''))
+    if (ok && emitSignal) emit('demand_signal_submitted', demandSignalPayload(outcome, address))
 
     setBusy(false)
     setRecorded(ok ? 'ok' : 'failed')
   }
 
-  async function submitDemand(e: React.FormEvent) {
-    e.preventDefault()
-    setBusy(true)
-    const address = email.trim()
-
-    // The e-mail address goes to Supabase through the existing magic-link path
-    // — a user-initiated service request — and NEVER to PostHog. The analytics
-    // payload carries a boolean (build plan §8.5, §12.2).
-    let failure: OtpErrorKey | null = null
-    if (address.length > 0) {
-      try {
-        const supabase = createSupabaseBrowserClient()
-        // signInWithOtp RETURNS its failures rather than throwing them — a
-        // rate limit, a rejected address and even a network error all come
-        // back as `{ error }` (see lib/otp-error.ts). So this catch was never
-        // reached in the common case, and the visitor was told a link was on
-        // its way when none was. The catch stays for the residue that does
-        // throw; both paths now feed the same message.
-        const { error } = await supabase.auth.signInWithOtp({
-          email: address,
-          options: {
-            shouldCreateUser: true,
-            emailRedirectTo: `${window.location.origin}/auth/confirm`,
-          },
-        })
-        failure = classifyOtpError(error)
-      } catch {
-        failure = 'otpErrorGeneric'
-      }
-    }
-
-    // A failed send must not lose the demand signal; it is still recorded.
-    // Unchanged, and deliberately outside the branch above: the signal is the
-    // point of this panel, and the address is NOT in this payload.
+  // The address goes to Supabase through the sign-in code — a user-initiated
+  // service request — and NEVER to PostHog. The analytics payload carries a
+  // boolean (build plan §8.5, §12.2). Emitted before the send, so a failed
+  // send does not lose the signal.
+  function handleEmailSubmit(address: string) {
+    if (signalled) return
     emit('demand_signal_submitted', demandSignalPayload(outcome, address))
+    setSignalled(true)
+  }
 
-    setBusy(false)
-    setOtpError(failure)
-    setSent(true)
+  async function handleSignedIn() {
+    const supabase = createSupabaseBrowserClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    // Closed first, so a failed record shows the control and its message.
+    setOpen(false)
+    await recordMissing(user?.email ?? '', false)
   }
 
   return (
@@ -814,43 +801,17 @@ function UnsupportedPanel({
             <p className="text-sm font-semibold text-foreground">{t.demandThanks}</p>
             <p className="text-sm text-muted-foreground">{t.demandSignedInBody}</p>
           </div>
-        ) : sent ? (
-          // The thanks is still true — the signal was recorded either way.
-          // What is added on failure is the part that was being claimed
-          // falsely: that a login link went out.
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-semibold text-foreground">{t.demandThanks}</p>
-            {otpError && (
-              <p role="alert" className="text-sm" style={{ color: 'var(--destructive-text)' }}>
-                {t.demandNoLinkSent} {t[otpError]}
-              </p>
-            )}
-          </div>
         ) : open ? (
-          <form onSubmit={submitDemand} className="flex flex-col gap-2">
-            <label htmlFor="klup-demand-email" className="text-sm font-semibold text-foreground">
-              {t.demandCta}
-            </label>
-            <TextField
-              id="klup-demand-email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t.emailPlaceholder}
-              className="w-full rounded-xl px-3 py-3 text-base"
+          <div className="flex flex-col gap-2">
+            {signalled && <p className="text-sm font-semibold text-foreground">{t.demandThanks}</p>}
+            <EmailCodeSignIn
+              compact
+              autoFocus
+              emailLabel={t.demandCta}
+              onEmailSubmit={handleEmailSubmit}
+              onSignedIn={handleSignedIn}
             />
-            <Button
-              variant="primary"
-              type="submit"
-              disabled={busy}
-              className="w-full min-h-[44px] rounded-xl text-sm font-semibold transition-opacity disabled:opacity-50"
-            >
-              {t.sendLoginLink}
-            </Button>
-            <p className="text-[11px] text-center text-muted-foreground">{t.noPasswordNeeded}</p>
-          </form>
+          </div>
         ) : (
           <div className="flex flex-col gap-1.5">
             <button

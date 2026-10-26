@@ -293,6 +293,10 @@ test('integration: every package suite is registered exactly once', () => {
       // its maker ("Space" Echo, Floyd "Rose", Shure "H9", Rupert Neve "RNP", Technics "1210"); price decides the H9, H3500
       // and Tube-Tech predecessor rows; plug-ins, parts, the 2290 P pedal, pairs, rack bundles and modified units name none.
       'scripts/lib/pan293-modern-classics.test.ts',
+      // PAN-300: one passwordless way into an account — e-mail, then a 6-digit
+      // code. The helper's decisions, the code boxes, and the guards that no
+      // password path and no second signInWithOtp call site comes back.
+      'scripts/lib/pan300-email-code.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
