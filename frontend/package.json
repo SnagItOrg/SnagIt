@@ -23,7 +23,7 @@
     "react-dom": "19.3.0",
     "recharts": "^3.8.0",
     "resend": "^6.9.2",
-    "sharp": "^0.33.5"
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@types/node": "^20",
