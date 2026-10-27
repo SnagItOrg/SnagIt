@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// price_observation's three price columns are `int` (migration 010): whole
+// kroner, at least 1, and far below the column's range.
+const MAX_PRICE_DKK = 10_000_000
+
+function isPriceDkk(v: unknown): v is number {
+  return Number.isInteger(v) && (v as number) >= 1 && (v as number) <= MAX_PRICE_DKK
+}
+
 function percentile(sorted: number[], p: number): number {
   if (sorted.length === 0) return 0
   const idx = (p / 100) * (sorted.length - 1)
@@ -83,17 +93,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await req.json() as {
-    listing_id:     string
-    price_dkk:      number
-    price_min_dkk?: number
-    price_max_dkk?: number
-  }
+  const body: {
+    listing_id?:    unknown
+    price_dkk?:     unknown
+    price_min_dkk?: unknown
+    price_max_dkk?: unknown
+  } = (await req.json().catch(() => null)) ?? {}
 
   const { listing_id, price_dkk, price_min_dkk, price_max_dkk } = body
 
-  if (!listing_id || price_dkk == null) {
-    return NextResponse.json({ error: 'listing_id and price_dkk are required' }, { status: 400 })
+  // PAN-298, finding 5: the body went to the insert unchecked.
+  if (typeof listing_id !== 'string' || !UUID_RE.test(listing_id)) {
+    return NextResponse.json({ error: 'invalid', field: 'listing_id' }, { status: 400 })
+  }
+  if (!isPriceDkk(price_dkk)) {
+    return NextResponse.json({ error: 'invalid', field: 'price_dkk' }, { status: 400 })
+  }
+  if (price_min_dkk != null && !isPriceDkk(price_min_dkk)) {
+    return NextResponse.json({ error: 'invalid', field: 'price_min_dkk' }, { status: 400 })
+  }
+  if (price_max_dkk != null && !isPriceDkk(price_max_dkk)) {
+    return NextResponse.json({ error: 'invalid', field: 'price_max_dkk' }, { status: 400 })
   }
 
   const admin     = getSupabaseAdmin()
@@ -112,7 +132,9 @@ export async function POST(req: NextRequest) {
     })
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    // A bounded code, never the database's message (table and column names).
+    console.error('[price-observations] insert failed', error.code)
+    return NextResponse.json({ error: 'insert_failed' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true })

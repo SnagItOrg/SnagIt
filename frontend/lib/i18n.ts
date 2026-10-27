@@ -214,6 +214,8 @@ export const translations = {
     // PAN-56: family context on the product page. The heading says "other
     // models", never "other prices" — each sibling carries its own evidence.
     familyOtherModels: 'Andre modeller i familien',
+    reissueOf: 'Genudgivelse af',
+    reissuedBy: 'Genudgivet af',
     // PAN-94: a family may aggregate listings, never prices. The count names
     // ANNONCER, never a price or a spread, and {count} is the length of the
     // rendered list rather than a separately queried total.
@@ -1062,6 +1064,8 @@ export const translations = {
     familyBackToCatalogue: 'See the whole catalogue',
     familyChooseModel: 'Pick a model',
     familyOtherModels: 'Other models in this family',
+    reissueOf: 'Reissue of',
+    reissuedBy: 'Reissued by',
     familyListingsCount: '{count} active listings on this family’s models',
     familyNoListings: 'No active listings on this family’s models right now.',
     familyCardModels: '{count} models',

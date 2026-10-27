@@ -445,6 +445,10 @@ const NEUMANN_NEVER: readonly RegExp[] = [
     'replica', 'clone', 'style', 'compatible with', 'diy', 'logo', 'not tested', 'nicht getestet', 'midi adapter',
     // another maker's mic that names a Neumann as its model: "JJ Audio Huskey Pup 47: … a smaller version …"
     'version of', 'based on', 'inspired by', 'similar to',
+    // PAN-303, Audio & Hifi on kleinanzeigen.de: "B.P.M. CR-73 Studiomikrofon Erstbesitz, wie Neumann U87" (375 €),
+    // "DA 87i Mikrofon *Neumann U87i Replika*", "Peluso 2247 LE … Neumann U47 Klon". Not a bare "wie": "wie neu" is
+    // how a German seller says "like new".
+    'wie neumann', 'replika', 'klon',
     // a head or capsule assembly, a lot of parts: "U67 Head with Assembly and KK67 Capsule",
     // "U67 Tube KK 67 microphone head set", "U67 lotto parts original ( five pz)"
     'head with', 'head set', 'head assembly', 'microphone head', 'lotto', 'pz',
@@ -1707,6 +1711,189 @@ const tubeTech = (self: keyof typeof TT_CODES, ...also: (keyof typeof TT_CODES)[
   requires: [withMaker(TUBE_TECH, [self, ...also].map((k) => TT_CODES[k]).join('|'))],
 })
 
+// ── PAN-302: Telefunken, and the Neumann mics sold under the Telefunken badge ─
+/**
+ * "Telefunken" names three things on a microphone title (Reverb sold and live titles, production titles, DBA and
+ * kleinanzeigen.de, 2026-10-26):
+ *   - a Neumann: the U 47, U 48, KM 53/54/56 and U 67 were distributed under the Telefunken badge. Those titles are the
+ *     Neumann rows', reached by the curated "Telefunken U47" aliases the PAN-302 identity file adds (step 4,
+ *     `alias_carries_brand`), and only with a vintage word when Neumann is not named;
+ *   - the AKG-built ELA M 250 / 251 (1959–62): the vintage original, ~$20–35k;
+ *   - Telefunken Elektroakustik (Connecticut, 2001–): its reissues of those (U47, C12, ELA M 251E, ELA M 260, ~$1–11k)
+ *     and its own lines (the Alchemy TF mics, R-F-T, the M80 dynamics).
+ * A bare "Telefunken U47" or "Telefunken ELA M 251E" is the Elektroakustik reissue: of ~100 sold "Telefunken U47"
+ * titles, every vintage one carries a year, "vintage", "long body" or the Neumann name. Every Telefunken row requires
+ * the maker; the vintage rows require a vintage word too, and the reissues refuse one.
+ */
+const TELEFUNKEN = /(?<![a-z])telefunken(?![a-z])/i
+/** A vintage microphone: the word, a body or badge only the originals have, a 1940s–70s year or decade. */
+const MIC_VINTAGE: readonly RegExp[] = [
+  ...cues('vintage', 'long body', 'short body', 'chrome top', 'chrome basket', 'made in austria', 'austria', 'badged',
+    'akg built', 'built by akg', 'true real vintage'),
+  yearCue(1945, 1979),
+  /(?<![\w'’])['’]?(?:19)?[4-7]0['’]?s(?![\w-])/i,
+]
+/** A Telefunken Elektroakustik unit: its name, its US maker, its "Diamond" reissue series, a year from 2000, a dealer's demo. */
+const TF_MODERN: readonly RegExp[] = [
+  ...cues('elektroakustik', 'elecroakustik', 'telefunken usa', 'usa', 'south windsor', 'diamond serie', 'diamond series',
+    'demo deal', 'open box', 'b-stock'),
+  // "Telefunken ELA M 251 - AC701 (Vintage - not reissue)" is the original.
+  new RegExp(`(?<![\\w-])${NOT_NEGATED}re-?issue(?![\\w-])`, 'i'),
+  yearCue(2000, 2039),
+]
+/**
+ * A title with none of `res` (an `otherMembers` entry): a vintage row refuses a title with no vintage word this way,
+ * because its `requires` already holds the maker cue (`requires` is any-of).
+ */
+const lacksAll = (res: readonly RegExp[]): RegExp => new RegExp(`^(?![\\s\\S]*(?:${res.map((r) => r.source).join('|')}))`, 'i')
+/**
+ * "ELA M" beside Telefunken. As a `requires` cue it is blanked before the inclusion-marker search, so the "M" of "ELA
+ * M 251" (or of "M 251" alone) is not read as the Danish marker "m" (= "med"), which would keep "Ela M 251 … Frequency
+ * Response document" or "ELA M 250 / M 251 brochure" as the mic. A bare "Telefunken 251E" is the reissue too.
+ */
+const TF_ELA_M = [
+  withMaker(TELEFUNKEN.source, 'ela[\\s-]?m(?:[\\s-]?2[56][0-9](?:[\\s-]?[a-z])?)?|m[\\s-]?2[56][0-9](?:[\\s-]?[a-z])?'),
+  withMaker(TELEFUNKEN.source, '25[01][\\s-]?[et]'),
+]
+/**
+ * A vacuum tube sold for the mic leads its title ("Telefunken VF14M Tube For Neumann U47 U48", "NOS Telefunken EF86 …
+ * U67", "Telefunken EF14 tube for U 47 / U 48"); a mic sold with a NOS tube names the mic first.
+ */
+const MIC_TUBE_LISTING = /^\W*(?:\d+\s*x\s*)?(?:(?:super\s+)?rare\s+)?(?:nos\s+)?(?:\d{4}\s+)?(?:telefunken\s+)?(?:siemens\s+)?(?:vf[\s-]?14\s?m?|ef[\s-]?14|ef[\s-]?12k?|ef[\s-]?86|ef[\s-]?806s?|ac[\s-]?701k?|ecc[\s-]?8\d|6072a?|12a[xtu]7|5840w?|6267)(?![a-z0-9])/i
+/** Never a Telefunken unit (every row): a pair or set of several, software, a part trade lead, a unit for repair, a Warm Audio copy. */
+const TF_NEVER: readonly RegExp[] = [
+  ...PAIR_OR_LOT, ...UAD_SOFTWARE, ...WARM_AUDIO_COPY, MIC_TUBE_LISTING,
+  // Telefunken's own accessory codes: the M 750 shock mount, the M 803 / M 850 cables, the M 902 / M 950 supplies.
+  /(?<![\w-])m[\s-]?(?:750|803|850|902|950)[a-z]*(?![\w-])/i,
+  ...cues('for parts', 'parts only', 'not working', 'non functioning', 'non-functioning', 'defekt', 'defect', 'broken',
+    'needs repair', 'for repair', 'as is', 'as-is', 'tri-mono', 'tri mono', 'field set', 'stereo', 'drum pack', 'drum kit',
+    'podcast package', 'dd4', 'dd5', 'wb60', 'm 803', 'm803'),
+]
+/**
+ * Never the reissue or the original it copies: another maker's copy ("Circle Audio EVO 251 … Telefunken ELA M 251
+ * Inspired", "Bock Audio 251", "Wunder Audio CM49 … based on", "Telefunken U47 (Clone)"), a Blue Microphones rebuild
+ * of a vintage U47 / U48 / M49 ("BLUE-refurbished Neumann/Telefunken U47", $3,700 against ~$15k), a Telefunken copy of
+ * another maker's original ("Telefunken ELA M12F … C12 copy"). Not on the R-F-T and Alchemy rows, which their sellers
+ * describe by the classics they resemble ("Telefunken AK47 Röhrenmikrofon U47 Mega Clone").
+ */
+const TF_COPY: readonly RegExp[] = [
+  ...cues('clone', 'replica', 'copy', 'kopi', 'inspired', 'based on', 'tribute', 'kit', 'diy', 'blue', 'circle audio', 'bock',
+    'wunder', 'peluso', 'stam', 'golden age', 'heyne', 'fox audio', 'jeanne audio', 'soundelux', 'adk', 'modified', 'mod',
+    'upgraded'),
+  /[\s-]style(?![\w-])/i,
+]
+/**
+ * The microphone parts and papers trade, marker-aware (production and Reverb sold titles, 2026-10-26): power supplies,
+ * cables and connectors, cases and wooden boxes, mounts, yokes and floor stands, capsules, grilles and amplifier bodies,
+ * brochures, schematics, frequency-response documents and guarantee cards. "U47 M … w/ Case" and "U47 With Vintage
+ * K49 Capsule" keep the mic. Not a bare `body` ("Chrome Top Long Body"), `box` ("Mint condition - Original box") or
+ * `tube` (every title says "Tube Microphone").
+ */
+const TF_MIC_PARTS: readonly string[] = [
+  ...NEUMANN_PARTS, 'psu', 'netzteil', 'kabler', 'case', 'flight case', 'wooden box', 'wood box', 'mic box', 'box only',
+  'yoke', 'swivel mount', 'floorstand', 'floorstands', 'floor stand', 'tube body', 'amp body', 'amplifier body', 'body only',
+  'pattern selector', 'bottom bell', 'manual', 'brochure', 'schematic', 'schematics', 'frequency response', 'guarantee card',
+  'document', 'sticker', 'logo', 'capacitor', 'capacitors', 'connectors', 'tuchel', 'amphenol', 'original basket', 'parts of',
+]
+/**
+ * Rebuilds and copies of the vintage Neumanns, and the makers of their spare tubes (Reverb sold, 2026-10-26): "BLUE
+ * M49b Remanufactured", "Flea U48 w/ Power Supply", "SATURN SOUND RV-14 M TUBE Neumann U47& U48", "Phaedrus VF14M
+ * REDD TUBE U47&U48", "Neumann Telefunken U47 U48 Repro Bottom Bell".
+ */
+const MIC_COPY_MAKERS: readonly RegExp[] = cues(
+  'blue', 'flea', 'saturn sound', 'phaedrus', 'repro', 'reproduction', 'clone', 'replica', 'kit', 'diy',
+)
+/** A badge sold alone ("Telefunken ELA M 251E mic badge"), never the "Telefunken badge" a vintage Neumann wears. */
+const BADGE_ALONE = /(?<![\w-])badge(?:\s+only)?\s*(?:\(|$)/i
+/** Each Telefunken unit's code as sellers write it ("ELAM 251E", "ELA-M 251", "AK47", "TF-51", "CU-29 Copperhead"). */
+const TF: Readonly<Record<string, RegExp>> = {
+  ela25x: /(?<![\w-])(?:ela[\s-]?m[\s-]?|elam[\s-]?|m[\s-]?)25[01](?![0-9])|(?<![\w-])25[01][\s-]?[et](?![\w-])/i,
+  ela260: /(?<![\w-])(?:ela[\s-]?m[\s-]?|elam[\s-]?|m[\s-]?)260(?![0-9])/i,
+  u47: /(?<![\w-])u[\s-]?4[78](?![0-9])/i,
+  c12: /(?<![\w-])c[\s-]?12(?![0-9])|(?<![\w-])ela[\s-]?m[\s-]?1[24]/i,
+  ak47: /(?<![\w-])ak[\s-]?47/i,
+  ar51: /(?<![\w-])ar[\s-]?51(?![0-9])/i,
+  m16: /(?<![\w-])m[\s-]?16(?![0-9])/i,
+  tf11: /(?<![\w-])tf[\s-]?11(?![0-9])/i,
+  tf17: /(?<![\w-])tf[\s-]?17(?![0-9])/i,
+  tf29: /(?<![\w-])(?:tf|cu)[\s-]?29(?![0-9])/i,
+  tf39: /(?<![\w-])(?:tf|cu)[\s-]?39(?![0-9])|copperhead[\s-]+deluxe/i,
+  tf47: /(?<![\w-])tf[\s-]?47(?![0-9])/i,
+  tf51: /(?<![\w-])tf[\s-]?51(?![0-9])/i,
+  m80: /(?<![\w-])m[\s-]?80(?![0-9])/i,
+  m81: /(?<![\w-])m[\s-]?81(?![0-9])/i,
+  m82: /(?<![\w-])m[\s-]?82(?![0-9])/i,
+  m60: /(?<![\w-])m[\s-]?6[0-2](?![0-9])/i,
+}
+/** The reissues and the vintage ELA M: the classics a TF, R-F-T or dynamic title may name as a reference are refused by these rows, not the other way round. */
+const TF_CLASSICS: readonly (keyof typeof TF)[] = ['ela25x', 'ela260', 'u47', 'c12']
+/**
+ * A Telefunken row of `line`: the maker required, TF_NEVER and the other units' codes refused (`self` and `alsoOk`
+ * excepted). A reissue or the vintage original also refuses TF_COPY; an R-F-T, Alchemy or dynamic row leaves the
+ * classics a title names as a likeness to the classic rows ("AR-51 … Like ELA-M 251 and C12", "TF-51 Tube Mic C12").
+ */
+const telefunken = (self: keyof typeof TF, opts: { line?: string; alsoOk?: (keyof typeof TF)[]; requires?: readonly RegExp[]; more?: readonly RegExp[] } = {}): LineBoundary => {
+  const classic = TF_CLASSICS.includes(self)
+  const refused = (Object.keys(TF) as (keyof typeof TF)[])
+    .filter((k) => k !== self && !(opts.alsoOk ?? []).includes(k) && (classic || !TF_CLASSICS.includes(k)))
+  return {
+    line: opts.line ?? 'telefunken',
+    otherMembers: [...TF_NEVER, ...(classic ? TF_COPY : []), ...refused.map((k) => TF[k]), ...(opts.more ?? [])],
+    accessories: [...TF_MIC_PARTS, BADGE_ALONE],
+    requires: opts.requires ?? [TELEFUNKEN],
+  }
+}
+/** "ELA M 251 F": a Telefunken variant Klup has no row for (7 sold, $5,400–8,000). */
+const ELA_M_251F = /(?<![\w-])(?:ela[\s-]?m[\s-]?|elam[\s-]?)?251[\s-]?f(?![\w-])/i
+/** The Telefunken Elektroakustik U47's own spellings: "U47 M", "U47M" (the 2006 run), "U47/48". */
+const TF_U47M = /(?<![\w-])u[\s-]?47[\s-]?m(?![\w-])/i
+/** The U 47a (K47 capsule, Nuvistor) is not the U 47 of either maker ("Telefunken U47, Nuvistor", kleinanzeigen.de). */
+const U47A = [/(?<![\w-])u[\s-]?47\s?a(?![\w-])/i, cue('nuvistor')]
+/**
+ * Never the vintage tube U 47: the fet's other spellings ("U47 feti", "FET47"), a reissue's year ("Telefunken U47
+ * 2010s - Nickel with vintage k49 upgrade"), a modern mic fitted with an old capsule ("Telefunken U47 With Vintage K49
+ * Capsule", $8,000).
+ */
+const NOT_THE_TUBE_U47: readonly RegExp[] = [
+  /(?<![\w-])fet[\s-]?(?:i|47)(?![\w-])/i, yearCue(2000, 2039),
+  /(?<![\w-])(?:with|w\/)\s+(?:a\s+)?vintage\s+(?:k|m)[\s-]?\d/i,
+]
+/**
+ * The U 47 / U 48 parts trade the PAN-302 "U48" identifier would otherwise reach (Reverb sold, 2026-10-26): pattern
+ * selectors, Tuchel / Amphenol connectors, repro bells and baskets, boxes, capacitors. Not `psu` or `case`: "Neumann U 47
+ * 1950s - VF14 - M7 - Original PSU" is the mic with its supply.
+ */
+const U47_PARTS: readonly string[] = [
+  ...NEUMANN_PARTS, 'pattern selector', 'tuchel', 'amphenol', 'connectors', 'bottom bell', 'original basket', 'wooden box',
+  'mic box', 'box only', 'capacitor', 'capacitors', 'yoke', 'swivel mount', 'tube body', 'body only', 'manual', 'logo',
+]
+/** A TLM 67 ("… TLM 67 w/ioaudio MaxMod mk67 upgrade, u67 sleeve") is never either U 67. */
+const TLM_67 = /(?<![\w-])tlm[\s-]?67(?![0-9])/i
+
+/**
+ * The Neumann rows PAN-302 adds or anchors. Sellers write the variant letter glued to the code ("U89i", "KM54a",
+ * "M49b", "TLM 170 R", "KM 56 c"); the MODEL identifiers in the PAN-302 identity file reach those, and each row requires
+ * Neumann or Telefunken beside them. The KM 53, 54 and 56 are one line: a title naming two of them is a box, a cable
+ * or a stand list. The SM 2 is a stereo pair of KM 56s.
+ */
+const NEUMANN_OR_TELEFUNKEN = /(?<![a-z])(?:neumann|telefunken)(?![a-z])/i
+const neumannRow = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  ...neumannSingle(line, ...otherMembers, MIC_TUBE_LISTING, ...MIC_COPY_MAKERS, ...cues('remanufactured', 'empty')),
+  accessories: [...TF_MIC_PARTS, BADGE_ALONE],
+  requires: [NEUMANN_OR_TELEFUNKEN],
+})
+const KM5X: Readonly<Record<string, RegExp>> = {
+  km53: /(?<![\w-])km[\s-]?(?:2?53)\s?[a-c]?(?![\w-])/i,
+  km54: /(?<![\w-])km[\s-]?(?:2?54)\s?[a-c]?(?![\w-])/i,
+  km56: /(?<![\w-])km[\s-]?(?:2?56)\s?[a-c]?(?![\w-])/i,
+}
+/** The SM 2 / SM 23 stereo mic (two KM 56 capsules in one body, "Telefunken Neumann SM2 - Stereo KM 56"). */
+const NEUMANN_SM2: readonly RegExp[] = [/(?<![\w-])s?\s?sm[\s-]?23?(?![0-9])/i, cue('stereo')]
+const NEUMANN_TUBE_LARGE = (keep: string): RegExp =>
+  new RegExp(`(?<![\\w-])m[\\s-]?(?:${['147', '149', '49', '50', '150', '249', '269'].filter((m) => m !== keep).join('|')})(?![0-9])`, 'i')
+/** The M 49 V (2022–, $7,200) is not the M 49 / b / c of 1951–74 ($11,000), and neither is a rebuild. */
+const M49V = /(?<![\w-])m[\s-]?49[\s-]?v(?![a-z])/i
+
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
   'moog-minimoog': {
@@ -2008,16 +2195,26 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The tube U 47 (1947–65): never the U 47 fet or its Collector's Edition, nor the U 47a
   // (K47 capsule, Nuvistor tube) or a rebuild. This holds at the SKU tier too: the row's own
   // "U47" identifier fires on "U47 FET", and the refusal removes that candidate (step 2).
-  'neumann-u47': neumannSingle('u47', ...U47_FET, COLLECTOR, /(?<![\w-])u[\s-]?47\s?a(?![\w-])/i, ...cues('wagner', 'archut', 'bon scott')),
+  // PAN-302: the U 48 (cardioid / figure-8, ~$13k) is this row by price, through its "U48" identifier. A title that
+  // names Telefunken but not Neumann is the Elektroakustik reissue unless it carries a vintage word ("Telefunken U47
+  // vintage tube mic. s/n 3320 1950s", $15,000 against the reissue's ~$8,000), and never a Blue rebuild.
+  'neumann-u47': {
+    ...neumannSingle('u47', ...U47_FET, COLLECTOR, ...U47A, TF_U47M, ...NOT_THE_TUBE_U47, ...cues('wagner', 'archut', 'bon scott'),
+      ...cues('elektroakustik', 'elecroakustik', 'telefunken usa', 'diamond serie', 'reissue', 'case for'), MIC_TUBE_LISTING,
+      ...MIC_COPY_MAKERS),
+    accessories: [...U47_PARTS, BADGE_ALONE],
+    requires: [/(?<![a-z])neumann(?![a-z])/i, ...MIC_VINTAGE],
+  },
   // The vintage U 47 fet; the 2014 Collector's Edition is another member.
   'neumann-u47-fet': neumannSingle('u47', COLLECTOR, ...cues('bon scott')),
   // The Collector's Edition shares the fet's model name, so it fails closed without its name.
   'neumann-u47-fet-collectors-edition': { ...neumannSingle('u47'), requires: [COLLECTOR] },
   // The original U 67 (1960–71) and the 2018 reissue, sold as the "U 67 Set". A plain
   // "U67 Set" with no vintage word is the reissue.
-  'neumann-u67': neumannSingle('u67', ...U67_REISSUE, ...U67_REBUILD, unlessAlso(cue('set'), U67_VINTAGE_ANY)),
+  // PAN-302: a TLM 67 is never either U 67 ("Telefunken U67" titles reach this row through its alias).
+  'neumann-u67': neumannSingle('u67', ...U67_REISSUE, ...U67_REBUILD, unlessAlso(cue('set'), U67_VINTAGE_ANY), TLM_67),
   'neumann-u67-reissue': {
-    ...neumannSingle('u67', ...U67_VINTAGE, ...U67_REBUILD),
+    ...neumannSingle('u67', ...U67_VINTAGE, ...U67_REBUILD, TLM_67),
     requires: [...U67_REISSUE, cue('set')],
   },
   // KH 120 A (2010–23), KH 120 II (2023–) and the digital-input KH 120 D.
@@ -3601,6 +3798,52 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'tube-tech-hlt-2a': tubeTech('hlt2a'),
   'tube-tech-ssa-2a': tubeTech('ssa2a'),
   'tube-tech-eq-1a': tubeTech('eq1a'),
+  // ── PAN-302: Telefunken ──────────────────────────────────────────────────
+  // The AKG-built ELA M 250 / 251 / 250E / 251E (1959–62): ~$20–35k on Reverb's sold population (n ≈ 10), its own
+  // row against the reissue's $10,800 (+120 %). It requires a vintage word beside "Telefunken"; a bare "ELA M 251" is
+  // the reissue. Its page is Reverb's vintage 251E page (31699).
+  'telefunken-ela-m-251': telefunken('ela25x', { requires: TF_ELA_M, more: [lacksAll(MIC_VINTAGE), ...TF_MODERN, ELA_M_251F] }),
+  // Telefunken Elektroakustik's ELA M 251E (and its 251, 251T and 250E, within 25 % of it): n = 90, $10,800.
+  'telefunken-ela-m-251e': telefunken('ela25x', { requires: TF_ELA_M, more: [...MIC_VINTAGE, ELA_M_251F] }),
+  // The Elektroakustik U47 (and U47 M, U48): n ≈ 90, ~$8,000. One line with the Neumann U 47 rows: a refusal on
+  // either side separates the two makers' U 47 instead of deferring the title as a two-product tie (step 5b).
+  'telefunken-u47': telefunken('u47', { line: 'u47', more: [...MIC_VINTAGE, ...U47_FET, COLLECTOR, ...U47A] }),
+  'telefunken-c12': telefunken('c12', { more: MIC_VINTAGE }),
+  'telefunken-ela-m-260': telefunken('ela260', { requires: TF_ELA_M.slice(0, 1), more: MIC_VINTAGE }),
+  // R-F-T: the AK-47 (Mk I and MkII, one price), the AR-51 and the M16 MkII.
+  'telefunken-ak-47': telefunken('ak47'),
+  'telefunken-ar-51': telefunken('ar51'),
+  'telefunken-m16': telefunken('m16'),
+  // The Alchemy series. The TF29 is the CU-29 Copperhead renamed (the same price); the TF39 Copperhead Deluxe is +32 %.
+  'telefunken-tf11': telefunken('tf11'),
+  'telefunken-tf17': telefunken('tf17'),
+  'telefunken-tf29': telefunken('tf29', { more: [cue('deluxe')] }),
+  'telefunken-tf39': telefunken('tf39'),
+  'telefunken-tf47': telefunken('tf47'),
+  'telefunken-tf51': telefunken('tf51'),
+  // The dynamics (a Custom finish and the short-handle SH are the same mic) and the M60 small-diaphragm FET; the M61
+  // omni and M62 hypercardioid have no row.
+  'telefunken-m80': telefunken('m80'),
+  'telefunken-m81': telefunken('m81'),
+  'telefunken-m82': telefunken('m82'),
+  'telefunken-m60': telefunken('m60', { more: [/(?<![\w-])m[\s-]?6[12](?![0-9])/i] }),
+  // ── PAN-302: Neumann ─────────────────────────────────────────────────────
+  'neumann-m-147': neumannRow('m-147', NEUMANN_TUBE_LARGE('147')),
+  'neumann-m-149': neumannRow('m-149', NEUMANN_TUBE_LARGE('149')),
+  'neumann-m-49': neumannRow('m-49', NEUMANN_TUBE_LARGE('49'), M49V, yearCue(2019, 2039), ...cues('reissue', 'wunder', 'cm49')),
+  'neumann-m-49-v': { ...neumannRow('m-49', NEUMANN_TUBE_LARGE('49'), ...MIC_VINTAGE), requires: [M49V] },
+  'neumann-u89': neumannRow('u89'),
+  'neumann-tlm-170': neumannRow('tlm-170'),
+  // The KM 86 is not its siblings: "Neumann KM 76, wie KM 86 mit Adapter" (kleinanzeigen.de) is a KM 76.
+  'neumann-km-86': neumannRow('km-86', /(?<![\w-])km[\s-]?(?:184|83|84|85|88|76|74)(?![0-9])/i),
+  // The KM 53 (omni, n = 4 real sales) is the KM 54's row by its identifiers; the KM 56 (+30 %) is its own.
+  'neumann-km-54': neumannRow('km-5x', KM5X.km56, ...NEUMANN_SM2),
+  'neumann-km-56': neumannRow('km-5x', KM5X.km53, KM5X.km54, ...NEUMANN_SM2),
+  'neumann-ku-100': neumannRow('ku-100'),
+  // A TLM 67 rebuilt as a U 67 ("TLM 67 inkl. U67 Kit IOaudio", "w/ioaudio MaxMod mk67 upgrade") is not a stock one.
+  'neumann-tlm-67': neumannRow('tlm-67', ...cues('ioaudio', 'maxmod', 'mk67', 'u67 kit', 'mod', 'modified', 'upgrade')),
+  'neumann-bcm-705': neumannRow('bcm-705'),
+  'neumann-v-402': { ...neumann('v-402'), requires: [NEUMANN_OR_TELEFUNKEN] },
 }
 
 /**

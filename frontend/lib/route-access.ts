@@ -207,7 +207,12 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
    * behind generic authenticated access would have left any signed-in visitor
    * able to drive scraper and database load with free text. Admin curation is
    * unaffected — it calls /api/admin/product/[slug]/scrape-platform and
-   * .../scrape-kleinanzeigen, which are separate routes and remain admin_api. */
+   * .../scrape-kleinanzeigen, which are separate routes and remain admin_api.
+   *
+   * `/api/price-history` and `/api/market-price` were deleted the same way
+   * (PAN-298, finding 4): no caller (audit F-21), and both read any
+   * `?watchlist_id=` price rows with the service role after a session-only
+   * check, with no ownership test. */
   { route: '/api/watchlists', access: 'protected_api' },
   { route: '/api/watchlists/[id]', access: 'protected_api' },
   { route: '/api/watchlists/[id]/listings', access: 'protected_api' },
@@ -215,8 +220,6 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
   { route: '/api/notification-preferences', access: 'protected_api' },
   { route: '/api/preferences', access: 'protected_api' },
   { route: '/api/account', access: 'protected_api', note: 'PAN-277; DELETE removes the session user\'s own account, never a named one' },
-  { route: '/api/price-history', access: 'protected_api', note: 'no caller today (audit F-21)' },
-  { route: '/api/market-price', access: 'protected_api', note: 'no caller today (audit F-21)' },
 
   /* ---------------- admin APIs ----------------
    * All of these ALSO enforce requireAdminInRoute(). The edge classification

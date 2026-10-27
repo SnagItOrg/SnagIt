@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ALERT_SOURCES, missedNight } from '@/lib/scrape-freshness'
 import { latestScrapedAt } from '@/lib/scrape-freshness-read'
 import { sendMissedNightEmail } from '@/lib/email'
+import { bearerMatches } from '@/lib/bearer-secret'
 
 /**
  * PAN-258: one email to the owner when DBA or Reverb missed a night.
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
   // authorisation, and the value never reaches a message or a log line.
   const secret = process.env.FRESHNESS_ALERT_SECRET
   if (!secret) return NextResponse.json({ error: 'not_configured' }, { status: 503 })
-  if (req.headers.get('authorization') !== `Bearer ${secret}`) {
+  if (!bearerMatches(req.headers.get('authorization'), secret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

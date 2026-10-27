@@ -6,7 +6,8 @@
  *
  * Features:
  *   - Reads active legendary products from kg_product + kg_brand
- *   - Scrapes category search pages directly in this script
+ *   - Scrapes category search pages directly in this script: Musikinstrumente
+ *     for every product, plus Audio & Hifi for microphones (PAN-303)
  *   - Conservative 3s rate limiting between products
  *   - Upserts on external_id + source using listing.url as the stable key
  *   - Marks listings not seen for STALE_AFTER_DAYS inactive (complete runs only)
@@ -45,6 +46,7 @@ import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchLis
 import { decodeHtmlEntities } from '../frontend/lib/html-entities'
 import { coverageIsComplete, evaluateRun, startRun, finishRun, type ListingSample } from './lib/scrape-health'
 import { baselineNotAttempted } from './lib/baseline'
+import { buildKleinanzeigenUrl, searchCategories, type KleinanzeigenCategory } from './lib/kleinanzeigen-categories'
 
 /**
  * Per-run price tally, emitted once at the end of the run.
@@ -170,12 +172,6 @@ type ScrapedListing = {
   price_dkk: number | null
 }
 
-function buildKleinanzeigenUrl(normalizedQ: string, page: number): string {
-  const q = normalizedQ.replace(/ /g, '+')
-  const baseUrl = `https://www.kleinanzeigen.de/s-musikinstrumente/${q}/k0c74`
-  return page > 1 ? `${baseUrl}?pageNum=${page}` : baseUrl
-}
-
 function absolutizeUrl(url: string | undefined): string | null {
   if (!url) return null
   if (url.startsWith('http://') || url.startsWith('https://')) return url
@@ -263,8 +259,9 @@ function parseArticle(articleHtml: string): ScrapedListing | null {
 async function fetchKleinanzeigenPage(
   normalizedQ: string,
   page: number,
+  category: KleinanzeigenCategory,
 ): Promise<ScrapedListing[]> {
-  const url = buildKleinanzeigenUrl(normalizedQ, page)
+  const url = buildKleinanzeigenUrl(normalizedQ, page, category)
 
   const res = await fetch(url, {
     headers: {
@@ -291,11 +288,12 @@ async function fetchKleinanzeigenPage(
 async function fetchKleinanzeigenSearch(
   normalizedQ: string,
   maxPages: number,
+  category: KleinanzeigenCategory,
 ): Promise<ScrapedListing[]> {
   const all: ScrapedListing[] = []
   for (let page = 1; page <= maxPages; page++) {
     if (page > 1) await sleep(PAGE_DELAY_MS)
-    const pageResults = await fetchKleinanzeigenPage(normalizedQ, page)
+    const pageResults = await fetchKleinanzeigenPage(normalizedQ, page, category)
     if (pageResults.length === 0) break
     all.push(...pageResults)
   }
@@ -304,6 +302,7 @@ async function fetchKleinanzeigenSearch(
 
 async function scrapeKleinanzeigen(
   query: string,
+  categories: KleinanzeigenCategory[],
   maxPages = 3,
 ): Promise<{ listings: ScrapedListing[]; requestFailed: boolean }> {
   const normalized = normalizeQuery(query)
@@ -313,14 +312,17 @@ async function scrapeKleinanzeigen(
   const dehyphenated = normalized.replace(/-/g, '')
   if (dehyphenated !== normalized) queries.push(dehyphenated)
 
+  // Every query variant in every category; an ad found twice is kept once below.
+  const searches = categories.flatMap(category => queries.map(q => ({ q, category })))
+
   const all: ScrapedListing[] = []
   // A failed variant is still skipped, but no longer silently: the stale sweep
   // may only infer "gone" from a product whose every request succeeded.
   let requestFailed = false
-  for (let i = 0; i < queries.length; i++) {
+  for (let i = 0; i < searches.length; i++) {
     if (i > 0) await sleep(VARIANT_DELAY_MS)
     try {
-      const results = await fetchKleinanzeigenSearch(queries[i], maxPages)
+      const results = await fetchKleinanzeigenSearch(searches[i].q, maxPages, searches[i].category)
       all.push(...results)
     } catch {
       requestFailed = true
@@ -341,12 +343,27 @@ type ProductRow = {
   id: string
   canonical_name: string
   kg_brand: { name: string } | { name: string }[] | null
+  subcategory: { slug: string } | { slug: string }[] | null
 }
 
 function resolveBrandName(brand: ProductRow['kg_brand']): string | null {
   if (!brand) return null
   if (Array.isArray(brand)) return brand[0]?.name ?? null
   return brand.name ?? null
+}
+
+function resolveSubcategorySlug(subcategory: ProductRow['subcategory']): string | null {
+  if (!subcategory) return null
+  if (Array.isArray(subcategory)) return subcategory[0]?.slug ?? null
+  return subcategory.slug ?? null
+}
+
+type MonitoredProduct = {
+  id: string
+  canonical_name: string
+  brand_name: string
+  query: string
+  categories: KleinanzeigenCategory[]
 }
 
 function buildSearchQuery(brandName: string, canonicalName: string): string {
@@ -370,10 +387,10 @@ function normalizeText(title: string): string {
  */
 const MONITORED_SLUGS = monitoredSlugs('kleinanzeigen')
 
-async function loadProducts(): Promise<Array<{ id: string; canonical_name: string; brand_name: string; query: string }>> {
+async function loadProducts(): Promise<MonitoredProduct[]> {
   const { data, error } = await supabase
     .from('kg_product')
-    .select('id, slug, canonical_name, kg_brand!inner(name)')
+    .select('id, slug, canonical_name, kg_brand!inner(name), subcategory:kg_category!kg_product_subcategory_id_fkey(slug)')
     .in('slug', MONITORED_SLUGS)
     .eq('status', 'active')
     .order('canonical_name')
@@ -397,9 +414,10 @@ async function loadProducts(): Promise<Array<{ id: string; canonical_name: strin
         canonical_name: product.canonical_name,
         brand_name: brandName,
         query: buildSearchQuery(brandName, product.canonical_name),
+        categories: searchCategories(resolveSubcategorySlug(product.subcategory)),
       }
     })
-    .filter((product): product is { id: string; canonical_name: string; brand_name: string; query: string } => product !== null)
+    .filter((product): product is MonitoredProduct => product !== null)
 
   if (productFilter) {
     products = products.filter((product) => product.canonical_name.toLowerCase().includes(productFilter))
@@ -515,7 +533,7 @@ async function main() {
     if (i > 0) await sleep(PRODUCT_DELAY_MS)
 
     const product = products[i]
-    const { listings, requestFailed } = await scrapeKleinanzeigen(product.query, 3)
+    const { listings, requestFailed } = await scrapeKleinanzeigen(product.query, product.categories, 3)
     if (requestFailed) {
       coverage.requestFailures += 1
       failedProducts += 1

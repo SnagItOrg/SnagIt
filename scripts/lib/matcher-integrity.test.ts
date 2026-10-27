@@ -2279,7 +2279,9 @@ test('the monitoring config reproduces the pre-change source sets exactly', () =
   }
   assert.equal(new Set(dbaBrands).size, dbaBrands.length, 'dba.dk has duplicate brand slugs')
   assert.equal(cfg['dba.dk'].sub_category, '1.86.92')
-  for (const s of ['finn', 'blocket', 'kleinanzeigen']) assert.equal(cfg[s].products.length, 28)
+  for (const s of ['finn', 'blocket']) assert.equal(cfg[s].products.length, 28)
+  // PAN-302 (owner's word pending): the 28 plus 12 microphone rows.
+  assert.equal(cfg.kleinanzeigen.products.length, 40)
   // Reverb is a sweep, not a product list
   assert.equal(cfg.reverb.mode, 'broad_catalogue_sweep')
   assert.equal(cfg.reverb.products, null)
