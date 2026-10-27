@@ -32,6 +32,7 @@ import {
   type CatalogueStateRow,
 } from '@/lib/catalogue'
 import { monitoredSourcesFor } from '@/lib/source-monitoring'
+import { REISSUE_OF, reissueContext as buildReissueContext, type ReissueContext, type ReissueLink } from '@/lib/reissues'
 import {
   placeInCatalogue,
   subcategoryGroupNames,
@@ -388,6 +389,7 @@ async function buildProductPayload(
     relatedDomainRes,
     familyRes,
     familyDomainRes,
+    reissueRelRes,
   ] = await Promise.all([
     // Read to exhaustion. No maximum population size is stated anywhere.
     fetchAllPages(fetchMatchPage, (row) => row.id),
@@ -462,6 +464,13 @@ async function buildProductPayload(
           .select('slug, browse_domain')
           .in('slug', familySiblingSlugs)
       : Promise.resolve({ data: [] as unknown[], error: null }),
+    // REISSUES (PAN-302) — identity only, like the family reads: the relation
+    // rows that name this product, nothing that carries a price.
+    admin
+      .from('kg_relation')
+      .select('type, from_product_id, to_product_id')
+      .eq('type', REISSUE_OF)
+      .or(`from_product_id.eq.${productId},to_product_id.eq.${productId}`),
   ]).catch(() => {
     throw new CatalogueUnavailableError('detail_transport')
   })
@@ -472,6 +481,10 @@ async function buildProductPayload(
 
   if (familyRes.error || familyDomainRes.error) {
     throw new CatalogueUnavailableError('family_lookup')
+  }
+
+  if (reissueRelRes.error) {
+    throw new CatalogueUnavailableError('reissue_lookup')
   }
 
 
@@ -781,6 +794,39 @@ async function buildProductPayload(
       : null
 
   /**
+   * REISSUE CONTEXT (PAN-302) — "Genudgivelse af Neumann U 47" and, on the
+   * original, "Genudgivet af …". Navigation only and built after every price
+   * figure above, like the family context: the other products are read for
+   * identity and the four axes, linked only when `isCanonical()` admits them,
+   * and a `ReissueLink` is `{ slug, label }` with no field a price could use.
+   */
+  const reissueRelations = (reissueRelRes.data ?? []) as Array<{ type: string; from_product_id: string; to_product_id: string }>
+  const reissueOtherIds = [...new Set(reissueRelations.flatMap((r) => [r.from_product_id, r.to_product_id]))].filter((id) => id !== productId)
+  const reissueLinks = new Map<string, ReissueLink>()
+  if (reissueOtherIds.length > 0) {
+    const [otherRes, otherDomainRes] = await Promise.all([
+      admin.from('kg_product').select('id, slug, canonical_name, status, support_state, browse_visibility').in('id', reissueOtherIds),
+      admin.from('browse_product_projection').select('id, browse_domain').in('id', reissueOtherIds),
+    ])
+    if (otherRes.error || otherDomainRes.error) throw new CatalogueUnavailableError('reissue_lookup')
+    const otherDomains = new Map(
+      ((otherDomainRes.data ?? []) as Array<{ id: string; browse_domain: string | null }>).map((r) => [r.id, r.browse_domain ?? null]),
+    )
+    for (const r of (otherRes.data ?? []) as Array<Record<string, unknown>>) {
+      const eligible = isCanonical({
+        status: r.status as string | null,
+        support_state: r.support_state as string | null,
+        browse_visibility: r.browse_visibility as string | null,
+        browse_domain: otherDomains.get(r.id as string) ?? null,
+      })
+      if (eligible && typeof r.slug === 'string' && typeof r.canonical_name === 'string') {
+        reissueLinks.set(r.id as string, { slug: r.slug, label: r.canonical_name })
+      }
+    }
+  }
+  const reissueContext: ReissueContext | null = buildReissueContext(productId, reissueRelations, reissueLinks)
+
+  /**
    * The marketplaces Klup watches for THIS product, so the page can render a
    * watched-but-empty source as a state rather than as nothing at all (PAN-113).
    *
@@ -821,7 +867,7 @@ async function buildProductPayload(
   // let a depublished product outlive the origin's refusal" is now the
   // accepted, stated bound, the same one /api/discover runs).
   return {
-    body: { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, dkAskingPrices, awaitingReview, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, familyContext, catalogueContext, adminPreview, monitoredSources },
+    body: { product, listings: listingsWithVerdict, priceHistory, priceRange, populations, dkAskingPrices, awaitingReview, soldCounts, eligibility, unresolvedListings, retrieval, relatedProducts, familyContext, reissueContext, catalogueContext, adminPreview, monitoredSources },
     adminPreview,
   }
 }
