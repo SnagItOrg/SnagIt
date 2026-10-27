@@ -16,7 +16,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { buildMatchIndex, decideMatch, type Product } from '../../frontend/lib/matching/match-listings'
+import { buildMatchIndex, decideMatch, lineBoundaryRefusal, type Product } from '../../frontend/lib/matching/match-listings'
 
 const product = (slug: string, model_name: string): Product => ({
   id: `p-${slug}`, slug, canonical_name: `Neumann ${model_name}`, model_name, brand_name: 'neumann',
@@ -125,6 +125,27 @@ test('U 87 against U 87 Ai: the pre-Ai row refuses every Ai spelling, the Ai row
     'Neumann U 87 A i 1980s Condenser Microphone. 2nd Generation. U87A i U87Ai U87 Ai. 60812',
     'Neumann U 87 Ai Large Diaphragm Multipattern Condenser Microphone 1986 - Present - Nickel',
   ])
+})
+
+test('PAN-304: Danish and German pairs, hyphenated stereo sets and stereo kits are never the single mic', () => {
+  // The two production leaks (2026-10-27): a DBA pair on the KM 84 band, a Reverb stereo kit matched to it.
+  assert.equal(lineBoundaryRefusal('Neumann KM84 2stk sælges', 'neumann-km-84'), 'other_member:2stk')
+  assert.equal(
+    lineBoundaryRefusal('PENDING Vintage Neumann KM 84 i Sequential Stereo Master Kit w/ KK 83 Omni Capsules', 'neumann-km-84'),
+    'other_member:stereo master kit',
+  )
+  // How sellers on dba.dk and kleinanzeigen.de write a pair (live ads, 2026-10-27, and their spellings).
+  expectAll(null, [
+    'Neumann KM184 Stereo-Set Mikrofon',
+    'Neumann KM 184 Stereo-Paar',
+    'Neumann KM 184 Pärchen',
+    'Neumann KM 184 matchet stereopar',
+    'Neumann KM 184 par',
+    'Neumann KM 184 2 stk.',
+    'Neumann KM 184 stereosæt',
+  ])
+  // "et par" / "ein paar" is "a few": a condition note, not a count.
+  expectAll('neumann-km-184', ['Neumann KM 184 – et par små ridser'])
 })
 
 test('KH 120 A / II / D, KMS 104 / Plus / D, U 67 vintage / reissue, KM 184 / SKM 184', () => {
