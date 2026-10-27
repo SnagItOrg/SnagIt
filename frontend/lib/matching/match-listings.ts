@@ -471,9 +471,19 @@ const NEUMANN_NEVER: readonly RegExp[] = [
  * Pair", "Stereo Set", "KM 184 MT STEREO SET Coppia di Microfoni", "KH 80 DSP - Pair",
  * "2x Neumann KH120 II", "Two Neumann KM 184 mt", "U47 fet microphones x 3". The pair rows
  * (neumann-skm-184) are their own products and carry no boundary.
+ *
+ * PAN-304 (owner 2026-10-27: pairs stay out of the single bands). Danish and German sellers
+ * write the count and the word: "Neumann KM84 2stk sælges", "KM184 Stereo-Set", "Stereo-Paar",
+ * "Pärchen", "matchet stereopar"; Reverb writes "Sequential Stereo Master Kit". A bare "par"
+ * after "et" / "ein" / "nogle" is "a few" ("et par ridser"), not a pair.
  */
 const NEUMANN_PAIR: readonly RegExp[] = [
   ...cues('pair', 'matched pair', 'stereo pair', 'stereo set', 'stero set', 'stereoset', 'coppia', 'paar'),
+  ...cues('stereopar', 'stereosæt', 'stereo sæt', 'stereopaar', 'pärchen', 'matchet', 'matchede'),
+  /(?<![\w-])(?<!(?:et|ein|nogle)\s)par(?![\w-])/i,
+  /(?<![\w-])stereo-(?:set|pair|paar|par|sæt)(?![\w-])/i,
+  /(?<![\w-])stereo\s+(?:\w+\s+)?kit(?![\w-])/i,
+  /(?<![\w-])[2-9]\s?(?:stk|styk|stck|stück|pcs)(?![a-zæøåäöü])/i,
   /(?<![\w-])stereo\s+(?:\w+\s+)?set(?![\w-])/i,
   /(?<![\w-])(?:[2-9]\s?x|x\s?[2-9])(?![\w-])/i,
   /^\W*(?:[2-9]|two|three|four)\s+(?:x\s+)?neumann(?![\w-])/i,
