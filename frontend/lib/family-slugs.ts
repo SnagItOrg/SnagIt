@@ -125,6 +125,10 @@ export const FAMILY_SLUGS = [
   // "Eventide H9"); the named pedals are the priced pages. Not `eventide-h9-max` / `eventide-h9-core` (priced pages).
   'eventide-factor-pedals',
   'eventide-h9-pedals',
+  // PAN-302 (owner, 2026-10-26). The `rhodes` case, twice: no row. Not `telefunken-ela-m-251` (the vintage original's
+  // priced page) or a TF row (each its own priced page).
+  'telefunken-ela-m-251-condenser',
+  'telefunken-alchemy',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]

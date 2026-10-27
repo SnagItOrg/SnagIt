@@ -294,6 +294,10 @@ test('integration: every package suite is registered exactly once', () => {
       // its maker ("Space" Echo, Floyd "Rose", Shure "H9", Rupert Neve "RNP", Technics "1210"); price decides the H9, H3500
       // and Tube-Tech predecessor rows; plug-ins, parts, the 2290 P pedal, pairs, rack bundles and modified units name none.
       'scripts/lib/pan293-modern-classics.test.ts',
+      // PAN-302: the microphones — Telefunken and the Neumann classics. A bare "Telefunken U47 / ELA M 251E" is the
+      // Elektroakustik reissue, a vintage word makes it the original (the Neumann U 47 through its "Telefunken U47" alias,
+      // the AKG-built ELA M 251); price decides the ELA M, U 48, M 49 V and KM 53 rows; tubes, parts and copies name none.
+      'scripts/lib/pan302-telefunken-neumann.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
