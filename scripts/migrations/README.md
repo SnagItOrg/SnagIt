@@ -656,3 +656,20 @@ runner's per-watchlist read. Pausing a watchlist's mails uses the existing
 | Rollback | `070_rollback.sql`. Drops the table; absent is a no-op. A watchlist the runner paused stays paused (it is the user's setting now), and the NOTICE counts them. Every `/w/<token>` link already mailed answers 404 afterwards. |
 | Rehearsal | PGlite 0.2.17, `rehearse070.mjs`, 21 checks, output on the PR: PRE closed despite a simulated `ALTER DEFAULT PRIVILEGES … TO anon, authenticated`, POST no-op keeping rows, the token/listing/prompt/FK CHECKs, the click stamp, rollback keeping a paused watchlist paused, absent no-op, re-apply, cascade on watchlist delete, DRIFT on a foreign shape (untouched), on a grant to `anon`, on RLS off and on a missing index. `verify-migrations-isolated.sh` covers 053/054 only and needs a local PostgreSQL the authoring machine does not have. |
 | Writers | `scripts/notify-watchlists.ts` (insert per sent mail, delete on a failed send, `watchlists.active = false` after a sent pause mail); `/w/[token]` and `/w/[token]/[n]` (`clicked_at`); `POST /api/watchlist-mail/[token]` (`watchlists.active`). Until 070 is applied the runner probes, prints "watchlist_mail absent" and sends the PAN-273 mail. |
+
+## 071 — `kg_relation` admits `reissue_of`. **NOT APPLIED.**
+
+`071_kg_relation_reissue_of.sql` (PAN-302) replaces `kg_relation_type_check`
+(the six values from 008) with the same six plus `reissue_of`. A row reads
+"`from` is a reissue of `to`": the Telefunken Elektroakustik U47 of the
+Neumann U 47, the ELA M 251E of the vintage ELA M 251. No row moves, no
+column, no grant.
+
+| Property | |
+|---|---|
+| Why | Owner, 2026-10-27, option (a) on PAN-302: the product page says "Genudgivelse af Neumann U 47", and the original says "Genudgivet af …" (`frontend/lib/reissues.ts`). A link only: no band, median or verdict reads `kg_relation` (CLAUDE.md §7), and the similar-gear shelf ignores the type (`relationReason` returns null). |
+| P0 | Not a new table. `kg_relation` keeps its RLS and its public read policy from 008. |
+| PRE / POST / DRIFT | PRE (the 008 CHECK, compared as `pg_get_constraintdef` text, which production returns byte-for-byte as PGlite does) replaces and verifies in the transaction; POST (the seven-value CHECK) is a no-op; any other CHECK raises before any change. |
+| Rollback | `071_rollback.sql`. Refuses while any `reissue_of` row exists; otherwise restores the 008 CHECK; the 008 shape is a no-op; a foreign CHECK raises. |
+| Rehearsal | PGlite 0.5.10, `rehearse302-reissue.mjs` (outside the repo, with the rows file), 27 checks: PRE, POST no-op, a foreign type still refused, rollback refusing while rows exist and then restoring the exact 008 CHECK, absent no-op, DRIFT on a foreign CHECK both ways, re-apply. |
+| Writers | None in code. The five PAN-302 rows are a guarded data file the owner runs after 071 (`pan302-reissue-forward.sql`). `scripts/import-knowledge-graph.ts` full-replaces `kg_relation` and would drop them; it is not run today. |

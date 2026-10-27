@@ -49,6 +49,7 @@ import type { Listing } from '@/lib/supabase'
 // never enters this bundle — only the canonical siblings the server filtered.
 import type { FamilyContext, PricePoint } from '@/app/api/product/[slug]/route'
 import type { SimilarProduct } from '@/app/api/product/[slug]/similar/route'
+import type { ReissueContext, ReissueLink } from '@/lib/reissues'
 import { facetLine } from '@/lib/product-facet-line'
 import { placeholderIcon } from '@/lib/placeholder-icon'
 
@@ -198,6 +199,8 @@ export default function ProductPage() {
   /** Null for a product with no family — six of the seven families, and every
    *  product outside one. The breadcrumb then has no family crumb. */
   const [familyContext, setFamilyContext] = useState<FamilyContext | null>(null)
+  /** PAN-302: the original this product reissues, or its reissues; null for almost every product. */
+  const [reissueContext, setReissueContext] = useState<ReissueContext | null>(null)
   /** The product's own category and kind (PAN-121), for the breadcrumb's
    *  catalogue crumbs. Null when it cannot be placed. */
   const [catalogueContext, setCatalogueContext] = useState<ProductPlacement | null>(null)
@@ -283,6 +286,7 @@ export default function ProductPage() {
       setSoldCounts(data.soldCounts ?? null)
       setMonitoredSources(data.monitoredSources ?? [])
       setFamilyContext(data.familyContext ?? null)
+      setReissueContext(data.reissueContext ?? null)
       setCatalogueContext(data.catalogueContext ?? null)
     } catch {
       setNotFound(true)
@@ -600,6 +604,22 @@ export default function ProductPage() {
                             .map((item) => (item.count !== undefined ? fill(t[item.key as 'facetPatternCount'], { count: item.count }) : t[item.key as keyof typeof t]))
                             .join(' · ')}
                         </p>
+                      )}
+                      {/* PAN-302: a link, never a price — a reissue and its original are priced apart. */}
+                      {reissueContext && ([['reissueOf', reissueContext.of], ['reissuedBy', reissueContext.by]] as const).map(([key, links]) =>
+                        links.length > 0 && (
+                          <p key={key} className="text-sm text-muted-foreground">
+                            {t[key]}{' '}
+                            {links.map((link: ReissueLink, i: number) => (
+                              <Fragment key={link.slug}>
+                                {i > 0 && ', '}
+                                <a href={`/product/${link.slug}`} className="text-foreground underline underline-offset-2 hover:no-underline">
+                                  {link.label}
+                                </a>
+                              </Fragment>
+                            ))}
+                          </p>
+                        ),
                       )}
                     </div>
 
