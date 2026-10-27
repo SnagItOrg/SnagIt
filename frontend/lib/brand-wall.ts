@@ -109,7 +109,7 @@ function kindCueRegex(cues: readonly string[]): RegExp {
 export function namesBrassAccessory(title: string): boolean {
   const markerAt = earliestInclusionMarker(title.toLowerCase())
   for (const noun of BRASS_ACCESSORIES) {
-    const m = cue(noun).exec(title)
+    const m = (typeof noun === 'string' ? cue(noun) : noun).exec(title)
     if (m && !(markerAt !== -1 && markerAt < m.index)) return true
   }
   return false

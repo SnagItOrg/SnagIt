@@ -309,6 +309,9 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan303-kleinanzeigen-audio-hifi.test.ts',
       // PAN-303: home-audio is retired — excluded through the one list, its URLs 308 to pro-audio/studio-headphones.
       'scripts/lib/pan303-retire-home-audio.test.ts',
+      // PAN-306: the Reverb sold writer links a sale only when its title passes the product's line boundary, and
+      // pages the sold search to replace the refused ones; the boundary fixes for what sold titles write differently.
+      'scripts/lib/pan306-sold-boundary.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite

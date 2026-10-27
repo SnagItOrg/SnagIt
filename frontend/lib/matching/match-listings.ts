@@ -485,7 +485,9 @@ const NEUMANN_PAIR: readonly RegExp[] = [
   /(?<![\w-])stereo\s+(?:\w+\s+)?kit(?![\w-])/i,
   /(?<![\w-])[2-9]\s?(?:stk|styk|stck|stück|pcs)(?![a-zæøåäöü])/i,
   /(?<![\w-])stereo\s+(?:\w+\s+)?set(?![\w-])/i,
-  /(?<![\w-])(?:[2-9]\s?x|x\s?[2-9])(?![\w-])/i,
+  // A count, never a speaker layout (PAN-306): "Fender '65 Twin Reverb - 2 x 12-inch", "Vox AC30C2 2 x 12" … Combo".
+  // "2 x 12AX7" is still two tubes.
+  /(?<![\w-])(?:[2-9]\s?x(?!\s*(?:8|10|12|15)(?:["”'-]|\s|$))|x\s?[2-9])(?![\w-])/i,
   /^\W*(?:[2-9]|two|three|four)\s+(?:x\s+)?neumann(?![\w-])/i,
 ]
 
@@ -996,7 +998,14 @@ const GIBSON_CUSTOM: readonly RegExp[] = cues(
  * trio or a lot of one unit: the Neumann pair cues plus what Shure and Sony sellers write ("Sony
  * C-37A … Pair w PSU's", "Matched Trio Neumann Km84", "LOT OF 7 ORIGINAL CABLES Sony C37A").
  */
-const PAIR_OR_LOT: readonly RegExp[] = [...NEUMANN_PAIR, ...cues('trio', 'matched trio', 'lot', 'lot of', 'set of', 'qty', 'quantity')]
+const PAIR_OR_LOT: readonly RegExp[] = [
+  ...NEUMANN_PAIR,
+  // "Fender Blues Junior IV Color Trio" is a red, white and blue FSR finish, not three amps (PAN-306).
+  /(?<![\w-])(?<!colou?r\s+)trio(?![\w-])/i,
+  // "Roland JC-120 Jazz Chorus 2 x 12-inch … (2-pack) Bundle": the speaker layout no longer says two (PAN-306).
+  /(?<![\w-])[2-9][\s-]?pack(?![\w-])/i,
+  ...cues('matched trio', 'lot', 'lot of', 'set of', 'qty', 'quantity'),
+]
 /** A UAD or other plug-in listing that names the hardware it models: software is never the unit (PAN-214). */
 const UAD_SOFTWARE: readonly RegExp[] = cues('plug-in', 'plugin', 'plug in', 'uad', 'download', 'activation card', 'activation', 'native', 'vst', 'aax')
 /** A vacuum tube sold for the unit ("1 x NOS 6AU6A … ~ Sony C800g", "NOS KEN-RAD 6K6GT … Fender 6G15"). */
@@ -1012,10 +1021,15 @@ const MIC_PARTS: readonly string[] = [
   'case', 'bag', 'stand', 'mount', 'shock mount', 'shockmount', 'adapter', 'cartridge', 'capsule', 'transformer',
   'connector', 'connectors', 'psu', 'power supply', 'foam', 'pop filter',
 ]
+/**
+ * A panel sold alone, never the cabinet style a tweed amp is named by or a signed faceplate colour (PAN-306,
+ * Reverb sold): "Fender Deluxe 5E3 Narrow Panel 15-Watt 1x12"", "Soldano SLO-100 - Signed Purple Panel".
+ */
+const AMP_PANEL = /(?<![\w-])(?<!(?:narrow|wide|purple)\s+)panel(?![\w-])/i
 /** Amp parts: the retube kits and covers that dominate the 5150 and 2555 titles. */
-const AMP_PARTS: readonly string[] = [
+const AMP_PARTS: readonly (string | RegExp)[] = [
   'retube', 'tube kit', 'kit', 'tubes', 'valves', 'cover', 'footswitch', 'handle', 'handles', 'grill', 'grille',
-  'logo', 'badge', 'knob', 'knobs', 'faceplate', 'chassis', 'transformer', 'transformers', 'trannies', 'panel',
+  'logo', 'badge', 'knob', 'knobs', 'faceplate', 'chassis', 'transformer', 'transformers', 'trannies', AMP_PANEL,
 ]
 /** Pedal parts. */
 const PEDAL_PARTS: readonly string[] = ['cover', 'knob', 'knobs', 'footswitch', 'pcb', 'adapter', 'power supply', 'box only', 'manual']
@@ -1049,8 +1063,14 @@ const NEVE_PARTS: readonly string[] = [
  * with Necklace Lanyard" (a mouth harmonica) and a Danish "og" joining two products before any inclusion
  * marker ("Fender USA Stratocaster og Fender Blues Junior."); after a marker, "m cover og footswitch" stays.
  */
-const AMP_ACCESSORIES: readonly string[] = [
-  ...AMP_PARTS, 'tube', 'tube set', 'valve', 'valves', 'retube', 'recap', 'recap kit', 'capacitor', 'capacitors', 'capacitor set', 'cap set',
+/**
+ * A tube or valve sold alone, never the amp's own description (PAN-306, 33 Reverb sold titles): "Fender '65 Deluxe
+ * Reverb Tube Combo Amp", "Soldano SLO-100 … 100W Tube Amp Head", "Vox AC30C2 30W 2x12 Valve Combo". "Tube Amp
+ * Doctor" is a maker of tubes, and "EHX Tube Bundle" or a "tube spring Reverb Unit" stay refused.
+ */
+const AMP_TUBE = /(?<![\w-])(?:tube|valve)(?![\w-])(?:(?=\s+amp\s+doctor)|(?!\s+(?:guitar\s+|bass\s+)?(?:amp|amps|amplifier|combo|head|preamp|pre-amp|top)(?![\w-])))/i
+const AMP_ACCESSORIES: readonly (string | RegExp)[] = [
+  ...AMP_PARTS, AMP_TUBE, 'tube set', 'valves', 'retube', 'recap', 'recap kit', 'capacitor', 'capacitors', 'capacitor set', 'cap set',
   'resistor', 'resistor set', 'pot', 'pots', 'pot set', 'turret', 'turret board', 'headshell', 'head shell', 'gehäuse', 'cabinet only', 'speaker', 'speakers',
   'reverb tank', 'tank', 'choke', 'strap', 'fixings', 'vent', 'vents', 'voltage selector', 'switch', 'power lead', 'power cord', 'cable', 'cables',
   'flightcase', 'flight case', 'road case', 'safe case', 'gig bag', 'gigbag', 'clamshell', 'slip cover', 'stand', 'manual', 'schematic',
@@ -1163,8 +1183,12 @@ const marshallJcm800 = (own: string, ...others: string[]): LineBoundary => ({
  * "YTR-2330 trompet med mundstykke" keeps the trumpet. Exported so the brand wall (lib/brand-wall.ts) refuses
  * exactly what the rows refuse.
  */
-export const BRASS_ACCESSORIES: readonly string[] = [
-  'mouthpiece', 'mouthpieces', 'mundstykke', 'mundstykker', 'munnstykke', 'munnstykker', 'munstycke', 'munstycken', 'mundstück',
+export const BRASS_ACCESSORIES: readonly (string | RegExp)[] = [
+  // A mouthpiece listed after the horn comes with it (PAN-306, Reverb sold): "Stradivarius 72 … trumpet Bach case
+  // and mouthpiece", "YTR-232S … Trumpet, … Documents, Mouthpiece". Only in such a list: "Bach Trumpet Mouthpiece 3C"
+  // and "Trumpet mouthpiece 7C" are mouthpieces sold alone.
+  /(?<!(?:trumpet|trompet)\b.*(?:,|&|\band|\bog)\s*)(?<![\w-])mouthpieces?(?![\w-])/i,
+  'mundstykke', 'mundstykker', 'munnstykke', 'munnstykker', 'munstycke', 'munstycken', 'mundstück',
   'mute', 'mutes', 'sordin', 'dæmper', 'silent brass', 'leadpipe', 'lead pipe', 'ventilolie', 'valve oil', 'slide grease',
   'cleaning rod', 'cleaning snake', 'bore brush', 'maintenance kit', 'trim kit', 'lyre',
   'noder', 'nodehæfte', 'nodebog', 'noter', 'nothäfte', 'notenheft', 'bog', 'book', 'bok', 'method', 'skole', 'cd', 'lp', 'dvd', 'vinyl',
@@ -1810,9 +1834,11 @@ const TF_MIC_PARTS: readonly string[] = [
  * M49b Remanufactured", "Flea U48 w/ Power Supply", "SATURN SOUND RV-14 M TUBE Neumann U47& U48", "Phaedrus VF14M
  * REDD TUBE U47&U48", "Neumann Telefunken U47 U48 Repro Bottom Bell".
  */
-const MIC_COPY_MAKERS: readonly RegExp[] = cues(
-  'blue', 'flea', 'saturn sound', 'phaedrus', 'repro', 'reproduction', 'clone', 'replica', 'kit', 'diy',
-)
+const MIC_COPY_MAKERS: readonly RegExp[] = [
+  ...cues('blue', 'flea', 'saturn sound', 'phaedrus', 'repro', 'reproduction', 'clone', 'replica', 'diy'),
+  // A kit to build one, never the mic as it shipped (PAN-306): "NEUMANN KM54a Vintage (full original kit)".
+  /(?<![\w-])(?<!original\s+)kit(?![\w-])/i,
+]
 /** A badge sold alone ("Telefunken ELA M 251E mic badge"), never the "Telefunken badge" a vintage Neumann wears. */
 const BADGE_ALONE = /(?<![\w-])badge(?:\s+only)?\s*(?:\(|$)/i
 /** Each Telefunken unit's code as sellers write it ("ELAM 251E", "ELA-M 251", "AK47", "TF-51", "CU-29 Copperhead"). */
@@ -3370,7 +3396,8 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
     line: 'svt',
     otherMembers: [
       ...PAIR_OR_LOT, ...TUBE_LISTING, ...AMP_COPY,
-      /(?<![\w-])svt[\s-]*(?:cl|vr|av|ii|iii|iv|vi|v|[2-8]|pro|classic|heritage|micro|mini|tube|di|\d{3,4}[a-z]*)(?![\w])/i,
+      // "SVT-3PRO" is its own head (PAN-306): before AMP_TUBE only its "Tube Preamp" refused it.
+      /(?<![\w-])svt[\s-]*(?:cl|vr|av|ii|iii|iv|vi|v|[2-8]\s?pro|[2-8]|pro|classic|heritage|micro|mini|tube|di|\d{3,4}[a-z]*)(?![\w])/i,
       ...cues('classic', 'heritage', 'pro', 'micro', 'mini', 'cab', 'cabinet', 'cabs', 'speaker cabinet', '8x10', '4x10', '2x10', '1x15', '2x12', '810', '410', '210', '212', '115', '15e', 'hen', 'hlf', 'he', 'av', 'di box', 'tube di',
         'full stack', 'stack', 'b-15', 'b15', 'portaflex', 'v-4', 'v4', 'v-4b', 'rocket', 'reissue'),
     ],

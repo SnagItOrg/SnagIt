@@ -15,7 +15,8 @@
 import * as path from 'path'
 import * as fs from 'fs'
 import { createClient } from '@supabase/supabase-js'
-import { partitionHeld } from './lib/price-queue-held'
+import { partitionHeld, type HeldRow } from './lib/price-queue-held'
+import { collectSold, type SoldListing } from './lib/sold-boundary'
 
 // ── Load env ─────────────────────────────────────────────────────────────────
 const envPaths = [
@@ -112,13 +113,10 @@ const HEADERS = {
   'Authorization': `Bearer ${REVERB_API_TOKEN}`,
 }
 
-interface ReverbListing {
+interface ReverbListing extends SoldListing {
   id: number | string
   title: string
-  price?: { amount: string; currency: string }
-  condition?: { display_name?: string }
   categories?: Array<{ uuid?: string; full_name?: string }>
-  _links?: { web?: { href?: string } }
   published_at?: string
   created_at?: string
 }
@@ -133,9 +131,11 @@ interface ReverbListing {
  * `err.message` are provider-controlled and can carry a host or a URL, so
  * neither reaches a log line.
  */
-async function fetchSoldListings(query: string): Promise<ReverbListing[] | null> {
+const PER_PAGE = 20
+
+async function fetchSoldListings(query: string, page: number): Promise<ReverbListing[] | null> {
   await rateLimit()
-  const url = `${API_BASE}/listings?query=${encodeURIComponent(query)}&state=sold&per_page=20`
+  const url = `${API_BASE}/listings?query=${encodeURIComponent(query)}&state=sold&per_page=${PER_PAGE}&page=${page}`
 
   try {
     const res = await fetch(url, { headers: HEADERS })
@@ -219,24 +219,26 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
   const searchQuery = `${brand} ${product.model_name}`
   console.log(`    Searching Reverb: "${searchQuery}"`)
 
-  const listings = await fetchSoldListings(searchQuery)
+  // Only a sale whose title passes the product's line boundary is linked
+  // (PAN-306), and the search pages on until enough usable sales pass.
+  const sold = await collectSold(item.product_slug, (page) => fetchSoldListings(searchQuery, page), PER_PAGE)
 
   // A refusal is not a quiet source. Finalise as `failed` rather than leaving
   // the row pending, which would re-offer it every run without bound.
-  if (listings === null) {
+  if (sold === null) {
     await finaliseQueueRow(item.id, 'failed', 'provider_unavailable')
     return false
   }
+  console.log(`    Read ${sold.pages} page(s): ${sold.accepted.length} accepted, ${sold.refused} refused by the line boundary${sold.complete ? '' : ' (stopped early: provider_unavailable)'}`)
 
-  // A real 200 that carried nothing. This one legitimately completes.
-  if (listings.length === 0) {
+  // A real 200 that carried nothing this product may hold. This one legitimately completes.
+  if (sold.accepted.length === 0) {
     await finaliseQueueRow(item.id, 'done', 'no_sold_listings')
     return true
   }
 
   // Build rows — store product_slug as query for easy lookup
-  const rows = listings
-    .filter(l => l.price && parseFloat(l.price.amount) > 0)
+  const rows = sold.accepted
     .map(l => ({
       watchlist_id: null,
       // The product page reads sold history by this id, never by `query`
@@ -259,28 +261,37 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
   // cannot deduplicate: watchlist_id is NULL, and NULLs never conflict. So the
   // sales this product already holds are left out here, or each run would add
   // them again and weight the sold band by how often the product was checked.
-  const urls = rows.map(r => r.listing_url).filter(Boolean)
-  const { data: linked, error: heldError } = await supabase
-    .from('reverb_price_history')
-    .select('id, listing_url, kg_product_id')
-    .eq('kg_product_id', product.id)
-    .in('listing_url', urls)
+  // Read one page's URLs at a time: five pages of URLs in one .in() would pass
+  // PostgREST's URL limit.
+  const urls = rows.map(r => r.listing_url).filter((u): u is string => !!u)
+  const held: HeldRow[] = []
+  for (let i = 0; i < urls.length; i += PER_PAGE) {
+    const chunk = urls.slice(i, i + PER_PAGE)
+    const { data: linked, error: heldError } = await supabase
+      .from('reverb_price_history')
+      .select('id, listing_url, kg_product_id')
+      .eq('kg_product_id', product.id)
+      .in('listing_url', chunk)
 
-  // Rows written before PAN-210 carry the slug and no product id. They are the
-  // same sales, so they count as held too, and are linked below (PAN-231).
-  const { data: unlinked, error: unlinkedError } = await supabase
-    .from('reverb_price_history')
-    .select('id, listing_url, kg_product_id')
-    .is('kg_product_id', null)
-    .is('watchlist_id', null)
-    .eq('query', item.product_slug)
-    .in('listing_url', urls)
+    // Rows written before PAN-210 carry the slug and no product id. They are the
+    // same sales, so they count as held too, and are linked below (PAN-231).
+    // A row unlinked because its title is refused (PAN-306) can never be linked
+    // again here: only accepted sales reach `rows`.
+    const { data: unlinked, error: unlinkedError } = await supabase
+      .from('reverb_price_history')
+      .select('id, listing_url, kg_product_id')
+      .is('kg_product_id', null)
+      .is('watchlist_id', null)
+      .eq('query', item.product_slug)
+      .in('listing_url', chunk)
 
-  if (heldError || unlinkedError) {
-    await finaliseQueueRow(item.id, 'failed', 'price_history_read_failed')
-    return false
+    if (heldError || unlinkedError) {
+      await finaliseQueueRow(item.id, 'failed', 'price_history_read_failed')
+      return false
+    }
+    held.push(...(linked ?? []), ...(unlinked ?? []))
   }
-  const { fresh, toLink } = partitionHeld(rows, [...(linked ?? []), ...(unlinked ?? [])])
+  const { fresh, toLink } = partitionHeld(rows, held)
 
   for (const old of toLink) {
     const categories = rows.find(r => r.listing_url === old.listing_url)?.reverb_categories
