@@ -298,6 +298,9 @@ test('integration: every package suite is registered exactly once', () => {
       // Elektroakustik reissue, a vintage word makes it the original (the Neumann U 47 through its "Telefunken U47" alias,
       // the AKG-built ELA M 251); price decides the ELA M, U 48, M 49 V and KM 53 rows; tubes, parts and copies name none.
       'scripts/lib/pan302-telefunken-neumann.test.ts',
+      // PAN-303: Kleinanzeigen also reads Audio & Hifi (c172) for the KG's microphones, and only for them; another
+      // maker's mic "wie Neumann", a "Replika" or a "Klon" names no Neumann row.
+      'scripts/lib/pan303-kleinanzeigen-audio-hifi.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite

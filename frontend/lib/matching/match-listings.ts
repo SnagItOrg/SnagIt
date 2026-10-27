@@ -445,6 +445,10 @@ const NEUMANN_NEVER: readonly RegExp[] = [
     'replica', 'clone', 'style', 'compatible with', 'diy', 'logo', 'not tested', 'nicht getestet', 'midi adapter',
     // another maker's mic that names a Neumann as its model: "JJ Audio Huskey Pup 47: … a smaller version …"
     'version of', 'based on', 'inspired by', 'similar to',
+    // PAN-303, Audio & Hifi on kleinanzeigen.de: "B.P.M. CR-73 Studiomikrofon Erstbesitz, wie Neumann U87" (375 €),
+    // "DA 87i Mikrofon *Neumann U87i Replika*", "Peluso 2247 LE … Neumann U47 Klon". Not a bare "wie": "wie neu" is
+    // how a German seller says "like new".
+    'wie neumann', 'replika', 'klon',
     // a head or capsule assembly, a lot of parts: "U67 Head with Assembly and KK67 Capsule",
     // "U67 Tube KK 67 microphone head set", "U67 lotto parts original ( five pz)"
     'head with', 'head set', 'head assembly', 'microphone head', 'lotto', 'pz',
