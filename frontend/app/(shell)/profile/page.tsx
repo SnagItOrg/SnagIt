@@ -61,8 +61,6 @@ export default function ProfilePage() {
   const [prefs,         setPrefs]         = useState<NotifPrefs | null>(null)
   const [watchlists,    setWatchlists]    = useState<Watchlist[]>([])
   const [deleting,      setDeleting]      = useState<string | null>(null)
-  const [resetSent,     setResetSent]     = useState(false)
-  const [resetLoading,  setResetLoading]  = useState(false)
   const [deleteOpen,    setDeleteOpen]    = useState(false)
   const [deletePending, setDeletePending] = useState(false)
   const [deleteFailed,  setDeleteFailed]  = useState(false)
@@ -100,17 +98,6 @@ export default function ProfilePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ [key]: updated[key] }),
     })
-  }
-
-  async function handleResetPassword() {
-    if (!email) return
-    setResetLoading(true)
-    const supabase = createSupabaseBrowserClient()
-    await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/auth/confirm',
-    })
-    setResetLoading(false)
-    setResetSent(true)
   }
 
   async function handleDeleteWatchlist(id: string) {
@@ -176,31 +163,6 @@ export default function ProfilePage() {
             </svg>
             {t.signOut}
           </button>
-        </div>
-
-        {/* ── Section 2: Password ───────────────────────────────────── */}
-        <div className={cardClass} style={cardStyle}>
-          <div className="flex items-center gap-2">
-            <Icon name="lock" style={{ fontSize: '20px', color: 'var(--foreground)' }} />
-            <h2 className="text-base font-bold text-foreground">{t.changePassword}</h2>
-          </div>
-
-          {resetSent ? (
-            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-              {t.resetLinkSent}{' '}
-              <span className="font-semibold" style={{ color: 'var(--foreground)' }}>{email}</span>
-            </p>
-          ) : (
-            <button
-              onClick={handleResetPassword}
-              disabled={resetLoading}
-              className="flex items-center gap-2 text-sm font-medium w-fit transition-opacity hover:opacity-70 disabled:opacity-40"
-              style={{ color: 'var(--muted-foreground)' }}
-            >
-              <Icon name="send" style={{ fontSize: '16px' }} />
-              {resetLoading ? '…' : t.sendResetLink}
-            </button>
-          )}
         </div>
 
         {/* ── Section 3: Notifications ───────────────────────────────── */}

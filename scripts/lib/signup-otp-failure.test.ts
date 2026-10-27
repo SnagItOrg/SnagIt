@@ -39,6 +39,8 @@ const code = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/
 
 const CARD_CODE = code(CARD)
 const SEARCH_CODE = code(SEARCH)
+const HELPER_CODE = code(readFileSync(join(FRONTEND, 'lib', 'email-code.ts'), 'utf8'))
+const COMPONENT_CODE = code(readFileSync(join(FRONTEND, 'components', 'EmailCodeSignIn.tsx'), 'utf8'))
 
 test('otp: a rate limit is told apart from a rejected address', () => {
   // These are the two that change what the reader should DO, so they are the
@@ -66,49 +68,44 @@ test('otp: anything else is generic, and no error is not an error', () => {
   assert.equal(classifyOtpError(undefined), null)
 })
 
-test('otp: neither call site sets a success state unconditionally', () => {
-  // The exact regression: `await signInWithOtp(...)` with the result thrown
-  // away. Both sites must destructure the error and branch on it.
-  for (const [name, src] of [['SearchResultCard', CARD_CODE], ['search/page', SEARCH_CODE]] as const) {
-    assert.match(
-      src,
-      /const \{ error \} = await supabase\.auth\.signInWithOtp\(/,
-      `${name} must read the returned error, not discard it`,
-    )
-    assert.doesNotMatch(
-      src,
-      /^\s*await supabase\.auth\.signInWithOtp\(/m,
-      `${name} discards the result of signInWithOtp again`,
-    )
-    assert.match(src, /classifyOtpError\(error\)/, `${name} must classify the failure`)
-  }
-
-  // The card's confirmation is now gated on there being no failure.
+test('otp: the one send site reads the returned error, and nothing claims a send that failed', () => {
+  // PAN-300: both public call sites (and the product page's) now send through
+  // `sendEmailCode` in lib/email-code.ts — the only `signInWithOtp` call left,
+  // which pan300-email-code asserts. The exact regression this suite exists
+  // for — `await signInWithOtp(...)` with the result thrown away — is checked
+  // there, at the one place it could come back.
   assert.match(
-    CARD_CODE,
-    /if \(!failure\) setCaptureSent\(true\)/,
-    'the card must not claim a link was sent when the send failed',
+    HELPER_CODE,
+    /const \{ error \} = await auth\.signInWithOtp\(/,
+    'the helper must read the returned error, not discard it',
   )
+  assert.doesNotMatch(HELPER_CODE, /^\s*await auth\.signInWithOtp\(/m, 'the helper discards the result again')
+  assert.match(HELPER_CODE, /return classifyOtpError\(error\)/, 'the helper must classify the failure')
+
+  // The component moves to "enter the code" only on a successful send.
+  assert.match(
+    COMPONENT_CODE,
+    /if \(failure\) return false/,
+    'the code step must not open when the send failed',
+  )
+  for (const [name, src] of [['SearchResultCard', CARD_CODE], ['search/page', SEARCH_CODE]] as const) {
+    assert.doesNotMatch(src, /signInWithOtp\(/, `${name} must send through the shared component`)
+  }
 })
 
 test('otp: the demand signal survives a failed send', () => {
-  // The whole point of that panel. The emit must stay OUTSIDE the branch that
-  // handles the mail, so a send failure cannot cost Klup the signal.
+  // The whole point of that panel. PAN-300: the signal is emitted when the
+  // address is submitted, which the component does BEFORE it sends, so a send
+  // failure cannot cost Klup the signal.
   assert.match(
     SEARCH_CODE,
-    /emit\('demand_signal_submitted', demandSignalPayload\(outcome, address\)\)/,
-    'the demand signal must still be recorded',
+    /function handleEmailSubmit\(address: string\) \{[\s\S]{0,80}emit\('demand_signal_submitted', demandSignalPayload\(outcome, address\)\)/,
+    'the demand signal must be recorded on submit',
   )
-
-  // PAN-257 added a second emit on the signed-in path, above `submitDemand`;
-  // the one this test is about is the anonymous path's, after the send guard.
-  const guardAt = SEARCH_CODE.indexOf('if (address.length > 0)')
-  const emitAt = SEARCH_CODE.indexOf("emit('demand_signal_submitted'", guardAt)
-  const closesAt = SEARCH_CODE.indexOf('\n    }', guardAt)
-  assert.ok(guardAt > 0 && closesAt > guardAt, 'the send guard moved; re-read this test')
+  assert.match(SEARCH_CODE, /onEmailSubmit=\{handleEmailSubmit\}/)
   assert.ok(
-    emitAt > closesAt,
-    'the demand signal emit must not be nested inside the send attempt',
+    COMPONENT_CODE.indexOf('onEmailSubmit?.(address)') < COMPONENT_CODE.indexOf('const ok = await send(address)'),
+    'onEmailSubmit must run before the send attempt',
   )
 
   // And the panel still thanks the visitor, because the signal WAS recorded.
@@ -148,7 +145,6 @@ test('otp: every message exists in both locales, translated and actionable', () 
     'otpErrorRateLimited',
     'otpErrorInvalidAddress',
     'otpErrorGeneric',
-    'demandNoLinkSent',
   ] as const
 
   for (const key of keys) {
@@ -175,26 +171,24 @@ test('otp: every message exists in both locales, translated and actionable', () 
     )
   }
 
-  // Both sites render from i18n, never a literal.
-  assert.match(CARD_CODE, /\{t\[captureError\]\}/, 'the card must render the message from i18n')
-  assert.match(SEARCH_CODE, /\{t\[otpError\]\}/, 'the panel must render the message from i18n')
+  // The shared component renders from i18n, never a literal.
+  assert.match(COMPONENT_CODE, /\{t\[error\]\}/, 'the sign-in must render the message from i18n')
 })
 
 test('otp: the failure is announced, not merely drawn', () => {
-  // A message that appears without a role is silent to a screen reader, and
-  // this one arrives after an action the visitor took.
-  assert.match(CARD_CODE, /role="alert"/, 'the card error needs role="alert"')
-  assert.match(SEARCH_CODE, /role="alert"/, 'the panel error needs role="alert"')
+  // A message that appears without a live region is silent to a screen
+  // reader, and this one arrives after an action the visitor took. PAN-300:
+  // one persistent assertive region in the shared component (Astryx's
+  // FieldStatus rule: a region mounted with its content may not announce).
+  assert.match(COMPONENT_CODE, /aria-live="assertive"/, 'the sign-in error needs an assertive live region')
 
-  // Destructive tokens, not raw red utilities (frontend/CLAUDE.md). Asserted
-  // positively and only on the new elements: the card's saved heart is a
-  // `text-red-500` on purpose — it signals a saved state, not a destructive
-  // action — and a file-wide ban would order that documented decision undone.
+  // Destructive tokens, not raw red utilities (frontend/CLAUDE.md).
   assert.match(
-    CARD_CODE,
+    COMPONENT_CODE,
     /bg-destructive-subtle[\s\S]{0,120}var\(--destructive-text\)/,
-    'the card error must use the destructive tokens',
+    'the sign-in error must use the destructive tokens',
   )
+  // The demand panel's own signed-in failure still uses role="alert".
   assert.match(
     SEARCH_CODE,
     /role="alert"[\s\S]{0,120}var\(--destructive-text\)/,

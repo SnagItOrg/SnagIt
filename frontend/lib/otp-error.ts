@@ -1,5 +1,6 @@
 /**
- * What to tell someone whose magic-link send just failed.
+ * What to tell someone whose sign-in code (PAN-300; a magic link before it)
+ * could not be sent.
  *
  * WHY THIS EXISTS AT ALL. `supabase.auth.signInWithOtp()` does not throw when
  * the send fails. Its own `catch` ends with:
@@ -58,6 +59,41 @@ export function classifyOtpError(
     error.code === 'validation_failed'
   ) {
     return 'otpErrorInvalidAddress'
+  }
+
+  return 'otpErrorGeneric'
+}
+
+/**
+ * PAN-300 — what to tell someone whose 6-digit code was not accepted.
+ *
+ * `verifyOtp` returns its failures the same way `signInWithOtp` does. GoTrue
+ * answers a wrong code and an expired one identically (403 `otp_expired`,
+ * "Token has expired or is invalid"), so they are one bucket: check the mail,
+ * or ask for a new code. Too many attempts is its own bucket because the
+ * reader must wait rather than retype.
+ */
+export type VerifyErrorKey =
+  | 'otpErrorCodeWrong'
+  | 'otpErrorTooManyTries'
+  | 'otpErrorGeneric'
+
+export function classifyVerifyError(
+  error: { status?: number; code?: string } | null | undefined,
+): VerifyErrorKey | null {
+  if (!error) return null
+
+  if (error.status === 429 || error.code === 'over_request_rate_limit') {
+    return 'otpErrorTooManyTries'
+  }
+
+  if (
+    error.code === 'otp_expired' ||
+    error.status === 400 ||
+    error.status === 401 ||
+    error.status === 403
+  ) {
+    return 'otpErrorCodeWrong'
   }
 
   return 'otpErrorGeneric'

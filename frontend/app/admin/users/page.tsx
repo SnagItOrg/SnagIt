@@ -59,18 +59,6 @@ export default function AdminUsersPage() {
     setActionLoading(null)
   }
 
-  async function handleResetPassword(id: string) {
-    setActionLoading(id)
-    const res = await fetch(`/api/admin/users/${id}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'reset-password' }),
-    })
-    if (res.ok) showToast('Reset-link sendt')
-    else showToast('Fejl ved afsendelse', { type: 'error' })
-    setActionLoading(null)
-  }
-
   const cardStyle = { backgroundColor: 'var(--card)', border: '1px solid var(--border)' }
 
   return (
@@ -109,14 +97,6 @@ export default function AdminUsersPage() {
                 <div className="ml-4 mt-1 mb-3 rounded-xl p-4 flex flex-col gap-4" style={cardStyle}>
                   {/* Actions */}
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleResetPassword(u.id)}
-                      disabled={actionLoading === u.id}
-                      className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
-                      style={{ backgroundColor: 'var(--secondary)', color: 'var(--foreground)' }}
-                    >
-                      Send reset-link
-                    </button>
                     <button
                       onClick={() => handleDelete(u.id, u.email)}
                       disabled={actionLoading === u.id}

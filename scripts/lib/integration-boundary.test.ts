@@ -294,6 +294,10 @@ test('integration: every package suite is registered exactly once', () => {
       // its maker ("Space" Echo, Floyd "Rose", Shure "H9", Rupert Neve "RNP", Technics "1210"); price decides the H9, H3500
       // and Tube-Tech predecessor rows; plug-ins, parts, the 2290 P pedal, pairs, rack bundles and modified units name none.
       'scripts/lib/pan293-modern-classics.test.ts',
+      // PAN-300: one passwordless way into an account — e-mail, then a 6-digit
+      // code. The helper's decisions, the code boxes, and the guards that no
+      // password path and no second signInWithOtp call site comes back.
+      'scripts/lib/pan300-email-code.test.ts',
       // PAN-302: "Genudgivelse af …" — a reissue_of link on the product page, never a price.
       'scripts/lib/pan302-reissues.test.ts',
       // PAN-302: the microphones — Telefunken and the Neumann classics. A bare "Telefunken U47 / ELA M 251E" is the
