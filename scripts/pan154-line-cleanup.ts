@@ -54,6 +54,9 @@ import * as path from 'path'
 import dotenv from 'dotenv'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { LINE_BOUNDARIES, lineBoundaryRefusal } from '../frontend/lib/matching/match-listings'
+// The vintage-only rows (the Thinline and Mustang bases are the audit's 1968–79 and 1966–81 originals) and the
+// sold-only condition cue now live with the sold writer's rule, which applies them to every fetch (PAN-306).
+import { CURRENT_PRODUCTION_CONDITIONS, VINTAGE_ONLY } from './lib/sold-boundary'
 
 const args = process.argv.slice(2)
 const flag = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=')
@@ -65,15 +68,6 @@ const ROLLBACK = flag('rollback')
 /** The products this script cleans: every line boundary on a supported product. */
 const SOURCES = Object.keys(LINE_BOUNDARIES).filter((s) => s !== 'sequential-circuits-prophet-10')
 
-/**
- * Products whose page is the vintage original only (owner decisions
- * 2026-09-26/28; the Thinline and Mustang bases are the audit's 1968–79 and
- * 1966–81 originals).
- */
-const VINTAGE_ONLY = new Set([
-  'moog-minimoog', 'fender-telecaster-thinline', 'fender-mustang-bass',
-])
-const CURRENT_PRODUCTION_CONDITIONS = new Set(['brand new', 'b-stock'])
 
 // ── where a refused row goes ────────────────────────────────────────────────
 
