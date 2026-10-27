@@ -5,6 +5,7 @@ import type { NextRequest } from 'next/server'
 import { requiresAdmin, requiresAuth } from '@/lib/route-access'
 import { familyRedirectTarget } from '@/lib/families'
 import { subcategoryHref } from '@/lib/catalogue-tree'
+import { retiredRootTarget } from '@/lib/home-categories'
 import { safeNextPath } from '@/lib/safe-next'
 
 // WHY THIS IS STILL `middleware.ts` ON NEXT 16 (PAN-167). Next 16 deprecates
@@ -99,6 +100,14 @@ export async function middleware(request: NextRequest) {
   const familyTarget = familyRedirectTarget(request.nextUrl.pathname)
   if (familyTarget) {
     return NextResponse.redirect(new URL(familyTarget, request.url), 308)
+  }
+
+  // PAN-303: a retired root (home-audio) and every kind or `?sub=` form under
+  // it 308 to where its products went, in one hop — hence ahead of the
+  // `?sub=` rule below. Ahead of the auth client for the reason above.
+  const retiredTarget = retiredRootTarget(request.nextUrl.pathname)
+  if (retiredTarget) {
+    return NextResponse.redirect(new URL(retiredTarget, request.url), 308)
   }
 
   // PAN-289: a kind is a page of its own, `/browse/<root>/<kind>`. The old

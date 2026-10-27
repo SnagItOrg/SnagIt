@@ -64,8 +64,32 @@ export const LEGACY_COARSE_ROOT_SLUG = 'music-gear'
  * `isRenderableRoot()` or directly: the homepage shelf, the `/browse` tiles
  * and the root page (which answers 404 for one of these), and the sidebar
  * tree. Add a slug here, and it leaves all of them at once.
+ *
+ * PAN-303 (owner, 2026-10-27): `home-audio` ("Hi-fi & hjemmelyd") is too broad
+ * and consumer for music professionals. Its one public product, the Neumann
+ * NDH 20, moved to `pro-audio/studio-headphones` first (guarded SQL), and the
+ * root's URLs redirect — see RETIRED_ROOT_TARGETS.
  */
-export const EXCLUDED_ROOT_SLUGS: ReadonlySet<string> = new Set(['accessories', 'parts'])
+export const EXCLUDED_ROOT_SLUGS: ReadonlySet<string> = new Set(['accessories', 'parts', 'home-audio'])
+
+/**
+ * PAN-303 — where a retired root's URLs go. A root that once answered 200
+ * (and was in the sitemap) is redirected rather than 404'd: `/browse/<root>`,
+ * `/browse/<root>/<kind>` and the old `?sub=` form all 308 to one target, in
+ * the middleware, ahead of the auth client. Only roots that had a public
+ * product are here; accessories and parts never did. An entry is never
+ * removed — an old URL stays linked from somewhere forever.
+ */
+export const RETIRED_ROOT_TARGETS: Readonly<Record<string, string>> = {
+  'home-audio': '/browse/pro-audio/studio-headphones',
+}
+
+/** The redirect target for a path under a retired root, or null. */
+export function retiredRootTarget(pathname: string): string | null {
+  const m = /^\/browse\/([^/]+)(?:\/[^/]+)?\/?$/.exec(pathname)
+  if (!m || !Object.prototype.hasOwnProperty.call(RETIRED_ROOT_TARGETS, m[1])) return null
+  return RETIRED_ROOT_TARGETS[m[1]]
+}
 
 /**
  * May this `kg_category` row be rendered as a taxonomy root?
