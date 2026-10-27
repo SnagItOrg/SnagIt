@@ -18,10 +18,10 @@ import type { HomeCategory } from '@/lib/home-categories'
  * makes coverage legible before the click — and the click still lands
  * somewhere that explains itself.
  *
- * Twelve and not fifteen: `isRenderableRoot()` drops `music-gear`, the
- * legacy coarse root, which `/browse` has always hidden, and (PAN-270) the
- * two roots the owner keeps out of the experience, `accessories` and
- * `parts`. Rendering any of them here would make the surfaces disagree about
+ * Eleven and not fifteen: `isRenderableRoot()` drops `music-gear`, the
+ * legacy coarse root, which `/browse` has always hidden, and the three roots
+ * the owner keeps out of the experience, `accessories` and `parts` (PAN-270)
+ * and `home-audio` (PAN-303). Rendering any of them here would make the surfaces disagree about
  * whether a category exists — the same class of defect as a count in front
  * of nothing.
  *

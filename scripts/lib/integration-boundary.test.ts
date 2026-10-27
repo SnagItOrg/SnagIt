@@ -303,6 +303,8 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-303: Kleinanzeigen also reads Audio & Hifi (c172) for the KG's microphones, and only for them; another
       // maker's mic "wie Neumann", a "Replika" or a "Klon" names no Neumann row.
       'scripts/lib/pan303-kleinanzeigen-audio-hifi.test.ts',
+      // PAN-303: home-audio is retired — excluded through the one list, its URLs 308 to pro-audio/studio-headphones.
+      'scripts/lib/pan303-retire-home-audio.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite

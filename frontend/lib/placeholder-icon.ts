@@ -40,6 +40,7 @@ const BY_KIND: Readonly<Record<string, IconName>> = {
   mixers: 'sliders_vertical',
   samplers: 'music_note',
   sequencers: 'music_note',
+  'studio-headphones': 'headphones',
   'studio-monitors': 'speaker',
 }
 
