@@ -24,6 +24,12 @@ test('dba.dk is a brand net and refuses to be read as a product set', () => {
   const net = monitoredBrands('dba.dk')
   assert.ok(net.brands.length >= 45, 'the 44 public brands plus strymon')
   assert.ok(net.brands.includes('manley') && net.brands.includes('shure') && net.brands.includes('martin'))
+  // Widening the net is an owner decision, so the count is pinned: PAN-307
+  // (2026-10-27) took it from 62 to 70 with these eight.
+  assert.equal(net.brands.length, 70)
+  for (const b of ['akg', 'ams', 'avalon', 'bach', 'binson', 'chandler-limited', 'coles', 'telefunken']) {
+    assert.ok(net.brands.includes(b), `${b} is in the net (PAN-307)`)
+  }
   assert.deepEqual(net.modelQueries, ['kush-clariphonic', 'shure-sm7b'])
   assert.equal(net.subCategory, '1.86.92')
   for (const b of net.brands) assert.match(b, /^[a-z0-9-]+$/, `${b} is not a kg_brand slug`)

@@ -16,7 +16,7 @@ import * as path from 'path'
 import * as fs from 'fs'
 import { createClient } from '@supabase/supabase-js'
 import { partitionHeld, type HeldRow } from './lib/price-queue-held'
-import { collectSold, type SoldListing } from './lib/sold-boundary'
+import { allSold, collectSold, cpIdsFromCsp, soldSearch, type SoldListing, type SoldSearch } from './lib/sold-boundary'
 
 // ── Load env ─────────────────────────────────────────────────────────────────
 const envPaths = [
@@ -133,9 +133,9 @@ interface ReverbListing extends SoldListing {
  */
 const PER_PAGE = 20
 
-async function fetchSoldListings(query: string, page: number): Promise<ReverbListing[] | null> {
+async function fetchSoldListings(search: SoldSearch, page: number): Promise<ReverbListing[] | null> {
   await rateLimit()
-  const url = `${API_BASE}/listings?query=${encodeURIComponent(query)}&state=sold&per_page=${PER_PAGE}&page=${page}`
+  const url = `${API_BASE}${search.path(page)}`
 
   try {
     const res = await fetch(url, { headers: HEADERS })
@@ -155,9 +155,39 @@ async function fetchSoldListings(query: string, page: number): Promise<ReverbLis
       console.error('    provider_invalid_response')
       return null
     }
+    if (search.requireSoldState && !allSold(listings as ReverbListing[])) {
+      console.error('    provider_unsold_listing')
+      return null
+    }
     return listings as ReverbListing[]
   } catch {
     console.error('    provider_request_failed')
+    return null
+  }
+}
+
+/**
+ * Reverb's product ids for a CSP, or null when the CSP gives none — the writer
+ * then falls back to the text search. Failures are static codes, as above.
+ */
+async function fetchCpIds(cspId: number): Promise<string[] | null> {
+  await rateLimit()
+  try {
+    const res = await fetch(`${API_BASE}/csps/${cspId}`, { headers: HEADERS })
+    if (res.status === 429) {
+      console.error('    csp_http_429')
+      await sleep(10000)
+      return null
+    }
+    if (!res.ok) {
+      console.error(`    csp_http_${res.status}`)
+      return null
+    }
+    const cpIds = cpIdsFromCsp(await res.json())
+    if (!cpIds) console.error('    csp_no_product_id')
+    return cpIds
+  } catch {
+    console.error('    csp_request_failed')
     return null
   }
 }
@@ -204,7 +234,7 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
   // Look up product for search query
   const { data: product } = await supabase
     .from('kg_product')
-    .select('id, model_name, kg_brand!inner(name)')
+    .select('id, model_name, reverb_csp_id, kg_brand!inner(name)')
     .eq('slug', item.product_slug)
     .limit(1)
     .single()
@@ -217,11 +247,16 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
 
   const brand = (product.kg_brand as unknown as { name: string })?.name
   const searchQuery = `${brand} ${product.model_name}`
-  console.log(`    Searching Reverb: "${searchQuery}"`)
+
+  // Reverb's own product page when the product has a CSP (PAN-307); the text
+  // search when it has none or the CSP names no product id.
+  const cpIds = product.reverb_csp_id ? await fetchCpIds(product.reverb_csp_id) : null
+  const search = soldSearch(cpIds, searchQuery, PER_PAGE)
+  console.log(`    Searching Reverb: ${search.label}`)
 
   // Only a sale whose title passes the product's line boundary is linked
   // (PAN-306), and the search pages on until enough usable sales pass.
-  const sold = await collectSold(item.product_slug, (page) => fetchSoldListings(searchQuery, page), PER_PAGE)
+  const sold = await collectSold(item.product_slug, (page) => fetchSoldListings(search, page), search.perPage)
 
   // A refusal is not a quiet source. Finalise as `failed` rather than leaving
   // the row pending, which would re-offer it every run without bound.
@@ -261,7 +296,7 @@ async function processItem(item: { id: string; product_slug: string }): Promise<
   // cannot deduplicate: watchlist_id is NULL, and NULLs never conflict. So the
   // sales this product already holds are left out here, or each run would add
   // them again and weight the sold band by how often the product was checked.
-  // Read one page's URLs at a time: five pages of URLs in one .in() would pass
+  // Read PER_PAGE URLs at a time: five pages of URLs in one .in() would pass
   // PostgREST's URL limit.
   const urls = rows.map(r => r.listing_url).filter((u): u is string => !!u)
   const held: HeldRow[] = []

@@ -314,6 +314,9 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan306-sold-boundary.test.ts',
       // PAN-307: Finn and Blocket on the dba.dk engine — category, newest first, to the end, per-query sweep.
       'scripts/lib/pan307-schibsted-engine.test.ts',
+      // PAN-307: the sold writer reads Reverb's own product page (CSP → cp id, show_only_sold) and falls back to the
+      // text search; the line boundary still refuses the siblings Reverb files there.
+      'scripts/lib/pan307-sold-by-product.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
