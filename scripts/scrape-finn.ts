@@ -1,28 +1,27 @@
 /**
  * scripts/scrape-finn.ts
  *
- * Fetches Finn listings for legendary knowledge-graph products
- * and upserts them into the Supabase listings table.
- *
- * Features:
- *   - Reads active legendary products from kg_product + kg_brand
- *   - Scrapes search pages via frontend/lib/scrapers/finn.ts
- *   - Conservative 3s rate limiting between products
- *   - Upserts on external_id + source using listing.url as the stable key
+ * Fetches Finn listings for the explicit 'finn' product set and publishes
+ * them through the dba.dk engine's fail-closed path (PAN-307):
+ * Musikkinstrumenter, newest first, to exhaustion, run record, coverage
+ * evidence, atomic promotion and a per-query stale sweep. The engine lives in
+ * scripts/lib/schibsted-market-scrape.ts and is shared with scrape-blocket.
  *
  * Usage:
  *   npx tsx scripts/scrape-finn.ts
  *   npx tsx scripts/scrape-finn.ts --limit=5
  *   npx tsx scripts/scrape-finn.ts --product="juno 60"
+ *   npx tsx scripts/scrape-finn.ts --dry-run        # scrape + report, no writes
  */
 
 import * as path from 'path'
 import * as fs from 'fs'
 import type { SupabaseClient } from '../frontend/node_modules/@supabase/supabase-js'
-import { scrapeFinn } from '../frontend/lib/scrapers/finn'
+import { FINN_CONFIG } from '../frontend/lib/scrapers/schibsted'
 
 import { monitoredSlugs, assertResolved } from './lib/source-monitoring'
-import { matchScrapedBatch, reportBatchMatch, newIngestionBatchId, fetchBatchListingIds } from './lib/match-new-inflow'
+import { matchScrapedBatch, reportBatchMatch, fetchBatchListingIds } from './lib/match-new-inflow'
+import { runSchibstedMarket, buildSearchQuery, SEARCH_OPTIONS, type MarketQuery } from './lib/schibsted-market-scrape'
 
 const { createClient } = require('../frontend/node_modules/@supabase/supabase-js') as typeof import('../frontend/node_modules/@supabase/supabase-js')
 
@@ -57,12 +56,11 @@ const args = process.argv.slice(2)
 const limitArg = args.find(a => a.startsWith('--limit='))?.split('=')[1]
 const LIMIT = limitArg ? parseInt(limitArg, 10) : Infinity
 const productFilter = args.find(a => a.startsWith('--product='))?.split('=')[1]?.toLowerCase() ?? null
+const DRY_RUN = args.includes('--dry-run')
 
-const PRODUCT_DELAY_MS = 3000
-
-function sleep(ms: number) {
-  return new Promise<void>(resolve => setTimeout(resolve, ms))
-}
+// Bump when scrape/parse behaviour changes; part of the scope hash.
+// 2.0.0 (PAN-307): the dba.dk engine — category, newest first, to exhaustion.
+const SCRAPER_VERSION = 'finn-2.0.0'
 
 type ProductRow = {
   id: string
@@ -76,19 +74,6 @@ function resolveBrandName(brand: ProductRow['kg_brand']): string | null {
   return brand.name ?? null
 }
 
-function buildSearchQuery(brandName: string, canonicalName: string): string {
-  const canonical = canonicalName.trim()
-  const brand = brandName.trim()
-  if (canonical.toLowerCase().startsWith(brand.toLowerCase())) {
-    return canonical
-  }
-  return `${brand} ${canonical}`.trim()
-}
-
-function normalizeText(title: string): string {
-  return title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
-}
-
 /**
  * Explicit marketplace-monitoring set for 'finn', from
  * data/klup-source-monitoring.json. This scraper no longer selects on
@@ -97,7 +82,7 @@ function normalizeText(title: string): string {
  */
 const MONITORED_SLUGS = monitoredSlugs('finn')
 
-async function loadProducts(): Promise<Array<{ id: string; canonical_name: string; brand_name: string; query: string }>> {
+async function loadProducts(): Promise<Array<MarketQuery & { canonical_name: string }>> {
   const { data, error } = await supabase
     .from('kg_product')
     .select('id, slug, canonical_name, kg_brand!inner(name)')
@@ -113,20 +98,19 @@ async function loadProducts(): Promise<Array<{ id: string; canonical_name: strin
   // shrink 'finn' coverage.
   assertResolved('finn', MONITORED_SLUGS, ((data ?? []) as Array<{ slug?: string }>).map(r => r.slug ?? ''))
 
-
-  let products = ((data ?? []) as ProductRow[])
+  let products = ((data ?? []) as Array<ProductRow & { slug: string }>)
     .map((product) => {
       const brandName = resolveBrandName(product.kg_brand)
       if (!brandName || !product.canonical_name) return null
-
       return {
         id: product.id,
+        slug: product.slug,
+        kg_product_id: product.id,
         canonical_name: product.canonical_name,
-        brand_name: brandName,
         query: buildSearchQuery(brandName, product.canonical_name),
       }
     })
-    .filter((product): product is { id: string; canonical_name: string; brand_name: string; query: string } => product !== null)
+    .filter((product): product is MarketQuery & { canonical_name: string } => product !== null)
 
   if (productFilter) {
     products = products.filter((product) => product.canonical_name.toLowerCase().includes(productFilter))
@@ -139,85 +123,41 @@ async function loadProducts(): Promise<Array<{ id: string; canonical_name: strin
   return products
 }
 
-function buildRows(listings: Awaited<ReturnType<typeof scrapeFinn>>) {
-  return listings.map((listing) => ({
-    title: listing.title,
-    price: listing.price,
-    currency: listing.currency,
-    url: listing.url,
-    image_url: listing.image_url,
-    location: listing.location,
-    source: listing.source,
-    country: listing.country,
-    price_dkk: listing.price_dkk ?? null,
-    scraped_at: new Date().toISOString(),
-    watchlist_id: null,
-    normalized_text: normalizeText(listing.title),
-    external_id: listing.url,
-    is_active: true,
-    platform: 'finn',
-  }))
-}
-
 async function main() {
-  console.log('⚙️  Finn → Listings Table Scraper')
+  console.log('⚙️  Finn → Listings (dba.dk engine)')
   if (productFilter) console.log(`   Product filter: ${productFilter}`)
+  if (DRY_RUN) console.log('   [dry-run] No writes will be made.')
   console.log(`   Limit: ${LIMIT === Infinity ? '∞' : LIMIT} products`)
-  console.log(`   Rate limit: ${PRODUCT_DELAY_MS}ms between products`)
+  console.log(`   Search: sub_category=${SEARCH_OPTIONS.subCategory}, sort=${SEARCH_OPTIONS.sort}`)
   console.log()
 
   const products = await loadProducts()
   if (products.length === 0) {
-    console.log('No matching legendary products found. Exiting.')
+    console.log('No matching products found. Exiting.')
     return
   }
+  console.log(`Loaded ${products.length} products from the 'finn' monitoring set.\n`)
 
-  console.log(`Loaded ${products.length} legendary products from knowledge graph.\n`)
+  // Whether this invocation attempts the FULL set, decided before scraping:
+  // a targeted run must never establish or sweep a complete scope.
+  const runScope = productFilter === null && LIMIT === Infinity ? 'complete' : 'targeted'
+  const { promotedRunId, exitCode } = await runSchibstedMarket(
+    supabase,
+    { config: FINN_CONFIG, platform: 'finn', scraperVersion: SCRAPER_VERSION, runScope, dryRun: DRY_RUN },
+    products,
+  )
 
-  // One immutable identity for this execution, generated before any write.
-  const ingestionBatchId = newIngestionBatchId()
-  let scrapedProducts = 0
-  let totalListings = 0
-
-  for (let i = 0; i < products.length; i++) {
-    if (i > 0) await sleep(PRODUCT_DELAY_MS)
-
-    const product = products[i]
-    const listings = await scrapeFinn(product.query, 3)
-    const rows = buildRows(listings)
-
-    if (rows.length > 0) {
-      // Every INSERT carries this run's identity. On conflict the database
-      // trigger preserves the row's ORIGINAL identity, so a refreshed
-      // historical row keeps its old (or NULL) value and is not new inflow.
-      const { error } = await supabase
-        .from('listings')
-        .upsert(rows.map(r => ({ ...r, ingestion_batch_id: ingestionBatchId })), {
-          onConflict: 'external_id,source',
-          ignoreDuplicates: false,
-        })
-
-      if (error) {
-        console.error(`[scrape-finn] ${product.canonical_name}: upsert failed (${error.message})`)
-        continue
-      }
-
-    }
-
-    scrapedProducts += 1
-    totalListings += rows.length
-    console.log(`[scrape-finn] ${product.canonical_name}: ${rows.length} listings upserted`)
+  // Bounded new-inflow matching. promote_scrape_run() stamps
+  // ingestion_batch_id = run id on INSERT only, so rows carrying it are
+  // exactly the listings this run introduced. A null lookup means 0 writes.
+  if (promotedRunId) {
+    const inserted = await fetchBatchListingIds(supabase, 'finn', String(promotedRunId))
+    reportBatchMatch(inserted === null
+      ? { source: 'finn', considered: 0, matched: 0, rejected: 0, deferred: 0, skipped: 'batch_identity_lookup_failed' }
+      : await matchScrapedBatch(supabase, 'finn', inserted))
   }
 
-  console.log(`[scrape-finn] Done. ${scrapedProducts} products scraped, ${totalListings} listings total.`)
-
-  // Bounded new-inflow matching: only the ids this run just wrote. Runs after
-  // the writes complete and never changes this script's exit status.
-  // Only rows the DATABASE says this run inserted. A null lookup => 0 writes.
-  const inserted = await fetchBatchListingIds(supabase, 'finn', ingestionBatchId)
-  reportBatchMatch(inserted === null
-    ? { source: 'finn', considered: 0, matched: 0, rejected: 0, deferred: 0, skipped: 'batch_identity_lookup_failed' }
-    : await matchScrapedBatch(supabase, 'finn', inserted))
+  if (exitCode !== 0) process.exitCode = exitCode
 }
 
 main().catch((error) => {
