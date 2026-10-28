@@ -57,7 +57,7 @@ test('the scraper reads each product\'s subcategory from the KG and searches the
   const src = fs.readFileSync(path.resolve(__dirname, '../scrape-kleinanzeigen.ts'), 'utf8')
   assert.match(src, /subcategory:kg_category!kg_product_subcategory_id_fkey\(slug\)/)
   assert.match(src, /categories: searchCategories\(resolveSubcategorySlug\(product\.subcategory\)\)/)
-  assert.match(src, /scrapeKleinanzeigen\(product\.query, product\.categories, 3\)/)
+  assert.match(src, /scrapeKleinanzeigen\(product\.query, product\.categories, KLEINANZEIGEN_MAX_PAGES\)/)
   // No hand list and no second URL builder: the category decision lives in one module.
   assert.doesNotMatch(src, /c172|s-audio-hifi|k0c74/)
 })
