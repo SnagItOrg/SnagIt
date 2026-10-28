@@ -8,9 +8,11 @@
  *   - Reads active legendary products from kg_product + kg_brand
  *   - Scrapes category search pages directly in this script: Musikinstrumente
  *     for every product, plus Audio & Hifi for microphones (PAN-303)
- *   - Conservative 3s rate limiting between products
+ *   - Conservative 3s rate limiting between products, 2–3.5s between pages
+ *   - Pages every search newest first to its end, up to the site's 50-page cap (PAN-307)
  *   - Upserts on external_id + source using listing.url as the stable key
- *   - Marks listings not seen for STALE_AFTER_DAYS inactive (complete runs only)
+ *   - Marks listings not seen for STALE_AFTER_DAYS inactive (complete runs only),
+ *     never one a capped search may simply not have reached
  *
  * Usage:
  *   npx tsx scripts/scrape-kleinanzeigen.ts
@@ -47,6 +49,16 @@ import { decodeHtmlEntities } from '../frontend/lib/html-entities'
 import { coverageIsComplete, evaluateRun, startRun, finishRun, type ListingSample } from './lib/scrape-health'
 import { baselineNotAttempted } from './lib/baseline'
 import { buildKleinanzeigenUrl, searchCategories, type KleinanzeigenCategory } from './lib/kleinanzeigen-categories'
+import {
+  KLEINANZEIGEN_MAX_PAGES,
+  normalizeText,
+  pageSearch,
+  parseResultSummary,
+  sweepShieldPhrase,
+  type PagedSearch,
+  type SearchOutcome,
+  type SearchPage,
+} from './lib/kleinanzeigen-paging'
 
 /**
  * Per-run price tally, emitted once at the end of the run.
@@ -121,11 +133,20 @@ const STALE_AFTER_DAYS = 3
 
 // ── Rate limiting ────────────────────────────────────────────────────────────
 const PRODUCT_DELAY_MS = 3000
-const PAGE_DELAY_MS = 1000
+// ≥2s between requests, plus jitter (scripts/CLAUDE.md). Paging to the end
+// makes this the delay most requests wait on: ~230 pages a night, not ~120.
+const PAGE_DELAY_MS = 2000
+const PAGE_JITTER_MS = 1500
+// A page that answered empty or as another page is read once more, later.
+const RETRY_DELAY_MS = 6000
 const VARIANT_DELAY_MS = 2000
 
 function sleep(ms: number) {
   return new Promise<void>(resolve => setTimeout(resolve, ms))
+}
+
+function jittered(minMs: number, jitterMs: number): Promise<void> {
+  return sleep(minMs + Math.random() * jitterMs)
 }
 
 function normalizeQuery(input: string): string {
@@ -260,7 +281,7 @@ async function fetchKleinanzeigenPage(
   normalizedQ: string,
   page: number,
   category: KleinanzeigenCategory,
-): Promise<ScrapedListing[]> {
+): Promise<SearchPage<ScrapedListing>> {
   const url = buildKleinanzeigenUrl(normalizedQ, page, category)
 
   const res = await fetch(url, {
@@ -277,34 +298,29 @@ async function fetchKleinanzeigenPage(
   }
 
   const html = await res.text()
-  const articles = extractArticles(html)
-  if (articles.length === 0) return []
-
-  return articles
+  const listings = extractArticles(html)
     .map(parseArticle)
     .filter((listing): listing is ScrapedListing => listing !== null)
+  return { listings, summary: parseResultSummary(html) }
 }
 
-async function fetchKleinanzeigenSearch(
+function fetchKleinanzeigenSearch(
   normalizedQ: string,
   maxPages: number,
   category: KleinanzeigenCategory,
-): Promise<ScrapedListing[]> {
-  const all: ScrapedListing[] = []
-  for (let page = 1; page <= maxPages; page++) {
-    if (page > 1) await sleep(PAGE_DELAY_MS)
-    const pageResults = await fetchKleinanzeigenPage(normalizedQ, page, category)
-    if (pageResults.length === 0) break
-    all.push(...pageResults)
-  }
-  return all
+): Promise<PagedSearch<ScrapedListing>> {
+  return pageSearch(page => fetchKleinanzeigenPage(normalizedQ, page, category), {
+    maxPages,
+    pause: () => jittered(PAGE_DELAY_MS, PAGE_JITTER_MS),
+    retryPause: () => jittered(RETRY_DELAY_MS, PAGE_JITTER_MS),
+  })
 }
 
 async function scrapeKleinanzeigen(
   query: string,
   categories: KleinanzeigenCategory[],
-  maxPages = 3,
-): Promise<{ listings: ScrapedListing[]; requestFailed: boolean }> {
+  maxPages: number,
+): Promise<{ listings: ScrapedListing[]; requestFailed: boolean; capped: boolean; pages: number; outcomes: SearchOutcome[] }> {
   const normalized = normalizeQuery(query)
 
   const queries: string[] = [normalized]
@@ -319,11 +335,17 @@ async function scrapeKleinanzeigen(
   // A failed variant is still skipped, but no longer silently: the stale sweep
   // may only infer "gone" from a product whose every request succeeded.
   let requestFailed = false
+  let pages = 0
+  const outcomes: SearchOutcome[] = []
   for (let i = 0; i < searches.length; i++) {
     if (i > 0) await sleep(VARIANT_DELAY_MS)
     try {
-      const results = await fetchKleinanzeigenSearch(searches[i].q, maxPages, searches[i].category)
-      all.push(...results)
+      const result = await fetchKleinanzeigenSearch(searches[i].q, maxPages, searches[i].category)
+      all.push(...result.listings)
+      pages += result.pages
+      outcomes.push(result.outcome)
+      // A search that never reached its end cannot prove an ad gone either.
+      if (result.outcome === 'failed') requestFailed = true
     } catch {
       requestFailed = true
     }
@@ -336,7 +358,7 @@ async function scrapeKleinanzeigen(
     seen.add(id)
     return true
   })
-  return { listings, requestFailed }
+  return { listings, requestFailed, capped: outcomes.includes('capped'), pages, outcomes }
 }
 
 type ProductRow = {
@@ -373,10 +395,6 @@ function buildSearchQuery(brandName: string, canonicalName: string): string {
     return canonical
   }
   return `${brand} ${canonical}`.trim()
-}
-
-function normalizeText(title: string): string {
-  return title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 }
 
 /**
@@ -528,12 +546,16 @@ async function main() {
   const samples: ListingSample[] = []
   // One of requestsOk / requestFailures per product, as coverageIsComplete expects.
   const coverage = { requestsOk: 0, requestFailures: 0, writeFailures: 0 }
+  // Model phrases of products a search was capped for: the sweep leaves rows naming them alone.
+  const sweepShield = new Set<string>()
 
   for (let i = 0; i < products.length; i++) {
     if (i > 0) await sleep(PRODUCT_DELAY_MS)
 
     const product = products[i]
-    const { listings, requestFailed } = await scrapeKleinanzeigen(product.query, product.categories, 3)
+    const { listings, requestFailed, capped, pages, outcomes } =
+      await scrapeKleinanzeigen(product.query, product.categories, KLEINANZEIGEN_MAX_PAGES)
+    if (capped) sweepShield.add(sweepShieldPhrase(product.brand_name, product.canonical_name))
     if (requestFailed) {
       coverage.requestFailures += 1
       failedProducts += 1
@@ -581,7 +603,7 @@ async function main() {
 
     scrapedProducts += 1
     totalListings += rowCount
-    console.log(`[scrape-kleinanzeigen] ${product.canonical_name}: ${rowCount} listings upserted`)
+    console.log(`[scrape-kleinanzeigen] ${product.canonical_name}: ${rowCount} listings upserted (${pages} pages, ${outcomes.join('/')})`)
   }
 
   console.log(`[scrape-kleinanzeigen] Done. ${scrapedProducts} products scraped, ${totalListings} listings total.`)
@@ -630,6 +652,13 @@ async function main() {
    * likely a markup change than an empty market, and sweeping after it would
    * deactivate the whole source. This used to be `status !== 'failed'`,
    * because partial_price_dkk_null quarantined every run (PAN-177).
+   *
+   * And never on a capped search (PAN-307). Kleinanzeigen answers 50 pages, so
+   * a search above 1,250 ads sees only its newest 1,250, and an older ad that
+   * is still live goes unseen night after night. When 3 pages were read, this
+   * retired live ads after a median of one day seen; 4 of 4 sampled
+   * Stratocasters were still live. Every row naming the model of a capped
+   * product is left out of the sweep until its search fits again.
    */
   let delisted = 0
   const sweepAllowed =
@@ -640,17 +669,20 @@ async function main() {
     console.log('[scrape-kleinanzeigen] Skipping stale sweep: incomplete or untrusted run, so absence proves nothing.')
   } else {
     const cutoff = new Date(Date.now() - STALE_AFTER_DAYS * 24 * 60 * 60 * 1000).toISOString()
-    const { error: staleError, count } = await supabase
+    let sweep = supabase
       .from('listings')
       .update({ is_active: false }, { count: 'exact' })
       .eq('source', 'kleinanzeigen')
       .eq('is_active', true)
       .lt('scraped_at', cutoff)
+    // normalizeText's alphabet: no character here needs PostgREST quoting.
+    for (const phrase of sweepShield) sweep = sweep.not('normalized_text', 'ilike', `%${phrase}%`)
+    const { error: staleError, count } = await sweep
     if (staleError) {
       console.error(`[scrape-kleinanzeigen] Stale sweep failed (${staleError.message})`)
     } else {
       delisted = count ?? 0
-      console.log(`[scrape-kleinanzeigen] Stale sweep: ${delisted} not seen for ${STALE_AFTER_DAYS} days marked inactive.`)
+      console.log(`[scrape-kleinanzeigen] Stale sweep: ${delisted} not seen for ${STALE_AFTER_DAYS} days marked inactive; shielded: ${[...sweepShield].join(', ') || 'none'}.`)
     }
   }
 
