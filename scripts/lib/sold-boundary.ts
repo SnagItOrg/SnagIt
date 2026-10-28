@@ -9,6 +9,12 @@
  * Now a sale is linked only when its title passes the product's boundary, and
  * the search pages on until SOLD_TARGET usable sales pass or SOLD_MAX_PAGES are
  * read.
+ *
+ * The text search still mostly returns siblings, so 67 products fell below the
+ * band's 8 rows. Reverb's own product page does not (PAN-307: 64 of the 67 back
+ * to 8 or more), so a product with a `reverb_csp_id` is read from there and the
+ * text search is the fallback. The boundary is the same on both: Reverb's
+ * product page carries siblings too, e.g. 6505+ sales on the 6505 page.
  */
 import { foldHyphens, hyphenateMartinCodes, lineBoundaryRefusal } from '../../frontend/lib/matching/match-listings'
 import { isNonFunctioning, isPartOrAccessoryListing } from '../../frontend/lib/price-populations'
@@ -42,7 +48,68 @@ export interface SoldListing {
   price?: { amount: string; currency: string }
   condition?: { display_name?: string }
   categories?: unknown
+  state?: { slug?: string }
   _links?: { web?: { href?: string } }
+}
+
+/** Results per page on Reverb's product page; the text search keeps its own. */
+export const PRODUCT_PER_PAGE = 50
+
+/**
+ * Reverb's product ids from a `GET /api/csps/<id>` body: its listings link
+ * carries them as `cp_ids[]`. A CSP id is not a product id (6505: CSP 8435,
+ * cp 17485). Null when the body names none.
+ */
+export function cpIdsFromCsp(csp: unknown): string[] | null {
+  const href = (csp as { _links?: { listings?: { href?: unknown } } } | null)?._links?.listings?.href
+  if (typeof href !== 'string') return null
+  let ids: string[]
+  try {
+    ids = new URL(href).searchParams.getAll('cp_ids[]')
+  } catch {
+    return null
+  }
+  return ids.length > 0 && ids.every((id) => /^\d+$/.test(id)) ? ids : null
+}
+
+export interface SoldSearch {
+  /** For the log line. */
+  label: string
+  perPage: number
+  /** Path and query under Reverb's API base. */
+  path: (page: number) => string
+  /** Every listing must say it is sold, or the page is not a usable answer. */
+  requireSoldState: boolean
+}
+
+/**
+ * Reverb's product page when the product's CSP resolved to a product id, else
+ * the text search exactly as before. `show_only_sold=true` is what the product
+ * page honours; `state=sold` is what the text search sends. A product-page
+ * listing that is not sold would be a live asking price written as a sale, so
+ * that path checks each listing's state.
+ */
+export function soldSearch(cpIds: string[] | null, query: string, textPerPage: number): SoldSearch {
+  if (cpIds) {
+    const cp = cpIds.map((id) => `cp_ids%5B%5D=${id}`).join('&')
+    return {
+      label: `product page (cp ${cpIds.join(', ')})`,
+      perPage: PRODUCT_PER_PAGE,
+      path: (page) => `/listings?${cp}&show_only_sold=true&per_page=${PRODUCT_PER_PAGE}&page=${page}`,
+      requireSoldState: true,
+    }
+  }
+  return {
+    label: `"${query}"`,
+    perPage: textPerPage,
+    path: (page) => `/listings?query=${encodeURIComponent(query)}&state=sold&per_page=${textPerPage}&page=${page}`,
+    requireSoldState: false,
+  }
+}
+
+/** True when every listing on the page says it is sold. */
+export function allSold(listings: readonly SoldListing[]): boolean {
+  return listings.every((l) => l?.state?.slug === 'sold')
 }
 
 export interface SoldCollection<T> {
