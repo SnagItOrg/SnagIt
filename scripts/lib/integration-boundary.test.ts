@@ -315,6 +315,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-307: Kleinanzeigen pages every search newest first to its end (the site answers 50 pages), reads a soft
       // empty page once more instead of taking it for the end, and its sweep never retires a capped search's model.
       'scripts/lib/pan307-kleinanzeigen-paging.test.ts',
+      // PAN-307: the sold writer reads Reverb's own product page (CSP → cp id, show_only_sold) and falls back to the
+      // text search; the line boundary still refuses the siblings Reverb files there.
+      'scripts/lib/pan307-sold-by-product.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
