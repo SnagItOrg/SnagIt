@@ -2012,11 +2012,17 @@ test('every scraper generates one batch id and matches only DB-confirmed inserts
     // No scraper may hand the matcher raw upsert results any more.
     assert.ok(!/batchListingIds/.test(src), `${rel} must not pass refreshed upsert ids`)
   }
-  // DBA uses the promotion run id as its batch identity; the other four mint one.
+  // DBA, Finn and Blocket (PAN-307) publish through promote_scrape_run and use
+  // the promotion run id as their batch identity; the other two mint one.
   const dba = fs.readFileSync(path.join(root, 'scripts/scrape-dba.ts'), 'utf8')
   assert.ok(dba.includes("fetchBatchListingIds(supabase, 'dba.dk', String(runId))"))
-  for (const rel of ['scripts/scrape-finn.ts', 'scripts/scrape-blocket.ts',
-                     'scripts/scrape-kleinanzeigen.ts', 'scripts/scrape-reverb.ts']) {
+  for (const source of ['finn', 'blocket']) {
+    const src = fs.readFileSync(path.join(root, `scripts/scrape-${source}.ts`), 'utf8')
+    assert.ok(src.includes(`fetchBatchListingIds(supabase, '${source}', String(promotedRunId))`))
+    assert.ok(!src.includes('ingestion_batch_id:'), `scrape-${source} must not stamp a payload itself`)
+    assert.ok(!src.includes(".from('listings')"), `scrape-${source} must not write listings itself`)
+  }
+  for (const rel of ['scripts/scrape-kleinanzeigen.ts', 'scripts/scrape-reverb.ts']) {
     const src = fs.readFileSync(path.join(root, rel), 'utf8')
     assert.ok(src.includes('newIngestionBatchId()'), `${rel} must mint a batch id`)
     assert.ok(src.includes('ingestion_batch_id: ingestionBatchId'),
