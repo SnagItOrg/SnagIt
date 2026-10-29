@@ -100,8 +100,13 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
             sizes="(min-width: 768px) 33vw, 100vw"
           />
         ) : (
+          /* PAN-308 — a watch with no picture shows Klup's radar mark, the
+             same mark the watch carries in its mails. Neutral: the mark says
+             "we keep an eye on this", not a judgement. */
           <div className="w-full h-full flex items-center justify-center">
-            <Icon name="search" style={{ fontSize: '48px', color: 'var(--muted-foreground)' }} />
+            <span className="flex items-center justify-center size-20 rounded-full bg-surface-3" style={{ color: 'var(--text-secondary)' }}>
+              <Icon name="radar" style={{ fontSize: '44px' }} />
+            </span>
           </div>
         )}
 
@@ -138,6 +143,22 @@ export function WatchlistBentoCard({ watchlist, onDelete }: Props) {
           <>
             <p className="text-sm font-bold text-foreground truncate mb-1.5">{displayName}</p>
             <div className="flex items-center gap-1.5 flex-wrap">
+              {/* PAN-308 — the watch's state, as its mails state it. Aktiv is
+                  one of green's three permitted uses (frontend/CLAUDE.md); a
+                  paused watch (PAN-278) stays neutral. */}
+              {watchlist.active ? (
+                <span
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full border"
+                  style={{ color: 'var(--accent-text)', background: 'var(--accent-subtle)', borderColor: 'var(--accent-border)' }}
+                >
+                  <span className="size-1.5 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true" />
+                  {t.watchStatusActive}
+                </span>
+              ) : (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-surface-2 text-muted-foreground">
+                  {t.watchStatusPaused}
+                </span>
+              )}
               {watchlist.new_count > 0 && (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-surface-raised border border-line-strong text-ink">
                   {watchlist.new_count} {t.newMatches}

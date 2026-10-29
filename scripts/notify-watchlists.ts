@@ -126,7 +126,7 @@ async function main() {
   for (;;) {
     let q = supabase
       .from('listings')
-      .select('id, title, price, currency, price_dkk, url, source, ingested_at, is_active')
+      .select('id, title, price, currency, price_dkk, url, source, ingested_at, is_active, image_url')
       .is('watchlist_id', null)
       .gt('ingested_at', since)
       .order('ingested_at')

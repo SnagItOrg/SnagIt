@@ -25,6 +25,12 @@ export type ListingSnippet = {
    * model has no band: then the mail says nothing about the price.
    */
   verdict?: CardVerdict | null
+  /**
+   * PAN-308: the listing's own photo — the seller's, the one its card on the
+   * site shows. A thumbnail beside the line; absent, or not https, and the
+   * line goes without one.
+   */
+  image_url?: string | null
 }
 
 /**
@@ -99,6 +105,7 @@ export function buildNewListingsEmail({
     source: l.source ? (sourceForStored(l.source)?.label ?? l.source) : null,
     verdict: l.verdict ? { words: verdictWords(l.verdict, t), ink: VERDICT_INK[l.verdict.verdict] } : null,
     href: links ? links.listing(i + 1) : l.url,
+    image: l.image_url?.startsWith('https://') ? l.image_url : null,
   }))
   const seeAll = links?.seeAll ?? seeAllUrl ?? `${appUrl}/search?q=${encodeURIComponent(query)}`
   const settings = links?.settings ?? `${appUrl}/profile`
@@ -108,7 +115,13 @@ export function buildNewListingsEmail({
   const intro = n === 1 ? fill(t.mailIntroOne, { query }) : fill(t.mailIntroMany, { n, query })
   const overflow = rest > 0 ? (rest === 1 ? t.mailOverflowOne : fill(t.mailOverflowMany, { n: rest })) : null
 
+  // PAN-308: the watch identity — Klup's radar mark, the watch's name and its
+  // state. A pause mail is the last one before the watch stops, so it says so.
+  const status = prompt === 'pause' ? t.watchStatusPaused : t.watchStatusActive
+
   const text = [
+    `${t.mailWatchLabel}: ${query} · ${status}`,
+    '',
     intro,
     '',
     rows.map((r) =>
@@ -126,20 +139,45 @@ export function buildNewListingsEmail({
   ].join('\n')
 
   // Mail clients read no CSS variables, so the few colours are literal here:
-  // the neutral ink and greys of the site. The accent green appears only on
-  // the `under` verdict word (VERDICT_INK), nowhere else (frontend/CLAUDE.md).
+  // the neutral ink and greys of the site. The accent green appears on the
+  // `under` verdict word (VERDICT_INK) and on the watch tag's Aktiv badge —
+  // two of the three uses frontend/CLAUDE.md permits — and nowhere else. The
+  // badge is the light theme's `--accent-subtle` / `--accent-border` /
+  // `--accent-text` with the brand green dot (app/globals.css).
   const a = (href: string, label: string, style = 'color:#111418') =>
     `<a href="${esc(href)}" style="${style}">${esc(label)}</a>`
   const button = (href: string, label: string) =>
     a(href, label, 'display:inline-block;padding:8px 14px;margin:4px 8px 0 0;border:1px solid #c9ccd3;border-radius:8px;color:#111418;text-decoration:none;font-weight:600')
   const html = [
     '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Inter,Arial,sans-serif;font-size:15px;line-height:1.5;color:#111418;max-width:560px">',
+    `<p style="margin:0 0 16px"><img src="${appUrl}/mail/radar.png" width="30" height="30" alt="" style="vertical-align:middle;border:0">`
+      + '<span style="vertical-align:middle;margin-left:10px;font-weight:600;font-size:17px">Klup.dk</span></p>',
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:separate;background:#f3f4f6;border:1px solid #e3e4e8;border-radius:16px">',
+    '<tr><td style="padding:12px 0 12px 14px;width:44px;vertical-align:middle">'
+      + `<img src="${appUrl}/mail/radar.png" width="40" height="40" alt="" style="display:block;border:0;border-radius:20px"></td>`
+      + '<td style="padding:12px 12px;vertical-align:middle">'
+      + `<div style="font-size:12px;color:#5f636b">${esc(t.mailWatchLabel)}</div>`
+      + `<div style="font-size:17px;font-weight:600">${esc(query)}</div></td>`
+      + '<td style="padding:12px 14px 12px 0;vertical-align:middle;text-align:right;white-space:nowrap">'
+      + (prompt === 'pause'
+        ? `<span style="font-size:12px;font-weight:600;color:#5f636b;background:#e1e3e7;padding:4px 10px;border-radius:999px">${esc(status)}</span>`
+        : '<span style="font-size:12px;font-weight:600;color:#0a7c41;background:rgba(19,236,109,0.10);border:1px solid rgba(19,236,109,0.32);padding:3px 10px;border-radius:999px">'
+          + `<span style="display:inline-block;width:7px;height:7px;border-radius:4px;background:#13ec6d;margin-right:6px"></span>${esc(status)}</span>`)
+      + '</td></tr></table>',
     `<p>${esc(intro)}</p>`,
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse">',
     ...rows.map((r) =>
-      `<p style="margin:0 0 12px">${a(r.href, r.title, 'color:#111418;font-weight:600')}<br>`
+      '<tr>'
+      + (r.image
+        ? `<td style="padding:0 12px 12px 0;width:72px;vertical-align:top"><a href="${esc(r.href)}">`
+          + `<img src="${esc(r.image)}" width="72" height="72" alt="" style="display:block;width:72px;height:72px;object-fit:cover;border-radius:10px;border:0;background:#f3f4f6"></a></td>`
+        : '<td style="padding:0 12px 12px 0;width:72px"></td>')
+      + '<td style="padding:0 0 12px;vertical-align:top">'
+      + `${a(r.href, r.title, 'color:#111418;font-weight:600')}<br>`
       + `<span style="color:#5b616e">${esc(r.price)}${r.source ? ` · ${esc(r.source)}` : ''}</span>`
       + (r.verdict ? `<br><span style="color:${r.verdict.ink};font-weight:600">${esc(r.verdict.words)}</span>` : '')
-      + '</p>'),
+      + '</td></tr>'),
+    '</table>',
     overflow ? `<p style="color:#5b616e">${esc(overflow)}</p>` : '',
     `<p>${button(seeAll, t.mailSeeAll)}</p>`,
     prompt === 'ask' && links

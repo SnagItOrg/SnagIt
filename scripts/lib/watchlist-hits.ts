@@ -62,6 +62,8 @@ export type HitListing = {
   ingested_at: string
   /** PAN-273: read by the product rule only; the query rule never asked. */
   is_active?: boolean | null
+  /** PAN-308: the listing's own photo, the one its card shows on the site; a thumbnail in the mail. */
+  image_url?: string | null
   /**
    * PAN-297: the verdict the watched model's product page shows for this
    * listing, set by the runner on a product watchlist's hits and handed to
@@ -149,7 +151,7 @@ export async function notifyHits(
   send: (input: {
     to: string
     query: string
-    listings: Array<Pick<HitListing, 'title' | 'price' | 'currency' | 'url' | 'source' | 'verdict'>>
+    listings: Array<Pick<HitListing, 'title' | 'price' | 'currency' | 'url' | 'source' | 'verdict' | 'image_url'>>
     seeAllUrl?: string
     mail?: { token: string; prompt: MailPrompt | null }
   }) => Promise<void>,
