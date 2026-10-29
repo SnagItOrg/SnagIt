@@ -217,6 +217,15 @@ test('boundary: /search reaches only client-safe modules of our own', () => {
     // service-role client along with it, which is the edge this boundary
     // actually guards. Same class as `position-signal.ts` above.
     'lib/catalogue-tree.ts',
+    // PAN-308: `readLink`, so an ad link typed into a search field goes to
+    // Tjek prisen instead of the resolver. `price-check.ts` is pure by its own
+    // header; it reaches `price-populations.ts` -> `statistics.ts` (arithmetic,
+    // no imports) and `scrapers/listing-url.ts` (a hostname test that imports
+    // `supabase.ts` as a type only). None reaches catalogue state or a client.
+    'lib/price-check.ts',
+    'lib/price-populations.ts',
+    'lib/statistics.ts',
+    'lib/scrapers/listing-url.ts',
   ])
   const unexpected = closure.filter((m) => !allowed.has(m) && !m.startsWith('components/'))
   assert.deepEqual(unexpected, [], 'unreviewed module reachable from the search client')

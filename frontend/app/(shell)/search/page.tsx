@@ -13,6 +13,7 @@ import { buildPositionSignal } from '@/lib/position-signal'
 import { EmailCodeSignIn } from '@/components/EmailCodeSignIn'
 import { fill } from '@/lib/i18n'
 import { track } from '@/lib/analytics'
+import { readLink } from '@/lib/price-check'
 import {
   demandSignalPayload,
   searchResolvedPayload,
@@ -189,6 +190,16 @@ function SearchPageInner() {
     async (rawQuery: string, inputMethod: SearchInputMethod) => {
       const q = rawQuery.trim()
       if (q.length === 0) return
+
+      // PAN-308: a DBA or Thomann ad link is a price question, not a search.
+      // Every search field lands here, so this one check sends a pasted link
+      // to Tjek prisen from all of them — before `search_submitted`, which
+      // must never carry a link as its query.
+      if ('source' in readLink(q)) {
+        emit('price_check_entry_clicked', { surface: 'search_paste' })
+        router.replace(`/tjek-prisen?url=${encodeURIComponent(q)}`)
+        return
+      }
 
       const seq = ++requestSeq.current
       setLoading(true)

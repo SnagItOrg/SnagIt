@@ -8,6 +8,7 @@ import { useLocale } from '@/components/LocaleProvider'
 import { TextField } from '@/components/TextField'
 import { Icon } from '@/components/Icon'
 import { Button } from '@/components/Button'
+import { track } from '@/lib/analytics'
 
 /**
  * The homepage shell: everything interactive, and nothing that needs the
@@ -113,6 +114,17 @@ export function LandingShell({ children }: { children: React.ReactNode }) {
                 </Button>
               </div>
             </form>
+            {/* PAN-308 — the DBA price check's way in from the front page. */}
+            <p className="mt-4 text-sm text-muted-foreground">
+              {t.priceCheckEntryHint}{' '}
+              <Link
+                href="/tjek-prisen"
+                onClick={() => track('price_check_entry_clicked', { surface: 'home' })}
+                className="font-semibold text-foreground underline underline-offset-4"
+              >
+                {t.navPriceCheck}
+              </Link>
+            </p>
           </div>
         </div>
 
