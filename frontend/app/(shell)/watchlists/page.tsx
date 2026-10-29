@@ -10,6 +10,7 @@ import { WatchlistCreatorPanel } from '@/components/WatchlistCreatorPanel'
 import { useLocale } from '@/components/LocaleProvider'
 import { EmptyState } from '@/components/EmptyState'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { requestWelcomeMail } from '@/lib/email-code'
 import { loadOnboarding, clearOnboarding, fireEvent } from '@/lib/onboarding'
 import { ToastViewport } from '@/components/Toast'
 import { useToast } from '@/lib/use-toast'
@@ -49,9 +50,11 @@ export default function WatchlistsPage() {
       if (loggedIn) {
         void loadWatchlists()
         void syncOnboarding()
-        void createPendingWatchlist()
+        const pending = createPendingWatchlist()
         if (arrivedFromEmailLink && data.user && isNewAccountConfirmation(data.user)) {
           track('signup_completed', { method: 'email_link' })
+          // PAN-308: after the pending watch, so it counts for the mail's CTA.
+          void pending.finally(requestWelcomeMail)
         }
       } else {
         setLoading(false)
