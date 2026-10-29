@@ -134,3 +134,14 @@ export function resendSecondsLeft(sentAtMs: number, nowMs: number): number {
   const left = RESEND_COOLDOWN_S - Math.floor((nowMs - sentAtMs) / 1000)
   return Math.max(0, Math.min(RESEND_COOLDOWN_S, left))
 }
+
+/**
+ * PAN-308: ask the server for welcome mail #1. Called once a new account is
+ * confirmed and its sign-in handler has run, so a watch created at signup
+ * already counts when the route picks the mail's call to action. Fire and
+ * forget: `keepalive` lets it outlive the navigation that usually follows,
+ * and a failure costs a welcome mail, never the sign-in.
+ */
+export function requestWelcomeMail(): void {
+  void fetch('/api/welcome', { method: 'POST', keepalive: true }).catch(() => {})
+}

@@ -12,6 +12,7 @@ import {
   CODE_LENGTH,
   fillCode,
   isCompleteCode,
+  requestWelcomeMail,
   resendSecondsLeft,
   sendEmailCode,
   verifyEmailCode,
@@ -167,6 +168,7 @@ export function EmailCodeSignIn({ onSignedIn, onEmailSubmit, next, emailLabel, c
     setStatus(t.emailCodeSignedIn)
     // Stays busy: the caller navigates away or swaps this component out.
     await onSignedIn({ isNewUser: result.isNewUser })
+    if (result.isNewUser) requestWelcomeMail()
   }
 
   function handleBoxInput(index: number, value: string) {

@@ -191,6 +191,111 @@ export async function sendNewListingsEmail({
 }
 
 /**
+ * PAN-308: how long after an account is created its welcome mail may still be
+ * sent. The trigger fires once, right after the first code; the window is what
+ * makes a replayed request — or one from an old account — send nothing, and it
+ * is shorter than Resend's 24 h idempotency window, so the key below covers it.
+ */
+export const WELCOME_WINDOW_MS = 60 * 60 * 1000
+
+/** PAN-308: is a welcome mail still due for an account created at `createdAt`? */
+export function welcomeDue(createdAt: string | undefined, nowMs: number): boolean {
+  const created = createdAt ? Date.parse(createdAt) : NaN
+  if (Number.isNaN(created)) return false
+  const age = nowMs - created
+  return age >= 0 && age <= WELCOME_WINDOW_MS
+}
+
+/**
+ * PAN-308: welcome mail #1, built and not sent. One call to action: follow a
+ * first piece of gear (the catalogue), or — when the new account already
+ * watches something, as it does after signing up from a product's watch form —
+ * see that watch. The price check rides along as a P.S., never a second button.
+ *
+ * The tutorial images are stills from the PAN-172 spot and Klup's own radar
+ * mark, served from `public/mail/`. Mail clients read no CSS variables, so the
+ * colours are literal: the light theme's ink, greys and line (app/globals.css
+ * `--ramp-*`). Green appears only inside the step-3 image, on its Aktiv badge.
+ * Headlines ask for DM Serif Display and fall back to Georgia where a client
+ * loads no web font. Danish, like the watchlist mail; the copy is in both
+ * languages all the same.
+ */
+export function buildWelcomeEmail({ hasWatchlist }: { hasWatchlist: boolean }): { subject: string; text: string; html: string } {
+  const t = translations.da
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.klup.dk'
+  const cta = hasWatchlist
+    ? { href: `${appUrl}/watchlists`, label: t.mailWelcomeCtaWatchlists }
+    : { href: `${appUrl}/browse`, label: t.mailWelcomeCtaFollow }
+  const priceCheck = `${appUrl}/tjek-prisen`
+  const steps = [
+    { img: 'welcome-step-1.jpg', alt: t.mailWelcomeStep1Alt, title: t.mailWelcomeStep1Title, body: t.mailWelcomeStep1Body },
+    { img: 'welcome-step-2.jpg', alt: t.mailWelcomeStep2Alt, title: t.mailWelcomeStep2Title, body: t.mailWelcomeStep2Body },
+    { img: 'welcome-step-3.jpg', alt: t.mailWelcomeStep3Alt, title: t.mailWelcomeStep3Title, body: t.mailWelcomeStep3Body },
+  ]
+
+  const text = [
+    t.mailWelcomeHeading,
+    '',
+    t.mailWelcomeIntro,
+    '',
+    t.mailWelcomeStepsLead,
+    ...steps.map((s, i) => `${i + 1}. ${s.title} — ${s.body}`),
+    '',
+    `${cta.label}: ${cta.href}`,
+    '',
+    `${t.mailWelcomePsst} ${priceCheck}`,
+    '',
+    t.mailWelcomeSignoff,
+    t.mailWelcomeWhy,
+  ].join('\n')
+
+  const serif = "font-family:'DM Serif Display',Georgia,serif;font-weight:400"
+  const html = [
+    '<!doctype html><html lang="da"><head><meta charset="utf-8">',
+    '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet"></head>',
+    '<body style="margin:0;padding:0;background:#f3f4f6">',
+    '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Inter,Arial,sans-serif;font-size:16px;line-height:1.55;color:#131417;max-width:600px;margin:0 auto;background:#ffffff">',
+    '<div style="padding:28px 32px 0">',
+    `<img src="${appUrl}/mail/radar.png" width="30" height="30" alt="" style="vertical-align:middle;border:0">`,
+    '<span style="vertical-align:middle;margin-left:10px;font-weight:600;font-size:17px">Klup.dk</span></div>',
+    '<div style="padding:8px 32px 28px">',
+    `<h1 style="${serif};font-size:36px;line-height:1.1;margin:20px 0 12px">${esc(t.mailWelcomeHeading)}</h1>`,
+    `<p style="margin:0 0 12px">${esc(t.mailWelcomeIntro)}</p>`,
+    `<p style="margin:0 0 8px">${esc(t.mailWelcomeStepsLead)}</p>`,
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse">',
+    ...steps.map((s, i) =>
+      '<tr><td style="padding:14px 16px 14px 0;border-top:1px solid #e3e4e8;width:150px;vertical-align:middle">'
+      + `<img src="${appUrl}/mail/${s.img}" width="150" height="150" alt="${esc(s.alt)}" style="display:block;border:1px solid #e3e4e8;border-radius:12px"></td>`
+      + '<td style="padding:14px 0;border-top:1px solid #e3e4e8;vertical-align:middle">'
+      + `<div style="display:inline-block;width:26px;height:26px;line-height:26px;border-radius:13px;background:#131417;color:#ffffff;font-size:13px;font-weight:600;text-align:center">${i + 1}</div>`
+      + `<div style="${serif};font-size:21px;line-height:1.2;margin:6px 0 4px">${esc(s.title)}</div>`
+      + `<div style="color:#5b616e;font-size:15px">${esc(s.body)}</div></td></tr>`),
+    '</table>',
+    `<p style="margin:22px 0 0"><a href="${esc(cta.href)}" style="display:inline-block;padding:14px 22px;border-radius:12px;background:#131417;color:#ffffff;font-weight:600;text-decoration:none">${esc(cta.label)}</a></p>`,
+    '<p style="margin:26px 0 0;padding:14px 18px;border:2px solid #e3e4e8;border-radius:24px;font-size:15px">'
+      + `${esc(t.mailWelcomePsst)} <a href="${esc(priceCheck)}" style="color:#131417;font-weight:600">${esc(t.mailWelcomePsstLink)}</a></p>`,
+    '</div>',
+    `<div style="padding:18px 32px 28px;border-top:1px solid #e3e4e8;color:#5b616e;font-size:13px">${esc(t.mailWelcomeSignoff)}<br>${esc(t.mailWelcomeWhy)}</div>`,
+    '</div></body></html>',
+  ].join('\n')
+
+  return { subject: t.mailWelcomeSubject, text, html }
+}
+
+/**
+ * PAN-308: send welcome mail #1. The idempotency key names the account, so a
+ * retried or doubled request inside Resend's 24 h window sends one mail; the
+ * route's `welcomeDue` window closes long before that window does.
+ */
+export async function sendWelcomeEmail(to: string, userId: string, content: { subject: string; text: string; html: string }) {
+  const { error } = await getResend().emails.send(
+    { from: process.env.RESEND_FROM_EMAIL!, to, ...content },
+    { idempotencyKey: `welcome-1/${userId}` },
+  )
+  if (error) throw new Error(`resend_rejected:${error.name}`)
+}
+
+/**
  * PAN-251: one piece of feedback to the owner. The visitor's email rides along
  * only when they typed it, as the reply-to; the visitor's IP never does.
  */

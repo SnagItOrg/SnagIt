@@ -213,6 +213,7 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
    * (PAN-298, finding 4): no caller (audit F-21), and both read any
    * `?watchlist_id=` price rows with the service role after a session-only
    * check, with no ownership test. */
+  { route: '/api/welcome', access: 'protected_api', note: 'PAN-308; welcome mail #1, only for an account under an hour old; Resend idempotency key per user' },
   { route: '/api/watchlists', access: 'protected_api' },
   { route: '/api/watchlists/[id]', access: 'protected_api' },
   { route: '/api/watchlists/[id]/listings', access: 'protected_api' },
