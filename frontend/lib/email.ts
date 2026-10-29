@@ -245,18 +245,74 @@ export function welcomeDue(createdAt: string | undefined, nowMs: number): boolea
 }
 
 /**
+ * PAN-308: the welcome series' frame — Klup's radar mark and name, the body,
+ * and the grey footer — shared by mails 1, 2 and 3 so the three look like one
+ * series. Mail clients read no CSS variables, so the colours are literal: the
+ * light theme's ink, greys and line (app/globals.css `--ramp-*`). Headlines ask
+ * for DM Serif Display and fall back to Georgia where a client loads no web
+ * font.
+ */
+const MAIL_SERIF = "font-family:'DM Serif Display',Georgia,serif;font-weight:400"
+
+function welcomeShell(appUrl: string, body: string[], footer: string): string {
+  return [
+    '<!doctype html><html lang="da"><head><meta charset="utf-8">',
+    '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet"></head>',
+    '<body style="margin:0;padding:0;background:#f3f4f6">',
+    '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Inter,Arial,sans-serif;font-size:16px;line-height:1.55;color:#131417;max-width:600px;margin:0 auto;background:#ffffff">',
+    '<div style="padding:28px 32px 0">',
+    `<img src="${appUrl}/mail/radar.png" width="30" height="30" alt="" style="vertical-align:middle;border:0">`,
+    '<span style="vertical-align:middle;margin-left:10px;font-weight:600;font-size:17px">Klup.dk</span></div>',
+    '<div style="padding:8px 32px 28px">',
+    ...body,
+    '</div>',
+    `<div style="padding:18px 32px 28px;border-top:1px solid #e3e4e8;color:#5b616e;font-size:13px">${footer}</div>`,
+    '</div></body></html>',
+  ].join('\n')
+}
+
+type WelcomeStep = { img: string; alt: string; title: string; body: string }
+
+/** The numbered steps: an image from `public/mail/` beside a number, a title and a line. */
+function welcomeSteps(appUrl: string, steps: WelcomeStep[]): string[] {
+  return [
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse">',
+    ...steps.map((s, i) =>
+      '<tr><td style="padding:14px 16px 14px 0;border-top:1px solid #e3e4e8;width:150px;vertical-align:middle">'
+      + `<img src="${appUrl}/mail/${s.img}" width="150" height="150" alt="${esc(s.alt)}" style="display:block;border:1px solid #e3e4e8;border-radius:12px"></td>`
+      + '<td style="padding:14px 0;border-top:1px solid #e3e4e8;vertical-align:middle">'
+      + `<div style="display:inline-block;width:26px;height:26px;line-height:26px;border-radius:13px;background:#131417;color:#ffffff;font-size:13px;font-weight:600;text-align:center">${i + 1}</div>`
+      + `<div style="${MAIL_SERIF};font-size:21px;line-height:1.2;margin:6px 0 4px">${esc(s.title)}</div>`
+      + `<div style="color:#5b616e;font-size:15px">${esc(s.body)}</div></td></tr>`),
+    '</table>',
+  ]
+}
+
+/** The series' one filled button. */
+function welcomeButton(href: string, label: string): string {
+  return `<p style="margin:22px 0 0"><a href="${esc(href)}" style="display:inline-block;padding:14px 22px;border-radius:12px;background:#131417;color:#ffffff;font-weight:600;text-decoration:none">${esc(label)}</a></p>`
+}
+
+/**
+ * PAN-308: the footer of mails 2 and 3 — the sign-off, why the mail came, and
+ * "Stop dem her". `stopUrl` is the series' own opt-out (the account's stop
+ * flag); it never touches the watchlist alert mails, which have their own.
+ */
+function welcomeStopFooter(t: typeof translations.da, why: string, stopUrl: string): string {
+  return `${esc(t.mailWelcomeSignoff)}<br>${esc(why)}<br>`
+    + `${esc(t.mailWelcomeStopLead)} <a href="${esc(stopUrl)}" style="color:#5b616e;text-decoration:underline">${esc(t.mailWelcomeStopLink)}</a>`
+}
+
+/**
  * PAN-308: welcome mail #1, built and not sent. One call to action: follow a
  * first piece of gear (the catalogue), or — when the new account already
  * watches something, as it does after signing up from a product's watch form —
  * see that watch. The price check rides along as a P.S., never a second button.
  *
  * The tutorial images are stills from the PAN-172 spot and Klup's own radar
- * mark, served from `public/mail/`. Mail clients read no CSS variables, so the
- * colours are literal: the light theme's ink, greys and line (app/globals.css
- * `--ramp-*`). Green appears only inside the step-3 image, on its Aktiv badge.
- * Headlines ask for DM Serif Display and fall back to Georgia where a client
- * loads no web font. Danish, like the watchlist mail; the copy is in both
- * languages all the same.
+ * mark, served from `public/mail/`; the frame is `welcomeShell`. Green appears
+ * only inside the step-3 image, on its Aktiv badge. Danish, like the watchlist
+ * mail; the copy is in both languages all the same.
  */
 export function buildWelcomeEmail({ hasWatchlist }: { hasWatchlist: boolean }): { subject: string; text: string; html: string } {
   const t = translations.da
@@ -287,37 +343,135 @@ export function buildWelcomeEmail({ hasWatchlist }: { hasWatchlist: boolean }): 
     t.mailWelcomeWhy,
   ].join('\n')
 
-  const serif = "font-family:'DM Serif Display',Georgia,serif;font-weight:400"
-  const html = [
-    '<!doctype html><html lang="da"><head><meta charset="utf-8">',
-    '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet"></head>',
-    '<body style="margin:0;padding:0;background:#f3f4f6">',
-    '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Inter,Arial,sans-serif;font-size:16px;line-height:1.55;color:#131417;max-width:600px;margin:0 auto;background:#ffffff">',
-    '<div style="padding:28px 32px 0">',
-    `<img src="${appUrl}/mail/radar.png" width="30" height="30" alt="" style="vertical-align:middle;border:0">`,
-    '<span style="vertical-align:middle;margin-left:10px;font-weight:600;font-size:17px">Klup.dk</span></div>',
-    '<div style="padding:8px 32px 28px">',
-    `<h1 style="${serif};font-size:36px;line-height:1.1;margin:20px 0 12px">${esc(t.mailWelcomeHeading)}</h1>`,
+  const html = welcomeShell(appUrl, [
+    `<h1 style="${MAIL_SERIF};font-size:36px;line-height:1.1;margin:20px 0 12px">${esc(t.mailWelcomeHeading)}</h1>`,
     `<p style="margin:0 0 12px">${esc(t.mailWelcomeIntro)}</p>`,
     `<p style="margin:0 0 8px">${esc(t.mailWelcomeStepsLead)}</p>`,
-    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse">',
-    ...steps.map((s, i) =>
-      '<tr><td style="padding:14px 16px 14px 0;border-top:1px solid #e3e4e8;width:150px;vertical-align:middle">'
-      + `<img src="${appUrl}/mail/${s.img}" width="150" height="150" alt="${esc(s.alt)}" style="display:block;border:1px solid #e3e4e8;border-radius:12px"></td>`
-      + '<td style="padding:14px 0;border-top:1px solid #e3e4e8;vertical-align:middle">'
-      + `<div style="display:inline-block;width:26px;height:26px;line-height:26px;border-radius:13px;background:#131417;color:#ffffff;font-size:13px;font-weight:600;text-align:center">${i + 1}</div>`
-      + `<div style="${serif};font-size:21px;line-height:1.2;margin:6px 0 4px">${esc(s.title)}</div>`
-      + `<div style="color:#5b616e;font-size:15px">${esc(s.body)}</div></td></tr>`),
-    '</table>',
-    `<p style="margin:22px 0 0"><a href="${esc(cta.href)}" style="display:inline-block;padding:14px 22px;border-radius:12px;background:#131417;color:#ffffff;font-weight:600;text-decoration:none">${esc(cta.label)}</a></p>`,
+    ...welcomeSteps(appUrl, steps),
+    welcomeButton(cta.href, cta.label),
     '<p style="margin:26px 0 0;padding:14px 18px;border:2px solid #e3e4e8;border-radius:24px;font-size:15px">'
       + `${esc(t.mailWelcomePsst)} <a href="${esc(priceCheck)}" style="color:#131417;font-weight:600">${esc(t.mailWelcomePsstLink)}</a></p>`,
-    '</div>',
-    `<div style="padding:18px 32px 28px;border-top:1px solid #e3e4e8;color:#5b616e;font-size:13px">${esc(t.mailWelcomeSignoff)}<br>${esc(t.mailWelcomeWhy)}</div>`,
-    '</div></body></html>',
-  ].join('\n')
+  ], `${esc(t.mailWelcomeSignoff)}<br>${esc(t.mailWelcomeWhy)}`)
 
   return { subject: t.mailWelcomeSubject, text, html }
+}
+
+/**
+ * PAN-308: welcome mail #2, day 2 — "Tjek prisen før du byder". Two steps,
+ * paste a DBA link and get the answer, and one call to action: the price
+ * check. Green appears only inside the step-2 image, on its `Under typisk`
+ * verdict, the one place Klup's own judgement is shown.
+ */
+export function buildPriceTipEmail({ stopUrl }: { stopUrl: string }): { subject: string; text: string; html: string } {
+  const t = translations.da
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.klup.dk'
+  const cta = { href: `${appUrl}/tjek-prisen`, label: t.mailPriceTipCta }
+  const steps = [
+    { img: 'price-tip-step-1.jpg', alt: t.mailPriceTipStep1Alt, title: t.mailPriceTipStep1Title, body: t.mailPriceTipStep1Body },
+    { img: 'price-tip-step-2.jpg', alt: t.mailPriceTipStep2Alt, title: t.mailPriceTipStep2Title, body: t.mailPriceTipStep2Body },
+  ]
+
+  const text = [
+    t.mailPriceTipHeading,
+    '',
+    t.mailPriceTipIntro,
+    '',
+    t.mailPriceTipStepsLead,
+    ...steps.map((s, i) => `${i + 1}. ${s.title} — ${s.body}`),
+    '',
+    `${cta.label}: ${cta.href}`,
+    '',
+    t.mailWelcomeSignoff,
+    t.mailPriceTipWhy,
+    `${t.mailWelcomeStopLead} ${t.mailWelcomeStopLink}: ${stopUrl}`,
+  ].join('\n')
+
+  const html = welcomeShell(appUrl, [
+    `<h1 style="${MAIL_SERIF};font-size:36px;line-height:1.1;margin:20px 0 12px">${esc(t.mailPriceTipHeading)}</h1>`,
+    `<p style="margin:0 0 12px">${esc(t.mailPriceTipIntro)}</p>`,
+    `<p style="margin:0 0 8px">${esc(t.mailPriceTipStepsLead)}</p>`,
+    ...welcomeSteps(appUrl, steps),
+    welcomeButton(cta.href, cta.label),
+  ], welcomeStopFooter(t, t.mailPriceTipWhy, stopUrl))
+
+  return { subject: t.mailPriceTipSubject, text, html }
+}
+
+/** PAN-308: what mail #3 reports — the account's first week, as the runner counted it. */
+export type FirstWeekStats = {
+  /** The account's watchlists; mail #3 goes only to an account with at least one. */
+  watchCount: number
+  /** Listings the alert mail sent for those watchlists over the week. */
+  newListings: number
+  /**
+   * How many of them the watched model's own page calls `under typisk`, or
+   * null when no watch has a model with a band — then the mail says nothing
+   * about the price, the same rule as the alert mail (PAN-297).
+   */
+  underCount: number | null
+}
+
+/**
+ * PAN-308: welcome mail #3, day 7 — "Din første uge". Sent only to an account
+ * with a watchlist; the week's numbers are the hook ("Vi så 14 nye annoncer
+ * på dine 2 overvågninger – 3 under typisk"), and the one call to action is
+ * the watchlists. A week with no new listing says so plainly instead of
+ * showing a zero. The `under typisk` label carries the alert mail's verdict
+ * ink (`VERDICT_INK.under`): it is the verdict word, Klup's judgement — the
+ * number beside it stays ink.
+ */
+export function buildFirstWeekEmail(stats: FirstWeekStats & { stopUrl: string }): { subject: string; text: string; html: string } {
+  const t = translations.da
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.klup.dk'
+  const cta = { href: `${appUrl}/watchlists`, label: t.mailFirstWeekCta }
+  const n = (v: number) => v.toLocaleString('da-DK')
+  const watches = stats.watchCount === 1 ? t.mailFirstWeekWatchesOne : fill(t.mailFirstWeekWatchesMany, { n: n(stats.watchCount) })
+  const listings = stats.newListings === 1 ? t.mailFirstWeekListingsOne : fill(t.mailFirstWeekListingsMany, { n: n(stats.newListings) })
+  const under = stats.underCount != null && stats.underCount > 0 ? stats.underCount : null
+  const quiet = stats.newListings === 0
+  const line = quiet
+    ? fill(t.mailFirstWeekQuiet, { watches })
+    : under != null
+      ? fill(t.mailFirstWeekStatsUnder, { listings, watches, n: n(under) })
+      : fill(t.mailFirstWeekStats, { listings, watches })
+
+  const text = [
+    t.mailFirstWeekHeading,
+    '',
+    t.mailFirstWeekIntro,
+    '',
+    line,
+    '',
+    t.mailFirstWeekBody,
+    '',
+    `${cta.label}: ${cta.href}`,
+    '',
+    t.mailWelcomeSignoff,
+    t.mailFirstWeekWhy,
+    `${t.mailWelcomeStopLead} ${t.mailWelcomeStopLink}: ${stats.stopUrl}`,
+  ].join('\n')
+
+  const tile = (value: number, label: string, ink: string) =>
+    '<td style="padding:16px 18px;border:1px solid #e3e4e8;border-radius:16px;vertical-align:top">'
+    + `<div style="${MAIL_SERIF};font-size:44px;line-height:1">${esc(n(value))}</div>`
+    + `<div style="margin-top:6px;font-size:14px;font-weight:600;color:${ink}">${esc(label)}</div></td>`
+  const tiles = quiet ? [] : [
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0 0;margin:8px 0 14px"><tr>',
+    tile(stats.newListings, t.mailFirstWeekTileListings, '#5b616e'),
+    ...(under != null ? ['<td style="width:12px"></td>', tile(under, t.mailFirstWeekTileUnder, VERDICT_INK.under)] : []),
+    '</tr></table>',
+  ]
+
+  const html = welcomeShell(appUrl, [
+    `<h1 style="${MAIL_SERIF};font-size:36px;line-height:1.1;margin:20px 0 12px">${esc(t.mailFirstWeekHeading)}</h1>`,
+    `<p style="margin:0 0 12px">${esc(t.mailFirstWeekIntro)}</p>`,
+    ...tiles,
+    `<p style="margin:0 0 12px;font-size:18px;font-weight:600">${esc(line)}</p>`,
+    `<p style="margin:0 0 4px;color:#5b616e">${esc(t.mailFirstWeekBody)}</p>`,
+    welcomeButton(cta.href, cta.label),
+  ], welcomeStopFooter(t, t.mailFirstWeekWhy, stats.stopUrl))
+
+  return { subject: t.mailFirstWeekSubject, text, html }
 }
 
 /**

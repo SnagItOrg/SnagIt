@@ -320,6 +320,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-307: the sold writer reads Reverb's own product page (CSP → cp id, show_only_sold) and falls back to the
       // text search; the line boundary still refuses the siblings Reverb files there.
       'scripts/lib/pan307-sold-by-product.test.ts',
+      // PAN-308: welcome mails #2 and #3 — one CTA each, "Stop dem her" in both parts, mail #3's numbers, its
+      // quiet week and no price word without a band.
+      'scripts/lib/pan308-onboarding-mails.test.ts',
       // PAN-308: welcome mail #1 — the first-hour window, one CTA that follows the account, the price check as a
       // P.S., copy in both languages, and the trigger only for a new account after its sign-in handler.
       'scripts/lib/pan308-welcome-mail.test.ts',
