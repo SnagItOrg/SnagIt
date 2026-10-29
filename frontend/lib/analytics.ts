@@ -519,6 +519,11 @@ export interface KlupEventMap {
     source: 'dba' | 'thomann' | null
   }
 
+  /** PAN-308 — a way into /tjek-prisen was taken: which one. `search_paste` is an ad link typed into a search field. */
+  price_check_entry_clicked: {
+    surface: 'sidenav' | 'bottomnav' | 'home' | 'catalogue' | 'search_paste'
+  }
+
   /** PAN-244 — the guess row on /tjek-prisen was answered: how many were shown, which was picked. */
   price_check_guess: {
     shown: number
@@ -558,6 +563,7 @@ const EVENT_NAMES: Record<KlupEventName, true> = {
   search_unsupported: true,
   demand_signal_submitted: true,
   price_check_result: true,
+  price_check_entry_clicked: true,
   price_check_guess: true,
   feedback_sent: true,
   price_tip_sent: true,

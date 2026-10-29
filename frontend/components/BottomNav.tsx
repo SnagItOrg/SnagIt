@@ -8,6 +8,7 @@ import { Sun, Moon } from 'lucide-react'
 import { useLocale } from '@/components/LocaleProvider'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { Icon } from '@/components/Icon'
+import { track } from '@/lib/analytics'
 
 // Kept for SideNav compatibility
 export type NavTab = 'hjem' | 'overvaagninger' | 'soeg' | 'gemt' | 'profil'
@@ -56,43 +57,42 @@ export function BottomNav() {
     return () => subscription.subscription.unsubscribe()
   }, [])
 
-  const isSearch        = pathname === '/search'
   const isSaved         = pathname === '/saved'
   const isNotifications = pathname === '/watchlists' || pathname.startsWith('/watchlists/')
   const isProfil        = pathname === '/profile'
-  const isBrowse        = pathname === '/browse' || pathname.startsWith('/browse/')
+  // PAN-308: Søg and Katalog are one tab. Search results are the catalogue
+  // searched, so the Katalog tab is the mark there too.
+  const isBrowse        = pathname === '/browse' || pathname.startsWith('/browse/') || pathname === '/search'
+  const isPriceCheck    = pathname === '/tjek-prisen'
 
   // Render nothing while auth state is resolving (avoids wrong-state flash)
   if (authed === null) return null
+
+  // PAN-308 — the DBA price check takes the slot Søg left. Same on both navs.
+  const browse = (
+    <NavItem
+      label={t.navBrowse}
+      active={isBrowse}
+      href="/browse"
+      icon={<Icon name="grid_view" style={{ fontSize: '24px' }} />}
+    />
+  )
+  const priceCheck = (
+    <NavItem
+      label={t.navPriceCheckShort}
+      active={isPriceCheck}
+      href="/tjek-prisen"
+      onClick={() => track('price_check_entry_clicked', { surface: 'bottomnav' })}
+      icon={<Icon name="sell" style={{ fontSize: '24px' }} />}
+    />
+  )
 
   // Simplified nav for unauthenticated users
   if (!authed) {
     return (
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex items-center justify-around px-4 pb-[env(safe-area-inset-bottom)]" style={{ minHeight: '64px' }}>
-        {/* Search FAB */}
-        <div className="flex flex-col items-center pb-1">
-          <Link
-            href="/search"
-            className="w-14 h-14 -mt-7 rounded-full button-primary flex items-center justify-center shadow-lg glow-primary transition-transform active:scale-95"
-            aria-label={t.navSearch}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: 'var(--primary-foreground)' }}>
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
-          </Link>
-          <span className="text-[11px] font-medium mt-0.5" style={{ color: 'var(--foreground)' }}>
-            {t.navSearch}
-          </span>
-        </div>
-
-        {/* Browse */}
-        <NavItem
-          label={t.navBrowse}
-          active={isBrowse}
-          href="/browse"
-          icon={<Icon name="grid_view" style={{ fontSize: '24px' }} />}
-        />
+        {browse}
+        {priceCheck}
 
         {/* Theme toggle */}
         <ThemeToggle />
@@ -111,34 +111,9 @@ export function BottomNav() {
 
   // Full nav for authenticated users
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex items-end justify-around px-2 pb-[env(safe-area-inset-bottom)] min-h-[56px]">
-      {/* Search FAB — elevated centre button */}
-      <div className="relative flex flex-col items-center pb-3">
-        <Link
-          href="/search"
-          className="w-14 h-14 -mt-7 rounded-full button-primary flex items-center justify-center shadow-lg glow-primary transition-transform active:scale-95"
-          aria-label={t.navSearch}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: 'var(--primary-foreground)' }}>
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-          </svg>
-        </Link>
-        <span
-          className={`text-[11px] mt-0.5 ${isSearch ? 'font-semibold' : 'font-medium'}`}
-          style={{ color: isSearch ? 'var(--here)' : 'var(--muted-foreground)' }}
-        >
-          {t.navSearch}
-        </span>
-      </div>
-
-      {/* Browse */}
-      <NavItem
-        label={t.navBrowse}
-        active={isBrowse}
-        href="/browse"
-        icon={<Icon name="grid_view" style={{ fontSize: '24px' }} />}
-      />
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] min-h-[56px]">
+      {browse}
+      {priceCheck}
 
       {/* Saved */}
       <NavItem
@@ -183,11 +158,13 @@ function NavItem({
   active,
   icon,
   href,
+  onClick,
 }: {
   label: string
   active: boolean
   icon: React.ReactNode
   href?: string
+  onClick?: () => void
 }) {
   // PAN-121 — the active tab is where the visitor IS: `--here`, plus a weight
   // step so it survives grayscale. On a phone this is the only nav mark there is.
@@ -197,7 +174,7 @@ function NavItem({
 
   if (href) {
     return (
-      <Link href={href} className={className} style={{ color }} aria-label={label}>
+      <Link href={href} className={className} style={{ color }} aria-label={label} onClick={onClick}>
         {icon}
         <span className={labelClass}>{label}</span>
       </Link>

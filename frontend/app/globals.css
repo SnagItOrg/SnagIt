@@ -1107,11 +1107,6 @@
 
 
 @layer utilities {
-  /* Was a symmetric glow. Now a real downward cast. */
-  .glow-primary {
-    box-shadow: var(--shadow-2);
-  }
-
   .elevation-card    { box-shadow: var(--elevation-card); }
   .elevation-raised  { box-shadow: var(--elevation-raised); }
   .elevation-overlay { box-shadow: var(--elevation-overlay); }

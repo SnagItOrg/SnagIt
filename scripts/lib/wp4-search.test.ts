@@ -1875,12 +1875,14 @@ test('no discovery_product_clicked emission remains in search', () => {
   assert.ok(src.includes("emit('search_resolved'"), 'resolution must remain measured')
 })
 
-test('the page can emit only the four declared events, with no escape hatch', () => {
+test('the page can emit only the five declared events, with no escape hatch', () => {
   const src = readSource('app', '(shell)', 'search', 'page.tsx')
   const emitted = [...src.matchAll(/emit\(\s*'([a-z_]+)'/g)].map((m) => m[1])
+  // PAN-308 added `price_check_entry_clicked`: a pasted ad link leaves for
+  // Tjek prisen before `search_submitted`, so the link is never a query.
   assert.deepEqual(
     [...new Set(emitted)].sort(),
-    ['demand_signal_submitted', 'search_resolved', 'search_submitted', 'search_unsupported'],
+    ['demand_signal_submitted', 'price_check_entry_clicked', 'search_resolved', 'search_submitted', 'search_unsupported'],
   )
   // SUPERSEDED AT INTEGRATION. WP-4 shipped a local `SearchEventMap` shaped
   // like WP-5's taxonomy so that landing WP-5 would be a substitution. It is

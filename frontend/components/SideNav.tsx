@@ -10,6 +10,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useLocale } from '@/components/LocaleProvider'
 import { Icon } from '@/components/Icon'
 import { type Locale } from '@/lib/i18n'
+import { track } from '@/lib/analytics'
 import {
   currentCatalogueNode,
   sortKindsByLabel,
@@ -472,6 +473,9 @@ function KindRow({ href, current, label }: { href: string; current: boolean; lab
  */
 const isCataloguePath = (pathname: string) =>
   pathname === '/browse' ||
+  // PAN-308: search results are the catalogue searched, and Søg is no longer
+  // a nav item of its own, so Katalog carries the mark there.
+  pathname === '/search' ||
   pathname.startsWith('/browse/') ||
   pathname.startsWith('/product/') ||
   pathname.startsWith('/family/')
@@ -795,17 +799,19 @@ export function SideNav() {
       title: t.sidebarSectionDiscover,
       subtitle: t.sidebarSectionDiscoverSubtitle,
       items: [
+        // PAN-308 — the DBA price check had no way in. Søg went (it is part of
+        // Katalog now), and this took its place in the same zone, ABOVE
+        // Katalog: the catalogue tree hangs off the Katalog item, so anything
+        // after it sits below nine roots and scrolls out of sight.
         {
-          href: '/search',
-          label: t.navSearch,
-          // A FILLED MAGNIFIER IS A BLOB, so this one takes weight rather than
-          // fill. Same principle, legible result: the selected state is a
-          // heavier stroke, not a different hue.
+          href: '/tjek-prisen',
+          label: t.navPriceCheck,
           icon: (selected) => (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={selected ? 2.6 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
+            <Icon
+              name="sell"
+              filled={selected}
+              style={{ fontSize: '20px' }}
+            />
           ),
         },
         {
@@ -1037,6 +1043,7 @@ export function SideNav() {
                         title={collapsed ? label : undefined}
                         className={itemClass}
                         style={itemStyle}
+                        onClick={href === '/tjek-prisen' ? () => track('price_check_entry_clicked', { surface: 'sidenav' }) : undefined}
                       >
                         {icon(isActive)}
                         {!collapsed && <span>{label}</span>}

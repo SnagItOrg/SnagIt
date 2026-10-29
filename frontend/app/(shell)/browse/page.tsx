@@ -5,10 +5,13 @@ import { preload } from 'react-dom'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MobileSearchBar } from '@/components/MobileSearchBar'
+import { TextField } from '@/components/TextField'
+import { Button } from '@/components/Button'
+import { Icon } from '@/components/Icon'
 import { useLocale } from '@/components/LocaleProvider'
 import { PositionSignal } from '@/components/PositionSignal'
 import { buildPositionSignal } from '@/lib/position-signal'
+import { track } from '@/lib/analytics'
 import type { BrowseRootResponse } from '@/lib/browse'
 
 interface Category {
@@ -34,6 +37,7 @@ function BrowsePageInner() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [query, setQuery] = useState('')
 
   // PAN-263: request the tiles' data from the HTML, in parallel with the
   // scripts, rather than from the effect after hydration — see the note on
@@ -49,6 +53,13 @@ function BrowsePageInner() {
       })
       .catch(() => {})
   }, [])
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    const q = query.trim()
+    if (!q) return
+    router.push(`/search?q=${encodeURIComponent(q)}`)
+  }
 
   function toggleDebug() {
     router.push(debugEnabled ? '/browse' : '/browse?debug=1')
@@ -76,7 +87,6 @@ function BrowsePageInner() {
 
   return (
     <main id="main-content" className="flex-1 min-w-0 shell-offset pb-24 md:pb-8">
-      <MobileSearchBar />
 
       <div className="shell-wall">
 
@@ -102,6 +112,46 @@ function BrowsePageInner() {
             </button>
           )}
         </div>
+
+        {/* PAN-308 — Søg and Katalog are one place: the catalogue's own page
+            carries the search field, at every width (the bottom nav lost its
+            search button to Tjek prisen). Results stay on /search, which the
+            nav marks as Katalog. The hint is the price check's way in from
+            here. */}
+        <form onSubmit={handleSearch} className="pb-2">
+          <div className="relative">
+            <Icon
+              name="search"
+              className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ fontSize: '20px', color: 'var(--muted-foreground)' }}
+            />
+            <TextField
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t.heroSearchPlaceholder}
+              aria-label={t.search}
+              className="w-full rounded-2xl pl-12 pr-24 py-3 text-base text-foreground"
+            />
+            <Button
+              variant="primary"
+              type="submit"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl px-4 py-2 text-sm font-semibold"
+            >
+              {t.search}
+            </Button>
+          </div>
+        </form>
+        <p className="pb-4 text-sm text-muted-foreground">
+          {t.priceCheckEntryHint}{' '}
+          <Link
+            href="/tjek-prisen"
+            onClick={() => track('price_check_entry_clicked', { surface: 'catalogue' })}
+            className="font-semibold text-foreground underline underline-offset-4"
+          >
+            {t.navPriceCheck}
+          </Link>
+        </p>
 
         {/* PAN-121 — the catalogue root is the one surface with nothing
             narrowing it, so the signal is the count alone (PAN-168 #7). The

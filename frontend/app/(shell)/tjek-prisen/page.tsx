@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/LocaleProvider'
@@ -68,6 +68,19 @@ export default function TjekPrisenPage() {
       setLoading(false)
     }
   }
+
+  /**
+   * PAN-308: a link pasted into a search field arrives as `?url=` and is
+   * checked at once. Read from `location` in an effect rather than through
+   * `useSearchParams`, which would need a Suspense boundary on this page.
+   */
+  useEffect(() => {
+    const link = new URLSearchParams(window.location.search).get('url')
+    if (!link) return
+    setUrl(link)
+    void check(undefined, link)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   /** PAN-248: the field, the answer and the guesses go; the focus comes back to the field for the next link. */
   function clear() {

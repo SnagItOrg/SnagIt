@@ -107,7 +107,7 @@ colour for the current location, repeated at every place that states it, so a
 visitor learns it once. Exactly these uses are permitted:
 
 1. `SideNav` — the current node: a catalogue root or kind row (on a product
-   page, the node that holds the product), or a top-level item (Søg, Katalog,
+   page, the node that holds the product), or a top-level item (Tjek prisen, Katalog,
    Gemt, Alerts, Profil) when it is the location. Text, icon, 2px rail and
    `--here-subtle` fill.
 2. `Breadcrumb` — the current crumb, the one carrying `aria-current="page"`.
@@ -192,6 +192,7 @@ page-view event, which fires once per view even under strict mode.
 | `watchlist_created` | every creation path, after the server accepts it | `origin`, `product_slug`, `has_max_price` (never the query) |
 | `signup_completed` | `EmailCodeSignIn`, when a 6-digit code confirmed a **new** account (`email_code`); `/watchlists`, when an email link did (`email_link`) | `method` |
 | `price_check_result` | `/tjek-prisen`, when a pasted link is answered | `state`, `source` (never the link) |
+| `price_check_entry_clicked` | a way into `/tjek-prisen` (PAN-308): sidebar, bottom nav, home, Katalog, or an ad link pasted into a search field | `surface` |
 | `price_check_guess` | `/tjek-prisen`, when the guess row is answered | `shown`, `picked` (0, 1, 2 or `none`) |
 | `feedback_sent` | the feedback sheet, after the route accepted it | `kind`, `surface` (never the text or the email) |
 | `price_tip_sent` | the "Giv os et tip" sheet (PAN-256), after the route accepted it | `surface` (never the price, the name, the text or the email) |

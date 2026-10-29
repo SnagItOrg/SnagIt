@@ -715,7 +715,7 @@ test('outgoing: every typed Klup event still transmits, unchanged', () => {
   for (const name of V1_EVENT_NAMES) {
     assert.equal(isTransmittableEvent(name), true, `taxonomy event refused: ${name}`)
   }
-  assert.equal(V1_EVENT_NAMES.length, 15)
+  assert.equal(V1_EVENT_NAMES.length, 16)
 })
 
 test('outgoing: every other $ event is dropped, by name and not by prefix', () => {
@@ -908,7 +908,7 @@ test('readiness: the pageview waits for the client instead of firing into nothin
    7. The taxonomy carries no direct identifier  (§16.6 G, acceptance 11)
    ════════════════════════════════════════════════════════════════════════ */
 
-test('taxonomy: exactly the fifteen tracked events, plus $pageview', () => {
+test('taxonomy: exactly the sixteen tracked events, plus $pageview', () => {
   assert.deepEqual([...V1_EVENT_NAMES].sort(), [
     'demand_signal_submitted',
     'family_viewed',
@@ -916,6 +916,7 @@ test('taxonomy: exactly the fifteen tracked events, plus $pageview', () => {
     'filter_applied',
     'listing_outbound_clicked',
     'listing_saved',
+    'price_check_entry_clicked',
     'price_check_guess',
     'price_check_result',
     'price_tip_sent',
@@ -926,7 +927,7 @@ test('taxonomy: exactly the fifteen tracked events, plus $pageview', () => {
     'signup_completed',
     'watchlist_created',
   ])
-  assert.equal(V1_EVENT_NAMES.length, 15)
+  assert.equal(V1_EVENT_NAMES.length, 16)
 })
 
 test('taxonomy: no email-typed or direct-identifier field exists in the event union', () => {
