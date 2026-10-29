@@ -380,6 +380,9 @@ export const translations = {
     watchModelError: 'Overvågningen kunne ikke gemmes. Prøv igen om lidt.',
     watchModelAnonHint: 'Skriv din e-mail, så sender vi en kode og gemmer overvågningen.',
     watchlistModel: 'Model',
+    // PAN-308 — the watch identity: Klup's radar mark plus the watch's state.
+    watchStatusActive: 'Aktiv',
+    watchStatusPaused: 'Pause',
     productListingsOne: '1 annonce',
     productListings: '{count} annoncer',
     wallSeamLabel: 'Internationale annoncer',
@@ -756,6 +759,7 @@ export const translations = {
     mailOverflowOne: '…og 1 annonce mere.',
     mailOverflowMany: '…og {n} annoncer mere.',
     mailSeeAll: 'Se alle på Klup',
+    mailWatchLabel: 'Din overvågning',
     mailWhy: 'Du får denne mail, fordi du overvåger "{query}" på Klup.',
     mailSettings: 'Slå alle mails fra under din profil',
     // PAN-308 — welcome mail #1, sent once after the first code of a new account.
@@ -1228,6 +1232,9 @@ export const translations = {
     watchModelError: 'The watch could not be saved. Try again in a moment.',
     watchModelAnonHint: 'Enter your email and we’ll send a code and save the watch.',
     watchlistModel: 'Model',
+    // PAN-308 — the watch identity: Klup's radar mark plus the watch's state.
+    watchStatusActive: 'Active',
+    watchStatusPaused: 'Paused',
     productListingsOne: '1 listing',
     productListings: '{count} listings',
     wallSeamLabel: 'International listings',
@@ -1553,6 +1560,7 @@ export const translations = {
     mailOverflowOne: '…and 1 more listing.',
     mailOverflowMany: '…and {n} more listings.',
     mailSeeAll: 'See them all on Klup',
+    mailWatchLabel: 'Your watch',
     mailWhy: 'You get this email because you watch "{query}" on Klup.',
     mailSettings: 'Turn off all emails in your profile',
     // PAN-308 — welcome mail #1, sent once after the first code of a new account.

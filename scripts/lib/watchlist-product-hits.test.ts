@@ -127,6 +127,7 @@ test('PAN-273: the product watchlist mail links to the product page, the query m
 /* ── PAN-276 / PAN-278: the mail row, its links, and disengagement ───────── */
 
 import { buildNewListingsEmail } from '../../frontend/lib/email'
+import { translations } from '../../frontend/lib/i18n'
 import { MAIL_TOKEN, mailLinks, mailPrompt, newMailToken, type MailEngagement } from '../../frontend/lib/watchlist-mail'
 
 /** Every write, by table, and the result each insert should give. */
@@ -304,8 +305,38 @@ test('PAN-297: the mail says the verdict word the product page shows, and nothin
   assert.ok(html.includes('<span style="color:#5b616e;font-weight:600">Typisk (Baseret på få annoncer (n=5))</span>'))
   assert.ok(html.includes('<span style="color:#c81e1e;font-weight:600">Over typisk</span>'))
   assert.ok(html.includes('<span style="color:#5b616e;font-weight:600">Typisk · målt mod Reverb</span>'))
-  assert.equal(html.split('#0a7c41').length - 1, 1, 'one green word in the mail: the one under listing')
-  assert.equal(html.split('font-weight:600">').length - 1, 4 + 5 + 1, 'four verdict lines beside the five title links and the Se alle button')
+  // PAN-308: green ink twice — the `under` word and the watch tag's Aktiv
+  // badge, two of the three uses frontend/CLAUDE.md permits — and no more.
+  assert.equal(html.split('#0a7c41').length - 1, 2, 'green ink: the under word and the Aktiv badge')
+  assert.equal(html.split('color:#0a7c41;font-weight:600">').length - 1, 1, 'one green verdict word: the one under listing')
+  assert.equal(html.split('font-weight:600">').length - 1, 4 + 5 + 1 + 1, 'four verdict lines beside the five title links, the Se alle button and the watch name')
+})
+
+test('PAN-308: the watch tag names the watch and its state, in both parts', () => {
+  const t = translations.da
+  const active = buildNewListingsEmail({ query: 'Roland Juno-106', listings: [SNIPPET], mail: { token: 'Ab3dE5fG7hJ9', prompt: null } })
+  assert.ok(active.text.startsWith(`${t.mailWatchLabel}: Roland Juno-106 · ${t.watchStatusActive}\n`))
+  assert.match(active.html, /\/mail\/radar\.png/)
+  assert.ok(active.html.includes(`>${t.watchStatusActive}</span>`))
+  assert.ok(active.html.includes('background:#13ec6d'), 'the Aktiv dot')
+
+  const paused = buildNewListingsEmail({ query: 'Roland Juno-106', listings: [SNIPPET], mail: { token: 'Ab3dE5fG7hJ9', prompt: 'pause' } })
+  assert.ok(paused.text.startsWith(`${t.mailWatchLabel}: Roland Juno-106 · ${t.watchStatusPaused}\n`))
+  assert.ok(paused.html.includes(`>${t.watchStatusPaused}</span>`))
+  assert.ok(!paused.html.includes('#0a7c41') && !paused.html.includes('#13ec6d'), 'a paused watch carries no green')
+})
+
+test('PAN-308: a listing with an https photo gets a thumbnail; anything else goes without', () => {
+  const { html } = buildNewListingsEmail({
+    query: 'Roland Juno-106',
+    listings: [
+      { ...SNIPPET, title: 'med foto', image_url: 'https://images.dba.dk/juno.jpg' },
+      { ...SNIPPET, title: 'http-foto', image_url: 'http://example.com/juno.jpg' },
+      { ...SNIPPET, title: 'uden foto', image_url: null },
+    ],
+  })
+  const thumbs = [...html.matchAll(/<img src="([^"]+)" width="72" height="72"/g)].map((m) => m[1])
+  assert.deepEqual(thumbs, ['https://images.dba.dk/juno.jpg'])
 })
 
 test('PAN-297: a hit carries its verdict through the send untouched; a hit without one hands over null', async () => {
