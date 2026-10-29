@@ -20,10 +20,12 @@ module.exports = {
       },
     },
     {
+      // PAN-307: Finn and Blocket share the Schibsted engine; Blocket starts at
+      // 01:30 so the two runs do not overlap (owner, 2026-10-28).
       name: 'scrape-blocket',
       script: 'npx',
       args: 'tsx scripts/scrape-blocket.ts',
-      cron_restart: '0 1 * * *', // daily at 01:00
+      cron_restart: '30 1 * * *', // daily at 01:30
       autorestart: false,
       max_restarts: 0,
       max_memory_restart: '512M',
