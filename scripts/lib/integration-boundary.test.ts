@@ -323,6 +323,8 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-308: welcome mail #1 — the first-hour window, one CTA that follows the account, the price check as a
       // P.S., copy in both languages, and the trigger only for a new account after its sign-in handler.
       'scripts/lib/pan308-welcome-mail.test.ts',
+      // PAN-309: the watch form's price field accepts the max price the product page prefills.
+      'scripts/lib/pan309-watch-price-step.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
