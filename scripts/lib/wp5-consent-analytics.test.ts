@@ -1038,7 +1038,7 @@ test('inventory: only two trackers can be mounted, and only from AnalyticsRoot',
   ])
 })
 
-test('inventory: both trackers arrive by dynamic import, so nothing loads before consent', () => {
+test('inventory: both trackers arrive by dynamic import, so only the cookieless count loads before consent', () => {
   const analyticsRoot = readFileSync(join(FRONTEND, 'components', 'AnalyticsRoot.tsx'), 'utf8')
   const provider = readFileSync(join(FRONTEND, 'components', 'PostHogProvider.tsx'), 'utf8')
 
@@ -1048,8 +1048,38 @@ test('inventory: both trackers arrive by dynamic import, so nothing loads before
   assert.match(provider, /import\('posthog-js'\)/)
   assert.equal(/^import posthog from 'posthog-js'/m.test(provider), false)
 
-  // The gate returns before either module is referenced.
-  assert.match(analyticsRoot, /if \(!analyticsAllowed\) return null/)
+  // Before consent the gate mounts the cookieless count and nothing else, and
+  // returns before either tracker is referenced.
+  const gate = analyticsRoot.match(/if \(!analyticsAllowed\) \{([\s\S]*?)\n  \}/)
+  assert.ok(gate, 'the consent gate is missing')
+  assert.match(gate![1], /<CookielessPageCount \/>/)
+  assert.equal(/PostHogProvider|PostHogPageView|AnalyticsIdentity|SpeedInsights/.test(gate![1]), false)
+  assert.ok(
+    analyticsRoot.indexOf('if (!analyticsAllowed)') < analyticsRoot.indexOf('<PostHogProvider />'),
+    'a tracker is referenced before the consent gate',
+  )
+})
+
+test('cookieless: before consent only an anonymous $pageview can leave, with no storage and no id', () => {
+  const provider = readFileSync(join(FRONTEND, 'components', 'PostHogProvider.tsx'), 'utf8')
+  const start = provider.indexOf('function cookielessClient()')
+  assert.ok(start > 0, 'the cookieless client is missing')
+  const body = provider.slice(start)
+
+  assert.match(body, /\.\.\.DECLARED_EVENTS_ONLY/)
+  assert.match(body, /cookieless_mode: 'always'/)
+  assert.match(body, /persistence: 'memory'/)
+  // Every other event, the SDK's own included, is dropped.
+  assert.match(
+    body,
+    /before_send: \(payload\) =>\s*payload\?\.event === '\$pageview' \? prepareOutgoingPayload\(payload\) : null/,
+  )
+  // A separate, named instance that lib/analytics.ts never receives, so
+  // track() and identify() still have no client before consent.
+  assert.match(body, /'klup_cookieless'/)
+  assert.equal(/attachAnalyticsClient|identify\(|register\(/.test(body), false)
+  // The page count uses the same sanitised properties as the consented pageview.
+  assert.match(body, /client\.capture\('\$pageview', pageviewProperties\(pathname, search\)\)/)
 })
 
 test('inventory: the root layout mounts the consent gate and no tracker directly', () => {

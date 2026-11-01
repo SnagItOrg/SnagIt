@@ -1,7 +1,8 @@
 'use client'
 
 /**
- * PostHog initialisation. Fail closed, EU only, post-consent only.
+ * PostHog initialisation. Fail closed, EU only. The full client only after
+ * consent; before it, only the cookieless page count at the end of this file.
  *
  * Stage 3 WP-5. See docs/stage-3-v1-decision-and-build-plan.md §12.4.2 and
  * §12.4.6.
@@ -18,8 +19,8 @@
  * THIS COMPONENT RENDERS NOTHING AND WRAPS NOTHING. It is mounted only by
  * AnalyticsRoot, only while consent is `granted`, and it hands the initialised
  * client to lib/analytics.ts by injection. `posthog-js` is imported
- * DYNAMICALLY inside the effect, so the module is not merely un-initialised
- * before consent — it is not fetched.
+ * DYNAMICALLY inside the effect, so this client is not merely un-initialised
+ * before consent — it does not exist.
  *
  * WHY NO REACT PROVIDER. Every event goes through `track()` in
  * lib/analytics.ts (PAN-161); nothing calls `usePostHog()` or captures through
@@ -27,16 +28,65 @@
  */
 
 import { useEffect } from 'react'
+import { usePathname, useSearchParams } from 'next/navigation'
 
 import {
   attachAnalyticsClient,
   buildSuperProperties,
   currentAnalyticsEnv,
   detachAnalyticsClient,
+  pageviewProperties,
   prepareOutgoingPayload,
   resolvePostHogConfig,
   shouldThrowOnMisconfiguration,
+  type AnalyticsClient,
 } from '@/lib/analytics'
+
+/**
+ * What both PostHog instances leave off, so the consented client and the
+ * cookieless page count cannot drift apart on what the SDK may send by itself.
+ */
+const DECLARED_EVENTS_ONLY = {
+  defaults: '2026-01-30',
+
+  // We send our own sanitised $pageview (§12.4.7). $pageleave carries a
+  // URL and is not in the V1 taxonomy.
+  capture_pageview: false,
+  capture_pageleave: false,
+
+  // Only the declared events. Autocapture, dead clicks and
+  // rageclicks would send DOM content nobody declared; exception capture
+  // would send URLs and stack frames through the behavioural channel,
+  // which §12.4.8 keeps separate from operational logging.
+  autocapture: false,
+  capture_dead_clicks: false,
+  rageclick: false,
+  capture_exceptions: false,
+  capture_performance: false,
+
+  // Session replay would record raw search text keystroke by keystroke.
+  // Surveys and the toolbar are additional processing purposes that are
+  // not on /privatliv, so they are off rather than merely unused.
+  disable_session_recording: true,
+  disable_surveys: true,
+  disable_external_dependency_loading: true,
+
+  // No feature flags are used. Disabling them removes the /flags request
+  // on init, so the only PostHog traffic is the events themselves.
+  advanced_disable_flags: true,
+  advanced_disable_feature_flags: true,
+
+  // Campaign parameters are an unbounded free-text channel straight out
+  // of the URL: anyone can craft a link with any `utm_*` value, and a
+  // trace confirmed the canary reaching PostHog through `utm_campaign`
+  // while `$current_url` was clean. V1 runs no paid campaigns (§13.2),
+  // the event taxonomy declares no campaign property, and
+  // /privatliv does not list one as a data category. So it is off —
+  // turning it on later is a taxonomy and privacy-page change, not a
+  // configuration tweak.
+  save_campaign_params: false,
+  save_referrer: false,
+} as const
 
 export function PostHogProvider() {
   useEffect(() => {
@@ -62,46 +112,8 @@ export function PostHogProvider() {
       if (cancelled) return
 
       posthog.init(resolution.token, {
+        ...DECLARED_EVENTS_ONLY,
         api_host: resolution.host,
-        defaults: '2026-01-30',
-
-        // We send our own sanitised $pageview (§12.4.7). $pageleave carries a
-        // URL and is not in the V1 taxonomy.
-        capture_pageview: false,
-        capture_pageleave: false,
-
-        // Only the declared events. Autocapture, dead clicks and
-        // rageclicks would send DOM content nobody declared; exception capture
-        // would send URLs and stack frames through the behavioural channel,
-        // which §12.4.8 keeps separate from operational logging.
-        autocapture: false,
-        capture_dead_clicks: false,
-        rageclick: false,
-        capture_exceptions: false,
-        capture_performance: false,
-
-        // Session replay would record raw search text keystroke by keystroke.
-        // Surveys and the toolbar are additional processing purposes that are
-        // not on /privatliv, so they are off rather than merely unused.
-        disable_session_recording: true,
-        disable_surveys: true,
-        disable_external_dependency_loading: true,
-
-        // No feature flags are used. Disabling them removes the /flags request
-        // on init, so the only PostHog traffic is the events themselves.
-        advanced_disable_flags: true,
-        advanced_disable_feature_flags: true,
-
-        // Campaign parameters are an unbounded free-text channel straight out
-        // of the URL: anyone can craft a link with any `utm_*` value, and a
-        // trace confirmed the canary reaching PostHog through `utm_campaign`
-        // while `$current_url` was clean. V1 runs no paid campaigns (§13.2),
-        // the event taxonomy declares no campaign property, and
-        // /privatliv does not list one as a data category. So it is off —
-        // turning it on later is a taxonomy and privacy-page change, not a
-        // configuration tweak.
-        save_campaign_params: false,
-        save_referrer: false,
 
         // localStorage, not cookies. Withdrawal can then verifiably remove
         // everything the tracker persisted, and /privatliv can say plainly
@@ -135,6 +147,79 @@ export function PostHogProvider() {
       detachAnalyticsClient()
     }
   }, [])
+
+  return null
+}
+
+/**
+ * The cookieless page count: how many people visit, also when nobody has
+ * answered the consent question, or the answer was no.
+ *
+ * WHY IT EXISTS. Only consenting visitors were counted, so the traffic figure
+ * was a floor of unknown height (owner, 2026-11-01: "Hvor meget traffik har
+ * jeg?"). This reverses one clause of the WP-5 contract on purpose — before
+ * consent there is now one request per page — and keeps the rest of it.
+ *
+ * WHAT IT SENDS. The sanitised `$pageview` and nothing else: `before_send`
+ * drops every other event, including the SDK's own. Cookieless mode sets no
+ * cookie and writes nothing to local or session storage; PostHog counts
+ * visitors with a server-side hash that rotates daily, so there is no id that
+ * follows a visitor from one day to the next. Product events, `$identify` and
+ * Speed Insights stay behind consent: this instance is never handed to
+ * lib/analytics.ts, so `track()` still has no client before a yes.
+ *
+ * The PostHog project must have cookieless mode switched on, or the server
+ * drops these events.
+ */
+let cookieless: Promise<AnalyticsClient | null> | null = null
+
+function cookielessClient(): Promise<AnalyticsClient | null> {
+  if (cookieless) return cookieless
+  const resolution = resolvePostHogConfig(currentAnalyticsEnv())
+  // A misconfigured host is reported by the consented provider; here it only
+  // means there is nothing to count with.
+  if (!resolution.ok) return Promise.resolve(null)
+
+  cookieless = import('posthog-js').then(
+    ({ default: posthog }) =>
+      posthog.init(
+        resolution.token,
+        {
+          ...DECLARED_EVENTS_ONLY,
+          api_host: resolution.host,
+          cookieless_mode: 'always',
+          persistence: 'memory',
+          before_send: (payload) =>
+            payload?.event === '$pageview' ? prepareOutgoingPayload(payload) : null,
+        },
+        'klup_cookieless',
+      ) ?? null,
+  )
+  return cookieless
+}
+
+export function CookielessPageCount() {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (!pathname) return
+    let cancelled = false
+    const search = searchParams?.toString() ?? ''
+    void cookielessClient().then((client) => {
+      // Consent granted while the SDK loaded: the consented provider counts
+      // this page instead.
+      if (cancelled || !client) return
+      try {
+        client.capture('$pageview', pageviewProperties(pathname, search))
+      } catch {
+        /* analytics must never break the product */
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [pathname, searchParams])
 
   return null
 }
