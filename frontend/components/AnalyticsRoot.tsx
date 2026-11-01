@@ -7,12 +7,17 @@
  * §12.4.2.
  *
  * CONSENT-THEN-LOAD, NEVER LOAD-THEN-SUPPRESS. While consent is `undecided` or
- * `rejected` this component returns `null` before any tracker module is
- * referenced. Both trackers arrive through `import()` inside a subtree that
- * does not exist until the state is `granted`, so before consent there is no
- * script tag, no `init()`, no request and no client-store key. An SDK loaded
- * with tracking "disabled" has already made its request and set its
- * identifiers, and would not satisfy the contract.
+ * `rejected` this component mounts only the cookieless page count, before any
+ * other tracker module is referenced. Both trackers arrive through `import()`
+ * inside a subtree that does not exist until the state is `granted`, so before
+ * consent there is no identifier, no client-store key and no event but the
+ * anonymous `$pageview`. An SDK loaded with tracking "disabled" has already
+ * made its request and set its identifiers, and would not satisfy the
+ * contract.
+ *
+ * THE ONE PRE-CONSENT REQUEST (owner, 2026-11-01). Counting only consenting
+ * visitors left the traffic figure unknown, so every page sends one cookieless
+ * `$pageview` — no cookie, no storage, no id. See CookielessPageCount.
  *
  * NO PRE-CONSENT BUFFER. Nothing queues interactions for later delivery.
  * Behaviour from before the answer is lost on purpose: a queue that flushed on
@@ -29,7 +34,7 @@ import { Suspense, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 
 import { useConsent } from '@/components/ConsentProvider'
-import { PostHogProvider } from '@/components/PostHogProvider'
+import { CookielessPageCount, PostHogProvider } from '@/components/PostHogProvider'
 import { PostHogPageView } from '@/components/PostHogPageView'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import {
@@ -94,14 +99,20 @@ export function AnalyticsRoot() {
   const { analyticsAllowed } = useConsent()
   const pathname = usePathname() ?? '/'
 
-  // `analyticsAllowed` is false until the stored decision has been read, so
-  // `undecided` and `rejected` take the identical path: return before any
-  // tracker module is referenced.
-  if (!analyticsAllowed) return null
-
   // The private founder tool and the admin console emit no product events
   // (§12.2). Not mounting is stronger than filtering at the call site.
   if (isSuppressedSurface(pathname)) return null
+
+  // `analyticsAllowed` is false until the stored decision has been read, so
+  // `undecided` and `rejected` take the identical path: the cookieless count,
+  // before any other tracker module is referenced.
+  if (!analyticsAllowed) {
+    return (
+      <Suspense fallback={null}>
+        <CookielessPageCount />
+      </Suspense>
+    )
+  }
 
   return (
     <>

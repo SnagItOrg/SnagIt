@@ -85,7 +85,7 @@ const PROCESSORS: Processor[] = [
   {
     name: 'PostHog (EU)',
     role: 'Produktanalyse: hvilke sider og produkter der bliver brugt, så Klup kan blive bedre. Ikke annoncering, ikke profilering, ikke deling.',
-    when: 'Kun hvis du siger ja til måling.',
+    when: 'Altid en anonym optælling af sidevisninger uden cookie og uden id. Alt andet kun hvis du siger ja til måling.',
   },
   {
     name: 'Vercel Speed Insights',
@@ -103,6 +103,15 @@ const DATA_ALWAYS: string[] = [
   'Din emailadresse — kun hvis du opretter en konto, og kun for at logge dig ind og sende de beskeder, du har bedt om.',
   'De annoncer du gemmer, og de overvågninger du opretter.',
   'Dit svar på spørgsmålet om måling. Det gemmes lokalt i din browser og sendes ingen steder hen.',
+]
+
+/**
+ * The cookieless page count (owner, 2026-11-01): counted whatever the consent
+ * answer, so it is listed on its own rather than as part of the service.
+ */
+const DATA_ANONYMOUS: string[] = [
+  'At en side blev vist: sidestien i skabelonform, hvilket website du kom fra (kun domænet), sprog og enhedstype.',
+  'Ingen cookie, intet i din browsers lager og intet id. PostHog tæller besøgende med en anonym nøgle, der skiftes hver dag, så et besøg i dag ikke kan kobles til et besøg i morgen.',
 ]
 
 const DATA_ONLY_WITH_CONSENT: string[] = [
@@ -195,7 +204,8 @@ export default function PrivacyPage() {
         <p className="type-body-secondary">
           De fem første behandlere ovenfor er nødvendige for at levere tjenesten: uden dem er der
           ingen side, intet login og ingen mail. De to måleværktøjer har ét formål —
-          produktforbedring — og de kører kun, hvis du siger ja. De to ting er ikke bundtet:
+          produktforbedring — og de kører kun, hvis du siger ja, bortset fra PostHogs anonyme
+          optælling af sidevisninger, som er beskrevet nedenfor. De to ting er ikke bundtet:
           siger du nej til måling, virker Klup nøjagtig som før. Ingen funktion, side, pris,
           prisinterval, annonce eller søgning bliver holdt tilbage, forsinket, sløret eller
           gentaget som en påmindelse, fordi du sagde nej.
@@ -205,6 +215,8 @@ export default function PrivacyPage() {
       <Section heading={t.privacyDataHeading}>
         <p className="text-sm font-medium">Altid, fordi tjenesten ikke kan fungere uden</p>
         <Bullets items={DATA_ALWAYS} />
+        <p className="mt-2 text-sm font-medium">Altid, men anonymt: en optælling af sidevisninger</p>
+        <Bullets items={DATA_ANONYMOUS} />
         <p className="mt-2 text-sm font-medium">Kun hvis du siger ja til måling</p>
         <Bullets items={DATA_ONLY_WITH_CONSENT} />
         <p className="mt-2 text-sm font-medium">Aldrig</p>
