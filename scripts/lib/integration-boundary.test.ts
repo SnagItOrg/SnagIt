@@ -326,6 +326,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-308: welcome mail #1 — the first-hour window, one CTA that follows the account, the price check as a
       // P.S., copy in both languages, and the trigger only for a new account after its sign-in handler.
       'scripts/lib/pan308-welcome-mail.test.ts',
+      // PAN-308: the welcome series' nightly step — who is due which mail, mail 3's numbers, token before the
+      // mail and stamp after it, and a failure that never fails the alert run.
+      'scripts/lib/pan308-welcome-series.test.ts',
       // PAN-308: "Stop dem her" — the token is the credential, POST only, the other app_metadata keys kept,
       // one-click answered with a 200, and the page only asks.
       'scripts/lib/pan308-welcome-stop.test.ts',

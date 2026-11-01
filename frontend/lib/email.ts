@@ -488,6 +488,26 @@ export async function sendWelcomeEmail(to: string, userId: string, content: { su
 }
 
 /**
+ * PAN-308: send welcome mail #2 or #3 (scripts/lib/welcome-series.ts). The
+ * idempotency key names the mail and the account, so a doubled run inside
+ * Resend's 24 h window sends one mail. `oneClickUrl` is the RFC 8058
+ * `List-Unsubscribe` target (lib/welcome-stop.ts): a mail client's own
+ * "unsubscribe" stops the series without opening the page.
+ */
+export async function sendWelcomeSeriesEmail(
+  to: string, userId: string, mail: 2 | 3, content: { subject: string; text: string; html: string }, oneClickUrl: string,
+) {
+  const { error } = await getResend().emails.send(
+    {
+      from: process.env.RESEND_FROM_EMAIL!, to, ...content,
+      headers: { 'List-Unsubscribe': `<${oneClickUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+    },
+    { idempotencyKey: `welcome-${mail}/${userId}` },
+  )
+  if (error) throw new Error(`resend_rejected:${error.name}`)
+}
+
+/**
  * PAN-251: one piece of feedback to the owner. The visitor's email rides along
  * only when they typed it, as the reply-to; the visitor's IP never does.
  */
