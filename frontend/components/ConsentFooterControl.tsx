@@ -27,6 +27,7 @@ import { useConsent } from '@/components/ConsentProvider'
 import { useLocale } from '@/components/LocaleProvider'
 import { isSuppressedSurface } from '@/lib/analytics'
 import { Button } from '@/components/Button'
+import { SISTER_SITES, sisterLink } from '@/lib/sister-sites'
 
 const CONTROL_CLASS =
   'shrink-0 rounded-xl px-4 py-2 text-sm font-semibold ' +
@@ -74,6 +75,21 @@ export function ConsentFooterControl() {
           >
             {t.privacyPolicy}
           </Link>
+          {' · '}
+          {t.footerMadeBy}{' '}
+          {SISTER_SITES.map((site, i) => (
+            <span key={site.href}>
+              {i > 0 && ' · '}
+              <a
+                href={sisterLink(site.href, 'footer')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-ink"
+              >
+                {site.label}
+              </a>
+            </span>
+          ))}
         </p>
 
         {decided && granted && (
