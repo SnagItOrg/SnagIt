@@ -44,14 +44,26 @@ const PRODUCTS: Product[] = [
   row('roland-sp-404', 'roland', 'Roland SP-404', 'SP-404'),
   row('roland-sp-404sx', 'roland', 'Roland SP-404SX', 'SP-404SX'),
   row('roland-tr-626', 'roland', 'Roland TR-626', 'TR-626'),
+  row('roland-tr-808', 'roland', 'Roland TR-808', 'TR-808'),
+  row('roland-tr-909', 'roland', 'Roland TR-909', 'TR-909'),
+  row('roland-mc-808', 'roland', 'Roland MC-808', 'MC-808'),
+  row('roland-mc-909', 'roland', 'Roland MC-909', 'MC-909'),
   row('emu-sp-1200', 'e-mu', 'E-mu SP-1200', 'SP-1200'),
+  // Not here: `boss-dr-110` ("DR-110", the same Reverb page as the public row) is `known`, so no index holds it.
 ]
 
 /** The MODEL identifiers the PAN-315 identity file writes: the variants price folds into their base row. */
 const M = (slug: string, ...values: string[]) => values.map((value) => ({ product_id: `p-${slug}`, type: 'MODEL', value }))
 const IDENTS = [...M('boss-dr-220-dr-rhythm', 'DR-220A', 'DR-220E'), ...M('roland-sp-808', 'SP-808EX', 'SP808EX')]
 
-const index = buildMatchIndex(PRODUCTS, IDENTS, [], ['boss', 'roland', 'e-mu', 'akai', 'korg', 'alesis', 'kawai'])
+/**
+ * The one production alias on the DR-110 pair (synonym, 2026-11-02): it names the known duplicate's slug. A canonical
+ * query resolves to the slug or, failing that, the first row the slug prefixes, so with `boss-dr-110` out of the index it
+ * reaches the public row. One product, never a tie.
+ */
+const SYNONYMS = [{ alias: 'Boss DR-110 Dr. Rhythm 1980s - Silver', canonical_query: 'boss-dr-110' }]
+
+const index = buildMatchIndex(PRODUCTS, IDENTS, SYNONYMS, ['boss', 'roland', 'e-mu', 'akai', 'korg', 'alesis', 'kawai'])
 const decide = (title: string) => {
   const d = decideMatch(title, index)
   return d.kind === 'matched' ? index.productById.get(d.best.product_id)?.slug : d.kind === 'deferred' ? `deferred:${d.reason}` : d.kind
@@ -139,4 +151,34 @@ test('a part, a case, a card, a manual or a clone names no row; two models in on
 
 test('a Boss row is never reached by a title that names Roland alone (a deferral writes no row)', () => {
   assert.equal(decide('Roland SP-505'), 'deferred:brand_mismatch')
+})
+
+test('the SP and MC rows are never the TR rows, in either direction; there is no SP-909', () => {
+  matches('roland-sp-808', ['Roland SP-808 Groove Sampler 2000s - Black', 'Roland SP 808 Groove Sampler'])
+  matches('roland-tr-808', ['Roland TR-808', 'ROLAND TR-808 Rhythm Composer [10580] (01/20)', 'Begagnad Roland TR-808 Trummaskin hos Musikbörsen i Göteborg'])
+  matches('roland-mc-808', ['Roland MC-808 Groovebox 2010s - Silver'])
+  matches('roland-tr-909', ['1983 Roland TR-909 Rhythm Composer', 'MINT Roland TR-909 Rhythm Composer 1983 - 1985 - White'])
+  matches('roland-mc-909', ['Roland MC-909', 'Groovebox, Roland MC-909', 'Roland MC 909'])
+  // "SP 909 From Mars" is a TR-909 sample pack run through an SP-1200 (synthetic titles): no hardware row.
+  for (const t of ['SP 909 From Mars sample pack', 'Roland SP 909 From Mars', 'SP-909 From Mars TR-909 samples']) {
+    assert.ok(!['roland-tr-909', 'roland-mc-909', 'roland-sp-808'].includes(String(decide(t))), t)
+  }
+})
+
+test('the E-mu SP-1200 and SP-12 are never a Boss or Roland SP row', () => {
+  matches('emu-sp-1200', ['E-MU SP-1200 EMU SP1200', 'E-MU SP-1200 Model 7030 [069704657] (03/23)'])
+  notOn([
+    'E-mu SP-12 Turbo — Version 2.5', 'E-MU SP-12 Turbo 1985 w/ 1541 disk drive & 30 floppy’s',
+    'ISLA S2400 & Walnut Wood Curry Console & Decksaver - 12bit Sampler - EMU SP12 - SP 1200 - Akai S612 - S700',
+  ])
+})
+
+test('software is never the hardware: a plugin, a VST or the VR-55 clone names no row', () => {
+  // Synthetic: the owner's source (cdm.link, 2026-11-02) describes SampleScience's free VR-55.
+  notOn(['Boss DR-55 Dr. Rhythm VST plugin', 'SampleScience VR-55 - free Boss DR-55 plugin', 'VR-55 Dr. Rhythm emulation', 'Boss SP-303 Dr. Sample plugin'])
+})
+
+test('the DR-110 alias reaches the public row alone: the known duplicate is in no index, so nothing ties on "DR-110"', () => {
+  assert.equal(decide('Boss DR-110 Dr. Rhythm 1980s - Silver'), 'boss-dr-110-dr-rhythm')
+  assert.equal(index.products.some((p) => p.slug === 'boss-dr-110'), false)
 })

@@ -407,7 +407,15 @@ const SP_DR_PARTS: readonly (string | RegExp)[] = [
   ...['original case', 'case only', 'smartmedia', 'smart media', 'owners manual', "owner's manual", 'user guide'].map(notIncluded),
   /(?<![\w-])manual\s*$/i,
 ]
-const spDr = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ ...roland(line, ...otherMembers), accessories: SP_DR_PARTS })
+/**
+ * Software is never the hardware, whatever the title says before it. ROLAND_NEVER has "plug-in"; these lines' software
+ * is written "plugin" and "VST", and SampleScience's free DR-55 clone is the VR-55 (owner's source, cdm.link, 2026-11-02):
+ * "Boss DR-55 Dr. Rhythm VST plugin" (synthetic) is not the 1979 drum machine.
+ */
+const SP_DR_SOFTWARE: readonly RegExp[] = cues('plugin', 'plugins', 'vst', 'vr-55', 'vr55')
+const spDr = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  ...roland(line, ...otherMembers, ...SP_DR_SOFTWARE), accessories: SP_DR_PARTS,
+})
 
 /** A Boutique (2015–) re-creation: "Roland Boutique JU-06 JUNO-106 Sound Module" is the JU-06. */
 const BOUTIQUE = cue('boutique')
