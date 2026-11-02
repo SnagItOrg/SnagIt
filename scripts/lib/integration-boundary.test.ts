@@ -325,6 +325,10 @@ test('integration: every package suite is registered exactly once', () => {
       'scripts/lib/pan308-welcome-mail.test.ts',
       // PAN-309: the watch form's price field accepts the max price the product page prefills.
       'scripts/lib/pan309-watch-price-step.test.ts',
+      // PAN-311: the workhorse amps and pedals. Eight of thirty rows reach a title that is not the row (a part or a 1x12
+      // cabinet, an instrument or a cabinet sold with the amp, the Super Cube 40, a GT-1000 with the ME-80 bag, the Carbon
+      // Copy Deluxe and Mini); each boundary refuses its production title and keeps the row's own.
+      'scripts/lib/pan311-workhorse.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
