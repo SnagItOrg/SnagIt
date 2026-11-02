@@ -3978,6 +3978,10 @@ function resolveCanonical(canonical: string, products: Product[]): Product | und
 
 // ── Pagination helper (PostgREST caps at 1000 rows regardless of .limit()) ────
 
+// Every builder must carry a total `.order()`: offset pages over an unordered
+// query can skip or repeat rows between requests. PAN-311 (2026-11-02): at
+// 1,107 matchable products each index load dropped a different handful, and the
+// backfill writer decided "none" on 270 titles its dry run had matched.
 async function fetchAllRows<T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   builder: () => any,
@@ -4732,7 +4736,7 @@ export async function loadMatchIndex(supabase: SupabaseClient): Promise<MatchInd
     // these lines being present.
     fetchAllRows<RawProduct>(
       () => supabase.from('kg_product').select(PRODUCT_SELECT)
-              .eq('status', MATCHABLE_STATUS).eq('support_state', MATCHABLE_SUPPORT_STATE),
+              .eq('status', MATCHABLE_STATUS).eq('support_state', MATCHABLE_SUPPORT_STATE).order('id'),
       1000, 'kg_product',
     ),
     // Brand protection, loaded SEPARATELY and deliberately WITHOUT the support
@@ -4740,15 +4744,15 @@ export async function loadMatchIndex(supabase: SupabaseClient): Promise<MatchInd
     // Tokai product is supported. `status='active'` keeps Apple and the other
     // deprecated non-music brands out.
     fetchAllRows<RawProduct>(
-      () => supabase.from('kg_product').select(BRAND_PROTECTION_SELECT).eq('status', MATCHABLE_STATUS),
+      () => supabase.from('kg_product').select(BRAND_PROTECTION_SELECT).eq('status', MATCHABLE_STATUS).order('id'),
       1000, 'kg_product_brands',
     ),
     fetchAllRows<Identifier>(
-      () => supabase.from('kg_identifier').select('product_id, type, value').in('type', ['SKU', 'MODEL']),
+      () => supabase.from('kg_identifier').select('product_id, type, value').in('type', ['SKU', 'MODEL']).order('id'),
       1000, 'kg_identifier',
     ),
     fetchAllRows<Synonym>(
-      () => supabase.from('synonym').select('alias, canonical_query').eq('match_type', 'alias'),
+      () => supabase.from('synonym').select('alias, canonical_query').eq('match_type', 'alias').order('id'),
       1000, 'synonym',
     ),
   ])
