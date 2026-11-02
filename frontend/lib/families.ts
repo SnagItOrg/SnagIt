@@ -1389,6 +1389,41 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: ['telefunken-tf11', 'telefunken-tf17', 'telefunken-tf29', 'telefunken-tf39', 'telefunken-tf47', 'telefunken-tf51'],
     aliases: ['telefunken alchemy'],
   },
+  /*
+   * PAN-315, owner 2026-11-02: "Dr rhythm and the other from the sampling
+   * series could be included. Your call". Three prefix lines, the PAN-284
+   * way, the `rhodes` case: no row. Boss and Roland are two brands on
+   * Reverb's pages, so the Boss Dr. Sample / SP-505 line and the Roland SP
+   * line are two families. The SP-404s stay `roland-sp-404-sampler` (the
+   * owner kept that family; a product has one family). The DR-202 Dr. Groove
+   * is a DR. The DR-110 child is the public `boss-dr-110-dr-rhythm`, not the
+   * `known` duplicate `boss-dr-110`. No aliases: a bare prefix would capture
+   * queries for other gear.
+   */
+  'boss-dr': {
+    label: 'Boss DR',
+    brand: 'Boss',
+    categoryRoot: 'keyboards-and-synths',
+    children: [
+      'boss-dr-55-dr-rhythm', 'boss-dr-110-dr-rhythm', 'boss-dr-220-dr-rhythm', 'boss-dr-550', 'boss-dr-660', 'boss-dr-5',
+      'boss-dr-770', 'boss-dr-202-dr-groove', 'boss-dr-670', 'boss-dr-3', 'boss-dr-880',
+    ],
+    aliases: [],
+  },
+  'boss-sp': {
+    label: 'Boss SP',
+    brand: 'Boss',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['boss-sp-202-dr-sample', 'boss-sp-303-dr-sample', 'boss-sp-505'],
+    aliases: [],
+  },
+  'roland-sp': {
+    label: 'Roland SP',
+    brand: 'Roland',
+    categoryRoot: 'keyboards-and-synths',
+    children: ['roland-sp-808', 'roland-sp-606', 'roland-sp-555'],
+    aliases: [],
+  },
 }
 
 /** Every family, in `FAMILY_SLUGS` order. */

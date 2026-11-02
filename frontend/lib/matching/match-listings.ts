@@ -391,6 +391,24 @@ const roland = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
   line, otherMembers: [...otherMembers, ...ROLAND_NEVER], accessories: ROLAND_PARTS,
 })
 
+/**
+ * PAN-315. The Roland SP samplers and the Boss DR drum machines. Boss is Roland's, and the parts trade is the same, so
+ * a row is a `roland()` member with the case, storage-card and manual titles these lines' sellers write (production
+ * and Reverb titles, 2026-11-02): "Boss Dr 110 Original Case", "Boss DR-110 Box - Original Case - Tested", "Minolta
+ * RM-2S 5V 2MB SmartMedia Card (… Boss SP-202 …)", "Roland SP-808 — Owners Manual User Guide", "BOSS DR-770 Dr. Rhythm
+ * manual" (DBA, 120 DKK). A part the title then says is included is the unit's: "Original Case included - Tested",
+ * "**Memory Card Included**", "Dr. Groove … (Power Cable Included) (TESTED)". Each row is its own line, so a title
+ * naming two models ("Boss SP-303 & SP-202 COMBO", "Roland TR-626 + TR-505 + Boss DR-770 … Bundle") stays a
+ * two-product tie.
+ */
+const notIncluded = (noun: string): RegExp => new RegExp(`${cue(noun).source}(?!\\s*incl)`, 'i')
+const SP_DR_PARTS: readonly (string | RegExp)[] = [
+  ...ROLAND_PARTS.map((noun) => (typeof noun === 'string' ? notIncluded(noun) : noun)),
+  ...['original case', 'case only', 'smartmedia', 'smart media', 'owners manual', "owner's manual", 'user guide'].map(notIncluded),
+  /(?<![\w-])manual\s*$/i,
+]
+const spDr = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ ...roland(line, ...otherMembers), accessories: SP_DR_PARTS })
+
 /** A Boutique (2015–) re-creation: "Roland Boutique JU-06 JUNO-106 Sound Module" is the JU-06. */
 const BOUTIQUE = cue('boutique')
 /** The JU-06 / JU-06A Boutique Junos. */
@@ -2197,7 +2215,6 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'roland-sh-3a': roland('roland-sh-3a'),
   'roland-sh-5': roland('roland-sh-5'),
   'roland-sh-7': roland('roland-sh-7'),
-  'roland-sp-808': roland('roland-sp-808'),
   'roland-svc-350': roland('roland-svc-350'),
   'roland-tb-303': roland('tb-303', /(?<![\w-])tb[-\s]?0?3(?![\w-])/i, BOUTIQUE, cue('aira'), cue('td-3'), cue('xoxbox'), cue('x0xb0x')),
   'roland-tr-626': roland('roland-tr-626'),
@@ -2223,6 +2240,26 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'roland-sp-404-mkii': roland('sp-404'),
   'roland-sp-404a': roland('sp-404'),
   'roland-sp-404sx': roland('sp-404'),
+  // ── PAN-315: the Roland SP samplers and the Boss DR drum machines (SP_DR_PARTS) ──
+  // Price decides identity (Reverb sold, 2026-11-02): the SP-808EX (+9 %), the DR-220A / DR-220E (+5 %) and the DR-550
+  // MkII (+21 %) are their base row's, through its identifiers or its model token.
+  'boss-sp-202-dr-sample': spDr('boss-sp-202-dr-sample'),
+  'boss-sp-303-dr-sample': spDr('boss-sp-303-dr-sample'),
+  'boss-sp-505': spDr('boss-sp-505'),
+  'roland-sp-555': spDr('roland-sp-555'),
+  'roland-sp-606': spDr('roland-sp-606'),
+  'roland-sp-808': spDr('roland-sp-808'),
+  'boss-dr-55-dr-rhythm': spDr('boss-dr-55-dr-rhythm'),
+  'boss-dr-110-dr-rhythm': spDr('boss-dr-110-dr-rhythm'),
+  'boss-dr-220-dr-rhythm': spDr('boss-dr-220-dr-rhythm'),
+  'boss-dr-550': spDr('boss-dr-550'),
+  'boss-dr-660': spDr('boss-dr-660'),
+  'boss-dr-5': spDr('boss-dr-5'),
+  'boss-dr-770': spDr('boss-dr-770'),
+  'boss-dr-202-dr-groove': spDr('boss-dr-202-dr-groove'),
+  'boss-dr-670': spDr('boss-dr-670'),
+  'boss-dr-3': spDr('boss-dr-3'),
+  'boss-dr-880': spDr('boss-dr-880'),
   'roland-re-150': roland('space-echo'),
   'roland-re-301': roland('space-echo'),
   'roland-sre-555': roland('space-echo'),
