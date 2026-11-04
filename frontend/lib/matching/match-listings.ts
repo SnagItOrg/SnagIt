@@ -2333,10 +2333,17 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'roland-u-20': roland('roland-u-20'),
   // The V-Synth XT (rack) and GT are their own models; the 1980 SPV-355 is a "P/V Synth".
   'roland-v-synth': roland('roland-v-synth', /(?<![\w-])v[-\s]?synth\s?(?:xt|gt)(?![\w-])/i, /(?<![\w-])spv[-\s]?355(?![\w-])/i),
-  'roland-vp-330': roland('roland-vp-330'),
+  // PAN-320: the Boutique VP-03 re-creates the VP-330, and sellers name both ("Roland VP-03 Boutique Vocoder (VP-330
+  // in miniature)"); one line, so the 1979 vocoder refuses the Boutique and the VP-03 reaches its own row (step 5b).
+  'roland-vp-330': roland('roland-vp-330', BOUTIQUE, /(?<![\w-])vp[-\s]?03(?![\w-])/i),
+  'roland-vp-03': roland('roland-vp-330'),
   'roland-vp-550': roland('roland-vp-550'),
   'roland-vp-770': roland('roland-vp-770'),
   'roland-vp-9000': roland('roland-vp-9000'),
+  // PAN-320: the voice transformers — the Boss VT-1 (1996), the Roland AIRA VT-3 (2014) and the VT-4 (2019).
+  'boss-vt-1-voice-transformer': roland('boss-vt-1-voice-transformer'),
+  'roland-vt-3': roland('roland-vt-3'),
+  'roland-vt-4': roland('roland-vt-4'),
   'roland-w-30': roland('roland-w-30'),
   'roland-xp-10': roland('roland-xp-10'),
   'roland-xp-30': roland('roland-xp-30'),

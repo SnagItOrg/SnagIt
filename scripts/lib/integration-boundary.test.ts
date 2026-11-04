@@ -348,6 +348,8 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-319: Elektron. A generation never reaches its successor (Digitakt / II, Digitone / II / Keys, Heat / +FX); the
       // lids, rack kits, power supplies, bags and sound packs name none.
       'scripts/lib/pan319-elektron.test.ts',
+      // PAN-320: the Boss VT-1, Roland VT-3 / VT-4 and the Boutique VP-03, which shares the VP-330's line.
+      'scripts/lib/pan320-roland-vt-vp.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
