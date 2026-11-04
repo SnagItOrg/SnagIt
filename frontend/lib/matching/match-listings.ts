@@ -1850,6 +1850,22 @@ const TC_PARTS: readonly string[] = [
   'manual', 'service manual', 'stand', 'rack ears', 'eprom', 'firmware', 'knob', 'knobs', 'faceplate',
 ]
 const TC_RACKS: Readonly<Record<string, RegExp>> = { '2290': /(?<![0-9])2290(?![0-9])/, '1210': /(?<![0-9])1210(?![0-9])/ }
+/**
+ * PAN-322. TC Electronic's later racks, studio and guitar (M5000, G-Force, M-One / XL, M300, M3000, D-Two, G-Major / 2):
+ * the same trade as the 2290 and 1210 (TC_NEVER, TC_PARTS); each name is a word or a short code, so the maker the model
+ * tier asks for is what keeps "G-Force" and "M300" to TC. The M-One and G-Major refuse their successors (one line).
+ */
+/**
+ * Several pedals in one ad, as DBA sellers write it: "TC Electronic Flashback X4 og andre guitarpedaler", "TC Electronic
+ * Spark booster og Viscous Vibe guitarpedaler" (production, 2026-11-04). The Danish plural is never one pedal.
+ */
+const SEVERAL_PEDALS: readonly RegExp[] = [/(?<![\w-])(?:guitar)?pedaler(?![\w-])/i, cue('og andre')]
+const tcPedal = (line: string, ...otherMembers: RegExp[]): LineBoundary => pedal(line, ...SEVERAL_PEDALS, ...otherMembers)
+/** TC's "X4" pedals: the X4 is the model, not four units, so PEDAL_NEVER less the cues that read "x4" as a count. */
+const pedalX4 = (line: string): LineBoundary => ({ ...tcPedal(line), otherMembers: [...SEVERAL_PEDALS, ...PEDAL_NEVER.filter((re) => !re.test('x4'))] })
+const tcUnit = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...TC_NEVER, ...otherMembers], accessories: TC_PARTS,
+})
 const tcRack = (self: keyof typeof TC_RACKS): LineBoundary => ({
   line: 'tc-electronic',
   otherMembers: [...TC_NEVER, ...Object.entries(TC_RACKS).filter(([k]) => k !== self).map(([, re]) => re)],
@@ -4093,6 +4109,33 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // ── PAN-293: TC Electronic ──
   'tc-electronic-2290': tcRack('2290'),
   'tc-electronic-1210': tcRack('1210'),
+  // ── PAN-322: the TonePrint pedals (pedal()) and the later racks (tcUnit()). Price decides identity (Reverb sold, same
+  // year): the Flashback 2 and both Minis are the Flashback's (+12–17 %); the X4s (+100 %), the Hall of Fame 2 (+41 %),
+  // the M-One XL (+55 %) and the G-Major 2 (+30 %) are rows of their own; the Corona, Vortex and Shaker Minis are theirs.
+  'tc-electronic-flashback': tcPedal('tc-electronic-flashback', ...cues('x4', 'triple')),
+  'tc-electronic-flashback-x4': pedalX4('tc-electronic-flashback'),
+  'tc-electronic-hall-of-fame': tcPedal('tc-electronic-hall-of-fame', /(?<![\w-])hall\s+of\s+fame\s*-?\s*(?:2|ii)(?![\w-])/i, cue('x4')),
+  // The Hall of Fame 2 Mini's price is unmeasured: it names no row.
+  'tc-electronic-hall-of-fame-2': tcPedal('tc-electronic-hall-of-fame', ...cues('x4', 'mini')),
+  'tc-electronic-hall-of-fame-2-x4': pedalX4('tc-electronic-hall-of-fame'),
+  'tc-electronic-corona': tcPedal('tc-electronic-corona'),
+  'tc-electronic-vortex': tcPedal('tc-electronic-vortex'),
+  'tc-electronic-shaker': tcPedal('tc-electronic-shaker'),
+  'tc-electronic-viscous-vibe': tcPedal('tc-electronic-viscous-vibe'),
+  'tc-electronic-m5000': tcUnit('tc-electronic-m5000'),
+  'tc-electronic-g-force': tcUnit('tc-electronic-g-force'),
+  'tc-electronic-m-one': tcUnit('tc-electronic-m-one', cue('xl')),
+  'tc-electronic-m-one-xl': tcUnit('tc-electronic-m-one'),
+  'tc-electronic-m300': tcUnit('tc-electronic-m300'),
+  'tc-electronic-m3000': tcUnit('tc-electronic-m3000'),
+  'tc-electronic-d-two': tcUnit('tc-electronic-d-two'),
+  'tc-electronic-g-major': tcUnit('tc-electronic-g-major', /(?<![\w-])g\s?-?major\s*-?\s*(?:2|ii)(?![\w-])/i),
+  'tc-electronic-g-major-2': tcUnit('tc-electronic-g-major'),
+  // ── PAN-322: the TC Helicon vocal pedals beside the VoiceLives (PAN-321): the Harmony Singer 2 and Mic Mechanic 2 are
+  // their row's (unmeasured split, one page each).
+  'tc-helicon-harmony-singer': pedal('tc-helicon-harmony-singer'),
+  'tc-helicon-mic-mechanic': pedal('tc-helicon-mic-mechanic'),
+  'tc-helicon-perform-v': pedal('tc-helicon-perform-v'),
   // ── PAN-293: Tube-Tech ── (the CL 1B and LCA 2B were supported before the ticket)
   'tube-tech-cl-1a': tubeTech('cl1a', 'cl1b'),
   'tube-tech-cl1b': tubeTech('cl1b'),

@@ -353,6 +353,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-321: the Korg, DigiTech and TC Helicon vocoders: each microKORG and VoiceLive generation reaches its row; mics,
       // connectors, covers, cases and adapters name none.
       'scripts/lib/pan321-vocoders.test.ts',
+      // PAN-322: TC Electronic's TonePrint pedals and later racks, TC Helicon's vocal pedals; several pedals in one ad and
+      // other makers' namesakes name none.
+      'scripts/lib/pan322-tc.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
