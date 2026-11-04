@@ -503,6 +503,23 @@ const novation = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
  */
 const BASS_STATION_II = /(?<![\w-])bass\s?station\s*-?\s*(?:ii|ll|2|mk\s?(?:ii|2))(?![\w-])/i
 
+/**
+ * PAN-319. Elektron: the same desktop trade, so ABLETON_PARTS, plus Elektron's own lids and rack kits ("Elektron
+ * PROTECTIVE LID PL-2S", "RMK-3B RACK MOUNT KIT") and the sound packs sold for the boxes ("Model:Cycles Preset Pack by
+ * RedStripeDown"). A generation and its successor share a line, so the refusal separates them (step 5b).
+ */
+const ELEKTRON_PARTS: readonly (string | RegExp)[] = [
+  ...ABLETON_PARTS, ...['lid', 'protective lid', 'rack mount', 'preset pack', 'sample pack', 'sound pack', 'presets', 'alimentation', 'sacoche'].map(notIncluded),
+  // Elektron's own codes: lids PL-2…PL-5, rack kits RMK-2, power supplies PSU-2b…PSU-4b, carry cases ECC-5…ECC-7
+  // ("PSU-4b alimentation pour Model:Samples", "ECC-5b Sacoche pour Model:Samples / Cycles").
+  /(?<![\w-])pl-?[1-5]s?(?![\w-])/i, /(?<![\w-])rmk-?\d/i, /(?<![\w-])psu-?\d/i, /(?<![\w-])ecc-?\d/i,
+]
+const elektron = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...otherMembers, ...ROLAND_NEVER], accessories: ELEKTRON_PARTS,
+})
+/** The second generation of `name`, as Elektron and its sellers write it: "Digitakt II", "Digitakt 2", "Digitakt MKII". */
+const elektronII = (name: string): RegExp => new RegExp(`(?<![\\w-])${name}\\s*-?\\s*(?:mk\\s?-?)?(?:ii|2)(?![\\w-])`, 'i')
+
 /** A Boutique (2015–) re-creation: "Roland Boutique JU-06 JUNO-106 Sound Module" is the JU-06. */
 const BOUTIQUE = cue('boutique')
 /** The JU-06 / JU-06A Boutique Junos. */
@@ -2404,6 +2421,24 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'novation-bass-station-rack': novation('novation-bass-station', ...cues('super', 'superbass')),
   'novation-super-bass-station': novation('novation-bass-station'),
   'novation-afx-station': novation('novation-bass-station'),
+  // ── PAN-319: Elektron (ELEKTRON_PARTS). Price decides identity (Reverb sold, same year): Digitakt II +54 %, Digitone
+  // II +120 %, Analog Heat +FX +55 % — own rows; the Analog Heat MkII (+13 %), Syntakt E25 and Machinedrum / Monomachine
+  // generations are their row's.
+  'elektron-digitakt': elektron('elektron-digitakt', elektronII('digitakt')),
+  'elektron-digitakt-ii': elektron('elektron-digitakt'),
+  'elektron-digitone': elektron('elektron-digitone', elektronII('digitone'), cue('keys')),
+  'elektron-digitone-ii': elektron('elektron-digitone', cue('keys')),
+  'elektron-digitone-keys': elektron('elektron-digitone'),
+  // "Analog Heat +FX" / "Heat FX"; never "Analog Heat - … Effect FX Module" (the Heat).
+  'elektron-analog-heat': elektron('elektron-analog-heat', /(?<![\w-])heat\s*\+?\s*fx(?![\w-])/i),
+  'elektron-analog-heat-fx': elektron('elektron-analog-heat'),
+  'elektron-analog-keys': elektron('elektron-analog-keys'),
+  'elektron-syntakt': elektron('elektron-syntakt'),
+  'elektron-model-samples': elektron('elektron-model-samples'),
+  'elektron-model-cycles': elektron('elektron-model-cycles'),
+  'elektron-machinedrum-sps-1': elektron('elektron-machinedrum-sps-1'),
+  'elektron-monomachine-sfx-6': elektron('elektron-monomachine-sfx-6'),
+  'elektron-tonverk': elektron('elektron-tonverk'),
   'roland-re-150': roland('space-echo'),
   'roland-re-301': roland('space-echo'),
   'roland-sre-555': roland('space-echo'),
