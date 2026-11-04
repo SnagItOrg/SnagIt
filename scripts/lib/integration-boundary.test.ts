@@ -342,6 +342,9 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-317: Ableton's Push 1 / 2 / 3 (controller and standalone) and Move, one line: no generation reaches its successor,
       // "push button" and "must move" name none, and stands, covers and cases name none.
       'scripts/lib/pan317-ableton.test.ts',
+      // PAN-318: Novation's Circuit and Bass Station lines. The 2015 Circuit needs the maker ("Circuit Bent", "Circuit
+      // Board"); no generation reaches its successor; the Rack, Super and AFX are their own rows.
+      'scripts/lib/pan318-novation.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite

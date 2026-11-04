@@ -487,6 +487,22 @@ const ableton = (...otherMembers: RegExp[]): LineBoundary => ({
 /** The 2023 Push 3 sells as a controller and as a standalone (+78 %): "Push 3 controller (not standalone)" is the controller. */
 const PUSH_3_STANDALONE = /(?<!not\s)(?<![\w-])standalone(?![\w-])/i
 
+/**
+ * PAN-318. Novation's Circuit grooveboxes and Bass Station synths: the same desktop trade, so ABLETON_PARTS, plus the
+ * circuit boards a bare "Circuit" names ("Kurzweil K2500/K2500R Engine Circuit Board"). Each line is one `line`, so a
+ * generation's refusal separates it from its successor (step 5b). "Circuit" is a word ("Circuit Bent Sampler", "Dual-Stage
+ * Gain Circuit"), so the 2015 Circuit needs the maker.
+ */
+const NOVATION_PARTS: readonly (string | RegExp)[] = [...ABLETON_PARTS, ...['circuit board', 'board', 'pcb'].map(notIncluded)]
+const novation = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...otherMembers, ...ROLAND_NEVER], accessories: NOVATION_PARTS,
+})
+/**
+ * The Bass Station line's other members, as a title names them: "Bass Station II" (also "Bass Station ll"), "Bass Station
+ * Rack", "Super Bass Station", "AFX Station", and the Bass Station II's Swifty Edition.
+ */
+const BASS_STATION_II = /(?<![\w-])bass\s?station\s*-?\s*(?:ii|ll|2|mk\s?(?:ii|2))(?![\w-])/i
+
 /** A Boutique (2015–) re-creation: "Roland Boutique JU-06 JUNO-106 Sound Module" is the JU-06. */
 const BOUTIQUE = cue('boutique')
 /** The JU-06 / JU-06A Boutique Junos. */
@@ -2372,6 +2388,22 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'ableton-push-3': ableton(PUSH_3_STANDALONE),
   'ableton-push-3-standalone': { ...ableton(), requires: [PUSH_3_STANDALONE] },
   'ableton-move': { ...ableton(), requires: [/(?<![\w-])ableton\s+move(?![\w-])/i] },
+  // ── PAN-318: Novation's Circuit and Bass Station lines (NOVATION_PARTS). The Circuit Tracks and Rhythm are two
+  // products, not variants (+10 % apart); the Circuit (2015) sells 40 % under the Tracks; the AFX Station +48 % over
+  // the Bass Station II.
+  // "Novation Supernova II … DAC … Integrated Circuit" is a chip; "Circuit Rythm" is the Rhythm, misspelt.
+  'novation-Circuit': {
+    ...novation('novation-circuit', ...cues('tracks', 'rhythm', 'rythm', 'mono', 'bent', 'integrated circuit', 'supernova')),
+    requires: [cue('novation')],
+  },
+  'novation-novation-circuit-tracks': novation('novation-circuit'),
+  'novation-circuit-rhythm': novation('novation-circuit'),
+  'novation-circuit_mono_station': novation('novation-circuit'),
+  'novation-bass-station': novation('novation-bass-station', BASS_STATION_II, ...cues('rack', 'super', 'superbass', 'afx', 'swifty')),
+  'novation-novation-bass-station-ii': novation('novation-bass-station', cue('afx')),
+  'novation-bass-station-rack': novation('novation-bass-station', ...cues('super', 'superbass')),
+  'novation-super-bass-station': novation('novation-bass-station'),
+  'novation-afx-station': novation('novation-bass-station'),
   'roland-re-150': roland('space-echo'),
   'roland-re-301': roland('space-echo'),
   'roland-sre-555': roland('space-echo'),
