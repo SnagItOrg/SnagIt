@@ -519,6 +519,15 @@ const elektron = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
 })
 /** The second generation of `name`, as Elektron and its sellers write it: "Digitakt II", "Digitakt 2", "Digitakt MKII". */
 const elektronII = (name: string): RegExp => new RegExp(`(?<![\\w-])${name}\\s*-?\\s*(?:mk\\s?-?)?(?:ii|2)(?![\\w-])`, 'i')
+/**
+ * The first generation of the Analog Four, Analog Rytm and Octatrack as sellers write it: "MKI", "MK1", "Mk 1". A bare
+ * title names neither generation and prices like the MkI (production, 2026-11-04), so the MkII rows refuse the MkI and
+ * the MkI rows require it (or the Octatrack's "DPS-1") and refuse the MkII: the bare title defers. "DPS-1" alone is not
+ * the MkI, since sellers write "Octatrack MKII DPS-1" too.
+ */
+const ELEKTRON_MK_I = /(?<![\w-])mk\s?-?(?:1|i)(?![\w-])/i
+const ELEKTRON_MK_II = /(?<![\w-])mk\s?-?\.?(?:2|ii)(?![\w-])/i
+const elektronMkI = (line: string): LineBoundary => ({ ...elektron(line, ELEKTRON_MK_II), requires: [ELEKTRON_MK_I, /(?<![\w-])dps-?1(?![\w-])/i] })
 
 /**
  * PAN-321. The Korg vocoders: ROLAND_PARTS plus the vocoder trade's own parts and the covers and cases (production and
@@ -2480,13 +2489,23 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // "Analog Heat +FX" / "Heat FX"; never "Analog Heat - … Effect FX Module" (the Heat).
   'elektron-analog-heat': elektron('elektron-analog-heat', /(?<![\w-])heat\s*\+?\s*fx(?![\w-])/i),
   'elektron-analog-heat-fx': elektron('elektron-analog-heat'),
-  'elektron-analog-keys': elektron('elektron-analog-keys'),
+  // The Analog Keys is the Analog Four's engine in a keyboard; it shares the Four's line, so "Analog Keys - Analog Four
+  // Synthesizer" is the Keys and not a tie with the refused Four MkI (step 5b).
+  'elektron-analog-keys': elektron('elektron-analog-four'),
   'elektron-syntakt': elektron('elektron-syntakt'),
   'elektron-model-samples': elektron('elektron-model-samples'),
   'elektron-model-cycles': elektron('elektron-model-cycles'),
   'elektron-machinedrum-sps-1': elektron('elektron-machinedrum-sps-1'),
   'elektron-monomachine-sfx-6': elektron('elektron-monomachine-sfx-6'),
   'elektron-tonverk': elektron('elektron-tonverk'),
+  // The Analog Four, Analog Rytm and Octatrack: the MkII sells 40–160 % over the MkI, so two rows each (manager,
+  // 2026-11-04: option A). The imported slugs sit on Reverb's MkII pages and hold the MkII verdicts, so they are the MkII
+  // rows; the MkI rows are new. The Rytm MkI has no Reverb page and no row.
+  'elektron-analog-four': elektron('elektron-analog-four', ELEKTRON_MK_I),
+  'elektron-analog-four-mki': elektronMkI('elektron-analog-four'),
+  'elektron-analog-rytm': elektron('elektron-analog-rytm', ELEKTRON_MK_I),
+  'elektron-octatrack': elektron('elektron-octatrack', ELEKTRON_MK_I),
+  'elektron-octatrack-mki': elektronMkI('elektron-octatrack'),
   'roland-re-150': roland('space-echo'),
   'roland-re-301': roland('space-echo'),
   'roland-sre-555': roland('space-echo'),
