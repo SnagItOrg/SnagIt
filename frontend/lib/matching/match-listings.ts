@@ -417,6 +417,59 @@ const spDr = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
   ...roland(line, ...otherMembers, ...SP_DR_SOFTWARE), accessories: SP_DR_PARTS,
 })
 
+/**
+ * PAN-316. The Akai MPCs. The vintage MPC trade is the vintage Roland trade, so a row refuses ROLAND_NEVER and
+ * ROLAND_PARTS, plus the storage, pad, OS and library titles MPC sellers write (production and Reverb titles,
+ * 2026-11-04): "Akai Mpc 3000 Floppy Drive (original)", "Akai MPC 2000 and 2000xl Format Floppy 15 Disk Sample
+ * Library", "Akai MPC-60 OS Version 2.12 Operating System Eprom", "Akai IB-208P MPC 2000XL … Output Expander Board",
+ * "Akai Pad MPC3000", "Akai - MPC60 - Battery", "Ultimate MPC2000 SD Boot Disk", "Tin Metal Sign for Studio Akai MPC60",
+ * "Decksaver DS-PC-MPCLIVE2 Akai MPC Live II Cover". A part after an inclusion marker is the
+ * unit's: "Fully Serviced MPC2000XL w/CF Drive 1GB Card & 32MB RAM". The ROLAND_PARTS nouns an MPC seller writes as
+ * the unit's features are left out: "BLUE LCD, 100MB INTERNAL ZIP DRIVE", "STUDIO Loaded Extra Disks".
+ */
+const MPC_FEATURES = new Set(['lcd', 'disk', 'disks'])
+const MPC_PARTS: readonly (string | RegExp)[] = [
+  ...ROLAND_PARTS.filter((noun) => typeof noun !== 'string' || !MPC_FEATURES.has(noun)),
+  'floppy drive', 'floppy disk', 'floppy disks', 'sample library', 'drum library', 'library', 'eprom', 'eproms',
+  'pad set', 'pads set', 'pad sensor', 'pad sensors', 'replacement pads', 'cover', 'dust cover', 'travel bag',
+  'bag', 'case', 'fuse', 'faceplate', 'fader', 'encoder', 'manual', 'power supply', 'psu', 'adapter', 'boot disk',
+  'card only', 'nameplate', 'metal sign', 'vailixi', 'os upgrade', 'éclairage', 'parts', 'part', 'simm',
+  'face plate', 'metal plate', 'sheet metal', 'lcd screen', 'original pads', 'cf disk', 'power input', 'wires', 'window',
+  // "Akai MPC One Gen 2 Deluxe Stand - Walnut"; never "Stand Alone".
+  /(?<![\w-])stand(?![\w-])(?!\s*-?\s*alone)/i,
+  // The MPC's own software and sounds, sold alone ("MPC Expansion … Kit") or with the unit ("W/ VST'S, AKAI EXP PACKS").
+  'software', 'plugin', 'plugins', 'vst', "vst's", 'vsts', 'expansion', 'expansions', 'pro pack', 'drum kits', 'sound kit',
+  // "Akai Pad MPC3000", "Pads for MPC60"; never "new screen and pads".
+  /^\W*(?:akai\s+)?pads?(?![\w-])/i,
+  // "Akai MPC 3000 Original Screen", "Complete Original Display", "Akai - MPC60 - Battery"; never "New Screen", "Mint
+  // Screen", "LED Screen", "new battery".
+  /(?<!(?:new|mint|led|lcd|blue|orange|green|white|upgraded|internal)\s)(?<![\w-])(?:screen|display|battery)(?![\w-])(?!\s+(?:film|protector))/i,
+  // "Vimana OS 3.15 for the Akai MPC 60"; never "… Upgraded Widescreen, Vimana 3.15b5 OS".
+  /^\W*vimana(?![\w-])/i,
+  // The output board: "Akai IB-208P MPC 2000XL … Output Expander Board", "IB-M208P (8 out card + mounting)".
+  /(?<![\w-])ib-?m?\d{3}p?(?![\w-])/i,
+]
+/**
+ * Several units, the free MPC Beats software, the ASQ-10 sequencer and tact switches are never one MPC; nor is an
+ * original part, which "Complete" would otherwise keep as an inclusion: "Akai MPC3000 Complete Original Display".
+ */
+const MPC_NEVER: readonly RegExp[] = [
+  ...ROLAND_NEVER, ...cues('mpc beats', 'asq10', 'asq-10', 'tact', 'tactile'), /^\W*[2-9]\s+(?:x\s+)?akai(?![\w-])/i,
+  /(?<![\w-])original\s+(?:display|screen|pads|buttons?)(?![\w-])/i,
+]
+/** A part the title then says is included is the unit's: "SSD Installed, Power Supply Included" (SP_DR_PARTS). */
+const MPC_PARTS_NOT_INCLUDED = MPC_PARTS.map((noun) => (typeof noun === 'string' ? notIncluded(noun) : noun))
+const mpc = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
+  line, otherMembers: [...otherMembers, ...MPC_NEVER], accessories: MPC_PARTS_NOT_INCLUDED,
+})
+/** A second generation, written "G2", "Gen 2" or "Generation 2" (MPC One G2, MPC Key 37 G2, 2026): its own row. */
+const G2 = /(?<![\w-])(?:g2|gen(?:eration)?\s?2)(?![\w-])/i
+/**
+ * The "+" of "MPC One+" is the model's, not an inclusion marker: "Akai MPC One/One+ Pads and Sensor" is the pads. A
+ * required cue is blanked before the marker search (PAN-261, "6505+"), and every MPC One title names "one".
+ */
+const MPC_ONE_PLUS = /(?<![\w-])one(?:\s?\+)?/i
+
 /** A Boutique (2015–) re-creation: "Roland Boutique JU-06 JUNO-106 Sound Module" is the JU-06. */
 const BOUTIQUE = cue('boutique')
 /** The JU-06 / JU-06A Boutique Junos. */
@@ -2268,6 +2321,33 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'boss-dr-670': spDr('boss-dr-670'),
   'boss-dr-3': spDr('boss-dr-3'),
   'boss-dr-880': spDr('boss-dr-880'),
+  // ── PAN-316: the Akai MPCs (MPC_PARTS). A generation shares its line with its successors, so the refusal separates
+  // them (step 5b); every other row is its own line, so a two-model title stays a tie. Price decides
+  // identity (Reverb sold, same year, 2026-11-04): the MPC60 II, the MPC2000XL MCD / SE and the MPC One+ are their
+  // base row's; the MPC Live II (+51 %), Live III, X SE (+69 %), One G2 (+35 %) and Key 37 G2 (+45 %) are not.
+  // "Akai MPC 60 Key Synth Ax60 1980s" is the AX60 synthesizer.
+  'akai-mpc60': mpc('akai-mpc60', ...cues('ax60', 'ax-60')),
+  'akai-mpc3000': mpc('akai-mpc3000-line', /(?<![\w-])(?:mpc[\s-]?)?3000[\s-]?le(?![\w-])/i, cue('limited edition')),
+  'akai-mpc3000le': mpc('akai-mpc3000-line'),
+  'akai-mpc2000': mpc('akai-mpc2000-line', /(?<![\w-])(?:mpc[\s-]?)?2000[\s-]?xl/i),
+  'akai-mpc2000xl': mpc('akai-mpc2000-line'),
+  'akai-mpc1000': mpc('akai-mpc1000'),
+  'akai-mpc2500': mpc('akai-mpc2500'),
+  'akai-mpc500': mpc('akai-mpc500'),
+  'akai-mpc4000': mpc('akai-mpc4000'),
+  'akai-mpc-5000': mpc('akai-mpc-5000'),
+  'akai-mpc-live': mpc('akai-mpc-live-line', /(?<![\w-])live[\s-]?(?:ii|iii|2|3|mk[\s-]?(?:ii|iii|2|3))(?![a-z0-9])/i, cue('retro')),
+  'akai-mpc-live-ii': mpc('akai-mpc-live-line'),
+  'akai-mpc-live-iii': mpc('akai-mpc-live-line'),
+  'akai-mpc-one': { ...mpc('akai-mpc-one-line', G2), requires: [MPC_ONE_PLUS] },
+  'akai-mpc-one-g2': mpc('akai-mpc-one-line'),
+  'akai-mpc-x': mpc('akai-mpc-x-line', ...cues('se', 'special edition')),
+  'akai-mpc-x-se': mpc('akai-mpc-x-line'),
+  'akai-mpc-xl': mpc('akai-mpc-xl'),
+  'akai-mpc-key-61': mpc('akai-mpc-key-61'),
+  'akai-mpc-key-37': mpc('akai-mpc-key-37-line', G2),
+  'akai-mpc-key-37-g2': mpc('akai-mpc-key-37-line'),
+  'akai-mpc-sample': mpc('akai-mpc-sample'),
   'roland-re-150': roland('space-echo'),
   'roland-re-301': roland('space-echo'),
   'roland-sre-555': roland('space-echo'),
