@@ -1,8 +1,9 @@
 /**
  * scripts/lib/pan319-elektron.test.ts
  *
- * PAN-319: Elektron. Fourteen rows are match targets once the PAN-319 SQL files run (the Analog Four, Analog Rytm and
- * Octatrack wait on the owner). A generation shares its line with its successor, so the refusal separates them. Every
+ * PAN-319: Elektron. Nineteen rows are match targets once the PAN-319 and PAN-319b SQL files run. A generation shares its
+ * line with its successor, so the refusal separates them; the Analog Four, Rytm and Octatrack MkI need the generation in
+ * the title, so a bare title defers. Every
  * title is a production or Reverb sold title (2026-11-04) unless marked synthetic.
  *
  * Run: npx tsx --test scripts/lib/pan319-elektron.test.ts
@@ -25,6 +26,9 @@ const PRODUCTS: Product[] = [
   row('elektron-analog-heat', 'Analog Heat'), row('elektron-analog-heat-fx', 'Analog Heat +FX'), row('elektron-analog-keys', 'Analog Keys'),
   row('elektron-syntakt', 'Syntakt'), row('elektron-model-samples', 'Model:Samples'), row('elektron-model-cycles', 'Model:Cycles'),
   row('elektron-machinedrum-sps-1', 'Machinedrum'), row('elektron-monomachine-sfx-6', 'Monomachine'), row('elektron-tonverk', 'Tonverk'),
+  // pan319b: the imported slugs become the MkII rows; the MkI rows are new.
+  row('elektron-analog-four', 'Analog Four MKII'), row('elektron-analog-four-mki', 'Analog Four'),
+  row('elektron-analog-rytm', 'Analog Rytm MKII'), row('elektron-octatrack', 'Octatrack MKII'), row('elektron-octatrack-mki', 'Octatrack'),
 ]
 
 /** The identifiers: the Machinedrum's two seed SKUs (production), and pan319-identity's Model:* spellings. */
@@ -32,6 +36,11 @@ const M = (slug: string, ...values: string[]) => values.map((value) => ({ produc
 const IDENTS = [
   { product_id: 'p-elektron-machinedrum-sps-1', type: 'SKU', value: 'Machinedrum SPS-1' }, { product_id: 'p-elektron-machinedrum-sps-1', type: 'SKU', value: 'SPS-1' },
   ...M('elektron-model-samples', 'Model Samples', 'Model: Samples'), ...M('elektron-model-cycles', 'Model Cycles', 'Model: Cycles'),
+  ...M('elektron-octatrack-mki', 'DPS-1'),
+  // The MkII as sellers write it beside "MKII" (the model name): "MK2", "MK 2", "Mk II".
+  ...M('elektron-analog-four', 'Analog Four MK2', 'Analog Four MK 2', 'Analog Four MK II'),
+  ...M('elektron-analog-rytm', 'Analog Rytm MK2', 'Analog Rytm MK 2', 'Analog Rytm MK II'),
+  ...M('elektron-octatrack', 'Octatrack MK2', 'Octatrack MK 2', 'Octatrack MK II'),
 ]
 
 const index = buildMatchIndex(PRODUCTS, IDENTS, [], ['elektron', 'korg', 'roland', 'fender', 'yamaha'])
@@ -44,8 +53,8 @@ const notOn = (titles: string[]) => {
   for (const t of titles) { const d = String(decide(t)); assert.ok(!config.promoted.includes(d), `${t} → ${d}`) }
 }
 
-test('every row has a boundary and the config lists the 14 rows', () => {
-  assert.equal(config.promoted.length, 14)
+test('every row has a boundary and the config lists the 19 rows', () => {
+  assert.equal(config.promoted.length, 19)
   for (const slug of config.promoted) {
     assert.ok(LINE_BOUNDARIES[slug], `${slug} has no LINE_BOUNDARIES entry`)
     assert.ok(PRODUCTS.some((p) => p.slug === slug), `${slug} is not in the fixture`)
@@ -78,4 +87,19 @@ test("Elektron's own lids, rack kits, power supplies, bags and sound packs name 
   ])
   // A rack converter that fits three boxes names three products, so it is none of them.
   notOn(['Fraction Industries Elektron Digitakt / Digitone / AnalogHeat Rack Converter 2020 Black'])
+})
+
+test('the Analog Four, Rytm and Octatrack: MkII titles reach the MkII rows, MkI titles the MkI rows, a bare title defers', () => {
+  matches('elektron-analog-four', ['Elektron Analog Four MKII 4-voice Analog Synthesizer with Sequencer', 'Elektron Analog Four MK2', 'Elektron Analog Four Mk II Black'])
+  matches('elektron-analog-four-mki', ['Elektron Analog Four MK I, Used (Excellent Condition)', 'Elektron Analog Four MK1 - 2nd Hand', 'Elektron Analog Four MKI'])
+  matches('elektron-analog-rytm', ['Elektron Analog Rytm MkII 2010s - Gray', 'ELEKTRON ANALOG RYTM MKII BLACK Drum machine analogica/digitale a 8 voci', 'Elektron Analog Rytm MK2'])
+  matches('elektron-octatrack', ['Elektron Octatrack MkII Dynamic 8-Track Performance Sampler - Black', 'Elektron Octatrack MK2',
+    'Elektron Octatrack MKII DPS-1 Digital Performance Sampler Black , new //ARMENS//'])
+  matches('elektron-octatrack-mki', ['Elektron Octatrack DPS-1 Sampler', 'Elektron Octatrack MK1 Sampler +Neuwertig + OVP + 1,5Jahre Garantie', 'Elektron DPS-1 Octatrack'])
+  matches('elektron-analog-keys', ['Elektron Analog Keys - Analog Four Synthesizer'])
+  // The Rytm MkI has no row; a bare title names no generation (it prices like the MkI).
+  notOn(['Elektron Analog Rytm MK1 Synthesizer Drum Computer +Neuwertig + OVP + 1,5Jahre Garantie', 'Elektron Analog Rytm mkI boxed + wood wing (calibrated - last OS)'])
+  for (const t of ['Elektron Analog Four 2018 Black', 'Elektron Analog RYTM Drum Machine', 'Elektron Octatrack', 'ELEKTRON ANALOG FOUR : USED : [DETROIT MODULAR]']) {
+    assert.ok(!String(decide(t)).startsWith('elektron-'), `${t} → ${decide(t)}`)
+  }
 })
