@@ -1930,6 +1930,19 @@ const NEUMANN_TUBE_LARGE = (keep: string): RegExp =>
 /** The M 49 V (2022–, $7,200) is not the M 49 / b / c of 1951–74 ($11,000), and neither is a rebuild. */
 const M49V = /(?<![\w-])m[\s-]?49[\s-]?v(?![a-z])/i
 
+// ── PAN-311: workhorse amps and pedals ───────────────────────────────────────
+/**
+ * Measured on the active unmatched titles of every source (read-only, 2026-11-01); each cue has a title behind it.
+ * A guitar or bass sold with the amp is a set whose price is the pair's: "Guitarsæt- Stratocaster G&L Legacy + Boss
+ * Katana 50 forstærker + Guitartaske" (dba.dk), "LSquier Precision Bass+ Fender Rumble 15 Verstärker" (kleinanzeigen.de,
+ * where the glued "L" hides Squier from the brand guard).
+ */
+const WITH_INSTRUMENT: readonly RegExp[] = [/squier/i, ...cues('stratocaster', 'precision bass', 'guitarsæt')]
+/** A 1x12 cabinet sold under the combo's name: "Fender Hot Rod Deluxe 112 Guitarkabinet", "… kabinet med Celestion". */
+const KABINET: readonly string[] = ['kabinet', 'guitarkabinet']
+/** A JVM head sold with its cabinet is the pair (owner, 2026-10-14, PAN-261): "Marshall JVM410h + 1960A Lead 4x12 cab". */
+const WITH_CABINET: readonly RegExp[] = cues('1960', '1960a', '1960b', '1960ax', '1960bx', 'cab', 'cabinet', 'kabinet', '4x12', '412', 'stack')
+
 export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   // The ORIGINAL Model D, 1970–81. Owner: "Minimoog → vintage only".
   'moog-minimoog': {
@@ -3881,6 +3894,19 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'neumann-tlm-67': neumannRow('tlm-67', ...cues('ioaudio', 'maxmod', 'mk67', 'u67 kit', 'mod', 'modified', 'upgrade')),
   'neumann-bcm-705': neumannRow('bcm-705'),
   'neumann-v-402': { ...neumann('v-402'), requires: [NEUMANN_OR_TELEFUNKEN] },
+  // ── PAN-311: workhorse amps and pedals (only the rows a measured title reaches wrongly) ──
+  'fender-hot-rod-deluxe': { line: 'fender-hot-rod-deluxe', otherMembers: [], accessories: [...AMP_ACCESSORIES, ...KABINET] },
+  'fender-rumble-15': { line: 'fender-rumble-15', otherMembers: WITH_INSTRUMENT },
+  'boss-katana-50': { line: 'boss-katana-50', otherMembers: WITH_INSTRUMENT },
+  'marshall-jvm410h': { line: 'marshall-jvm410h', otherMembers: WITH_CABINET },
+  // "Roland Super Cube 40." is the 1980s Super Cube, not the Cube-40.
+  'roland-cube-40': { line: 'roland-cube-40', otherMembers: cues('super') },
+  // "Boss Katana guitarforstærker + Boss GT-1 multieffekt pedal" is the amp with the pedal (4,000 DKK).
+  'boss-gt-1': pedal('boss-gt-1', cue('katana')),
+  // "BOSS GT-1000 … Boss CB-ME80 Carry Bag Bundle" is a GT-1000 with the ME-80's bag.
+  'boss-me-80': pedal('boss-me-80', /(?<![\w-])cb[\s-]?me[\s-]?80(?![0-9])/i),
+  // The Deluxe (1,300 DKK) and the Mini are their own pedals: "MXR Carbon Copy Deluxe Delay", "MXR Carbon Copy mini".
+  'mxr-carbon-copy': pedal('mxr-carbon-copy', ...cues('deluxe', 'mini')),
 }
 
 /**
@@ -3952,6 +3978,10 @@ function resolveCanonical(canonical: string, products: Product[]): Product | und
 
 // ── Pagination helper (PostgREST caps at 1000 rows regardless of .limit()) ────
 
+// Every builder must carry a total `.order()`: offset pages over an unordered
+// query can skip or repeat rows between requests. PAN-311 (2026-11-02): at
+// 1,107 matchable products each index load dropped a different handful, and the
+// backfill writer decided "none" on 270 titles its dry run had matched.
 async function fetchAllRows<T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   builder: () => any,
@@ -4706,7 +4736,7 @@ export async function loadMatchIndex(supabase: SupabaseClient): Promise<MatchInd
     // these lines being present.
     fetchAllRows<RawProduct>(
       () => supabase.from('kg_product').select(PRODUCT_SELECT)
-              .eq('status', MATCHABLE_STATUS).eq('support_state', MATCHABLE_SUPPORT_STATE),
+              .eq('status', MATCHABLE_STATUS).eq('support_state', MATCHABLE_SUPPORT_STATE).order('id'),
       1000, 'kg_product',
     ),
     // Brand protection, loaded SEPARATELY and deliberately WITHOUT the support
@@ -4714,15 +4744,15 @@ export async function loadMatchIndex(supabase: SupabaseClient): Promise<MatchInd
     // Tokai product is supported. `status='active'` keeps Apple and the other
     // deprecated non-music brands out.
     fetchAllRows<RawProduct>(
-      () => supabase.from('kg_product').select(BRAND_PROTECTION_SELECT).eq('status', MATCHABLE_STATUS),
+      () => supabase.from('kg_product').select(BRAND_PROTECTION_SELECT).eq('status', MATCHABLE_STATUS).order('id'),
       1000, 'kg_product_brands',
     ),
     fetchAllRows<Identifier>(
-      () => supabase.from('kg_identifier').select('product_id, type, value').in('type', ['SKU', 'MODEL']),
+      () => supabase.from('kg_identifier').select('product_id, type, value').in('type', ['SKU', 'MODEL']).order('id'),
       1000, 'kg_identifier',
     ),
     fetchAllRows<Synonym>(
-      () => supabase.from('synonym').select('alias, canonical_query').eq('match_type', 'alias'),
+      () => supabase.from('synonym').select('alias, canonical_query').eq('match_type', 'alias').order('id'),
       1000, 'synonym',
     ),
   ])

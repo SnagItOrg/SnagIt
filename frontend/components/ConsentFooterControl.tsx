@@ -1,7 +1,8 @@
 'use client'
 
 /**
- * The persistent consent control, in the footer of every public page.
+ * The persistent consent control, in the footer of every public page. It also
+ * carries the one-line imprint (operator name and CVR).
  *
  * Stage 3 WP-5. See docs/stage-3-v1-decision-and-build-plan.md §12.4.4.
  *
@@ -98,6 +99,11 @@ export function ConsentFooterControl() {
           </Button>
         )}
       </div>
+
+      {/* The imprint: who runs the site. PAN-15, owner 2026-11-02: name and CVR, no address. */}
+      <p data-testid="footer-imprint" className="mt-3 text-center text-xs">
+        {t.operatedBy}
+      </p>
     </footer>
   )
 }

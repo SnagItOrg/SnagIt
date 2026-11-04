@@ -141,7 +141,7 @@ export function WatchProductForm({ productSlug, productName, suggestedMaxPrice }
             type="number"
             inputMode="numeric"
             min={1}
-            step={100}
+            step={1}
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
             aria-label={t.watchModelPriceLabel}

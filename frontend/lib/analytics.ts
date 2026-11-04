@@ -882,18 +882,27 @@ export function isNewAccountConfirmation(user: {
 /** Link click to code exchange is a redirect; ten minutes is generous. */
 const NEW_ACCOUNT_WINDOW_MS = 10 * 60 * 1000
 
+/**
+ * The properties of the sanitised `$pageview` of §12.1 #1. Shared by the
+ * consented pageview and the cookieless page count, so the two can never
+ * disagree about what a pageview may carry.
+ */
+export function pageviewProperties(pathname: string, search: string): Record<string, unknown> {
+  const origin = browserWindow()?.location?.origin ?? ''
+  const referrer = browserDocument()?.referrer ?? ''
+  return {
+    ...buildSuperProperties(pathname),
+    $current_url: buildAnalyticsUrl(origin, pathname, search),
+    path_template: pathTemplateFor(pathname),
+    referrer_host: referrerHostOf(referrer),
+  }
+}
+
 /** The sanitised `$pageview` of §12.1 #1. */
 export function capturePageview(pathname: string, search: string): void {
   if (!mayEmit()) return
   try {
-    const origin = browserWindow()?.location?.origin ?? ''
-    const referrer = browserDocument()?.referrer ?? ''
-    client!.capture('$pageview', {
-      ...buildSuperProperties(pathname),
-      $current_url: buildAnalyticsUrl(origin, pathname, search),
-      path_template: pathTemplateFor(pathname),
-      referrer_host: referrerHostOf(referrer),
-    })
+    client!.capture('$pageview', pageviewProperties(pathname, search))
   } catch {
     /* analytics must never break the product */
   }

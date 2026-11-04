@@ -30,7 +30,8 @@ import "./globals.css";
  *   strictly worse than deleting it.
  *
  * WHAT STAYED, BEHIND THE GATE: PostHog and Speed Insights, mounted only by
- * <AnalyticsRoot />, which renders nothing at all until consent is `granted`.
+ * <AnalyticsRoot />, which renders only the cookieless page count (one
+ * anonymous `$pageview` per page, no cookie, no id) until consent is `granted`.
  * Speed Insights measures real visitors' sessions, so it is behavioural rather
  * than operational and is consent-gated too — which is why guardrail G8 is
  * measured on the consenting population only.
