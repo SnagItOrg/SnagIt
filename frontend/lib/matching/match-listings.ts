@@ -520,6 +520,23 @@ const elektron = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({
 /** The second generation of `name`, as Elektron and its sellers write it: "Digitakt II", "Digitakt 2", "Digitakt MKII". */
 const elektronII = (name: string): RegExp => new RegExp(`(?<![\\w-])${name}\\s*-?\\s*(?:mk\\s?-?)?(?:ii|2)(?![\\w-])`, 'i')
 
+/**
+ * PAN-321. The Korg vocoders: ROLAND_PARTS plus the vocoder trade's own parts and the covers and cases (production and
+ * Reverb titles, 2026-11-04): "Microphone Male Connector - Korg VC-10", "Analog Cases Korg MicroKorg/MicroKorg XL+ Pulse
+ * Case", "Korg MicroKorg XL+ Owners Manual", "Korg KA183 9VDC 600mA … For BEATLAB, MICROKORG". A part the title then says
+ * is included is the unit's.
+ */
+const KORG_VOCODER_PARTS: readonly (string | RegExp)[] = [
+  ...ROLAND_PARTS, ...['cover', 'dust cover', 'case', 'manual', 'owners manual', 'connector'].map(notIncluded),
+  /(?<![\w-])ka-?\d{3}(?![\w-])/i, /\d\s?v\s?dc(?![\w-])/i,
+  // The mic offered alone ("KORG microKorg Vocoder MIc", "Vocoder Condenser Microphone for microKORG XL"); never the unit
+  // sold with or without it ("VC-10 … Original Mic", "VC-10 Vintage Vocoder - Microphone not Included").
+  /(?:^\W*|(?<![\w-])(?:vocoder|condenser|gooseneck)\s+)mic(?:rophone)?(?![\w-])/i,
+]
+const korgVocoder = (line: string, ...otherMembers: RegExp[]): LineBoundary => ({ ...roland(line, ...otherMembers), accessories: KORG_VOCODER_PARTS })
+/** The "+" of "microKORG XL+" is the model's, not an inclusion marker (the MPC One+ case): "MicroKorg XL + - New Power Switch". */
+const MICROKORG_XL = /(?<![\w-])xl\s?(?:\+|plus)?/i
+
 /** A Boutique (2015–) re-creation: "Roland Boutique JU-06 JUNO-106 Sound Module" is the JU-06. */
 const BOUTIQUE = cue('boutique')
 /** The JU-06 / JU-06A Boutique Junos. */
@@ -2341,6 +2358,30 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'roland-vp-770': roland('roland-vp-770'),
   'roland-vp-9000': roland('roland-vp-9000'),
   // PAN-320: the voice transformers — the Boss VT-1 (1996), the Roland AIRA VT-3 (2014) and the VT-4 (2019).
+  // ── PAN-321: the Korg vocoders (KORG_VOCODER_PARTS). The microKORG generations share a line:
+  // the 2002 microKORG refuses the S (+49 %), XL and 2; the XL+ is the XL's (+8–25 %).
+  'korg-vc-10': korgVocoder('korg-vc-10'),
+  'korg-dvp-1': korgVocoder('korg-dvp-1'),
+  'korg-microkorg': korgVocoder('korg-microkorg', /(?<![\w-])micro\s?korg\s*-?\s*(?:s|xl|2|ii)(?![\w])/i),
+  'korg-microkorg-s': korgVocoder('korg-microkorg'),
+  'korg-microkorgxl': { ...korgVocoder('korg-microkorg'), requires: [MICROKORG_XL] },
+  'korg-microkorg-2': korgVocoder('korg-microkorg'),
+  // ── PAN-321: the DigiTech Talker (a word: it needs the maker) and the TC Helicon VoiceLive series (pedal()), one line.
+  // VoiceLive 2 Extreme is the 2's (≈ +15 %); the 3 Extreme (+26–61 %), Play GTX (+22–44 %) and Touch 2 (+34 %) are rows
+  // of their own. The Play Acoustic and Play Electric have no row.
+  'digitech-talker': { ...pedal('digitech-talker'), requires: [/(?<![\w-])digi-?tech(?![\w-])/i] },
+  'tc-helicon-voicelive-2': pedal('tc-helicon-voicelive'),
+  'tc-helicon-voicelive-3': pedal('tc-helicon-voicelive', cue('extreme')),
+  'tc-helicon-voicelive-3-extreme': pedal('tc-helicon-voicelive'),
+  'tc-helicon-voicelive-play': pedal('tc-helicon-voicelive', ...cues('gtx', 'acoustic', 'electric')),
+  'tc-helicon-voicelive-play-gtx': pedal('tc-helicon-voicelive'),
+  'tc-helicon-voicelive-touch': pedal('tc-helicon-voicelive', /(?<![\w-])touch\s*-?\s*(?:2|ii)(?![\w-])/i),
+  'tc-helicon-voicelive-touch-2': pedal('tc-helicon-voicelive'),
+  // The rack unit is a module: "TC Helicon Voicelive Rack Vocal Effects Rack Module" (Reverb sold) is the unit, so it
+  // keeps PEDAL_NEVER without the Eurorack "module" cue.
+  'tc-helicon-voicelive-rack': {
+    ...pedal('tc-helicon-voicelive'), otherMembers: PEDAL_NEVER.filter((re) => !re.test('module')),
+  },
   'boss-vt-1-voice-transformer': roland('boss-vt-1-voice-transformer'),
   'roland-vt-3': roland('roland-vt-3'),
   'roland-vt-4': roland('roland-vt-4'),

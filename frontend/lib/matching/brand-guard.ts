@@ -119,6 +119,9 @@ export const SAME_MAKER: readonly (readonly string[])[] = [
   // PAN-293: "TC Electronics Impact Twin", "T.C. Electronic 2290" and "T.C Electronic 1210" (DBA and Reverb, 2026-10-21)
   // name TC Electronic.
   ['tc electronic', 'tc electronics', 't.c. electronic', 't.c. electronics', 't.c electronic', 'tc-electronic'],
+  // PAN-321: the kg_brand row is "TC Helicon", as Reverb names it; the units carry "TC-Helicon" and sellers also write
+  // "Helicon VoiceLive". A separate maker from TC Electronic (owner, 2026-11-04).
+  ['tc helicon', 'tc-helicon', 'helicon'],
 ]
 const MAKER_OF = new Map<string, string>()
 SAME_MAKER.forEach((group) => group.forEach((name) => MAKER_OF.set(name, group[0])))
