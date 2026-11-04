@@ -95,6 +95,11 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
     access: 'public_page',
     note: "PAN-278; records the mail's click and redirects to its n-th listing's stored URL",
   },
+  {
+    route: '/stop-velkomst',
+    access: 'public_page',
+    note: 'PAN-308; "Stop dem her" in welcome mails 2 and 3. The token in the query is the credential; a visit only asks, the button POSTs; noindex, no referrer',
+  },
 
   /* ---------------- data-gated public surfaces ---------------- */
   {
@@ -214,6 +219,11 @@ export const ROUTE_ACCESS: readonly RouteRule[] = [
    * `?watchlist_id=` price rows with the service role after a session-only
    * check, with no ownership test. */
   { route: '/api/welcome', access: 'protected_api', note: 'PAN-308; welcome mail #1, only for an account under an hour old; Resend idempotency key per user' },
+  {
+    route: '/api/welcome/stop',
+    access: 'public_api',
+    note: "PAN-308; POST stops the welcome series (app_metadata.welcome_stopped_at). The mail's token is the credential; no GET; RFC 8058 one-click gets 200",
+  },
   { route: '/api/watchlists', access: 'protected_api' },
   { route: '/api/watchlists/[id]', access: 'protected_api' },
   { route: '/api/watchlists/[id]/listings', access: 'protected_api' },
