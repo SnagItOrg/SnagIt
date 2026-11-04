@@ -37,6 +37,11 @@
  * no model and gets no word. The word is additive: a verdict read that fails
  * is logged and the mail goes out as before.
  *
+ * PAN-308: after the alert mails, the welcome series' step
+ * (`runWelcomeSeries()` in scripts/lib/welcome-series.ts) sends welcome
+ * mails #2 and #3 to the accounts due them, dry run or --apply like the rest.
+ * Its failure is logged and never fails the alert run.
+ *
  * Dry run by default: prints the would-send list — watchlist id, query, the
  * hits — and writes nothing. It skips pairs the table already holds, so it
  * shows what tonight's --apply would do. Before 066 is applied it has no
@@ -52,6 +57,7 @@ import { sendNewListingsEmail } from '../frontend/lib/email'
 import { isCanonical } from '../frontend/lib/catalogue'
 import { loadChildVerdicts, type CardVerdict } from '../frontend/lib/listing-verdicts'
 import { mailPrompt, type MailEngagement, type MailPrompt } from '../frontend/lib/watchlist-mail'
+import { runWelcomeSeries } from './lib/welcome-series'
 import {
   isNonProduct, matchesProductWatchlist, matchesWatchlist, notifyHits, type HitListing, type HitWatchlist,
 } from './lib/watchlist-hits'
@@ -308,6 +314,14 @@ async function main() {
 
   if (APPLY) console.log(`done: ${JSON.stringify(tally)} (watchlists by outcome)`)
   else console.log(`would send ${wouldSend} email(s) to ${wouldSendUsers.size} user(s), ${wouldSendListings} listing(s); nothing sent, nothing written`)
+
+  // PAN-308: the welcome series, after the alerts it must never hold up.
+  try {
+    const welcome = await runWelcomeSeries(supabase, { apply: APPLY, nowMs: Date.now(), appUrl: APP_URL })
+    console.log(`welcome series: ${JSON.stringify(welcome)}`)
+  } catch {
+    console.error(JSON.stringify({ channel: 'operational', component: 'notify-watchlists', event: 'welcome_series_failed' }))
+  }
 }
 
 main().catch((err) => {
