@@ -470,6 +470,23 @@ const G2 = /(?<![\w-])(?:g2|gen(?:eration)?\s?2)(?![\w-])/i
  */
 const MPC_ONE_PLUS = /(?<![\w-])one(?:\s?\+)?/i
 
+/**
+ * PAN-317. Ableton's hardware: the Push controllers and the Move. One line, so a refusal separates two members (step 5b)
+ * and a title naming two members' models stays a tie. "Push" and "Move" are English words ("Small Push Button", "must
+ * move"), so the Push and Move rows need the maker beside the name. The parts are the controller trade's, measured on
+ * production and Reverb titles (2026-11-04): "Decksaver Ableton Push 3 Dust Cover", "Headliner (Ableton Push 3) Stand",
+ * "Magma … Case"; a part the title then says is included is the unit's.
+ */
+const ABLETON_PARTS: readonly (string | RegExp)[] = [
+  'cover', 'dust cover', 'decksaver', 'stand', 'case', 'bag', 'sleeve', 'skin', 'overlay', 'power supply', 'psu', 'adapter',
+  'cable', 'knob', 'knobs', 'button', 'buttons', 'encoder', 'faceplate', 'manual', 'license', 'licence',
+].map(notIncluded)
+const ableton = (...otherMembers: RegExp[]): LineBoundary => ({
+  line: 'ableton', otherMembers: [...otherMembers, ...ROLAND_NEVER], accessories: ABLETON_PARTS,
+})
+/** The 2023 Push 3 sells as a controller and as a standalone (+78 %): "Push 3 controller (not standalone)" is the controller. */
+const PUSH_3_STANDALONE = /(?<!not\s)(?<![\w-])standalone(?![\w-])/i
+
 /** A Boutique (2015–) re-creation: "Roland Boutique JU-06 JUNO-106 Sound Module" is the JU-06. */
 const BOUTIQUE = cue('boutique')
 /** The JU-06 / JU-06A Boutique Junos. */
@@ -2348,6 +2365,13 @@ export const LINE_BOUNDARIES: Readonly<Record<string, LineBoundary>> = {
   'akai-mpc-key-37': mpc('akai-mpc-key-37-line', G2),
   'akai-mpc-key-37-g2': mpc('akai-mpc-key-37-line'),
   'akai-mpc-sample': mpc('akai-mpc-sample'),
+  // ── PAN-317: Ableton (ABLETON_PARTS), one line. Price decides identity (Reverb sold, 2025): Push 1 $210, Push 2 $388,
+  // Push 3 controller $790, Push 3 standalone $1,406, Move $399 — five rows.
+  'ableton-push': { ...ableton(/(?<![\w-])push\s?-?(?:2|3|ii|iii)(?![\w-])/i), requires: [cue('ableton')] },
+  'ableton-push-2': ableton(),
+  'ableton-push-3': ableton(PUSH_3_STANDALONE),
+  'ableton-push-3-standalone': { ...ableton(), requires: [PUSH_3_STANDALONE] },
+  'ableton-move': { ...ableton(), requires: [/(?<![\w-])ableton\s+move(?![\w-])/i] },
   'roland-re-150': roland('space-echo'),
   'roland-re-301': roland('space-echo'),
   'roland-sre-555': roland('space-echo'),
