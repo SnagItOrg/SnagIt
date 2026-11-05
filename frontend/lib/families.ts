@@ -1424,6 +1424,23 @@ const FAMILY_CONFIG: Record<FamilySlug, Omit<NavigationFamily, 'slug'>> = {
     children: ['roland-sp-808', 'roland-sp-606', 'roland-sp-555'],
     aliases: [],
   },
+  /*
+   * PAN-316, owner 2026-11-04: "I'm missing Akai MPCs in the product." The `rhodes` case: no row. Every standalone MPC
+   * from the MPC60 (1988) to the MPC Sample (2026), each its own priced page; the MPC60 II, the MPC2000XL MCD / SE and
+   * the MPC One+ are their base row's (price decides identity). The software controllers (Renaissance, Studio, Touch,
+   * Element) are not MPCs a buyer prices as one. No aliases: "MPC" alone names other gear.
+   */
+  'akai-mpc': {
+    label: 'Akai MPC',
+    brand: 'Akai',
+    categoryRoot: 'keyboards-and-synths',
+    children: [
+      'akai-mpc60', 'akai-mpc3000', 'akai-mpc3000le', 'akai-mpc2000', 'akai-mpc2000xl', 'akai-mpc1000', 'akai-mpc2500', 'akai-mpc500',
+      'akai-mpc4000', 'akai-mpc-5000', 'akai-mpc-live', 'akai-mpc-live-ii', 'akai-mpc-live-iii', 'akai-mpc-one', 'akai-mpc-one-g2',
+      'akai-mpc-x', 'akai-mpc-x-se', 'akai-mpc-xl', 'akai-mpc-key-61', 'akai-mpc-key-37', 'akai-mpc-key-37-g2', 'akai-mpc-sample',
+    ],
+    aliases: [],
+  },
 }
 
 /** Every family, in `FAMILY_SLUGS` order. */

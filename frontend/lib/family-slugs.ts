@@ -133,6 +133,8 @@ export const FAMILY_SLUGS = [
   'boss-dr',
   'boss-sp',
   'roland-sp',
+  // PAN-316 (owner, 2026-11-04). The `rhodes` case: no row. Every standalone MPC, each its own priced page.
+  'akai-mpc',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]

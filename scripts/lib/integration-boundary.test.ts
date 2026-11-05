@@ -344,6 +344,10 @@ test('integration: every package suite is registered exactly once', () => {
       // (DR-5 / DR-55 / DR-550); the SP-808EX, DR-220A / E and DR-550 MkII are their base row's; parts, cards, cases,
       // manuals and power supplies name none, and a two-model title stays a tie.
       'scripts/lib/pan315-sp-dr.test.ts',
+      // PAN-316: the Akai MPCs. A generation never reaches its successor (Live / Live II / Live III, One / One G2, X / X
+      // SE, Key 37 / G2, 2000 / 2000XL, 3000 / 3000LE); the MPC60 II, 2000XL MCD and One+ are their base row's; parts,
+      // OS chips, libraries, covers and software name none, and a part the title says is included stays the unit's.
+      'scripts/lib/pan316-akai-mpc.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite

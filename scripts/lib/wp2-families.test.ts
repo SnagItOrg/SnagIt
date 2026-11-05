@@ -99,6 +99,8 @@ const PAN293_FAMILIES = ['eventide-factor-pedals', 'eventide-h9-pedals']
 const PAN302_FAMILIES = ['telefunken-ela-m-251-condenser', 'telefunken-alchemy']
 /** PAN-315. The `rhodes` case, three times: no row. The Boss DR and SP lines and the Roland SP line. */
 const PAN315_FAMILIES = ['boss-dr', 'boss-sp', 'roland-sp']
+/** PAN-316. The `rhodes` case: no row. Every standalone Akai MPC. */
+const PAN316_FAMILIES = ['akai-mpc']
 
 /** The six, plus `rhodes` (PAN-85) — the first family with canonical children — the Boss lines and `minimoog` (PAN-154). */
 /** PAN-284 (owner, 2026-10-21). The `rhodes` case, all 27: eleven Roland lines, thirteen guitar models, three synths. */
@@ -111,7 +113,7 @@ const PAN284_FAMILIES = [
   'sequential-ob-6-synth', 'sequential-trigon-6-synth', 'oberheim-ob-x-synth',
 ]
 
-const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES, ...PAN230_FAMILIES, ...PAN261_FAMILIES, ...PAN271_FAMILIES, ...PAN282_FAMILIES, ...PAN284_FAMILIES, ...PAN286_FAMILIES, ...PAN290_FAMILIES, ...PAN291_FAMILIES, ...PAN293_FAMILIES, ...PAN302_FAMILIES, ...PAN315_FAMILIES]
+const EXPECTED_FAMILIES = [...GUITAR_FAMILIES, 'rhodes', ...BOSS_FAMILIES, 'minimoog', 'mustang-short-scale-bass', ...PAN159_FAMILIES, ...PAN198_FAMILIES, ...PAN199_FAMILIES, ...PAN230_FAMILIES, ...PAN261_FAMILIES, ...PAN271_FAMILIES, ...PAN282_FAMILIES, ...PAN284_FAMILIES, ...PAN286_FAMILIES, ...PAN290_FAMILIES, ...PAN291_FAMILIES, ...PAN293_FAMILIES, ...PAN302_FAMILIES, ...PAN315_FAMILIES, ...PAN316_FAMILIES]
 
 /**
  * Production state of every configured child, SELECT-verified 2026-08-28:
@@ -557,6 +559,12 @@ test('families: children match the reviewed §6.3 map', () => {
     ],
     'boss-sp': ['boss-sp-202-dr-sample', 'boss-sp-303-dr-sample', 'boss-sp-505'],
     'roland-sp': ['roland-sp-808', 'roland-sp-606', 'roland-sp-555'],
+    // PAN-316 (2026-11-04). Every standalone Akai MPC.
+    'akai-mpc': [
+      'akai-mpc60', 'akai-mpc3000', 'akai-mpc3000le', 'akai-mpc2000', 'akai-mpc2000xl', 'akai-mpc1000', 'akai-mpc2500', 'akai-mpc500',
+      'akai-mpc4000', 'akai-mpc-5000', 'akai-mpc-live', 'akai-mpc-live-ii', 'akai-mpc-live-iii', 'akai-mpc-one', 'akai-mpc-one-g2',
+      'akai-mpc-x', 'akai-mpc-x-se', 'akai-mpc-xl', 'akai-mpc-key-61', 'akai-mpc-key-37', 'akai-mpc-key-37-g2', 'akai-mpc-sample',
+    ],
   }
   for (const family of NAVIGATION_FAMILIES) {
     assert.deepEqual([...family.children].sort(), [...expected[family.slug]].sort(), family.slug)
@@ -607,9 +615,9 @@ test('redirects: each of the six legacy /product URLs maps to its family route',
   // (PAN-230), `fender-blues-junior-amp` (PAN-261), `bach-stradivarius` (PAN-271), `memory-man` (PAN-282) and
   // `fuzz-tone` / `echoplex` / `ventilator` (PAN-286) are the `rhodes` case: no row. So are `boss-ds-distortion`,
   // the 27 prefix families (PAN-284), the five Lexicon / Korg SDD lines (PAN-290), the four Ensoniq lines (PAN-291) and
-  // the two Eventide lines (PAN-293), the two Telefunken lines (PAN-302) and the Boss DR / SP and Roland SP lines
-  // (PAN-315).
-  assert.equal(EXPECTED_FAMILIES.length, 72)
+  // the two Eventide lines (PAN-293), the two Telefunken lines (PAN-302), the Boss DR / SP and Roland SP lines
+  // (PAN-315) and the Akai MPC (PAN-316).
+  assert.equal(EXPECTED_FAMILIES.length, 73)
 })
 
 test('redirects: nothing else is redirected', () => {
