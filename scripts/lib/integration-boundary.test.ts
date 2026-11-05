@@ -348,6 +348,9 @@ test('integration: every package suite is registered exactly once', () => {
       // SE, Key 37 / G2, 2000 / 2000XL, 3000 / 3000LE); the MPC60 II, 2000XL MCD and One+ are their base row's; parts,
       // OS chips, libraries, covers and software name none, and a part the title says is included stays the unit's.
       'scripts/lib/pan316-akai-mpc.test.ts',
+      // PAN-317: Ableton's Push 1 / 2 / 3 (controller and standalone) and Move, one line: no generation reaches its successor,
+      // "push button" and "must move" name none, and stands, covers and cases name none.
+      'scripts/lib/pan317-ableton.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
