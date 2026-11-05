@@ -129,6 +129,10 @@ export const FAMILY_SLUGS = [
   // priced page) or a TF row (each its own priced page).
   'telefunken-ela-m-251-condenser',
   'telefunken-alchemy',
+  // PAN-315 (owner, 2026-11-02). The `rhodes` case, three times: no row. The SP-404s keep `roland-sp-404-sampler`.
+  'boss-dr',
+  'boss-sp',
+  'roland-sp',
 ] as const
 
 export type FamilySlug = (typeof FAMILY_SLUGS)[number]

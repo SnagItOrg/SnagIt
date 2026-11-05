@@ -340,6 +340,10 @@ test('integration: every package suite is registered exactly once', () => {
       // cabinet, an instrument or a cabinet sold with the amp, the Super Cube 40, a GT-1000 with the ME-80 bag, the Carbon
       // Copy Deluxe and Mini); each boundary refuses its production title and keeps the row's own.
       'scripts/lib/pan311-workhorse.test.ts',
+      // PAN-315: the Roland SP samplers and the Boss DR drum machines. Each code reaches its row and never its neighbour
+      // (DR-5 / DR-55 / DR-550); the SP-808EX, DR-220A / E and DR-550 MkII are their base row's; parts, cards, cases,
+      // manuals and power supplies name none, and a two-model title stays a tie.
+      'scripts/lib/pan315-sp-dr.test.ts',
       'scripts/lib/pan86-home-categories.test.ts',
       // PAN-93: display and price evidence are two questions asked of one
       // three-valued column, and two surfaces answer them. Its own suite
