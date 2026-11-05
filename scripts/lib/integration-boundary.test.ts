@@ -320,9 +320,18 @@ test('integration: every package suite is registered exactly once', () => {
       // PAN-307: the sold writer reads Reverb's own product page (CSP → cp id, show_only_sold) and falls back to the
       // text search; the line boundary still refuses the siblings Reverb files there.
       'scripts/lib/pan307-sold-by-product.test.ts',
+      // PAN-308: welcome mails #2 and #3 — one CTA each, "Stop dem her" in both parts, mail #3's numbers, its
+      // quiet week and no price word without a band.
+      'scripts/lib/pan308-onboarding-mails.test.ts',
       // PAN-308: welcome mail #1 — the first-hour window, one CTA that follows the account, the price check as a
       // P.S., copy in both languages, and the trigger only for a new account after its sign-in handler.
       'scripts/lib/pan308-welcome-mail.test.ts',
+      // PAN-308: the welcome series' nightly step — who is due which mail, mail 3's numbers, token before the
+      // mail and stamp after it, and a failure that never fails the alert run.
+      'scripts/lib/pan308-welcome-series.test.ts',
+      // PAN-308: "Stop dem her" — the token is the credential, POST only, the other app_metadata keys kept,
+      // one-click answered with a 200, and the page only asks.
+      'scripts/lib/pan308-welcome-stop.test.ts',
       // PAN-309: the watch form's price field accepts the max price the product page prefills.
       'scripts/lib/pan309-watch-price-step.test.ts',
       // PAN-311: every query loadMatchIndex pages is ordered by id, so offset pages cannot skip or repeat rows.
